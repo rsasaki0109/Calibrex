@@ -287,6 +287,44 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (tmp_path / "tf.yaml").exists()
 
 
+def test_compare_command_writes_machine_readable_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    left_result = Path("examples/precomputed/result.yaml")
+    right = load_result(left_result)
+    right.run.id = "candidate_variant"
+    right.metrics["lidar_point_to_plane_rmse_m"].holdout = 0.031
+    right.transforms["T_base_lidar0"].translation_m = [0.05, 0.0, 0.4]
+    right_result = tmp_path / "candidate_result.yaml"
+    right.save(right_result)
+    output = tmp_path / "comparison.json"
+
+    assert (
+        main(
+            [
+                "compare",
+                str(left_result),
+                str(right_result),
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    written = json.loads(output.read_text(encoding="utf-8"))
+    assert payload == written
+    assert payload["schema_version"] == "calibrex.comparison/v0.1"
+    assert payload["left"]["run_id"] == "precomputed_example"
+    assert payload["right"]["run_id"] == "candidate_variant"
+    assert payload["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
+    assert payload["summary"]["max_translation_delta_m"] == 0.05
+    assert payload["transform_groups"]["transforms"]["comparison_count"] == 2
+
+
 def test_schema_commands(tmp_path: Path) -> None:
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"

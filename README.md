@@ -59,6 +59,7 @@ calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 | Observability and degeneracy warnings | Reports when a dataset cannot support a trusted estimate for some DoF. |
 | `summary.json`, `metrics.json`, `observability.json`, `degeneracy.json` | Gives CI, notebooks, and benchmark scripts stable machine-readable report inputs, including metric-family rollups. |
 | `calibrex validate` | Verifies configs, results, manifests, and report sidecars from their `schema_version`. |
+| `calibrex compare` | Compares dataset references, manual candidates, external baselines, and Calibrex-native results without mixing their namespaces. |
 | HTML report, Calibration Scoreboard, and overlays | Gives reviewers a portable artifact instead of a one-off notebook screenshot. |
 
 Examples are public-dataset workflows. Large raw logs are never committed to the
@@ -101,6 +102,7 @@ unified estimation problem.
 - nuScenes `calibrated_sensor` import into result `reference_extrinsics`
 - Candidate extrinsics stored separately from solver output and compared against references
 - External candidate extrinsic YAML import with `--candidate-extrinsics`
+- `calibrex compare` for metric, transform, observability, and degeneracy deltas between result files
 - HTML Calibration Scoreboard summarizing grade counts, weak DoF, candidate/reference matches, and artifacts
 - Schema-valid machine-readable report sidecars for summary, metrics, observability, and degeneracy
 - KITTI OXTS motion excitation diagnostics for speed, duration, and yaw checks
@@ -144,6 +146,7 @@ calibrex validate outputs/example/result.yaml --json
 calibrex validate outputs/example/summary.json --json
 calibrex evaluate outputs/example/result.yaml --export-html
 calibrex visualize outputs/example/result.yaml --export-html
+calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml --output outputs/comparison.json
 calibrex export outputs/example/result.yaml --format ros-tf --output outputs/example/tf.yaml
 ```
 

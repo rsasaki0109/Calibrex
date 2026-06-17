@@ -36,6 +36,7 @@ from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
+from calibrex.evaluation.compare import ResultComparison, compare_results
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
 from calibrex.evaluation.metrics import evaluate_quality
@@ -141,6 +142,13 @@ def _build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--export-html", action="store_true", help="write report.html")
     evaluate.add_argument("--json", action="store_true")
     evaluate.set_defaults(func=_cmd_evaluate)
+
+    compare = subcommands.add_parser("compare", help="compare two result files")
+    compare.add_argument("left_result", type=Path)
+    compare.add_argument("right_result", type=Path)
+    compare.add_argument("--output", type=Path, help="write comparison as YAML/JSON")
+    compare.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    compare.set_defaults(func=_cmd_compare)
 
     metrics = subcommands.add_parser("metrics", help="list registered metric definitions")
     metrics.add_argument("--json", action="store_true")
@@ -341,6 +349,23 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     }
     _emit(payload, args.json)
     return 1 if result.quality.grade == "fail" else 0
+
+
+def _cmd_compare(args: argparse.Namespace) -> int:
+    comparison = compare_results(
+        load_result(args.left_result),
+        load_result(args.right_result),
+        left_path=args.left_result,
+        right_path=args.right_result,
+    )
+    payload = comparison.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    elif not args.output:
+        _emit_comparison(comparison)
+    return 0
 
 
 def _cmd_metrics(args: argparse.Namespace) -> int:
@@ -727,6 +752,27 @@ def _ordered_diagnostic_keys(diagnostic: dict[str, object]) -> list[str]:
 
 def _format_bool(value: bool) -> str:
     return "yes" if value else "no"
+
+
+def _emit_comparison(comparison: ResultComparison) -> None:
+    summary = comparison.summary
+    print(f"left: {comparison.left.run_id} ({comparison.left.grade})")
+    print(f"right: {comparison.right.run_id} ({comparison.right.grade})")
+    print(f"metrics: {summary.metric_comparison_count}")
+    print(
+        "metric_winners: "
+        f"left={summary.left_better_metric_count}, "
+        f"right={summary.right_better_metric_count}, "
+        f"tie={summary.tied_metric_count}, "
+        f"not_comparable={summary.not_comparable_metric_count}"
+    )
+    print(f"transforms: {summary.transform_comparison_count}")
+    if summary.max_translation_delta_m is not None:
+        print(f"max_translation_delta_m: {summary.max_translation_delta_m:.6g}")
+    if summary.max_rotation_delta_deg is not None:
+        print(f"max_rotation_delta_deg: {summary.max_rotation_delta_deg:.6g}")
+    if comparison.observability.only_right_weak_directions:
+        print(f"new_weak_directions: {comparison.observability.only_right_weak_directions}")
 
 
 def _format_value(value: object) -> str:

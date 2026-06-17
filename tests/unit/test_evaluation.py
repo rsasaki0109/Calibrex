@@ -10,6 +10,7 @@ from calibrex.core.result import (
 )
 from calibrex.data.base import StreamSummary
 from calibrex.data.inspect import DatasetInspection
+from calibrex.evaluation.compare import compare_results
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.holdout import split_indices
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
@@ -49,6 +50,72 @@ def test_evaluate_quality_recomputes_metric_grades() -> None:
     evaluated = evaluate_quality(result)
     assert evaluated.metrics["lidar_point_to_plane_rmse_m"].grade == "fail"
     assert evaluated.quality.grade == "fail"
+
+
+def test_compare_results_reports_metric_and_transform_deltas() -> None:
+    left = CalibrationResult(
+        run=RunInfo(id="left", calibrex_version="0.1.0"),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None, "lidar0": "base"}),
+        transforms={
+            "T_base_lidar0": TransformResult(
+                parent="base",
+                child="lidar0",
+                translation_m=[0.0, 0.0, 0.0],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+        },
+        metrics={
+            "lidar_point_to_plane_rmse_m": MetricResult(
+                train=0.04,
+                holdout=0.05,
+                grade="warn",
+                unit="m",
+            )
+        },
+        observability=ObservabilityResult(
+            rank=4,
+            condition_number=1000.0,
+            weak_directions=["yaw_lidar0"],
+        ),
+        degeneracy=DegeneracyResult(grade="warn", reason="limited yaw excitation"),
+    )
+    right = CalibrationResult(
+        run=RunInfo(id="right", calibrex_version="0.1.0"),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None, "lidar0": "base"}),
+        transforms={
+            "T_base_lidar0": TransformResult(
+                parent="base",
+                child="lidar0",
+                translation_m=[0.1, 0.0, 0.0],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+        },
+        metrics={
+            "lidar_point_to_plane_rmse_m": MetricResult(
+                train=0.03,
+                holdout=0.02,
+                grade="pass",
+                unit="m",
+            )
+        },
+        observability=ObservabilityResult(rank=5, condition_number=500.0),
+        degeneracy=DegeneracyResult(grade="pass"),
+    )
+
+    comparison = compare_results(left, right)
+
+    metric = comparison.metrics["lidar_point_to_plane_rmse_m"]
+    assert metric.preferred_field == "holdout"
+    assert round(metric.delta_right_minus_left or 0.0, 6) == -0.03
+    assert metric.preference == "lower"
+    assert metric.winner == "right"
+    assert comparison.metric_families["lidar"].right_better_count == 1
+    transform = comparison.transform_groups["transforms"].comparisons[0]
+    assert round(transform.translation_delta_m, 6) == 0.1
+    assert transform.rotation_delta_deg == 0.0
+    assert comparison.summary.max_translation_delta_m == 0.1
+    assert comparison.observability.only_left_weak_directions == ["yaw_lidar0"]
+    assert comparison.observability.rank_delta_right_minus_left == 1
 
 
 def test_metric_registry_contains_autonomous_metrics() -> None:
