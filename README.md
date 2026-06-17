@@ -5,7 +5,8 @@
 Calibrex turns multi-sensor calibration logs into comparable evidence:
 schema-valid results, candidate/reference extrinsic comparisons, train/holdout
 metrics, PASS/WARN/FAIL quality gates, portable HTML reports with a
-first-screen Calibration Scoreboard, and machine-readable report sidecars.
+first-screen Calibration Scoreboard, and schema-valid machine-readable report
+sidecars.
 
 <p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex public dataset calibration report overview" width="100%">
@@ -35,7 +36,8 @@ calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 | `candidate_extrinsics` vs `reference_extrinsics` | Keeps manual candidates, dataset references, and solver outputs separate. |
 | Train/holdout metrics | Makes calibration quality harder to overfit to one frame or one sequence segment. |
 | Observability and degeneracy warnings | Reports when a dataset cannot support a trusted estimate for some DoF. |
-| `summary.json`, `metrics.json`, `observability.json`, `degeneracy.json` | Gives CI, notebooks, and benchmark scripts stable machine-readable report inputs. |
+| `summary.json`, `metrics.json`, `observability.json`, `degeneracy.json` | Gives CI, notebooks, and benchmark scripts stable machine-readable report inputs, including metric-family rollups. |
+| `calibrex validate` | Verifies configs, results, manifests, and report sidecars from their `schema_version`. |
 | HTML report, Calibration Scoreboard, and overlays | Gives reviewers a portable artifact instead of a one-off notebook screenshot. |
 
 Examples are public-dataset workflows. Large raw logs are never committed to the
@@ -79,7 +81,7 @@ unified estimation problem.
 - Candidate extrinsics stored separately from solver output and compared against references
 - External candidate extrinsic YAML import with `--candidate-extrinsics`
 - HTML Calibration Scoreboard summarizing grade counts, weak DoF, candidate/reference matches, and artifacts
-- Machine-readable report sidecars for summary, metrics, observability, and degeneracy
+- Schema-valid machine-readable report sidecars for summary, metrics, observability, and degeneracy
 - KITTI OXTS motion excitation diagnostics for speed, duration, and yaw checks
 - KITTI Camera-LiDAR and LiDAR-OXTS timestamp alignment metrics
 - KITTI camera image and Velodyne frame-pair extraction for overlay artifacts
@@ -113,9 +115,12 @@ pip install -e ".[dev]"
 ```bash
 calibrex doctor
 calibrex schema dataset-manifest --output schemas/dataset_manifest.schema.json
+calibrex schema report-summary --output schemas/report_summary.schema.json
 calibrex init camera-lidar-imu --output config.yaml
 calibrex compile config.yaml
 calibrex calibrate config.yaml --output-dir outputs/example
+calibrex validate outputs/example/result.yaml --json
+calibrex validate outputs/example/summary.json --json
 calibrex evaluate outputs/example/result.yaml --export-html
 calibrex visualize outputs/example/result.yaml --export-html
 calibrex export outputs/example/result.yaml --format ros-tf --output outputs/example/tf.yaml

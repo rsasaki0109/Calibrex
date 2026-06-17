@@ -3,7 +3,15 @@ import struct
 import zlib
 from pathlib import Path
 
+import pytest
+
 from calibrex.cli.main import main
+from calibrex.core.report_artifacts import (
+    ReportDegeneracyArtifact,
+    ReportMetricsArtifact,
+    ReportObservabilityArtifact,
+    ReportSummaryArtifact,
+)
 from calibrex.core.result import load_result
 
 
@@ -145,6 +153,50 @@ def test_calibrate_dry_run() -> None:
     assert main(["calibrate", "examples/configs/minimal.yaml", "--dry-run", "--json"]) == 0
 
 
+def test_validate_command_detects_schema_version(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["validate", "examples/configs/minimal.yaml", "--json"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload == {
+        "kind": "config",
+        "path": "examples/configs/minimal.yaml",
+        "schema_version": "calibrex.config/v0.1",
+        "valid": True,
+    }
+
+
+def test_calibrate_json_includes_report_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "calibrate",
+                "examples/configs/minimal.yaml",
+                "--output-dir",
+                str(tmp_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["report"] == str(tmp_path / "report.html")
+    assert payload["report_artifacts"] == {
+        "html_report": str(tmp_path / "report.html"),
+        "summary": str(tmp_path / "summary.json"),
+        "metrics": str(tmp_path / "metrics.json"),
+        "observability": str(tmp_path / "observability.json"),
+        "degeneracy": str(tmp_path / "degeneracy.json"),
+    }
+    for path in payload["report_artifacts"].values():
+        assert Path(path).exists()
+
+
 def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (
         main(
@@ -166,11 +218,29 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (tmp_path / "observability.json").exists()
     assert (tmp_path / "degeneracy.json").exists()
     summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    ReportSummaryArtifact.model_validate(summary)
     assert summary["schema_version"] == "calibrex.report.summary/v0.1"
     assert summary["run"]["id"]
     metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    ReportMetricsArtifact.model_validate(metrics)
     assert metrics["schema_version"] == "calibrex.report.metrics/v0.1"
     assert "schema_validation" in metrics["metrics"]
+    assert "common" in metrics["metric_families"]
+    assert "schema_validation" in metrics["metric_families"]["common"]["metrics"]
+    assert metrics["metric_families"]["common"]["metric_count"] >= 1
+    observability = json.loads((tmp_path / "observability.json").read_text(encoding="utf-8"))
+    ReportObservabilityArtifact.model_validate(observability)
+    degeneracy = json.loads((tmp_path / "degeneracy.json").read_text(encoding="utf-8"))
+    ReportDegeneracyArtifact.model_validate(degeneracy)
+    assert main(["validate", str(result)]) == 0
+    assert main(["validate", str(tmp_path / "summary.json")]) == 0
+    assert main(["validate", str(tmp_path / "metrics.json")]) == 0
+    assert main(["validate", str(tmp_path / "observability.json")]) == 0
+    assert main(["validate", str(tmp_path / "degeneracy.json")]) == 0
+    assert (
+        main(["validate", str(tmp_path / "summary.json"), "--kind", "report-summary"])
+        == 0
+    )
     evaluated_dir = tmp_path / "evaluated"
     assert (
         main(
@@ -221,12 +291,35 @@ def test_schema_commands(tmp_path: Path) -> None:
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"
     manifest_schema = tmp_path / "dataset_manifest.schema.json"
+    report_summary_schema = tmp_path / "report_summary.schema.json"
+    report_metrics_schema = tmp_path / "report_metrics.schema.json"
+    report_observability_schema = tmp_path / "report_observability.schema.json"
+    report_degeneracy_schema = tmp_path / "report_degeneracy.schema.json"
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
     assert main(["schema", "dataset-manifest", "--output", str(manifest_schema)]) == 0
+    assert main(["schema", "report-summary", "--output", str(report_summary_schema)]) == 0
+    assert main(["schema", "report-metrics", "--output", str(report_metrics_schema)]) == 0
+    assert (
+        main(["schema", "report-observability", "--output", str(report_observability_schema)])
+        == 0
+    )
+    assert main(["schema", "report-degeneracy", "--output", str(report_degeneracy_schema)]) == 0
     assert config_schema.exists()
     assert result_schema.exists()
     assert manifest_schema.exists()
+    assert report_summary_schema.exists()
+    assert report_metrics_schema.exists()
+    assert report_observability_schema.exists()
+    assert report_degeneracy_schema.exists()
+    summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
+    metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
+    assert summary_schema["properties"]["schema_version"]["const"] == (
+        "calibrex.report.summary/v0.1"
+    )
+    assert metrics_schema["properties"]["schema_version"]["const"] == (
+        "calibrex.report.metrics/v0.1"
+    )
 
 
 def test_metrics_command() -> None:

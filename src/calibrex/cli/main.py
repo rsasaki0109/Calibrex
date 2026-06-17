@@ -21,7 +21,17 @@ from calibrex.core.config import (
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import write_mapping
+from calibrex.core.report_artifacts import (
+    is_report_artifact_schema_kind,
+    report_artifact_json_schema,
+    report_artifact_schema_kinds,
+)
 from calibrex.core.result import load_result, result_json_schema
+from calibrex.core.validation import (
+    ValidationKind,
+    validate_file,
+    validation_kind_choices,
+)
 from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.manifest import manifest_json_schema
@@ -39,7 +49,7 @@ from calibrex.export.ros_tf import export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
-from calibrex.visualization.report import write_report_artifacts
+from calibrex.visualization.report import report_artifact_paths, write_report_artifacts
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,9 +75,28 @@ def _build_parser() -> argparse.ArgumentParser:
     doctor.set_defaults(func=_cmd_doctor)
 
     schema = subcommands.add_parser("schema", help="print JSON schema")
-    schema.add_argument("kind", choices=["config", "result", "dataset-manifest"])
+    schema.add_argument(
+        "kind",
+        choices=[
+            "config",
+            "result",
+            "dataset-manifest",
+            *report_artifact_schema_kinds(),
+        ],
+    )
     schema.add_argument("--output", type=Path, help="write schema to a file")
     schema.set_defaults(func=_cmd_schema)
+
+    validate = subcommands.add_parser("validate", help="validate a Calibrex artifact")
+    validate.add_argument("path", type=Path)
+    validate.add_argument(
+        "--kind",
+        choices=validation_kind_choices(),
+        default="auto",
+        help="artifact kind; defaults to schema_version auto-detection",
+    )
+    validate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    validate.set_defaults(func=_cmd_validate)
 
     init = subcommands.add_parser("init", help="write a starter config")
     init.add_argument("profile", choices=["camera-lidar-imu", "autonomous-driving-rig"])
@@ -206,12 +235,23 @@ def _cmd_schema(args: argparse.Namespace) -> int:
         schema = config_json_schema()
     elif args.kind == "result":
         schema = result_json_schema()
-    else:
+    elif args.kind == "dataset-manifest":
         schema = manifest_json_schema()
+    elif is_report_artifact_schema_kind(args.kind):
+        schema = report_artifact_json_schema(args.kind)
+    else:
+        _die(f"unsupported schema kind: {args.kind}")
     if args.output:
         write_mapping(args.output, schema)
     else:
         print(json.dumps(schema, indent=2, sort_keys=True))
+    return 0
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:
+    report = validate_file(args.path, cast(ValidationKind, args.kind))
+    payload = report.model_dump(mode="json")
+    _emit(payload, args.json)
     return 0
 
 
@@ -223,6 +263,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
 
 
 def _cmd_calibrate(args: argparse.Namespace) -> int:
+    config = load_config(args.config)
     result = run_calibration(
         args.config,
         CalibrationRunOptions(
@@ -234,7 +275,6 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
         ),
     )
     if args.dry_run:
-        config = load_config(args.config)
         inspection = inspect_dataset(config.dataset)
         payload = {
             "status": "ok",
@@ -245,13 +285,15 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
         return 0
     if result is None:
         _die("calibration did not produce a result")
-    output_dir = args.output_dir or load_config(args.config).output_dir
+    output_dir = args.output_dir or config.output_dir
+    artifacts = report_artifact_paths(output_dir, html_filename=config.outputs.report)
     summary: dict[str, Any] = {
         "status": result.run.status,
         "grade": result.quality.grade,
         "run_id": result.run.id,
-        "result": str(output_dir / load_config(args.config).outputs.result),
-        "report": result.artifacts.html_report,
+        "result": str(output_dir / config.outputs.result),
+        "report": artifacts["html_report"],
+        "report_artifacts": artifacts,
     }
     _emit(summary, args.json)
     return 1 if args.strict and result.quality.grade != "pass" else 0

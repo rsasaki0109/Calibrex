@@ -1,0 +1,152 @@
+"""Typed schemas for machine-readable report sidecars."""
+
+from __future__ import annotations
+
+from typing import Any, Final, Literal
+
+from pydantic import BaseModel, Field
+
+from calibrex.core.result import (
+    ArtifactSet,
+    DegeneracyResult,
+    Grade,
+    MetricResult,
+    ObservabilityResult,
+    QualitySummary,
+    StrictModel,
+)
+
+REPORT_SUMMARY_SCHEMA_VERSION: Literal["calibrex.report.summary/v0.1"] = (
+    "calibrex.report.summary/v0.1"
+)
+REPORT_METRICS_SCHEMA_VERSION: Literal["calibrex.report.metrics/v0.1"] = (
+    "calibrex.report.metrics/v0.1"
+)
+REPORT_OBSERVABILITY_SCHEMA_VERSION: Literal["calibrex.report.observability/v0.1"] = (
+    "calibrex.report.observability/v0.1"
+)
+REPORT_DEGENERACY_SCHEMA_VERSION: Literal["calibrex.report.degeneracy/v0.1"] = (
+    "calibrex.report.degeneracy/v0.1"
+)
+
+
+class ReportRunInfo(StrictModel):
+    """Minimal run metadata repeated in report sidecars."""
+
+    id: str
+    status: Literal["success", "warning", "failed", "dry_run"]
+    domain: str
+    calibrex_version: str
+    git_commit: str | None = None
+    created_at: str
+    dataset_type: str | None = None
+    dataset_path: str | None = None
+
+
+class GradeCounts(StrictModel):
+    """PASS/WARN/FAIL counts for report summaries."""
+
+    pass_: int = Field(default=0, ge=0, alias="pass")
+    warn: int = Field(default=0, ge=0)
+    fail: int = Field(default=0, ge=0)
+
+
+class ReportSummaryArtifact(StrictModel):
+    """Schema for `summary.json` report sidecars."""
+
+    schema_version: Literal["calibrex.report.summary/v0.1"] = REPORT_SUMMARY_SCHEMA_VERSION
+    run: ReportRunInfo
+    quality: QualitySummary
+    metric_counts: GradeCounts
+    transform_counts: GradeCounts
+    candidate_extrinsic_count: int = Field(ge=0)
+    reference_extrinsic_count: int = Field(ge=0)
+    matched_candidate_reference_count: int = Field(ge=0)
+    weak_direction_count: int = Field(ge=0)
+    artifact_paths: ArtifactSet = Field(default_factory=ArtifactSet)
+
+
+class ReportMetricsArtifact(StrictModel):
+    """Schema for `metrics.json` report sidecars."""
+
+    schema_version: Literal["calibrex.report.metrics/v0.1"] = REPORT_METRICS_SCHEMA_VERSION
+    run: ReportRunInfo
+    metrics: dict[str, MetricResult] = Field(default_factory=dict)
+    metric_families: dict[str, MetricFamilySummary] = Field(default_factory=dict)
+
+
+class MetricFamilySummary(StrictModel):
+    """Metric counts and warning/failure rollup for one metric family."""
+
+    family: str
+    metric_count: int = Field(ge=0)
+    grade_counts: GradeCounts
+    worst_grade: Grade = "pass"
+    holdout_metric_count: int = Field(default=0, ge=0)
+    warn_or_fail_metrics: list[str] = Field(default_factory=list)
+    metrics: list[str] = Field(default_factory=list)
+
+
+class ReportObservabilityArtifact(StrictModel):
+    """Schema for `observability.json` report sidecars."""
+
+    schema_version: Literal["calibrex.report.observability/v0.1"] = (
+        REPORT_OBSERVABILITY_SCHEMA_VERSION
+    )
+    run: ReportRunInfo
+    observability: ObservabilityResult
+    weak_directions: list[str] = Field(default_factory=list)
+    metrics: dict[str, MetricResult] = Field(default_factory=dict)
+
+
+class ReportDegeneracyArtifact(StrictModel):
+    """Schema for `degeneracy.json` report sidecars."""
+
+    schema_version: Literal["calibrex.report.degeneracy/v0.1"] = REPORT_DEGENERACY_SCHEMA_VERSION
+    run: ReportRunInfo
+    degeneracy: DegeneracyResult
+    quality_warnings: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    metrics: dict[str, MetricResult] = Field(default_factory=dict)
+
+
+_REPORT_ARTIFACT_MODELS: Final[dict[str, type[BaseModel]]] = {
+    "report-summary": ReportSummaryArtifact,
+    "report-metrics": ReportMetricsArtifact,
+    "report-observability": ReportObservabilityArtifact,
+    "report-degeneracy": ReportDegeneracyArtifact,
+}
+
+
+def report_artifact_schema_kinds() -> tuple[str, ...]:
+    """Return supported report sidecar schema names for the CLI."""
+
+    return tuple(_REPORT_ARTIFACT_MODELS)
+
+
+def is_report_artifact_schema_kind(kind: str) -> bool:
+    """Return whether `kind` names a report sidecar schema."""
+
+    return kind in _REPORT_ARTIFACT_MODELS
+
+
+def report_artifact_json_schema(kind: str) -> dict[str, Any]:
+    """Return the JSON schema for one machine-readable report sidecar."""
+
+    return _report_artifact_model(kind).model_json_schema()
+
+
+def validate_report_sidecar_payload(kind: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate and normalize a report sidecar payload before writing it."""
+
+    model = _report_artifact_model(kind).model_validate(payload)
+    return model.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+
+def _report_artifact_model(kind: str) -> type[BaseModel]:
+    try:
+        return _REPORT_ARTIFACT_MODELS[kind]
+    except KeyError as exc:
+        supported = ", ".join(report_artifact_schema_kinds())
+        msg = f"unknown report artifact schema kind: {kind}; expected one of {supported}"
+        raise ValueError(msg) from exc

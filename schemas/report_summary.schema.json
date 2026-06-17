@@ -1,0 +1,257 @@
+{
+  "$defs": {
+    "ArtifactSet": {
+      "additionalProperties": false,
+      "properties": {
+        "camera_lidar_overlay": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera Lidar Overlay"
+        },
+        "html_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Html Report"
+        },
+        "residual_histogram": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Residual Histogram"
+        },
+        "trajectory_plot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trajectory Plot"
+        }
+      },
+      "title": "ArtifactSet",
+      "type": "object"
+    },
+    "GradeCounts": {
+      "additionalProperties": false,
+      "description": "PASS/WARN/FAIL counts for report summaries.",
+      "properties": {
+        "fail": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Fail",
+          "type": "integer"
+        },
+        "pass": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Pass",
+          "type": "integer"
+        },
+        "warn": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Warn",
+          "type": "integer"
+        }
+      },
+      "title": "GradeCounts",
+      "type": "object"
+    },
+    "QualitySummary": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking_failures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocking Failures",
+          "type": "array"
+        },
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "recommendation": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommendation",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "title": "QualitySummary",
+      "type": "object"
+    },
+    "ReportRunInfo": {
+      "additionalProperties": false,
+      "description": "Minimal run metadata repeated in report sidecars.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "domain",
+        "calibrex_version",
+        "created_at"
+      ],
+      "title": "ReportRunInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema for `summary.json` report sidecars.",
+  "properties": {
+    "artifact_paths": {
+      "$ref": "#/$defs/ArtifactSet"
+    },
+    "candidate_extrinsic_count": {
+      "minimum": 0,
+      "title": "Candidate Extrinsic Count",
+      "type": "integer"
+    },
+    "matched_candidate_reference_count": {
+      "minimum": 0,
+      "title": "Matched Candidate Reference Count",
+      "type": "integer"
+    },
+    "metric_counts": {
+      "$ref": "#/$defs/GradeCounts"
+    },
+    "quality": {
+      "$ref": "#/$defs/QualitySummary"
+    },
+    "reference_extrinsic_count": {
+      "minimum": 0,
+      "title": "Reference Extrinsic Count",
+      "type": "integer"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "calibrex.report.summary/v0.1",
+      "default": "calibrex.report.summary/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "transform_counts": {
+      "$ref": "#/$defs/GradeCounts"
+    },
+    "weak_direction_count": {
+      "minimum": 0,
+      "title": "Weak Direction Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "run",
+    "quality",
+    "metric_counts",
+    "transform_counts",
+    "candidate_extrinsic_count",
+    "reference_extrinsic_count",
+    "matched_candidate_reference_count",
+    "weak_direction_count"
+  ],
+  "title": "ReportSummaryArtifact",
+  "type": "object"
+}

@@ -10,7 +10,15 @@ from typing import Any
 
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
+from calibrex.core.report_artifacts import (
+    REPORT_DEGENERACY_SCHEMA_VERSION,
+    REPORT_METRICS_SCHEMA_VERSION,
+    REPORT_OBSERVABILITY_SCHEMA_VERSION,
+    REPORT_SUMMARY_SCHEMA_VERSION,
+    validate_report_sidecar_payload,
+)
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
+from calibrex.evaluation.registry import get_metric_definition
 
 _WORLD_MAP_SUMMARY_METRICS = (
     "lidar_world_map_point_to_plane_rmse_m",
@@ -29,6 +37,30 @@ _WORLD_MAP_DOF_METRICS = (
     ("y_lidar0", "lidar_world_map_sensitivity_y_m"),
     ("z_lidar0", "lidar_world_map_sensitivity_z_m"),
 )
+
+_REPORT_SIDECAR_KINDS = {
+    "summary.json": "report-summary",
+    "metrics.json": "report-metrics",
+    "observability.json": "report-observability",
+    "degeneracy.json": "report-degeneracy",
+}
+
+
+def report_artifact_paths(
+    output_dir: str | Path,
+    *,
+    html_filename: str | Path = "report.html",
+    include_html: bool = True,
+) -> dict[str, str]:
+    """Return the artifact paths produced by `write_report_artifacts`."""
+
+    output_path = Path(output_dir)
+    paths: dict[str, str] = {}
+    if include_html:
+        paths["html_report"] = str(_resolve_output_path(output_path, html_filename))
+    for filename in _REPORT_SIDECAR_KINDS:
+        paths[filename.removesuffix(".json")] = str(output_path / filename)
+    return paths
 
 
 def render_html_report(result: CalibrationResult) -> str:
@@ -214,18 +246,20 @@ def write_report_artifacts(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    written: dict[str, str] = {}
+    written = report_artifact_paths(
+        output_path,
+        html_filename=html_filename,
+        include_html=include_html,
+    )
     if include_html:
-        report_path = _resolve_output_path(output_path, html_filename)
+        report_path = Path(written["html_report"])
         report_path.parent.mkdir(parents=True, exist_ok=True)
         result.artifacts.html_report = str(report_path)
         report_path.write_text(render_html_report(result), encoding="utf-8")
-        written["html_report"] = str(report_path)
 
     for name, payload in _report_sidecar_payloads(result).items():
         sidecar_path = output_path / name
         write_mapping(sidecar_path, payload)
-        written[name.removesuffix(".json")] = str(sidecar_path)
 
     return written
 
@@ -238,17 +272,21 @@ def _resolve_output_path(output_dir: Path, filename: str | Path) -> Path:
 
 
 def _report_sidecar_payloads(result: CalibrationResult) -> dict[str, dict[str, Any]]:
-    return {
+    payloads = {
         "summary.json": _summary_payload(result),
         "metrics.json": _metrics_payload(result),
         "observability.json": _observability_payload(result),
         "degeneracy.json": _degeneracy_payload(result),
     }
+    return {
+        filename: validate_report_sidecar_payload(_REPORT_SIDECAR_KINDS[filename], payload)
+        for filename, payload in payloads.items()
+    }
 
 
 def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
     return {
-        "schema_version": "calibrex.report.summary/v0.1",
+        "schema_version": REPORT_SUMMARY_SCHEMA_VERSION,
         "run": _run_payload(result),
         "quality": result.quality.model_dump(mode="json", exclude_none=True),
         "metric_counts": _grade_counts(metric.grade for metric in result.metrics.values()),
@@ -265,18 +303,19 @@ def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
 
 def _metrics_payload(result: CalibrationResult) -> dict[str, Any]:
     return {
-        "schema_version": "calibrex.report.metrics/v0.1",
+        "schema_version": REPORT_METRICS_SCHEMA_VERSION,
         "run": _run_payload(result),
         "metrics": {
             name: metric.model_dump(mode="json", exclude_none=True)
             for name, metric in sorted(result.metrics.items())
         },
+        "metric_families": _metric_family_payloads(result.metrics),
     }
 
 
 def _observability_payload(result: CalibrationResult) -> dict[str, Any]:
     return {
-        "schema_version": "calibrex.report.observability/v0.1",
+        "schema_version": REPORT_OBSERVABILITY_SCHEMA_VERSION,
         "run": _run_payload(result),
         "observability": result.observability.model_dump(mode="json", exclude_none=True),
         "weak_directions": list(result.observability.weak_directions),
@@ -290,7 +329,7 @@ def _observability_payload(result: CalibrationResult) -> dict[str, Any]:
 
 def _degeneracy_payload(result: CalibrationResult) -> dict[str, Any]:
     return {
-        "schema_version": "calibrex.report.degeneracy/v0.1",
+        "schema_version": REPORT_DEGENERACY_SCHEMA_VERSION,
         "run": _run_payload(result),
         "degeneracy": result.degeneracy.model_dump(mode="json", exclude_none=True),
         "quality_warnings": list(result.quality.warnings),
@@ -314,9 +353,16 @@ def _run_payload(result: CalibrationResult) -> dict[str, Any]:
         "calibrex_version": result.run.calibrex_version,
         "git_commit": result.run.git_commit,
         "created_at": result.run.created_at,
-        "dataset_type": result.run.provenance.get("dataset_type"),
-        "dataset_path": result.run.provenance.get("dataset_path"),
+        "dataset_type": _provenance_text(result, "dataset_type"),
+        "dataset_path": _provenance_text(result, "dataset_path"),
     }
+
+
+def _provenance_text(result: CalibrationResult, key: str) -> str | None:
+    value = result.run.provenance.get(key)
+    if value is None:
+        return None
+    return str(value)
 
 
 def _grade_counts(grades: Iterable[str]) -> dict[str, int]:
@@ -325,6 +371,65 @@ def _grade_counts(grades: Iterable[str]) -> dict[str, int]:
         if grade in counts:
             counts[grade] += 1
     return counts
+
+
+def _metric_family_payloads(metrics: dict[str, MetricResult]) -> dict[str, Any]:
+    names_by_family: dict[str, list[str]] = {}
+    for name in sorted(metrics):
+        family = _metric_family(name)
+        names_by_family.setdefault(family, []).append(name)
+
+    return {
+        family: _metric_family_payload(family, names, metrics)
+        for family, names in sorted(names_by_family.items())
+    }
+
+
+def _metric_family_payload(
+    family: str,
+    names: list[str],
+    metrics: dict[str, MetricResult],
+) -> dict[str, Any]:
+    family_metrics = [metrics[name] for name in names]
+    return {
+        "family": family,
+        "metric_count": len(names),
+        "grade_counts": _grade_counts(metric.grade for metric in family_metrics),
+        "worst_grade": _worst_grade(metric.grade for metric in family_metrics),
+        "holdout_metric_count": sum(1 for metric in family_metrics if metric.holdout is not None),
+        "warn_or_fail_metrics": [
+            name for name in names if metrics[name].grade in {"warn", "fail"}
+        ],
+        "metrics": names,
+    }
+
+
+def _metric_family(name: str) -> str:
+    definition = get_metric_definition(name)
+    if definition is not None:
+        return definition.family
+    if name.startswith("extrinsic_reference_delta_"):
+        return "extrinsic"
+    if name.startswith("lidar_camera_") or name.startswith("koide_lidar_camera_"):
+        return "lidar_camera"
+    if name.startswith("lidar_"):
+        return "lidar"
+    if "timestamp" in name or "time_offset" in name:
+        return "timing"
+    if "observability" in name or "weak_dof" in name or name == "condition_number":
+        return "observability"
+    if name.startswith("camera_") or name.startswith("reprojection_"):
+        return "camera"
+    return "common"
+
+
+def _worst_grade(grades: Iterable[str]) -> str:
+    severity = {"pass": 0, "warn": 1, "fail": 2}
+    worst = "pass"
+    for grade in grades:
+        if severity.get(grade, -1) > severity[worst]:
+            worst = grade
+    return worst
 
 
 def _scoreboard_section(result: CalibrationResult) -> str:

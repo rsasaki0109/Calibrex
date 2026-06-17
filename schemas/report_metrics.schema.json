@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "GradeCounts": {
+      "additionalProperties": false,
+      "description": "PASS/WARN/FAIL counts for report summaries.",
+      "properties": {
+        "fail": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Fail",
+          "type": "integer"
+        },
+        "pass": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Pass",
+          "type": "integer"
+        },
+        "warn": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Warn",
+          "type": "integer"
+        }
+      },
+      "title": "GradeCounts",
+      "type": "object"
+    },
+    "MetricFamilySummary": {
+      "additionalProperties": false,
+      "description": "Metric counts and warning/failure rollup for one metric family.",
+      "properties": {
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "grade_counts": {
+          "$ref": "#/$defs/GradeCounts"
+        },
+        "holdout_metric_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Holdout Metric Count",
+          "type": "integer"
+        },
+        "metric_count": {
+          "minimum": 0,
+          "title": "Metric Count",
+          "type": "integer"
+        },
+        "metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "warn_or_fail_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warn Or Fail Metrics",
+          "type": "array"
+        },
+        "worst_grade": {
+          "default": "pass",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Worst Grade",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "metric_count",
+        "grade_counts"
+      ],
+      "title": "MetricFamilySummary",
+      "type": "object"
+    },
+    "MetricResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "train": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "MetricResult",
+      "type": "object"
+    },
+    "ReportRunInfo": {
+      "additionalProperties": false,
+      "description": "Minimal run metadata repeated in report sidecars.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "domain",
+        "calibrex_version",
+        "created_at"
+      ],
+      "title": "ReportRunInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema for `metrics.json` report sidecars.",
+  "properties": {
+    "metric_families": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetricFamilySummary"
+      },
+      "title": "Metric Families",
+      "type": "object"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetricResult"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "calibrex.report.metrics/v0.1",
+      "default": "calibrex.report.metrics/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run"
+  ],
+  "title": "ReportMetricsArtifact",
+  "type": "object"
+}
