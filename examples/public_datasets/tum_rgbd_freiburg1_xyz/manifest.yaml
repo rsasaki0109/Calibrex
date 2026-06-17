@@ -1,0 +1,36 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: tum_rgbd_freiburg1_xyz
+description: Public TUM RGB-D fr1/xyz sequence manifest for RGB-D SLAC examples.
+time_base: sensor_time_sec
+streams:
+  rgb:
+    kind: image
+    count: null
+    path: rgb/*.png
+    sensor: rgbd0
+    frame_id: rgbd0_color
+    timestamp_field: timestamp_sec
+  depth:
+    kind: depth_image
+    count: null
+    path: depth/*.png
+    sensor: rgbd0
+    frame_id: rgbd0_depth
+    timestamp_field: timestamp_sec
+  rgbd_associations:
+    kind: rgbd
+    count: null
+    path: associations.txt
+    sensor: rgbd0
+    frame_id: rgbd0
+    timestamp_field: timestamp_sec
+  groundtruth:
+    kind: trajectory
+    count: null
+    path: groundtruth.txt
+    frame_id: world
+    timestamp_field: timestamp_sec
+provenance:
+  public_dataset: tum_rgbd_freiburg1_xyz
+  official_url: https://cvg.cit.tum.de/data/datasets/rgbd-dataset/download
+  download_url: https://cvg.cit.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_xyz.tgz

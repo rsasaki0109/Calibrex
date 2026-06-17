@@ -1,0 +1,72 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: rgbd_open3d_slac_example
+  description: RGB-D SLAC adapter example using Open3D as an optional backend
+  output_dir: outputs/rgbd_open3d_slac
+  domain: robotics
+
+dataset:
+  type: filesystem
+  path: examples/rgbd_open3d_slac
+  time_base: sensor_time_ns
+
+sensors:
+  rgbd0:
+    type: camera
+    model: rgbd
+    topic: /rgbd/color
+    frame_id: rgbd0
+    intrinsics:
+      estimate: false
+      fx: 525.0
+      fy: 525.0
+      cx: 319.5
+      cy: 239.5
+      distortion_model: none
+      distortion: []
+
+frames:
+  base:
+    root: true
+  rgbd0:
+    parent: base
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.1
+        rotation_deg: 5.0
+
+pipeline:
+  type: rgbd_open3d_slac
+  frontends:
+    - rgbd_fragments
+    - pose_graph
+  factors:
+    open3d_slac:
+      enabled: true
+      options:
+        voxel_size_m: 0.05
+        distance_threshold_m: 0.07
+
+solver:
+  backend: open3d_slac
+  max_iterations: 30
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - open3d_slac_backend_available
+    - rgbd_fragment_count
+    - pose_graph_edges
+    - trajectory_consistency
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

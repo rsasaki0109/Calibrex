@@ -1,0 +1,686 @@
+{
+  "$defs": {
+    "CameraIntrinsicsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "cx": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cx"
+        },
+        "cy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cy"
+        },
+        "distortion": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Distortion",
+          "type": "array"
+        },
+        "distortion_model": {
+          "default": "none",
+          "title": "Distortion Model",
+          "type": "string"
+        },
+        "estimate": {
+          "default": false,
+          "title": "Estimate",
+          "type": "boolean"
+        },
+        "fx": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fx"
+        },
+        "fy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fy"
+        }
+      },
+      "title": "CameraIntrinsicsConfig",
+      "type": "object"
+    },
+    "DatasetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "time_base": {
+          "default": "sensor_time_ns",
+          "title": "Time Base",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "filesystem",
+            "kitti_raw",
+            "mcap",
+            "nuscenes",
+            "rosbag1",
+            "rosbag2",
+            "tum_rgbd"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "path"
+      ],
+      "title": "DatasetConfig",
+      "type": "object"
+    },
+    "KITTIEvaluationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_projection_pairs": {
+          "default": 3,
+          "maximum": 500,
+          "minimum": 0,
+          "title": "Max Projection Pairs",
+          "type": "integer"
+        },
+        "projection_sample_points": {
+          "default": 800,
+          "maximum": 200000,
+          "minimum": 1,
+          "title": "Projection Sample Points",
+          "type": "integer"
+        },
+        "perturbation_rotation_deg": {
+          "default": [
+            0.5,
+            1.0
+          ],
+          "items": {
+            "type": "number"
+          },
+          "title": "Perturbation Rotation Deg",
+          "type": "array"
+        },
+        "perturbation_translation_m": {
+          "default": [
+            0.05,
+            0.1
+          ],
+          "items": {
+            "type": "number"
+          },
+          "title": "Perturbation Translation M",
+          "type": "array"
+        }
+      },
+      "title": "KITTIEvaluationConfig",
+      "type": "object"
+    },
+    "EvaluationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "holdout_ratio": {
+          "default": 0.2,
+          "maximum": 0.9,
+          "minimum": 0.0,
+          "title": "Holdout Ratio",
+          "type": "number"
+        },
+        "metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "strict": {
+          "default": false,
+          "title": "Strict",
+          "type": "boolean"
+        },
+        "kitti": {
+          "$ref": "#/$defs/KITTIEvaluationConfig"
+        }
+      },
+      "title": "EvaluationConfig",
+      "type": "object"
+    },
+    "FactorConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weight"
+        }
+      },
+      "title": "FactorConfig",
+      "type": "object"
+    },
+    "FrameConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        },
+        "root": {
+          "default": false,
+          "title": "Root",
+          "type": "boolean"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "FrameConfig",
+      "type": "object"
+    },
+    "ImuNoiseConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "accel_noise_density": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accel Noise Density"
+        },
+        "accel_random_walk": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accel Random Walk"
+        },
+        "gyro_noise_density": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gyro Noise Density"
+        },
+        "gyro_random_walk": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gyro Random Walk"
+        }
+      },
+      "title": "ImuNoiseConfig",
+      "type": "object"
+    },
+    "OutputsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts_dir": {
+          "default": "artifacts",
+          "title": "Artifacts Dir",
+          "type": "string"
+        },
+        "report": {
+          "default": "report.html",
+          "title": "Report",
+          "type": "string"
+        },
+        "result": {
+          "default": "result.yaml",
+          "title": "Result",
+          "type": "string"
+        }
+      },
+      "title": "OutputsConfig",
+      "type": "object"
+    },
+    "PipelineConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "factors": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FactorConfig"
+          },
+          "title": "Factors",
+          "type": "object"
+        },
+        "frontends": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frontends",
+          "type": "array"
+        },
+        "type": {
+          "default": "multi_sensor_slac",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "PipelineConfig",
+      "type": "object"
+    },
+    "ProjectConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "domain": {
+          "default": "robotics",
+          "enum": [
+            "robotics",
+            "autonomous_driving",
+            "industrial",
+            "research",
+            "other"
+          ],
+          "title": "Domain",
+          "type": "string"
+        },
+        "name": {
+          "default": "calibrex_project",
+          "title": "Name",
+          "type": "string"
+        },
+        "output_dir": {
+          "default": "outputs/default",
+          "title": "Output Dir",
+          "type": "string"
+        }
+      },
+      "title": "ProjectConfig",
+      "type": "object"
+    },
+    "SensorConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "camera_info_topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera Info Topic"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Id"
+        },
+        "intrinsics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraIntrinsicsConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "model": {
+          "default": "generic",
+          "title": "Model",
+          "type": "string"
+        },
+        "noise": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImuNoiseConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic"
+        },
+        "type": {
+          "enum": [
+            "camera",
+            "lidar",
+            "imu",
+            "radar"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "SensorConfig",
+      "type": "object"
+    },
+    "SolverConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "default": "scipy",
+          "title": "Backend",
+          "type": "string"
+        },
+        "convergence_tolerance": {
+          "default": 1e-06,
+          "exclusiveMinimum": 0.0,
+          "title": "Convergence Tolerance",
+          "type": "number"
+        },
+        "max_iterations": {
+          "default": 50,
+          "minimum": 0,
+          "title": "Max Iterations",
+          "type": "integer"
+        },
+        "robust_loss": {
+          "default": "huber",
+          "title": "Robust Loss",
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "SolverConfig",
+      "type": "object"
+    },
+    "TimeOffsetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "estimate": {
+          "default": false,
+          "title": "Estimate",
+          "type": "boolean"
+        },
+        "initial_sec": {
+          "default": 0.0,
+          "title": "Initial Sec",
+          "type": "number"
+        },
+        "prior_sigma_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prior Sigma Sec"
+        }
+      },
+      "title": "TimeOffsetConfig",
+      "type": "object"
+    },
+    "TransformConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "estimate": {
+          "default": true,
+          "title": "Estimate",
+          "type": "boolean"
+        },
+        "initial": {
+          "$ref": "#/$defs/TransformInitialConfig"
+        },
+        "prior_sigma": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformPriorSigmaConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "TransformConfig",
+      "type": "object"
+    },
+    "TransformInitialConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation",
+          "type": "array"
+        }
+      },
+      "title": "TransformInitialConfig",
+      "type": "object"
+    },
+    "TransformPriorSigmaConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Deg"
+        },
+        "translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation M"
+        }
+      },
+      "title": "TransformPriorSigmaConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "dataset": {
+      "$ref": "#/$defs/DatasetConfig"
+    },
+    "evaluation": {
+      "$ref": "#/$defs/EvaluationConfig"
+    },
+    "frames": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FrameConfig"
+      },
+      "title": "Frames",
+      "type": "object"
+    },
+    "outputs": {
+      "$ref": "#/$defs/OutputsConfig"
+    },
+    "pipeline": {
+      "$ref": "#/$defs/PipelineConfig"
+    },
+    "project": {
+      "$ref": "#/$defs/ProjectConfig"
+    },
+    "schema_version": {
+      "const": "calibrex.config/v0.1",
+      "default": "calibrex.config/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensors": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SensorConfig"
+      },
+      "title": "Sensors",
+      "type": "object"
+    },
+    "solver": {
+      "$ref": "#/$defs/SolverConfig"
+    },
+    "time_offsets": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TimeOffsetConfig"
+      },
+      "title": "Time Offsets",
+      "type": "object"
+    }
+  },
+  "required": [
+    "dataset",
+    "sensors",
+    "frames"
+  ],
+  "title": "CalibrationConfig",
+  "type": "object"
+}

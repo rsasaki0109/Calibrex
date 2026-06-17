@@ -1,0 +1,155 @@
+{
+  "$defs": {
+    "StreamManifest": {
+      "additionalProperties": false,
+      "description": "One timestamped stream in a dataset manifest.",
+      "properties": {
+        "count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Id"
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "depth_image",
+            "rgbd",
+            "pointcloud",
+            "imu",
+            "radar",
+            "metadata",
+            "pose_graph",
+            "trajectory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "sensor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor"
+        },
+        "timestamp_field": {
+          "default": "timestamp_ns",
+          "title": "Timestamp Field",
+          "type": "string"
+        },
+        "topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "StreamManifest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Portable dataset manifest independent of ROS message classes.",
+  "properties": {
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "calibrex.dataset_manifest/v0.1",
+      "default": "calibrex.dataset_manifest/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "streams": {
+      "additionalProperties": {
+        "$ref": "#/$defs/StreamManifest"
+      },
+      "title": "Streams",
+      "type": "object"
+    },
+    "time_base": {
+      "default": "sensor_time_ns",
+      "title": "Time Base",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "streams"
+  ],
+  "title": "DatasetManifest",
+  "type": "object"
+}

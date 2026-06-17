@@ -1,0 +1,131 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: autonomous_driving_camera_lidar_imu_radar
+  description: Autonomous-driving oriented sensor calibration example
+  output_dir: outputs/autonomous_driving
+  domain: autonomous_driving
+
+dataset:
+  type: filesystem
+  path: examples/synthetic_camera_lidar_imu
+  time_base: sensor_time_ns
+
+sensors:
+  camera0:
+    type: camera
+    model: pinhole
+    topic: /sensing/camera/front/image_rect_color
+    camera_info_topic: /sensing/camera/front/camera_info
+    intrinsics:
+      estimate: false
+      fx: 1200.0
+      fy: 1200.0
+      cx: 960.0
+      cy: 540.0
+      distortion_model: radtan
+      distortion: [0.0, 0.0, 0.0, 0.0]
+  lidar0:
+    type: lidar
+    model: spinning
+    topic: /sensing/lidar/top/pointcloud_raw
+    fields: [x, y, z, intensity, ring, time]
+  imu0:
+    type: imu
+    model: six_axis
+    topic: /sensing/imu/imu_data
+  radar0:
+    type: radar
+    model: automotive_4d
+    topic: /sensing/radar/front/detections
+
+frames:
+  base_link:
+    root: true
+  camera0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [1.6, 0.0, 1.3]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  lidar0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 1.9]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  imu0:
+    parent: base_link
+    transform:
+      estimate: false
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+  radar0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [2.0, 0.0, 0.7]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+time_offsets:
+  camera0:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.01
+  lidar0:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.005
+  radar0:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.02
+
+pipeline:
+  type: multi_sensor_slac
+  frontends:
+    - imu_preintegration
+    - lidar_surfel_map
+    - camera_features
+    - radar_detections
+  factors:
+    imu_preintegration:
+      enabled: true
+    lidar_point_to_surfel:
+      enabled: true
+    camera_reprojection:
+      enabled: true
+    radar_doppler_motion:
+      enabled: true
+
+solver:
+  backend: scipy
+  max_iterations: 50
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - trajectory_consistency
+    - lidar_point_to_plane_rmse_m
+    - radar_lidar_velocity_consistency
+    - autonomous_driving_dynamic_holdout
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

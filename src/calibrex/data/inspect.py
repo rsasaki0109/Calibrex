@@ -1,0 +1,222 @@
+"""Lightweight dataset inspection for dry runs and diagnostics."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from calibrex.core.config import DatasetConfig
+from calibrex.core.exceptions import DatasetError
+from calibrex.data.base import StreamSummary
+from calibrex.data.filesystem import FilesystemDataset
+from calibrex.data.kitti import (
+    KITTIRawDataset,
+    find_camera_lidar_pairs,
+    summarize_lidar_world_map_consistency,
+    summarize_oxts_motion,
+    summarize_timestamp_alignment,
+    summarize_velodyne_points,
+)
+from calibrex.data.manifest import find_manifest
+from calibrex.data.mcap import inspect_mcap
+from calibrex.data.nuscenes import NuScenesDataset, summarize_nuscenes_metadata
+from calibrex.data.tum_rgbd import TUMRGBDDataset
+
+
+@dataclass(frozen=True)
+class DatasetInspection:
+    """Summary returned by `calibrex inspect`."""
+
+    dataset_type: str
+    path: str
+    exists: bool
+    manifest: str | None = None
+    streams: list[StreamSummary] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    diagnostics: dict[str, object] = field(default_factory=dict)
+
+    def as_dict(self) -> dict[str, object]:
+        """Return JSON/YAML-friendly representation."""
+
+        return {
+            "dataset_type": self.dataset_type,
+            "path": self.path,
+            "exists": self.exists,
+            "manifest": self.manifest,
+            "streams": [stream.__dict__ for stream in self.streams],
+            "warnings": list(self.warnings),
+            "diagnostics": dict(self.diagnostics),
+        }
+
+
+def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
+    """Inspect a dataset path without binding core code to ROS message types."""
+
+    path = Path(dataset.path)
+    if dataset.type == "filesystem":
+        return _inspect_filesystem(path, dataset.type)
+    if dataset.type == "kitti_raw":
+        return _inspect_kitti_raw(path, dataset.type)
+    if dataset.type == "tum_rgbd":
+        return _inspect_tum_rgbd(path, dataset.type)
+    if dataset.type == "mcap":
+        streams, warnings = inspect_mcap(path)
+        return DatasetInspection(
+            dataset_type=dataset.type,
+            path=str(path),
+            exists=path.exists(),
+            streams=streams,
+            warnings=warnings,
+        )
+    if dataset.type == "nuscenes":
+        return _inspect_nuscenes(path, dataset.type)
+    if dataset.type in {"rosbag1", "rosbag2"}:
+        return DatasetInspection(
+            dataset_type=dataset.type,
+            path=str(path),
+            exists=path.exists(),
+            warnings=[
+                "ROS bag support is adapter-only in this alpha; convert to MCAP or use "
+                "an optional adapter.",
+            ],
+        )
+    msg = f"unsupported dataset type: {dataset.type}"
+    raise DatasetError(msg)
+
+
+def _inspect_filesystem(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    reader = FilesystemDataset(path)
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=reader.streams(),
+    )
+
+
+def _inspect_tum_rgbd(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    reader = TUMRGBDDataset(path)
+    warnings: list[str] = []
+    stream_counts = {stream.name: stream.message_count for stream in reader.streams()}
+    if stream_counts.get("rgbd_associations") == 0 and stream_counts.get("rgb", 0):
+        warnings.append("associations.txt is missing or empty; generate it before RGB-D processing")
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=reader.streams(),
+        warnings=warnings,
+    )
+
+
+def _inspect_kitti_raw(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    reader = KITTIRawDataset(path)
+    warnings: list[str] = []
+    counts = {stream.name: stream.message_count or 0 for stream in reader.streams()}
+    velodyne_stats = summarize_velodyne_points(path, sample_limit=3)
+    lidar_world_map_stats = summarize_lidar_world_map_consistency(path, sample_limit=3)
+    oxts_stats = summarize_oxts_motion(path)
+    timestamp_stats = summarize_timestamp_alignment(path)
+    camera_lidar_pairs = find_camera_lidar_pairs(path, max_pairs=3)
+    if counts.get("velodyne_points", 0) == 0:
+        warnings.append("velodyne point cloud files are missing")
+    elif velodyne_stats.sampled_point_count == 0:
+        warnings.append("velodyne point cloud samples contain no points")
+    elif velodyne_stats.planarity_voxel_count == 0:
+        warnings.append("velodyne samples do not contain enough local neighborhoods")
+    if velodyne_stats.malformed_files:
+        warnings.append("some velodyne point cloud files are malformed")
+    if counts.get("oxts", 0) == 0:
+        warnings.append("OXTS motion files are missing")
+    if oxts_stats.malformed_files:
+        warnings.append("some OXTS motion files are malformed")
+    if counts.get("calibration", 0) == 0:
+        warnings.append("KITTI calibration files are missing")
+    if timestamp_stats.camera_timestamp_count == 0:
+        warnings.append("KITTI camera timestamps are missing")
+    if timestamp_stats.lidar_timestamp_count == 0:
+        warnings.append("KITTI LiDAR timestamps are missing")
+    if timestamp_stats.oxts_timestamp_count == 0:
+        warnings.append("KITTI OXTS timestamps are missing")
+    if (
+        counts.get("camera_left_color", 0) > 0
+        and counts.get("velodyne_points", 0) > 0
+        and not camera_lidar_pairs
+    ):
+        warnings.append("KITTI camera-LiDAR frame pairs could not be formed")
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=reader.streams(),
+        warnings=warnings,
+        diagnostics={
+            "velodyne_points": velodyne_stats.as_dict(),
+            "lidar_world_map_consistency": lidar_world_map_stats.as_dict(),
+            "oxts_motion": oxts_stats.as_dict(),
+            "timestamp_alignment": timestamp_stats.as_dict(),
+            "camera_lidar_pairs": [pair.as_dict() for pair in camera_lidar_pairs],
+        },
+    )
+
+
+def _inspect_nuscenes(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    reader = NuScenesDataset(path)
+    metadata = summarize_nuscenes_metadata(path)
+    warnings: list[str] = []
+    if metadata.status != "scored":
+        warnings.append(metadata.reason or "nuScenes metadata tables could not be loaded")
+    if metadata.sample_data_count == 0:
+        warnings.append("nuScenes sample_data table is empty or missing")
+    if metadata.modality_counts.get("lidar", 0) == 0:
+        warnings.append("nuScenes LiDAR sample_data entries are missing")
+    if metadata.modality_counts.get("camera", 0) == 0:
+        warnings.append("nuScenes camera sample_data entries are missing")
+    if metadata.modality_counts.get("radar", 0) == 0:
+        warnings.append("nuScenes radar sample_data entries are missing")
+    if metadata.missing_file_count:
+        warnings.append(f"nuScenes sample files missing locally: {metadata.missing_file_count}")
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=reader.streams(),
+        warnings=warnings,
+        diagnostics={"nuscenes": metadata.as_dict()},
+    )

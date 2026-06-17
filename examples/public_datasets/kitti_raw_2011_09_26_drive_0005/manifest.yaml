@@ -1,0 +1,46 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: kitti_raw_2011_09_26_drive_0005
+description: Public KITTI raw driving sequence manifest for Camera-LiDAR-IMU examples.
+time_base: sensor_time_sec
+streams:
+  camera_left_color:
+    kind: image
+    count: null
+    path: image_02/data/*.png
+    topic: image_02
+    sensor: camera0
+    frame_id: camera0
+    timestamp_field: timestamp_sec
+  camera_right_color:
+    kind: image
+    count: null
+    path: image_03/data/*.png
+    topic: image_03
+    sensor: camera1
+    frame_id: camera1
+    timestamp_field: timestamp_sec
+  velodyne_points:
+    kind: pointcloud
+    count: null
+    path: velodyne_points/data/*.bin
+    topic: velodyne_points
+    sensor: lidar0
+    frame_id: lidar0
+    timestamp_field: timestamp_sec
+    fields: [x, y, z, intensity]
+  oxts:
+    kind: imu
+    count: null
+    path: oxts/data/*.txt
+    topic: oxts
+    sensor: imu0
+    frame_id: imu0
+    timestamp_field: timestamp_sec
+  calibration:
+    kind: metadata
+    count: null
+    path: ../calib_*.txt
+    timestamp_field: timestamp_sec
+provenance:
+  public_dataset: kitti_raw_2011_09_26_drive_0005
+  official_url: https://www.cvlibs.net/datasets/kitti/raw_data.php

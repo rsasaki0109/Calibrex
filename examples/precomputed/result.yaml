@@ -1,0 +1,70 @@
+schema_version: calibrex.result/v0.1
+run:
+  id: precomputed_example
+  calibrex_version: 0.1.0
+  status: success
+  domain: robotics
+  provenance:
+    pipeline: example
+frame_graph:
+  root: base
+  convention: T_parent_child
+  frames:
+    base: null
+    camera0: base
+    lidar0: base
+transforms:
+  T_base_camera0:
+    convention: T_parent_child
+    parent: base
+    child: camera0
+    translation_m: [0.3, 0.0, 0.2]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: pass
+      std_translation_m: [0.004, 0.005, 0.006]
+      std_rotation_deg: [0.08, 0.10, 0.09]
+  T_base_lidar0:
+    convention: T_parent_child
+    parent: base
+    child: lidar0
+    translation_m: [0.0, 0.0, 0.4]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: pass
+      std_translation_m: [0.004, 0.005, 0.006]
+      std_rotation_deg: [0.08, 0.10, 0.09]
+time_offsets:
+  dt_camera0:
+    seconds: -0.0032
+    std_seconds: 0.0008
+    quality:
+      grade: pass
+metrics:
+  reprojection_rmse_px:
+    train: 0.72
+    holdout: 0.86
+    grade: pass
+    unit: px
+  lidar_point_to_plane_rmse_m:
+    train: 0.018
+    holdout: 0.021
+    grade: pass
+    unit: m
+observability:
+  rank: 42
+  condition_number: 120000.0
+  weak_directions: []
+  grade: pass
+degeneracy:
+  grade: pass
+quality:
+  grade: pass
+  blocking_failures: []
+  warnings: []
+  recommendation:
+    - archive config, result, report, and dataset manifest for reproducibility
+artifacts:
+  html_report: report.html
+export:
+  ros_tf: export/tf.yaml

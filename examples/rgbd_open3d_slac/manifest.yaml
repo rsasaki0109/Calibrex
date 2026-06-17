@@ -1,0 +1,22 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: rgbd_open3d_slac
+description: Minimal RGB-D fragment manifest for Open3D SLAC adapter tests.
+time_base: sensor_time_ns
+streams:
+  rgbd_fragments:
+    kind: rgbd
+    count: 3
+    path: fragments/*.npz
+    sensor: rgbd0
+    frame_id: rgbd0
+  pose_graph:
+    kind: pose_graph
+    count: 2
+    path: pose_graph.json
+    sensor: rgbd0
+    frame_id: rgbd0
+  trajectory_prior:
+    kind: trajectory
+    count: 3
+    path: trajectory.csv
+    frame_id: base

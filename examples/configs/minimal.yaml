@@ -1,0 +1,114 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: minimal_camera_lidar_imu
+  description: Minimal Calibrex example
+  output_dir: outputs/example
+  domain: robotics
+
+dataset:
+  type: filesystem
+  path: examples/synthetic_camera_lidar_imu
+  time_base: sensor_time_ns
+
+sensors:
+  camera0:
+    type: camera
+    model: pinhole
+    topic: /camera/front/image
+    camera_info_topic: /camera/front/camera_info
+    intrinsics:
+      estimate: false
+      fx: 720.0
+      fy: 720.0
+      cx: 640.0
+      cy: 360.0
+      distortion_model: radtan
+      distortion: [0.0, 0.0, 0.0, 0.0]
+  lidar0:
+    type: lidar
+    model: spinning
+    topic: /lidar/points
+    fields: [x, y, z, intensity]
+  imu0:
+    type: imu
+    model: six_axis
+    topic: /imu/data
+    noise:
+      gyro_noise_density: 0.0002
+      accel_noise_density: 0.002
+      gyro_random_walk: 0.00001
+      accel_random_walk: 0.0001
+
+frames:
+  base:
+    root: true
+  camera0:
+    parent: base
+    transform:
+      estimate: true
+      initial:
+        translation: [0.3, 0.0, 0.2]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  lidar0:
+    parent: base
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.4]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  imu0:
+    parent: base
+    transform:
+      estimate: false
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+time_offsets:
+  camera0:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.01
+  lidar0:
+    estimate: false
+    initial_sec: 0.0
+
+pipeline:
+  type: multi_sensor_slac
+  frontends:
+    - imu_preintegration
+    - lidar_surfel_map
+    - camera_features
+  factors:
+    imu_preintegration:
+      enabled: true
+    lidar_point_to_surfel:
+      enabled: true
+    camera_reprojection:
+      enabled: true
+
+solver:
+  backend: scipy
+  max_iterations: 50
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - reprojection_rmse_px
+    - lidar_point_to_plane_rmse_m
+    - trajectory_consistency
+    - observability_rank
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

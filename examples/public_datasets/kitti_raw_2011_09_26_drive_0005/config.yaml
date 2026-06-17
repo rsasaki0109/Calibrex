@@ -1,0 +1,147 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: kitti_raw_camera_lidar_imu
+  description: Public KITTI raw Camera-LiDAR-IMU calibration example
+  output_dir: outputs/kitti_raw_2011_09_26_drive_0005
+  domain: autonomous_driving
+
+dataset:
+  type: kitti_raw
+  path: examples/public_datasets/kitti_raw_2011_09_26_drive_0005
+  time_base: sensor_time_sec
+
+sensors:
+  camera0:
+    type: camera
+    model: pinhole
+    topic: image_02
+    frame_id: camera0
+    intrinsics:
+      estimate: false
+      fx: 721.5377
+      fy: 721.5377
+      cx: 609.5593
+      cy: 172.8540
+      distortion_model: none
+      distortion: []
+  lidar0:
+    type: lidar
+    model: velodyne_hdl64e
+    topic: velodyne_points
+    frame_id: lidar0
+    fields: [x, y, z, intensity]
+  imu0:
+    type: imu
+    model: oxts
+    topic: oxts
+    frame_id: imu0
+
+frames:
+  base_link:
+    root: true
+  camera0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  lidar0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  imu0:
+    parent: base_link
+    transform:
+      estimate: false
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+time_offsets:
+  camera0:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.01
+  lidar0:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.01
+
+pipeline:
+  type: multi_sensor_slac
+  frontends:
+    - imu_preintegration
+    - lidar_surfel_map
+    - camera_features
+    - lidar_camera_alignment
+  factors:
+    imu_preintegration:
+      enabled: true
+    lidar_point_to_surfel:
+      enabled: true
+    camera_reprojection:
+      enabled: true
+    lidar_camera_mutual_information:
+      enabled: true
+    koide_lidar_camera:
+      enabled: true
+      options:
+        command: direct_visual_lidar_calibration
+    fixed_lidar_mount_prior:
+      enabled: true
+      options:
+        translation_sigma_m: 0.05
+        rotation_sigma_deg: 1.0
+
+solver:
+  backend: scipy
+  max_iterations: 50
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  kitti:
+    max_projection_pairs: 20
+    projection_sample_points: 800
+    perturbation_rotation_deg: [0.5, 1.0]
+    perturbation_translation_m: [0.05, 0.10]
+  metrics:
+    - lidar_frame_coverage
+    - lidar_point_coverage
+    - lidar_spatial_coverage_m
+    - lidar_local_planarity
+    - lidar_map_roughness_m
+    - lidar_map_sharpness
+    - vehicle_motion_duration_s
+    - vehicle_mean_speed_mps
+    - vehicle_speed_range_mps
+    - vehicle_yaw_excitation_deg
+    - camera_lidar_timestamp_alignment_ms
+    - lidar_oxts_timestamp_alignment_ms
+    - koide_lidar_camera_adapter_available
+    - koide_lidar_camera_input_ready
+    - koide_lidar_camera_result_available
+    - lidar_camera_transform_pairs
+    - lidar_camera_overlay_readiness
+    - lidar_camera_overlay_score
+    - lidar_camera_mutual_information_score
+    - reprojection_rmse_px
+    - lidar_point_to_plane_rmse_m
+    - trajectory_consistency
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

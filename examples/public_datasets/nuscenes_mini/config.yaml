@@ -1,0 +1,84 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: nuscenes_mini_sensor_graph
+  description: nuScenes mini metadata inspection for multi-sensor calibration.
+  output_dir: outputs/nuscenes_mini
+  domain: autonomous_driving
+
+dataset:
+  type: nuscenes
+  path: examples/public_datasets/nuscenes_mini
+  time_base: sensor_time_ns
+
+sensors:
+  lidar_top:
+    type: lidar
+    model: spinning
+    topic: LIDAR_TOP
+    fields: [x, y, z, intensity]
+  cam_front:
+    type: camera
+    model: pinhole
+    topic: CAM_FRONT
+  radar_front:
+    type: radar
+    model: automotive
+    topic: RADAR_FRONT
+
+frames:
+  ego:
+    root: true
+  lidar_top:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.10
+        rotation_deg: 2.0
+  cam_front:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.10
+        rotation_deg: 2.0
+  radar_front:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.20
+        rotation_deg: 5.0
+
+pipeline:
+  type: multi_sensor_slac
+  frontends:
+    - lidar_surfel_map
+    - camera_features
+    - radar_frontend
+  factors:
+    fixed_lidar_mount_prior:
+      enabled: true
+    camera_reprojection:
+      enabled: false
+    radar_lidar_velocity_consistency:
+      enabled: false
+
+solver:
+  backend: scipy
+  max_iterations: 50
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - lidar_frame_coverage
+    - lidar_world_map_point_to_plane_rmse_m
+    - radar_lidar_velocity_consistency
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

@@ -1,0 +1,34 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: nuscenes_mini
+description: nuScenes mini metadata manifest for multi-sensor inspection examples.
+time_base: sensor_time_ns
+streams:
+  LIDAR_TOP:
+    kind: pointcloud
+    count: null
+    path: samples/LIDAR_TOP/*
+    topic: LIDAR_TOP
+    sensor: lidar_top
+    frame_id: lidar_top
+    timestamp_field: timestamp_ns
+    fields: [x, y, z, intensity, ring]
+  CAM_FRONT:
+    kind: image
+    count: null
+    path: samples/CAM_FRONT/*
+    topic: CAM_FRONT
+    sensor: cam_front
+    frame_id: cam_front
+    timestamp_field: timestamp_ns
+  RADAR_FRONT:
+    kind: radar
+    count: null
+    path: samples/RADAR_FRONT/*
+    topic: RADAR_FRONT
+    sensor: radar_front
+    frame_id: radar_front
+    timestamp_field: timestamp_ns
+provenance:
+  public_dataset: nuscenes_mini
+  official_url: https://www.nuscenes.org/nuscenes
+  note: Download nuScenes mini through the official nuScenes flow, then place v1.0-mini metadata and sample files under this dataset root or update config.yaml.

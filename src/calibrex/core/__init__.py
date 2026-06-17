@@ -1,0 +1,1 @@
+"""Core Calibrex data structures."""

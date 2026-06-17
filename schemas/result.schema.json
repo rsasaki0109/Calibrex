@@ -1,0 +1,656 @@
+{
+  "$defs": {
+    "ArtifactSet": {
+      "additionalProperties": false,
+      "properties": {
+        "camera_lidar_overlay": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera Lidar Overlay"
+        },
+        "html_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Html Report"
+        },
+        "residual_histogram": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Residual Histogram"
+        },
+        "trajectory_plot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trajectory Plot"
+        }
+      },
+      "title": "ArtifactSet",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "DegeneracyResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "title": "DegeneracyResult",
+      "type": "object"
+    },
+    "ExportSet": {
+      "additionalProperties": false,
+      "properties": {
+        "autoware": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Autoware"
+        },
+        "kalibr_yaml": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kalibr Yaml"
+        },
+        "ros_tf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ros Tf"
+        },
+        "urdf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Urdf"
+        }
+      },
+      "title": "ExportSet",
+      "type": "object"
+    },
+    "FrameGraphSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "frames": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Frames",
+          "type": "object"
+        },
+        "root": {
+          "title": "Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "frames"
+      ],
+      "title": "FrameGraphSnapshot",
+      "type": "object"
+    },
+    "MetricResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "train": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "MetricResult",
+      "type": "object"
+    },
+    "ObservabilityResult": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_number": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition Number"
+        },
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Weak Directions",
+          "type": "array"
+        }
+      },
+      "title": "ObservabilityResult",
+      "type": "object"
+    },
+    "QualitySummary": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking_failures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocking Failures",
+          "type": "array"
+        },
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "recommendation": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommendation",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "title": "QualitySummary",
+      "type": "object"
+    },
+    "RunInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Sha256"
+        },
+        "domain": {
+          "default": "robotics",
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "provenance": {
+          "additionalProperties": true,
+          "title": "Provenance",
+          "type": "object"
+        },
+        "status": {
+          "default": "success",
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "calibrex_version"
+      ],
+      "title": "RunInfo",
+      "type": "object"
+    },
+    "TimeOffsetQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        }
+      },
+      "title": "TimeOffsetQuality",
+      "type": "object"
+    },
+    "TimeOffsetResult": {
+      "additionalProperties": false,
+      "properties": {
+        "quality": {
+          "$ref": "#/$defs/TimeOffsetQuality"
+        },
+        "seconds": {
+          "title": "Seconds",
+          "type": "number"
+        },
+        "std_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Seconds"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "TimeOffsetResult",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "$ref": "#/$defs/ArtifactSet"
+    },
+    "candidate_extrinsics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TransformResult"
+      },
+      "title": "Candidate Extrinsics",
+      "type": "object"
+    },
+    "degeneracy": {
+      "$ref": "#/$defs/DegeneracyResult"
+    },
+    "export": {
+      "$ref": "#/$defs/ExportSet"
+    },
+    "frame_graph": {
+      "$ref": "#/$defs/FrameGraphSnapshot"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetricResult"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "observability": {
+      "$ref": "#/$defs/ObservabilityResult"
+    },
+    "quality": {
+      "$ref": "#/$defs/QualitySummary"
+    },
+    "reference_extrinsics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TransformResult"
+      },
+      "title": "Reference Extrinsics",
+      "type": "object"
+    },
+    "run": {
+      "$ref": "#/$defs/RunInfo"
+    },
+    "schema_version": {
+      "const": "calibrex.result/v0.1",
+      "default": "calibrex.result/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "time_offsets": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TimeOffsetResult"
+      },
+      "title": "Time Offsets",
+      "type": "object"
+    },
+    "transforms": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TransformResult"
+      },
+      "title": "Transforms",
+      "type": "object"
+    }
+  },
+  "required": [
+    "run",
+    "frame_graph"
+  ],
+  "title": "CalibrationResult",
+  "type": "object"
+}

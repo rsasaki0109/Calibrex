@@ -1,0 +1,32 @@
+schema_version: calibrex.public_datasets/v0.1
+datasets:
+  tum_rgbd_freiburg1_xyz:
+    name: TUM RGB-D fr1/xyz
+    family: tum_rgbd
+    domain: indoor_rgbd
+    official_url: https://cvg.cit.tum.de/data/datasets/rgbd-dataset/download
+    download_url: https://cvg.cit.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_xyz.tgz
+    license_note: See the TUM RGB-D dataset website for current terms and citation.
+    calibrex_manifest: examples/public_datasets/tum_rgbd_freiburg1_xyz/manifest.yaml
+    calibrex_config: examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
+    recommended_pipeline: rgbd_open3d_slac
+  kitti_raw_2011_09_26_drive_0005:
+    name: KITTI raw 2011_09_26_drive_0005
+    family: kitti_raw
+    domain: autonomous_driving
+    official_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    download_url: null
+    license_note: KITTI raw data requires using the official KITTI download flow and login.
+    calibrex_manifest: examples/public_datasets/kitti_raw_2011_09_26_drive_0005/manifest.yaml
+    calibrex_config: examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml
+    recommended_pipeline: multi_sensor_slac
+  nuscenes_mini:
+    name: nuScenes mini
+    family: nuscenes
+    domain: autonomous_driving
+    official_url: https://www.nuscenes.org/nuscenes
+    download_url: null
+    license_note: nuScenes is public for non-commercial use; follow official account and download terms.
+    calibrex_manifest: examples/public_datasets/nuscenes_mini/manifest.yaml
+    calibrex_config: examples/public_datasets/nuscenes_mini/config.yaml
+    recommended_pipeline: multi_sensor_slac
