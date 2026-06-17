@@ -13,7 +13,7 @@ then enter as plugins, optional solver adapters, or baseline subprocesses.
 
 ## Research Anchors
 
-LiDAR-first and autonomous-driving calibration work is guided by these papers:
+Autonomous-driving and fixed-rig LiDAR calibration work is guided by these papers:
 
 - [SceneCalib](https://arxiv.org/abs/2304.05530): targetless multi-camera and
   LiDAR self-calibration for autonomous driving. It motivates joint camera

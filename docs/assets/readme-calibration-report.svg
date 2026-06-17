@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="540" viewBox="0 0 1200 540" role="img" aria-label="Calibrex public dataset calibration report overview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101820"/>
+      <stop offset="0.55" stop-color="#142433"/>
+      <stop offset="1" stop-color="#0f1720"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4cc9f0"/>
+      <stop offset="0.5" stop-color="#80ed99"/>
+      <stop offset="1" stop-color="#ffd166"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="540" rx="28" fill="url(#bg)"/>
+  <path d="M40 95 C190 25, 305 155, 460 86 S760 64, 915 130 S1085 154, 1160 92"
+        fill="none" stroke="url(#line)" stroke-width="3" opacity="0.65"/>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="56" y="76" fill="#f8fafc" font-size="44" font-weight="800">Calibrex</text>
+    <text x="58" y="114" fill="#b7c4d0" font-size="19">Universal sensor calibration evidence for robotics and autonomous driving</text>
+
+    <g transform="translate(56,154)" filter="url(#shadow)">
+      <rect width="330" height="308" rx="14" fill="#f8fafc"/>
+      <text x="24" y="42" fill="#0f1720" font-size="19" font-weight="750">Inputs</text>
+      <g transform="translate(24,70)">
+        <rect width="282" height="42" rx="8" fill="#e9f5ff"/>
+        <text x="16" y="27" fill="#153243" font-size="15" font-weight="650">Public driving logs</text>
+        <text x="178" y="27" fill="#336b87" font-size="14">KITTI / nuScenes</text>
+      </g>
+      <g transform="translate(24,126)">
+        <rect width="282" height="42" rx="8" fill="#eaf8ee"/>
+        <text x="16" y="27" fill="#153243" font-size="15" font-weight="650">Candidate extrinsics</text>
+        <text x="190" y="27" fill="#287a43" font-size="14">YAML / JSON</text>
+      </g>
+      <g transform="translate(24,182)">
+        <rect width="282" height="42" rx="8" fill="#fff4d8"/>
+        <text x="16" y="27" fill="#153243" font-size="15" font-weight="650">Reference metadata</text>
+        <text x="186" y="27" fill="#906811" font-size="14">calibrated_sensor</text>
+      </g>
+      <g transform="translate(24,246)">
+        <circle cx="11" cy="9" r="5" fill="#4cc9f0"/>
+        <text x="28" y="14" fill="#435160" font-size="14">No dataset files committed</text>
+        <circle cx="11" cy="36" r="5" fill="#80ed99"/>
+        <text x="28" y="41" fill="#435160" font-size="14">Official public download flows</text>
+      </g>
+    </g>
+
+    <g transform="translate(435,154)" filter="url(#shadow)">
+      <rect width="330" height="308" rx="14" fill="#f8fafc"/>
+      <text x="24" y="42" fill="#0f1720" font-size="19" font-weight="750">Evaluation Core</text>
+      <g transform="translate(24,72)">
+        <rect width="282" height="30" rx="15" fill="#0f1720"/>
+        <rect x="4" y="4" width="88" height="22" rx="11" fill="#4cc9f0"/>
+        <text x="17" y="21" fill="#08202a" font-size="13" font-weight="800">TRAIN</text>
+        <text x="111" y="21" fill="#e2e8f0" font-size="13" font-weight="700">HOLDOUT</text>
+        <text x="203" y="21" fill="#e2e8f0" font-size="13" font-weight="700">REPORT</text>
+      </g>
+      <g transform="translate(24,126)">
+        <rect width="282" height="1.5" fill="#d9e2ea"/>
+        <text x="0" y="32" fill="#153243" font-size="15" font-weight="650">candidate vs reference</text>
+        <text x="205" y="32" fill="#287a43" font-size="14" font-weight="700">PASS</text>
+        <rect y="48" width="282" height="1.5" fill="#d9e2ea"/>
+        <text x="0" y="80" fill="#153243" font-size="15" font-weight="650">LiDAR map consistency</text>
+        <text x="205" y="80" fill="#906811" font-size="14" font-weight="700">WARN</text>
+        <rect y="96" width="282" height="1.5" fill="#d9e2ea"/>
+        <text x="0" y="128" fill="#153243" font-size="15" font-weight="650">weak DoF / degeneracy</text>
+        <text x="205" y="128" fill="#906811" font-size="14" font-weight="700">WARN</text>
+      </g>
+      <g transform="translate(24,278)">
+        <rect width="282" height="1.5" fill="#d9e2ea"/>
+      </g>
+    </g>
+
+    <g transform="translate(814,154)" filter="url(#shadow)">
+      <rect width="330" height="308" rx="14" fill="#f8fafc"/>
+      <text x="24" y="42" fill="#0f1720" font-size="19" font-weight="750">Artifacts</text>
+      <g transform="translate(24,72)">
+        <rect width="282" height="46" rx="8" fill="#eef2f7"/>
+        <text x="16" y="29" fill="#153243" font-size="15" font-weight="650">result.yaml</text>
+        <text x="176" y="29" fill="#435160" font-size="14">schema-valid</text>
+      </g>
+      <g transform="translate(24,134)">
+        <rect width="282" height="46" rx="8" fill="#eef2f7"/>
+        <text x="16" y="29" fill="#153243" font-size="15" font-weight="650">report.html</text>
+        <text x="176" y="29" fill="#435160" font-size="14">quality gates</text>
+      </g>
+      <g transform="translate(24,196)">
+        <rect width="282" height="46" rx="8" fill="#eef2f7"/>
+        <text x="16" y="29" fill="#153243" font-size="15" font-weight="650">overlays</text>
+        <text x="176" y="29" fill="#435160" font-size="14">camera / LiDAR</text>
+      </g>
+      <g transform="translate(24,260)">
+        <text x="0" y="15" fill="#435160" font-size="14">Designed to compare candidates, not just print numbers.</text>
+      </g>
+    </g>
+
+    <g transform="translate(56,496)">
+      <rect width="154" height="28" rx="14" fill="#14344a"/>
+      <text x="18" y="19" fill="#bdeaff" font-size="13" font-weight="750">KITTI raw</text>
+      <rect x="172" width="154" height="28" rx="14" fill="#153b25"/>
+      <text x="190" y="19" fill="#c7f9d4" font-size="13" font-weight="750">nuScenes</text>
+      <rect x="344" width="154" height="28" rx="14" fill="#473714"/>
+      <text x="362" y="19" fill="#ffe6a0" font-size="13" font-weight="750">TUM RGB-D</text>
+      <rect x="516" width="196" height="28" rx="14" fill="#2c3340"/>
+      <text x="534" y="19" fill="#dbe4ee" font-size="13" font-weight="750">candidate/reference</text>
+      <rect x="730" width="180" height="28" rx="14" fill="#2c3340"/>
+      <text x="748" y="19" fill="#dbe4ee" font-size="13" font-weight="750">PASS / WARN / FAIL</text>
+    </g>
+  </g>
+</svg>

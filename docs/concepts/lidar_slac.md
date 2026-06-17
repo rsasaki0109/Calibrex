@@ -31,7 +31,7 @@ quality gates.
 
 ## Required Variables
 
-LiDAR-first SLAC configs should be able to compile these variables:
+Fixed-rig LiDAR SLAC configs should be able to compile these variables:
 
 - `T_base_lidarN` fixed-rig extrinsics
 - `T_base_cameraN` and `T_lidar_camera` derived or explicit extrinsics

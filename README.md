@@ -1,24 +1,44 @@
 # Calibrex
 
-Universal Sensor Calibration Framework for Robotics.
+**Universal Sensor Calibration Framework for Robotics**
 
-Calibrex provides a unified UX, Python API, result schema, evaluation report, and
-visualization tools for calibrating multi-sensor robotic systems.
+Calibrex turns multi-sensor calibration logs into comparable evidence:
+schema-valid results, candidate/reference extrinsic comparisons, train/holdout
+metrics, PASS/WARN/FAIL quality gates, and portable HTML reports.
 
-GitHub About: Universal sensor calibration framework for robotics and
-autonomous driving, focused on reproducible extrinsic evaluation, train/holdout
-quality gates, and SLAC-style multi-sensor calibration workflows.
+<p align="center">
+  <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex public dataset calibration report overview" width="100%">
+</p>
 
-Suggested topics: `calibration`, `lidar`, `robotics`, `autonomous-driving`,
-`sensor-fusion`, `slam`, `extrinsic-calibration`, `camera-lidar`,
-`imu`, `radar`, `mcap`, `kitti`, `nuscenes`.
+<p align="center">
+  <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776ab">
+  <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
+  <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
+</p>
 
 ```bash
-calibrex doctor
-calibrex calibrate config.yaml
-calibrex evaluate outputs/result.yaml
-calibrex visualize outputs/result.yaml --export-html
+calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 ```
+
+## What Calibrex Shows
+
+| Public dataset workflow | What Calibrex reads | What appears in `result.yaml` and `report.html` |
+|---|---|---|
+| KITTI raw | Velodyne frames, camera frames, OXTS motion, timestamps, calibration files | LiDAR map consistency, perturbation sensitivity, timestamp diagnostics, camera-LiDAR overlay checks |
+| nuScenes | `sample_data`, `ego_pose`, `sensor`, `calibrated_sensor` metadata | `reference_extrinsics`, `candidate_extrinsics`, candidate/reference translation and rotation deltas |
+| TUM RGB-D | RGB/depth associations and trajectory-style metadata | Open3D SLAC adapter boundary, schema-normalized result and quality report |
+
+| Output | Why it matters |
+|---|---|
+| `candidate_extrinsics` vs `reference_extrinsics` | Keeps manual candidates, dataset references, and solver outputs separate. |
+| Train/holdout metrics | Makes calibration quality harder to overfit to one frame or one sequence segment. |
+| Observability and degeneracy warnings | Reports when a dataset cannot support a trusted estimate for some DoF. |
+| HTML report and overlays | Gives reviewers a portable artifact instead of a one-off notebook screenshot. |
+
+Examples are public-dataset workflows. Large raw logs are never committed to the
+repository; Calibrex keeps configs, manifests, schemas, and reproducible
+evaluation code.
 
 ## Vision
 
@@ -40,7 +60,7 @@ unified estimation problem.
 - Dataset inspection for filesystem inputs and MCAP stubs
 - Dataset manifest schema for portable stream declarations
 - Public dataset catalog for TUM RGB-D, KITTI raw, and nuScenes references
-- LiDAR-first KITTI raw loader for fixed-mounted vehicle LiDAR calibration
+- KITTI raw loader for fixed-mounted vehicle LiDAR calibration
 - Velodyne `.bin` reader with sampled point cloud diagnostics in `inspect`
 - LiDAR coverage metrics for frame, point, and spatial extent checks
 - LiDAR local planarity, roughness, and map sharpness proxy metrics

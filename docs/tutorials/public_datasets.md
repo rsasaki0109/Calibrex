@@ -118,7 +118,7 @@ OXTS-projected LiDAR train map and scores holdout frames against that map. The
 resulting `lidar_world_map_point_to_plane_rmse_m`,
 `lidar_world_map_point_to_plane_median_holdout_m`, and
 `lidar_world_map_point_to_plane_p95_holdout_m` metrics are the first
-LiDAR-main map-consistency signals for fixed vehicle extrinsic validation.
+fixed-rig LiDAR map-consistency signals for vehicle extrinsic validation.
 The matching `lidar_world_map_perturbation_*` metrics rerun that OXTS-projected
 map consistency check after known extrinsic perturbations, so the report can
 say whether a sequence has enough signal to rank bad roll, pitch, yaw, x, y, or
@@ -146,8 +146,8 @@ adds recommendations for longer driving logs, acceleration/braking, and turns.
 Large timestamp deltas add a recommendation to verify synchronization or enable
 time-offset estimation.
 
-The KITTI raw example is LiDAR-first. It models the Velodyne LiDAR as a
-fixed-mounted sensor on the vehicle and compiles a `fixed_lidar_mount_prior`
+The KITTI raw example models the Velodyne LiDAR as a fixed-mounted sensor on
+the vehicle and compiles a `fixed_lidar_mount_prior`
 factor together with camera reprojection, LiDAR surfel, LiDAR-camera alignment,
 and IMU preintegration descriptors.
 
