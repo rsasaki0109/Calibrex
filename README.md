@@ -5,8 +5,29 @@
 Calibrex turns multi-sensor calibration logs into comparable evidence:
 schema-valid results, candidate/reference extrinsic comparisons, train/holdout
 metrics, PASS/WARN/FAIL quality gates, portable HTML reports with a
-first-screen Calibration Scoreboard, and schema-valid machine-readable report
-sidecars.
+first-screen Calibration / Accuracy Scoreboard, and schema-valid
+machine-readable report sidecars.
+
+## Extrinsic Accuracy Snapshot
+
+Calibrex reports calibration accuracy as evidence, not as an unconditional
+SOTA claim. Public dataset calibrations are treated as references or baselines,
+while holdout metrics and observability warnings decide whether a candidate is
+trustworthy. The bundled values below show the units and scale of a schema-valid
+sample report; public benchmark runs should quote the same fields with the
+official dataset and split recorded in provenance.
+
+| Accuracy evidence | Bundled sample report | Where it appears |
+|---|---:|---|
+| Transform uncertainty | 4-6 mm translation std, 0.08-0.10 deg rotation std | `transforms.*.quality` |
+| LiDAR holdout consistency | 2.1 cm point-to-plane RMSE | `metrics.lidar_point_to_plane_rmse_m.holdout` |
+| Camera holdout consistency | 0.86 px reprojection RMSE | `metrics.reprojection_rmse_px.holdout` |
+| Observability | rank 42, no weak DoF | `observability` |
+| Candidate vs reference delta | emitted for public dataset / external candidate runs | `extrinsic_reference_*` metrics |
+
+For KITTI raw, nuScenes, and external LiDAR-camera baselines, the same report
+format compares `candidate_extrinsics`, `reference_extrinsics`, holdout
+residuals, perturbation sensitivity, and weak DoF warnings before export.
 
 <p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex public dataset calibration report overview" width="100%">
