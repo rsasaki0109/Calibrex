@@ -5,9 +5,9 @@ Universal Sensor Calibration Framework for Robotics.
 Calibrex provides a unified UX, Python API, result schema, evaluation report, and
 visualization tools for calibrating multi-sensor robotic systems.
 
-GitHub About: LiDAR-first universal sensor calibration framework for robotics
-and autonomous driving, focused on reproducible extrinsic evaluation,
-train/holdout quality gates, and SLAC-style multi-sensor calibration workflows.
+GitHub About: Universal sensor calibration framework for robotics and
+autonomous driving, focused on reproducible extrinsic evaluation, train/holdout
+quality gates, and SLAC-style multi-sensor calibration workflows.
 
 Suggested topics: `calibration`, `lidar`, `robotics`, `autonomous-driving`,
 `sensor-fusion`, `slam`, `extrinsic-calibration`, `camera-lidar`,
