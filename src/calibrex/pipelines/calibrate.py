@@ -48,7 +48,7 @@ from calibrex.solvers.koide_lidar_camera_solver import (
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
-from calibrex.visualization.report import render_html_report
+from calibrex.visualization.report import write_report_artifacts
 
 
 @dataclass(frozen=True)
@@ -101,7 +101,7 @@ def run_calibration(
     evaluate_quality(result, strict=options.strict)
     write_camera_lidar_overlay_artifact(result, output_dir / config.outputs.artifacts_dir)
     result.save(result_path)
-    report_path.write_text(render_html_report(result), encoding="utf-8")
+    write_report_artifacts(result, output_dir, html_filename=config.outputs.report)
     return result
 
 

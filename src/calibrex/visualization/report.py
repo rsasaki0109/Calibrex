@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from html import escape
+from pathlib import Path
+from typing import Any
 
 from calibrex.core.geometry import normalize_quaternion_xyzw
+from calibrex.core.io import write_mapping
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
 
 _WORLD_MAP_SUMMARY_METRICS = (
@@ -164,6 +168,143 @@ def render_html_report(result: CalibrationResult) -> str:
 </body>
 </html>
 """
+
+
+def write_report_artifacts(
+    result: CalibrationResult,
+    output_dir: str | Path,
+    *,
+    html_filename: str | Path = "report.html",
+    include_html: bool = True,
+) -> dict[str, str]:
+    """Write the HTML report and machine-readable report sidecars."""
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    written: dict[str, str] = {}
+    if include_html:
+        report_path = _resolve_output_path(output_path, html_filename)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        result.artifacts.html_report = str(report_path)
+        report_path.write_text(render_html_report(result), encoding="utf-8")
+        written["html_report"] = str(report_path)
+
+    for name, payload in _report_sidecar_payloads(result).items():
+        sidecar_path = output_path / name
+        write_mapping(sidecar_path, payload)
+        written[name.removesuffix(".json")] = str(sidecar_path)
+
+    return written
+
+
+def _resolve_output_path(output_dir: Path, filename: str | Path) -> Path:
+    path = Path(filename)
+    if path.is_absolute():
+        return path
+    return output_dir / path
+
+
+def _report_sidecar_payloads(result: CalibrationResult) -> dict[str, dict[str, Any]]:
+    return {
+        "summary.json": _summary_payload(result),
+        "metrics.json": _metrics_payload(result),
+        "observability.json": _observability_payload(result),
+        "degeneracy.json": _degeneracy_payload(result),
+    }
+
+
+def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
+    return {
+        "schema_version": "calibrex.report.summary/v0.1",
+        "run": _run_payload(result),
+        "quality": result.quality.model_dump(mode="json", exclude_none=True),
+        "metric_counts": _grade_counts(metric.grade for metric in result.metrics.values()),
+        "transform_counts": _grade_counts(
+            transform.quality.grade for transform in result.transforms.values()
+        ),
+        "candidate_extrinsic_count": len(result.candidate_extrinsics),
+        "reference_extrinsic_count": len(result.reference_extrinsics),
+        "matched_candidate_reference_count": _matched_candidate_reference_count(result),
+        "weak_direction_count": len(result.observability.weak_directions),
+        "artifact_paths": result.artifacts.model_dump(mode="json", exclude_none=True),
+    }
+
+
+def _metrics_payload(result: CalibrationResult) -> dict[str, Any]:
+    return {
+        "schema_version": "calibrex.report.metrics/v0.1",
+        "run": _run_payload(result),
+        "metrics": {
+            name: metric.model_dump(mode="json", exclude_none=True)
+            for name, metric in sorted(result.metrics.items())
+        },
+    }
+
+
+def _observability_payload(result: CalibrationResult) -> dict[str, Any]:
+    return {
+        "schema_version": "calibrex.report.observability/v0.1",
+        "run": _run_payload(result),
+        "observability": result.observability.model_dump(mode="json", exclude_none=True),
+        "weak_directions": list(result.observability.weak_directions),
+        "metrics": {
+            name: metric.model_dump(mode="json", exclude_none=True)
+            for name, metric in sorted(result.metrics.items())
+            if "observability" in name or "sensitivity" in name or "weak_dof" in name
+        },
+    }
+
+
+def _degeneracy_payload(result: CalibrationResult) -> dict[str, Any]:
+    return {
+        "schema_version": "calibrex.report.degeneracy/v0.1",
+        "run": _run_payload(result),
+        "degeneracy": result.degeneracy.model_dump(mode="json", exclude_none=True),
+        "quality_warnings": list(result.quality.warnings),
+        "recommendations": list(result.quality.recommendation),
+        "metrics": {
+            name: metric.model_dump(mode="json", exclude_none=True)
+            for name, metric in sorted(result.metrics.items())
+            if "degeneracy" in name
+            or "excitation" in name
+            or "timestamp" in name
+            or "weak_dof" in name
+        },
+    }
+
+
+def _run_payload(result: CalibrationResult) -> dict[str, Any]:
+    return {
+        "id": result.run.id,
+        "status": result.run.status,
+        "domain": result.run.domain,
+        "calibrex_version": result.run.calibrex_version,
+        "git_commit": result.run.git_commit,
+        "created_at": result.run.created_at,
+        "dataset_type": result.run.provenance.get("dataset_type"),
+        "dataset_path": result.run.provenance.get("dataset_path"),
+    }
+
+
+def _grade_counts(grades: Iterable[str]) -> dict[str, int]:
+    counts = {"pass": 0, "warn": 0, "fail": 0}
+    for grade in grades:
+        if grade in counts:
+            counts[grade] += 1
+    return counts
+
+
+def _matched_candidate_reference_count(result: CalibrationResult) -> int:
+    reference_edges = {
+        (transform.parent, transform.child)
+        for transform in result.reference_extrinsics.values()
+    }
+    return sum(
+        1
+        for transform in result.candidate_extrinsics.values()
+        if (transform.parent, transform.child) in reference_edges
+    )
 
 
 def _fmt(value: float | None) -> str:

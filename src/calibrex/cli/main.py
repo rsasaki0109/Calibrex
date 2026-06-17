@@ -39,7 +39,7 @@ from calibrex.export.ros_tf import export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
-from calibrex.visualization.report import render_html_report
+from calibrex.visualization.report import write_report_artifacts
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -282,9 +282,9 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
         output_dir = args.output_dir or args.result.parent
         output_dir.mkdir(parents=True, exist_ok=True)
         write_camera_lidar_overlay_artifact(result, output_dir / "artifacts")
-        report_path = output_dir / "report.html"
-        result.artifacts.html_report = str(report_path)
-        report_path.write_text(render_html_report(result), encoding="utf-8")
+        report_artifacts = write_report_artifacts(result, output_dir)
+    else:
+        report_artifacts = {}
     if args.output_dir:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         output = args.output_dir / args.result.name
@@ -295,6 +295,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
         "blocking_failures": result.quality.blocking_failures,
         "recommendation": result.quality.recommendation,
         "html_report": result.artifacts.html_report,
+        "report_artifacts": report_artifacts,
     }
     _emit(payload, args.json)
     return 1 if result.quality.grade == "fail" else 0
@@ -387,12 +388,14 @@ def _cmd_visualize(args: argparse.Namespace) -> int:
     if args.export_html:
         output_dir.mkdir(parents=True, exist_ok=True)
         write_camera_lidar_overlay_artifact(result, output_dir / "artifacts")
-        result.artifacts.html_report = str(html_path)
-        html_path.write_text(render_html_report(result), encoding="utf-8")
+        report_artifacts = write_report_artifacts(result, output_dir)
+    else:
+        report_artifacts = {}
     payload = {
         "status": "ok",
         "html_report": str(html_path) if args.export_html else result.artifacts.html_report,
         "camera_lidar_overlay": result.artifacts.camera_lidar_overlay,
+        "report_artifacts": report_artifacts,
     }
     _emit(payload, args.json)
     return 0

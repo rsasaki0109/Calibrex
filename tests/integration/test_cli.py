@@ -160,6 +160,17 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     )
     result = tmp_path / "result.yaml"
     assert result.exists()
+    assert (tmp_path / "report.html").exists()
+    assert (tmp_path / "summary.json").exists()
+    assert (tmp_path / "metrics.json").exists()
+    assert (tmp_path / "observability.json").exists()
+    assert (tmp_path / "degeneracy.json").exists()
+    summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    assert summary["schema_version"] == "calibrex.report.summary/v0.1"
+    assert summary["run"]["id"]
+    metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["schema_version"] == "calibrex.report.metrics/v0.1"
+    assert "schema_validation" in metrics["metrics"]
     evaluated_dir = tmp_path / "evaluated"
     assert (
         main(
@@ -176,8 +187,29 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     )
     assert (evaluated_dir / "result.yaml").exists()
     assert (evaluated_dir / "report.html").exists()
-    assert main(["visualize", str(result), "--export-html", "--json"]) == 0
-    assert (tmp_path / "report.html").exists()
+    assert (evaluated_dir / "summary.json").exists()
+    assert (evaluated_dir / "metrics.json").exists()
+    assert (evaluated_dir / "observability.json").exists()
+    assert (evaluated_dir / "degeneracy.json").exists()
+    visualized_dir = tmp_path / "visualized"
+    assert (
+        main(
+            [
+                "visualize",
+                str(result),
+                "--output-dir",
+                str(visualized_dir),
+                "--export-html",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert (visualized_dir / "report.html").exists()
+    assert (visualized_dir / "summary.json").exists()
+    assert (visualized_dir / "metrics.json").exists()
+    assert (visualized_dir / "observability.json").exists()
+    assert (visualized_dir / "degeneracy.json").exists()
     assert (
         main(["export", str(result), "--format", "ros-tf", "--output", str(tmp_path / "tf.yaml")])
         == 0
@@ -624,6 +656,12 @@ outputs:
     assert "DoF Sensitivity" in report_html
     assert "lidar_world_map_sensitivity_roll_m" in report_html
     assert "lidar_world_map_weak_dof_count" in report_html
+    world_map_metrics = json.loads((output_dir / "metrics.json").read_text(encoding="utf-8"))
+    assert "lidar_world_map_point_to_plane_rmse_m" in world_map_metrics["metrics"]
+    observability = json.loads((output_dir / "observability.json").read_text(encoding="utf-8"))
+    assert "weak_directions" in observability
+    degeneracy = json.loads((output_dir / "degeneracy.json").read_text(encoding="utf-8"))
+    assert degeneracy["degeneracy"]["grade"] in {"pass", "warn", "fail"}
     inspection = result.run.provenance["dataset_inspection"]
     assert inspection["diagnostics"]["velodyne_points"]["sampled_point_count"] == 24
     assert inspection["diagnostics"]["oxts_motion"]["packet_count"] == 2

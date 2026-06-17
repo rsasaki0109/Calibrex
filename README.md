@@ -4,7 +4,8 @@
 
 Calibrex turns multi-sensor calibration logs into comparable evidence:
 schema-valid results, candidate/reference extrinsic comparisons, train/holdout
-metrics, PASS/WARN/FAIL quality gates, and portable HTML reports.
+metrics, PASS/WARN/FAIL quality gates, portable HTML reports, and
+machine-readable report sidecars.
 
 <p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex public dataset calibration report overview" width="100%">
@@ -23,7 +24,7 @@ calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 
 ## What Calibrex Shows
 
-| Public dataset workflow | What Calibrex reads | What appears in `result.yaml` and `report.html` |
+| Public dataset workflow | What Calibrex reads | What appears in `result.yaml`, `report.html`, and sidecars |
 |---|---|---|
 | KITTI raw | Velodyne frames, camera frames, OXTS motion, timestamps, calibration files | LiDAR map consistency, perturbation sensitivity, timestamp diagnostics, camera-LiDAR overlay checks |
 | nuScenes | `sample_data`, `ego_pose`, `sensor`, `calibrated_sensor` metadata | `reference_extrinsics`, `candidate_extrinsics`, candidate/reference translation and rotation deltas |
@@ -34,6 +35,7 @@ calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 | `candidate_extrinsics` vs `reference_extrinsics` | Keeps manual candidates, dataset references, and solver outputs separate. |
 | Train/holdout metrics | Makes calibration quality harder to overfit to one frame or one sequence segment. |
 | Observability and degeneracy warnings | Reports when a dataset cannot support a trusted estimate for some DoF. |
+| `summary.json`, `metrics.json`, `observability.json`, `degeneracy.json` | Gives CI, notebooks, and benchmark scripts stable machine-readable report inputs. |
 | HTML report and overlays | Gives reviewers a portable artifact instead of a one-off notebook screenshot. |
 
 Examples are public-dataset workflows. Large raw logs are never committed to the
@@ -76,6 +78,7 @@ unified estimation problem.
 - nuScenes `calibrated_sensor` import into result `reference_extrinsics`
 - Candidate extrinsics stored separately from solver output and compared against references
 - External candidate extrinsic YAML import with `--candidate-extrinsics`
+- Machine-readable report sidecars for summary, metrics, observability, and degeneracy
 - KITTI OXTS motion excitation diagnostics for speed, duration, and yaw checks
 - KITTI Camera-LiDAR and LiDAR-OXTS timestamp alignment metrics
 - KITTI camera image and Velodyne frame-pair extraction for overlay artifacts
