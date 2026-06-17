@@ -13,6 +13,7 @@ from calibrex.data.kitti import (
     summarize_lidar_world_map_consistency,
     summarize_velodyne_points,
 )
+from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneEvaluation
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
 _WORLD_MAP_DOF_METRICS = {
@@ -111,6 +112,57 @@ def lidar_metrics_from_inspection(
         )
     )
     return metrics
+
+
+def lidar_rig_point_to_plane_metrics_from_evaluation(
+    evaluation: LidarRigPointToPlaneEvaluation,
+) -> dict[str, MetricResult]:
+    """Build report-ready metrics from a native LiDAR point-to-plane factor."""
+
+    residual_count_grade: Grade = "pass" if evaluation.residual_count > 0 else "warn"
+    rank_grade: Grade = "pass" if evaluation.rank >= 6 else "warn"
+    condition_grade: Grade = (
+        "pass"
+        if evaluation.condition_number_estimate is not None
+        and evaluation.condition_number_estimate <= 1.0e8
+        else "warn"
+    )
+    weak_dof_grade: Grade = "pass" if not evaluation.weak_directions else "warn"
+    return {
+        "lidar_rig_point_to_plane_residual_count": MetricResult(
+            value=float(evaluation.residual_count),
+            unit="residuals",
+            grade=residual_count_grade,
+            reason=f"native LiDAR rig point-to-plane residuals for {evaluation.variable}",
+        ),
+        "lidar_rig_point_to_plane_rmse_m": MetricResult(
+            value=evaluation.rmse_m,
+            unit="m",
+            grade=residual_count_grade,
+            reason=f"native LiDAR rig point-to-plane RMSE for {evaluation.variable}",
+        ),
+        "lidar_rig_point_to_plane_rank": MetricResult(
+            value=float(evaluation.rank),
+            grade=rank_grade,
+            reason="rank of the native LiDAR rig point-to-plane normal equations",
+        ),
+        "lidar_rig_point_to_plane_condition_number": MetricResult(
+            value=evaluation.condition_number_estimate,
+            grade=condition_grade,
+            reason="diagonal condition estimate from the native factor Hessian",
+        ),
+        "lidar_rig_point_to_plane_weak_dof_count": MetricResult(
+            value=float(len(evaluation.weak_directions)),
+            unit="dof",
+            grade=weak_dof_grade,
+            reason=(
+                "weak native LiDAR point-to-plane DoF: "
+                + ", ".join(evaluation.weak_directions)
+                if evaluation.weak_directions
+                else "native LiDAR point-to-plane Hessian diagonal has no weak DoF"
+            ),
+        ),
+    }
 
 
 def _lidar_world_map_metrics(diagnostics: Mapping[object, object]) -> dict[str, MetricResult]:

@@ -148,6 +148,11 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_world_map_sensitivity_z_m" in names
     assert "lidar_world_map_weak_dof_count" in names
     assert "lidar_world_map_min_dof_sensitivity_m" in names
+    assert "lidar_rig_point_to_plane_residual_count" in names
+    assert "lidar_rig_point_to_plane_rmse_m" in names
+    assert "lidar_rig_point_to_plane_rank" in names
+    assert "lidar_rig_point_to_plane_condition_number" in names
+    assert "lidar_rig_point_to_plane_weak_dof_count" in names
     assert "lidar_perturbation_case_count" in names
     assert "lidar_perturbation_detectable_fraction" in names
     assert "lidar_perturbation_train_rmse_delta_mean_m" in names

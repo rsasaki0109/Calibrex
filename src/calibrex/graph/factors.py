@@ -105,6 +105,32 @@ class LidarPointToSurfelFactor(FactorPlugin):
         ]
 
 
+@register_factor("lidar_rig_point_to_plane")
+class LidarRigPointToPlaneDescriptorFactor(FactorPlugin):
+    """Descriptor for native fixed-rig LiDAR point-to-plane factors."""
+
+    required_streams: ClassVar[list[str]] = ["lidar.points", "ego.pose"]
+
+    def build(self, context: dict[str, Any]) -> list[FactorDescriptor]:
+        sensor = str(context.get("sensor", "lidar0"))
+        root = str(context.get("root", "base"))
+        options = {
+            "trajectory_source": "dataset_ego_pose_or_prior",
+            "correction_order": ["x", "y", "z", "roll", "pitch", "yaw"],
+            "perturbation": "left",
+            **dict(context.get("options", {})),
+        }
+        return [
+            FactorDescriptor(
+                name="lidar_rig_point_to_plane",
+                variables=[f"T_{root}_{sensor}", "trajectory", "lidar_plane_map"],
+                residual="point_to_plane_distance_m",
+                sensor_streams=self.required_streams,
+                options=options,
+            )
+        ]
+
+
 @register_factor("radar_doppler_motion")
 class RadarDopplerMotionFactor(FactorPlugin):
     """Built-in descriptor for future autonomous-driving Radar factors."""

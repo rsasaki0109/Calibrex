@@ -151,6 +151,8 @@ def _build_variables(
 
     if _factor_enabled(config, "lidar_point_to_surfel"):
         variables.append(VariableDescriptor(name="surfel_map", kind="map", dimension=3))
+    if _factor_enabled(config, "lidar_rig_point_to_plane"):
+        variables.append(VariableDescriptor(name="lidar_plane_map", kind="map", dimension=3))
     if _factor_enabled(config, "radar_doppler_motion"):
         variables.append(VariableDescriptor(name="body_velocity", kind="velocity", dimension=3))
     if config.pipeline.type == "rgbd_open3d_slac":
@@ -288,6 +290,12 @@ def _factor_contexts(
             for name, sensor in sorted(config.sensors.items())
             if sensor.type == "lidar"
         ]
+    if factor_name == "lidar_rig_point_to_plane":
+        return [
+            {"root": root, "sensor": name}
+            for name, sensor in sorted(config.sensors.items())
+            if sensor.type == "lidar"
+        ]
     if factor_name == "radar_doppler_motion":
         return [
             {"root": root, "sensor": name}
@@ -373,7 +381,12 @@ def _factor_enabled(config: CalibrationConfig, factor_name: str) -> bool:
 
 
 def _uses_motion_variables(config: CalibrationConfig) -> bool:
-    motion_factors = {"imu_preintegration", "lidar_point_to_surfel", "open3d_slac"}
+    motion_factors = {
+        "imu_preintegration",
+        "lidar_point_to_surfel",
+        "lidar_rig_point_to_plane",
+        "open3d_slac",
+    }
     return config.pipeline.type.endswith("slac") or any(
         _factor_enabled(config, factor_name) for factor_name in motion_factors
     )

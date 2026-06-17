@@ -97,11 +97,13 @@ def test_kitti_public_config_compiles_lidar_camera_factor() -> None:
     assert config.evaluation.kitti.perturbation_rotation_deg == [0.5, 1.0]
     assert config.evaluation.kitti.perturbation_translation_m == [0.05, 0.10]
     assert "lidar_camera_mutual_information" in {factor.name for factor in problem.factors}
+    assert "lidar_rig_point_to_plane" in {factor.name for factor in problem.factors}
     assert "koide_lidar_camera" in {factor.name for factor in problem.factors}
     assert "fixed_lidar_mount_prior" in {factor.name for factor in problem.factors}
     factor_variables = {variable for factor in problem.factors for variable in factor.variables}
     assert "T_base_link_camera0" in factor_variables
     assert "T_base_link_lidar0" in factor_variables
+    assert "lidar_plane_map" in {variable.name for variable in problem.variables}
 
 
 def test_nuscenes_public_config_compiles_sensor_graph() -> None:

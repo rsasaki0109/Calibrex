@@ -90,6 +90,11 @@ pipeline:
       enabled: true
     lidar_point_to_surfel:
       enabled: true
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        trajectory_source: oxts
+        map_source: train_voxel_planes
     camera_reprojection:
       enabled: true
     lidar_camera_mutual_information:
@@ -124,6 +129,9 @@ evaluation:
     - lidar_local_planarity
     - lidar_map_roughness_m
     - lidar_map_sharpness
+    - lidar_rig_point_to_plane_rmse_m
+    - lidar_rig_point_to_plane_rank
+    - lidar_rig_point_to_plane_weak_dof_count
     - vehicle_motion_duration_s
     - vehicle_mean_speed_mps
     - vehicle_speed_range_mps

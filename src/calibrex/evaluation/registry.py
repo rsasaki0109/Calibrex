@@ -217,6 +217,34 @@ def _register_builtin_metrics() -> None:
             "lidar",
         ),
         MetricDefinition(
+            "lidar_rig_point_to_plane_residual_count",
+            "Native LiDAR rig point-to-plane factor residual count",
+            "residuals",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_rig_point_to_plane_rmse_m",
+            "Native LiDAR rig point-to-plane factor RMSE",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_rig_point_to_plane_rank",
+            "Rank of the native LiDAR rig point-to-plane normal equations",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_rig_point_to_plane_condition_number",
+            "Diagonal condition estimate for native LiDAR rig point-to-plane Hessian",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_rig_point_to_plane_weak_dof_count",
+            "Weak DoF count from native LiDAR rig point-to-plane Hessian diagonal",
+            "dof",
+            "lidar",
+        ),
+        MetricDefinition(
             "lidar_perturbation_case_count",
             "Number of known LiDAR extrinsic perturbation cases scored",
             "cases",
