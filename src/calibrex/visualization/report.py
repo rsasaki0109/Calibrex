@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import math
 from html import escape
 
+from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
 
 _WORLD_MAP_SUMMARY_METRICS = (
@@ -51,6 +53,7 @@ def render_html_report(result: CalibrationResult) -> str:
         "</tr>"
         for name, transform in sorted(result.transforms.items())
     )
+    comparison_rows = _candidate_reference_rows(result)
     candidate_rows = _transform_rows(result.candidate_extrinsics)
     reference_rows = _transform_rows(result.reference_extrinsics)
     warnings = "".join(f"<li>{escape(item)}</li>" for item in result.quality.warnings)
@@ -133,6 +136,14 @@ def render_html_report(result: CalibrationResult) -> str:
     </tr>
     {transform_rows}
   </table>
+  <h2>Candidate vs Reference Extrinsics</h2>
+  <table>
+    <tr>
+      <th>Candidate</th><th>Reference</th><th>Edge</th>
+      <th>Translation Delta m</th><th>Rotation Delta deg</th><th>Grade</th>
+    </tr>
+    {comparison_rows}
+  </table>
   <h2>Candidate Extrinsics</h2>
   <table>
     <tr>
@@ -175,6 +186,76 @@ def _transform_rows(transforms: dict[str, TransformResult]) -> str:
         "</tr>"
         for name, transform in sorted(transforms.items())
     )
+
+
+def _candidate_reference_rows(result: CalibrationResult) -> str:
+    if not result.candidate_extrinsics or not result.reference_extrinsics:
+        return '<tr><td colspan="6">None</td></tr>'
+
+    rows: list[str] = []
+    references_by_edge = {
+        (transform.parent, transform.child): (name, transform)
+        for name, transform in sorted(result.reference_extrinsics.items())
+    }
+    for candidate_name, candidate in sorted(result.candidate_extrinsics.items()):
+        reference_item = references_by_edge.get((candidate.parent, candidate.child))
+        if reference_item is None:
+            continue
+        reference_name, reference = reference_item
+        translation_delta_m = _translation_delta_m(candidate, reference)
+        rotation_delta_deg = _rotation_delta_deg(candidate, reference)
+        grade = (
+            "pass"
+            if translation_delta_m <= 0.05 and rotation_delta_deg <= 1.0
+            else "warn"
+        )
+        rows.append(
+            f'<tr class="{escape(_grade_css_class(grade))}">'
+            f"<td>{escape(candidate_name)}</td>"
+            f"<td>{escape(reference_name)}</td>"
+            f"<td>{escape(candidate.parent)} -> {escape(candidate.child)}</td>"
+            f"<td>{_fmt(translation_delta_m)}</td>"
+            f"<td>{_fmt(rotation_delta_deg)}</td>"
+            f"<td>{escape(grade.upper())}</td>"
+            "</tr>"
+        )
+    if not rows:
+        return (
+            '<tr><td colspan="6">'
+            "No candidate extrinsics matched reference parent/child pairs"
+            "</td></tr>"
+        )
+    return "\n".join(rows)
+
+
+def _translation_delta_m(left: TransformResult, right: TransformResult) -> float:
+    return math.sqrt(
+        sum(
+            (left_value - right_value) ** 2
+            for left_value, right_value in zip(
+                left.translation_m,
+                right.translation_m,
+                strict=True,
+            )
+        )
+    )
+
+
+def _rotation_delta_deg(left: TransformResult, right: TransformResult) -> float:
+    left_quat = normalize_quaternion_xyzw(left.rotation_quat_xyzw)
+    right_quat = normalize_quaternion_xyzw(right.rotation_quat_xyzw)
+    dot = abs(
+        sum(
+            left_value * right_value
+            for left_value, right_value in zip(
+                left_quat,
+                right_quat,
+                strict=True,
+            )
+        )
+    )
+    clamped = min(1.0, max(-1.0, dot))
+    return math.degrees(2.0 * math.acos(clamped))
 
 
 def _observability_rows(result: CalibrationResult) -> str:
@@ -270,9 +351,13 @@ def _metric_row(name: str, metric: MetricResult) -> str:
 
 
 def _metric_css_class(metric: MetricResult) -> str:
-    if metric.grade == "fail":
+    return _grade_css_class(metric.grade)
+
+
+def _grade_css_class(grade: str) -> str:
+    if grade == "fail":
         return "metric-fail"
-    if metric.grade == "warn":
+    if grade == "warn":
         return "metric-warn"
     return ""
 
