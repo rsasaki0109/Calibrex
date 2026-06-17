@@ -4,8 +4,8 @@
 
 Calibrex turns multi-sensor calibration logs into comparable evidence:
 schema-valid results, candidate/reference extrinsic comparisons, train/holdout
-metrics, PASS/WARN/FAIL quality gates, portable HTML reports, and
-machine-readable report sidecars.
+metrics, PASS/WARN/FAIL quality gates, portable HTML reports with a
+first-screen Calibration Scoreboard, and machine-readable report sidecars.
 
 <p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex public dataset calibration report overview" width="100%">
@@ -36,7 +36,7 @@ calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 | Train/holdout metrics | Makes calibration quality harder to overfit to one frame or one sequence segment. |
 | Observability and degeneracy warnings | Reports when a dataset cannot support a trusted estimate for some DoF. |
 | `summary.json`, `metrics.json`, `observability.json`, `degeneracy.json` | Gives CI, notebooks, and benchmark scripts stable machine-readable report inputs. |
-| HTML report and overlays | Gives reviewers a portable artifact instead of a one-off notebook screenshot. |
+| HTML report, Calibration Scoreboard, and overlays | Gives reviewers a portable artifact instead of a one-off notebook screenshot. |
 
 Examples are public-dataset workflows. Large raw logs are never committed to the
 repository; Calibrex keeps configs, manifests, schemas, and reproducible
@@ -78,6 +78,7 @@ unified estimation problem.
 - nuScenes `calibrated_sensor` import into result `reference_extrinsics`
 - Candidate extrinsics stored separately from solver output and compared against references
 - External candidate extrinsic YAML import with `--candidate-extrinsics`
+- HTML Calibration Scoreboard summarizing grade counts, weak DoF, candidate/reference matches, and artifacts
 - Machine-readable report sidecars for summary, metrics, observability, and degeneracy
 - KITTI OXTS motion excitation diagnostics for speed, duration, and yaw checks
 - KITTI Camera-LiDAR and LiDAR-OXTS timestamp alignment metrics

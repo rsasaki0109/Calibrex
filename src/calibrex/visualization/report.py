@@ -63,6 +63,7 @@ def render_html_report(result: CalibrationResult) -> str:
     warnings = "".join(f"<li>{escape(item)}</li>" for item in result.quality.warnings)
     failures = "".join(f"<li>{escape(item)}</li>" for item in result.quality.blocking_failures)
     recommendations = "".join(f"<li>{escape(item)}</li>" for item in result.quality.recommendation)
+    scoreboard_section = _scoreboard_section(result)
     artifact_rows = _artifact_rows(result)
     observability_rows = _observability_rows(result)
     lidar_world_map_section = _lidar_world_map_section(result)
@@ -90,6 +91,36 @@ def render_html_report(result: CalibrationResult) -> str:
     th {{ background: #eef2f4; }}
     .metric-warn {{ background: #fffaf0; }}
     .metric-fail {{ background: #fff1f1; }}
+    .scoreboard {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0 2rem;
+    }}
+    .scorecard {{
+      border: 1px solid #d6dce1;
+      border-radius: 6px;
+      padding: 0.75rem;
+      background: #f8fafb;
+    }}
+    .scorecard .label {{
+      color: #53616c;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }}
+    .scorecard .value {{
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 1.35rem;
+      font-weight: 800;
+    }}
+    .scorecard .detail {{
+      color: #53616c;
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+    }}
     code {{ background: #eef2f4; padding: 0.1rem 0.25rem; border-radius: 3px; }}
   </style>
 </head>
@@ -101,6 +132,7 @@ def render_html_report(result: CalibrationResult) -> str:
       {escape(result.quality.grade.upper())}
     </span>.
   </p>
+  {scoreboard_section}
   <h2>Provenance</h2>
   <table>
     <tr><th>Calibrex Version</th><td>{escape(result.run.calibrex_version)}</td></tr>
@@ -293,6 +325,93 @@ def _grade_counts(grades: Iterable[str]) -> dict[str, int]:
         if grade in counts:
             counts[grade] += 1
     return counts
+
+
+def _scoreboard_section(result: CalibrationResult) -> str:
+    metric_counts = _grade_counts(metric.grade for metric in result.metrics.values())
+    transform_counts = _grade_counts(
+        transform.quality.grade for transform in result.transforms.values()
+    )
+    matched_count = _matched_candidate_reference_count(result)
+    candidate_count = len(result.candidate_extrinsics)
+    weak_direction_count = len(result.observability.weak_directions)
+    artifact_count = _artifact_count(result)
+    return f"""
+  <h2>Calibration Scoreboard</h2>
+  <section class="scoreboard" aria-label="Calibration scoreboard">
+    {_scorecard(
+        "Overall",
+        result.quality.grade.upper(),
+        _quality_detail(result),
+        grade=result.quality.grade,
+    )}
+    {_scorecard("Metric Grades", _grade_count_text(metric_counts), f"{len(result.metrics)} total")}
+    {_scorecard(
+        "Transform Grades",
+        _grade_count_text(transform_counts),
+        f"{len(result.transforms)} optimized",
+    )}
+    {_scorecard(
+        "Candidate Matches",
+        f"{matched_count} / {candidate_count}",
+        "candidate-reference edges",
+    )}
+    {_scorecard(
+        "Weak DoF",
+        str(weak_direction_count),
+        _weak_direction_detail(result),
+        grade=result.observability.grade,
+    )}
+    {_scorecard(
+        "Degeneracy",
+        result.degeneracy.grade.upper(),
+        result.degeneracy.reason or "No degeneracy reason reported",
+        grade=result.degeneracy.grade,
+    )}
+    {_scorecard("Artifacts", str(artifact_count), "linked report outputs")}
+  </section>
+"""
+
+
+def _scorecard(label: str, value: str, detail: str, *, grade: str | None = None) -> str:
+    value_html = (
+        f'<span class="value grade {escape(grade)}">{escape(value)}</span>'
+        if grade is not None
+        else f'<span class="value">{escape(value)}</span>'
+    )
+    return (
+        '<div class="scorecard">'
+        f'<span class="label">{escape(label)}</span>'
+        f"{value_html}"
+        f'<span class="detail">{escape(detail)}</span>'
+        "</div>"
+    )
+
+
+def _grade_count_text(counts: dict[str, int]) -> str:
+    return (
+        f"PASS {counts['pass']} / "
+        f"WARN {counts['warn']} / "
+        f"FAIL {counts['fail']}"
+    )
+
+
+def _quality_detail(result: CalibrationResult) -> str:
+    warning_count = len(result.quality.warnings)
+    failure_count = len(result.quality.blocking_failures)
+    if warning_count == 0 and failure_count == 0:
+        return "no warnings or blocking failures"
+    return f"{warning_count} warnings, {failure_count} blocking failures"
+
+
+def _weak_direction_detail(result: CalibrationResult) -> str:
+    if not result.observability.weak_directions:
+        return "no weak directions reported"
+    return ", ".join(result.observability.weak_directions)
+
+
+def _artifact_count(result: CalibrationResult) -> int:
+    return len(result.artifacts.model_dump(mode="json", exclude_none=True))
 
 
 def _matched_candidate_reference_count(result: CalibrationResult) -> int:
