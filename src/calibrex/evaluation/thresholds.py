@@ -78,6 +78,13 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         direction="higher_is_better",
         unit="pairs",
     ),
+    "candidate_extrinsic_import_count": MetricThreshold(
+        metric="candidate_extrinsic_import_count",
+        pass_value=1.0,
+        warn_value=0.0,
+        direction="higher_is_better",
+        unit="transforms",
+    ),
     "extrinsic_reference_translation_delta_max_m": MetricThreshold(
         metric="extrinsic_reference_translation_delta_max_m",
         pass_value=0.05,

@@ -54,6 +54,7 @@ def test_evaluate_quality_recomputes_metric_grades() -> None:
 def test_metric_registry_contains_autonomous_metrics() -> None:
     names = {definition.name for definition in list_metric_definitions()}
     assert "nuscenes_reference_extrinsic_count" in names
+    assert "candidate_extrinsic_import_count" in names
     assert "extrinsic_reference_comparison_count" in names
     assert "extrinsic_reference_translation_delta_max_m" in names
     assert "extrinsic_reference_rotation_delta_max_deg" in names

@@ -12,11 +12,14 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 
 from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, load_config
+from calibrex.core.exceptions import ConfigError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3, normalize_quaternion_xyzw
+from calibrex.core.io import read_mapping
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import (
     CalibrationResult,
@@ -56,6 +59,7 @@ class CalibrationRunOptions:
     output_dir: Path | None = None
     strict: bool = False
     seed: int | None = None
+    candidate_extrinsics: tuple[Path, ...] = ()
 
 
 def run_calibration(
@@ -71,6 +75,8 @@ def run_calibration(
     problem = build_problem(config, frame_graph, inspection)
 
     if options.dry_run:
+        for candidate_path in options.candidate_extrinsics:
+            _load_candidate_extrinsics(candidate_path)
         _raise_on_dry_run_failures(inspection)
         return None
 
@@ -86,6 +92,7 @@ def run_calibration(
     )
     result.run.provenance["dataset_inspection"] = inspection.as_dict()
     _apply_dataset_initialization(config, result)
+    _apply_external_candidate_extrinsics(options.candidate_extrinsics, result)
     _apply_extrinsic_reference_comparisons(result)
     _apply_pipeline_adapter(config, frame_graph, inspection, result)
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
@@ -344,6 +351,79 @@ def _apply_extrinsic_reference_comparisons(result: CalibrationResult) -> None:
         grade="pass" if max_rotation <= 1.0 else "warn",
         reason="maximum candidate-reference rotation delta",
     )
+
+
+def _apply_external_candidate_extrinsics(
+    paths: tuple[Path, ...],
+    result: CalibrationResult,
+) -> None:
+    if not paths:
+        return
+
+    source_summaries: list[dict[str, object]] = []
+    imported_count = 0
+    overwritten: list[str] = []
+    for path in paths:
+        candidates = _load_candidate_extrinsics(path)
+        for name in candidates:
+            if name in result.candidate_extrinsics:
+                overwritten.append(name)
+        result.candidate_extrinsics.update(candidates)
+        imported_count += len(candidates)
+        source_summaries.append(
+            {
+                "path": str(path),
+                "count": len(candidates),
+                "names": sorted(candidates),
+            }
+        )
+
+    result.run.provenance["external_candidate_extrinsics"] = {
+        "sources": source_summaries,
+        "imported_count": imported_count,
+        "overwritten": sorted(set(overwritten)),
+    }
+    result.metrics["candidate_extrinsic_import_count"] = MetricResult(
+        value=float(imported_count),
+        unit="transforms",
+        grade="pass" if imported_count > 0 else "warn",
+        reason="external candidate extrinsics imported",
+    )
+
+
+def _load_candidate_extrinsics(path: Path) -> dict[str, TransformResult]:
+    try:
+        payload = read_mapping(path)
+    except Exception as exc:
+        raise ConfigError(f"invalid candidate extrinsics file {path}: {exc}") from exc
+
+    raw_transforms = _candidate_transform_payload(payload)
+    candidates: dict[str, TransformResult] = {}
+    for name, raw_transform in sorted(raw_transforms.items()):
+        if not isinstance(raw_transform, dict):
+            raise ConfigError(f"candidate extrinsic {name} in {path} must be a mapping")
+        try:
+            candidates[name] = TransformResult.model_validate(raw_transform)
+        except ValueError as exc:
+            raise ConfigError(f"invalid candidate extrinsic {name} in {path}: {exc}") from exc
+
+    if not candidates:
+        raise ConfigError(f"candidate extrinsics file {path} did not contain any transforms")
+    return candidates
+
+
+def _candidate_transform_payload(payload: dict[str, object]) -> dict[str, object]:
+    if isinstance(payload.get("candidate_extrinsics"), dict):
+        return cast(dict[str, object], payload["candidate_extrinsics"])
+    if isinstance(payload.get("transforms"), dict):
+        return cast(dict[str, object], payload["transforms"])
+    transform_like: dict[str, object] = {
+        name: value
+        for name, value in payload.items()
+        if isinstance(value, dict)
+        and {"parent", "child", "translation_m", "rotation_quat_xyzw"}.issubset(value)
+    }
+    return transform_like
 
 
 def _translation_delta_m(left: TransformResult, right: TransformResult) -> float:

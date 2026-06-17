@@ -82,6 +82,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="validate without writing results",
     )
     calibrate.add_argument("--output-dir", type=Path)
+    calibrate.add_argument(
+        "--candidate-extrinsics",
+        type=Path,
+        action="append",
+        default=[],
+        help="load candidate extrinsics from a YAML/JSON file; may be repeated",
+    )
     calibrate.add_argument("--strict", action="store_true", help="treat warnings as failures")
     calibrate.add_argument("--seed", type=int)
     calibrate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
@@ -223,6 +230,7 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
             output_dir=args.output_dir,
             strict=args.strict,
             seed=args.seed,
+            candidate_extrinsics=tuple(args.candidate_extrinsics),
         ),
     )
     if args.dry_run:

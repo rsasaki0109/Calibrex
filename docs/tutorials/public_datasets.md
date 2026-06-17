@@ -50,6 +50,17 @@ adds `extrinsic_reference_*` metrics for pair count, maximum translation delta,
 and maximum rotation delta. This is the first comparison path for evaluating
 dataset calibration, manual candidate files, and future external baseline
 outputs without mixing their meanings in one field.
+External candidates can be supplied without editing the dataset config:
+
+```bash
+calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
+```
+
+The candidate file may contain a top-level `candidate_extrinsics` mapping, a
+`transforms` mapping from an existing Calibrex-style result, or a direct mapping
+from transform name to `T_parent_child` transform fields. Imported candidates
+override config-derived candidates with the same transform name and are recorded
+under `run.provenance.external_candidate_extrinsics`.
 
 For downloaded KITTI sequences, `calibrex inspect --type kitti-raw --json`
 includes sampled Velodyne diagnostics: frame count, sampled point count, XYZ

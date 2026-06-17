@@ -79,6 +79,12 @@ def _register_builtin_metrics() -> None:
             "extrinsic",
         ),
         MetricDefinition(
+            "candidate_extrinsic_import_count",
+            "Number of externally supplied candidate extrinsics imported",
+            "transforms",
+            "extrinsic",
+        ),
+        MetricDefinition(
             "extrinsic_reference_translation_delta_max_m",
             "Maximum translation delta between matched candidate and reference extrinsics",
             "m",

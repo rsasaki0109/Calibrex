@@ -55,6 +55,7 @@ unified estimation problem.
 - SDK-free nuScenes metadata inspection for LiDAR, camera, radar, ego pose, and calibrated sensors
 - nuScenes `calibrated_sensor` import into result `reference_extrinsics`
 - Candidate extrinsics stored separately from solver output and compared against references
+- External candidate extrinsic YAML import with `--candidate-extrinsics`
 - KITTI OXTS motion excitation diagnostics for speed, duration, and yaw checks
 - KITTI Camera-LiDAR and LiDAR-OXTS timestamp alignment metrics
 - KITTI camera image and Velodyne frame-pair extraction for overlay artifacts
@@ -103,6 +104,7 @@ calibrex public-datasets list
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex compile examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml
 calibrex kitti import-calib /path/to/2011_09_26 --output /tmp/kitti_transforms.yaml
+calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```
 

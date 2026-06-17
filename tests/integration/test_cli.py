@@ -304,6 +304,73 @@ outputs:
     assert "Reference Extrinsics" in report_html
     assert "T_ego_lidar_top" in report_html
 
+    candidate_path = tmp_path / "candidate_extrinsics.yaml"
+    candidate_path.write_text(
+        """
+candidate_extrinsics:
+  T_ego_lidar_top:
+    convention: T_parent_child
+    parent: ego
+    child: lidar_top
+    translation_m: [1.0, 0.0, 2.0]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+  T_ego_cam_front:
+    convention: T_parent_child
+    parent: ego
+    child: cam_front
+    translation_m: [1.5, 0.0, 1.8]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+  T_ego_radar_front:
+    convention: T_parent_child
+    parent: ego
+    child: radar_front
+    translation_m: [2.0, 0.0, 0.5]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+""".strip(),
+        encoding="utf-8",
+    )
+    candidate_output_dir = tmp_path / "candidate_outputs"
+
+    assert (
+        main(
+            [
+                "calibrate",
+                str(config),
+                "--dry-run",
+                "--candidate-extrinsics",
+                str(candidate_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "calibrate",
+                str(config),
+                "--output-dir",
+                str(candidate_output_dir),
+                "--candidate-extrinsics",
+                str(candidate_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    candidate_result = load_result(candidate_output_dir / "result.yaml")
+    assert candidate_result.metrics["candidate_extrinsic_import_count"].value == 3.0
+    assert candidate_result.metrics["extrinsic_reference_translation_delta_max_m"].value == 0.0
+    assert candidate_result.metrics["extrinsic_reference_translation_delta_max_m"].grade == "pass"
+    assert candidate_result.metrics["extrinsic_reference_rotation_delta_max_deg"].value == 0.0
+    assert candidate_result.run.provenance["external_candidate_extrinsics"]["imported_count"] == 3
+    assert candidate_result.candidate_extrinsics["T_ego_lidar_top"].translation_m == [
+        1.0,
+        0.0,
+        2.0,
+    ]
+
 
 def test_kitti_inspect_human_output_includes_lidar_diagnostics(
     tmp_path: Path,
