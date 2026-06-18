@@ -1,0 +1,24 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: a2d2_lidar_pair_sample
+description: Real A2D2 public LiDAR NPZ sample for fixed 3D LiDAR-to-LiDAR evidence visualization.
+time_base: sensor_time
+streams:
+  lidar_front_left_view:
+    kind: pointcloud
+    count: 47846
+    path: data/public/a2d2_lidar_pair/20180810150607_lidar_front_left_000000060.npz
+    sensor: a2d2_multi_lidar
+    frame_id: a2d2_vehicle
+    fields:
+      - pcloud_points
+      - pcloud_attr.lidar_id
+      - pcloud_attr.valid
+      - pcloud_attr.timestamp
+      - pcloud_attr.reflectance
+provenance:
+  source: A2D2 public camera_lidar-20180810150607_lidar_frontleft.tar
+  official_url: https://www.a2d2.audi/en/download/
+  source_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar
+  range_bytes: 1536-2978960
+  member: ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000060.npz
+  license: CC BY-ND 4.0

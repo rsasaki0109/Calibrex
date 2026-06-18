@@ -77,9 +77,11 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert "kitti_raw_2011_09_26_drive_0005" in catalog.datasets
     assert "nuscenes_mini" in catalog.datasets
     assert "a2d2_sensor_setup" in catalog.datasets
+    assert "a2d2_lidar_pair_sample" in catalog.datasets
     assert catalog.datasets["tum_rgbd_freiburg1_xyz"].calibrex_config is not None
     assert catalog.datasets["nuscenes_mini"].calibrex_config is not None
     assert catalog.datasets["a2d2_sensor_setup"].family == "a2d2"
+    assert catalog.datasets["a2d2_lidar_pair_sample"].family == "a2d2"
 
 
 def test_tum_rgbd_public_config_compiles() -> None:

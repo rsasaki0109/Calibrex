@@ -12,14 +12,29 @@ from __future__ import annotations
 import argparse
 import tarfile
 from pathlib import Path
-from urllib.request import urlretrieve
+from urllib.request import Request, urlopen, urlretrieve
 
 import yaml
+
+A2D2_LIDAR_SAMPLE_URL = (
+    "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
+    "camera_lidar-20180810150607_lidar_frontleft.tar"
+)
+A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
+A2D2_LIDAR_SAMPLE_START = 1536
+A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset", choices=["tum_rgbd_freiburg1_xyz", "a2d2_sensor_setup"])
+    parser.add_argument(
+        "dataset",
+        choices=[
+            "tum_rgbd_freiburg1_xyz",
+            "a2d2_sensor_setup",
+            "a2d2_lidar_pair_sample",
+        ],
+    )
     parser.add_argument(
         "--catalog",
         type=Path,
@@ -28,6 +43,10 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=Path("data/public"))
     parser.add_argument("--no-extract", action="store_true")
     args = parser.parse_args()
+
+    if args.dataset == "a2d2_lidar_pair_sample":
+        download_a2d2_lidar_pair_sample(args.output_dir)
+        return 0
 
     catalog = yaml.safe_load(args.catalog.read_text(encoding="utf-8"))
     entry = catalog["datasets"][args.dataset]
@@ -46,6 +65,24 @@ def main() -> int:
         with tarfile.open(archive, "r:gz") as tar:
             tar.extractall(args.output_dir)
     return 0
+
+
+def download_a2d2_lidar_pair_sample(output_dir: Path) -> None:
+    """Download one real A2D2 LiDAR NPZ sample from inside the public tar."""
+
+    target_dir = output_dir / "a2d2_lidar_pair"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / A2D2_LIDAR_SAMPLE_NAME
+    start = A2D2_LIDAR_SAMPLE_START
+    end = start + A2D2_LIDAR_SAMPLE_SIZE - 1
+    print(f"downloading A2D2 LiDAR sample bytes={start}-{end}")
+    request = Request(A2D2_LIDAR_SAMPLE_URL, headers={"Range": f"bytes={start}-{end}"})
+    with urlopen(request, timeout=90) as response:
+        data = response.read()
+    if len(data) != A2D2_LIDAR_SAMPLE_SIZE:
+        raise SystemExit(f"expected {A2D2_LIDAR_SAMPLE_SIZE} bytes, got {len(data)}")
+    target.write_bytes(data)
+    print(f"wrote {target}")
 
 
 if __name__ == "__main__":

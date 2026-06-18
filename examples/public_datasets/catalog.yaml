@@ -40,3 +40,13 @@ datasets:
     calibrex_manifest: examples/public_datasets/a2d2_sensor_setup/manifest.yaml
     calibrex_config: null
     recommended_pipeline: multi_lidar_evidence
+  a2d2_lidar_pair_sample:
+    name: A2D2 real LiDAR NPZ pair sample
+    family: a2d2
+    domain: autonomous_driving
+    official_url: https://www.a2d2.audi/en/download/
+    download_url: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar
+    license_note: A2D2 is distributed under CC BY-ND 4.0; this example range-fetches one real NPZ sample from the public LiDAR tar.
+    calibrex_manifest: examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml
+    calibrex_config: null
+    recommended_pipeline: multi_lidar_evidence

@@ -17,7 +17,7 @@ calibrex visualize outputs/result.yaml --export-html
 <p align="center">
   <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
   <br>
-  <sub>A2D2 public setup demo: fixed 3D LiDAR-to-LiDAR extrinsic comparison, holdout residuals, and weak-DoF evidence.</sub>
+  <sub>A2D2 public LiDAR NPZ demo: fixed 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
 </p>
 
 <p align="center">
@@ -107,6 +107,8 @@ Public dataset examples:
 
 ```bash
 calibrex public-datasets list
+python tools/download_public_dataset.py a2d2_lidar_pair_sample --output-dir data/public
+python tools/generate_calibration_evidence_gif.py
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```

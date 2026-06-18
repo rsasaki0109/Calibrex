@@ -11,15 +11,18 @@ LiDAR-to-LiDAR candidate against a selected reference.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import math
 import shutil
+import struct
 import subprocess
 import tempfile
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 WIDTH = 960
 HEIGHT = 540
@@ -30,6 +33,13 @@ A2D2_SENSOR_CONFIG_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
     "cams_lidars.json"
 )
+A2D2_LIDAR_SAMPLE_URL = (
+    "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
+    "camera_lidar-20180810150607_lidar_frontleft.tar"
+)
+A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
+A2D2_LIDAR_SAMPLE_START = 1536
+A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
 
 SCENE_PANEL = (28, 86, 594, 426)
 RIGHT_PANEL = (650, 92, 278, 414)
@@ -59,12 +69,29 @@ class LidarPose:
     origin: Point3
 
 
+@dataclass(frozen=True)
+class LidarCloudPair:
+    source_points: list[Point3]
+    target_points: list[Point3]
+    source_lidar_id: int
+    target_lidar_id: int
+    source_total: int
+    target_total: int
+    source_path: Path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--sensor-config",
         type=Path,
         help="Optional local A2D2 cams_lidars.json. If omitted, the public URL is tried.",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=Path("data/public/a2d2_lidar_pair"),
+        help="Directory for the public A2D2 LiDAR NPZ sample.",
     )
     parser.add_argument(
         "--output",
@@ -82,6 +109,8 @@ def main() -> int:
     if shutil.which("ffmpeg") is None:
         raise SystemExit("ffmpeg is required to generate the GIF")
 
+    ensure_a2d2_lidar_sample(args.data_dir, allow_network=not args.no_network)
+    cloud_pair = load_lidar_cloud_pair(args.data_dir / A2D2_LIDAR_SAMPLE_NAME)
     lidars, metadata_source = load_lidar_setup(
         args.sensor_config,
         allow_network=not args.no_network,
@@ -97,6 +126,7 @@ def main() -> int:
             draw_frame(
                 image=image,
                 lidars=lidars,
+                cloud_pair=cloud_pair,
                 progress=progress,
                 residual_history=residual_history,
                 metadata_source=metadata_source,
@@ -104,6 +134,114 @@ def main() -> int:
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
         encode_gif(tmp, args.output)
     return 0
+
+
+def ensure_a2d2_lidar_sample(data_dir: Path, *, allow_network: bool) -> None:
+    """Ensure a small real A2D2 LiDAR NPZ sample is present locally."""
+
+    sample_path = data_dir / A2D2_LIDAR_SAMPLE_NAME
+    if sample_path.exists() and sample_path.stat().st_size == A2D2_LIDAR_SAMPLE_SIZE:
+        return
+    if not allow_network:
+        raise SystemExit(
+            f"{sample_path} is required. Run without --no-network or fetch the A2D2 "
+            "sample with tools/download_public_dataset.py a2d2_lidar_pair_sample."
+        )
+    data_dir.mkdir(parents=True, exist_ok=True)
+    start = A2D2_LIDAR_SAMPLE_START
+    end = start + A2D2_LIDAR_SAMPLE_SIZE - 1
+    request = Request(A2D2_LIDAR_SAMPLE_URL, headers={"Range": f"bytes={start}-{end}"})
+    with urlopen(request, timeout=90) as response:
+        data = response.read()
+    if len(data) != A2D2_LIDAR_SAMPLE_SIZE:
+        raise SystemExit(
+            f"downloaded {len(data)} bytes from A2D2, expected {A2D2_LIDAR_SAMPLE_SIZE}"
+        )
+    sample_path.write_bytes(data)
+
+
+def load_lidar_cloud_pair(path: Path) -> LidarCloudPair:
+    """Load two physical LiDAR point sets from a real A2D2 NPZ file."""
+
+    with zipfile.ZipFile(path) as archive:
+        points_header, points_raw = read_npy_array(archive, "pcloud_points.npy")
+        _ids_header, lidar_ids_raw = read_npy_array(archive, "pcloud_attr.lidar_id.npy")
+        _valid_header, valid_raw = read_npy_array(archive, "pcloud_attr.valid.npy")
+
+    shape = points_header["shape"]
+    if shape[1] != 3:
+        raise SystemExit(f"{path} pcloud_points must be Nx3")
+
+    source_points: list[Point3] = []
+    target_points: list[Point3] = []
+    source_total = 0
+    target_total = 0
+    for index, (lidar_id, valid) in enumerate(zip(lidar_ids_raw, valid_raw, strict=True)):
+        if not valid:
+            continue
+        x = float(points_raw[index * 3])
+        y = float(points_raw[index * 3 + 1])
+        z = float(points_raw[index * 3 + 2])
+        if not (2.0 <= x <= 55.0 and -22.0 <= y <= 22.0 and -3.2 <= z <= 7.5):
+            continue
+        point = (x, y, z)
+        if lidar_id == 0:
+            source_total += 1
+            if source_total % 5 == 0:
+                source_points.append(point)
+        elif lidar_id == 1:
+            target_total += 1
+            if target_total % 4 == 0:
+                target_points.append(point)
+
+    if not source_points or not target_points:
+        raise SystemExit(f"{path} does not contain usable lidar_id 0/1 point sets")
+
+    return LidarCloudPair(
+        source_points=source_points[:1800],
+        target_points=target_points[:1800],
+        source_lidar_id=0,
+        target_lidar_id=1,
+        source_total=source_total,
+        target_total=target_total,
+        source_path=path,
+    )
+
+
+def read_npy_array(
+    archive: zipfile.ZipFile,
+    name: str,
+) -> tuple[dict[str, object], tuple[object, ...]]:
+    """Read simple C-order numeric NPY arrays from an NPZ archive."""
+
+    data = archive.read(name)
+    if data[:6] != b"\x93NUMPY":
+        raise SystemExit(f"{name} is not an NPY array")
+    offset = 6
+    version = data[offset : offset + 2]
+    offset += 2
+    if version == b"\x01\x00":
+        header_length = struct.unpack("<H", data[offset : offset + 2])[0]
+        offset += 2
+    else:
+        header_length = struct.unpack("<I", data[offset : offset + 4])[0]
+        offset += 4
+    header = ast.literal_eval(data[offset : offset + header_length].decode("latin1").strip())
+    offset += header_length
+    if header.get("fortran_order") is not False:
+        raise SystemExit(f"{name} uses unsupported Fortran order")
+    shape = header.get("shape")
+    if not isinstance(shape, tuple):
+        raise SystemExit(f"{name} has invalid shape metadata")
+    count = 1
+    for dimension in shape:
+        count *= int(dimension)
+    dtype = header.get("descr")
+    type_map = {"<f8": "d", "<i8": "q", "|b1": "?"}
+    if dtype not in type_map:
+        raise SystemExit(f"{name} uses unsupported dtype {dtype}")
+    values = struct.unpack_from("<" + type_map[dtype] * count, data, offset)
+    return header, values
 
 
 def load_lidar_setup(
@@ -167,6 +305,7 @@ def draw_frame(
     *,
     image: bytearray,
     lidars: list[LidarPose],
+    cloud_pair: LidarCloudPair,
     progress: float,
     residual_history: list[float],
     metadata_source: str,
@@ -185,15 +324,19 @@ def draw_frame(
         alpha=0.85,
     )
 
-    draw_calibration_scene(image, lidars, progress)
-    draw_evidence_panel(image, progress, residual_history, metadata_source)
+    draw_calibration_scene(image, lidars, cloud_pair, progress)
+    draw_evidence_panel(image, cloud_pair, progress, residual_history, metadata_source)
     draw_timeline(image, progress)
 
 
-def draw_calibration_scene(image: bytearray, lidars: list[LidarPose], progress: float) -> None:
+def draw_calibration_scene(
+    image: bytearray,
+    lidars: list[LidarPose],
+    cloud_pair: LidarCloudPair,
+    progress: float,
+) -> None:
     draw_road_grid(image)
-    draw_reference_cloud(image)
-    draw_candidate_cloud(image, progress)
+    draw_real_lidar_clouds(image, cloud_pair, progress)
     draw_vehicle_box(image)
 
     source = lidar_by_name(lidars, "front_left")
@@ -261,25 +404,27 @@ def draw_road_grid(image: bytearray) -> None:
         line(image, bottom[0], bottom[1], top[0], top[1], GRID, alpha=0.38)
 
 
-def draw_reference_cloud(image: bytearray) -> None:
-    for index, point in enumerate(scene_points()):
-        x, y = project(point)
-        color = REFERENCE if index % 3 else (110, 231, 183)
-        circle(image, x, y, 1, color, alpha=0.50)
-
-
-def draw_candidate_cloud(image: bytearray, progress: float) -> None:
+def draw_real_lidar_clouds(
+    image: bytearray,
+    cloud_pair: LidarCloudPair,
+    progress: float,
+) -> None:
     remaining = 1.0 - progress
     color = mix(CANDIDATE, OPTIMIZED, progress)
-    for index, point in enumerate(scene_points()):
+    for index, point in enumerate(cloud_pair.source_points):
+        px, py = project_lidar_point(point)
+        circle(image, px, py, 1, REFERENCE if index % 3 else (110, 231, 183), alpha=0.58)
+    for index, point in enumerate(cloud_pair.target_points):
+        px, py = project_lidar_point(point)
+        circle(image, px, py, 1, REFERENCE, alpha=0.23)
         if index % 2:
             continue
         shifted = (
-            point[0] + 0.18 * remaining,
-            point[1] - 0.28 * remaining,
-            point[2] + 0.09 * remaining,
+            point[0] + 1.8 * remaining,
+            point[1] - 1.2 * remaining,
+            point[2] + 0.45 * remaining,
         )
-        x, y = project(shifted)
+        x, y = project_lidar_point(shifted)
         circle(image, x, y, 1, color, alpha=0.72)
 
 
@@ -362,6 +507,7 @@ def draw_delta_vector(
 
 def draw_evidence_panel(
     image: bytearray,
+    cloud_pair: LidarCloudPair,
     progress: float,
     residual_history: list[float],
     metadata_source: str,
@@ -387,12 +533,22 @@ def draw_evidence_panel(
 
     draw_dof_cells(image, 674, 378, progress)
     draw_source_badge(image, metadata_source)
+    draw_sample_count_ticks(image, cloud_pair)
 
 
 def draw_source_badge(image: bytearray, metadata_source: str) -> None:
     color = GOOD if metadata_source.startswith("A2D2") else WARNING
     fill_rect(image, 674, 464, 220, 16, PANEL_ALT)
     metric_bar(image, 674, 464, 1.0, color)
+
+
+def draw_sample_count_ticks(image: bytearray, cloud_pair: LidarCloudPair) -> None:
+    source_ratio = min(1.0, cloud_pair.source_total / 12_000)
+    target_ratio = min(1.0, cloud_pair.target_total / 10_000)
+    fill_rect(image, 674, 486, 220, 8, (31, 41, 55), alpha=1.0)
+    fill_rect(image, 674, 486, round(220 * source_ratio), 8, REFERENCE, alpha=0.85)
+    fill_rect(image, 674, 496, 220, 8, (31, 41, 55), alpha=1.0)
+    fill_rect(image, 674, 496, round(220 * target_ratio), 8, OPTIMIZED, alpha=0.85)
 
 
 def draw_curve(
@@ -450,6 +606,14 @@ def project(point: Point3) -> Point2:
     return (
         round(318 + x * 61 - y * 72),
         round(410 + x * 17 + y * 21 - z * 92),
+    )
+
+
+def project_lidar_point(point: Point3) -> Point2:
+    x, y, z = point
+    return (
+        round(292 + x * 2.6 + y * 7.0),
+        round(430 - x * 2.0 - z * 15.0),
     )
 
 
@@ -670,10 +834,10 @@ def build_text_filter() -> str:
     ).strip()
     labels = [
         ("Fixed 3D LiDAR to fixed 3D LiDAR", 34, 22, 26, "E5E7EB"),
-        ("A2D2 public multi-LiDAR setup metadata; evidence-viewer proxy", 34, 55, 16, "CBD5E1"),
-        ("3D rig: reference vs candidate extrinsic", 50, 104, 17, "E5E7EB"),
+        ("A2D2 public NPZ point cloud split by physical lidar_id", 34, 55, 16, "CBD5E1"),
+        ("Real A2D2 LiDAR points: reference vs candidate extrinsic", 50, 104, 17, "E5E7EB"),
         (
-            "green: selected reference   cyan/pink: online or candidate estimate",
+            "green: lidar_id 0/1 real returns   cyan/pink: perturbed candidate",
             50,
             486,
             14,
@@ -685,7 +849,9 @@ def build_text_filter() -> str:
         ("residual history", 676, 242, 16, "E5E7EB"),
         ("DoF visibility", 674, 354, 16, "E5E7EB"),
         ("x  y  z  r  p  yaw", 674, 406, 13, "CBD5E1"),
-        ("provenance: public setup metadata", 674, 444, 13, "CBD5E1"),
+        ("provenance: A2D2 real NPZ range sample", 674, 444, 13, "CBD5E1"),
+        ("lidar_id 0 points", 674, 486, 12, "CBD5E1"),
+        ("lidar_id 1 points", 674, 496, 12, "CBD5E1"),
         ("public setup", 62, 520, 14, "CBD5E1"),
         ("candidate", 325, 520, 14, "CBD5E1"),
         ("optimize", 588, 520, 14, "CBD5E1"),
