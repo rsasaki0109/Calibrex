@@ -187,6 +187,15 @@ def test_kitti_lidar_world_map_consistency_from_oxts(tmp_path: Path) -> None:
     assert stats.status == "scored"
     assert stats.train_frame_count == 1
     assert stats.holdout_frame_count == 1
+    assert stats.split_policy == "temporal_tail_holdout"
+    assert stats.train_frame_ids == ("0000000000",)
+    assert stats.holdout_frame_ids == ("0000000001",)
+    assert stats.dataset_slices[0]["role"] == "train"
+    assert stats.dataset_slices[1]["role"] == "holdout"
+    assert stats.map_artifact["map_type"] == "voxel_plane_map"
+    assert stats.correspondence_artifact["correspondence_type"] == "point_to_voxel_plane"
+    assert stats.leakage_validation["status"] == "pass"
+    assert stats.leakage_validation["issue_count"] == 0
     assert stats.train_voxel_count == 1
     assert stats.holdout_residual_count == 9
     assert stats.point_to_plane_rmse_train_m == 0.0

@@ -6,11 +6,18 @@ import struct
 import zlib
 from bisect import bisect_left
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from math import acos, atan2, cos, floor, pi, radians, sin, sqrt
 from pathlib import Path
 
+from calibrex.core.evidence import (
+    CorrespondenceArtifact,
+    DatasetSliceArtifact,
+    MapArtifact,
+    stable_artifact_id,
+    validate_no_frame_overlap,
+)
 from calibrex.core.geometry import SE3, Vector3, quaternion_xyzw_from_rotation_matrix
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.manifest import DatasetManifest, find_manifest, load_manifest
@@ -335,6 +342,13 @@ class KITTILidarWorldMapConsistencyStats:
     point_to_plane_median_holdout_m: float | None = None
     point_to_plane_p95_holdout_m: float | None = None
     reason: str | None = None
+    split_policy: str = "temporal_tail_holdout"
+    train_frame_ids: tuple[str, ...] = ()
+    holdout_frame_ids: tuple[str, ...] = ()
+    dataset_slices: tuple[dict[str, object], ...] = field(default_factory=tuple)
+    map_artifact: dict[str, object] = field(default_factory=dict)
+    correspondence_artifact: dict[str, object] = field(default_factory=dict)
+    leakage_validation: dict[str, object] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, object]:
         """Return a JSON/YAML-friendly representation."""
@@ -353,7 +367,25 @@ class KITTILidarWorldMapConsistencyStats:
             "point_to_plane_median_holdout_m": self.point_to_plane_median_holdout_m,
             "point_to_plane_p95_holdout_m": self.point_to_plane_p95_holdout_m,
             "reason": self.reason,
+            "split_policy": self.split_policy,
+            "train_frame_ids": list(self.train_frame_ids),
+            "holdout_frame_ids": list(self.holdout_frame_ids),
+            "dataset_slices": [dict(item) for item in self.dataset_slices],
+            "map_artifact": dict(self.map_artifact),
+            "correspondence_artifact": dict(self.correspondence_artifact),
+            "leakage_validation": dict(self.leakage_validation),
         }
+
+
+@dataclass(frozen=True)
+class _WorldMapLineage:
+    split_policy: str
+    train_frame_ids: tuple[str, ...]
+    holdout_frame_ids: tuple[str, ...]
+    dataset_slices: tuple[dict[str, object], ...]
+    map_artifact: dict[str, object]
+    correspondence_artifact: dict[str, object]
+    leakage_validation: dict[str, object]
 
 
 @dataclass
@@ -1012,6 +1044,7 @@ def summarize_lidar_world_map_consistency(
     holdout_count = max(1, round(len(paired_frames) * 0.2))
     train_frames = paired_frames[:-holdout_count] or paired_frames[:1]
     holdout_frames = paired_frames[-holdout_count:]
+    lineage = _lidar_world_map_lineage(train_frames, holdout_frames)
     t_sensor = t_ego_lidar or SE3.identity()
     train_voxels: dict[tuple[int, int, int], _VoxelAccumulator] = {}
     train_points: list[Vector3] = []
@@ -1068,6 +1101,13 @@ def summarize_lidar_world_map_consistency(
             train_residual_count=len(train_residuals),
             holdout_residual_count=len(holdout_residuals),
             reason=reason,
+            split_policy=lineage.split_policy,
+            train_frame_ids=lineage.train_frame_ids,
+            holdout_frame_ids=lineage.holdout_frame_ids,
+            dataset_slices=lineage.dataset_slices,
+            map_artifact=lineage.map_artifact,
+            correspondence_artifact=lineage.correspondence_artifact,
+            leakage_validation=lineage.leakage_validation,
         )
 
     return KITTILidarWorldMapConsistencyStats(
@@ -1083,6 +1123,74 @@ def summarize_lidar_world_map_consistency(
         point_to_plane_rmse_holdout_m=_rmse(holdout_residuals),
         point_to_plane_median_holdout_m=_percentile(holdout_residuals, 0.5),
         point_to_plane_p95_holdout_m=_percentile(holdout_residuals, 0.95),
+        split_policy=lineage.split_policy,
+        train_frame_ids=lineage.train_frame_ids,
+        holdout_frame_ids=lineage.holdout_frame_ids,
+        dataset_slices=lineage.dataset_slices,
+        map_artifact=lineage.map_artifact,
+        correspondence_artifact=lineage.correspondence_artifact,
+        leakage_validation=lineage.leakage_validation,
+    )
+
+
+def _lidar_world_map_lineage(
+    train_frames: list[tuple[Path, SE3]],
+    holdout_frames: list[tuple[Path, SE3]],
+) -> _WorldMapLineage:
+    train_frame_ids = tuple(file_path.stem for file_path, _pose in train_frames)
+    holdout_frame_ids = tuple(file_path.stem for file_path, _pose in holdout_frames)
+    selection_policy = "temporal_tail_holdout"
+    train_slice = DatasetSliceArtifact(
+        artifact_id=stable_artifact_id("slice_train", ("kitti_world_map", *train_frame_ids)),
+        role="train",
+        frame_ids=train_frame_ids,
+        selection_policy=selection_policy,
+    )
+    holdout_slice = DatasetSliceArtifact(
+        artifact_id=stable_artifact_id(
+            "slice_holdout",
+            ("kitti_world_map", *holdout_frame_ids),
+        ),
+        role="holdout",
+        frame_ids=holdout_frame_ids,
+        selection_policy=selection_policy,
+    )
+    map_artifact = MapArtifact(
+        artifact_id=stable_artifact_id("map_voxel_plane", train_frame_ids),
+        map_type="voxel_plane_map",
+        source_slice_id=train_slice.artifact_id,
+        frame_ids=train_frame_ids,
+        dependency_ids=(train_slice.artifact_id,),
+    )
+    correspondence_artifact = CorrespondenceArtifact(
+        artifact_id=stable_artifact_id(
+            "corr_point_to_plane",
+            (*train_frame_ids, "query", *holdout_frame_ids),
+        ),
+        correspondence_type="point_to_voxel_plane",
+        source_map_id=map_artifact.artifact_id,
+        query_slice_id=holdout_slice.artifact_id,
+        query_frame_ids=holdout_frame_ids,
+        dependency_ids=(map_artifact.artifact_id, holdout_slice.artifact_id),
+    )
+    leakage_validation = validate_no_frame_overlap(
+        map_frame_ids=train_frame_ids,
+        query_frame_ids=holdout_frame_ids,
+        checked_dependency_ids=(
+            train_slice.artifact_id,
+            holdout_slice.artifact_id,
+            map_artifact.artifact_id,
+            correspondence_artifact.artifact_id,
+        ),
+    )
+    return _WorldMapLineage(
+        split_policy=selection_policy,
+        train_frame_ids=train_frame_ids,
+        holdout_frame_ids=holdout_frame_ids,
+        dataset_slices=(train_slice.as_dict(), holdout_slice.as_dict()),
+        map_artifact=map_artifact.as_dict(),
+        correspondence_artifact=correspondence_artifact.as_dict(),
+        leakage_validation=leakage_validation.as_dict(),
     )
 
 

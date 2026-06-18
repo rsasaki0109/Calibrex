@@ -1,4 +1,5 @@
 from calibrex.core.config import CalibrationConfig
+from calibrex.core.evidence import stable_artifact_id, validate_no_frame_overlap
 from calibrex.core.result import (
     CalibrationResult,
     DegeneracyResult,
@@ -30,6 +31,27 @@ def test_metric_thresholds_grade_holdout_values() -> None:
     apply_metric_thresholds(metrics, "default")
     assert metrics["reprojection_rmse_px"].grade == "fail"
     assert metrics["dataset_exists"].grade == "pass"
+
+
+def test_evidence_leakage_validator_reports_frame_overlap() -> None:
+    assert stable_artifact_id("slice", ["a", "b"]) == stable_artifact_id("slice", ["a", "b"])
+
+    passed = validate_no_frame_overlap(
+        map_frame_ids=["0000000000"],
+        query_frame_ids=["0000000001"],
+        checked_dependency_ids=["map0", "corr0"],
+    )
+    assert passed.status == "pass"
+    assert passed.issue_count == 0
+    assert passed.checked_dependency_ids == ("map0", "corr0")
+
+    failed = validate_no_frame_overlap(
+        map_frame_ids=["0000000000", "0000000001"],
+        query_frame_ids=["0000000001"],
+    )
+    assert failed.status == "fail"
+    assert failed.issue_count == 1
+    assert failed.overlapping_frame_ids == ("0000000001",)
 
 
 def test_autonomous_driving_threshold_profile_is_stricter() -> None:
@@ -134,6 +156,7 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in names
     assert "lidar_world_map_train_voxel_count" in names
     assert "lidar_world_map_holdout_residual_count" in names
+    assert "lidar_world_map_leakage_issue_count" in names
     assert "lidar_world_map_perturbation_case_count" in names
     assert "lidar_world_map_perturbation_detectable_fraction" in names
     assert "lidar_world_map_perturbation_train_rmse_delta_mean_m" in names

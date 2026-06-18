@@ -174,6 +174,8 @@ def _lidar_world_map_metrics(diagnostics: Mapping[object, object]) -> dict[str, 
     holdout_residuals = _float_or_none(diagnostics.get("holdout_residual_count"))
     reason = diagnostics.get("reason")
     reason_text = str(reason) if reason is not None else None
+    leakage = diagnostics.get("leakage_validation")
+    leakage_diagnostics = leakage if isinstance(leakage, Mapping) else None
     metrics: dict[str, MetricResult] = {}
     if train_voxels is not None:
         metrics["lidar_world_map_train_voxel_count"] = MetricResult(
@@ -186,6 +188,15 @@ def _lidar_world_map_metrics(diagnostics: Mapping[object, object]) -> dict[str, 
             value=holdout_residuals,
             unit="points",
             reason="holdout LiDAR points matched to train voxel planes",
+        )
+    if leakage_diagnostics is not None:
+        issue_count = _float_or_none(leakage_diagnostics.get("issue_count"))
+        status = str(leakage_diagnostics.get("status", "unknown"))
+        metrics["lidar_world_map_leakage_issue_count"] = MetricResult(
+            value=issue_count,
+            unit="issues",
+            grade="pass" if status == "pass" and issue_count == 0.0 else "fail",
+            reason=str(leakage_diagnostics.get("reason", "world-map leakage validation")),
         )
     if train_rmse is not None or holdout_rmse is not None:
         metrics["lidar_world_map_point_to_plane_rmse_m"] = MetricResult(

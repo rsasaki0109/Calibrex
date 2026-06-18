@@ -773,6 +773,8 @@ outputs:
     assert "lidar_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in result.metrics
+    assert result.metrics["lidar_world_map_leakage_issue_count"].value == 0.0
+    assert result.metrics["lidar_world_map_leakage_issue_count"].grade == "pass"
     assert result.metrics["lidar_world_map_train_voxel_count"].value == 1.0
     assert result.metrics["lidar_world_map_holdout_residual_count"].value is not None
     assert result.metrics["lidar_world_map_perturbation_case_count"].value == 12.0
@@ -864,6 +866,13 @@ outputs:
     assert degeneracy["degeneracy"]["grade"] in {"pass", "warn", "fail"}
     inspection = result.run.provenance["dataset_inspection"]
     assert inspection["diagnostics"]["velodyne_points"]["sampled_point_count"] == 24
+    world_map_lineage = inspection["diagnostics"]["lidar_world_map_consistency"]
+    assert world_map_lineage["split_policy"] == "temporal_tail_holdout"
+    assert world_map_lineage["train_frame_ids"] == ["0000000000"]
+    assert world_map_lineage["holdout_frame_ids"] == ["0000000001"]
+    assert world_map_lineage["map_artifact"]["kind"] == "map"
+    assert world_map_lineage["correspondence_artifact"]["kind"] == "correspondence"
+    assert world_map_lineage["leakage_validation"]["status"] == "pass"
     assert inspection["diagnostics"]["oxts_motion"]["packet_count"] == 2
     assert inspection["diagnostics"]["timestamp_alignment"]["camera_lidar_pair_count"] == 2
     assert inspection["diagnostics"]["camera_lidar_pairs"][0]["delta_ms"] == 5.0

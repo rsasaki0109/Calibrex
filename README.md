@@ -103,6 +103,7 @@ unified estimation problem.
 - LiDAR local planarity, roughness, and map sharpness proxy metrics
 - Alpha `lidar_point_to_plane_rmse_m` metric from voxel-plane train/holdout splits
 - OXTS-projected LiDAR world-map train/holdout point-to-plane consistency metrics
+- Map/correspondence artifact lineage with frame-level leakage validation
 - OXTS-projected LiDAR world-map perturbation ranking metrics
 - Weak LiDAR DoF warnings from world-map perturbation sensitivity
 - Native `LidarRigPointToPlaneFactor` residual, Jacobian, Hessian, and weak-DoF diagnostics

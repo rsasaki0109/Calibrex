@@ -134,6 +134,12 @@ def _register_builtin_metrics() -> None:
             "lidar",
         ),
         MetricDefinition(
+            "lidar_world_map_leakage_issue_count",
+            "Frame-level leakage issues between LiDAR world-map train and holdout artifacts",
+            "issues",
+            "lidar",
+        ),
+        MetricDefinition(
             "lidar_world_map_perturbation_case_count",
             "Number of world-map LiDAR extrinsic perturbation cases scored",
             "cases",
