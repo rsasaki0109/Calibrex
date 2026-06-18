@@ -151,9 +151,12 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_frame_coverage" in names
     assert "lidar_point_coverage" in names
     assert "lidar_spatial_coverage_m" in names
-    assert "lidar_pair_overlap_voxel_count" in names
-    assert "lidar_pair_overlap_ratio" in names
-    assert "lidar_pair_centroid_rmse_m" in names
+    assert "lidar_pair_shared_voxel_count" in names
+    assert "lidar_pair_unmatched_source_voxel_count" in names
+    assert "lidar_pair_unmatched_target_voxel_count" in names
+    assert "lidar_pair_source_voxel_recall_in_target" in names
+    assert "lidar_pair_target_voxel_recall_in_source" in names
+    assert "lidar_pair_shared_voxel_centroid_rmse_m" in names
     assert "lidar_world_map_point_to_plane_rmse_m" in names
     assert "lidar_world_map_point_to_plane_median_holdout_m" in names
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in names
@@ -277,9 +280,12 @@ def test_lidar_metrics_from_livox_pcd_inspection_diagnostics() -> None:
                 "sampled_point_count": 64000,
                 "bounds_min_m": [0.0, -4.0, -2.0],
                 "bounds_max_m": [20.0, 5.0, 3.0],
-                "pair_overlap_voxel_count": 42,
-                "pair_overlap_ratio": 0.28,
-                "pair_centroid_rmse_m": 0.44,
+                "pair_shared_voxel_count": 42,
+                "pair_unmatched_source_voxel_count": 108,
+                "pair_unmatched_target_voxel_count": 96,
+                "pair_source_voxel_recall_in_target": 0.28,
+                "pair_target_voxel_recall_in_source": 0.304,
+                "pair_shared_voxel_centroid_rmse_m": 0.44,
             }
         },
     )
@@ -288,9 +294,12 @@ def test_lidar_metrics_from_livox_pcd_inspection_diagnostics() -> None:
 
     assert metrics["lidar_frame_coverage"].value == 2.0
     assert metrics["lidar_point_coverage"].value == 64000.0
-    assert metrics["lidar_pair_overlap_voxel_count"].value == 42.0
-    assert metrics["lidar_pair_overlap_ratio"].value == 0.28
-    assert metrics["lidar_pair_centroid_rmse_m"].value == 0.44
+    assert metrics["lidar_pair_shared_voxel_count"].value == 42.0
+    assert metrics["lidar_pair_unmatched_source_voxel_count"].value == 108.0
+    assert metrics["lidar_pair_unmatched_target_voxel_count"].value == 96.0
+    assert metrics["lidar_pair_source_voxel_recall_in_target"].value == 0.28
+    assert metrics["lidar_pair_target_voxel_recall_in_source"].value == 0.304
+    assert metrics["lidar_pair_shared_voxel_centroid_rmse_m"].value == 0.44
 
 
 def test_autonomous_driving_lidar_coverage_thresholds_are_stricter() -> None:

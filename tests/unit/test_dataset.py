@@ -176,22 +176,28 @@ def test_livox_pcd_reader_summarizes_solid_state_pair(tmp_path: Path) -> None:
     points = read_livox_binary_pcd(base)
     assert tuple(round(value, 3) for value in points[0]) == (0.1, 0.1, 0.0, 10.0)
 
-    stats = summarize_livox_pcd(tmp_path, pair_overlap_voxel_size_m=1.0)
+    stats = summarize_livox_pcd(tmp_path, pair_voxel_size_m=1.0)
     assert stats.status == "scored"
     assert stats.sample_count == 2
     assert stats.sampled_point_count == 6
     assert tuple(round(value, 3) for value in stats.bounds_min_m or ()) == (0.1, 0.0, 0.0)
     assert tuple(round(value, 3) for value in stats.bounds_max_m or ()) == (2.5, 0.3, 0.1)
-    assert stats.pair_overlap_voxel_count == 2
-    assert stats.pair_overlap_ratio == 1.0
-    assert stats.pair_centroid_rmse_m is not None
+    assert stats.pair_source_voxel_count == 2
+    assert stats.pair_target_voxel_count == 3
+    assert stats.pair_shared_voxel_count == 2
+    assert stats.pair_unmatched_source_voxel_count == 0
+    assert stats.pair_unmatched_target_voxel_count == 1
+    assert stats.pair_source_voxel_recall_in_target == 1.0
+    assert stats.pair_target_voxel_recall_in_source == 2.0 / 3.0
+    assert stats.pair_shared_voxel_centroid_rmse_m is not None
 
     inspection = inspect_dataset(DatasetConfig(type="livox_pcd", path=str(tmp_path)))
     assert inspection.dataset_type == "livox_pcd"
     assert not inspection.warnings
     diagnostics = inspection.diagnostics["livox_pcd"]
     assert isinstance(diagnostics, dict)
-    assert diagnostics["pair_overlap_voxel_count"] == 2
+    assert diagnostics["pair_shared_voxel_count"] == 2
+    assert diagnostics["pair_source_voxel_recall_in_target"] == 1.0
 
 
 def test_nuscenes_reader_inspects_sensor_metadata(tmp_path: Path) -> None:

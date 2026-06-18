@@ -116,12 +116,12 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
             frames={"base_horizon": None, "target_horizon": "base_horizon"},
         ),
         metrics={
-            "lidar_pair_overlap_ratio": MetricResult(
+            "lidar_pair_source_voxel_recall_in_target": MetricResult(
                 value=0.25,
                 grade="pass",
             ),
-            "lidar_pair_centroid_rmse_m": MetricResult(
-                value=0.596,
+            "lidar_pair_shared_voxel_centroid_rmse_m": MetricResult(
+                value=0.538,
                 unit="m",
                 grade="pass",
             ),
@@ -131,8 +131,8 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     html = render_html_report(result)
 
     assert "LiDAR Pair Evidence" in html
-    assert "lidar_pair_overlap_ratio" in html
-    assert "lidar_pair_centroid_rmse_m" in html
+    assert "lidar_pair_source_voxel_recall_in_target" in html
+    assert "lidar_pair_shared_voxel_centroid_rmse_m" in html
     assert "not absolute ground" in html
 
 

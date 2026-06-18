@@ -41,7 +41,7 @@ pipeline:
   type: multi_lidar_evidence
   frontends:
     - livox_pcd_reader
-    - lidar_pair_overlap
+    - lidar_pair_voxel_evidence
   factors:
     fixed_lidar_mount_prior:
       enabled: true
@@ -57,8 +57,8 @@ evaluation:
   metrics:
     - lidar_frame_coverage
     - lidar_point_coverage
-    - lidar_pair_overlap_ratio
-    - lidar_pair_centroid_rmse_m
+    - lidar_pair_source_voxel_recall_in_target
+    - lidar_pair_shared_voxel_centroid_rmse_m
 
 outputs:
   result: result.yaml

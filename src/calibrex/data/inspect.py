@@ -158,7 +158,7 @@ def _inspect_livox_pcd(path: Path, dataset_type: str) -> DatasetInspection:
         warnings.append("Livox PCD files are missing")
     if stats.sample_count < 2:
         warnings.append("at least two Livox PCD frames are recommended for LiDAR-to-LiDAR evidence")
-    if stats.pair_overlap_voxel_count == 0:
+    if stats.pair_shared_voxel_count == 0:
         warnings.append("base/target Livox PCD frames have no coarse voxel overlap")
     if stats.malformed_files:
         warnings.append("some Livox PCD files are malformed")

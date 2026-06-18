@@ -934,7 +934,7 @@ def test_livox_precomputed_result_reports_and_visualizes(tmp_path: Path) -> None
     report_html = (reported_dir / "report.html").read_text(encoding="utf-8")
     assert "CACHED EVIDENCE" in report_html
     assert "LiDAR Pair Evidence" in report_html
-    assert "lidar_pair_overlap_ratio" in report_html
+    assert "lidar_pair_source_voxel_recall_in_target" in report_html
 
     visualized_dir = tmp_path / "visualized"
     assert (

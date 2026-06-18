@@ -52,10 +52,15 @@ class LivoxPCDDatasetStats:
     intensity_min: float | None = None
     intensity_max: float | None = None
     intensity_mean: float | None = None
-    pair_overlap_voxel_size_m: float | None = None
-    pair_overlap_voxel_count: int | None = None
-    pair_overlap_ratio: float | None = None
-    pair_centroid_rmse_m: float | None = None
+    pair_voxel_size_m: float | None = None
+    pair_source_voxel_count: int | None = None
+    pair_target_voxel_count: int | None = None
+    pair_shared_voxel_count: int | None = None
+    pair_unmatched_source_voxel_count: int | None = None
+    pair_unmatched_target_voxel_count: int | None = None
+    pair_source_voxel_recall_in_target: float | None = None
+    pair_target_voxel_recall_in_source: float | None = None
+    pair_shared_voxel_centroid_rmse_m: float | None = None
     samples: tuple[LivoxPCDSampleStats, ...] = ()
     malformed_files: tuple[str, ...] = ()
     reason: str | None = None
@@ -73,10 +78,15 @@ class LivoxPCDDatasetStats:
             "intensity_min": self.intensity_min,
             "intensity_max": self.intensity_max,
             "intensity_mean": self.intensity_mean,
-            "pair_overlap_voxel_size_m": self.pair_overlap_voxel_size_m,
-            "pair_overlap_voxel_count": self.pair_overlap_voxel_count,
-            "pair_overlap_ratio": self.pair_overlap_ratio,
-            "pair_centroid_rmse_m": self.pair_centroid_rmse_m,
+            "pair_voxel_size_m": self.pair_voxel_size_m,
+            "pair_source_voxel_count": self.pair_source_voxel_count,
+            "pair_target_voxel_count": self.pair_target_voxel_count,
+            "pair_shared_voxel_count": self.pair_shared_voxel_count,
+            "pair_unmatched_source_voxel_count": self.pair_unmatched_source_voxel_count,
+            "pair_unmatched_target_voxel_count": self.pair_unmatched_target_voxel_count,
+            "pair_source_voxel_recall_in_target": self.pair_source_voxel_recall_in_target,
+            "pair_target_voxel_recall_in_source": self.pair_target_voxel_recall_in_source,
+            "pair_shared_voxel_centroid_rmse_m": self.pair_shared_voxel_centroid_rmse_m,
             "samples": [sample.as_dict() for sample in self.samples],
             "malformed_files": list(self.malformed_files),
             "reason": self.reason,
@@ -145,6 +155,19 @@ class _VoxelCentroid:
         return (self.x_sum / self.count, self.y_sum / self.count, self.z_sum / self.count)
 
 
+@dataclass(frozen=True)
+class _VoxelPairSummary:
+    voxel_size_m: float
+    source_voxel_count: int
+    target_voxel_count: int
+    shared_voxel_count: int
+    unmatched_source_voxel_count: int
+    unmatched_target_voxel_count: int
+    source_voxel_recall_in_target: float
+    target_voxel_recall_in_source: float
+    shared_voxel_centroid_rmse_m: float | None
+
+
 class LivoxPCDDataset:
     """Reader for Livox solid-state LiDAR PCD files."""
 
@@ -193,7 +216,7 @@ def summarize_livox_pcd(
     path: str | Path,
     *,
     sample_limit: int = 4,
-    pair_overlap_voxel_size_m: float = 1.0,
+    pair_voxel_size_m: float = 1.0,
 ) -> LivoxPCDDatasetStats:
     """Summarize Livox public solid-state LiDAR PCD files."""
 
@@ -223,10 +246,10 @@ def summarize_livox_pcd(
         for point in points:
             total.add(point)
 
-    pair = _summarize_pair_overlap(
+    pair = _summarize_voxel_pair(
         sampled_points_by_file[0],
         sampled_points_by_file[1],
-        voxel_size_m=pair_overlap_voxel_size_m,
+        voxel_size_m=pair_voxel_size_m,
     ) if len(sampled_points_by_file) >= 2 else None
     status = "scored" if samples else "malformed"
     return LivoxPCDDatasetStats(
@@ -239,10 +262,25 @@ def summarize_livox_pcd(
         intensity_min=total.intensity_min if total.count else None,
         intensity_max=total.intensity_max if total.count else None,
         intensity_mean=total.intensity_mean,
-        pair_overlap_voxel_size_m=pair_overlap_voxel_size_m if pair is not None else None,
-        pair_overlap_voxel_count=pair[0] if pair is not None else None,
-        pair_overlap_ratio=pair[1] if pair is not None else None,
-        pair_centroid_rmse_m=pair[2] if pair is not None else None,
+        pair_voxel_size_m=pair.voxel_size_m if pair is not None else None,
+        pair_source_voxel_count=pair.source_voxel_count if pair is not None else None,
+        pair_target_voxel_count=pair.target_voxel_count if pair is not None else None,
+        pair_shared_voxel_count=pair.shared_voxel_count if pair is not None else None,
+        pair_unmatched_source_voxel_count=(
+            pair.unmatched_source_voxel_count if pair is not None else None
+        ),
+        pair_unmatched_target_voxel_count=(
+            pair.unmatched_target_voxel_count if pair is not None else None
+        ),
+        pair_source_voxel_recall_in_target=(
+            pair.source_voxel_recall_in_target if pair is not None else None
+        ),
+        pair_target_voxel_recall_in_source=(
+            pair.target_voxel_recall_in_source if pair is not None else None
+        ),
+        pair_shared_voxel_centroid_rmse_m=(
+            pair.shared_voxel_centroid_rmse_m if pair is not None else None
+        ),
         samples=tuple(samples),
         malformed_files=tuple(malformed_files),
         reason=None if samples else "sampled Livox PCD files could not be parsed",
@@ -327,37 +365,50 @@ def _summarize_sample(path: Path, points: list[LivoxPoint]) -> LivoxPCDSampleSta
     )
 
 
-def _summarize_pair_overlap(
+def _summarize_voxel_pair(
     source_points: list[LivoxPoint],
     target_points: list[LivoxPoint],
     *,
     voxel_size_m: float,
-) -> tuple[int, float, float | None]:
-    source_voxels: dict[tuple[int, int, int], _VoxelCentroid] = {}
-    for point in source_points:
-        source_voxel = source_voxels.setdefault(
-            _voxel_key(point, voxel_size_m),
-            _VoxelCentroid(),
-        )
-        source_voxel.add(point)
-
+) -> _VoxelPairSummary:
+    source_voxels = _voxel_centroids(source_points, voxel_size_m)
+    target_voxels = _voxel_centroids(target_points, voxel_size_m)
+    shared_keys = set(source_voxels) & set(target_voxels)
     squared_distances: list[float] = []
-    overlap_voxels: set[tuple[int, int, int]] = set()
-    for point in target_points:
-        key = _voxel_key(point, voxel_size_m)
-        matched_voxel = source_voxels.get(key)
-        if matched_voxel is None:
-            continue
-        overlap_voxels.add(key)
-        cx, cy, cz = matched_voxel.centroid
+    for key in shared_keys:
+        sx, sy, sz = source_voxels[key].centroid
+        tx, ty, tz = target_voxels[key].centroid
         squared_distances.append(
-            (point[0] - cx) * (point[0] - cx)
-            + (point[1] - cy) * (point[1] - cy)
-            + (point[2] - cz) * (point[2] - cz)
+            (tx - sx) * (tx - sx)
+            + (ty - sy) * (ty - sy)
+            + (tz - sz) * (tz - sz)
         )
-    overlap_ratio = len(overlap_voxels) / max(1, len(source_voxels))
     rmse = math.sqrt(sum(squared_distances) / len(squared_distances)) if squared_distances else None
-    return len(overlap_voxels), overlap_ratio, rmse
+    source_voxel_count = len(source_voxels)
+    target_voxel_count = len(target_voxels)
+    shared_voxel_count = len(shared_keys)
+    return _VoxelPairSummary(
+        voxel_size_m=voxel_size_m,
+        source_voxel_count=source_voxel_count,
+        target_voxel_count=target_voxel_count,
+        shared_voxel_count=shared_voxel_count,
+        unmatched_source_voxel_count=source_voxel_count - shared_voxel_count,
+        unmatched_target_voxel_count=target_voxel_count - shared_voxel_count,
+        source_voxel_recall_in_target=shared_voxel_count / max(1, source_voxel_count),
+        target_voxel_recall_in_source=shared_voxel_count / max(1, target_voxel_count),
+        shared_voxel_centroid_rmse_m=rmse,
+    )
+
+
+def _voxel_centroids(
+    points: list[LivoxPoint],
+    voxel_size_m: float,
+) -> dict[tuple[int, int, int], _VoxelCentroid]:
+    voxels: dict[tuple[int, int, int], _VoxelCentroid] = {}
+    for point in points:
+        voxel = voxels.setdefault(_voxel_key(point, voxel_size_m), _VoxelCentroid())
+        voxel.add(point)
+    return voxels
 
 
 def _voxel_key(point: LivoxPoint, voxel_size_m: float) -> tuple[int, int, int]:

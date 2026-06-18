@@ -83,20 +83,34 @@ metrics:
     grade: pass
     unit: m
     reason: lidar_spatial_coverage_m=64.7544 m; pass >= 20 m, warn >= 5 m
-  lidar_pair_overlap_voxel_count:
+  lidar_pair_shared_voxel_count:
     value: 170.0
     grade: pass
     unit: voxels
-    reason: lidar_pair_overlap_voxel_count=170 voxels; pass >= 20 voxels, warn >= 1 voxels
-  lidar_pair_overlap_ratio:
+    reason: lidar_pair_shared_voxel_count=170 voxels; pass >= 20 voxels, warn >= 1 voxels
+  lidar_pair_unmatched_source_voxel_count:
+    value: 509.0
+    grade: pass
+    unit: voxels
+    reason: 509 source voxels have no target voxel at the configured 1 m voxel size
+  lidar_pair_unmatched_target_voxel_count:
+    value: 518.0
+    grade: pass
+    unit: voxels
+    reason: 518 target voxels have no source voxel at the configured 1 m voxel size
+  lidar_pair_source_voxel_recall_in_target:
     value: 0.2503681885125184
     grade: pass
-    reason: lidar_pair_overlap_ratio=0.250368; pass >= 0.2, warn >= 0.05
-  lidar_pair_centroid_rmse_m:
-    value: 0.5957525445552281
+    reason: lidar_pair_source_voxel_recall_in_target=0.250368; pass >= 0.2, warn >= 0.05
+  lidar_pair_target_voxel_recall_in_source:
+    value: 0.24709302325581395
+    grade: pass
+    reason: lidar_pair_target_voxel_recall_in_source=0.247093; pass >= 0.2, warn >= 0.05
+  lidar_pair_shared_voxel_centroid_rmse_m:
+    value: 0.5384123893953572
     grade: pass
     unit: m
-    reason: lidar_pair_centroid_rmse_m=0.595753 m; pass <= 0.75 m, warn <= 1.5 m
+    reason: lidar_pair_shared_voxel_centroid_rmse_m=0.538412 m; pass <= 0.75 m, warn <= 1.5 m
 observability:
   weak_directions:
     - uncomputed_alpha_backend

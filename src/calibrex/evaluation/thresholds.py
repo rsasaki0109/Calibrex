@@ -213,21 +213,27 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.05,
         direction="higher_is_better",
     ),
-    "lidar_pair_overlap_voxel_count": MetricThreshold(
-        metric="lidar_pair_overlap_voxel_count",
+    "lidar_pair_shared_voxel_count": MetricThreshold(
+        metric="lidar_pair_shared_voxel_count",
         pass_value=20.0,
         warn_value=1.0,
         direction="higher_is_better",
         unit="voxels",
     ),
-    "lidar_pair_overlap_ratio": MetricThreshold(
-        metric="lidar_pair_overlap_ratio",
+    "lidar_pair_source_voxel_recall_in_target": MetricThreshold(
+        metric="lidar_pair_source_voxel_recall_in_target",
         pass_value=0.20,
         warn_value=0.05,
         direction="higher_is_better",
     ),
-    "lidar_pair_centroid_rmse_m": MetricThreshold(
-        metric="lidar_pair_centroid_rmse_m",
+    "lidar_pair_target_voxel_recall_in_source": MetricThreshold(
+        metric="lidar_pair_target_voxel_recall_in_source",
+        pass_value=0.20,
+        warn_value=0.05,
+        direction="higher_is_better",
+    ),
+    "lidar_pair_shared_voxel_centroid_rmse_m": MetricThreshold(
+        metric="lidar_pair_shared_voxel_centroid_rmse_m",
         pass_value=0.75,
         warn_value=1.50,
         unit="m",

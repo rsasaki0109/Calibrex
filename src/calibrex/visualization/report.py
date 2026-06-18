@@ -32,9 +32,10 @@ _WORLD_MAP_SUMMARY_METRICS = (
 )
 
 _LIDAR_PAIR_SUMMARY_METRICS = (
-    "lidar_pair_overlap_voxel_count",
-    "lidar_pair_overlap_ratio",
-    "lidar_pair_centroid_rmse_m",
+    "lidar_pair_shared_voxel_count",
+    "lidar_pair_source_voxel_recall_in_target",
+    "lidar_pair_target_voxel_recall_in_source",
+    "lidar_pair_shared_voxel_centroid_rmse_m",
 )
 
 _WORLD_MAP_DOF_METRICS = (

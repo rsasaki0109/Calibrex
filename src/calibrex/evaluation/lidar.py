@@ -122,9 +122,16 @@ def _livox_pcd_metrics(diagnostics: Mapping[object, object]) -> dict[str, Metric
     sampled_point_count = _float_or_none(diagnostics.get("sampled_point_count"))
     bounds_min = _vector3_or_none(diagnostics.get("bounds_min_m"))
     bounds_max = _vector3_or_none(diagnostics.get("bounds_max_m"))
-    overlap_voxel_count = _float_or_none(diagnostics.get("pair_overlap_voxel_count"))
-    overlap_ratio = _float_or_none(diagnostics.get("pair_overlap_ratio"))
-    centroid_rmse = _float_or_none(diagnostics.get("pair_centroid_rmse_m"))
+    shared_voxel_count = _float_or_none(diagnostics.get("pair_shared_voxel_count"))
+    unmatched_source_voxel_count = _float_or_none(
+        diagnostics.get("pair_unmatched_source_voxel_count")
+    )
+    unmatched_target_voxel_count = _float_or_none(
+        diagnostics.get("pair_unmatched_target_voxel_count")
+    )
+    source_recall = _float_or_none(diagnostics.get("pair_source_voxel_recall_in_target"))
+    target_recall = _float_or_none(diagnostics.get("pair_target_voxel_recall_in_source"))
+    centroid_rmse = _float_or_none(diagnostics.get("pair_shared_voxel_centroid_rmse_m"))
 
     metrics: dict[str, MetricResult] = {}
     if sampled_file_count is not None:
@@ -146,30 +153,52 @@ def _livox_pcd_metrics(diagnostics: Mapping[object, object]) -> dict[str, Metric
             unit="m",
             reason=f"sampled Livox XYZ extent is {extent:g} m",
         )
-    if overlap_voxel_count is not None:
-        metrics["lidar_pair_overlap_voxel_count"] = MetricResult(
-            value=overlap_voxel_count,
+    if shared_voxel_count is not None:
+        metrics["lidar_pair_shared_voxel_count"] = MetricResult(
+            value=shared_voxel_count,
             unit="voxels",
-            grade="pass" if overlap_voxel_count > 0 else "warn",
+            grade="pass" if shared_voxel_count > 0 else "warn",
             reason="coarse shared voxel count between the first two Livox PCD frames",
         )
-    if overlap_ratio is not None:
-        metrics["lidar_pair_overlap_ratio"] = MetricResult(
-            value=overlap_ratio,
-            grade="pass" if overlap_ratio > 0.0 else "warn",
+    if unmatched_source_voxel_count is not None:
+        metrics["lidar_pair_unmatched_source_voxel_count"] = MetricResult(
+            value=unmatched_source_voxel_count,
+            unit="voxels",
+            grade="pass",
+            reason="source Livox voxels without a target voxel at the configured voxel size",
+        )
+    if unmatched_target_voxel_count is not None:
+        metrics["lidar_pair_unmatched_target_voxel_count"] = MetricResult(
+            value=unmatched_target_voxel_count,
+            unit="voxels",
+            grade="pass",
+            reason="target Livox voxels without a source voxel at the configured voxel size",
+        )
+    if source_recall is not None:
+        metrics["lidar_pair_source_voxel_recall_in_target"] = MetricResult(
+            value=source_recall,
+            grade="pass" if source_recall > 0.0 else "warn",
             reason=(
-                "coarse base/target Livox overlap proxy; this is evidence for "
-                "comparison, not absolute ground truth"
+                "fraction of source Livox voxels that have a target voxel at the "
+                "configured voxel size"
+            ),
+        )
+    if target_recall is not None:
+        metrics["lidar_pair_target_voxel_recall_in_source"] = MetricResult(
+            value=target_recall,
+            grade="pass" if target_recall > 0.0 else "warn",
+            reason=(
+                "fraction of target Livox voxels that have a source voxel at the "
+                "configured voxel size"
             ),
         )
     if centroid_rmse is not None:
-        metrics["lidar_pair_centroid_rmse_m"] = MetricResult(
+        metrics["lidar_pair_shared_voxel_centroid_rmse_m"] = MetricResult(
             value=centroid_rmse,
             unit="m",
             grade="pass",
             reason=(
-                "coarse target-point to source-voxel-centroid RMSE for the first "
-                "two Livox PCD frames"
+                "coarse shared-voxel centroid RMSE for the first two Livox PCD frames"
             ),
         )
     return metrics
