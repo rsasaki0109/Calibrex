@@ -1,0 +1,18 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: a2d2_sensor_setup
+description: Public A2D2 fixed multi-LiDAR sensor setup metadata for evidence visualization.
+time_base: metadata_only
+streams:
+  sensor_configuration:
+    kind: metadata
+    count: 1
+    path: cams_lidars.json
+    fields:
+      - vehicle
+      - lidars
+      - cameras
+provenance:
+  source: A2D2 public sensor configuration
+  official_url: https://www.a2d2.audi/en/download/
+  download_url: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json
+  license: CC BY-ND 4.0

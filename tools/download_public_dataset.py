@@ -19,7 +19,7 @@ import yaml
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset", choices=["tum_rgbd_freiburg1_xyz"])
+    parser.add_argument("dataset", choices=["tum_rgbd_freiburg1_xyz", "a2d2_sensor_setup"])
     parser.add_argument(
         "--catalog",
         type=Path,
@@ -41,7 +41,7 @@ def main() -> int:
     urlretrieve(download_url, archive)
     print(f"wrote {archive}")
 
-    if not args.no_extract:
+    if not args.no_extract and tarfile.is_tarfile(archive):
         print(f"extracting {archive}")
         with tarfile.open(archive, "r:gz") as tar:
             tar.extractall(args.output_dir)

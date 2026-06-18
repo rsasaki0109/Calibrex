@@ -1,77 +1,70 @@
 #!/usr/bin/env python3
-"""Generate the README calibration evidence GIF from public RGB-D data.
+"""Generate the README fixed 3D LiDAR-to-LiDAR calibration evidence GIF.
 
-The visual uses real frames from the public TUM RGB-D fr1/xyz sequence. The
-animated alignment offset and residual curve are an evidence-viewer proxy, not a
-benchmark accuracy claim.
+The visual is based on the public A2D2 multi-LiDAR sensor setup metadata when
+the small `cams_lidars.json` file is available. It does not redistribute raw
+public point clouds and does not claim benchmark accuracy. The animated point
+sets are an evidence-viewer proxy for how Calibrex compares a fixed vehicle
+LiDAR-to-LiDAR candidate against a selected reference.
 """
 
 from __future__ import annotations
 
 import argparse
-import bisect
+import json
+import math
 import shutil
-import struct
 import subprocess
 import tempfile
-import zlib
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
 
 WIDTH = 960
 HEIGHT = 540
 FPS = 12
 FRAME_COUNT = 36
-PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
-RGB_PANEL = (32, 92, 568, 426)
-RIGHT_PANEL = (628, 92, 300, 426)
-DEPTH_PANEL = (648, 126, 260, 195)
-CHART = (652, 394, 240, 48)
+A2D2_SENSOR_CONFIG_URL = (
+    "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
+    "cams_lidars.json"
+)
+
+SCENE_PANEL = (28, 86, 594, 426)
+RIGHT_PANEL = (650, 92, 278, 414)
+CHART = (676, 266, 216, 68)
 
 Color = tuple[int, int, int]
+Point3 = tuple[float, float, float]
+Point2 = tuple[int, int]
 
-BG = (12, 17, 29)
-PANEL = (20, 29, 45)
-PANEL_ALT = (14, 21, 35)
-GRID = (54, 68, 91)
+BG = (10, 15, 27)
+PANEL = (18, 27, 43)
+PANEL_ALT = (13, 20, 34)
+GRID = (55, 68, 90)
 TEXT_DIM = (148, 163, 184)
 REFERENCE = (52, 211, 153)
 CANDIDATE = (251, 113, 133)
 OPTIMIZED = (34, 211, 238)
 WARNING = (245, 158, 11)
 GOOD = (34, 197, 94)
+VEHICLE = (42, 52, 68)
+ROAD = (27, 38, 55)
 
 
 @dataclass(frozen=True)
-class TumFramePair:
-    rgb_timestamp: float
-    rgb_path: Path
-    depth_timestamp: float
-    depth_path: Path
-
-
-@dataclass(frozen=True)
-class RgbImage:
-    width: int
-    height: int
-    data: bytearray
-
-
-@dataclass(frozen=True)
-class DepthImage:
-    width: int
-    height: int
-    values: list[int]
+class LidarPose:
+    name: str
+    origin: Point3
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--dataset-root",
+        "--sensor-config",
         type=Path,
-        default=Path("data/public/rgbd_dataset_freiburg1_xyz"),
-        help="Path to the extracted TUM RGB-D fr1/xyz sequence.",
+        help="Optional local A2D2 cams_lidars.json. If omitted, the public URL is tried.",
     )
     parser.add_argument(
         "--output",
@@ -79,387 +72,327 @@ def main() -> int:
         default=Path("docs/assets/calibration-evidence-demo.gif"),
     )
     parser.add_argument("--frames", type=int, default=FRAME_COUNT)
+    parser.add_argument(
+        "--no-network",
+        action="store_true",
+        help="Use the built-in fixed multi-LiDAR fallback instead of fetching A2D2 metadata.",
+    )
     args = parser.parse_args()
 
     if shutil.which("ffmpeg") is None:
         raise SystemExit("ffmpeg is required to generate the GIF")
-    ensure_tum_dataset(args.dataset_root)
 
-    pairs = select_pairs(pair_tum_frames(args.dataset_root), args.frames)
-    if len(pairs) < 2:
-        raise SystemExit("Need at least two RGB-D pairs to generate the GIF")
-
+    lidars, metadata_source = load_lidar_setup(
+        args.sensor_config,
+        allow_network=not args.no_network,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="calibrex_public_gif_") as tmp_name:
+    with tempfile.TemporaryDirectory(prefix="calibrex_lidar_lidar_gif_") as tmp_name:
         tmp = Path(tmp_name)
         residual_history: list[float] = []
-        for index, pair in enumerate(pairs):
-            progress = smoothstep(index / (len(pairs) - 1))
-            rgb = read_rgb_png(args.dataset_root / pair.rgb_path)
-            depth = read_depth_png(args.dataset_root / pair.depth_path)
+        for index in range(args.frames):
+            progress = smoothstep(index / max(1, args.frames - 1))
             residual_history.append(residual_proxy(progress))
             image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
             draw_frame(
                 image=image,
-                rgb=rgb,
-                depth=depth,
-                pair=pair,
+                lidars=lidars,
                 progress=progress,
                 residual_history=residual_history,
+                metadata_source=metadata_source,
             )
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
         encode_gif(tmp, args.output)
     return 0
 
 
-def ensure_tum_dataset(root: Path) -> None:
-    if (root / "rgb.txt").exists() and (root / "depth.txt").exists():
-        return
-    raise SystemExit(
-        "TUM RGB-D fr1/xyz data is required.\n"
-        "Download and extract it to data/public/rgbd_dataset_freiburg1_xyz:\n"
-        "  https://cvg.cit.tum.de/rgbd/dataset/freiburg1/"
-        "rgbd_dataset_freiburg1_xyz.tgz"
-    )
-
-
-def read_tum_listing(path: Path) -> list[tuple[float, Path]]:
-    entries: list[tuple[float, Path]] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        timestamp, relative_path = line.split()[:2]
-        entries.append((float(timestamp), Path(relative_path)))
-    return entries
-
-
-def pair_tum_frames(root: Path) -> list[TumFramePair]:
-    rgb_entries = read_tum_listing(root / "rgb.txt")
-    depth_entries = read_tum_listing(root / "depth.txt")
-    depth_times = [timestamp for timestamp, _path in depth_entries]
-    pairs: list[TumFramePair] = []
-    for rgb_timestamp, rgb_path in rgb_entries:
-        insert_at = bisect.bisect_left(depth_times, rgb_timestamp)
-        candidates = [
-            index
-            for index in (insert_at - 1, insert_at)
-            if 0 <= index < len(depth_entries)
-        ]
-        if not candidates:
-            continue
-        best_index = min(
-            candidates,
-            key=lambda index: abs(depth_entries[index][0] - rgb_timestamp),
-        )
-        depth_timestamp, depth_path = depth_entries[best_index]
-        pairs.append(
-            TumFramePair(
-                rgb_timestamp=rgb_timestamp,
-                rgb_path=rgb_path,
-                depth_timestamp=depth_timestamp,
-                depth_path=depth_path,
-            )
-        )
-    return pairs
-
-
-def select_pairs(pairs: list[TumFramePair], frame_count: int) -> list[TumFramePair]:
-    if len(pairs) <= frame_count:
-        return pairs
-    start = len(pairs) // 8
-    stop = len(pairs) * 7 // 8
-    span = max(1, stop - start)
-    selected: list[TumFramePair] = []
-    last_index = -1
-    for index in range(frame_count):
-        candidate = start + round(index * span / (frame_count - 1))
-        candidate = min(max(candidate, last_index + 1), len(pairs) - 1)
-        selected.append(pairs[candidate])
-        last_index = candidate
-    return selected
-
-
-def read_rgb_png(path: Path) -> RgbImage:
-    width, height, bit_depth, color_type, rows = decode_png(path)
-    if bit_depth != 8 or color_type != 2:
-        raise ValueError(f"{path} must be 8-bit RGB PNG")
-    data = unfilter_png(rows, width=width, height=height, bytes_per_pixel=3)
-    return RgbImage(width=width, height=height, data=data)
-
-
-def read_depth_png(path: Path) -> DepthImage:
-    width, height, bit_depth, color_type, rows = decode_png(path)
-    if bit_depth != 16 or color_type != 0:
-        raise ValueError(f"{path} must be 16-bit grayscale PNG")
-    data = unfilter_png(rows, width=width, height=height, bytes_per_pixel=2)
-    values = [
-        (data[index] << 8) | data[index + 1]
-        for index in range(0, len(data), 2)
-    ]
-    return DepthImage(width=width, height=height, values=values)
-
-
-def decode_png(path: Path) -> tuple[int, int, int, int, bytes]:
-    with path.open("rb") as handle:
-        if handle.read(len(PNG_SIGNATURE)) != PNG_SIGNATURE:
-            raise ValueError(f"{path} is not a PNG file")
-        width = height = bit_depth = color_type = interlace = -1
-        idat_parts: list[bytes] = []
-        while True:
-            raw_length = handle.read(4)
-            if not raw_length:
-                break
-            length = struct.unpack(">I", raw_length)[0]
-            chunk_type = handle.read(4)
-            chunk_data = handle.read(length)
-            handle.read(4)
-            if chunk_type == b"IHDR":
-                (
-                    width,
-                    height,
-                    bit_depth,
-                    color_type,
-                    _compression,
-                    _filter_method,
-                    interlace,
-                ) = struct.unpack(">IIBBBBB", chunk_data)
-            elif chunk_type == b"IDAT":
-                idat_parts.append(chunk_data)
-            elif chunk_type == b"IEND":
-                break
-    if interlace != 0:
-        raise ValueError(f"{path} uses unsupported interlaced PNG encoding")
-    return width, height, bit_depth, color_type, zlib.decompress(b"".join(idat_parts))
-
-
-def unfilter_png(
-    data: bytes,
+def load_lidar_setup(
+    sensor_config: Path | None,
     *,
-    width: int,
-    height: int,
-    bytes_per_pixel: int,
-) -> bytearray:
-    row_size = width * bytes_per_pixel
-    output = bytearray(row_size * height)
-    previous = bytearray(row_size)
-    input_offset = 0
-    output_offset = 0
-    for _row in range(height):
-        filter_type = data[input_offset]
-        input_offset += 1
-        scanline = data[input_offset : input_offset + row_size]
-        input_offset += row_size
-        reconstructed = bytearray(row_size)
-        for index, value in enumerate(scanline):
-            left = reconstructed[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
-            up = previous[index]
-            up_left = previous[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
-            reconstructed[index] = (
-                value + png_filter_prediction(filter_type, left, up, up_left)
-            ) & 0xFF
-        output[output_offset : output_offset + row_size] = reconstructed
-        previous = reconstructed
-        output_offset += row_size
-    return output
+    allow_network: bool,
+) -> tuple[list[LidarPose], str]:
+    """Load A2D2 LiDAR origins or return a deterministic fixed-rig fallback."""
+
+    if sensor_config is not None:
+        payload = json.loads(sensor_config.read_text(encoding="utf-8"))
+        return parse_lidars(payload), f"A2D2 metadata: {sensor_config}"
+
+    if allow_network:
+        try:
+            with urlopen(A2D2_SENSOR_CONFIG_URL, timeout=12) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            return parse_lidars(payload), "A2D2 public cams_lidars.json"
+        except (OSError, URLError, json.JSONDecodeError):
+            pass
+
+    return fallback_lidars(), "fixed multi-LiDAR fallback"
 
 
-def png_filter_prediction(filter_type: int, left: int, up: int, up_left: int) -> int:
-    if filter_type == 0:
-        return 0
-    if filter_type == 1:
-        return left
-    if filter_type == 2:
-        return up
-    if filter_type == 3:
-        return (left + up) // 2
-    if filter_type == 4:
-        return paeth(left, up, up_left)
-    raise ValueError(f"Unsupported PNG filter type: {filter_type}")
+def parse_lidars(payload: dict[str, object]) -> list[LidarPose]:
+    raw_lidars = payload.get("lidars")
+    if not isinstance(raw_lidars, dict):
+        return fallback_lidars()
+
+    lidars: list[LidarPose] = []
+    for name, raw_lidar in raw_lidars.items():
+        if not isinstance(raw_lidar, dict):
+            continue
+        raw_view = raw_lidar.get("view")
+        if not isinstance(raw_view, dict):
+            continue
+        raw_origin = raw_view.get("origin")
+        if not isinstance(raw_origin, list) or len(raw_origin) != 3:
+            continue
+        try:
+            origin = tuple(float(value) for value in raw_origin)
+        except (TypeError, ValueError):
+            continue
+        lidars.append(LidarPose(str(name), origin))  # type: ignore[arg-type]
+    return sorted(lidars, key=lambda lidar: lidar.name) or fallback_lidars()
 
 
-def paeth(left: int, up: int, up_left: int) -> int:
-    estimate = left + up - up_left
-    distance_left = abs(estimate - left)
-    distance_up = abs(estimate - up)
-    distance_up_left = abs(estimate - up_left)
-    if distance_left <= distance_up and distance_left <= distance_up_left:
-        return left
-    if distance_up <= distance_up_left:
-        return up
-    return up_left
+def fallback_lidars() -> list[LidarPose]:
+    """Return fixed vehicle 3D LiDAR poses matching the A2D2 setup shape."""
+
+    return [
+        LidarPose("front_center", (1.72, 0.00, 1.12)),
+        LidarPose("front_left", (1.71, 0.63, 1.12)),
+        LidarPose("front_right", (1.71, -0.65, 1.12)),
+        LidarPose("rear_left", (-0.43, 0.59, 1.15)),
+        LidarPose("rear_right", (-0.43, -0.61, 1.12)),
+    ]
 
 
 def draw_frame(
     *,
     image: bytearray,
-    rgb: RgbImage,
-    depth: DepthImage,
-    pair: TumFramePair,
+    lidars: list[LidarPose],
     progress: float,
     residual_history: list[float],
+    metadata_source: str,
 ) -> None:
     fill_rect(image, 0, 0, WIDTH, HEIGHT, BG)
-    fill_rect(image, 26, 86, 580, 438, PANEL, alpha=1.0)
-    fill_rect(
+    fill_rect(image, SCENE_PANEL[0], SCENE_PANEL[1], SCENE_PANEL[2], SCENE_PANEL[3], PANEL)
+    fill_rect(image, RIGHT_PANEL[0], RIGHT_PANEL[1], RIGHT_PANEL[2], RIGHT_PANEL[3], PANEL)
+    rect(image, SCENE_PANEL[0], SCENE_PANEL[1], SCENE_PANEL[2], SCENE_PANEL[3], GRID, alpha=0.85)
+    rect(
         image,
         RIGHT_PANEL[0],
         RIGHT_PANEL[1],
         RIGHT_PANEL[2],
         RIGHT_PANEL[3],
-        PANEL,
-        alpha=1.0,
-    )
-    rect(image, 26, 86, 580, 438, GRID, alpha=0.85)
-    rect(image, RIGHT_PANEL[0], RIGHT_PANEL[1], RIGHT_PANEL[2], RIGHT_PANEL[3], GRID, alpha=0.85)
-
-    draw_scaled_rgb(image, rgb, *RGB_PANEL)
-    draw_depth_overlay(image, depth, progress)
-    fill_rect(
-        image,
-        RGB_PANEL[0],
-        RGB_PANEL[1] + RGB_PANEL[3] - 34,
-        RGB_PANEL[2],
-        34,
-        BG,
-        alpha=0.72,
+        GRID,
+        alpha=0.85,
     )
 
-    draw_depth_map(image, depth, *DEPTH_PANEL)
-    draw_evidence_panel(image, depth, pair, progress, residual_history)
+    draw_calibration_scene(image, lidars, progress)
+    draw_evidence_panel(image, progress, residual_history, metadata_source)
     draw_timeline(image, progress)
 
 
-def draw_scaled_rgb(
+def draw_calibration_scene(image: bytearray, lidars: list[LidarPose], progress: float) -> None:
+    draw_road_grid(image)
+    draw_reference_cloud(image)
+    draw_candidate_cloud(image, progress)
+    draw_vehicle_box(image)
+
+    source = lidar_by_name(lidars, "front_left")
+    target = lidar_by_name(lidars, "front_right")
+    current_target = animated_candidate_pose(target, progress)
+
+    for lidar in lidars:
+        color = REFERENCE if lidar.name != target.name else mix(CANDIDATE, OPTIMIZED, progress)
+        draw_lidar_sensor(
+            image,
+            lidar.origin,
+            color,
+            strong=lidar.name in {source.name, target.name},
+        )
+    draw_lidar_sensor(
+        image,
+        current_target.origin,
+        mix(CANDIDATE, OPTIMIZED, progress),
+        strong=True,
+    )
+
+    draw_transform_arrow(image, source.origin, target.origin, REFERENCE, alpha=0.60)
+    draw_transform_arrow(
+        image,
+        source.origin,
+        current_target.origin,
+        mix(CANDIDATE, OPTIMIZED, progress),
+    )
+    draw_delta_vector(image, target.origin, current_target.origin, progress)
+
+
+def lidar_by_name(lidars: list[LidarPose], name: str) -> LidarPose:
+    for lidar in lidars:
+        if lidar.name == name:
+            return lidar
+    return lidars[0]
+
+
+def animated_candidate_pose(reference: LidarPose, progress: float) -> LidarPose:
+    remaining = 1.0 - progress
+    offset = (
+        0.22 * remaining,
+        -0.30 * remaining,
+        0.13 * remaining,
+    )
+    return LidarPose(
+        f"{reference.name}_candidate",
+        (
+            reference.origin[0] + offset[0],
+            reference.origin[1] + offset[1],
+            reference.origin[2] + offset[2],
+        ),
+    )
+
+
+def draw_road_grid(image: bytearray) -> None:
+    fill_rect(image, 48, 372, 540, 116, ROAD, alpha=0.84)
+    for y in [-4.0, -2.0, 0.0, 2.0, 4.0]:
+        left = project((-3.0, y, -0.05))
+        right = project((7.0, y, -0.05))
+        line(image, left[0], left[1], right[0], right[1], GRID, alpha=0.38)
+    for x in [-2.0, 0.0, 2.0, 4.0, 6.0]:
+        bottom = project((x, -4.5, -0.05))
+        top = project((x, 4.5, -0.05))
+        line(image, bottom[0], bottom[1], top[0], top[1], GRID, alpha=0.38)
+
+
+def draw_reference_cloud(image: bytearray) -> None:
+    for index, point in enumerate(scene_points()):
+        x, y = project(point)
+        color = REFERENCE if index % 3 else (110, 231, 183)
+        circle(image, x, y, 1, color, alpha=0.50)
+
+
+def draw_candidate_cloud(image: bytearray, progress: float) -> None:
+    remaining = 1.0 - progress
+    color = mix(CANDIDATE, OPTIMIZED, progress)
+    for index, point in enumerate(scene_points()):
+        if index % 2:
+            continue
+        shifted = (
+            point[0] + 0.18 * remaining,
+            point[1] - 0.28 * remaining,
+            point[2] + 0.09 * remaining,
+        )
+        x, y = project(shifted)
+        circle(image, x, y, 1, color, alpha=0.72)
+
+
+def scene_points() -> list[Point3]:
+    points: list[Point3] = []
+    for x_index in range(34):
+        x = -2.2 + x_index * 0.26
+        for lane_y in (-1.8, 1.8):
+            wave = math.sin(x * 1.7) * 0.08
+            points.append((x, lane_y + wave, 0.0))
+    for side_y in (-3.2, 3.2):
+        for x_index in range(24):
+            x = -1.4 + x_index * 0.32
+            for z_index in range(4):
+                z = 0.35 + z_index * 0.44
+                points.append((x, side_y, z))
+    for angle_index in range(60):
+        angle = angle_index * math.tau / 60
+        radius = 1.35 + 0.16 * math.sin(angle * 3.0)
+        points.append((3.8 + radius * math.cos(angle), radius * math.sin(angle), 0.18))
+    return points
+
+
+def draw_vehicle_box(image: bytearray) -> None:
+    bottom = [(-1.0, -1.25, 0.0), (4.0, -1.25, 0.0), (4.0, 1.25, 0.0), (-1.0, 1.25, 0.0)]
+    roof = [(-0.6, -1.0, 1.35), (2.6, -1.0, 1.35), (2.6, 1.0, 1.35), (-0.6, 1.0, 1.35)]
+    bottom_points = [project(point) for point in bottom]
+    roof_points = [project(point) for point in roof]
+    fill_polygon(image, bottom_points, (30, 41, 58), alpha=0.86)
+    fill_polygon(image, roof_points, VEHICLE, alpha=0.92)
+    for index in range(4):
+        next_index = (index + 1) % 4
+        line_between(image, bottom_points[index], bottom_points[next_index], (100, 116, 139), 0.70)
+        line_between(image, roof_points[index], roof_points[next_index], (185, 196, 214), 0.82)
+        line_between(image, bottom_points[index], roof_points[index], (100, 116, 139), 0.48)
+
+
+def draw_lidar_sensor(image: bytearray, origin: Point3, color: Color, *, strong: bool) -> None:
+    x, y = project(origin)
+    radius = 6 if strong else 4
+    circle(image, x, y, radius + 3, (5, 9, 16), alpha=0.56)
+    circle(image, x, y, radius, color, alpha=1.0)
+    endpoints = (
+        (origin[0] + 0.55, origin[1], origin[2]),
+        (origin[0], origin[1] + 0.42, origin[2]),
+    )
+    for endpoint in endpoints:
+        ex, ey = project(endpoint)
+        line(image, x, y, ex, ey, color, alpha=0.68)
+
+
+def draw_transform_arrow(
     image: bytearray,
-    rgb: RgbImage,
-    x: int,
-    y: int,
-    width: int,
-    height: int,
+    source: Point3,
+    target: Point3,
+    color: Color,
+    *,
+    alpha: float = 0.95,
 ) -> None:
-    for yy in range(height):
-        source_y = min(rgb.height - 1, yy * rgb.height // height)
-        for xx in range(width):
-            source_x = min(rgb.width - 1, xx * rgb.width // width)
-            source_index = (source_y * rgb.width + source_x) * 3
-            target_index = ((y + yy) * WIDTH + x + xx) * 3
-            image[target_index] = rgb.data[source_index]
-            image[target_index + 1] = rgb.data[source_index + 1]
-            image[target_index + 2] = rgb.data[source_index + 2]
+    sx, sy = project((source[0], source[1], source[2] + 0.10))
+    tx, ty = project((target[0], target[1], target[2] + 0.10))
+    thick_line(image, sx, sy, tx, ty, color, thickness=2, alpha=alpha)
+    circle(image, tx, ty, 5, color, alpha=alpha)
 
 
-def draw_depth_overlay(image: bytearray, depth: DepthImage, progress: float) -> None:
-    edge_points = detect_depth_edges(depth)
-    offset_x = round(26 * (1.0 - progress))
-    offset_y = round(-15 * (1.0 - progress))
-    candidate_color = mix(CANDIDATE, OPTIMIZED, progress)
-    for x, y in edge_points:
-        panel_x, panel_y = depth_to_rgb_panel(depth, x, y)
-        pixel(image, panel_x, panel_y, REFERENCE, alpha=0.20)
-    for x, y in edge_points:
-        panel_x, panel_y = depth_to_rgb_panel(depth, x, y)
-        circle(image, panel_x + offset_x, panel_y + offset_y, 1, candidate_color, alpha=0.85)
-
-
-def detect_depth_edges(depth: DepthImage, max_points: int = 850) -> list[tuple[int, int]]:
-    candidates: list[tuple[int, int, int]] = []
-    stride = 5
-    radius = 3
-    for y in range(radius, depth.height - radius, stride):
-        for x in range(radius, depth.width - radius, stride):
-            center = depth.values[y * depth.width + x]
-            if center == 0:
-                continue
-            neighbors = [
-                depth.values[y * depth.width + x - radius],
-                depth.values[y * depth.width + x + radius],
-                depth.values[(y - radius) * depth.width + x],
-                depth.values[(y + radius) * depth.width + x],
-            ]
-            valid_neighbors = [value for value in neighbors if value > 0]
-            if len(valid_neighbors) < 2:
-                continue
-            gradient = max(valid_neighbors) - min(valid_neighbors)
-            if gradient > 70:
-                candidates.append((gradient, x, y))
-    candidates.sort(reverse=True)
-    return [(x, y) for _gradient, x, y in candidates[:max_points]]
-
-
-def depth_to_rgb_panel(depth: DepthImage, x: int, y: int) -> tuple[int, int]:
-    panel_x = RGB_PANEL[0] + x * RGB_PANEL[2] // depth.width
-    panel_y = RGB_PANEL[1] + y * RGB_PANEL[3] // depth.height
-    return panel_x, panel_y
-
-
-def draw_depth_map(
+def draw_delta_vector(
     image: bytearray,
-    depth: DepthImage,
-    x: int,
-    y: int,
-    width: int,
-    height: int,
+    reference: Point3,
+    candidate: Point3,
+    progress: float,
 ) -> None:
-    low, high = depth_visual_range(depth)
-    for yy in range(height):
-        source_y = min(depth.height - 1, yy * depth.height // height)
-        for xx in range(width):
-            source_x = min(depth.width - 1, xx * depth.width // width)
-            value = depth.values[source_y * depth.width + source_x]
-            color = depth_color(value, low, high)
-            pixel(image, x + xx, y + yy, color, alpha=1.0)
-    rect(image, x, y, width, height, GRID, alpha=0.9)
-
-
-def depth_visual_range(depth: DepthImage) -> tuple[int, int]:
-    samples = [
-        value
-        for index, value in enumerate(depth.values)
-        if value > 0 and index % 64 == 0
-    ]
-    if not samples:
-        return 1, 2
-    samples.sort()
-    low = samples[int(len(samples) * 0.05)]
-    high = samples[int(len(samples) * 0.95)]
-    if high <= low:
-        high = low + 1
-    return low, high
-
-
-def depth_color(value: int, low: int, high: int) -> Color:
-    if value <= 0:
-        return (8, 13, 23)
-    ratio = min(1.0, max(0.0, (value - low) / (high - low)))
-    if ratio < 0.5:
-        return mix((252, 211, 77), (34, 211, 238), ratio * 2.0)
-    return mix((34, 211, 238), (99, 102, 241), (ratio - 0.5) * 2.0)
+    if progress > 0.97:
+        return
+    rx, ry = project((reference[0], reference[1], reference[2] + 0.28))
+    cx, cy = project((candidate[0], candidate[1], candidate[2] + 0.28))
+    line(image, rx, ry, cx, cy, WARNING, alpha=0.88)
+    circle(image, rx, ry, 3, REFERENCE, alpha=0.95)
+    circle(image, cx, cy, 3, WARNING, alpha=0.95)
 
 
 def draw_evidence_panel(
     image: bytearray,
-    depth: DepthImage,
-    pair: TumFramePair,
     progress: float,
     residual_history: list[float],
+    metadata_source: str,
 ) -> None:
+    fill_rect(image, 674, 132, 220, 76, PANEL_ALT)
+    rect(image, 674, 132, 220, 76, GRID, alpha=0.92)
+    metric_bar(
+        image,
+        674,
+        156,
+        1.0 - residual_proxy(progress) / 0.105,
+        mix(WARNING, GOOD, progress),
+    )
+    metric_bar(image, 674, 180, min(1.0, 0.40 + progress * 0.58), OPTIMIZED)
+
     chart_x, chart_y, chart_width, chart_height = CHART
-    fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT, alpha=1.0)
+    fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
     rect(image, chart_x, chart_y, chart_width, chart_height, GRID, alpha=0.95)
     for line_index in range(1, 4):
         y = chart_y + line_index * chart_height // 4
         line(image, chart_x, y, chart_x + chart_width, y, GRID, alpha=0.45)
     draw_curve(image, residual_history, CHART, OPTIMIZED)
 
-    coverage = valid_depth_coverage(depth)
-    sync_quality = max(0.0, 1.0 - abs(pair.rgb_timestamp - pair.depth_timestamp) / 0.025)
-    residual_score = max(0.0, min(1.0, 1.0 - residual_history[-1] / 0.12))
-    metric_bar(image, 652, 456, coverage, GOOD)
-    metric_bar(image, 652, 476, sync_quality, OPTIMIZED)
-    metric_bar(image, 652, 496, residual_score, GOOD if progress > 0.70 else WARNING)
+    draw_dof_cells(image, 674, 378, progress)
+    draw_source_badge(image, metadata_source)
 
-    draw_dof_cells(image, 652, 350, progress)
+
+def draw_source_badge(image: bytearray, metadata_source: str) -> None:
+    color = GOOD if metadata_source.startswith("A2D2") else WARNING
+    fill_rect(image, 674, 464, 220, 16, PANEL_ALT)
+    metric_bar(image, 674, 464, 1.0, color)
 
 
 def draw_curve(
@@ -471,32 +404,31 @@ def draw_curve(
     if len(values) < 2:
         return
     x, y, width, height = chart
-    min_value = 0.018
-    max_value = 0.116
-    points: list[tuple[int, int]] = []
+    min_value = 0.020
+    max_value = 0.110
+    points: list[Point2] = []
     for index, value in enumerate(values):
         px = x + round(index * width / max(1, len(values) - 1))
         ratio = (value - min_value) / (max_value - min_value)
         py = y + height - round(max(0.0, min(1.0, ratio)) * height)
         points.append((px, py))
     for index in range(1, len(points)):
-        left = points[index - 1]
-        right = points[index]
-        thick_line(image, left[0], left[1], right[0], right[1], color, thickness=2, alpha=0.95)
+        line_between(image, points[index - 1], points[index], color, 0.95, thickness=2)
     circle(image, points[-1][0], points[-1][1], 4, color, alpha=1.0)
 
 
 def metric_bar(image: bytearray, x: int, y: int, value: float, color: Color) -> None:
-    fill_rect(image, x, y, 240, 8, (31, 41, 55), alpha=1.0)
-    fill_rect(image, x, y, round(240 * max(0.0, min(1.0, value))), 8, color, alpha=0.95)
+    fill_rect(image, x, y, 220, 8, (31, 41, 55), alpha=1.0)
+    fill_rect(image, x, y, round(220 * max(0.0, min(1.0, value))), 8, color, alpha=0.95)
 
 
 def draw_dof_cells(image: bytearray, x: int, y: int, progress: float) -> None:
     for index in range(6):
-        cell_x = x + index * 39
-        color = GOOD if index in {0, 1, 3, 4} or progress > 0.76 else WARNING
-        fill_rect(image, cell_x, y, 28, 18, color, alpha=0.88)
-        rect(image, cell_x, y, 28, 18, (229, 231, 235), alpha=0.24)
+        cell_x = x + index * 35
+        good = index in {0, 1, 3, 4} or progress > 0.82
+        color = GOOD if good else WARNING
+        fill_rect(image, cell_x, y, 24, 22, color, alpha=0.90)
+        rect(image, cell_x, y, 24, 22, (229, 231, 235), alpha=0.24)
 
 
 def draw_timeline(image: bytearray, progress: float) -> None:
@@ -508,14 +440,17 @@ def draw_timeline(image: bytearray, progress: float) -> None:
         circle(image, x, y + 4, 8, OPTIMIZED if progress >= marker else TEXT_DIM, alpha=1.0)
 
 
-def valid_depth_coverage(depth: DepthImage) -> float:
-    valid = sum(1 for value in depth.values if value > 0)
-    return valid / len(depth.values)
-
-
 def residual_proxy(progress: float) -> float:
-    remaining_offset = 1.0 - progress
-    return 0.023 + 0.086 * remaining_offset * remaining_offset
+    remaining = 1.0 - progress
+    return 0.024 + 0.080 * remaining * remaining
+
+
+def project(point: Point3) -> Point2:
+    x, y, z = point
+    return (
+        round(318 + x * 61 - y * 72),
+        round(410 + x * 17 + y * 21 - z * 92),
+    )
 
 
 def smoothstep(value: float) -> float:
@@ -525,7 +460,7 @@ def smoothstep(value: float) -> float:
 
 def mix(left: Color, right: Color, ratio: float) -> Color:
     return tuple(
-        round(left[index] + (right[index] - left[index]) * ratio)
+        round(left[index] + (right[index] - left[index]) * max(0.0, min(1.0, ratio)))
         for index in range(3)
     )
 
@@ -561,6 +496,26 @@ def rect(
     line(image, x, y + height, x, y, color, alpha=alpha)
 
 
+def fill_polygon(image: bytearray, points: list[Point2], color: Color, *, alpha: float) -> None:
+    if not points:
+        return
+    min_y = max(0, min(y for _x, y in points))
+    max_y = min(HEIGHT - 1, max(y for _x, y in points))
+    for y in range(min_y, max_y + 1):
+        intersections: list[int] = []
+        for index, start in enumerate(points):
+            end = points[(index + 1) % len(points)]
+            if (start[1] <= y < end[1]) or (end[1] <= y < start[1]):
+                ratio = (y - start[1]) / (end[1] - start[1])
+                intersections.append(round(start[0] + ratio * (end[0] - start[0])))
+        intersections.sort()
+        for index in range(0, len(intersections), 2):
+            if index + 1 >= len(intersections):
+                continue
+            for x in range(max(0, intersections[index]), min(WIDTH, intersections[index + 1])):
+                pixel(image, x, y, color, alpha)
+
+
 def thick_line(
     image: bytearray,
     x0: int,
@@ -577,6 +532,30 @@ def thick_line(
         x = round(x0 + (x1 - x0) * index / steps)
         y = round(y0 + (y1 - y0) * index / steps)
         circle(image, x, y, thickness, color, alpha=alpha)
+
+
+def line_between(
+    image: bytearray,
+    left: Point2,
+    right: Point2,
+    color: Color,
+    alpha: float,
+    *,
+    thickness: int = 1,
+) -> None:
+    if thickness <= 1:
+        line(image, left[0], left[1], right[0], right[1], color, alpha=alpha)
+    else:
+        thick_line(
+            image,
+            left[0],
+            left[1],
+            right[0],
+            right[1],
+            color,
+            thickness=thickness,
+            alpha=alpha,
+        )
 
 
 def line(
@@ -690,20 +669,26 @@ def build_text_filter() -> str:
         text=True,
     ).strip()
     labels = [
-        ("Public-data calibration evidence", 34, 22, 26, "E5E7EB"),
-        ("TUM RGB-D fr1/xyz frames; RGB/depth alignment proxy", 34, 55, 16, "CBD5E1"),
-        ("RGB frame with depth-edge overlay", 50, 104, 17, "E5E7EB"),
-        ("green: reference depth edges   cyan/pink: candidate offset", 50, 486, 14, "CBD5E1"),
-        ("Depth map", 652, 104, 17, "E5E7EB"),
-        ("Local DoF visibility proxy", 652, 326, 16, "CBD5E1"),
-        ("Evidence sidecar", 652, 374, 17, "E5E7EB"),
-        ("residual proxy", 652, 444, 14, "CBD5E1"),
-        ("depth coverage", 652, 456, 13, "CBD5E1"),
-        ("timestamp pair", 652, 476, 13, "CBD5E1"),
-        ("holdout proxy", 652, 496, 13, "CBD5E1"),
-        ("public data", 62, 520, 14, "CBD5E1"),
+        ("Fixed 3D LiDAR to fixed 3D LiDAR", 34, 22, 26, "E5E7EB"),
+        ("A2D2 public multi-LiDAR setup metadata; evidence-viewer proxy", 34, 55, 16, "CBD5E1"),
+        ("3D rig: reference vs candidate extrinsic", 50, 104, 17, "E5E7EB"),
+        (
+            "green: selected reference   cyan/pink: online or candidate estimate",
+            50,
+            486,
+            14,
+            "CBD5E1",
+        ),
+        ("Evidence", 674, 104, 17, "E5E7EB"),
+        ("holdout point-to-plane", 674, 138, 13, "CBD5E1"),
+        ("overlap consistency", 674, 162, 13, "CBD5E1"),
+        ("residual history", 676, 242, 16, "E5E7EB"),
+        ("DoF visibility", 674, 354, 16, "E5E7EB"),
+        ("x  y  z  r  p  yaw", 674, 406, 13, "CBD5E1"),
+        ("provenance: public setup metadata", 674, 444, 13, "CBD5E1"),
+        ("public setup", 62, 520, 14, "CBD5E1"),
         ("candidate", 325, 520, 14, "CBD5E1"),
-        ("evaluate", 588, 520, 14, "CBD5E1"),
+        ("optimize", 588, 520, 14, "CBD5E1"),
         ("report", 842, 520, 14, "CBD5E1"),
     ]
     return ",".join(drawtext(font_file, *label) for label in labels)

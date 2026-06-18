@@ -30,3 +30,13 @@ datasets:
     calibrex_manifest: examples/public_datasets/nuscenes_mini/manifest.yaml
     calibrex_config: examples/public_datasets/nuscenes_mini/config.yaml
     recommended_pipeline: multi_sensor_slac
+  a2d2_sensor_setup:
+    name: A2D2 public multi-LiDAR sensor setup
+    family: a2d2
+    domain: autonomous_driving
+    official_url: https://www.a2d2.audi/en/download/
+    download_url: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json
+    license_note: A2D2 is distributed under CC BY-ND 4.0; follow the official terms before using or redistributing artifacts.
+    calibrex_manifest: examples/public_datasets/a2d2_sensor_setup/manifest.yaml
+    calibrex_config: null
+    recommended_pipeline: multi_lidar_evidence

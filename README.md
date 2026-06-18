@@ -17,7 +17,7 @@ calibrex visualize outputs/result.yaml --export-html
 <p align="center">
   <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
   <br>
-  <sub>Public-data demo from TUM RGB-D fr1/xyz: RGB/depth alignment evidence and report flow.</sub>
+  <sub>A2D2 public setup demo: fixed 3D LiDAR-to-LiDAR extrinsic comparison, holdout residuals, and weak-DoF evidence.</sub>
 </p>
 
 <p align="center">
@@ -56,7 +56,8 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
-| Radar and multi-LiDAR native calibration | Planned |
+| Multi-LiDAR fixed-rig evidence visualization | Public setup demo |
+| Radar native calibration | Planned |
 
 <p align="center">
   <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
