@@ -650,6 +650,7 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     summary_rows = _selected_metric_rows(result, _LIDAR_PAIR_SUMMARY_METRICS)
     if not summary_rows:
         return ""
+    evidence_rows = _lidar_pair_evidence_rows(result)
     return f"""
   <h2>LiDAR Pair Evidence</h2>
   <p>
@@ -657,11 +658,81 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     LiDAR extrinsic candidates. These are evidence metrics, not absolute ground
     truth.
   </p>
+  <h3>Evidence Summary</h3>
+  <table>
+    <tr><th>Check</th><th>Status</th><th>Evidence</th><th>Interpretation</th></tr>
+    {evidence_rows}
+  </table>
+  <h3>Metric Details</h3>
   <table>
     <tr><th>Metric</th><th>Grade</th><th>Train</th><th>Holdout</th><th>Value</th><th>Unit</th><th>Reason</th></tr>
     {summary_rows}
   </table>
 """
+
+
+def _lidar_pair_evidence_rows(result: CalibrationResult) -> str:
+    support_metric = result.metrics.get("lidar_pair_source_voxel_recall_in_target")
+    shared_metric = result.metrics.get("lidar_pair_shared_voxel_count")
+    rmse_metric = result.metrics.get("lidar_pair_shared_voxel_centroid_rmse_m")
+    known_bad_metric = result.metrics.get("lidar_pair_known_bad_detectable_fraction")
+    max_delta_metric = result.metrics.get("lidar_pair_known_bad_centroid_rmse_delta_max_m")
+
+    support_grade = support_metric.grade if support_metric is not None else "warn"
+    known_bad_grade = known_bad_metric.grade if known_bad_metric is not None else "warn"
+    decision_grade = "pass" if support_grade == "pass" and known_bad_grade == "pass" else "warn"
+    known_bad_fraction = _fmt(known_bad_metric.value if known_bad_metric else None)
+    known_bad_max_delta = _fmt(max_delta_metric.value if max_delta_metric else None)
+
+    rows = [
+        _lidar_pair_evidence_row(
+            "Candidate Support",
+            support_grade,
+            (
+                f"source recall {_fmt(support_metric.value if support_metric else None)}, "
+                f"shared voxels {_fmt(shared_metric.value if shared_metric else None)}, "
+                f"centroid RMSE {_fmt(rmse_metric.value if rmse_metric else None)} m"
+            ),
+            "The candidate has voxel-level support under the declared real-data protocol.",
+        ),
+        _lidar_pair_evidence_row(
+            "Known-Bad Controls",
+            known_bad_grade,
+            f"detectable fraction {known_bad_fraction}, max RMSE delta {known_bad_max_delta} m",
+            (
+                "Declared perturbations are distinguishable from the candidate."
+                if known_bad_grade == "pass"
+                else "Controls did not clearly separate from the candidate; evidence is weak."
+            ),
+        ),
+        _lidar_pair_evidence_row(
+            "Decision Boundary",
+            decision_grade,
+            "candidate vs configured known-bad controls",
+            (
+                "Supported by this evidence protocol, but not metrology ground truth."
+                if decision_grade == "pass"
+                else "Inconclusive under this evidence protocol; inspect support and controls."
+            ),
+        ),
+    ]
+    return "\n".join(rows)
+
+
+def _lidar_pair_evidence_row(
+    check: str,
+    grade: str,
+    evidence: str,
+    interpretation: str,
+) -> str:
+    return (
+        f'<tr class="{escape(_grade_css_class(grade))}">'
+        f"<td>{escape(check)}</td>"
+        f"<td>{escape(grade.upper())}</td>"
+        f"<td>{escape(evidence)}</td>"
+        f"<td>{escape(interpretation)}</td>"
+        "</tr>"
+    )
 
 
 def _selected_metric_rows(result: CalibrationResult, metric_names: tuple[str, ...]) -> str:
