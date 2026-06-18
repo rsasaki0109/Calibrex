@@ -15,6 +15,12 @@ calibrex visualize outputs/result.yaml --export-html
 ```
 
 <p align="center">
+  <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
+  <br>
+  <sub>Illustrative demo: candidate extrinsic refinement, holdout evidence, and weak-DoF checks.</sub>
+</p>
+
+<p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex calibration report overview" width="100%">
 </p>
 
