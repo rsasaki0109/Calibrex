@@ -17,7 +17,7 @@ calibrex visualize outputs/result.yaml --export-html
 <p align="center">
   <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
   <br>
-  <sub>Illustrative demo: candidate extrinsic refinement, holdout evidence, and weak-DoF checks.</sub>
+  <sub>Public-data demo from TUM RGB-D fr1/xyz: RGB/depth alignment evidence and report flow.</sub>
 </p>
 
 <p align="center">
