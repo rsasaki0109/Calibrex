@@ -6,7 +6,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from math import cos, isclose, sin, sqrt
 
-from calibrex.core.geometry import SE3, Vector3
+from calibrex.core.geometry import SE3, Vector3, rotate_vector_xyzw
 
 _DEFAULT_DOF_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 
@@ -160,6 +160,45 @@ class LidarRigPointToPlaneFactor:
             gradient=gradient,
         )
 
+    def analytic_jacobian_at_zero(self) -> list[list[float]]:
+        """Return analytic Jacobian rows for the zero left-SE(3) correction.
+
+        The columns match `[x, y, z, roll, pitch, yaw]`. This is intentionally
+        scoped to the zero correction used by the current update contract; the
+        general rotation-vector derivative away from zero stays numerical.
+        """
+
+        rows: list[list[float]] = []
+        axes = (
+            (1.0, 0.0, 0.0),
+            (0.0, 1.0, 0.0),
+            (0.0, 0.0, 1.0),
+        )
+        for observation in self.observations:
+            sqrt_weight = sqrt(observation.weight)
+            point_ego = self.t_ego_lidar.transform_point(observation.point_lidar_m)
+            translation_columns = [
+                sqrt_weight
+                * _dot3(
+                    observation.plane_normal_world,
+                    rotate_vector_xyzw(observation.t_world_ego.rotation_quat_xyzw, axis),
+                )
+                for axis in axes
+            ]
+            rotation_columns = [
+                sqrt_weight
+                * _dot3(
+                    observation.plane_normal_world,
+                    rotate_vector_xyzw(
+                        observation.t_world_ego.rotation_quat_xyzw,
+                        _cross3(axis, point_ego),
+                    ),
+                )
+                for axis in axes
+            ]
+            rows.append([*translation_columns, *rotation_columns])
+        return rows
+
     def evaluate(
         self,
         correction: Sequence[float] | None = None,
@@ -265,6 +304,14 @@ def _sub3(left: Vector3, right: Vector3) -> Vector3:
 
 def _dot3(left: Vector3, right: Vector3) -> float:
     return left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
+
+
+def _cross3(left: Vector3, right: Vector3) -> Vector3:
+    return (
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    )
 
 
 def _transpose(columns: list[list[float]]) -> list[list[float]]:

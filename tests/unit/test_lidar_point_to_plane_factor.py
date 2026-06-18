@@ -66,6 +66,41 @@ def test_lidar_rig_point_to_plane_factor_residuals_and_jacobian() -> None:
     assert metrics["lidar_rig_point_to_plane_weak_dof_count"].grade == "warn"
 
 
+def test_lidar_rig_point_to_plane_analytic_jacobian_matches_numerical_zero() -> None:
+    factor = LidarRigPointToPlaneFactor(
+        variable="T_base_lidar0",
+        t_ego_lidar=SE3((0.2, -0.1, 0.3), (0.0, 0.0, 0.1, 0.995)),
+        observations=[
+            LidarPointToPlaneObservation(
+                point_lidar_m=(1.0, -0.3, 2.0),
+                plane_point_world_m=(1.2, -0.4, 2.3),
+                plane_normal_world=(0.3, -0.2, 1.0),
+                t_world_ego=SE3((0.5, 0.0, -0.2), (0.0, 0.1, 0.0, 0.995)),
+                weight=2.0,
+            ),
+            LidarPointToPlaneObservation(
+                point_lidar_m=(-1.0, 0.8, 0.5),
+                plane_point_world_m=(-0.8, 0.7, 0.9),
+                plane_normal_world=(1.0, 0.4, -0.1),
+                t_world_ego=SE3((-0.2, 0.4, 0.0), (0.05, 0.0, -0.1, 0.994)),
+                weight=0.5,
+            ),
+        ],
+    )
+
+    numerical = factor.linearize(
+        translation_step_m=1.0e-6,
+        rotation_step_rad=1.0e-6,
+    ).jacobian
+    analytic = factor.analytic_jacobian_at_zero()
+
+    assert len(analytic) == len(numerical)
+    for analytic_row, numerical_row in zip(analytic, numerical, strict=True):
+        assert len(analytic_row) == 6
+        for analytic_value, numerical_value in zip(analytic_row, numerical_row, strict=True):
+            assert abs(analytic_value - numerical_value) < 1.0e-6
+
+
 def test_lidar_rig_point_to_plane_factor_validates_observations() -> None:
     try:
         LidarPointToPlaneObservation(
