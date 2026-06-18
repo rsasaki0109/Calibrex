@@ -132,6 +132,14 @@ def render_html_report(result: CalibrationResult) -> str:
     th {{ background: #eef2f4; }}
     .metric-warn {{ background: #fffaf0; }}
     .metric-fail {{ background: #fff1f1; }}
+    .banner {{
+      border: 1px solid #f0c36d;
+      border-radius: 6px;
+      background: #fff8e6;
+      color: #5d4100;
+      padding: 0.75rem;
+      margin: 1rem 0 1.5rem;
+    }}
     .scoreboard {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -173,6 +181,7 @@ def render_html_report(result: CalibrationResult) -> str:
       {escape(result.quality.grade.upper())}
     </span>.
   </p>
+  {_cached_evidence_banner(result)}
   {scoreboard_section}
   <h2>Provenance</h2>
   <table>
@@ -586,6 +595,27 @@ def _observability_rows(result: CalibrationResult) -> str:
         f"<td>{escape(value)}</td>"
         "</tr>"
         for name, value in rows
+    )
+
+
+def _cached_evidence_banner(result: CalibrationResult) -> str:
+    provenance = result.run.provenance
+    if (
+        provenance.get("metrics_origin") != "cached"
+        and provenance.get("data_verified") is not False
+    ):
+        return ""
+    metrics_origin = escape(str(provenance.get("metrics_origin", "unknown")))
+    data_verified = escape(str(provenance.get("data_verified", "unknown")).lower())
+    computed_at = provenance.get("computed_at")
+    computed = f" Computed at: <code>{escape(str(computed_at))}</code>." if computed_at else ""
+    return (
+        '<div class="banner">'
+        "<strong>CACHED EVIDENCE - RAW DATA NOT READ OR RECOMPUTED.</strong> "
+        f"metrics_origin=<code>{metrics_origin}</code>, "
+        f"data_verified=<code>{data_verified}</code>."
+        f"{computed}"
+        "</div>"
     )
 
 

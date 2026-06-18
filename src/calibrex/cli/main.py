@@ -144,6 +144,13 @@ def _build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--json", action="store_true")
     evaluate.set_defaults(func=_cmd_evaluate)
 
+    report = subcommands.add_parser("report", help="render a report from an existing result")
+    report.add_argument("result", type=Path)
+    report.add_argument("--output-dir", type=Path)
+    report.add_argument("--html", type=Path, help="HTML report path or filename")
+    report.add_argument("--json", action="store_true")
+    report.set_defaults(func=_cmd_report)
+
     compare = subcommands.add_parser("compare", help="compare two result files")
     compare.add_argument("left_result", type=Path)
     compare.add_argument("right_result", type=Path)
@@ -360,6 +367,42 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     }
     _emit(payload, args.json)
     return 1 if result.quality.grade == "fail" else 0
+
+
+def _cmd_report(args: argparse.Namespace) -> int:
+    result = load_result(args.result)
+    output_dir = args.output_dir or _report_output_dir(args.result, args.html)
+    html_filename = _report_html_filename(args.html)
+    report_artifacts = write_report_artifacts(
+        result,
+        output_dir,
+        html_filename=html_filename,
+    )
+    payload = {
+        "status": "ok",
+        "html_report": report_artifacts["html_report"],
+        "report_artifacts": report_artifacts,
+        "metrics_origin": result.run.provenance.get("metrics_origin", "unknown"),
+        "data_verified": result.run.provenance.get("data_verified"),
+    }
+    _emit(payload, args.json)
+    return 0
+
+
+def _report_output_dir(result_path: Path, html_path: Path | None) -> Path:
+    if html_path is not None and html_path.is_absolute():
+        return html_path.parent
+    if html_path is not None and html_path.parent != Path("."):
+        return html_path.parent
+    return result_path.parent
+
+
+def _report_html_filename(html_path: Path | None) -> str | Path:
+    if html_path is None:
+        return "report.html"
+    if html_path.is_absolute():
+        return html_path
+    return html_path.name
 
 
 def _cmd_compare(args: argparse.Namespace) -> int:

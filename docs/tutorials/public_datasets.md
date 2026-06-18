@@ -26,8 +26,12 @@ python tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
-calibrex evaluate examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml --export-html
+calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml
 ```
+
+The precomputed Livox result is a cached evidence artifact for report rendering.
+Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
+must be recomputed from raw observations.
 
 Autonomous driving:
 

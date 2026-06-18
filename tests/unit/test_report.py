@@ -136,6 +136,28 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     assert "not absolute ground" in html
 
 
+def test_report_marks_cached_evidence_artifacts() -> None:
+    result = CalibrationResult(
+        run=RunInfo(
+            id="cached-report-unit",
+            calibrex_version="0.1.0",
+            provenance={
+                "metrics_origin": "cached",
+                "data_verified": False,
+                "computed_at": "2026-06-18T10:53:34Z",
+            },
+        ),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+    )
+
+    html = render_html_report(result)
+
+    assert "CACHED EVIDENCE" in html
+    assert "RAW DATA NOT READ OR RECOMPUTED" in html
+    assert "metrics_origin" in html
+    assert "data_verified" in html
+
+
 def test_report_marks_large_candidate_reference_delta_as_warn() -> None:
     result = CalibrationResult(
         run=RunInfo(id="report-unit", calibrex_version="0.1.0"),

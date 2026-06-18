@@ -914,26 +914,25 @@ outputs:
     assert result.quality.recommendation
 
 
-def test_livox_precomputed_result_evaluates_and_visualizes(tmp_path: Path) -> None:
+def test_livox_precomputed_result_reports_and_visualizes(tmp_path: Path) -> None:
     result = Path(
         "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
     )
-    evaluated_dir = tmp_path / "evaluated"
+    reported_dir = tmp_path / "reported"
     assert (
         main(
             [
-                "evaluate",
+                "report",
                 str(result),
                 "--output-dir",
-                str(evaluated_dir),
-                "--export-html",
+                str(reported_dir),
                 "--json",
             ]
         )
         == 0
     )
-    assert (evaluated_dir / "precomputed_result.yaml").exists()
-    report_html = (evaluated_dir / "report.html").read_text(encoding="utf-8")
+    report_html = (reported_dir / "report.html").read_text(encoding="utf-8")
+    assert "CACHED EVIDENCE" in report_html
     assert "LiDAR Pair Evidence" in report_html
     assert "lidar_pair_overlap_ratio" in report_html
 
