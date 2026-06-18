@@ -338,6 +338,23 @@ def _register_builtin_metrics() -> None:
             family="lidar",
         ),
         MetricDefinition(
+            "lidar_pair_overlap_voxel_count",
+            "Coarse shared voxel count between two fixed LiDAR point clouds",
+            "voxels",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_overlap_ratio",
+            "Coarse overlap ratio between two fixed LiDAR point clouds",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_centroid_rmse_m",
+            "Target point to source voxel centroid RMSE for fixed LiDAR pair evidence",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
             "trajectory_consistency",
             "Trajectory consistency residual",
             "m",

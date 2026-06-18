@@ -151,6 +151,9 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_frame_coverage" in names
     assert "lidar_point_coverage" in names
     assert "lidar_spatial_coverage_m" in names
+    assert "lidar_pair_overlap_voxel_count" in names
+    assert "lidar_pair_overlap_ratio" in names
+    assert "lidar_pair_centroid_rmse_m" in names
     assert "lidar_world_map_point_to_plane_rmse_m" in names
     assert "lidar_world_map_point_to_plane_median_holdout_m" in names
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in names

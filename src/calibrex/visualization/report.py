@@ -31,6 +31,12 @@ _WORLD_MAP_SUMMARY_METRICS = (
     "lidar_world_map_min_dof_sensitivity_m",
 )
 
+_LIDAR_PAIR_SUMMARY_METRICS = (
+    "lidar_pair_overlap_voxel_count",
+    "lidar_pair_overlap_ratio",
+    "lidar_pair_centroid_rmse_m",
+)
+
 _WORLD_MAP_DOF_METRICS = (
     ("roll_lidar0", "lidar_world_map_sensitivity_roll_m"),
     ("pitch_lidar0", "lidar_world_map_sensitivity_pitch_m"),
@@ -101,6 +107,7 @@ def render_html_report(result: CalibrationResult) -> str:
     artifact_rows = _artifact_rows(result)
     observability_rows = _observability_rows(result)
     lidar_world_map_section = _lidar_world_map_section(result)
+    lidar_pair_section = _lidar_pair_section(result)
 
     return f"""<!doctype html>
 <html lang="en">
@@ -188,6 +195,7 @@ def render_html_report(result: CalibrationResult) -> str:
     {observability_rows}
   </table>
   {lidar_world_map_section}
+  {lidar_pair_section}
   <h2>Artifacts</h2>
   <table>
     <tr><th>Name</th><th>Path</th></tr>
@@ -601,6 +609,24 @@ def _lidar_world_map_section(result: CalibrationResult) -> str:
   <table>
     <tr><th>DoF</th><th>Metric</th><th>Grade</th><th>Sensitivity</th><th>Unit</th><th>Reason</th></tr>
     {dof_rows or '<tr><td colspan="6">None</td></tr>'}
+  </table>
+"""
+
+
+def _lidar_pair_section(result: CalibrationResult) -> str:
+    summary_rows = _selected_metric_rows(result, _LIDAR_PAIR_SUMMARY_METRICS)
+    if not summary_rows:
+        return ""
+    return f"""
+  <h2>LiDAR Pair Evidence</h2>
+  <p>
+    Coarse fixed-LiDAR overlap metrics for comparing solid-state or fixed-rig
+    LiDAR extrinsic candidates. These are evidence metrics, not absolute ground
+    truth.
+  </p>
+  <table>
+    <tr><th>Metric</th><th>Grade</th><th>Train</th><th>Holdout</th><th>Value</th><th>Unit</th><th>Reason</th></tr>
+    {summary_rows}
   </table>
 """
 

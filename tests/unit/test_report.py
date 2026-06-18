@@ -108,6 +108,34 @@ def test_report_renders_calibration_scoreboard() -> None:
     assert "linked report outputs" in html
 
 
+def test_report_renders_lidar_pair_evidence_section() -> None:
+    result = CalibrationResult(
+        run=RunInfo(id="livox-report-unit", calibrex_version="0.1.0"),
+        frame_graph=FrameGraphSnapshot(
+            root="base_horizon",
+            frames={"base_horizon": None, "target_horizon": "base_horizon"},
+        ),
+        metrics={
+            "lidar_pair_overlap_ratio": MetricResult(
+                value=0.25,
+                grade="pass",
+            ),
+            "lidar_pair_centroid_rmse_m": MetricResult(
+                value=0.596,
+                unit="m",
+                grade="pass",
+            ),
+        },
+    )
+
+    html = render_html_report(result)
+
+    assert "LiDAR Pair Evidence" in html
+    assert "lidar_pair_overlap_ratio" in html
+    assert "lidar_pair_centroid_rmse_m" in html
+    assert "not absolute ground" in html
+
+
 def test_report_marks_large_candidate_reference_delta_as_warn() -> None:
     result = CalibrationResult(
         run=RunInfo(id="report-unit", calibrex_version="0.1.0"),
