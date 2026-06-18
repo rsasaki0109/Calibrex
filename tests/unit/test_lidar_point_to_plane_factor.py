@@ -46,10 +46,23 @@ def test_lidar_rig_point_to_plane_factor_residuals_and_jacobian() -> None:
     assert evaluation.rank >= 2
     assert evaluation.diagonal_information["z_lidar0"] > 0.0
     assert evaluation.diagonal_information["pitch_lidar0"] > 0.0
+    assert evaluation.diagnostic_kind == "local_curvature_proxy"
+    assert evaluation.normalization_length_m >= 1.0
+    assert evaluation.normalized_diagonal_information["z_lidar0"] >= (
+        evaluation.diagonal_information["z_lidar0"]
+    )
+    assert evaluation.normalized_condition_number_estimate is not None
+    assert len(evaluation.normalized_hessian) == 6
     assert "x_lidar0" in evaluation.weak_directions
     metrics = lidar_rig_point_to_plane_metrics_from_evaluation(evaluation)
     assert metrics["lidar_rig_point_to_plane_residual_count"].value == 2.0
     assert metrics["lidar_rig_point_to_plane_rmse_m"].value == 1.0
+    assert metrics["lidar_rig_point_to_plane_normalization_length_m"].value == (
+        evaluation.normalization_length_m
+    )
+    assert "not a covariance" in (
+        metrics["lidar_rig_point_to_plane_condition_number"].reason or ""
+    )
     assert metrics["lidar_rig_point_to_plane_weak_dof_count"].grade == "warn"
 
 

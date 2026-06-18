@@ -123,8 +123,8 @@ def lidar_rig_point_to_plane_metrics_from_evaluation(
     rank_grade: Grade = "pass" if evaluation.rank >= 6 else "warn"
     condition_grade: Grade = (
         "pass"
-        if evaluation.condition_number_estimate is not None
-        and evaluation.condition_number_estimate <= 1.0e8
+        if evaluation.normalized_condition_number_estimate is not None
+        and evaluation.normalized_condition_number_estimate <= 1.0e8
         else "warn"
     )
     weak_dof_grade: Grade = "pass" if not evaluation.weak_directions else "warn"
@@ -147,9 +147,18 @@ def lidar_rig_point_to_plane_metrics_from_evaluation(
             reason="rank of the native LiDAR rig point-to-plane normal equations",
         ),
         "lidar_rig_point_to_plane_condition_number": MetricResult(
-            value=evaluation.condition_number_estimate,
+            value=evaluation.normalized_condition_number_estimate,
             grade=condition_grade,
-            reason="diagonal condition estimate from the native factor Hessian",
+            reason=(
+                "normalized local curvature proxy from native factor Hessian; "
+                "dimensionless state=[translation/L, rotation], not a covariance"
+            ),
+        ),
+        "lidar_rig_point_to_plane_normalization_length_m": MetricResult(
+            value=evaluation.normalization_length_m,
+            unit="m",
+            grade="pass",
+            reason="representative length L used to normalize translation and rotation DoF",
         ),
         "lidar_rig_point_to_plane_weak_dof_count": MetricResult(
             value=float(len(evaluation.weak_directions)),
@@ -159,7 +168,7 @@ def lidar_rig_point_to_plane_metrics_from_evaluation(
                 "weak native LiDAR point-to-plane DoF: "
                 + ", ".join(evaluation.weak_directions)
                 if evaluation.weak_directions
-                else "native LiDAR point-to-plane Hessian diagonal has no weak DoF"
+                else "normalized native LiDAR point-to-plane local curvature has no weak DoF"
             ),
         ),
     }

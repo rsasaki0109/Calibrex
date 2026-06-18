@@ -175,6 +175,7 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_rig_point_to_plane_rmse_m" in names
     assert "lidar_rig_point_to_plane_rank" in names
     assert "lidar_rig_point_to_plane_condition_number" in names
+    assert "lidar_rig_point_to_plane_normalization_length_m" in names
     assert "lidar_rig_point_to_plane_weak_dof_count" in names
     assert "lidar_perturbation_case_count" in names
     assert "lidar_perturbation_detectable_fraction" in names

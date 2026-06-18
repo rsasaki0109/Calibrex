@@ -241,12 +241,18 @@ def _register_builtin_metrics() -> None:
         ),
         MetricDefinition(
             "lidar_rig_point_to_plane_condition_number",
-            "Diagonal condition estimate for native LiDAR rig point-to-plane Hessian",
+            "Normalized local-curvature condition proxy for native LiDAR rig point-to-plane",
             family="lidar",
         ),
         MetricDefinition(
+            "lidar_rig_point_to_plane_normalization_length_m",
+            "Representative length used to normalize translation and rotation DoF",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
             "lidar_rig_point_to_plane_weak_dof_count",
-            "Weak DoF count from native LiDAR rig point-to-plane Hessian diagonal",
+            "Weak DoF count from normalized native LiDAR rig point-to-plane local curvature",
             "dof",
             "lidar",
         ),

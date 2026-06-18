@@ -59,9 +59,14 @@ class LidarRigPointToPlaneEvaluation:
     rmse_m: float | None
     rank: int
     condition_number_estimate: float | None
+    normalized_condition_number_estimate: float | None
+    normalization_length_m: float
     diagonal_information: dict[str, float]
+    normalized_diagonal_information: dict[str, float]
     weak_directions: list[str]
     hessian: list[list[float]]
+    normalized_hessian: list[list[float]]
+    diagnostic_kind: str = "local_curvature_proxy"
 
 
 class LidarRigPointToPlaneFactor:
@@ -160,17 +165,26 @@ class LidarRigPointToPlaneFactor:
         correction: Sequence[float] | None = None,
         *,
         weak_information_threshold: float = 1.0e-8,
+        normalization_length_m: float | None = None,
     ) -> LidarRigPointToPlaneEvaluation:
         """Return factor-level residual and observability diagnostics."""
 
         linearization = self.linearize(correction)
         residuals = linearization.residuals_m
         hessian = linearization.hessian
+        scale_length = normalization_length_m or _normalization_length_m(self.observations)
+        normalized_hessian = _normalize_hessian(hessian, scale_length)
         diagonal = {
             name: hessian[index][index] for index, name in enumerate(linearization.dof_names)
         }
+        normalized_diagonal = {
+            name: normalized_hessian[index][index]
+            for index, name in enumerate(linearization.dof_names)
+        }
         weak_directions = [
-            name for name, value in diagonal.items() if value < weak_information_threshold
+            name
+            for name, value in normalized_diagonal.items()
+            if value < weak_information_threshold
         ]
         return LidarRigPointToPlaneEvaluation(
             variable=self.variable,
@@ -178,9 +192,15 @@ class LidarRigPointToPlaneFactor:
             rmse_m=_rmse(residuals),
             rank=_matrix_rank(hessian),
             condition_number_estimate=_diagonal_condition_number(diagonal.values()),
+            normalized_condition_number_estimate=_diagonal_condition_number(
+                normalized_diagonal.values()
+            ),
+            normalization_length_m=scale_length,
             diagonal_information=diagonal,
+            normalized_diagonal_information=normalized_diagonal,
             weak_directions=weak_directions,
             hessian=hessian,
+            normalized_hessian=normalized_hessian,
         )
 
     def corrected_transform(self, correction: Sequence[float] | None = None) -> SE3:
@@ -270,6 +290,29 @@ def _jtr(jacobian: list[list[float]], residuals: list[float]) -> list[float]:
         for column in range(6):
             gradient[column] += row[column] * residual
     return gradient
+
+
+def _normalization_length_m(
+    observations: Sequence[LidarPointToPlaneObservation],
+) -> float:
+    if not observations:
+        return 1.0
+    mean_squared_radius = sum(
+        _dot3(observation.point_lidar_m, observation.point_lidar_m)
+        for observation in observations
+    ) / len(observations)
+    return max(1.0, sqrt(mean_squared_radius))
+
+
+def _normalize_hessian(hessian: list[list[float]], length_m: float) -> list[list[float]]:
+    scales = (length_m, length_m, length_m, 1.0, 1.0, 1.0)
+    return [
+        [
+            value * scales[row_index] * scales[column_index]
+            for column_index, value in enumerate(row)
+        ]
+        for row_index, row in enumerate(hessian)
+    ]
 
 
 def _rmse(values: Sequence[float]) -> float | None:
