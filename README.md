@@ -56,7 +56,8 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
-| Multi-LiDAR fixed-rig evidence visualization | Public setup demo |
+| Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo |
+| Solid-state Livox multi-LiDAR evidence | TIERS LidarsCali planned |
 | Radar native calibration | Planned |
 
 <p align="center">
@@ -110,6 +111,7 @@ calibrex public-datasets list
 python tools/download_public_dataset.py a2d2_lidar_pair_sample --output-dir data/public
 python tools/generate_calibration_evidence_gif.py
 calibrex inspect data/public/a2d2_lidar_pair --type a2d2-lidar --json
+calibrex public-datasets show tiers_livox_lidars_cali --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```

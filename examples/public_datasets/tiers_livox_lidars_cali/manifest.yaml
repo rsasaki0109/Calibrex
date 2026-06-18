@@ -1,0 +1,38 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: tiers_livox_lidars_cali
+description: TIERS LidarsCali public calibration sequence with Livox Horizon and Livox Avia solid-state LiDARs.
+time_base: ros_time
+streams:
+  livox_horizon_points:
+    kind: pointcloud
+    path: LidarsCali.bag
+    topic: /livox/lidar
+    sensor: livox_horizon
+    frame_id: horizon_frame
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+      - offset_time
+      - line
+  livox_avia_points:
+    kind: pointcloud
+    path: LidarsCali.bag
+    topic: /avia/livox/lidar
+    sensor: livox_avia
+    frame_id: avia_frame
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+      - offset_time
+      - line
+provenance:
+  source: TIERS multi-modal lidars dataset LidarsCali sequence
+  official_url: https://github.com/TIERS/tiers-lidars-dataset
+  download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT
+  lidar_models: Livox Horizon, Livox Avia
+  scan_pattern: non-repetitive solid-state
+  license: MIT for academic purpose

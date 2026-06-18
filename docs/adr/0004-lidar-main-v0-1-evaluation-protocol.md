@@ -36,8 +36,13 @@ P1 work:
   or weak prior.
 - nuScenes mini or selected-scene metadata loader for LiDAR, camera, radar,
   ego pose, and calibrated sensor tables.
+- Solid-state multi-LiDAR evidence on public Livox data, starting with the
+  TIERS `LidarsCali` sequence containing Livox Horizon and Livox Avia streams.
 - Common report comparison for dataset calibration, perturbed candidates,
   Koide-style adapter output, and native Calibrex output.
+
+A2D2 remains useful as a public multi-LiDAR smoke test, but it uses Velodyne
+VLP-16 spinning LiDARs and must not be presented as a solid-state dataset.
 
 ## Consequences
 
