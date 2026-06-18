@@ -1,0 +1,120 @@
+schema_version: calibrex.result/v0.1
+run:
+  id: livox_horizon_horizon_pcd_evidence_example
+  calibrex_version: 0.1.0
+  git_commit: 327ec22
+  status: warning
+  domain: robotics
+  provenance:
+    pipeline: multi_lidar_evidence
+    solver_backend: scipy
+    dataset_type: livox_pcd
+    dataset_path: data/public/livox_horizon_horizon_pair
+    public_dataset: livox_horizon_horizon_pcd_sample
+    evidence_note: Livox official Horizon-Horizon public PCD sample; metrics are evidence, not absolute ground truth.
+frame_graph:
+  root: base_horizon
+  convention: T_parent_child
+  frames:
+    base_horizon: null
+    target_horizon: base_horizon
+candidate_extrinsics:
+  T_base_horizon_target_horizon:
+    convention: T_parent_child
+    parent: base_horizon
+    child: target_horizon
+    translation_m: [0.0, -0.13, 0.0]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: warn
+      std_translation_m: [0.1, 0.1, 0.1]
+      std_rotation_deg: [5.0, 5.0, 5.0]
+    estimate_id: T_base_horizon_target_horizon
+    provenance:
+      producer: human
+      execution_mode: manual
+      role_in_comparison: candidate
+      evidence_level: imported_without_documented_derivation
+      source: examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
+transforms:
+  T_base_horizon_target_horizon:
+    convention: T_parent_child
+    parent: base_horizon
+    child: target_horizon
+    translation_m: [0.0, -0.13, 0.0]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: warn
+      std_translation_m: [0.1, 0.1, 0.1]
+      std_rotation_deg: [5.0, 5.0, 5.0]
+    estimate_id: T_base_horizon_target_horizon
+    provenance:
+      producer: calibrex_native
+      execution_mode: offline_batch
+      role_in_comparison: output
+      evidence_level: unknown
+      source: examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
+      notes:
+        - alpha output initialized from frame graph before native refinement
+metrics:
+  schema_validation:
+    value: 1.0
+    grade: pass
+    reason: schema_validation=1; pass >= 1, warn >= 0.5
+  dataset_exists:
+    value: 1.0
+    grade: pass
+    reason: dataset_exists=1; pass >= 1, warn >= 0.5
+  lidar_frame_coverage:
+    value: 2.0
+    grade: warn
+    unit: frames
+    reason: lidar_frame_coverage=2 frames; pass >= 20 frames, warn >= 1 frames
+  lidar_point_coverage:
+    value: 47587.0
+    grade: warn
+    unit: points
+    reason: lidar_point_coverage=47587 points; pass >= 50000 points, warn >= 1000 points
+  lidar_spatial_coverage_m:
+    value: 64.75436210705841
+    grade: pass
+    unit: m
+    reason: lidar_spatial_coverage_m=64.7544 m; pass >= 20 m, warn >= 5 m
+  lidar_pair_overlap_voxel_count:
+    value: 170.0
+    grade: pass
+    unit: voxels
+    reason: lidar_pair_overlap_voxel_count=170 voxels; pass >= 20 voxels, warn >= 1 voxels
+  lidar_pair_overlap_ratio:
+    value: 0.2503681885125184
+    grade: pass
+    reason: lidar_pair_overlap_ratio=0.250368; pass >= 0.2, warn >= 0.05
+  lidar_pair_centroid_rmse_m:
+    value: 0.5957525445552281
+    grade: pass
+    unit: m
+    reason: lidar_pair_centroid_rmse_m=0.595753 m; pass <= 0.75 m, warn <= 1.5 m
+observability:
+  weak_directions:
+    - uncomputed_alpha_backend
+  grade: warn
+degeneracy:
+  grade: warn
+  reason: native SLAC observability and degeneracy analysis are not implemented in this alpha
+quality:
+  grade: warn
+  blocking_failures: []
+  warnings:
+    - lidar_frame_coverage=2 frames; pass >= 20 frames, warn >= 1 frames
+    - lidar_point_coverage=47587 points; pass >= 50000 points, warn >= 1000 points
+    - 'T_base_horizon_target_horizon: transform uncertainty is provisional'
+    - native SLAC observability and degeneracy analysis are not implemented in this alpha
+    - observability is not fully established
+  recommendation:
+    - collect a longer fixed-LiDAR sequence before calibration
+    - verify the LiDAR topic, packet decoding, and data extraction before solving
+    - add cross-modal overlap and holdout sequences before trusting deployment
+artifacts:
+  html_report: report.html
+  rig_3d_viewer: artifacts/rig_3d.html
+export: {}

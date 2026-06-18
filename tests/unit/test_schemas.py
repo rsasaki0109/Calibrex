@@ -45,6 +45,16 @@ def test_result_schema_validates_precomputed_example() -> None:
     jsonschema.validate(result, schema)
 
 
+def test_result_schema_validates_livox_precomputed_example() -> None:
+    schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
+    result = yaml.safe_load(
+        Path(
+            "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    jsonschema.validate(result, schema)
+
+
 def test_dataset_manifest_schema_validates_synthetic_example() -> None:
     schema = json.loads(Path("schemas/dataset_manifest.schema.json").read_text(encoding="utf-8"))
     manifest = yaml.safe_load(

@@ -914,6 +914,47 @@ outputs:
     assert result.quality.recommendation
 
 
+def test_livox_precomputed_result_evaluates_and_visualizes(tmp_path: Path) -> None:
+    result = Path(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
+    )
+    evaluated_dir = tmp_path / "evaluated"
+    assert (
+        main(
+            [
+                "evaluate",
+                str(result),
+                "--output-dir",
+                str(evaluated_dir),
+                "--export-html",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert (evaluated_dir / "precomputed_result.yaml").exists()
+    report_html = (evaluated_dir / "report.html").read_text(encoding="utf-8")
+    assert "LiDAR Pair Evidence" in report_html
+    assert "lidar_pair_overlap_ratio" in report_html
+
+    visualized_dir = tmp_path / "visualized"
+    assert (
+        main(
+            [
+                "visualize",
+                str(result),
+                "--output-dir",
+                str(visualized_dir),
+                "--export-html",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert (visualized_dir / "report.html").exists()
+    assert (visualized_dir / "artifacts" / "rig_3d.html").exists()
+
+
 def test_compile_command(tmp_path: Path) -> None:
     output = tmp_path / "problem.yaml"
     assert main(["compile", "examples/configs/minimal.yaml", "--output", str(output)]) == 0
