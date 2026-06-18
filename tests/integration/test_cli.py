@@ -8,6 +8,7 @@ import pytest
 from calibrex.cli.main import main
 from calibrex.core.report_artifacts import (
     ReportDegeneracyArtifact,
+    ReportEvidenceArtifact,
     ReportMetricsArtifact,
     ReportObservabilityArtifact,
     ReportSummaryArtifact,
@@ -192,6 +193,7 @@ def test_calibrate_json_includes_report_artifacts(
         "metrics": str(tmp_path / "metrics.json"),
         "observability": str(tmp_path / "observability.json"),
         "degeneracy": str(tmp_path / "degeneracy.json"),
+        "evidence": str(tmp_path / "evidence.json"),
     }
     for path in payload["report_artifacts"].values():
         assert Path(path).exists()
@@ -217,6 +219,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (tmp_path / "metrics.json").exists()
     assert (tmp_path / "observability.json").exists()
     assert (tmp_path / "degeneracy.json").exists()
+    assert (tmp_path / "evidence.json").exists()
     summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
     ReportSummaryArtifact.model_validate(summary)
     assert summary["schema_version"] == "calibrex.report.summary/v0.1"
@@ -232,11 +235,15 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     ReportObservabilityArtifact.model_validate(observability)
     degeneracy = json.loads((tmp_path / "degeneracy.json").read_text(encoding="utf-8"))
     ReportDegeneracyArtifact.model_validate(degeneracy)
+    evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
+    ReportEvidenceArtifact.model_validate(evidence)
+    assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
     assert main(["validate", str(result)]) == 0
     assert main(["validate", str(tmp_path / "summary.json")]) == 0
     assert main(["validate", str(tmp_path / "metrics.json")]) == 0
     assert main(["validate", str(tmp_path / "observability.json")]) == 0
     assert main(["validate", str(tmp_path / "degeneracy.json")]) == 0
+    assert main(["validate", str(tmp_path / "evidence.json")]) == 0
     assert (
         main(["validate", str(tmp_path / "summary.json"), "--kind", "report-summary"])
         == 0
@@ -261,6 +268,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (evaluated_dir / "metrics.json").exists()
     assert (evaluated_dir / "observability.json").exists()
     assert (evaluated_dir / "degeneracy.json").exists()
+    assert (evaluated_dir / "evidence.json").exists()
     visualized_dir = tmp_path / "visualized"
     assert (
         main(
@@ -280,6 +288,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (visualized_dir / "metrics.json").exists()
     assert (visualized_dir / "observability.json").exists()
     assert (visualized_dir / "degeneracy.json").exists()
+    assert (visualized_dir / "evidence.json").exists()
     assert (
         main(["export", str(result), "--format", "ros-tf", "--output", str(tmp_path / "tf.yaml")])
         == 0
@@ -375,6 +384,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     report_metrics_schema = tmp_path / "report_metrics.schema.json"
     report_observability_schema = tmp_path / "report_observability.schema.json"
     report_degeneracy_schema = tmp_path / "report_degeneracy.schema.json"
+    report_evidence_schema = tmp_path / "report_evidence.schema.json"
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
     assert main(["schema", "dataset-manifest", "--output", str(manifest_schema)]) == 0
@@ -385,6 +395,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         == 0
     )
     assert main(["schema", "report-degeneracy", "--output", str(report_degeneracy_schema)]) == 0
+    assert main(["schema", "report-evidence", "--output", str(report_evidence_schema)]) == 0
     assert config_schema.exists()
     assert result_schema.exists()
     assert manifest_schema.exists()
@@ -392,13 +403,18 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert report_metrics_schema.exists()
     assert report_observability_schema.exists()
     assert report_degeneracy_schema.exists()
+    assert report_evidence_schema.exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
+    evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
     assert summary_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.summary/v0.1"
     )
     assert metrics_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.metrics/v0.1"
+    )
+    assert evidence_schema["properties"]["schema_version"]["const"] == (
+        "calibrex.report.evidence/v0.1"
     )
 
 
@@ -944,6 +960,11 @@ def test_livox_precomputed_result_reports_and_visualizes(
     assert evidence_summaries[0]["check"] == "Candidate Support"
     assert evidence_summaries[1]["check"] == "Known-Bad Controls"
     assert evidence_summaries[2]["interpretation"].startswith("Supported by this evidence protocol")
+    evidence = json.loads((reported_dir / "evidence.json").read_text(encoding="utf-8"))
+    ReportEvidenceArtifact.model_validate(evidence)
+    assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert evidence["summaries"] == evidence_summaries
+    assert evidence["cases"] == []
 
     capsys.readouterr()
     assert main(["compare", str(result), str(result), "--json"]) == 0
@@ -969,6 +990,37 @@ def test_livox_precomputed_result_reports_and_visualizes(
     )
     assert (visualized_dir / "report.html").exists()
     assert (visualized_dir / "artifacts" / "rig_3d.html").exists()
+
+
+def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) -> None:
+    assert (
+        main(
+            [
+                "calibrate",
+                "examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml",
+                "--output-dir",
+                str(tmp_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
+    ReportEvidenceArtifact.model_validate(evidence)
+    assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert len(evidence["summaries"]) == 3
+    assert len(evidence["cases"]) == 24
+    assert {case["dof"] for case in evidence["cases"]} == {
+        "pitch_deg",
+        "roll_deg",
+        "x_m",
+        "y_m",
+        "yaw_deg",
+        "z_m",
+    }
+    metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    assert "lidar_pair_known_bad_detectable_fraction" in metrics["metrics"]
 
 
 def test_compile_command(tmp_path: Path) -> None:

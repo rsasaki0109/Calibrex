@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3, QuaternionXYZW
+from calibrex.core.report_artifacts import EvidenceCaseItem
 from calibrex.core.result import Grade, MetricResult
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.kitti import (
@@ -25,6 +27,14 @@ _WORLD_MAP_DOF_METRICS = {
     "y_m": ("lidar_world_map_sensitivity_y_m", "y_lidar0"),
     "z_m": ("lidar_world_map_sensitivity_z_m", "z_lidar0"),
 }
+
+
+@dataclass(frozen=True)
+class LivoxPairEvidenceEvaluation:
+    """Detailed Livox pair evidence evaluation."""
+
+    metrics: dict[str, MetricResult]
+    cases: list[EvidenceCaseItem]
 
 
 def lidar_metrics_from_inspection(
@@ -212,38 +222,55 @@ def livox_pair_metrics_from_dataset(
 ) -> dict[str, MetricResult]:
     """Evaluate Livox pair evidence after applying a candidate target transform."""
 
+    return livox_pair_evidence_from_dataset(
+        dataset_path=dataset_path,
+        target_transform=target_transform,
+        config=config,
+    ).metrics
+
+
+def livox_pair_evidence_from_dataset(
+    dataset_path: str,
+    target_transform: SE3,
+    config: CalibrationConfig,
+) -> LivoxPairEvidenceEvaluation:
+    """Evaluate Livox pair evidence and retain per-probe details."""
+
     baseline = summarize_livox_pcd(dataset_path, target_transform=target_transform)
     metrics = _livox_pcd_metrics(baseline.as_dict())
-    metrics.update(
-        _livox_pair_known_bad_metrics(
-            dataset_path=dataset_path,
-            target_transform=target_transform,
-            baseline=baseline,
-            config=config,
-        )
+    known_bad_metrics, cases = _livox_pair_known_bad_evidence(
+        dataset_path=dataset_path,
+        target_transform=target_transform,
+        baseline=baseline,
+        config=config,
     )
-    return metrics
+    metrics.update(known_bad_metrics)
+    return LivoxPairEvidenceEvaluation(metrics=metrics, cases=cases)
 
 
-def _livox_pair_known_bad_metrics(
+def _livox_pair_known_bad_evidence(
     *,
     dataset_path: str,
     target_transform: SE3,
     baseline: LivoxPCDDatasetStats,
     config: CalibrationConfig,
-) -> dict[str, MetricResult]:
+) -> tuple[dict[str, MetricResult], list[EvidenceCaseItem]]:
     baseline_recall = baseline.pair_source_voxel_recall_in_target
     baseline_rmse = baseline.pair_shared_voxel_centroid_rmse_m
     if baseline_recall is None and baseline_rmse is None:
-        return _unavailable_livox_pair_known_bad_metrics(
-            "baseline Livox pair evidence is unavailable"
+        return (
+            _unavailable_livox_pair_known_bad_metrics(
+                "baseline Livox pair evidence is unavailable"
+            ),
+            [],
         )
 
     recall_deltas: list[float] = []
     rmse_deltas: list[float] = []
+    cases: list[EvidenceCaseItem] = []
     measurable_cases = 0
     worsened_cases = 0
-    for _dof, perturbation in _perturbation_transforms(config):
+    for dof, amount, unit, perturbation in _perturbation_cases(config):
         perturbed_transform = perturbation.compose(target_transform)
         perturbed = summarize_livox_pcd(dataset_path, target_transform=perturbed_transform)
         recall_delta = _recall_delta(
@@ -260,60 +287,117 @@ def _livox_pair_known_bad_metrics(
             rmse_deltas.append(rmse_delta)
         if recall_delta is not None or rmse_delta is not None:
             measurable_cases += 1
+            worsened = (recall_delta is not None and recall_delta > 1.0e-9) or (
+                rmse_delta is not None and rmse_delta > 1.0e-9
+            )
             if (recall_delta is not None and recall_delta > 1.0e-9) or (
                 rmse_delta is not None and rmse_delta > 1.0e-9
             ):
                 worsened_cases += 1
+            cases.append(
+                _livox_pair_known_bad_case(
+                    dof=dof,
+                    amount=amount,
+                    unit=unit,
+                    perturbed=perturbed,
+                    recall_delta=recall_delta,
+                    rmse_delta=rmse_delta,
+                    worsened=worsened,
+                )
+            )
 
     if measurable_cases == 0:
-        return _unavailable_livox_pair_known_bad_metrics(
-            "known-bad Livox pair perturbations could not be scored"
+        return (
+            _unavailable_livox_pair_known_bad_metrics(
+                "known-bad Livox pair perturbations could not be scored"
+            ),
+            [],
         )
 
     detectable_fraction = worsened_cases / measurable_cases
     grade: Grade = "pass" if detectable_fraction > 0.0 else "warn"
-    return {
-        "lidar_pair_known_bad_case_count": MetricResult(
-            value=float(measurable_cases),
-            unit="cases",
-            grade="pass",
-            reason=(
-                "left-multiplied source-frame roll/pitch/yaw/x/y/z perturbation "
-                "cases evaluated against Livox pair voxel evidence"
+    return (
+        {
+            "lidar_pair_known_bad_case_count": MetricResult(
+                value=float(measurable_cases),
+                unit="cases",
+                grade="pass",
+                reason=(
+                    "left-multiplied source-frame roll/pitch/yaw/x/y/z perturbation "
+                    "cases evaluated against Livox pair voxel evidence"
+                ),
             ),
-        ),
-        "lidar_pair_known_bad_detectable_fraction": MetricResult(
-            value=detectable_fraction,
-            grade=grade,
-            reason=(
-                "fraction of known-bad Livox pair perturbations that reduced "
-                "source voxel recall or increased shared-voxel centroid RMSE"
+            "lidar_pair_known_bad_detectable_fraction": MetricResult(
+                value=detectable_fraction,
+                grade=grade,
+                reason=(
+                    "fraction of known-bad Livox pair perturbations that reduced "
+                    "source voxel recall or increased shared-voxel centroid RMSE"
+                ),
             ),
-        ),
-        "lidar_pair_known_bad_source_recall_delta_mean": MetricResult(
-            value=_mean_or_none(recall_deltas),
-            grade=grade,
-            reason=(
-                "mean baseline-minus-perturbed source voxel recall; positive "
-                "means the candidate ranks better than the known-bad controls"
+            "lidar_pair_known_bad_source_recall_delta_mean": MetricResult(
+                value=_mean_or_none(recall_deltas),
+                grade=grade,
+                reason=(
+                    "mean baseline-minus-perturbed source voxel recall; positive "
+                    "means the candidate ranks better than the known-bad controls"
+                ),
             ),
-        ),
-        "lidar_pair_known_bad_centroid_rmse_delta_mean_m": MetricResult(
-            value=_mean_or_none(rmse_deltas),
-            unit="m",
-            grade=grade,
-            reason=(
-                "mean perturbed-minus-baseline shared-voxel centroid RMSE; "
-                "positive means the candidate ranks better than the known-bad controls"
+            "lidar_pair_known_bad_centroid_rmse_delta_mean_m": MetricResult(
+                value=_mean_or_none(rmse_deltas),
+                unit="m",
+                grade=grade,
+                reason=(
+                    "mean perturbed-minus-baseline shared-voxel centroid RMSE; "
+                    "positive means the candidate ranks better than the known-bad controls"
+                ),
             ),
-        ),
-        "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
-            value=max(rmse_deltas) if rmse_deltas else None,
-            unit="m",
-            grade=grade,
-            reason="largest shared-voxel centroid RMSE increase among known-bad controls",
-        ),
-    }
+            "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
+                value=max(rmse_deltas) if rmse_deltas else None,
+                unit="m",
+                grade=grade,
+                reason="largest shared-voxel centroid RMSE increase among known-bad controls",
+            ),
+        },
+        cases,
+    )
+
+
+def _livox_pair_known_bad_case(
+    *,
+    dof: str,
+    amount: float,
+    unit: str,
+    perturbed: LivoxPCDDatasetStats,
+    recall_delta: float | None,
+    rmse_delta: float | None,
+    worsened: bool,
+) -> EvidenceCaseItem:
+    return EvidenceCaseItem(
+        family="lidar_pair",
+        case_id=f"{dof}:{amount:+g}{unit}",
+        check="Known-Bad Controls",
+        status="pass" if worsened else "warn",
+        dof=dof,
+        amount=amount,
+        unit=unit,
+        convention="left-multiplied source-frame SE(3) perturbation",
+        metric_values={
+            "lidar_pair_source_voxel_recall_in_target": _float_or_none(
+                perturbed.pair_source_voxel_recall_in_target
+            ),
+            "lidar_pair_shared_voxel_count": _float_or_none(
+                perturbed.pair_shared_voxel_count
+            ),
+            "lidar_pair_shared_voxel_centroid_rmse_m": _float_or_none(
+                perturbed.pair_shared_voxel_centroid_rmse_m
+            ),
+        },
+        delta_values={
+            "source_recall_delta": recall_delta,
+            "centroid_rmse_delta_m": rmse_delta,
+        },
+    )
 
 
 def _unavailable_livox_pair_known_bad_metrics(reason: str) -> dict[str, MetricResult]:
@@ -847,28 +931,92 @@ def _recall_delta(baseline: float | None, perturbed: float | None) -> float | No
 
 
 def _perturbation_transforms(config: CalibrationConfig) -> list[tuple[str, SE3]]:
-    transforms: list[tuple[str, SE3]] = []
+    return [(dof, transform) for dof, _amount, _unit, transform in _perturbation_cases(config)]
+
+
+def _perturbation_cases(config: CalibrationConfig) -> list[tuple[str, float, str, SE3]]:
+    transforms: list[tuple[str, float, str, SE3]] = []
     for angle_deg in config.evaluation.kitti.perturbation_rotation_deg:
         angle_rad = math.radians(angle_deg)
         transforms.extend(
             [
-                ("roll_deg", _rotation_perturbation((1.0, 0.0, 0.0), angle_rad)),
-                ("roll_deg", _rotation_perturbation((1.0, 0.0, 0.0), -angle_rad)),
-                ("pitch_deg", _rotation_perturbation((0.0, 1.0, 0.0), angle_rad)),
-                ("pitch_deg", _rotation_perturbation((0.0, 1.0, 0.0), -angle_rad)),
-                ("yaw_deg", _rotation_perturbation((0.0, 0.0, 1.0), angle_rad)),
-                ("yaw_deg", _rotation_perturbation((0.0, 0.0, 1.0), -angle_rad)),
+                (
+                    "roll_deg",
+                    angle_deg,
+                    "deg",
+                    _rotation_perturbation((1.0, 0.0, 0.0), angle_rad),
+                ),
+                (
+                    "roll_deg",
+                    -angle_deg,
+                    "deg",
+                    _rotation_perturbation((1.0, 0.0, 0.0), -angle_rad),
+                ),
+                (
+                    "pitch_deg",
+                    angle_deg,
+                    "deg",
+                    _rotation_perturbation((0.0, 1.0, 0.0), angle_rad),
+                ),
+                (
+                    "pitch_deg",
+                    -angle_deg,
+                    "deg",
+                    _rotation_perturbation((0.0, 1.0, 0.0), -angle_rad),
+                ),
+                (
+                    "yaw_deg",
+                    angle_deg,
+                    "deg",
+                    _rotation_perturbation((0.0, 0.0, 1.0), angle_rad),
+                ),
+                (
+                    "yaw_deg",
+                    -angle_deg,
+                    "deg",
+                    _rotation_perturbation((0.0, 0.0, 1.0), -angle_rad),
+                ),
             ]
         )
     for offset_m in config.evaluation.kitti.perturbation_translation_m:
         transforms.extend(
             [
-                ("x_m", SE3((offset_m, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
-                ("x_m", SE3((-offset_m, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
-                ("y_m", SE3((0.0, offset_m, 0.0), (0.0, 0.0, 0.0, 1.0))),
-                ("y_m", SE3((0.0, -offset_m, 0.0), (0.0, 0.0, 0.0, 1.0))),
-                ("z_m", SE3((0.0, 0.0, offset_m), (0.0, 0.0, 0.0, 1.0))),
-                ("z_m", SE3((0.0, 0.0, -offset_m), (0.0, 0.0, 0.0, 1.0))),
+                (
+                    "x_m",
+                    offset_m,
+                    "m",
+                    SE3((offset_m, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)),
+                ),
+                (
+                    "x_m",
+                    -offset_m,
+                    "m",
+                    SE3((-offset_m, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)),
+                ),
+                (
+                    "y_m",
+                    offset_m,
+                    "m",
+                    SE3((0.0, offset_m, 0.0), (0.0, 0.0, 0.0, 1.0)),
+                ),
+                (
+                    "y_m",
+                    -offset_m,
+                    "m",
+                    SE3((0.0, -offset_m, 0.0), (0.0, 0.0, 0.0, 1.0)),
+                ),
+                (
+                    "z_m",
+                    offset_m,
+                    "m",
+                    SE3((0.0, 0.0, offset_m), (0.0, 0.0, 0.0, 1.0)),
+                ),
+                (
+                    "z_m",
+                    -offset_m,
+                    "m",
+                    SE3((0.0, 0.0, -offset_m), (0.0, 0.0, 0.0, 1.0)),
+                ),
             ]
         )
     return transforms

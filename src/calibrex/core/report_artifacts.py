@@ -28,6 +28,9 @@ REPORT_OBSERVABILITY_SCHEMA_VERSION: Literal["calibrex.report.observability/v0.1
 REPORT_DEGENERACY_SCHEMA_VERSION: Literal["calibrex.report.degeneracy/v0.1"] = (
     "calibrex.report.degeneracy/v0.1"
 )
+REPORT_EVIDENCE_SCHEMA_VERSION: Literal["calibrex.report.evidence/v0.1"] = (
+    "calibrex.report.evidence/v0.1"
+)
 
 
 class ReportRunInfo(StrictModel):
@@ -60,6 +63,21 @@ class EvidenceSummaryItem(StrictModel):
     evidence: str
     interpretation: str
     metric_ids: list[str] = Field(default_factory=list)
+
+
+class EvidenceCaseItem(StrictModel):
+    """Machine-readable evidence case for one negative-control probe."""
+
+    family: str
+    case_id: str
+    check: str
+    status: Grade
+    dof: str | None = None
+    amount: float | None = None
+    unit: str | None = None
+    convention: str | None = None
+    metric_values: dict[str, float | None] = Field(default_factory=dict)
+    delta_values: dict[str, float | None] = Field(default_factory=dict)
 
 
 class ReportSummaryArtifact(StrictModel):
@@ -122,11 +140,21 @@ class ReportDegeneracyArtifact(StrictModel):
     metrics: dict[str, MetricResult] = Field(default_factory=dict)
 
 
+class ReportEvidenceArtifact(StrictModel):
+    """Schema for `evidence.json` report sidecars."""
+
+    schema_version: Literal["calibrex.report.evidence/v0.1"] = REPORT_EVIDENCE_SCHEMA_VERSION
+    run: ReportRunInfo
+    summaries: list[EvidenceSummaryItem] = Field(default_factory=list)
+    cases: list[EvidenceCaseItem] = Field(default_factory=list)
+
+
 _REPORT_ARTIFACT_MODELS: Final[dict[str, type[BaseModel]]] = {
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
     "report-observability": ReportObservabilityArtifact,
     "report-degeneracy": ReportDegeneracyArtifact,
+    "report-evidence": ReportEvidenceArtifact,
 }
 
 

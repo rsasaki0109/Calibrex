@@ -12,10 +12,12 @@ from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping
 from calibrex.core.report_artifacts import (
     REPORT_DEGENERACY_SCHEMA_VERSION,
+    REPORT_EVIDENCE_SCHEMA_VERSION,
     REPORT_METRICS_SCHEMA_VERSION,
     REPORT_OBSERVABILITY_SCHEMA_VERSION,
     REPORT_SUMMARY_SCHEMA_VERSION,
     ReportDegeneracyArtifact,
+    ReportEvidenceArtifact,
     ReportMetricsArtifact,
     ReportObservabilityArtifact,
     ReportSummaryArtifact,
@@ -32,6 +34,7 @@ ValidationKind = Literal[
     "report-metrics",
     "report-observability",
     "report-degeneracy",
+    "report-evidence",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -42,6 +45,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "report-metrics": ReportMetricsArtifact,
     "report-observability": ReportObservabilityArtifact,
     "report-degeneracy": ReportDegeneracyArtifact,
+    "report-evidence": ReportEvidenceArtifact,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -52,6 +56,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",
     REPORT_OBSERVABILITY_SCHEMA_VERSION: "report-observability",
     REPORT_DEGENERACY_SCHEMA_VERSION: "report-degeneracy",
+    REPORT_EVIDENCE_SCHEMA_VERSION: "report-evidence",
 }
 
 

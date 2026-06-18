@@ -11,6 +11,7 @@ from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
 from calibrex.core.report_artifacts import (
     REPORT_DEGENERACY_SCHEMA_VERSION,
+    REPORT_EVIDENCE_SCHEMA_VERSION,
     REPORT_METRICS_SCHEMA_VERSION,
     REPORT_OBSERVABILITY_SCHEMA_VERSION,
     REPORT_SUMMARY_SCHEMA_VERSION,
@@ -18,7 +19,10 @@ from calibrex.core.report_artifacts import (
     validate_report_sidecar_payload,
 )
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
-from calibrex.evaluation.evidence_summary import evidence_summaries_from_result
+from calibrex.evaluation.evidence_summary import (
+    evidence_cases_from_result,
+    evidence_summaries_from_result,
+)
 from calibrex.evaluation.metric_families import (
     grade_counts,
     metric_family_payloads,
@@ -56,6 +60,7 @@ _REPORT_SIDECAR_KINDS = {
     "metrics.json": "report-metrics",
     "observability.json": "report-observability",
     "degeneracy.json": "report-degeneracy",
+    "evidence.json": "report-evidence",
 }
 
 
@@ -301,6 +306,7 @@ def _report_sidecar_payloads(result: CalibrationResult) -> dict[str, dict[str, A
         "metrics.json": _metrics_payload(result),
         "observability.json": _observability_payload(result),
         "degeneracy.json": _degeneracy_payload(result),
+        "evidence.json": _evidence_payload(result),
     }
     return {
         filename: validate_report_sidecar_payload(_REPORT_SIDECAR_KINDS[filename], payload)
@@ -369,6 +375,17 @@ def _degeneracy_payload(result: CalibrationResult) -> dict[str, Any]:
             or "timestamp" in name
             or "weak_dof" in name
         },
+    }
+
+
+def _evidence_payload(result: CalibrationResult) -> dict[str, Any]:
+    return {
+        "schema_version": REPORT_EVIDENCE_SCHEMA_VERSION,
+        "run": _run_payload(result),
+        "summaries": [
+            item.model_dump(mode="json") for item in evidence_summaries_from_result(result)
+        ],
+        "cases": [item.model_dump(mode="json") for item in evidence_cases_from_result(result)],
     }
 
 

@@ -38,7 +38,7 @@ from calibrex.data.nuscenes import read_nuscenes_reference_extrinsics
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.lidar import (
     lidar_metrics_from_inspection,
-    livox_pair_metrics_from_dataset,
+    livox_pair_evidence_from_dataset,
 )
 from calibrex.evaluation.lidar_camera import lidar_camera_metrics_from_result
 from calibrex.evaluation.metrics import evaluate_quality
@@ -185,19 +185,25 @@ def _apply_livox_pair_candidate_evidence(
     if len(result.candidate_extrinsics) != 1:
         return
     transform_name, candidate = next(iter(result.candidate_extrinsics.items()))
-    result.metrics.update(
-        livox_pair_metrics_from_dataset(
-            dataset_path=config.dataset.path,
-            target_transform=candidate.as_se3(),
-            config=config,
-        )
+    evidence = livox_pair_evidence_from_dataset(
+        dataset_path=config.dataset.path,
+        target_transform=candidate.as_se3(),
+        config=config,
     )
+    result.metrics.update(evidence.metrics)
     result.run.provenance["livox_pair_evidence"] = {
         "candidate_transform": transform_name,
         "target_transform_applied": True,
         "transform_convention": "T_source_target maps target PCD points into source PCD frame",
         "known_bad_perturbation": "left-multiplied source-frame SE(3) controls",
+        "known_bad_case_count": len(evidence.cases),
     }
+    existing_cases = result.run.provenance.get("evidence_cases")
+    cases = existing_cases if isinstance(existing_cases, list) else []
+    result.run.provenance["evidence_cases"] = [
+        *cases,
+        *(case.model_dump(mode="json") for case in evidence.cases),
+    ]
 
 
 def _dedupe(values: list[str]) -> list[str]:

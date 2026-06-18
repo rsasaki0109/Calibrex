@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from calibrex.core.report_artifacts import EvidenceSummaryItem
+from calibrex.core.report_artifacts import EvidenceCaseItem, EvidenceSummaryItem
 from calibrex.core.result import CalibrationResult, Grade
 
 
@@ -10,6 +10,20 @@ def evidence_summaries_from_result(result: CalibrationResult) -> list[EvidenceSu
     """Return machine-readable evidence summary rows for a calibration result."""
 
     return _lidar_pair_evidence_items(result)
+
+
+def evidence_cases_from_result(result: CalibrationResult) -> list[EvidenceCaseItem]:
+    """Return machine-readable evidence case rows stored in result provenance."""
+
+    raw_cases = result.run.provenance.get("evidence_cases")
+    if not isinstance(raw_cases, list):
+        return []
+    cases: list[EvidenceCaseItem] = []
+    for raw_case in raw_cases:
+        if not isinstance(raw_case, dict):
+            continue
+        cases.append(EvidenceCaseItem.model_validate(raw_case))
+    return cases
 
 
 def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummaryItem]:
