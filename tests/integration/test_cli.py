@@ -935,6 +935,12 @@ def test_livox_precomputed_result_reports_and_visualizes(tmp_path: Path) -> None
     assert "CACHED EVIDENCE" in report_html
     assert "LiDAR Pair Evidence" in report_html
     assert "lidar_pair_source_voxel_recall_in_target" in report_html
+    summary = json.loads((reported_dir / "summary.json").read_text(encoding="utf-8"))
+    evidence_summaries = summary["evidence_summaries"]
+    assert evidence_summaries[0]["family"] == "lidar_pair"
+    assert evidence_summaries[0]["check"] == "Candidate Support"
+    assert evidence_summaries[1]["check"] == "Known-Bad Controls"
+    assert evidence_summaries[2]["interpretation"].startswith("Supported by this evidence protocol")
 
     visualized_dir = tmp_path / "visualized"
     assert (

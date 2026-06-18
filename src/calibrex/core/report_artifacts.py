@@ -51,6 +51,17 @@ class GradeCounts(StrictModel):
     fail: int = Field(default=0, ge=0)
 
 
+class EvidenceSummaryItem(StrictModel):
+    """Machine-readable evidence summary row for report consumers."""
+
+    family: str
+    check: str
+    status: Grade
+    evidence: str
+    interpretation: str
+    metric_ids: list[str] = Field(default_factory=list)
+
+
 class ReportSummaryArtifact(StrictModel):
     """Schema for `summary.json` report sidecars."""
 
@@ -64,6 +75,7 @@ class ReportSummaryArtifact(StrictModel):
     matched_candidate_reference_count: int = Field(ge=0)
     weak_direction_count: int = Field(ge=0)
     artifact_paths: ArtifactSet = Field(default_factory=ArtifactSet)
+    evidence_summaries: list[EvidenceSummaryItem] = Field(default_factory=list)
 
 
 class ReportMetricsArtifact(StrictModel):
