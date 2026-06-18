@@ -92,6 +92,19 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
                 holdout=0.05,
                 grade="warn",
                 unit="m",
+            ),
+            "lidar_pair_source_voxel_recall_in_target": MetricResult(
+                value=0.20,
+                grade="warn",
+            ),
+            "lidar_pair_known_bad_detectable_fraction": MetricResult(
+                value=0.25,
+                grade="warn",
+            ),
+            "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
+                value=0.01,
+                grade="warn",
+                unit="m",
             )
         },
         observability=ObservabilityResult(
@@ -118,6 +131,19 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
                 holdout=0.02,
                 grade="pass",
                 unit="m",
+            ),
+            "lidar_pair_source_voxel_recall_in_target": MetricResult(
+                value=0.30,
+                grade="pass",
+            ),
+            "lidar_pair_known_bad_detectable_fraction": MetricResult(
+                value=0.75,
+                grade="pass",
+            ),
+            "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
+                value=0.04,
+                grade="pass",
+                unit="m",
             )
         },
         observability=ObservabilityResult(rank=5, condition_number=500.0),
@@ -131,7 +157,14 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
     assert round(metric.delta_right_minus_left or 0.0, 6) == -0.03
     assert metric.preference == "lower"
     assert metric.winner == "right"
-    assert comparison.metric_families["lidar"].right_better_count == 1
+    assert comparison.metric_families["lidar"].right_better_count == 3
+    known_bad_delta = comparison.metrics["lidar_pair_known_bad_centroid_rmse_delta_max_m"]
+    assert known_bad_delta.preference == "higher"
+    assert known_bad_delta.winner == "right"
+    evidence = {(item.family, item.check): item for item in comparison.evidence_comparisons}
+    assert evidence[("lidar_pair", "Candidate Support")].winner == "right"
+    assert evidence[("lidar_pair", "Known-Bad Controls")].winner == "right"
+    assert evidence[("lidar_pair", "Decision Boundary")].winner == "right"
     transform = comparison.transform_groups["transforms"].comparisons[0]
     assert round(transform.translation_delta_m, 6) == 0.1
     assert transform.rotation_delta_deg == 0.0

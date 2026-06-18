@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import Field
 
 from calibrex.core.geometry import normalize_quaternion_xyzw
+from calibrex.core.report_artifacts import EvidenceSummaryItem
 from calibrex.core.result import (
     CalibrationResult,
     Grade,
@@ -17,6 +18,7 @@ from calibrex.core.result import (
     StrictModel,
     TransformResult,
 )
+from calibrex.evaluation.evidence_summary import evidence_summaries_from_result
 from calibrex.evaluation.metric_families import metric_family
 
 COMPARISON_SCHEMA_VERSION: Literal["calibrex.comparison/v0.1"] = (
@@ -125,6 +127,25 @@ class ObservabilityComparison(StrictModel):
     only_right_weak_directions: list[str] = Field(default_factory=list)
 
 
+class EvidenceSummarySide(StrictModel):
+    """One side of an evidence summary comparison."""
+
+    status: Grade
+    evidence: str
+    interpretation: str
+    metric_ids: list[str] = Field(default_factory=list)
+
+
+class EvidenceSummaryComparison(StrictModel):
+    """Comparison for one evidence summary check."""
+
+    family: str
+    check: str
+    left: EvidenceSummarySide | None = None
+    right: EvidenceSummarySide | None = None
+    winner: ComparisonWinner = "not_comparable"
+
+
 class ComparisonSummary(StrictModel):
     """High-level comparison counters."""
 
@@ -151,6 +172,7 @@ class ResultComparison(StrictModel):
     only_right_metrics: list[str] = Field(default_factory=list)
     transform_groups: dict[str, TransformGroupComparison] = Field(default_factory=dict)
     observability: ObservabilityComparison
+    evidence_comparisons: list[EvidenceSummaryComparison] = Field(default_factory=list)
     left_degeneracy_grade: Grade
     right_degeneracy_grade: Grade
     left_degeneracy_reason: str | None = None
@@ -182,6 +204,7 @@ def compare_results(
     }
     metric_families = _metric_family_comparisons(metric_comparisons)
     summary = _comparison_summary(metric_comparisons, transform_groups)
+    evidence_comparisons = _compare_evidence_summaries(left, right)
 
     return ResultComparison(
         left=_side(left, left_path),
@@ -193,6 +216,7 @@ def compare_results(
         only_right_metrics=sorted(set(right.metrics) - set(left.metrics)),
         transform_groups=transform_groups,
         observability=_compare_observability(left, right),
+        evidence_comparisons=evidence_comparisons,
         left_degeneracy_grade=left.degeneracy.grade,
         right_degeneracy_grade=right.degeneracy.grade,
         left_degeneracy_reason=left.degeneracy.reason,
@@ -270,6 +294,8 @@ def _metric_value(metric: MetricResult, field: MetricValueField) -> float | None
 
 
 def _metric_preference(name: str) -> MetricPreference:
+    if name.startswith("lidar_pair_known_bad_") and "delta" in name:
+        return "higher"
     lower_tokens = (
         "rmse",
         "residual",
@@ -437,6 +463,66 @@ def _compare_observability(
         only_left_weak_directions=sorted(left_weak - right_weak),
         only_right_weak_directions=sorted(right_weak - left_weak),
     )
+
+
+def _compare_evidence_summaries(
+    left: CalibrationResult,
+    right: CalibrationResult,
+) -> list[EvidenceSummaryComparison]:
+    left_items = _evidence_items_by_key(evidence_summaries_from_result(left))
+    right_items = _evidence_items_by_key(evidence_summaries_from_result(right))
+    comparisons: list[EvidenceSummaryComparison] = []
+    for family, check in sorted(set(left_items) | set(right_items)):
+        left_item = left_items.get((family, check))
+        right_item = right_items.get((family, check))
+        comparisons.append(
+            EvidenceSummaryComparison(
+                family=family,
+                check=check,
+                left=_evidence_side(left_item),
+                right=_evidence_side(right_item),
+                winner=_evidence_winner(left_item, right_item),
+            )
+        )
+    return comparisons
+
+
+def _evidence_items_by_key(
+    items: list[EvidenceSummaryItem],
+) -> dict[tuple[str, str], EvidenceSummaryItem]:
+    return {(item.family, item.check): item for item in items}
+
+
+def _evidence_side(item: EvidenceSummaryItem | None) -> EvidenceSummarySide | None:
+    if item is None:
+        return None
+    return EvidenceSummarySide(
+        status=item.status,
+        evidence=item.evidence,
+        interpretation=item.interpretation,
+        metric_ids=list(item.metric_ids),
+    )
+
+
+def _evidence_winner(
+    left: EvidenceSummaryItem | None,
+    right: EvidenceSummaryItem | None,
+) -> ComparisonWinner:
+    if left is None or right is None:
+        return "not_comparable"
+    left_rank = _grade_rank(left.status)
+    right_rank = _grade_rank(right.status)
+    if left_rank == right_rank:
+        return "tie"
+    return "left" if left_rank > right_rank else "right"
+
+
+def _grade_rank(grade: Grade) -> int:
+    if grade == "pass":
+        return 2
+    if grade == "warn":
+        return 1
+    return 0
 
 
 def _comparison_summary(

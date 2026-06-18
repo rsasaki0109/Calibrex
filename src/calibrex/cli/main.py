@@ -848,6 +848,16 @@ def _emit_comparison(comparison: ResultComparison) -> None:
         print(f"max_rotation_delta_deg: {summary.max_rotation_delta_deg:.6g}")
     if comparison.observability.only_right_weak_directions:
         print(f"new_weak_directions: {comparison.observability.only_right_weak_directions}")
+    if comparison.evidence_comparisons:
+        winners = [item.winner for item in comparison.evidence_comparisons]
+        print(f"evidence_checks: {len(comparison.evidence_comparisons)}")
+        print(
+            "evidence_winners: "
+            f"left={winners.count('left')}, "
+            f"right={winners.count('right')}, "
+            f"tie={winners.count('tie')}, "
+            f"not_comparable={winners.count('not_comparable')}"
+        )
 
 
 def _format_value(value: object) -> str:

@@ -914,7 +914,10 @@ outputs:
     assert result.quality.recommendation
 
 
-def test_livox_precomputed_result_reports_and_visualizes(tmp_path: Path) -> None:
+def test_livox_precomputed_result_reports_and_visualizes(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     result = Path(
         "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
     )
@@ -941,6 +944,14 @@ def test_livox_precomputed_result_reports_and_visualizes(tmp_path: Path) -> None
     assert evidence_summaries[0]["check"] == "Candidate Support"
     assert evidence_summaries[1]["check"] == "Known-Bad Controls"
     assert evidence_summaries[2]["interpretation"].startswith("Supported by this evidence protocol")
+
+    capsys.readouterr()
+    assert main(["compare", str(result), str(result), "--json"]) == 0
+    comparison = json.loads(capsys.readouterr().out)
+    evidence_comparisons = comparison["evidence_comparisons"]
+    assert evidence_comparisons[0]["family"] == "lidar_pair"
+    assert evidence_comparisons[0]["check"] == "Candidate Support"
+    assert evidence_comparisons[0]["winner"] == "tie"
 
     visualized_dir = tmp_path / "visualized"
     assert (

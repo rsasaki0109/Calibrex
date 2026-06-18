@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from html import escape
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
@@ -14,9 +14,11 @@ from calibrex.core.report_artifacts import (
     REPORT_METRICS_SCHEMA_VERSION,
     REPORT_OBSERVABILITY_SCHEMA_VERSION,
     REPORT_SUMMARY_SCHEMA_VERSION,
+    EvidenceSummaryItem,
     validate_report_sidecar_payload,
 )
-from calibrex.core.result import CalibrationResult, Grade, MetricResult, TransformResult
+from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
+from calibrex.evaluation.evidence_summary import evidence_summaries_from_result
 from calibrex.evaluation.metric_families import (
     grade_counts,
     metric_family_payloads,
@@ -55,15 +57,6 @@ _REPORT_SIDECAR_KINDS = {
     "observability.json": "report-observability",
     "degeneracy.json": "report-degeneracy",
 }
-
-
-class EvidenceSummaryPayload(TypedDict):
-    family: str
-    check: str
-    status: Grade
-    evidence: str
-    interpretation: str
-    metric_ids: list[str]
 
 
 def report_artifact_paths(
@@ -329,7 +322,9 @@ def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
         "matched_candidate_reference_count": _matched_candidate_reference_count(result),
         "weak_direction_count": len(result.observability.weak_directions),
         "artifact_paths": result.artifacts.model_dump(mode="json", exclude_none=True),
-        "evidence_summaries": _evidence_summary_payload(result),
+        "evidence_summaries": [
+            item.model_dump(mode="json") for item in evidence_summaries_from_result(result)
+        ],
     }
 
 
@@ -660,7 +655,13 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     summary_rows = _selected_metric_rows(result, _LIDAR_PAIR_SUMMARY_METRICS)
     if not summary_rows:
         return ""
-    evidence_rows = _evidence_summary_rows(_lidar_pair_evidence_items(result))
+    evidence_rows = _evidence_summary_rows(
+        [
+            item
+            for item in evidence_summaries_from_result(result)
+            if item.family == "lidar_pair"
+        ]
+    )
     return f"""
   <h2>LiDAR Pair Evidence</h2>
   <p>
@@ -681,100 +682,18 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
 """
 
 
-def _evidence_summary_payload(result: CalibrationResult) -> list[EvidenceSummaryPayload]:
-    return _lidar_pair_evidence_items(result)
-
-
-def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummaryPayload]:
-    support_metric = result.metrics.get("lidar_pair_source_voxel_recall_in_target")
-    shared_metric = result.metrics.get("lidar_pair_shared_voxel_count")
-    rmse_metric = result.metrics.get("lidar_pair_shared_voxel_centroid_rmse_m")
-    known_bad_metric = result.metrics.get("lidar_pair_known_bad_detectable_fraction")
-    max_delta_metric = result.metrics.get("lidar_pair_known_bad_centroid_rmse_delta_max_m")
-    if (
-        support_metric is None
-        and shared_metric is None
-        and rmse_metric is None
-        and known_bad_metric is None
-        and max_delta_metric is None
-    ):
-        return []
-
-    support_grade: Grade = support_metric.grade if support_metric is not None else "warn"
-    known_bad_grade: Grade = known_bad_metric.grade if known_bad_metric is not None else "warn"
-    decision_grade: Grade = (
-        "pass" if support_grade == "pass" and known_bad_grade == "pass" else "warn"
-    )
-    known_bad_fraction = _fmt(known_bad_metric.value if known_bad_metric else None)
-    known_bad_max_delta = _fmt(max_delta_metric.value if max_delta_metric else None)
-
-    return [
-        {
-            "family": "lidar_pair",
-            "check": "Candidate Support",
-            "status": support_grade,
-            "evidence": (
-                f"source recall {_fmt(support_metric.value if support_metric else None)}, "
-                f"shared voxels {_fmt(shared_metric.value if shared_metric else None)}, "
-                f"centroid RMSE {_fmt(rmse_metric.value if rmse_metric else None)} m"
-            ),
-            "interpretation": (
-                "The candidate has voxel-level support under the declared real-data protocol."
-            ),
-            "metric_ids": [
-                "lidar_pair_source_voxel_recall_in_target",
-                "lidar_pair_shared_voxel_count",
-                "lidar_pair_shared_voxel_centroid_rmse_m",
-            ],
-        },
-        {
-            "family": "lidar_pair",
-            "check": "Known-Bad Controls",
-            "status": known_bad_grade,
-            "evidence": (
-                f"detectable fraction {known_bad_fraction}, "
-                f"max RMSE delta {known_bad_max_delta} m"
-            ),
-            "interpretation": (
-                "Declared perturbations are distinguishable from the candidate."
-                if known_bad_grade == "pass"
-                else "Controls did not clearly separate from the candidate; evidence is weak."
-            ),
-            "metric_ids": [
-                "lidar_pair_known_bad_detectable_fraction",
-                "lidar_pair_known_bad_centroid_rmse_delta_max_m",
-            ],
-        },
-        {
-            "family": "lidar_pair",
-            "check": "Decision Boundary",
-            "status": decision_grade,
-            "evidence": "candidate vs configured known-bad controls",
-            "interpretation": (
-                "Supported by this evidence protocol, but not metrology ground truth."
-                if decision_grade == "pass"
-                else "Inconclusive under this evidence protocol; inspect support and controls."
-            ),
-            "metric_ids": [
-                "lidar_pair_source_voxel_recall_in_target",
-                "lidar_pair_known_bad_detectable_fraction",
-            ],
-        },
-    ]
-
-
-def _evidence_summary_rows(items: list[EvidenceSummaryPayload]) -> str:
+def _evidence_summary_rows(items: list[EvidenceSummaryItem]) -> str:
     return "\n".join(_evidence_summary_row(item) for item in items)
 
 
-def _evidence_summary_row(item: EvidenceSummaryPayload) -> str:
-    status = item["status"]
+def _evidence_summary_row(item: EvidenceSummaryItem) -> str:
+    status = item.status
     return (
         f'<tr class="{escape(_grade_css_class(status))}">'
-        f"<td>{escape(item['check'])}</td>"
+        f"<td>{escape(item.check)}</td>"
         f"<td>{escape(status.upper())}</td>"
-        f"<td>{escape(item['evidence'])}</td>"
-        f"<td>{escape(item['interpretation'])}</td>"
+        f"<td>{escape(item.evidence)}</td>"
+        f"<td>{escape(item.interpretation)}</td>"
         "</tr>"
     )
 
