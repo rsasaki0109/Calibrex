@@ -34,7 +34,7 @@ It records:
 
 - candidate, reference, and optimized extrinsics separately
 - producer, role, execution mode, and evidence level for each estimate
-- train/holdout metrics and perturbation sensitivity
+- train/holdout metrics, perturbation sensitivity, and temporal stability
 - observability and degeneracy warnings
 - map/correspondence lineage and leakage checks
 - portable HTML and machine-readable report sidecars

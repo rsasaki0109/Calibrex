@@ -157,6 +157,9 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_world_map_train_voxel_count" in names
     assert "lidar_world_map_holdout_residual_count" in names
     assert "lidar_world_map_leakage_issue_count" in names
+    assert "lidar_world_map_stability_window_count" in names
+    assert "lidar_world_map_stability_scored_window_count" in names
+    assert "lidar_world_map_stability_holdout_rmse_spread_m" in names
     assert "lidar_world_map_perturbation_case_count" in names
     assert "lidar_world_map_perturbation_detectable_fraction" in names
     assert "lidar_world_map_perturbation_train_rmse_delta_mean_m" in names

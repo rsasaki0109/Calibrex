@@ -349,6 +349,7 @@ class KITTILidarWorldMapConsistencyStats:
     map_artifact: dict[str, object] = field(default_factory=dict)
     correspondence_artifact: dict[str, object] = field(default_factory=dict)
     leakage_validation: dict[str, object] = field(default_factory=dict)
+    stability: dict[str, object] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, object]:
         """Return a JSON/YAML-friendly representation."""
@@ -374,6 +375,7 @@ class KITTILidarWorldMapConsistencyStats:
             "map_artifact": dict(self.map_artifact),
             "correspondence_artifact": dict(self.correspondence_artifact),
             "leakage_validation": dict(self.leakage_validation),
+            "stability": dict(self.stability),
         }
 
 
@@ -386,6 +388,24 @@ class _WorldMapLineage:
     map_artifact: dict[str, object]
     correspondence_artifact: dict[str, object]
     leakage_validation: dict[str, object]
+
+
+@dataclass(frozen=True)
+class _WorldMapScore:
+    train_points: list[Vector3]
+    holdout_points: list[Vector3]
+    train_voxel_count: int
+    train_residuals: list[float]
+    holdout_residuals: list[float]
+    malformed_files: tuple[str, ...]
+
+    @property
+    def sampled_point_count(self) -> int:
+        return len(self.train_points) + len(self.holdout_points)
+
+    @property
+    def scored(self) -> bool:
+        return bool(self.train_voxel_count and self.train_residuals and self.holdout_residuals)
 
 
 @dataclass
@@ -1046,60 +1066,35 @@ def summarize_lidar_world_map_consistency(
     holdout_frames = paired_frames[-holdout_count:]
     lineage = _lidar_world_map_lineage(train_frames, holdout_frames)
     t_sensor = t_ego_lidar or SE3.identity()
-    train_voxels: dict[tuple[int, int, int], _VoxelAccumulator] = {}
-    train_points: list[Vector3] = []
-    holdout_points: list[Vector3] = []
-    malformed_files: list[str] = []
-
-    for file_path, t_world_ego in train_frames:
-        try:
-            lidar_points = read_velodyne_bin(file_path)
-        except ValueError as exc:
-            malformed_files.append(f"{file_path}: {exc}")
-            continue
-        t_world_lidar = t_world_ego.compose(t_sensor)
-        for x, y, z, _intensity in _sample_velodyne_points(lidar_points, max_points_per_frame):
-            point_world = t_world_lidar.transform_point((x, y, z))
-            train_points.append(point_world)
-            voxel = train_voxels.setdefault(
-                _voxel_key(point_world[0], point_world[1], point_world[2], voxel_size_m),
-                _VoxelAccumulator(),
-            )
-            voxel.add(point_world[0], point_world[1], point_world[2])
-    for file_path, t_world_ego in holdout_frames:
-        try:
-            lidar_points = read_velodyne_bin(file_path)
-        except ValueError as exc:
-            malformed_files.append(f"{file_path}: {exc}")
-            continue
-        t_world_lidar = t_world_ego.compose(t_sensor)
-        for x, y, z, _intensity in _sample_velodyne_points(lidar_points, max_points_per_frame):
-            holdout_points.append(t_world_lidar.transform_point((x, y, z)))
-
-    planes = _voxel_plane_map(train_voxels, min_points_per_voxel)
-    train_residuals = _point_to_plane_residuals(
-        train_points,
-        planes,
+    score = _score_lidar_world_map_frames(
+        train_frames=train_frames,
+        holdout_frames=holdout_frames,
+        t_sensor=t_sensor,
+        max_points_per_frame=max_points_per_frame,
         voxel_size_m=voxel_size_m,
+        min_points_per_voxel=min_points_per_voxel,
     )
-    holdout_residuals = _point_to_plane_residuals(
-        holdout_points,
-        planes,
+    stability = _lidar_world_map_window_stability(
+        paired_frames,
+        t_sensor=t_sensor,
+        max_points_per_frame=max_points_per_frame,
         voxel_size_m=voxel_size_m,
+        min_points_per_voxel=min_points_per_voxel,
     )
-    if not planes or not train_residuals or not holdout_residuals:
+
+    if not score.scored:
         reason = "not enough shared train/holdout local planes"
-        if malformed_files:
-            reason = f"{reason}; malformed files: {len(malformed_files)}"
+        if score.malformed_files:
+            reason = f"{reason}; malformed files: {len(score.malformed_files)}"
         return KITTILidarWorldMapConsistencyStats(
             status="unavailable",
             frame_count=len(paired_frames),
             train_frame_count=len(train_frames),
             holdout_frame_count=len(holdout_frames),
-            sampled_point_count=len(train_points) + len(holdout_points),
-            train_voxel_count=len(planes),
-            train_residual_count=len(train_residuals),
-            holdout_residual_count=len(holdout_residuals),
+            sampled_point_count=score.sampled_point_count,
+            train_voxel_count=score.train_voxel_count,
+            train_residual_count=len(score.train_residuals),
+            holdout_residual_count=len(score.holdout_residuals),
             reason=reason,
             split_policy=lineage.split_policy,
             train_frame_ids=lineage.train_frame_ids,
@@ -1108,6 +1103,7 @@ def summarize_lidar_world_map_consistency(
             map_artifact=lineage.map_artifact,
             correspondence_artifact=lineage.correspondence_artifact,
             leakage_validation=lineage.leakage_validation,
+            stability=stability,
         )
 
     return KITTILidarWorldMapConsistencyStats(
@@ -1115,14 +1111,14 @@ def summarize_lidar_world_map_consistency(
         frame_count=len(paired_frames),
         train_frame_count=len(train_frames),
         holdout_frame_count=len(holdout_frames),
-        sampled_point_count=len(train_points) + len(holdout_points),
-        train_voxel_count=len(planes),
-        train_residual_count=len(train_residuals),
-        holdout_residual_count=len(holdout_residuals),
-        point_to_plane_rmse_train_m=_rmse(train_residuals),
-        point_to_plane_rmse_holdout_m=_rmse(holdout_residuals),
-        point_to_plane_median_holdout_m=_percentile(holdout_residuals, 0.5),
-        point_to_plane_p95_holdout_m=_percentile(holdout_residuals, 0.95),
+        sampled_point_count=score.sampled_point_count,
+        train_voxel_count=score.train_voxel_count,
+        train_residual_count=len(score.train_residuals),
+        holdout_residual_count=len(score.holdout_residuals),
+        point_to_plane_rmse_train_m=_rmse(score.train_residuals),
+        point_to_plane_rmse_holdout_m=_rmse(score.holdout_residuals),
+        point_to_plane_median_holdout_m=_percentile(score.holdout_residuals, 0.5),
+        point_to_plane_p95_holdout_m=_percentile(score.holdout_residuals, 0.95),
         split_policy=lineage.split_policy,
         train_frame_ids=lineage.train_frame_ids,
         holdout_frame_ids=lineage.holdout_frame_ids,
@@ -1130,6 +1126,7 @@ def summarize_lidar_world_map_consistency(
         map_artifact=lineage.map_artifact,
         correspondence_artifact=lineage.correspondence_artifact,
         leakage_validation=lineage.leakage_validation,
+        stability=stability,
     )
 
 
@@ -1192,6 +1189,134 @@ def _lidar_world_map_lineage(
         correspondence_artifact=correspondence_artifact.as_dict(),
         leakage_validation=leakage_validation.as_dict(),
     )
+
+
+def _score_lidar_world_map_frames(
+    *,
+    train_frames: list[tuple[Path, SE3]],
+    holdout_frames: list[tuple[Path, SE3]],
+    t_sensor: SE3,
+    max_points_per_frame: int,
+    voxel_size_m: float,
+    min_points_per_voxel: int,
+) -> _WorldMapScore:
+    train_voxels: dict[tuple[int, int, int], _VoxelAccumulator] = {}
+    train_points: list[Vector3] = []
+    holdout_points: list[Vector3] = []
+    malformed_files: list[str] = []
+
+    for file_path, t_world_ego in train_frames:
+        try:
+            lidar_points = read_velodyne_bin(file_path)
+        except ValueError as exc:
+            malformed_files.append(f"{file_path}: {exc}")
+            continue
+        t_world_lidar = t_world_ego.compose(t_sensor)
+        for x, y, z, _intensity in _sample_velodyne_points(lidar_points, max_points_per_frame):
+            point_world = t_world_lidar.transform_point((x, y, z))
+            train_points.append(point_world)
+            voxel = train_voxels.setdefault(
+                _voxel_key(point_world[0], point_world[1], point_world[2], voxel_size_m),
+                _VoxelAccumulator(),
+            )
+            voxel.add(point_world[0], point_world[1], point_world[2])
+
+    for file_path, t_world_ego in holdout_frames:
+        try:
+            lidar_points = read_velodyne_bin(file_path)
+        except ValueError as exc:
+            malformed_files.append(f"{file_path}: {exc}")
+            continue
+        t_world_lidar = t_world_ego.compose(t_sensor)
+        for x, y, z, _intensity in _sample_velodyne_points(lidar_points, max_points_per_frame):
+            holdout_points.append(t_world_lidar.transform_point((x, y, z)))
+
+    planes = _voxel_plane_map(train_voxels, min_points_per_voxel)
+    return _WorldMapScore(
+        train_points=train_points,
+        holdout_points=holdout_points,
+        train_voxel_count=len(planes),
+        train_residuals=_point_to_plane_residuals(
+            train_points,
+            planes,
+            voxel_size_m=voxel_size_m,
+        ),
+        holdout_residuals=_point_to_plane_residuals(
+            holdout_points,
+            planes,
+            voxel_size_m=voxel_size_m,
+        ),
+        malformed_files=tuple(malformed_files),
+    )
+
+
+def _lidar_world_map_window_stability(
+    paired_frames: list[tuple[Path, SE3]],
+    *,
+    t_sensor: SE3,
+    max_points_per_frame: int,
+    voxel_size_m: float,
+    min_points_per_voxel: int,
+) -> dict[str, object]:
+    if len(paired_frames) < 2:
+        return {
+            "status": "unavailable",
+            "window_count": 0,
+            "scored_window_count": 0,
+            "reason": "at least two frame blocks are required",
+            "windows": [],
+        }
+
+    windows: list[dict[str, object]] = []
+    holdout_rmse_values: list[float] = []
+    for holdout_index in range(1, len(paired_frames)):
+        train_frames = paired_frames[:holdout_index]
+        holdout_frames = [paired_frames[holdout_index]]
+        score = _score_lidar_world_map_frames(
+            train_frames=train_frames,
+            holdout_frames=holdout_frames,
+            t_sensor=t_sensor,
+            max_points_per_frame=max_points_per_frame,
+            voxel_size_m=voxel_size_m,
+            min_points_per_voxel=min_points_per_voxel,
+        )
+        holdout_rmse = _rmse(score.holdout_residuals) if score.scored else None
+        if holdout_rmse is not None:
+            holdout_rmse_values.append(holdout_rmse)
+        windows.append(
+            {
+                "window_id": f"temporal_prefix_holdout_{holdout_index:04d}",
+                "train_frame_ids": [file_path.stem for file_path, _pose in train_frames],
+                "holdout_frame_ids": [holdout_frames[0][0].stem],
+                "train_voxel_count": score.train_voxel_count,
+                "holdout_residual_count": len(score.holdout_residuals),
+                "holdout_rmse_m": holdout_rmse,
+                "status": "scored" if score.scored else "unavailable",
+            }
+        )
+
+    if not holdout_rmse_values:
+        return {
+            "status": "unavailable",
+            "window_count": len(windows),
+            "scored_window_count": 0,
+            "reason": "no temporal holdout windows had shared local planes",
+            "windows": windows,
+        }
+
+    return {
+        "status": "scored" if len(holdout_rmse_values) >= 2 else "limited",
+        "window_count": len(windows),
+        "scored_window_count": len(holdout_rmse_values),
+        "holdout_rmse_mean_m": _mean(holdout_rmse_values),
+        "holdout_rmse_min_m": min(holdout_rmse_values),
+        "holdout_rmse_max_m": max(holdout_rmse_values),
+        "holdout_rmse_spread_m": max(holdout_rmse_values) - min(holdout_rmse_values),
+        "reason": (
+            "temporal block stability from prefix-train/single-frame-holdout windows"
+        ),
+        "windows": windows,
+    }
 
 
 def read_velodyne_to_camera_transform(root: str | Path) -> SE3 | None:

@@ -185,6 +185,8 @@ def _lidar_world_map_metrics(diagnostics: Mapping[object, object]) -> dict[str, 
     reason_text = str(reason) if reason is not None else None
     leakage = diagnostics.get("leakage_validation")
     leakage_diagnostics = leakage if isinstance(leakage, Mapping) else None
+    stability = diagnostics.get("stability")
+    stability_diagnostics = stability if isinstance(stability, Mapping) else None
     metrics: dict[str, MetricResult] = {}
     if train_voxels is not None:
         metrics["lidar_world_map_train_voxel_count"] = MetricResult(
@@ -206,6 +208,30 @@ def _lidar_world_map_metrics(diagnostics: Mapping[object, object]) -> dict[str, 
             unit="issues",
             grade="pass" if status == "pass" and issue_count == 0.0 else "fail",
             reason=str(leakage_diagnostics.get("reason", "world-map leakage validation")),
+        )
+    if stability_diagnostics is not None:
+        stability_status = str(stability_diagnostics.get("status", "unknown"))
+        stability_grade: Grade = "pass" if stability_status == "scored" else "warn"
+        stability_reason = str(
+            stability_diagnostics.get("reason", "world-map temporal window stability")
+        )
+        metrics["lidar_world_map_stability_window_count"] = MetricResult(
+            value=_float_or_none(stability_diagnostics.get("window_count")),
+            unit="windows",
+            grade=stability_grade,
+            reason=stability_reason,
+        )
+        metrics["lidar_world_map_stability_scored_window_count"] = MetricResult(
+            value=_float_or_none(stability_diagnostics.get("scored_window_count")),
+            unit="windows",
+            grade=stability_grade,
+            reason=stability_reason,
+        )
+        metrics["lidar_world_map_stability_holdout_rmse_spread_m"] = MetricResult(
+            value=_float_or_none(stability_diagnostics.get("holdout_rmse_spread_m")),
+            unit="m",
+            grade=stability_grade,
+            reason=stability_reason,
         )
     if train_rmse is not None or holdout_rmse is not None:
         metrics["lidar_world_map_point_to_plane_rmse_m"] = MetricResult(

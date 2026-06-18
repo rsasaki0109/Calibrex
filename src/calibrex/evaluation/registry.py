@@ -140,6 +140,24 @@ def _register_builtin_metrics() -> None:
             "lidar",
         ),
         MetricDefinition(
+            "lidar_world_map_stability_window_count",
+            "Temporal block windows evaluated for LiDAR world-map stability",
+            "windows",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_world_map_stability_scored_window_count",
+            "Temporal block windows with scored LiDAR world-map holdout residuals",
+            "windows",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_world_map_stability_holdout_rmse_spread_m",
+            "Spread of holdout RMSE across LiDAR world-map temporal windows",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
             "lidar_world_map_perturbation_case_count",
             "Number of world-map LiDAR extrinsic perturbation cases scored",
             "cases",
