@@ -109,6 +109,7 @@ Public dataset examples:
 calibrex public-datasets list
 python tools/download_public_dataset.py a2d2_lidar_pair_sample --output-dir data/public
 python tools/generate_calibration_evidence_gif.py
+calibrex inspect data/public/a2d2_lidar_pair --type a2d2-lidar --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```

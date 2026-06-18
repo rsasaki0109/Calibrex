@@ -14,6 +14,7 @@ CONFIG_SCHEMA_VERSION: Literal["calibrex.config/v0.1"] = "calibrex.config/v0.1"
 
 SensorType = Literal["camera", "lidar", "imu", "radar"]
 DatasetType = Literal[
+    "a2d2_lidar",
     "filesystem",
     "kitti_raw",
     "mcap",

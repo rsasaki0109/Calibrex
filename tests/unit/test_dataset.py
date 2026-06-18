@@ -1,4 +1,6 @@
 import json
+import struct
+import zipfile
 from pathlib import Path
 
 from calibrex.core.config import DatasetConfig
@@ -7,6 +9,7 @@ from calibrex.core.time import (
     apply_time_offset_ns,
     nearest_timestamp_pairs,
 )
+from calibrex.data.a2d2 import A2D2LidarDataset, summarize_a2d2_lidar_npz
 from calibrex.data.inspect import inspect_dataset
 from calibrex.data.kitti import (
     KITTIRawDataset,
@@ -107,6 +110,39 @@ def test_kitti_raw_reader_counts_fixed_lidar_streams(tmp_path: Path) -> None:
     transforms = read_kitti_initial_transforms(tmp_path)
     assert "T_camera0_lidar0" in transforms
     assert transforms["T_camera0_lidar0"].translation_m == (0.0, 0.0, 0.0)
+
+
+def test_a2d2_lidar_npz_reader_summarizes_physical_lidars(tmp_path: Path) -> None:
+    sample = tmp_path / "20180810150607_lidar_front_left_000000060.npz"
+    _write_a2d2_lidar_npz(sample)
+
+    dataset = A2D2LidarDataset(tmp_path)
+    streams = {stream.name: stream for stream in dataset.streams()}
+    assert streams["a2d2_lidar_npz"].kind == "pointcloud"
+    assert streams["a2d2_lidar_npz"].message_count == 1
+    records = list(dataset.records("a2d2_lidar_npz"))
+    assert records[0].payload_path == str(sample)
+
+    stats = summarize_a2d2_lidar_npz(tmp_path)
+    assert stats.status == "scored"
+    assert stats.sample_count == 1
+    assert stats.total_point_count == 4
+    assert stats.total_valid_count == 3
+    assert stats.physical_lidar_ids == (0, 1)
+    physical = {lidar.lidar_id: lidar for lidar in stats.samples[0].physical_lidars}
+    assert physical[0].valid_count == 2
+    assert physical[0].bounds_min_m == (1.0, 2.0, 0.0)
+    assert physical[0].bounds_max_m == (2.0, 3.0, 1.0)
+    assert physical[1].point_count == 2
+    assert physical[1].valid_count == 1
+    assert physical[1].bounds_min_m == (-1.0, 4.0, 2.0)
+
+    inspection = inspect_dataset(DatasetConfig(type="a2d2_lidar", path=str(tmp_path)))
+    assert inspection.dataset_type == "a2d2_lidar"
+    assert not inspection.warnings
+    diagnostics = inspection.diagnostics["a2d2_lidar"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["physical_lidar_ids"] == [0, 1]
 
 
 def test_nuscenes_reader_inspects_sensor_metadata(tmp_path: Path) -> None:
@@ -220,3 +256,55 @@ def test_nuscenes_reader_inspects_sensor_metadata(tmp_path: Path) -> None:
 
 def _write_json(path: Path, data: object) -> None:
     path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def _write_a2d2_lidar_npz(path: Path) -> None:
+    points = [
+        1.0,
+        2.0,
+        0.0,
+        2.0,
+        3.0,
+        1.0,
+        -1.0,
+        4.0,
+        2.0,
+        4.0,
+        -2.0,
+        1.5,
+    ]
+    lidar_ids = [0, 0, 1, 1]
+    valid = [True, True, True, False]
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        _write_npy(archive, "pcloud_points.npy", "<f8", (4, 3), points)
+        _write_npy(archive, "pcloud_attr.lidar_id.npy", "<i8", (4,), lidar_ids)
+        _write_npy(archive, "pcloud_attr.valid.npy", "|b1", (4,), valid)
+
+
+def _write_npy(
+    archive: zipfile.ZipFile,
+    name: str,
+    descr: str,
+    shape: tuple[int, ...],
+    values: list[object],
+) -> None:
+    header = {
+        "descr": descr,
+        "fortran_order": False,
+        "shape": shape,
+    }
+    header_bytes = (repr(header) + " " * 64).encode("latin1")
+    padding = 16 - ((10 + len(header_bytes) + 1) % 16)
+    header_bytes = header_bytes + b" " * padding + b"\n"
+    if descr == "<f8":
+        body = struct.pack("<" + "d" * len(values), *(float(value) for value in values))
+    elif descr == "<i8":
+        body = struct.pack("<" + "q" * len(values), *(int(value) for value in values))
+    elif descr == "|b1":
+        body = bytes(1 if bool(value) else 0 for value in values)
+    else:
+        raise ValueError(descr)
+    archive.writestr(
+        name,
+        b"\x93NUMPY\x01\x00" + struct.pack("<H", len(header_bytes)) + header_bytes + body,
+    )

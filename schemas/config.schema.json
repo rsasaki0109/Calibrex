@@ -86,6 +86,7 @@
         },
         "type": {
           "enum": [
+            "a2d2_lidar",
             "filesystem",
             "kitti_raw",
             "mcap",
@@ -105,49 +106,6 @@
       "title": "DatasetConfig",
       "type": "object"
     },
-    "KITTIEvaluationConfig": {
-      "additionalProperties": false,
-      "properties": {
-        "max_projection_pairs": {
-          "default": 3,
-          "maximum": 500,
-          "minimum": 0,
-          "title": "Max Projection Pairs",
-          "type": "integer"
-        },
-        "projection_sample_points": {
-          "default": 800,
-          "maximum": 200000,
-          "minimum": 1,
-          "title": "Projection Sample Points",
-          "type": "integer"
-        },
-        "perturbation_rotation_deg": {
-          "default": [
-            0.5,
-            1.0
-          ],
-          "items": {
-            "type": "number"
-          },
-          "title": "Perturbation Rotation Deg",
-          "type": "array"
-        },
-        "perturbation_translation_m": {
-          "default": [
-            0.05,
-            0.1
-          ],
-          "items": {
-            "type": "number"
-          },
-          "title": "Perturbation Translation M",
-          "type": "array"
-        }
-      },
-      "title": "KITTIEvaluationConfig",
-      "type": "object"
-    },
     "EvaluationConfig": {
       "additionalProperties": false,
       "properties": {
@@ -157,6 +115,9 @@
           "minimum": 0.0,
           "title": "Holdout Ratio",
           "type": "number"
+        },
+        "kitti": {
+          "$ref": "#/$defs/KITTIEvaluationConfig"
         },
         "metrics": {
           "items": {
@@ -169,9 +130,6 @@
           "default": false,
           "title": "Strict",
           "type": "boolean"
-        },
-        "kitti": {
-          "$ref": "#/$defs/KITTIEvaluationConfig"
         }
       },
       "title": "EvaluationConfig",
@@ -294,6 +252,41 @@
         }
       },
       "title": "ImuNoiseConfig",
+      "type": "object"
+    },
+    "KITTIEvaluationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_projection_pairs": {
+          "default": 3,
+          "maximum": 500,
+          "minimum": 0,
+          "title": "Max Projection Pairs",
+          "type": "integer"
+        },
+        "perturbation_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Perturbation Rotation Deg",
+          "type": "array"
+        },
+        "perturbation_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Perturbation Translation M",
+          "type": "array"
+        },
+        "projection_sample_points": {
+          "default": 800,
+          "maximum": 200000,
+          "minimum": 1,
+          "title": "Projection Sample Points",
+          "type": "integer"
+        }
+      },
+      "title": "KITTIEvaluationConfig",
       "type": "object"
     },
     "OutputsConfig": {

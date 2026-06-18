@@ -7,6 +7,7 @@ from pathlib import Path
 
 from calibrex.core.config import DatasetConfig
 from calibrex.core.exceptions import DatasetError
+from calibrex.data.a2d2 import A2D2LidarDataset, summarize_a2d2_lidar_npz
 from calibrex.data.base import StreamSummary
 from calibrex.data.filesystem import FilesystemDataset
 from calibrex.data.kitti import (
@@ -53,6 +54,8 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
     """Inspect a dataset path without binding core code to ROS message types."""
 
     path = Path(dataset.path)
+    if dataset.type == "a2d2_lidar":
+        return _inspect_a2d2_lidar(path, dataset.type)
     if dataset.type == "filesystem":
         return _inspect_filesystem(path, dataset.type)
     if dataset.type == "kitti_raw":
@@ -82,6 +85,37 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
         )
     msg = f"unsupported dataset type: {dataset.type}"
     raise DatasetError(msg)
+
+
+def _inspect_a2d2_lidar(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    reader = A2D2LidarDataset(path)
+    stats = summarize_a2d2_lidar_npz(path, sample_limit=3)
+    warnings: list[str] = []
+    if stats.status != "scored":
+        warnings.append(stats.reason or "A2D2 LiDAR NPZ samples could not be parsed")
+    if stats.sample_count == 0:
+        warnings.append("A2D2 LiDAR NPZ files are missing")
+    if len(stats.physical_lidar_ids) < 2:
+        warnings.append("A2D2 sample contains fewer than two physical LiDAR ids")
+    if stats.malformed_files:
+        warnings.append("some A2D2 LiDAR NPZ files are malformed")
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=reader.streams(),
+        warnings=warnings,
+        diagnostics={"a2d2_lidar": stats.as_dict()},
+    )
 
 
 def _inspect_filesystem(path: Path, dataset_type: str) -> DatasetInspection:

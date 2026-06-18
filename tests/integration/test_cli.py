@@ -409,6 +409,19 @@ def test_metrics_command() -> None:
 def test_public_datasets_commands() -> None:
     assert main(["public-datasets", "list", "--json"]) == 0
     assert main(["public-datasets", "show", "tum_rgbd_freiburg1_xyz", "--json"]) == 0
+    assert main(["public-datasets", "show", "a2d2_lidar_pair_sample", "--json"]) == 0
+    assert (
+        main(
+            [
+                "inspect",
+                "examples/public_datasets/a2d2_lidar_pair_sample",
+                "--type",
+                "a2d2-lidar",
+                "--json",
+            ]
+        )
+        == 0
+    )
     assert (
         main(
             [

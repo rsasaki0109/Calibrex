@@ -57,6 +57,8 @@ def test_dataset_manifest_schema_validates_public_dataset_examples() -> None:
         "examples/public_datasets/tum_rgbd_freiburg1_xyz/manifest.yaml",
         "examples/public_datasets/kitti_raw_2011_09_26_drive_0005/manifest.yaml",
         "examples/public_datasets/nuscenes_mini/manifest.yaml",
+        "examples/public_datasets/a2d2_sensor_setup/manifest.yaml",
+        "examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml",
     ]:
         manifest = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
         jsonschema.validate(manifest, schema)

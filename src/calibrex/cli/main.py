@@ -193,6 +193,8 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect.add_argument(
         "--type",
         choices=[
+            "a2d2-lidar",
+            "a2d2_lidar",
             "filesystem",
             "kitti-raw",
             "kitti_raw",
