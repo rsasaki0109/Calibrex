@@ -18,6 +18,8 @@ calibrex visualize outputs/result.yaml --export-html
   <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
   <br>
   <sub>Livox public Horizon-Horizon PCD demo: fixed solid-state 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
+  <br>
+  <sub>Calibrex evidence metrics on the sample: 47,587 points, 25.0% coarse overlap, 0.596 m centroid RMSE.</sub>
 </p>
 
 <p align="center">
@@ -111,6 +113,8 @@ calibrex public-datasets list
 python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
+calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
+calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
 calibrex public-datasets show tiers_livox_lidars_cali --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml

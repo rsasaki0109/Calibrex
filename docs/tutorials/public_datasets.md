@@ -24,6 +24,8 @@ Solid-state LiDAR-to-LiDAR evidence demo:
 python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
+calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
+calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
 ```
 
 Autonomous driving:

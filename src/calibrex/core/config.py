@@ -17,6 +17,7 @@ DatasetType = Literal[
     "a2d2_lidar",
     "filesystem",
     "kitti_raw",
+    "livox_pcd",
     "mcap",
     "nuscenes",
     "rosbag1",

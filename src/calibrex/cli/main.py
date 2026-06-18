@@ -198,6 +198,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "filesystem",
             "kitti-raw",
             "kitti_raw",
+            "livox-pcd",
+            "livox_pcd",
             "mcap",
             "nuscenes",
             "rosbag1",
@@ -683,7 +685,7 @@ def _emit_diagnostics(inspection: DatasetInspection) -> None:
             if value is not None and value != []:
                 print(f"    {key}: {_format_value(value)}")
 
-    if "velodyne_points" in inspection.diagnostics:
+    if "velodyne_points" in inspection.diagnostics or "livox_pcd" in inspection.diagnostics:
         _emit_lidar_quality_hint(inspection)
 
 
@@ -743,6 +745,10 @@ def _ordered_diagnostic_keys(diagnostic: dict[str, object]) -> list[str]:
         "point_to_plane_p95_holdout_m",
         "train_residual_count",
         "holdout_residual_count",
+        "pair_overlap_voxel_size_m",
+        "pair_overlap_voxel_count",
+        "pair_overlap_ratio",
+        "pair_centroid_rmse_m",
         "packet_count",
         "timestamp_count",
         "duration_sec",

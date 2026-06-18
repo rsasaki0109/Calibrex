@@ -29,6 +29,16 @@ def test_config_schema_validates_nuscenes_example() -> None:
     jsonschema.validate(config, schema)
 
 
+def test_config_schema_validates_livox_pcd_example() -> None:
+    schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
+    config = yaml.safe_load(
+        Path("examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    jsonschema.validate(config, schema)
+
+
 def test_result_schema_validates_precomputed_example() -> None:
     schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
     result = yaml.safe_load(Path("examples/precomputed/result.yaml").read_text(encoding="utf-8"))

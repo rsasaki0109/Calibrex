@@ -34,6 +34,9 @@ def lidar_metrics_from_inspection(
 
     velodyne = inspection.diagnostics.get("velodyne_points")
     if not isinstance(velodyne, Mapping):
+        livox = inspection.diagnostics.get("livox_pcd")
+        if isinstance(livox, Mapping):
+            return _livox_pcd_metrics(livox)
         return {}
     world_map = inspection.diagnostics.get("lidar_world_map_consistency")
     world_map_diagnostics = world_map if isinstance(world_map, Mapping) else None
@@ -111,6 +114,64 @@ def lidar_metrics_from_inspection(
             baseline_holdout=point_to_plane_holdout,
         )
     )
+    return metrics
+
+
+def _livox_pcd_metrics(diagnostics: Mapping[object, object]) -> dict[str, MetricResult]:
+    sampled_file_count = _float_or_none(diagnostics.get("sampled_file_count"))
+    sampled_point_count = _float_or_none(diagnostics.get("sampled_point_count"))
+    bounds_min = _vector3_or_none(diagnostics.get("bounds_min_m"))
+    bounds_max = _vector3_or_none(diagnostics.get("bounds_max_m"))
+    overlap_voxel_count = _float_or_none(diagnostics.get("pair_overlap_voxel_count"))
+    overlap_ratio = _float_or_none(diagnostics.get("pair_overlap_ratio"))
+    centroid_rmse = _float_or_none(diagnostics.get("pair_centroid_rmse_m"))
+
+    metrics: dict[str, MetricResult] = {}
+    if sampled_file_count is not None:
+        metrics["lidar_frame_coverage"] = MetricResult(
+            value=sampled_file_count,
+            unit="frames",
+            reason=f"inspected {sampled_file_count:g} Livox solid-state PCD frames",
+        )
+    if sampled_point_count is not None:
+        metrics["lidar_point_coverage"] = MetricResult(
+            value=sampled_point_count,
+            unit="points",
+            reason=f"sampled {sampled_point_count:g} Livox PCD points",
+        )
+    if bounds_min is not None and bounds_max is not None:
+        extent = math.dist(bounds_min, bounds_max)
+        metrics["lidar_spatial_coverage_m"] = MetricResult(
+            value=extent,
+            unit="m",
+            reason=f"sampled Livox XYZ extent is {extent:g} m",
+        )
+    if overlap_voxel_count is not None:
+        metrics["lidar_pair_overlap_voxel_count"] = MetricResult(
+            value=overlap_voxel_count,
+            unit="voxels",
+            grade="pass" if overlap_voxel_count > 0 else "warn",
+            reason="coarse shared voxel count between the first two Livox PCD frames",
+        )
+    if overlap_ratio is not None:
+        metrics["lidar_pair_overlap_ratio"] = MetricResult(
+            value=overlap_ratio,
+            grade="pass" if overlap_ratio > 0.0 else "warn",
+            reason=(
+                "coarse base/target Livox overlap proxy; this is evidence for "
+                "comparison, not absolute ground truth"
+            ),
+        )
+    if centroid_rmse is not None:
+        metrics["lidar_pair_centroid_rmse_m"] = MetricResult(
+            value=centroid_rmse,
+            unit="m",
+            grade="pass",
+            reason=(
+                "coarse target-point to source-voxel-centroid RMSE for the first "
+                "two Livox PCD frames"
+            ),
+        )
     return metrics
 
 

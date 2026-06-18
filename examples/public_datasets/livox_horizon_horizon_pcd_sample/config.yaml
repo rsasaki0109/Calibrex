@@ -1,0 +1,66 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: livox_horizon_horizon_evidence
+  description: Public Livox Horizon-Horizon solid-state LiDAR-to-LiDAR evidence demo.
+  output_dir: outputs/livox_horizon_horizon_pcd_sample
+  domain: robotics
+
+dataset:
+  type: livox_pcd
+  path: data/public/livox_horizon_horizon_pair
+  time_base: frame_index
+
+sensors:
+  base_horizon:
+    type: lidar
+    model: livox_horizon
+    frame_id: base_horizon
+    fields: [x, y, z, intensity]
+  target_horizon:
+    type: lidar
+    model: livox_horizon
+    frame_id: target_horizon
+    fields: [x, y, z, intensity]
+
+frames:
+  base_horizon:
+    root: true
+  target_horizon:
+    parent: base_horizon
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, -0.13, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - livox_pcd_reader
+    - lidar_pair_overlap
+  factors:
+    fixed_lidar_mount_prior:
+      enabled: true
+
+solver:
+  backend: scipy
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - lidar_frame_coverage
+    - lidar_point_coverage
+    - lidar_pair_overlap_ratio
+    - lidar_pair_centroid_rmse_m
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

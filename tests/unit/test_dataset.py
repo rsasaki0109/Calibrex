@@ -16,6 +16,7 @@ from calibrex.data.kitti import (
     read_calibration_file,
     read_kitti_initial_transforms,
 )
+from calibrex.data.livox import LivoxPCDDataset, read_livox_binary_pcd, summarize_livox_pcd
 from calibrex.data.manifest import load_manifest
 from calibrex.data.nuscenes import NuScenesDataset, read_nuscenes_reference_extrinsics
 from calibrex.data.tum_rgbd import (
@@ -143,6 +144,54 @@ def test_a2d2_lidar_npz_reader_summarizes_physical_lidars(tmp_path: Path) -> Non
     diagnostics = inspection.diagnostics["a2d2_lidar"]
     assert isinstance(diagnostics, dict)
     assert diagnostics["physical_lidar_ids"] == [0, 1]
+
+
+def test_livox_pcd_reader_summarizes_solid_state_pair(tmp_path: Path) -> None:
+    base = tmp_path / "base_horizon_100432.pcd"
+    target = tmp_path / "target_horizon_100538.pcd"
+    _write_livox_binary_pcd(
+        base,
+        [
+            (0.1, 0.1, 0.0, 10.0),
+            (0.4, 0.2, 0.0, 20.0),
+            (1.2, 0.2, 0.1, 30.0),
+        ],
+    )
+    _write_livox_binary_pcd(
+        target,
+        [
+            (0.2, 0.1, 0.0, 11.0),
+            (1.1, 0.3, 0.1, 21.0),
+            (2.5, 0.0, 0.0, 31.0),
+        ],
+    )
+
+    dataset = LivoxPCDDataset(tmp_path)
+    streams = {stream.name: stream for stream in dataset.streams()}
+    assert streams["livox_pcd"].kind == "pointcloud"
+    assert streams["livox_pcd"].message_count == 2
+    records = list(dataset.records("livox_pcd"))
+    assert records[0].payload_path == str(base)
+
+    points = read_livox_binary_pcd(base)
+    assert tuple(round(value, 3) for value in points[0]) == (0.1, 0.1, 0.0, 10.0)
+
+    stats = summarize_livox_pcd(tmp_path, pair_overlap_voxel_size_m=1.0)
+    assert stats.status == "scored"
+    assert stats.sample_count == 2
+    assert stats.sampled_point_count == 6
+    assert tuple(round(value, 3) for value in stats.bounds_min_m or ()) == (0.1, 0.0, 0.0)
+    assert tuple(round(value, 3) for value in stats.bounds_max_m or ()) == (2.5, 0.3, 0.1)
+    assert stats.pair_overlap_voxel_count == 2
+    assert stats.pair_overlap_ratio == 1.0
+    assert stats.pair_centroid_rmse_m is not None
+
+    inspection = inspect_dataset(DatasetConfig(type="livox_pcd", path=str(tmp_path)))
+    assert inspection.dataset_type == "livox_pcd"
+    assert not inspection.warnings
+    diagnostics = inspection.diagnostics["livox_pcd"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["pair_overlap_voxel_count"] == 2
 
 
 def test_nuscenes_reader_inspects_sensor_metadata(tmp_path: Path) -> None:
@@ -308,3 +357,24 @@ def _write_npy(
         name,
         b"\x93NUMPY\x01\x00" + struct.pack("<H", len(header_bytes)) + header_bytes + body,
     )
+
+
+def _write_livox_binary_pcd(path: Path, points: list[tuple[float, float, float, float]]) -> None:
+    header = "\n".join(
+        [
+            "# .PCD v0.7 - Point Cloud Data file format",
+            "VERSION 0.7",
+            "FIELDS x y z intensity",
+            "SIZE 4 4 4 4",
+            "TYPE F F F F",
+            "COUNT 1 1 1 1",
+            f"WIDTH {len(points)}",
+            "HEIGHT 1",
+            "VIEWPOINT 0 0 0 1 0 0 0",
+            f"POINTS {len(points)}",
+            "DATA binary",
+            "",
+        ]
+    ).encode("ascii")
+    body = b"".join(struct.pack("<ffff", *point) for point in points)
+    path.write_bytes(header + body)

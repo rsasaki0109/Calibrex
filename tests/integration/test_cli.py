@@ -428,6 +428,18 @@ def test_public_datasets_commands() -> None:
         main(
             [
                 "inspect",
+                "data/public/livox_horizon_horizon_pair",
+                "--type",
+                "livox-pcd",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "inspect",
                 "examples/public_datasets/kitti_raw_2011_09_26_drive_0005",
                 "--type",
                 "kitti-raw",

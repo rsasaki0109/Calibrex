@@ -263,6 +263,33 @@ def test_lidar_metrics_from_kitti_inspection_diagnostics() -> None:
     assert metrics["lidar_world_map_point_to_plane_p95_holdout_m"].value == 0.12
 
 
+def test_lidar_metrics_from_livox_pcd_inspection_diagnostics() -> None:
+    inspection = DatasetInspection(
+        dataset_type="livox_pcd",
+        path="data/public/livox_horizon_horizon_pair",
+        exists=True,
+        diagnostics={
+            "livox_pcd": {
+                "sampled_file_count": 2,
+                "sampled_point_count": 64000,
+                "bounds_min_m": [0.0, -4.0, -2.0],
+                "bounds_max_m": [20.0, 5.0, 3.0],
+                "pair_overlap_voxel_count": 42,
+                "pair_overlap_ratio": 0.28,
+                "pair_centroid_rmse_m": 0.44,
+            }
+        },
+    )
+
+    metrics = lidar_metrics_from_inspection(inspection)
+
+    assert metrics["lidar_frame_coverage"].value == 2.0
+    assert metrics["lidar_point_coverage"].value == 64000.0
+    assert metrics["lidar_pair_overlap_voxel_count"].value == 42.0
+    assert metrics["lidar_pair_overlap_ratio"].value == 0.28
+    assert metrics["lidar_pair_centroid_rmse_m"].value == 0.44
+
+
 def test_autonomous_driving_lidar_coverage_thresholds_are_stricter() -> None:
     default_metrics = {"lidar_frame_coverage": MetricResult(value=20)}
     auto_metrics = {"lidar_frame_coverage": MetricResult(value=20)}

@@ -18,6 +18,7 @@ from calibrex.data.kitti import (
     summarize_timestamp_alignment,
     summarize_velodyne_points,
 )
+from calibrex.data.livox import LivoxPCDDataset, summarize_livox_pcd
 from calibrex.data.manifest import find_manifest
 from calibrex.data.mcap import inspect_mcap
 from calibrex.data.nuscenes import NuScenesDataset, summarize_nuscenes_metadata
@@ -60,6 +61,8 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
         return _inspect_filesystem(path, dataset.type)
     if dataset.type == "kitti_raw":
         return _inspect_kitti_raw(path, dataset.type)
+    if dataset.type == "livox_pcd":
+        return _inspect_livox_pcd(path, dataset.type)
     if dataset.type == "tum_rgbd":
         return _inspect_tum_rgbd(path, dataset.type)
     if dataset.type == "mcap":
@@ -134,6 +137,39 @@ def _inspect_filesystem(path: Path, dataset_type: str) -> DatasetInspection:
         exists=True,
         manifest=str(manifest) if manifest is not None else None,
         streams=reader.streams(),
+    )
+
+
+def _inspect_livox_pcd(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    reader = LivoxPCDDataset(path)
+    stats = summarize_livox_pcd(path, sample_limit=4)
+    warnings: list[str] = []
+    if stats.status != "scored":
+        warnings.append(stats.reason or "Livox PCD files could not be parsed")
+    if stats.sample_count == 0:
+        warnings.append("Livox PCD files are missing")
+    if stats.sample_count < 2:
+        warnings.append("at least two Livox PCD frames are recommended for LiDAR-to-LiDAR evidence")
+    if stats.pair_overlap_voxel_count == 0:
+        warnings.append("base/target Livox PCD frames have no coarse voxel overlap")
+    if stats.malformed_files:
+        warnings.append("some Livox PCD files are malformed")
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=reader.streams(),
+        warnings=warnings,
+        diagnostics={"livox_pcd": stats.as_dict()},
     )
 
 
