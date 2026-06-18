@@ -54,7 +54,7 @@ LIVOX_TARGET_SAMPLE_NAME = "target_horizon_100538.pcd"
 
 SCENE_PANEL = (28, 86, 594, 426)
 RIGHT_PANEL = (650, 92, 278, 414)
-CHART = (676, 266, 216, 68)
+CHART = (676, 294, 216, 48)
 
 Color = tuple[int, int, int]
 Point3 = tuple[float, float, float]
@@ -95,6 +95,13 @@ class LidarCloudPair:
     scene_caption: str
     legend: str
     provenance: str
+    shared_voxel_count: int
+    source_recall: float
+    shared_centroid_rmse_m: float
+    known_bad_detectable_fraction: float
+    known_bad_max_rmse_delta_m: float
+    support_summary: str
+    known_bad_summary: str
 
 
 def main() -> int:
@@ -245,9 +252,16 @@ def load_livox_horizon_cloud_pair(data_dir: Path) -> LidarCloudPair:
         target_total=target_total,
         source_path=base_path,
         subtitle="Livox official Horizon-Horizon public PCD sample",
-        scene_caption="Real solid-state Livox points: reference vs candidate extrinsic",
-        legend="green/cyan: base/target Horizon returns   pink: perturbed candidate",
-        provenance="provenance: Livox official Horizon-Horizon PCD",
+        scene_caption="Real solid-state Livox points: candidate transform vs known-bad controls",
+        legend="green/cyan: candidate-aligned returns   pink: known-bad perturbation",
+        provenance="provenance: Livox public PCD",
+        shared_voxel_count=167,
+        source_recall=0.24594992636229748,
+        shared_centroid_rmse_m=0.5357028293135087,
+        known_bad_detectable_fraction=0.75,
+        known_bad_max_rmse_delta_m=0.019921626765770584,
+        support_summary="167 shared 1 m voxels / 0.246 source recall",
+        known_bad_summary="24 known-bad controls / 0.75 detected",
     )
 
 
@@ -350,9 +364,16 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
         target_total=target_total,
         source_path=path,
         subtitle="A2D2 public NPZ point cloud split by physical lidar_id",
-        scene_caption="Real A2D2 LiDAR points: reference vs candidate extrinsic",
-        legend="green: lidar_id 0/1 real returns   cyan/pink: perturbed candidate",
+        scene_caption="Real A2D2 LiDAR points: fixed-rig evidence preview",
+        legend="green: lidar_id 0/1 real returns   cyan/pink: candidate preview",
         provenance="provenance: A2D2 real NPZ range sample",
+        shared_voxel_count=0,
+        source_recall=0.0,
+        shared_centroid_rmse_m=0.0,
+        known_bad_detectable_fraction=0.0,
+        known_bad_max_rmse_delta_m=0.0,
+        support_summary="A2D2 real point split / metrics computed by Calibrex CLI",
+        known_bad_summary="known-bad controls shown in the Livox README demo",
     )
 
 
@@ -669,16 +690,18 @@ def draw_evidence_panel(
     residual_history: list[float],
     metadata_source: str,
 ) -> None:
-    fill_rect(image, 674, 132, 220, 76, PANEL_ALT)
-    rect(image, 674, 132, 220, 76, GRID, alpha=0.92)
+    fill_rect(image, 674, 132, 220, 100, PANEL_ALT)
+    rect(image, 674, 132, 220, 100, GRID, alpha=0.92)
     metric_bar(
         image,
         674,
         156,
-        1.0 - residual_proxy(progress) / 0.105,
+        cloud_pair.source_recall / 0.40,
         mix(WARNING, GOOD, progress),
     )
-    metric_bar(image, 674, 180, min(1.0, 0.40 + progress * 0.58), OPTIMIZED)
+    rmse_score = 1.0 - min(1.0, cloud_pair.shared_centroid_rmse_m / 1.50)
+    metric_bar(image, 674, 180, rmse_score, OPTIMIZED)
+    metric_bar(image, 674, 204, cloud_pair.known_bad_detectable_fraction, GOOD)
 
     chart_x, chart_y, chart_width, chart_height = CHART
     fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
@@ -1001,9 +1024,12 @@ def build_text_filter(cloud_pair: LidarCloudPair) -> str:
             "CBD5E1",
         ),
         ("Evidence", 674, 104, 17, "E5E7EB"),
-        ("holdout point-to-plane", 674, 138, 13, "CBD5E1"),
-        ("overlap consistency", 674, 162, 13, "CBD5E1"),
-        ("residual history", 676, 242, 16, "E5E7EB"),
+        ("source voxel recall", 674, 138, 13, "CBD5E1"),
+        ("shared voxel RMSE", 674, 162, 13, "CBD5E1"),
+        ("known-bad controls", 674, 186, 13, "CBD5E1"),
+        (cloud_pair.support_summary, 674, 238, 12, "CBD5E1"),
+        (cloud_pair.known_bad_summary, 674, 252, 12, "CBD5E1"),
+        ("evidence curve", 676, 274, 16, "E5E7EB"),
         ("DoF visibility", 674, 354, 16, "E5E7EB"),
         ("x  y  z  r  p  yaw", 674, 406, 13, "CBD5E1"),
         (cloud_pair.provenance, 674, 444, 13, "CBD5E1"),
@@ -1030,6 +1056,7 @@ def drawtext(
         .replace("'", "\\'")
         .replace(":", "\\:")
         .replace(",", "\\,")
+        .replace("%", "\\%")
     )
     escaped_font = font_file.replace("\\", "\\\\").replace(":", "\\:")
     return (
