@@ -15,6 +15,11 @@ run:
     data_verified: false
     computed_at: '2026-06-18T10:53:34Z'
     evidence_note: Livox official Horizon-Horizon public PCD sample; metrics are evidence, not absolute ground truth.
+    livox_pair_evidence:
+      candidate_transform: T_base_horizon_target_horizon
+      target_transform_applied: true
+      transform_convention: T_source_target maps target PCD points into source PCD frame
+      known_bad_perturbation: left-multiplied source-frame SE(3) controls
 frame_graph:
   root: base_horizon
   convention: T_parent_child
@@ -84,33 +89,56 @@ metrics:
     unit: m
     reason: lidar_spatial_coverage_m=64.7544 m; pass >= 20 m, warn >= 5 m
   lidar_pair_shared_voxel_count:
-    value: 170.0
+    value: 167.0
     grade: pass
     unit: voxels
-    reason: lidar_pair_shared_voxel_count=170 voxels; pass >= 20 voxels, warn >= 1 voxels
+    reason: lidar_pair_shared_voxel_count=167 voxels; pass >= 20 voxels, warn >= 1 voxels
   lidar_pair_unmatched_source_voxel_count:
-    value: 509.0
+    value: 512.0
     grade: pass
     unit: voxels
-    reason: 509 source voxels have no target voxel at the configured 1 m voxel size
+    reason: source Livox voxels without a target voxel at the configured voxel size
   lidar_pair_unmatched_target_voxel_count:
-    value: 518.0
+    value: 521.0
     grade: pass
     unit: voxels
-    reason: 518 target voxels have no source voxel at the configured 1 m voxel size
+    reason: target Livox voxels without a source voxel at the configured voxel size
   lidar_pair_source_voxel_recall_in_target:
-    value: 0.2503681885125184
+    value: 0.24594992636229748
     grade: pass
-    reason: lidar_pair_source_voxel_recall_in_target=0.250368; pass >= 0.2, warn >= 0.05
+    reason: lidar_pair_source_voxel_recall_in_target=0.24595; pass >= 0.2, warn >= 0.05
   lidar_pair_target_voxel_recall_in_source:
-    value: 0.24709302325581395
+    value: 0.24273255813953487
     grade: pass
-    reason: lidar_pair_target_voxel_recall_in_source=0.247093; pass >= 0.2, warn >= 0.05
+    reason: lidar_pair_target_voxel_recall_in_source=0.242733; pass >= 0.2, warn >= 0.05
   lidar_pair_shared_voxel_centroid_rmse_m:
-    value: 0.5384123893953572
+    value: 0.5357028293135087
     grade: pass
     unit: m
-    reason: lidar_pair_shared_voxel_centroid_rmse_m=0.538412 m; pass <= 0.75 m, warn <= 1.5 m
+    reason: lidar_pair_shared_voxel_centroid_rmse_m=0.535703 m; pass <= 0.75 m, warn <= 1.5 m
+  lidar_pair_known_bad_case_count:
+    value: 24.0
+    grade: pass
+    unit: cases
+    reason: lidar_pair_known_bad_case_count=24 cases; pass >= 1 cases, warn >= 0 cases
+  lidar_pair_known_bad_detectable_fraction:
+    value: 0.75
+    grade: pass
+    reason: lidar_pair_known_bad_detectable_fraction=0.75; pass >= 0.5, warn >= 0.1
+  lidar_pair_known_bad_source_recall_delta_mean:
+    value: 0.001902307314678436
+    grade: pass
+    reason: lidar_pair_known_bad_source_recall_delta_mean=0.00190231; pass >= 0, warn >= -0.05
+  lidar_pair_known_bad_centroid_rmse_delta_mean_m:
+    value: -0.004786195865013272
+    grade: warn
+    unit: m
+    reason: lidar_pair_known_bad_centroid_rmse_delta_mean_m=-0.0047862 m; pass >= 0 m, warn >= -0.05 m
+  lidar_pair_known_bad_centroid_rmse_delta_max_m:
+    value: 0.019921626765770584
+    grade: pass
+    unit: m
+    reason: lidar_pair_known_bad_centroid_rmse_delta_max_m=0.0199216 m; pass >= 0 m, warn >= -0.05 m
 observability:
   weak_directions:
     - uncomputed_alpha_backend
@@ -124,6 +152,7 @@ quality:
   warnings:
     - lidar_frame_coverage=2 frames; pass >= 20 frames, warn >= 1 frames
     - lidar_point_coverage=47587 points; pass >= 50000 points, warn >= 1000 points
+    - lidar_pair_known_bad_centroid_rmse_delta_mean_m=-0.0047862 m; pass >= 0 m, warn >= -0.05 m
     - 'T_base_horizon_target_horizon: transform uncertainty is provisional'
     - native SLAC observability and degeneracy analysis are not implemented in this alpha
     - observability is not fully established

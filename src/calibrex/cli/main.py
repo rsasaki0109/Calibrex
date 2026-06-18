@@ -788,6 +788,8 @@ def _ordered_diagnostic_keys(diagnostic: dict[str, object]) -> list[str]:
         "point_to_plane_p95_holdout_m",
         "train_residual_count",
         "holdout_residual_count",
+        "pair_target_transform_applied",
+        "pair_transform_convention",
         "pair_voxel_size_m",
         "pair_source_voxel_count",
         "pair_target_voxel_count",

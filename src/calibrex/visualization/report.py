@@ -36,6 +36,8 @@ _LIDAR_PAIR_SUMMARY_METRICS = (
     "lidar_pair_source_voxel_recall_in_target",
     "lidar_pair_target_voxel_recall_in_source",
     "lidar_pair_shared_voxel_centroid_rmse_m",
+    "lidar_pair_known_bad_detectable_fraction",
+    "lidar_pair_known_bad_centroid_rmse_delta_max_m",
 )
 
 _WORLD_MAP_DOF_METRICS = (

@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from calibrex.core.geometry import SE3
 from calibrex.data.base import StreamSummary, TimestampedRecord
 
 LivoxPoint = tuple[float, float, float, float]
@@ -52,6 +53,8 @@ class LivoxPCDDatasetStats:
     intensity_min: float | None = None
     intensity_max: float | None = None
     intensity_mean: float | None = None
+    pair_target_transform_applied: bool = False
+    pair_transform_convention: str | None = None
     pair_voxel_size_m: float | None = None
     pair_source_voxel_count: int | None = None
     pair_target_voxel_count: int | None = None
@@ -78,6 +81,8 @@ class LivoxPCDDatasetStats:
             "intensity_min": self.intensity_min,
             "intensity_max": self.intensity_max,
             "intensity_mean": self.intensity_mean,
+            "pair_target_transform_applied": self.pair_target_transform_applied,
+            "pair_transform_convention": self.pair_transform_convention,
             "pair_voxel_size_m": self.pair_voxel_size_m,
             "pair_source_voxel_count": self.pair_source_voxel_count,
             "pair_target_voxel_count": self.pair_target_voxel_count,
@@ -217,6 +222,7 @@ def summarize_livox_pcd(
     *,
     sample_limit: int = 4,
     pair_voxel_size_m: float = 1.0,
+    target_transform: SE3 | None = None,
 ) -> LivoxPCDDatasetStats:
     """Summarize Livox public solid-state LiDAR PCD files."""
 
@@ -246,11 +252,17 @@ def summarize_livox_pcd(
         for point in points:
             total.add(point)
 
-    pair = _summarize_voxel_pair(
-        sampled_points_by_file[0],
-        sampled_points_by_file[1],
-        voxel_size_m=pair_voxel_size_m,
-    ) if len(sampled_points_by_file) >= 2 else None
+    if len(sampled_points_by_file) >= 2:
+        target_points = sampled_points_by_file[1]
+        if target_transform is not None:
+            target_points = _transform_points(target_points, target_transform)
+        pair = _summarize_voxel_pair(
+            sampled_points_by_file[0],
+            target_points,
+            voxel_size_m=pair_voxel_size_m,
+        )
+    else:
+        pair = None
     status = "scored" if samples else "malformed"
     return LivoxPCDDatasetStats(
         status=status,
@@ -262,6 +274,12 @@ def summarize_livox_pcd(
         intensity_min=total.intensity_min if total.count else None,
         intensity_max=total.intensity_max if total.count else None,
         intensity_mean=total.intensity_mean,
+        pair_target_transform_applied=target_transform is not None,
+        pair_transform_convention=(
+            "T_source_target maps target PCD points into the source PCD frame"
+            if target_transform is not None
+            else None
+        ),
         pair_voxel_size_m=pair.voxel_size_m if pair is not None else None,
         pair_source_voxel_count=pair.source_voxel_count if pair is not None else None,
         pair_target_voxel_count=pair.target_voxel_count if pair is not None else None,
@@ -409,6 +427,14 @@ def _voxel_centroids(
         voxel = voxels.setdefault(_voxel_key(point, voxel_size_m), _VoxelCentroid())
         voxel.add(point)
     return voxels
+
+
+def _transform_points(points: list[LivoxPoint], transform: SE3) -> list[LivoxPoint]:
+    transformed: list[LivoxPoint] = []
+    for x, y, z, intensity in points:
+        tx, ty, tz = transform.transform_point((x, y, z))
+        transformed.append((tx, ty, tz, intensity))
+    return transformed
 
 
 def _voxel_key(point: LivoxPoint, voxel_size_m: float) -> tuple[int, int, int]:

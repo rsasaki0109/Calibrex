@@ -19,7 +19,7 @@ calibrex visualize outputs/result.yaml --export-html
   <br>
   <sub>Livox public Horizon-Horizon PCD demo: fixed solid-state 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
   <br>
-  <sub>Calibrex evidence metrics on the sample: 47,587 points, 170 shared 1 m voxels, 25.0% source recall, 24.7% target recall, 0.538 m shared-voxel centroid RMSE.</sub>
+  <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 24.6% source recall, 75% known-bad controls detected, max centroid RMSE delta +0.020 m.</sub>
 </p>
 
 <p align="center">

@@ -372,6 +372,34 @@ def _register_builtin_metrics() -> None:
             "lidar",
         ),
         MetricDefinition(
+            "lidar_pair_known_bad_case_count",
+            "Number of known-bad LiDAR pair perturbation cases scored",
+            "cases",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_detectable_fraction",
+            "Fraction of known-bad LiDAR pair perturbations detected by pair evidence",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_source_recall_delta_mean",
+            "Mean source voxel recall drop under known-bad LiDAR pair perturbations",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_centroid_rmse_delta_mean_m",
+            "Mean shared-voxel centroid RMSE increase under known-bad LiDAR pair perturbations",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_centroid_rmse_delta_max_m",
+            "Largest shared-voxel centroid RMSE increase under known-bad LiDAR pair perturbations",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
             "trajectory_consistency",
             "Trajectory consistency residual",
             "m",

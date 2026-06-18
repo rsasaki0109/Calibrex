@@ -125,6 +125,10 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
                 unit="m",
                 grade="pass",
             ),
+            "lidar_pair_known_bad_detectable_fraction": MetricResult(
+                value=0.75,
+                grade="pass",
+            ),
         },
     )
 
@@ -133,6 +137,7 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     assert "LiDAR Pair Evidence" in html
     assert "lidar_pair_source_voxel_recall_in_target" in html
     assert "lidar_pair_shared_voxel_centroid_rmse_m" in html
+    assert "lidar_pair_known_bad_detectable_fraction" in html
     assert "not absolute ground" in html
 
 

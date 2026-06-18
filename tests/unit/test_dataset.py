@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 
 from calibrex.core.config import DatasetConfig
+from calibrex.core.geometry import SE3
 from calibrex.core.time import (
     TimestampNormalizer,
     apply_time_offset_ns,
@@ -190,6 +191,16 @@ def test_livox_pcd_reader_summarizes_solid_state_pair(tmp_path: Path) -> None:
     assert stats.pair_source_voxel_recall_in_target == 1.0
     assert stats.pair_target_voxel_recall_in_source == 2.0 / 3.0
     assert stats.pair_shared_voxel_centroid_rmse_m is not None
+
+    shifted_stats = summarize_livox_pcd(
+        tmp_path,
+        pair_voxel_size_m=1.0,
+        target_transform=SE3((10.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)),
+    )
+    assert shifted_stats.pair_target_transform_applied
+    assert shifted_stats.pair_transform_convention is not None
+    assert shifted_stats.pair_shared_voxel_count == 0
+    assert shifted_stats.pair_source_voxel_recall_in_target == 0.0
 
     inspection = inspect_dataset(DatasetConfig(type="livox_pcd", path=str(tmp_path)))
     assert inspection.dataset_type == "livox_pcd"

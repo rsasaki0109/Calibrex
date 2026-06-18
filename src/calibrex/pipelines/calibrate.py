@@ -36,7 +36,10 @@ from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.nuscenes import read_nuscenes_reference_extrinsics
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
-from calibrex.evaluation.lidar import lidar_metrics_from_inspection
+from calibrex.evaluation.lidar import (
+    lidar_metrics_from_inspection,
+    livox_pair_metrics_from_dataset,
+)
 from calibrex.evaluation.lidar_camera import lidar_camera_metrics_from_result
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
@@ -95,6 +98,7 @@ def run_calibration(
     result.run.provenance["dataset_inspection"] = inspection.as_dict()
     _apply_dataset_initialization(config, result)
     _apply_external_candidate_extrinsics(options.candidate_extrinsics, result)
+    _apply_livox_pair_candidate_evidence(config, result)
     _apply_extrinsic_reference_comparisons(result)
     _apply_pipeline_adapter(config, frame_graph, inspection, result)
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
@@ -170,6 +174,30 @@ def _world_map_weak_directions(metrics: dict[str, MetricResult]) -> list[str]:
         for metric_name, direction in mapping.items()
         if (metric := metrics.get(metric_name)) is not None and metric.grade == "warn"
     ]
+
+
+def _apply_livox_pair_candidate_evidence(
+    config: CalibrationConfig,
+    result: CalibrationResult,
+) -> None:
+    if config.dataset.type != "livox_pcd":
+        return
+    if len(result.candidate_extrinsics) != 1:
+        return
+    transform_name, candidate = next(iter(result.candidate_extrinsics.items()))
+    result.metrics.update(
+        livox_pair_metrics_from_dataset(
+            dataset_path=config.dataset.path,
+            target_transform=candidate.as_se3(),
+            config=config,
+        )
+    )
+    result.run.provenance["livox_pair_evidence"] = {
+        "candidate_transform": transform_name,
+        "target_transform_applied": True,
+        "transform_convention": "T_source_target maps target PCD points into source PCD frame",
+        "known_bad_perturbation": "left-multiplied source-frame SE(3) controls",
+    }
 
 
 def _dedupe(values: list[str]) -> list[str]:

@@ -157,6 +157,11 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_pair_source_voxel_recall_in_target" in names
     assert "lidar_pair_target_voxel_recall_in_source" in names
     assert "lidar_pair_shared_voxel_centroid_rmse_m" in names
+    assert "lidar_pair_known_bad_case_count" in names
+    assert "lidar_pair_known_bad_detectable_fraction" in names
+    assert "lidar_pair_known_bad_source_recall_delta_mean" in names
+    assert "lidar_pair_known_bad_centroid_rmse_delta_mean_m" in names
+    assert "lidar_pair_known_bad_centroid_rmse_delta_max_m" in names
     assert "lidar_world_map_point_to_plane_rmse_m" in names
     assert "lidar_world_map_point_to_plane_median_holdout_m" in names
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in names
