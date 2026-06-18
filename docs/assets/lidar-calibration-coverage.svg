@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Calibrex LiDAR calibration coverage map</title>
+  <desc id="desc">Visual map of LiDAR calibration workflows supported by Calibrex alpha, adapters, native factors, and roadmap items.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#55636f"/>
+    </marker>
+    <style>
+      .bg { fill: #f7fafc; }
+      .panel { fill: #ffffff; stroke: #cfdae3; stroke-width: 1.4; filter: url(#shadow); }
+      .card { fill: #ffffff; stroke-width: 2; rx: 12; }
+      .solid-green { stroke: #16a34a; }
+      .solid-blue { stroke: #2563eb; }
+      .solid-amber { stroke: #d97706; }
+      .dash-slate { stroke: #64748b; stroke-dasharray: 8 6; }
+      .dash-amber { stroke: #d97706; stroke-dasharray: 8 6; }
+      .title { font: 800 34px system-ui, -apple-system, Segoe UI, sans-serif; fill: #14212b; }
+      .subtitle { font: 500 16px system-ui, -apple-system, Segoe UI, sans-serif; fill: #53616c; }
+      .label { font: 800 12px system-ui, -apple-system, Segoe UI, sans-serif; fill: #ffffff; }
+      .card-title { font: 800 19px system-ui, -apple-system, Segoe UI, sans-serif; fill: #172026; }
+      .card-subtitle { font: 700 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #53616c; }
+      .item { font: 500 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #263440; }
+      .small { font: 700 11px system-ui, -apple-system, Segoe UI, sans-serif; fill: #53616c; }
+      .chip { rx: 5; }
+      .axis { stroke: #b8c5ce; stroke-width: 2; marker-end: url(#arrow); }
+      .root { fill: #172026; }
+      .now { fill: #16a34a; }
+      .adapter { fill: #2563eb; }
+      .native { fill: #d97706; }
+      .roadmap { fill: #64748b; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1200" height="760"/>
+  <rect class="panel" x="34" y="34" width="1132" height="692" rx="22"/>
+
+  <text class="title" x="72" y="88">LiDAR Calibration Coverage</text>
+  <text class="subtitle" x="72" y="118">What Calibrex can evaluate, visualize, or estimate without mixing reference, candidate, and online results.</text>
+
+  <g transform="translate(72,150)">
+    <rect class="chip now" x="0" y="0" width="112" height="25"/>
+    <text class="label" x="14" y="17">ALPHA NOW</text>
+    <rect class="chip adapter" x="130" y="0" width="124" height="25"/>
+    <text class="label" x="144" y="17">ADAPTER</text>
+    <rect class="chip native" x="272" y="0" width="132" height="25"/>
+    <text class="label" x="286" y="17">NATIVE NEXT</text>
+    <rect class="chip roadmap" x="422" y="0" width="116" height="25"/>
+    <text class="label" x="436" y="17">ROADMAP</text>
+  </g>
+
+  <g transform="translate(72,210)">
+    <line class="axis" x1="46" y1="268" x2="1026" y2="268"/>
+    <circle class="root" cx="46" cy="268" r="10"/>
+    <text class="small" x="23" y="294">rig root</text>
+
+    <g transform="translate(0,0)">
+      <rect class="card solid-green" x="0" y="0" width="252" height="236" rx="12"/>
+      <rect class="chip now" x="18" y="18" width="92" height="23"/>
+      <text class="label" x="31" y="34">ALPHA</text>
+      <text class="card-title" x="18" y="70">Fixed LiDAR to Rig</text>
+      <text class="card-subtitle" x="18" y="94">Public driving logs</text>
+      <text class="item" x="18" y="128">candidate vs reference extrinsics</text>
+      <text class="item" x="18" y="154">train / holdout point-to-plane</text>
+      <text class="item" x="18" y="180">perturbation sensitivity curves</text>
+      <text class="item" x="18" y="206">weak DoF and degeneracy report</text>
+      <text class="item" x="18" y="232">3D reference / online rig view</text>
+    </g>
+
+    <g transform="translate(282,0)">
+      <rect class="card solid-blue" x="0" y="0" width="252" height="236" rx="12"/>
+      <rect class="chip adapter" x="18" y="18" width="98" height="23"/>
+      <text class="label" x="31" y="34">ADAPTER</text>
+      <text class="card-title" x="18" y="70">LiDAR to Camera</text>
+      <text class="card-subtitle" x="18" y="94">Targetless baseline friendly</text>
+      <text class="item" x="18" y="128">KITTI projection overlay</text>
+      <text class="item" x="18" y="154">edge / depth discontinuity metrics</text>
+      <text class="item" x="18" y="180">Koide-style external adapter</text>
+      <text class="item" x="18" y="206">MI / NID metric placeholders</text>
+      <text class="item" x="18" y="232">same result schema and report</text>
+    </g>
+
+    <g transform="translate(564,0)">
+      <rect class="card solid-amber" x="0" y="0" width="252" height="236" rx="12"/>
+      <rect class="chip native" x="18" y="18" width="112" height="23"/>
+      <text class="label" x="31" y="34">NATIVE</text>
+      <text class="card-title" x="18" y="70">LiDAR SLAC Factor</text>
+      <text class="card-subtitle" x="18" y="94">Small factor first</text>
+      <text class="item" x="18" y="128">LidarRigPointToPlaneFactor</text>
+      <text class="item" x="18" y="154">residual / Jacobian / Hessian</text>
+      <text class="item" x="18" y="180">rank and condition estimate</text>
+      <text class="item" x="18" y="206">dataset ego pose as prior</text>
+      <text class="item" x="18" y="232">ready for solver integration</text>
+    </g>
+
+    <g transform="translate(846,0)">
+      <rect class="card dash-slate" x="0" y="0" width="252" height="236" rx="12"/>
+      <rect class="chip roadmap" x="18" y="18" width="104" height="23"/>
+      <text class="label" x="31" y="34">ROADMAP</text>
+      <text class="card-title" x="18" y="70">Multi-LiDAR / IMU</text>
+      <text class="card-subtitle" x="18" y="94">Fixed vehicle rigs</text>
+      <text class="item" x="18" y="128">shared map consistency</text>
+      <text class="item" x="18" y="154">LiDAR-to-LiDAR overlap checks</text>
+      <text class="item" x="18" y="180">motion hand-eye priors</text>
+      <text class="item" x="18" y="206">time offset sweeps</text>
+      <text class="item" x="18" y="232">A2D2 / Waymo loader spikes</text>
+    </g>
+  </g>
+
+  <g transform="translate(88,546)">
+    <rect x="0" y="0" width="1024" height="114" rx="14" fill="#eef6ff" stroke="#bfd7f2"/>
+    <text class="card-title" x="24" y="36">Reading the map</text>
+    <text class="item" x="24" y="65">Solid cards are already represented in CLI, schema, metrics, or artifacts. Dashed cards are planned expansion areas.</text>
+    <text class="item" x="24" y="91">Reference calibration, online calibration, manual candidates, and external baselines stay in separate result fields before export.</text>
+  </g>
+</svg>

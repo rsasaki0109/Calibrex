@@ -44,6 +44,16 @@ residuals, perturbation sensitivity, and weak DoF warnings before export.
 calibrex calibrate config.yaml --candidate-extrinsics candidates/manual.yaml
 ```
 
+## LiDAR Calibration Coverage
+
+Calibrex separates what it can evaluate today from native calibration factors
+and external baselines. This avoids presenting dataset reference calibration,
+online estimates, manual candidates, and adapter outputs as the same thing.
+
+<p align="center">
+  <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
+</p>
+
 ## What Calibrex Shows
 
 | Public dataset workflow | What Calibrex reads | What appears in `result.yaml`, `report.html`, and sidecars |
