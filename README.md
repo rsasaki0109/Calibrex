@@ -106,6 +106,7 @@ unified estimation problem.
 - OXTS-projected LiDAR world-map perturbation ranking metrics
 - Weak LiDAR DoF warnings from world-map perturbation sensitivity
 - Native `LidarRigPointToPlaneFactor` residual, Jacobian, Hessian, and weak-DoF diagnostics
+- Fixed-trajectory single-extrinsic SE(3) correction solver with deterministic synthetic recovery tests
 - KITTI LiDAR point-to-plane perturbation sensitivity metrics for roll/pitch/yaw/x/y/z
 - LiDAR degeneracy warnings from point cloud coverage, vertical structure, and holdout gaps
 - Actionable LiDAR recollection recommendations in result quality reports

@@ -183,6 +183,11 @@ class LidarRigPointToPlaneFactor:
             hessian=hessian,
         )
 
+    def corrected_transform(self, correction: Sequence[float] | None = None) -> SE3:
+        """Return `Exp(correction) * T_ego_lidar_initial` using the factor contract."""
+
+        return self._corrected_transform(correction)
+
     def _corrected_transform(self, correction: Sequence[float] | None) -> SE3:
         correction_vector = _correction_vector(correction)
         delta = _small_se3(correction_vector)
