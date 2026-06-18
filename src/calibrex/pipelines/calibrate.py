@@ -28,6 +28,7 @@ from calibrex.core.result import (
     RunInfo,
     TimeOffsetQuality,
     TimeOffsetResult,
+    TransformEstimateProvenance,
     TransformQuality,
     TransformResult,
 )
@@ -201,10 +202,30 @@ def _apply_adapter_transforms(
         if name in result.transforms:
             result.transforms[name].translation_m = list(transform.translation_m)
             result.transforms[name].rotation_quat_xyzw = list(transform.rotation_quat_xyzw)
+            result.transforms[name].estimate_id = name
+            result.transforms[name].provenance = TransformEstimateProvenance(
+                producer="external_tool",
+                execution_mode="imported",
+                role_in_comparison="output",
+                evidence_level="algorithmically_refined",
+                tool_name=adapter_result.backend,
+                source="solver_adapter",
+                notes=["adapter output applied to Calibrex output estimate"],
+            )
             applied.append(name)
         elif name == "T_camera0_lidar0":
             applied_name = _apply_relative_lidar_camera_transform(result, transform)
             if applied_name is not None:
+                result.transforms[applied_name].estimate_id = applied_name
+                result.transforms[applied_name].provenance = TransformEstimateProvenance(
+                    producer="external_tool",
+                    execution_mode="imported",
+                    role_in_comparison="output",
+                    evidence_level="algorithmically_refined",
+                    tool_name=adapter_result.backend,
+                    source="solver_adapter",
+                    notes=["relative adapter output composed into rig-frame estimate"],
+                )
                 applied.append(applied_name)
     if applied:
         result.run.provenance["solver_adapter_applied_transforms"] = applied
@@ -249,6 +270,15 @@ def _apply_kitti_lidar_initial_transform(
     applied_name = _apply_relative_lidar_camera_transform(result, t_camera_lidar)
     if applied_name is not None:
         result.run.provenance["dataset_initialization"]["applied_to"] = applied_name
+        result.transforms[applied_name].estimate_id = applied_name
+        result.transforms[applied_name].provenance = TransformEstimateProvenance(
+            producer="dataset_provider",
+            execution_mode="dataset_reference",
+            role_in_comparison="output",
+            evidence_level="dataset_provided",
+            source="kitti_raw.calib_cam_to_cam_and_calib_velo_to_cam",
+            notes=["KITTI calibration composed into rig-frame output estimate"],
+        )
 
 
 def _apply_nuscenes_reference_extrinsics(
@@ -274,6 +304,14 @@ def _apply_nuscenes_reference_extrinsics(
                     "translation_m": raw.get("translation_m"),
                     "rotation_quat_xyzw": raw.get("rotation_quat_xyzw"),
                     "quality": raw.get("quality"),
+                    "estimate_id": name,
+                    "provenance": {
+                        "producer": "dataset_provider",
+                        "execution_mode": "dataset_reference",
+                        "role_in_comparison": "selected_reference",
+                        "evidence_level": "dataset_provided",
+                        "source": "nuscenes.calibrated_sensor",
+                    },
                 }
             )
         except ValueError:
@@ -405,13 +443,38 @@ def _load_candidate_extrinsics(path: Path) -> dict[str, TransformResult]:
         if not isinstance(raw_transform, dict):
             raise ConfigError(f"candidate extrinsic {name} in {path} must be a mapping")
         try:
-            candidates[name] = TransformResult.model_validate(raw_transform)
+            candidate = TransformResult.model_validate(raw_transform)
         except ValueError as exc:
             raise ConfigError(f"invalid candidate extrinsic {name} in {path}: {exc}") from exc
+        _fill_imported_candidate_metadata(candidate, estimate_id=name, source_path=path)
+        candidates[name] = candidate
 
     if not candidates:
         raise ConfigError(f"candidate extrinsics file {path} did not contain any transforms")
     return candidates
+
+
+def _fill_imported_candidate_metadata(
+    transform: TransformResult,
+    *,
+    estimate_id: str,
+    source_path: Path,
+) -> None:
+    if transform.estimate_id is None:
+        transform.estimate_id = estimate_id
+    provenance = transform.provenance
+    if provenance.producer == "unknown":
+        provenance.producer = "unknown"
+    if provenance.execution_mode == "unknown":
+        provenance.execution_mode = "imported"
+    if provenance.role_in_comparison is None:
+        provenance.role_in_comparison = "candidate"
+    if provenance.evidence_level == "unknown":
+        provenance.evidence_level = "imported_without_documented_derivation"
+    if provenance.source_path is None:
+        provenance.source_path = str(source_path)
+    if provenance.source is None:
+        provenance.source = "candidate_extrinsics_file"
 
 
 def _candidate_transform_payload(payload: dict[str, object]) -> dict[str, object]:
@@ -503,12 +566,29 @@ def _build_provisional_result(
             child=name,
             transform=transform,
             estimate=node.estimate,
+            estimate_id=transform_name,
+            provenance=TransformEstimateProvenance(
+                producer="calibrex_native",
+                execution_mode="offline_batch",
+                role_in_comparison="output",
+                evidence_level="unknown",
+                source="config.frame_graph",
+                notes=["alpha output initialized from frame graph before native refinement"],
+            ),
         )
         candidate_extrinsics[transform_name] = _transform_result_from_initial(
             parent=node.parent,
             child=name,
             transform=transform,
             estimate=node.estimate,
+            estimate_id=transform_name,
+            provenance=TransformEstimateProvenance(
+                producer="human",
+                execution_mode="manual",
+                role_in_comparison="candidate",
+                evidence_level="imported_without_documented_derivation",
+                source="config.frame_graph",
+            ),
         )
 
     time_offsets: dict[str, TimeOffsetResult] = {}
@@ -560,12 +640,16 @@ def _transform_result_from_initial(
     child: str,
     transform: SE3,
     estimate: bool,
+    estimate_id: str | None = None,
+    provenance: TransformEstimateProvenance | None = None,
 ) -> TransformResult:
     return TransformResult(
         parent=parent,
         child=child,
         translation_m=list(transform.translation_m),
         rotation_quat_xyzw=list(transform.rotation_quat_xyzw),
+        estimate_id=estimate_id,
+        provenance=provenance or TransformEstimateProvenance(),
         quality=TransformQuality(
             grade="warn" if estimate else "pass",
             std_translation_m=(

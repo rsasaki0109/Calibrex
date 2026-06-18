@@ -14,6 +14,39 @@ from calibrex.core.io import read_mapping, write_mapping
 
 RESULT_SCHEMA_VERSION: Literal["calibrex.result/v0.1"] = "calibrex.result/v0.1"
 Grade = Literal["pass", "warn", "fail"]
+EstimateProducer = Literal[
+    "calibrex_native",
+    "external_tool",
+    "human",
+    "dataset_provider",
+    "factory",
+    "unknown",
+]
+EstimateExecutionMode = Literal[
+    "offline_batch",
+    "sliding_window",
+    "online_stream",
+    "manual",
+    "imported",
+    "dataset_reference",
+    "unknown",
+]
+EstimateRole = Literal[
+    "initial",
+    "candidate",
+    "selected_reference",
+    "output",
+    "comparison_baseline",
+]
+EstimateEvidenceLevel = Literal[
+    "synthetic_truth",
+    "independently_measured",
+    "dataset_provided",
+    "factory_provided",
+    "algorithmically_refined",
+    "imported_without_documented_derivation",
+    "unknown",
+]
 
 
 class StrictModel(BaseModel):
@@ -45,6 +78,22 @@ class TransformQuality(StrictModel):
     std_rotation_deg: list[float] = Field(default_factory=list)
 
 
+class TransformEstimateProvenance(StrictModel):
+    producer: EstimateProducer = "unknown"
+    execution_mode: EstimateExecutionMode = "unknown"
+    role_in_comparison: EstimateRole | None = None
+    evidence_level: EstimateEvidenceLevel = "unknown"
+    source: str | None = None
+    source_path: str | None = None
+    tool_name: str | None = None
+    tool_version: str | None = None
+    source_commit: str | None = None
+    license_spdx: str | None = None
+    adapter_version: str | None = None
+    command: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
 class TransformResult(StrictModel):
     convention: Literal["T_parent_child"] = "T_parent_child"
     parent: str
@@ -53,11 +102,18 @@ class TransformResult(StrictModel):
     rotation_quat_xyzw: list[float] = Field(min_length=4, max_length=4)
     covariance: CovarianceInfo | None = None
     quality: TransformQuality = Field(default_factory=TransformQuality)
+    estimate_id: str | None = None
+    provenance: TransformEstimateProvenance = Field(
+        default_factory=TransformEstimateProvenance
+    )
 
     def as_se3(self) -> SE3:
         """Return this transform as an `SE3` value."""
 
         return SE3.from_lists(self.translation_m, self.rotation_quat_xyzw)
+
+
+ExtrinsicEstimate = TransformResult
 
 
 class TimeOffsetQuality(StrictModel):

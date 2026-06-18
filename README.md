@@ -114,6 +114,7 @@ unified estimation problem.
 - SDK-free nuScenes metadata inspection for LiDAR, camera, radar, ego pose, and calibrated sensors
 - nuScenes `calibrated_sensor` import into result `reference_extrinsics`
 - Candidate extrinsics stored separately from solver output and compared against references
+- Extrinsic estimate provenance for producer, role, execution mode, and evidence level
 - External candidate extrinsic YAML import with `--candidate-extrinsics`
 - `calibrex compare` for metric, transform, observability, and degeneracy deltas between result files
 - HTML Calibration Scoreboard summarizing grade counts, weak DoF, candidate/reference matches, and artifacts

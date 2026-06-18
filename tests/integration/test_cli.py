@@ -501,6 +501,11 @@ outputs:
     assert result.reference_extrinsics["T_ego_lidar_top"].parent == "ego"
     assert result.reference_extrinsics["T_ego_lidar_top"].child == "lidar_top"
     assert result.reference_extrinsics["T_ego_lidar_top"].translation_m == [1.0, 0.0, 2.0]
+    lidar_reference_provenance = result.reference_extrinsics["T_ego_lidar_top"].provenance
+    assert lidar_reference_provenance.producer == "dataset_provider"
+    assert lidar_reference_provenance.execution_mode == "dataset_reference"
+    assert lidar_reference_provenance.role_in_comparison == "selected_reference"
+    assert lidar_reference_provenance.evidence_level == "dataset_provided"
     assert result.reference_extrinsics["T_ego_cam_front"].translation_m == [1.5, 0.0, 1.8]
     assert result.reference_extrinsics["T_ego_radar_front"].translation_m == [2.0, 0.0, 0.5]
     assert result.run.provenance["dataset_initialization"]["status"] == "loaded"
@@ -575,6 +580,15 @@ candidate_extrinsics:
         0.0,
         2.0,
     ]
+    imported_candidate_provenance = candidate_result.candidate_extrinsics[
+        "T_ego_lidar_top"
+    ].provenance
+    assert imported_candidate_provenance.execution_mode == "imported"
+    assert imported_candidate_provenance.role_in_comparison == "candidate"
+    assert imported_candidate_provenance.evidence_level == (
+        "imported_without_documented_derivation"
+    )
+    assert imported_candidate_provenance.source_path == str(candidate_path)
 
 
 def test_kitti_inspect_human_output_includes_lidar_diagnostics(
@@ -750,6 +764,12 @@ outputs:
 
     result = load_result(output_dir / "result.yaml")
     assert result.transforms["T_base_link_lidar0"].translation_m == [4.0, 5.0, 6.0]
+    output_provenance = result.transforms["T_base_link_lidar0"].provenance
+    assert output_provenance.producer == "external_tool"
+    assert output_provenance.execution_mode == "imported"
+    assert output_provenance.role_in_comparison == "output"
+    assert output_provenance.evidence_level == "algorithmically_refined"
+    assert output_provenance.tool_name == "koide_lidar_camera"
     assert "lidar_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in result.metrics
