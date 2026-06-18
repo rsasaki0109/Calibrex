@@ -1,0 +1,43 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: livox_horizon_horizon_pcd_sample
+description: Livox official public Horizon-Horizon solid-state LiDAR PCD sample for fixed 3D LiDAR-to-LiDAR evidence visualization.
+time_base: frame_index
+streams:
+  base_horizon_points:
+    kind: pointcloud
+    count: 23921
+    path: data/public/livox_horizon_horizon_pair/base_horizon_100432.pcd
+    sensor: base_horizon
+    frame_id: base_horizon
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+      - normal_x
+      - normal_y
+      - normal_z
+      - curvature
+  target_horizon_points:
+    kind: pointcloud
+    count: 23786
+    path: data/public/livox_horizon_horizon_pair/target_horizon_100538.pcd
+    sensor: target_horizon
+    frame_id: target_horizon
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+      - normal_x
+      - normal_y
+      - normal_z
+      - curvature
+provenance:
+  source: Livox automatic calibration public example data
+  official_url: https://github.com/Livox-SDK/Livox_automatic_calibration
+  base_archive_url: https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz
+  target_archive_url: https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Target-LiDAR-Frames.tar.gz
+  lidar_models: Livox Horizon, Livox Horizon
+  scan_pattern: non-repetitive solid-state
+  upstream_note: The README describes this as the Horizon-Horizon extrinsic calibration example.

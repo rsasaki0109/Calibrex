@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Generate the README fixed 3D LiDAR-to-LiDAR calibration evidence GIF.
 
-The visual is based on the public A2D2 multi-LiDAR sensor setup metadata when
-the small `cams_lidars.json` file is available. It does not redistribute raw
-public point clouds and does not claim benchmark accuracy. The animated point
-sets are an evidence-viewer proxy for how Calibrex compares a fixed vehicle
-LiDAR-to-LiDAR candidate against a selected reference.
+The default visual uses real public Livox Horizon-Horizon PCD frames from the
+official Livox automatic calibration example. It does not redistribute the
+upstream archives and does not claim benchmark accuracy. The animation is an
+evidence-viewer proxy for how Calibrex compares a fixed 3D LiDAR-to-LiDAR
+candidate against a selected reference.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import math
 import shutil
 import struct
 import subprocess
+import tarfile
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -40,6 +41,16 @@ A2D2_LIDAR_SAMPLE_URL = (
 A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
 A2D2_LIDAR_SAMPLE_START = 1536
 A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
+LIVOX_BASE_PCD_URL = (
+    "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
+    "Showcase/Base_LiDAR_Frames.tar.gz"
+)
+LIVOX_TARGET_PCD_URL = (
+    "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
+    "Showcase/Target-LiDAR-Frames.tar.gz"
+)
+LIVOX_BASE_SAMPLE_NAME = "base_horizon_100432.pcd"
+LIVOX_TARGET_SAMPLE_NAME = "target_horizon_100538.pcd"
 
 SCENE_PANEL = (28, 86, 594, 426)
 RIGHT_PANEL = (650, 92, 278, 414)
@@ -73,15 +84,27 @@ class LidarPose:
 class LidarCloudPair:
     source_points: list[Point3]
     target_points: list[Point3]
-    source_lidar_id: int
-    target_lidar_id: int
+    source_label: str
+    target_label: str
+    source_pose_name: str
+    target_pose_name: str
     source_total: int
     target_total: int
     source_path: Path
+    subtitle: str
+    scene_caption: str
+    legend: str
+    provenance: str
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--source",
+        choices=["livox-horizon-horizon", "a2d2"],
+        default="livox-horizon-horizon",
+        help="Public data source used to generate the evidence animation.",
+    )
     parser.add_argument(
         "--sensor-config",
         type=Path,
@@ -90,8 +113,7 @@ def main() -> int:
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=Path("data/public/a2d2_lidar_pair"),
-        help="Directory for the public A2D2 LiDAR NPZ sample.",
+        help="Directory for the extracted public data sample.",
     )
     parser.add_argument(
         "--output",
@@ -109,12 +131,19 @@ def main() -> int:
     if shutil.which("ffmpeg") is None:
         raise SystemExit("ffmpeg is required to generate the GIF")
 
-    ensure_a2d2_lidar_sample(args.data_dir, allow_network=not args.no_network)
-    cloud_pair = load_lidar_cloud_pair(args.data_dir / A2D2_LIDAR_SAMPLE_NAME)
-    lidars, metadata_source = load_lidar_setup(
-        args.sensor_config,
-        allow_network=not args.no_network,
-    )
+    if args.source == "livox-horizon-horizon":
+        data_dir = args.data_dir or Path("data/public/livox_horizon_horizon_pair")
+        ensure_livox_horizon_pair(data_dir, allow_network=not args.no_network)
+        cloud_pair = load_livox_horizon_cloud_pair(data_dir)
+        lidars, metadata_source = livox_horizon_setup(), "Livox official PCD sample"
+    else:
+        data_dir = args.data_dir or Path("data/public/a2d2_lidar_pair")
+        ensure_a2d2_lidar_sample(data_dir, allow_network=not args.no_network)
+        cloud_pair = load_a2d2_lidar_cloud_pair(data_dir / A2D2_LIDAR_SAMPLE_NAME)
+        lidars, metadata_source = load_a2d2_lidar_setup(
+            args.sensor_config,
+            allow_network=not args.no_network,
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="calibrex_lidar_lidar_gif_") as tmp_name:
         tmp = Path(tmp_name)
@@ -132,8 +161,44 @@ def main() -> int:
                 metadata_source=metadata_source,
             )
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
-        encode_gif(tmp, args.output)
+        encode_gif(tmp, args.output, cloud_pair)
     return 0
+
+
+def ensure_livox_horizon_pair(data_dir: Path, *, allow_network: bool) -> None:
+    """Ensure two real Livox Horizon PCD frames are present locally."""
+
+    base_path = data_dir / LIVOX_BASE_SAMPLE_NAME
+    target_path = data_dir / LIVOX_TARGET_SAMPLE_NAME
+    if base_path.exists() and target_path.exists():
+        return
+    if not allow_network:
+        raise SystemExit(
+            f"{base_path} and {target_path} are required. Run without --no-network "
+            "or fetch the Livox Horizon-Horizon sample first."
+        )
+    data_dir.mkdir(parents=True, exist_ok=True)
+    extract_first_pcd_from_tar_gz(LIVOX_BASE_PCD_URL, base_path)
+    extract_first_pcd_from_tar_gz(LIVOX_TARGET_PCD_URL, target_path)
+
+
+def extract_first_pcd_from_tar_gz(url: str, output: Path) -> None:
+    """Stream a public tar.gz and write its first PCD member."""
+
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urlopen(request, timeout=90) as response, tarfile.open(
+        fileobj=response,
+        mode="r|gz",
+    ) as archive:
+        for member in archive:
+            if not member.isfile() or not member.name.endswith(".pcd"):
+                continue
+            handle = archive.extractfile(member)
+            if handle is None:
+                continue
+            output.write_bytes(handle.read())
+            return
+    raise SystemExit(f"{url} did not contain a PCD file")
 
 
 def ensure_a2d2_lidar_sample(data_dir: Path, *, allow_network: bool) -> None:
@@ -160,7 +225,84 @@ def ensure_a2d2_lidar_sample(data_dir: Path, *, allow_network: bool) -> None:
     sample_path.write_bytes(data)
 
 
-def load_lidar_cloud_pair(path: Path) -> LidarCloudPair:
+def load_livox_horizon_cloud_pair(data_dir: Path) -> LidarCloudPair:
+    """Load two solid-state Livox Horizon PCD frames from public example data."""
+
+    base_path = data_dir / LIVOX_BASE_SAMPLE_NAME
+    target_path = data_dir / LIVOX_TARGET_SAMPLE_NAME
+    source_points, source_total = read_binary_pcd_xyz(base_path, stride=8)
+    target_points, target_total = read_binary_pcd_xyz(target_path, stride=7)
+    if not source_points or not target_points:
+        raise SystemExit(f"{data_dir} does not contain usable Livox Horizon PCD points")
+    return LidarCloudPair(
+        source_points=source_points[:2400],
+        target_points=target_points[:2400],
+        source_label="base Horizon points",
+        target_label="target Horizon points",
+        source_pose_name="base_horizon",
+        target_pose_name="target_horizon",
+        source_total=source_total,
+        target_total=target_total,
+        source_path=base_path,
+        subtitle="Livox official Horizon-Horizon public PCD sample",
+        scene_caption="Real solid-state Livox points: reference vs candidate extrinsic",
+        legend="green/cyan: base/target Horizon returns   pink: perturbed candidate",
+        provenance="provenance: Livox official Horizon-Horizon PCD",
+    )
+
+
+def read_binary_pcd_xyz(path: Path, *, stride: int) -> tuple[list[Point3], int]:
+    """Read x/y/z from a binary float32 PCD file with no third-party deps."""
+
+    data = path.read_bytes()
+    header_end = data.index(b"\n", data.index(b"DATA binary")) + 1
+    header = data[:header_end].decode("ascii", errors="strict")
+    fields: list[str] = []
+    sizes: list[int] = []
+    types: list[str] = []
+    counts: list[int] = []
+    point_count = 0
+    for line_text in header.splitlines():
+        parts = line_text.split()
+        if not parts:
+            continue
+        key = parts[0]
+        if key == "FIELDS":
+            fields = parts[1:]
+        elif key == "SIZE":
+            sizes = [int(value) for value in parts[1:]]
+        elif key == "TYPE":
+            types = parts[1:]
+        elif key == "COUNT":
+            counts = [int(value) for value in parts[1:]]
+        elif key == "POINTS":
+            point_count = int(parts[1])
+    if not fields or not sizes or not types:
+        raise SystemExit(f"{path} has incomplete PCD metadata")
+    if not counts:
+        counts = [1] * len(fields)
+    if fields[:3] != ["x", "y", "z"]:
+        raise SystemExit(f"{path} must store x/y/z as the first fields")
+    if sizes[:3] != [4, 4, 4] or types[:3] != ["F", "F", "F"]:
+        raise SystemExit(f"{path} must store x/y/z as float32 fields")
+    point_step = sum(size * count for size, count in zip(sizes, counts, strict=True))
+    if point_step <= 0:
+        raise SystemExit(f"{path} has invalid PCD point step")
+    available = (len(data) - header_end) // point_step
+    point_count = min(point_count or available, available)
+    points: list[Point3] = []
+    total = 0
+    for index in range(point_count):
+        x, y, z = struct.unpack_from("<fff", data, header_end + index * point_step)
+        if not (1.0 <= x <= 62.0 and -22.0 <= y <= 22.0 and -10.0 <= z <= 6.0):
+            continue
+        total += 1
+        if total % stride == 0:
+            points.append((float(x), float(y), float(z)))
+    return points, total
+
+
+def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
     """Load two physical LiDAR point sets from a real A2D2 NPZ file."""
 
     with zipfile.ZipFile(path) as archive:
@@ -200,11 +342,17 @@ def load_lidar_cloud_pair(path: Path) -> LidarCloudPair:
     return LidarCloudPair(
         source_points=source_points[:1800],
         target_points=target_points[:1800],
-        source_lidar_id=0,
-        target_lidar_id=1,
+        source_label="lidar_id 0 points",
+        target_label="lidar_id 1 points",
+        source_pose_name="front_left",
+        target_pose_name="front_right",
         source_total=source_total,
         target_total=target_total,
         source_path=path,
+        subtitle="A2D2 public NPZ point cloud split by physical lidar_id",
+        scene_caption="Real A2D2 LiDAR points: reference vs candidate extrinsic",
+        legend="green: lidar_id 0/1 real returns   cyan/pink: perturbed candidate",
+        provenance="provenance: A2D2 real NPZ range sample",
     )
 
 
@@ -244,7 +392,7 @@ def read_npy_array(
     return header, values
 
 
-def load_lidar_setup(
+def load_a2d2_lidar_setup(
     sensor_config: Path | None,
     *,
     allow_network: bool,
@@ -264,6 +412,15 @@ def load_lidar_setup(
             pass
 
     return fallback_lidars(), "fixed multi-LiDAR fallback"
+
+
+def livox_horizon_setup() -> list[LidarPose]:
+    """Return a compact fixed rig for the Livox Horizon-Horizon example."""
+
+    return [
+        LidarPose("base_horizon", (1.58, -0.18, 1.18)),
+        LidarPose("target_horizon", (1.66, 0.32, 1.12)),
+    ]
 
 
 def parse_lidars(payload: dict[str, object]) -> list[LidarPose]:
@@ -339,8 +496,8 @@ def draw_calibration_scene(
     draw_real_lidar_clouds(image, cloud_pair, progress)
     draw_vehicle_box(image)
 
-    source = lidar_by_name(lidars, "front_left")
-    target = lidar_by_name(lidars, "front_right")
+    source = lidar_by_name(lidars, cloud_pair.source_pose_name)
+    target = lidar_by_name(lidars, cloud_pair.target_pose_name)
     current_target = animated_candidate_pose(target, progress)
 
     for lidar in lidars:
@@ -537,7 +694,7 @@ def draw_evidence_panel(
 
 
 def draw_source_badge(image: bytearray, metadata_source: str) -> None:
-    color = GOOD if metadata_source.startswith("A2D2") else WARNING
+    color = GOOD if metadata_source.startswith(("A2D2", "Livox")) else WARNING
     fill_rect(image, 674, 464, 220, 16, PANEL_ALT)
     metric_bar(image, 674, 464, 1.0, color)
 
@@ -776,9 +933,9 @@ def write_ppm(path: Path, image: bytearray) -> None:
         handle.write(image)
 
 
-def encode_gif(frame_dir: Path, output: Path) -> None:
+def encode_gif(frame_dir: Path, output: Path, cloud_pair: LidarCloudPair) -> None:
     palette = frame_dir / "palette.png"
-    text_filter = build_text_filter()
+    text_filter = build_text_filter(cloud_pair)
     subprocess.run(
         [
             "ffmpeg",
@@ -827,17 +984,17 @@ def encode_gif(frame_dir: Path, output: Path) -> None:
     )
 
 
-def build_text_filter() -> str:
+def build_text_filter(cloud_pair: LidarCloudPair) -> str:
     font_file = subprocess.check_output(
         ["fc-match", "-f", "%{file}", "Noto Sans"],
         text=True,
     ).strip()
     labels = [
         ("Fixed 3D LiDAR to fixed 3D LiDAR", 34, 22, 26, "E5E7EB"),
-        ("A2D2 public NPZ point cloud split by physical lidar_id", 34, 55, 16, "CBD5E1"),
-        ("Real A2D2 LiDAR points: reference vs candidate extrinsic", 50, 104, 17, "E5E7EB"),
+        (cloud_pair.subtitle, 34, 55, 16, "CBD5E1"),
+        (cloud_pair.scene_caption, 50, 104, 17, "E5E7EB"),
         (
-            "green: lidar_id 0/1 real returns   cyan/pink: perturbed candidate",
+            cloud_pair.legend,
             50,
             486,
             14,
@@ -849,9 +1006,9 @@ def build_text_filter() -> str:
         ("residual history", 676, 242, 16, "E5E7EB"),
         ("DoF visibility", 674, 354, 16, "E5E7EB"),
         ("x  y  z  r  p  yaw", 674, 406, 13, "CBD5E1"),
-        ("provenance: A2D2 real NPZ range sample", 674, 444, 13, "CBD5E1"),
-        ("lidar_id 0 points", 674, 486, 12, "CBD5E1"),
-        ("lidar_id 1 points", 674, 496, 12, "CBD5E1"),
+        (cloud_pair.provenance, 674, 444, 13, "CBD5E1"),
+        (cloud_pair.source_label, 674, 486, 12, "CBD5E1"),
+        (cloud_pair.target_label, 674, 496, 12, "CBD5E1"),
         ("public setup", 62, 520, 14, "CBD5E1"),
         ("candidate", 325, 520, 14, "CBD5E1"),
         ("optimize", 588, 520, 14, "CBD5E1"),

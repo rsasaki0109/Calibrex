@@ -50,6 +50,16 @@ datasets:
     calibrex_manifest: examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml
     calibrex_config: null
     recommended_pipeline: multi_lidar_evidence
+  livox_horizon_horizon_pcd_sample:
+    name: Livox official Horizon-Horizon solid-state LiDAR PCD sample
+    family: livox_calibration
+    domain: robotics
+    official_url: https://github.com/Livox-SDK/Livox_automatic_calibration
+    download_url: https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz
+    license_note: Livox automatic calibration example data is provided by Livox; follow the upstream repository license and terms.
+    calibrex_manifest: examples/public_datasets/livox_horizon_horizon_pcd_sample/manifest.yaml
+    calibrex_config: null
+    recommended_pipeline: solid_state_lidar_lidar_evidence
   tiers_livox_lidars_cali:
     name: TIERS LidarsCali Livox solid-state multi-LiDAR sequence
     family: tiers_lidars

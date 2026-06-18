@@ -59,6 +59,7 @@ def test_dataset_manifest_schema_validates_public_dataset_examples() -> None:
         "examples/public_datasets/nuscenes_mini/manifest.yaml",
         "examples/public_datasets/a2d2_sensor_setup/manifest.yaml",
         "examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml",
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/manifest.yaml",
         "examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml",
     ]:
         manifest = yaml.safe_load(Path(path).read_text(encoding="utf-8"))

@@ -17,7 +17,7 @@ calibrex visualize outputs/result.yaml --export-html
 <p align="center">
   <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
   <br>
-  <sub>A2D2 public LiDAR NPZ demo: fixed 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
+  <sub>Livox public Horizon-Horizon PCD demo: fixed solid-state 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
 </p>
 
 <p align="center">
@@ -56,8 +56,8 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
-| Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo |
-| Solid-state Livox multi-LiDAR evidence | TIERS LidarsCali planned |
+| Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
+| Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo / TIERS LidarsCali planned |
 | Radar native calibration | Planned |
 
 <p align="center">
@@ -108,9 +108,9 @@ Public dataset examples:
 
 ```bash
 calibrex public-datasets list
-python tools/download_public_dataset.py a2d2_lidar_pair_sample --output-dir data/public
+python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python tools/generate_calibration_evidence_gif.py
-calibrex inspect data/public/a2d2_lidar_pair --type a2d2-lidar --json
+calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex public-datasets show tiers_livox_lidars_cali --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml

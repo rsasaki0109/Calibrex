@@ -78,11 +78,13 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert "nuscenes_mini" in catalog.datasets
     assert "a2d2_sensor_setup" in catalog.datasets
     assert "a2d2_lidar_pair_sample" in catalog.datasets
+    assert "livox_horizon_horizon_pcd_sample" in catalog.datasets
     assert "tiers_livox_lidars_cali" in catalog.datasets
     assert catalog.datasets["tum_rgbd_freiburg1_xyz"].calibrex_config is not None
     assert catalog.datasets["nuscenes_mini"].calibrex_config is not None
     assert catalog.datasets["a2d2_sensor_setup"].family == "a2d2"
     assert catalog.datasets["a2d2_lidar_pair_sample"].family == "a2d2"
+    assert catalog.datasets["livox_horizon_horizon_pcd_sample"].family == "livox_calibration"
     assert catalog.datasets["tiers_livox_lidars_cali"].family == "tiers_lidars"
 
 
