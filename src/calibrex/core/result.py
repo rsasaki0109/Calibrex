@@ -101,6 +101,7 @@ class QualitySummary(StrictModel):
 class ArtifactSet(StrictModel):
     html_report: str | None = None
     trajectory_plot: str | None = None
+    rig_3d_viewer: str | None = None
     camera_lidar_overlay: str | None = None
     residual_histogram: str | None = None
 

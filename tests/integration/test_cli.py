@@ -325,6 +325,48 @@ def test_compare_command_writes_machine_readable_summary(
     assert payload["transform_groups"]["transforms"]["comparison_count"] == 2
 
 
+def test_visualize_reference_result_writes_3d_rig_overlay(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    online = load_result("examples/precomputed/result.yaml")
+    reference = load_result("examples/precomputed/result.yaml")
+    reference.run.id = "reference_rig"
+    reference.transforms["T_base_lidar0"].translation_m = [0.02, 0.0, 0.4]
+    online_path = tmp_path / "online.yaml"
+    reference_path = tmp_path / "reference.yaml"
+    online.save(online_path)
+    reference.save(reference_path)
+    output_dir = tmp_path / "visualized"
+
+    assert (
+        main(
+            [
+                "visualize",
+                str(online_path),
+                "--reference-result",
+                str(reference_path),
+                "--output-dir",
+                str(output_dir),
+                "--export-html",
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    rig_3d_path = Path(payload["rig_3d_viewer"])
+    assert rig_3d_path.exists()
+    rig_3d_html = rig_3d_path.read_text(encoding="utf-8")
+    assert "3D Calibration Rig View" in rig_3d_html
+    assert "Reference" in rig_3d_html
+    assert "Online / Estimated" in rig_3d_html
+    assert "T_base_lidar0" in rig_3d_html
+    report_html = (output_dir / "report.html").read_text(encoding="utf-8")
+    assert "rig_3d_viewer" in report_html
+
+
 def test_schema_commands(tmp_path: Path) -> None:
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"
@@ -772,16 +814,23 @@ outputs:
     assert result.run.provenance["solver_adapter"] == "koide_lidar_camera"
     assert result.run.provenance["solver_adapter_applied_transforms"] == ["T_base_link_lidar0"]
     assert result.artifacts.camera_lidar_overlay is not None
+    assert result.artifacts.rig_3d_viewer is not None
     overlay_path = Path(result.artifacts.camera_lidar_overlay)
+    rig_3d_path = Path(result.artifacts.rig_3d_viewer)
     assert overlay_path.exists()
+    assert rig_3d_path.exists()
     overlay_html = overlay_path.read_text(encoding="utf-8")
+    rig_3d_html = rig_3d_path.read_text(encoding="utf-8")
     assert "Camera-LiDAR Overlay" in overlay_html
     assert "Projected Overlay" in overlay_html
     assert "Projected 12 of 12" in overlay_html
     assert "Frame Pairs" in overlay_html
     assert "0000000000.bin" in overlay_html
+    assert "3D Calibration Rig View" in rig_3d_html
+    assert "Online / Estimated" in rig_3d_html
     report_html = (output_dir / "report.html").read_text(encoding="utf-8")
     assert "camera_lidar_overlay" in report_html
+    assert "rig_3d_viewer" in report_html
     assert "Observability" in report_html
     assert "LiDAR World-Map Diagnostics" in report_html
     assert "DoF Sensitivity" in report_html

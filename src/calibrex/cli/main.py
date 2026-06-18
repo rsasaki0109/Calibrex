@@ -26,7 +26,7 @@ from calibrex.core.report_artifacts import (
     report_artifact_json_schema,
     report_artifact_schema_kinds,
 )
-from calibrex.core.result import load_result, result_json_schema
+from calibrex.core.result import CalibrationResult, load_result, result_json_schema
 from calibrex.core.validation import (
     ValidationKind,
     validate_file,
@@ -51,6 +51,7 @@ from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import report_artifact_paths, write_report_artifacts
+from calibrex.visualization.rig3d import write_rig_3d_artifact
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -177,6 +178,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     visualize = subcommands.add_parser("visualize", help="render result visualizations")
     visualize.add_argument("result", type=Path)
+    visualize.add_argument(
+        "--reference-result",
+        type=Path,
+        help="overlay another result's transforms as reference extrinsics",
+    )
     visualize.add_argument("--output-dir", type=Path)
     visualize.add_argument("--export-html", action="store_true")
     visualize.add_argument("--json", action="store_true")
@@ -332,6 +338,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
         output_dir = args.output_dir or args.result.parent
         output_dir.mkdir(parents=True, exist_ok=True)
         write_camera_lidar_overlay_artifact(result, output_dir / "artifacts")
+        write_rig_3d_artifact(result, output_dir / "artifacts")
         report_artifacts = write_report_artifacts(result, output_dir)
     else:
         report_artifacts = {}
@@ -450,17 +457,21 @@ def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:
 
 def _cmd_visualize(args: argparse.Namespace) -> int:
     result = load_result(args.result)
+    if args.reference_result:
+        _merge_reference_result(result, load_result(args.reference_result))
     output_dir = args.output_dir or args.result.parent
     html_path = output_dir / "report.html"
     if args.export_html:
         output_dir.mkdir(parents=True, exist_ok=True)
         write_camera_lidar_overlay_artifact(result, output_dir / "artifacts")
+        write_rig_3d_artifact(result, output_dir / "artifacts")
         report_artifacts = write_report_artifacts(result, output_dir)
     else:
         report_artifacts = {}
     payload = {
         "status": "ok",
         "html_report": str(html_path) if args.export_html else result.artifacts.html_report,
+        "rig_3d_viewer": result.artifacts.rig_3d_viewer,
         "camera_lidar_overlay": result.artifacts.camera_lidar_overlay,
         "report_artifacts": report_artifacts,
     }
@@ -488,6 +499,12 @@ def _cmd_export(args: argparse.Namespace) -> int:
         _die(f"unsupported export format: {args.format}")
     print(f"wrote {args.output}")
     return 0
+
+
+def _merge_reference_result(result: CalibrationResult, reference: CalibrationResult) -> None:
+    result.reference_extrinsics.update(reference.reference_extrinsics)
+    result.reference_extrinsics.update(reference.transforms)
+    result.run.provenance["visualization_reference_run_id"] = reference.run.id
 
 
 def _starter_config(profile: str) -> dict[str, Any]:

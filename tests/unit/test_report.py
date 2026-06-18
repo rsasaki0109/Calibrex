@@ -10,6 +10,7 @@ from calibrex.core.result import (
     TransformResult,
 )
 from calibrex.visualization.report import render_html_report
+from calibrex.visualization.rig3d import render_rig_3d_artifact
 
 
 def test_report_renders_candidate_reference_delta_table() -> None:
@@ -166,3 +167,48 @@ def test_report_explains_unmatched_candidate_reference_edges() -> None:
     html = render_html_report(result)
 
     assert "No candidate extrinsics matched reference parent/child pairs" in html
+
+
+def test_rig_3d_artifact_renders_reference_online_and_candidate_layers() -> None:
+    result = CalibrationResult(
+        run=RunInfo(id="rig-3d-unit", calibrex_version="0.1.0"),
+        frame_graph=FrameGraphSnapshot(
+            root="ego",
+            frames={"ego": None, "lidar_top": "ego"},
+        ),
+        transforms={
+            "T_ego_lidar_top": TransformResult(
+                parent="ego",
+                child="lidar_top",
+                translation_m=[1.05, 0.0, 2.0],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+        },
+        candidate_extrinsics={
+            "T_ego_lidar_top_candidate": TransformResult(
+                parent="ego",
+                child="lidar_top",
+                translation_m=[0.95, 0.0, 2.0],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+        },
+        reference_extrinsics={
+            "T_ego_lidar_top_reference": TransformResult(
+                parent="ego",
+                child="lidar_top",
+                translation_m=[1.0, 0.0, 2.0],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+        },
+    )
+
+    html = render_rig_3d_artifact(result)
+
+    assert "3D Calibration Rig View" in html
+    assert "https://cdn.jsdelivr.net/npm/three" in html
+    assert "Online / Estimated" in html
+    assert "Reference" in html
+    assert "Candidate" in html
+    assert "T_ego_lidar_top_reference" in html
+    assert "T_ego_lidar_top_candidate" in html
+    assert "0.05" in html

@@ -672,6 +672,7 @@ def _artifact_rows(result: CalibrationResult) -> str:
     rows: list[str] = []
     artifacts = {
         "html_report": result.artifacts.html_report,
+        "rig_3d_viewer": result.artifacts.rig_3d_viewer,
         "camera_lidar_overlay": result.artifacts.camera_lidar_overlay,
         "trajectory_plot": result.artifacts.trajectory_plot,
         "residual_histogram": result.artifacts.residual_histogram,
