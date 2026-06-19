@@ -1196,6 +1196,11 @@ def _emit_comparison(comparison: ResultComparison) -> None:
             f"tie={winners.count('tie')}, "
             f"not_comparable={winners.count('not_comparable')}"
         )
+    not_comparable_reasons = _comparison_not_comparable_reasons(comparison)
+    if not_comparable_reasons:
+        print("not_comparable_reasons:")
+        for reason, count in not_comparable_reasons:
+            print(f"  - {reason} ({count})")
 
 
 def _format_comparison_materialization(side: ComparisonSide) -> str:
@@ -1206,6 +1211,23 @@ def _format_comparison_materialization(side: ComparisonSide) -> str:
     if side.computed_at is not None:
         parts.append(f"computed_at={side.computed_at}")
     return ", ".join(parts)
+
+
+def _comparison_not_comparable_reasons(
+    comparison: ResultComparison,
+) -> list[tuple[str, int]]:
+    counts: dict[str, int] = {}
+    for metric in comparison.metrics.values():
+        if metric.winner == "not_comparable" and metric.not_comparable_reason:
+            counts[metric.not_comparable_reason] = (
+                counts.get(metric.not_comparable_reason, 0) + 1
+            )
+    for evidence in comparison.evidence_comparisons:
+        if evidence.winner == "not_comparable" and evidence.not_comparable_reason:
+            counts[evidence.not_comparable_reason] = (
+                counts.get(evidence.not_comparable_reason, 0) + 1
+            )
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
 
 def _format_optional_bool(value: bool | None) -> str:

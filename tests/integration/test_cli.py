@@ -1535,6 +1535,18 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
         "right_materialization: metrics_origin=cached, data_verified=no, "
         "computed_at=2026-06-18T10:53:34Z"
     ) in compare_text
+    mismatch = load_result(result)
+    mismatch.run.id = "support_mismatch"
+    mismatch.run.provenance["livox_pair_evidence"]["holdout_geometry"][
+        "support_population_id"
+    ] = "livox_pair_support:changed_for_text_output"
+    mismatch_path = tmp_path / "support_mismatch.yaml"
+    mismatch.save(mismatch_path)
+    assert main(["compare", str(result), str(mismatch_path)]) == 0
+    mismatch_text = capsys.readouterr().out
+    assert "not_comparable_reasons:" in mismatch_text
+    assert "LiDAR pair evidence protocol is warning" in mismatch_text
+    assert "support population differs" in mismatch_text
 
     visualized_dir = tmp_path / "visualized"
     assert (
