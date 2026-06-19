@@ -226,7 +226,12 @@ def compare_results(
 ) -> ResultComparison:
     """Compare two Calibrex result files without changing either result."""
 
-    metric_comparisons = _compare_metrics(left.metrics, right.metrics)
+    protocol_compatibility = _compare_protocol_compatibility(left, right)
+    metric_comparisons = _compare_metrics(
+        left.metrics,
+        right.metrics,
+        protocol_compatibility=protocol_compatibility,
+    )
     transform_groups = {
         "transforms": _compare_transform_group("transforms", left.transforms, right.transforms),
         "candidate_extrinsics": _compare_transform_group(
@@ -242,7 +247,11 @@ def compare_results(
     }
     metric_families = _metric_family_comparisons(metric_comparisons)
     summary = _comparison_summary(metric_comparisons, transform_groups)
-    evidence_comparisons = _compare_evidence_summaries(left, right)
+    evidence_comparisons = _compare_evidence_summaries(
+        left,
+        right,
+        protocol_compatibility=protocol_compatibility,
+    )
 
     return ResultComparison(
         left=_side(left, left_path),
@@ -254,7 +263,7 @@ def compare_results(
         only_right_metrics=sorted(set(right.metrics) - set(left.metrics)),
         transform_groups=transform_groups,
         observability=_compare_observability(left, right),
-        protocol_compatibility=_compare_protocol_compatibility(left, right),
+        protocol_compatibility=protocol_compatibility,
         evidence_comparisons=evidence_comparisons,
         left_degeneracy_grade=left.degeneracy.grade,
         right_degeneracy_grade=right.degeneracy.grade,
@@ -286,6 +295,8 @@ def _side(result: CalibrationResult, path: str | Path | None) -> ComparisonSide:
 def _compare_metrics(
     left_metrics: dict[str, MetricResult],
     right_metrics: dict[str, MetricResult],
+    *,
+    protocol_compatibility: EvidenceProtocolCompatibility,
 ) -> dict[str, MetricComparison]:
     comparisons: dict[str, MetricComparison] = {}
     for name in sorted(set(left_metrics) & set(right_metrics)):
@@ -296,7 +307,11 @@ def _compare_metrics(
         right_value = _metric_value(right, preferred_field)
         delta = None if left_value is None or right_value is None else right_value - left_value
         preference = _metric_preference(name)
-        winner = _metric_winner(left_value, right_value, preference)
+        winner = (
+            "not_comparable"
+            if _metric_blocked_by_protocol(name, protocol_compatibility)
+            else _metric_winner(left_value, right_value, preference)
+        )
         comparisons[name] = MetricComparison(
             name=name,
             family=metric_family(name),
@@ -311,6 +326,16 @@ def _compare_metrics(
             winner=winner,
         )
     return comparisons
+
+
+def _metric_blocked_by_protocol(
+    name: str,
+    protocol_compatibility: EvidenceProtocolCompatibility,
+) -> bool:
+    return (
+        name.startswith("lidar_pair_")
+        and protocol_compatibility.status != "compatible"
+    )
 
 
 def _metric_side(metric: MetricResult) -> MetricSide:
@@ -344,6 +369,8 @@ def _metric_value(metric: MetricResult, field: MetricValueField) -> float | None
 
 def _metric_preference(name: str) -> MetricPreference:
     if name.startswith("lidar_pair_known_bad_") and "delta" in name:
+        return "higher"
+    if "support_ratio" in name:
         return "higher"
     lower_tokens = (
         "rmse",
@@ -519,6 +546,8 @@ def _compare_observability(
 def _compare_evidence_summaries(
     left: CalibrationResult,
     right: CalibrationResult,
+    *,
+    protocol_compatibility: EvidenceProtocolCompatibility,
 ) -> list[EvidenceSummaryComparison]:
     left_items = _evidence_items_by_key(evidence_summaries_from_result(left))
     right_items = _evidence_items_by_key(evidence_summaries_from_result(right))
@@ -532,7 +561,11 @@ def _compare_evidence_summaries(
                 check=check,
                 left=_evidence_side(left_item),
                 right=_evidence_side(right_item),
-                winner=_evidence_winner(left_item, right_item),
+                winner=_evidence_winner(
+                    left_item,
+                    right_item,
+                    protocol_compatibility=protocol_compatibility,
+                ),
             )
         )
     return comparisons
@@ -558,8 +591,12 @@ def _evidence_side(item: EvidenceSummaryItem | None) -> EvidenceSummarySide | No
 def _evidence_winner(
     left: EvidenceSummaryItem | None,
     right: EvidenceSummaryItem | None,
+    *,
+    protocol_compatibility: EvidenceProtocolCompatibility,
 ) -> ComparisonWinner:
     if left is None or right is None:
+        return "not_comparable"
+    if left.family == "lidar_pair" and protocol_compatibility.status != "compatible":
         return "not_comparable"
     left_rank = _grade_rank(left.status)
     right_rank = _grade_rank(right.status)

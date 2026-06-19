@@ -157,14 +157,14 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
     assert round(metric.delta_right_minus_left or 0.0, 6) == -0.03
     assert metric.preference == "lower"
     assert metric.winner == "right"
-    assert comparison.metric_families["lidar"].right_better_count == 3
+    assert comparison.metric_families["lidar"].right_better_count == 1
     known_bad_delta = comparison.metrics["lidar_pair_known_bad_centroid_rmse_delta_max_m"]
     assert known_bad_delta.preference == "higher"
-    assert known_bad_delta.winner == "right"
+    assert known_bad_delta.winner == "not_comparable"
     evidence = {(item.family, item.check): item for item in comparison.evidence_comparisons}
-    assert evidence[("lidar_pair", "Candidate Support")].winner == "right"
-    assert evidence[("lidar_pair", "Known-Bad Controls")].winner == "right"
-    assert evidence[("lidar_pair", "Decision Boundary")].winner == "right"
+    assert evidence[("lidar_pair", "Candidate Support")].winner == "not_comparable"
+    assert evidence[("lidar_pair", "Known-Bad Controls")].winner == "not_comparable"
+    assert evidence[("lidar_pair", "Decision Boundary")].winner == "not_comparable"
     transform = comparison.transform_groups["transforms"].comparisons[0]
     assert round(transform.translation_delta_m, 6) == 0.1
     assert transform.rotation_delta_deg == 0.0
@@ -185,6 +185,12 @@ def test_compare_results_reports_protocol_compatibility() -> None:
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+        metrics={
+            "lidar_pair_holdout_point_to_plane_support_ratio": MetricResult(
+                value=0.70,
+                grade="pass",
+            )
+        },
     )
     right = CalibrationResult(
         run=RunInfo(
@@ -193,6 +199,12 @@ def test_compare_results_reports_protocol_compatibility() -> None:
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+        metrics={
+            "lidar_pair_holdout_point_to_plane_support_ratio": MetricResult(
+                value=0.80,
+                grade="pass",
+            )
+        },
     )
 
     comparison = compare_results(left, right)
@@ -206,6 +218,10 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         "livox_pair_support:train=base:holdout=target:eligible_points=1000:"
         "voxel_m=1:gate_m=1.5"
     )
+    assert (
+        comparison.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
+        == "right"
+    )
 
     support_changed = CalibrationResult(
         run=RunInfo(
@@ -214,6 +230,12 @@ def test_compare_results_reports_protocol_compatibility() -> None:
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+        metrics={
+            "lidar_pair_holdout_point_to_plane_support_ratio": MetricResult(
+                value=0.95,
+                grade="pass",
+            )
+        },
     )
     support_changed.run.provenance["livox_pair_evidence"]["holdout_geometry"][
         "support_population_id"
@@ -231,6 +253,10 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         "livox_pair_support:train=base:holdout=other:eligible_points=1000:"
         "voxel_m=1:gate_m=1.5)"
     ]
+    assert (
+        support_mismatch.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
+        == "not_comparable"
+    )
 
     right.run.provenance["metrics_origin"] = "recomputed"
     mixed = compare_results(left, right)
