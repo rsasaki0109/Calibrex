@@ -21,24 +21,19 @@ jobs:
         run: |
           calibrex schema all --output-dir /tmp/calibrex-schemas
           test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
-      - name: Build package
-        run: python -m build
+      - name: Local release smoke
+        run: |
+          python tools/local_release_smoke.py \
+            --venv /tmp/calibrex-wheel-smoke \
+            --build-env /tmp/calibrex-wheel-build \
+            --schema-dir /tmp/calibrex-wheel-schemas \
+            --report-dir /tmp/calibrex-wheel-report
       - name: Upload package artifacts
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: calibrex-dist
           path: dist/*
-      - name: Wheel install smoke
-        run: |
-          python -m venv /tmp/calibrex-wheel-smoke
-          /tmp/calibrex-wheel-smoke/bin/python -m pip install dist/*.whl
-          /tmp/calibrex-wheel-smoke/bin/calibrex doctor --json
-          /tmp/calibrex-wheel-smoke/bin/calibrex schema all --output-dir /tmp/calibrex-wheel-schemas
-          test "$(find /tmp/calibrex-wheel-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
-          /tmp/calibrex-wheel-smoke/bin/calibrex validate examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --kind result --json
-          /tmp/calibrex-wheel-smoke/bin/calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --output-dir /tmp/calibrex-wheel-report --json
-          /tmp/calibrex-wheel-smoke/bin/calibrex validate /tmp/calibrex-wheel-report/evidence.json --kind report-evidence --json
       - name: Test
         run: pytest
       - name: Ruff

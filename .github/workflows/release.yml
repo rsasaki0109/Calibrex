@@ -17,20 +17,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install build tools
-        run: python -m pip install -e ".[dev]"
-      - name: Build package
-        run: python -m build
-      - name: Wheel install smoke
-        run: |
-          python -m venv /tmp/calibrex-release-smoke
-          /tmp/calibrex-release-smoke/bin/python -m pip install dist/*.whl
-          /tmp/calibrex-release-smoke/bin/calibrex doctor --json
-          /tmp/calibrex-release-smoke/bin/calibrex schema all --output-dir /tmp/calibrex-release-schemas
-          test "$(find /tmp/calibrex-release-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
-          /tmp/calibrex-release-smoke/bin/calibrex validate examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --kind result --json
-          /tmp/calibrex-release-smoke/bin/calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --output-dir /tmp/calibrex-release-report --json
-          /tmp/calibrex-release-smoke/bin/calibrex validate /tmp/calibrex-release-report/evidence.json --kind report-evidence --json
+      - name: Local release smoke
+        run: python tools/local_release_smoke.py
       - name: Create draft GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
