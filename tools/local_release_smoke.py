@@ -73,9 +73,40 @@ def main() -> int:
         [
             str(smoke_calibrex),
             "validate",
+            str(args.report_dir / "summary.json"),
+            "--kind",
+            "report-summary",
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "validate",
             str(args.report_dir / "evidence.json"),
             "--kind",
             "report-evidence",
+            "--json",
+        ]
+    )
+    comparison_path = args.report_dir / "comparison.json"
+    _run(
+        [
+            str(smoke_calibrex),
+            "compare",
+            str(CACHED_EVIDENCE_RESULT),
+            str(CACHED_EVIDENCE_RESULT),
+            "--output",
+            str(comparison_path),
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "validate",
+            str(comparison_path),
+            "--kind",
+            "comparison",
             "--json",
         ]
     )
