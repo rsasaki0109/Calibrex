@@ -16,3 +16,5 @@ Start with:
 - `schemas/report_evidence.schema.json`
 - `schemas/dataset_manifest.schema.json`
 - `docs/adr/0001-core-is-ros-independent.md`
+
+Regenerate committed schemas with `calibrex schema all --output-dir schemas`.

@@ -383,6 +383,7 @@ def test_visualize_reference_result_writes_3d_rig_overlay(
 
 
 def test_schema_commands(tmp_path: Path) -> None:
+    all_schema_dir = tmp_path / "all_schemas"
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"
     comparison_schema = tmp_path / "comparison.schema.json"
@@ -392,6 +393,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     report_observability_schema = tmp_path / "report_observability.schema.json"
     report_degeneracy_schema = tmp_path / "report_degeneracy.schema.json"
     report_evidence_schema = tmp_path / "report_evidence.schema.json"
+    assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
     assert main(["schema", "comparison", "--output", str(comparison_schema)]) == 0
@@ -413,6 +415,18 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert report_observability_schema.exists()
     assert report_degeneracy_schema.exists()
     assert report_evidence_schema.exists()
+    for filename in [
+        "config.schema.json",
+        "result.schema.json",
+        "comparison.schema.json",
+        "dataset_manifest.schema.json",
+        "report_summary.schema.json",
+        "report_metrics.schema.json",
+        "report_observability.schema.json",
+        "report_degeneracy.schema.json",
+        "report_evidence.schema.json",
+    ]:
+        assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
     comparison_schema_payload = json.loads(comparison_schema.read_text(encoding="utf-8"))
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
@@ -428,6 +442,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     )
     assert evidence_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.evidence/v0.1"
+    )
+    assert json.loads((all_schema_dir / "comparison.schema.json").read_text(encoding="utf-8")) == (
+        comparison_schema_payload
     )
 
 

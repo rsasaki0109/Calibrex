@@ -22,7 +22,6 @@ from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import write_mapping
 from calibrex.core.report_artifacts import (
-    is_report_artifact_schema_kind,
     report_artifact_json_schema,
     report_artifact_schema_kinds,
 )
@@ -85,9 +84,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "comparison",
             "dataset-manifest",
             *report_artifact_schema_kinds(),
+            "all",
         ],
     )
     schema.add_argument("--output", type=Path, help="write schema to a file")
+    schema.add_argument("--output-dir", type=Path, help="write all schemas to a directory")
     schema.set_defaults(func=_cmd_schema)
 
     validate = subcommands.add_parser("validate", help="validate a Calibrex artifact")
@@ -257,23 +258,50 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def _cmd_schema(args: argparse.Namespace) -> int:
-    if args.kind == "config":
-        schema = config_json_schema()
-    elif args.kind == "result":
-        schema = result_json_schema()
-    elif args.kind == "comparison":
-        schema = comparison_json_schema()
-    elif args.kind == "dataset-manifest":
-        schema = manifest_json_schema()
-    elif is_report_artifact_schema_kind(args.kind):
-        schema = report_artifact_json_schema(args.kind)
-    else:
+    generators = _schema_generators()
+    if args.kind == "all":
+        if args.output is not None:
+            _die("schema all does not support --output; use --output-dir")
+        if args.output_dir is None:
+            _die("schema all requires --output-dir")
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        for kind, all_schema_generator in generators.items():
+            write_mapping(args.output_dir / _schema_filename(kind), all_schema_generator())
+        return 0
+    if args.output_dir is not None:
+        _die("--output-dir is only valid with schema all")
+    schema_generator = generators.get(args.kind)
+    if schema_generator is None:
         _die(f"unsupported schema kind: {args.kind}")
+    schema = schema_generator()
     if args.output:
         write_mapping(args.output, schema)
     else:
         print(json.dumps(schema, indent=2, sort_keys=True))
     return 0
+
+
+def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
+    generators: dict[str, Callable[[], dict[str, Any]]] = {
+        "config": config_json_schema,
+        "result": result_json_schema,
+        "comparison": comparison_json_schema,
+        "dataset-manifest": manifest_json_schema,
+    }
+    for kind in report_artifact_schema_kinds():
+        generators[kind] = _report_artifact_schema_generator(kind)
+    return generators
+
+
+def _report_artifact_schema_generator(kind: str) -> Callable[[], dict[str, Any]]:
+    def generate_schema() -> dict[str, Any]:
+        return report_artifact_json_schema(kind)
+
+    return generate_schema
+
+
+def _schema_filename(kind: str) -> str:
+    return f"{kind.replace('-', '_')}.schema.json"
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:
