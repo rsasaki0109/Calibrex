@@ -7,8 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
+from pydantic import Field
+
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.report_artifacts import ReportEvidenceArtifact
 from calibrex.core.result import StrictModel
 
 EVIDENCE_BUNDLE_SCHEMA_VERSION: Literal["calibrex.evidence_bundle/v0.1"] = (
@@ -58,6 +61,7 @@ class EvidenceBundleVerification(StrictModel):
     issues: list[str]
     artifact_count: int
     checked_artifacts: list[str]
+    checked_input_files: list[str] = Field(default_factory=list)
 
 
 def evidence_bundle_json_schema() -> dict[str, Any]:
@@ -146,6 +150,11 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
                 primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
                 issues=issues,
             )
+    checked_input_files = _verify_primary_evidence_input_files(
+        base_dir=base_dir,
+        primary_evidence_path=manifest.primary_evidence_path,
+        issues=issues,
+    )
     return EvidenceBundleVerification(
         path=str(bundle_path),
         valid=not issues,
@@ -153,6 +162,7 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         issues=issues,
         artifact_count=len(manifest.artifacts),
         checked_artifacts=checked,
+        checked_input_files=checked_input_files,
     )
 
 
@@ -271,3 +281,53 @@ def _verify_assessment_source(
             f"{artifact.path}: source evidence sha256 mismatch "
             f"({observed_digest!r} != {primary_evidence_sha256!r})"
         )
+
+
+def _verify_primary_evidence_input_files(
+    *,
+    base_dir: Path,
+    primary_evidence_path: str,
+    issues: list[str],
+) -> list[str]:
+    evidence_path = _resolve_artifact_path(base_dir, primary_evidence_path)
+    if not evidence_path.exists():
+        return []
+    try:
+        evidence = ReportEvidenceArtifact.model_validate(read_mapping(evidence_path))
+    except Exception as exc:
+        issues.append(f"{primary_evidence_path}: invalid evidence artifact ({exc})")
+        return []
+    checked: list[str] = []
+    evidence_dir = evidence_path.parent
+    for input_file in evidence.input_files:
+        checked.append(input_file.path)
+        path = _resolve_input_file_path(
+            bundle_dir=base_dir,
+            evidence_dir=evidence_dir,
+            path=input_file.path,
+        )
+        if not path.exists():
+            issues.append(f"{primary_evidence_path}: input file {input_file.path}: missing")
+            continue
+        digest, size_bytes = _sha256_file(path)
+        if input_file.sha256 is not None and digest != input_file.sha256:
+            issues.append(
+                f"{primary_evidence_path}: input file {input_file.path}: sha256 mismatch"
+            )
+        if input_file.size_bytes is not None and size_bytes != input_file.size_bytes:
+            issues.append(
+                f"{primary_evidence_path}: input file {input_file.path}: size mismatch"
+            )
+    return checked
+
+
+def _resolve_input_file_path(*, bundle_dir: Path, evidence_dir: Path, path: str) -> Path:
+    input_path = Path(path)
+    if input_path.is_absolute():
+        return input_path
+    if input_path.exists():
+        return input_path
+    bundle_relative = bundle_dir / input_path
+    if bundle_relative.exists():
+        return bundle_relative
+    return evidence_dir / input_path

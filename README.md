@@ -99,7 +99,9 @@ Report sidecars record evidence materialization:
 quality gates to a result. Cached inputs emit CLI and HTML warnings, and
 `calibrex assess evidence.json` applies the falsification policy. `calibrex
 compare` shows materialization for both sides. `bundle.json` records artifact
-SHA-256 digests and can be checked with `calibrex verify bundle.json`.
+SHA-256 digests and can be checked with `calibrex verify bundle.json`. When
+`evidence.json.input_files` is present, `verify` also checks those raw input
+file sizes and digests.
 
 Committed JSON schemas are regenerated with:
 

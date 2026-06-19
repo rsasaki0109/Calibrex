@@ -1355,6 +1355,15 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert evidence["materialization"]["data_verified"] is True
     assert len(evidence["input_files"]) == 2
     assert main(["verify", str(output_dir / "bundle.json"), "--json"]) == 0
+    verify_payload = json.loads(capsys.readouterr().out)
+    assert len(verify_payload["checked_input_files"]) == 2
+
+    with (dataset_path / "base_horizon_100432.pcd").open("ab") as stream:
+        stream.write(b"\n")
+    assert main(["verify", str(output_dir / "bundle.json"), "--json"]) == 1
+    tampered_payload = json.loads(capsys.readouterr().out)
+    assert any("input file" in issue for issue in tampered_payload["issues"])
+    assert any("sha256 mismatch" in issue for issue in tampered_payload["issues"])
 
 
 def test_compile_command(tmp_path: Path) -> None:
