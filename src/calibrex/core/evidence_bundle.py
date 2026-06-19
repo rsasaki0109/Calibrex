@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -165,7 +166,7 @@ def write_evidence_bundle(
 def load_evidence_bundle(path: str | Path) -> EvidenceBundleManifest:
     """Load and validate an evidence bundle manifest."""
 
-    bundle_path = Path(path)
+    bundle_path = Path(path).resolve()
     try:
         return EvidenceBundleManifest.model_validate(read_mapping(bundle_path))
     except Exception as exc:
@@ -179,7 +180,7 @@ def verify_evidence_bundle(
 ) -> EvidenceBundleVerification:
     """Verify artifact digests and basic run consistency for an evidence bundle."""
 
-    bundle_path = Path(path)
+    bundle_path = Path(path).resolve()
     manifest = load_evidence_bundle(bundle_path)
     bundle_sha256, bundle_size_bytes = _sha256_file(bundle_path)
     base_dir = bundle_path.parent
@@ -346,7 +347,7 @@ def verify_evidence_bundle_verification(
 ) -> EvidenceBundleVerification:
     """Verify a saved verification artifact against its source bundle."""
 
-    verification_path = Path(path)
+    verification_path = Path(path).resolve()
     try:
         saved = EvidenceBundleVerification.model_validate(read_mapping(verification_path))
     except Exception as exc:
@@ -371,9 +372,12 @@ def verify_evidence_bundle_verification(
         issues=issues,
         verification_claims=verification_claims,
     )
+    source_bundle = recomputed.source_bundle.model_copy(
+        update={"path": saved.source_bundle.path}
+    )
     return EvidenceBundleVerification(
         path=str(verification_path),
-        source_bundle=recomputed.source_bundle,
+        source_bundle=source_bundle,
         valid=not issues,
         issue_count=len(issues),
         issues=issues,
@@ -387,6 +391,37 @@ def verify_evidence_bundle_verification(
         verification_summary=_verification_claim_summary(verification_claims),
         verification_claims=verification_claims,
     )
+
+
+def write_evidence_bundle_verification(
+    output_path: str | Path,
+    verification: EvidenceBundleVerification,
+    *,
+    source_bundle_path: str | Path | None = None,
+) -> EvidenceBundleVerification:
+    """Write a verification artifact using paths portable from its directory."""
+
+    verification_path = Path(output_path)
+    verification_path.parent.mkdir(parents=True, exist_ok=True)
+    bundle_path = (
+        Path(source_bundle_path)
+        if source_bundle_path is not None
+        else Path(verification.source_bundle.path)
+    )
+    portable_source_bundle = verification.source_bundle.model_copy(
+        update={"path": _portable_path(verification_path.parent, bundle_path)}
+    )
+    portable_verification = verification.model_copy(
+        update={
+            "path": _portable_path(verification_path.parent, verification_path),
+            "source_bundle": portable_source_bundle,
+        }
+    )
+    write_mapping(
+        verification_path,
+        portable_verification.model_dump(mode="json"),
+    )
+    return portable_verification
 
 
 def _bundle_artifact(
@@ -409,6 +444,11 @@ def _portable_path(base_dir: Path, path: Path) -> str:
     try:
         return str(path.relative_to(base_dir))
     except ValueError:
+        if path.is_absolute() and base_dir.is_absolute():
+            try:
+                return os.path.relpath(path, base_dir)
+            except ValueError:
+                pass
         return str(path)
 
 

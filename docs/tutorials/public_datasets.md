@@ -92,7 +92,8 @@ evidence `metrics_origin` / `data_verified` values under
 `primary_evidence_materialization`. You can also pass the saved
 `verification.json` back to `calibrex verify`; Calibrex recomputes the source
 bundle check and reports `verification_record` claims if the saved record is
-stale or edited.
+stale or edited. Saved verification artifacts use relative `source_bundle`
+paths when the bundle is colocated with, or near, the verification file.
 Derived sidecars such as `summary.json`, `metrics.json`, `observability.json`,
 and `degeneracy.json` also include `source_evidence` so reviewers can verify
 which immutable `evidence.json` they summarize.

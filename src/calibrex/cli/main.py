@@ -29,6 +29,7 @@ from calibrex.core.evidence_bundle import (
     evidence_bundle_verification_json_schema,
     verify_evidence_bundle,
     verify_evidence_bundle_verification,
+    write_evidence_bundle_verification,
 )
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
@@ -398,8 +399,18 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 def _cmd_verify(args: argparse.Namespace) -> int:
     artifact = Path(args.artifact)
-    schema_version = read_mapping(artifact).get("schema_version")
+    artifact_payload = read_mapping(artifact)
+    schema_version = artifact_payload.get("schema_version")
+    source_bundle_path: Path | str = artifact
     if schema_version == "calibrex.evidence_bundle.verification/v0.1":
+        source_bundle_ref = artifact_payload.get("source_bundle")
+        if isinstance(source_bundle_ref, dict):
+            source_bundle_path_value = source_bundle_ref.get("path")
+            if isinstance(source_bundle_path_value, str):
+                source_bundle_path = _resolve_related_artifact_path(
+                    artifact.parent,
+                    source_bundle_path_value,
+                )
         report = verify_evidence_bundle_verification(
             artifact,
             require_raw_recomputed=args.require_raw_recomputed,
@@ -411,12 +422,24 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         )
     payload = report.model_dump(mode="json")
     if args.output:
-        write_mapping(args.output, payload)
+        report = write_evidence_bundle_verification(
+            args.output,
+            report,
+            source_bundle_path=source_bundle_path,
+        )
+        payload = report.model_dump(mode="json")
     if args.json:
         _emit(payload, True)
     else:
         _emit_verification(report)
     return 0 if report.valid else 1
+
+
+def _resolve_related_artifact_path(base_dir: Path, path: str) -> Path:
+    artifact_path = Path(path)
+    if artifact_path.is_absolute():
+        return artifact_path
+    return base_dir / artifact_path
 
 
 def _cmd_assess(args: argparse.Namespace) -> int:
@@ -687,7 +710,11 @@ def _cmd_demo_livox_evidence(args: argparse.Namespace) -> int:
     assessment = AssessmentArtifact.model_validate(read_mapping(assessment_path))
     verification = verify_evidence_bundle(bundle_path, require_raw_recomputed=True)
     verification_path = output_dir / "verification.json"
-    write_mapping(verification_path, verification.model_dump(mode="json"))
+    verification = write_evidence_bundle_verification(
+        verification_path,
+        verification,
+        source_bundle_path=bundle_path,
+    )
     payload = {
         "status": "ok" if verification.valid else "invalid_bundle",
         "dataset": str(dataset_path),

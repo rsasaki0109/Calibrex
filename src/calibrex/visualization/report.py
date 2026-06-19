@@ -17,6 +17,7 @@ from calibrex.core.evidence_bundle import (
     BundleArtifactKind,
     verify_evidence_bundle,
     write_evidence_bundle,
+    write_evidence_bundle_verification,
 )
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
@@ -342,7 +343,11 @@ def write_report_artifacts(
         artifacts=_bundle_artifacts(output_path, written, include_html=include_html),
     )
     verification = verify_evidence_bundle(output_path / _REPORT_BUNDLE_FILENAME)
-    write_mapping(output_path / _VERIFICATION_FILENAME, verification.model_dump(mode="json"))
+    write_evidence_bundle_verification(
+        output_path / _VERIFICATION_FILENAME,
+        verification,
+        source_bundle_path=output_path / _REPORT_BUNDLE_FILENAME,
+    )
 
     return written
 

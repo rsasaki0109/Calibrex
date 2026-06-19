@@ -102,8 +102,10 @@ compare` shows materialization for both sides. `bundle.json` records artifact
 SHA-256 digests and can be checked with `calibrex verify bundle.json`; report
 outputs also include `verification.json` with that check materialized.
 `calibrex verify verification.json` recomputes the source bundle check and
-detects stale or edited verification records. When `evidence.json.input_files`
-is present, `verify` also checks those raw input file sizes and digests.
+detects stale or edited verification records. Saved verification artifacts use
+relative paths to colocated bundles where possible. When
+`evidence.json.input_files` is present, `verify` also checks those raw input
+file sizes and digests.
 
 Committed JSON schemas are regenerated with:
 

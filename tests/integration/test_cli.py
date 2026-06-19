@@ -361,9 +361,10 @@ def test_calibrate_evaluate_visualize_export(
     )
     verify_payload = json.loads(capsys.readouterr().out)
     assert verify_payload["schema_version"] == "calibrex.evidence_bundle.verification/v0.1"
+    assert verify_payload["path"] == "verification.json"
     bundle_sha256, bundle_size = _sha256_file_for_test(tmp_path / "bundle.json")
     assert verify_payload["source_bundle"] == {
-        "path": str(tmp_path / "bundle.json"),
+        "path": "bundle.json",
         "sha256": bundle_sha256,
         "size_bytes": bundle_size,
         "schema_version": "calibrex.evidence_bundle/v0.1",
@@ -405,6 +406,7 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["verify", str(verification_path), "--json"]) == 0
     saved_verify_payload = json.loads(capsys.readouterr().out)
     assert saved_verify_payload["path"] == str(verification_path)
+    assert saved_verify_payload["source_bundle"]["path"] == "bundle.json"
     saved_verify_scopes = saved_verify_payload["verification_summary"]["by_scope"]
     assert saved_verify_scopes["verification_record"] == 2
     assert any(
@@ -413,6 +415,25 @@ def test_calibrate_evaluate_visualize_export(
         and claim["status"] == "ok"
         for claim in saved_verify_payload["verification_claims"]
     )
+    nested_verification_path = tmp_path / "nested" / "verification-copy.json"
+    assert (
+        main(
+            [
+                "verify",
+                str(verification_path),
+                "--output",
+                str(nested_verification_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    nested_verify_payload = json.loads(capsys.readouterr().out)
+    assert nested_verify_payload["path"] == "verification-copy.json"
+    assert nested_verify_payload["source_bundle"]["path"] == "../bundle.json"
+    assert main(["verify", str(nested_verification_path), "--json"]) == 0
+    nested_saved_payload = json.loads(capsys.readouterr().out)
+    assert nested_saved_payload["source_bundle"]["path"] == "../bundle.json"
     saved_verification = json.loads(verification_path.read_text(encoding="utf-8"))
     saved_verification["valid"] = False
     write_mapping(verification_path, saved_verification)
