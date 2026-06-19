@@ -65,7 +65,9 @@ score useful known-bad controls while still returning `INCONCLUSIVE` because raw
 observations were not recomputed or the holdout split is not independent.
 `calibrex verify` checks those digests and catches stale or mixed report
 artifacts. For raw recomputation artifacts with `input_files`, it also checks
-the referenced raw file sizes and SHA-256 digests.
+the referenced raw file sizes and SHA-256 digests. The verify JSON includes
+`input_file_count`, `checked_input_file_count`, and `checked_input_files`;
+cached report fixtures normally report zero input files.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports

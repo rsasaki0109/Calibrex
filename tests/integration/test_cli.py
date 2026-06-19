@@ -336,8 +336,12 @@ def test_calibrate_evaluate_visualize_export(
     )
     assert main(["validate", str(tmp_path / "assessment.json"), "--kind", "assessment"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
-    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 0
     capsys.readouterr()
+    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 0
+    verify_payload = json.loads(capsys.readouterr().out)
+    assert verify_payload["input_file_count"] == 0
+    assert verify_payload["checked_input_file_count"] == 0
+    assert verify_payload["checked_input_files"] == []
 
     summary["run"]["id"] = "other-run"
     summary_path = tmp_path / "summary.json"
@@ -1390,6 +1394,8 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert "EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION" not in report_html
     assert main(["verify", str(output_dir / "bundle.json"), "--json"]) == 0
     verify_payload = json.loads(capsys.readouterr().out)
+    assert verify_payload["input_file_count"] == 2
+    assert verify_payload["checked_input_file_count"] == 2
     assert len(verify_payload["checked_input_files"]) == 2
 
     with (dataset_path / "base_horizon_100432.pcd").open("ab") as stream:

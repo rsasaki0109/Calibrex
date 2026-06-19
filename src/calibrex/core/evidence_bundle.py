@@ -61,6 +61,8 @@ class EvidenceBundleVerification(StrictModel):
     issues: list[str]
     artifact_count: int
     checked_artifacts: list[str]
+    input_file_count: int = Field(default=0, ge=0)
+    checked_input_file_count: int = Field(default=0, ge=0)
     checked_input_files: list[str] = Field(default_factory=list)
 
 
@@ -150,7 +152,7 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
                 primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
                 issues=issues,
             )
-    checked_input_files = _verify_primary_evidence_input_files(
+    input_file_count, checked_input_files = _verify_primary_evidence_input_files(
         base_dir=base_dir,
         primary_evidence_path=manifest.primary_evidence_path,
         issues=issues,
@@ -162,6 +164,8 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         issues=issues,
         artifact_count=len(manifest.artifacts),
         checked_artifacts=checked,
+        input_file_count=input_file_count,
+        checked_input_file_count=len(checked_input_files),
         checked_input_files=checked_input_files,
     )
 
@@ -288,15 +292,15 @@ def _verify_primary_evidence_input_files(
     base_dir: Path,
     primary_evidence_path: str,
     issues: list[str],
-) -> list[str]:
+) -> tuple[int, list[str]]:
     evidence_path = _resolve_artifact_path(base_dir, primary_evidence_path)
     if not evidence_path.exists():
-        return []
+        return 0, []
     try:
         evidence = ReportEvidenceArtifact.model_validate(read_mapping(evidence_path))
     except Exception as exc:
         issues.append(f"{primary_evidence_path}: invalid evidence artifact ({exc})")
-        return []
+        return 0, []
     checked: list[str] = []
     evidence_dir = evidence_path.parent
     for input_file in evidence.input_files:
@@ -318,7 +322,7 @@ def _verify_primary_evidence_input_files(
             issues.append(
                 f"{primary_evidence_path}: input file {input_file.path}: size mismatch"
             )
-    return checked
+    return len(evidence.input_files), checked
 
 
 def _resolve_input_file_path(*, bundle_dir: Path, evidence_dir: Path, path: str) -> Path:
