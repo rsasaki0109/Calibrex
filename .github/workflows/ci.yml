@@ -36,6 +36,9 @@ jobs:
           /tmp/calibrex-wheel-smoke/bin/calibrex doctor --json
           /tmp/calibrex-wheel-smoke/bin/calibrex schema all --output-dir /tmp/calibrex-wheel-schemas
           test "$(find /tmp/calibrex-wheel-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
+          /tmp/calibrex-wheel-smoke/bin/calibrex validate examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --kind result --json
+          /tmp/calibrex-wheel-smoke/bin/calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --output-dir /tmp/calibrex-wheel-report --json
+          /tmp/calibrex-wheel-smoke/bin/calibrex validate /tmp/calibrex-wheel-report/evidence.json --kind report-evidence --json
       - name: Test
         run: pytest
       - name: Ruff
