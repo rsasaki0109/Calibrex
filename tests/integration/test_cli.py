@@ -342,6 +342,12 @@ def test_calibrate_evaluate_visualize_export(
     assert verify_payload["input_file_count"] == 0
     assert verify_payload["checked_input_file_count"] == 0
     assert verify_payload["checked_input_files"] == []
+    assert any(
+        claim["scope"] == "input_file_digest"
+        and claim["status"] == "skipped"
+        and claim["observed"]["input_file_count"] == 0
+        for claim in verify_payload["verification_claims"]
+    )
 
     summary["run"]["id"] = "other-run"
     summary_path = tmp_path / "summary.json"
@@ -356,6 +362,12 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 1
     mixed_payload = json.loads(capsys.readouterr().out)
     assert any("summary.json: run id mismatch" in issue for issue in mixed_payload["issues"])
+    assert any(
+        claim["scope"] == "run_consistency"
+        and claim["subject"] == "summary.json"
+        and claim["status"] == "failed"
+        for claim in mixed_payload["verification_claims"]
+    )
 
     (tmp_path / "summary.json").write_text(
         (tmp_path / "summary.json").read_text(encoding="utf-8") + " \n",
@@ -1397,6 +1409,13 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert verify_payload["input_file_count"] == 2
     assert verify_payload["checked_input_file_count"] == 2
     assert len(verify_payload["checked_input_files"]) == 2
+    input_claims = [
+        claim
+        for claim in verify_payload["verification_claims"]
+        if claim["scope"] == "input_file_digest"
+    ]
+    assert len(input_claims) == 2
+    assert {claim["status"] for claim in input_claims} == {"ok"}
 
     with (dataset_path / "base_horizon_100432.pcd").open("ab") as stream:
         stream.write(b"\n")
@@ -1404,6 +1423,12 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     tampered_payload = json.loads(capsys.readouterr().out)
     assert any("input file" in issue for issue in tampered_payload["issues"])
     assert any("sha256 mismatch" in issue for issue in tampered_payload["issues"])
+    assert any(
+        claim["scope"] == "input_file_digest"
+        and claim["status"] == "failed"
+        and "sha256 mismatch" in " ".join(claim["issues"])
+        for claim in tampered_payload["verification_claims"]
+    )
 
 
 def test_compile_command(tmp_path: Path) -> None:

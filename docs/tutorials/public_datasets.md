@@ -67,7 +67,10 @@ observations were not recomputed or the holdout split is not independent.
 artifacts. For raw recomputation artifacts with `input_files`, it also checks
 the referenced raw file sizes and SHA-256 digests. The verify JSON includes
 `input_file_count`, `checked_input_file_count`, and `checked_input_files`;
-cached report fixtures normally report zero input files.
+cached report fixtures normally report zero input files. It also includes
+`verification_claims`, where each claim records a scope, status, method,
+expected values, observed values, and scoped issues for artifact digests,
+run consistency, assessment source links, and raw input digests.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports

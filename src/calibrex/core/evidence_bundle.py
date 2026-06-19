@@ -27,6 +27,27 @@ BundleArtifactKind = Literal[
     "report-evidence",
     "unknown",
 ]
+VerificationClaimScope = Literal[
+    "bundle_manifest",
+    "artifact_digest",
+    "artifact_schema",
+    "run_consistency",
+    "assessment_source",
+    "input_file_digest",
+]
+VerificationClaimStatus = Literal["ok", "failed", "skipped"]
+
+
+class VerificationClaim(StrictModel):
+    """One machine-readable verification check performed on a bundle."""
+
+    scope: VerificationClaimScope
+    subject: str
+    status: VerificationClaimStatus
+    method: str
+    expected: dict[str, Any] = Field(default_factory=dict)
+    observed: dict[str, Any] = Field(default_factory=dict)
+    issues: list[str] = Field(default_factory=list)
 
 
 class EvidenceBundleArtifact(StrictModel):
@@ -64,6 +85,7 @@ class EvidenceBundleVerification(StrictModel):
     input_file_count: int = Field(default=0, ge=0)
     checked_input_file_count: int = Field(default=0, ge=0)
     checked_input_files: list[str] = Field(default_factory=list)
+    verification_claims: list[VerificationClaim] = Field(default_factory=list)
 
 
 def evidence_bundle_json_schema() -> dict[str, Any]:
@@ -114,35 +136,95 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
     manifest = load_evidence_bundle(bundle_path)
     base_dir = bundle_path.parent
     issues: list[str] = []
+    verification_claims: list[VerificationClaim] = []
     checked: list[str] = []
     artifact_paths = {artifact.path for artifact in manifest.artifacts}
     artifact_digests = {artifact.path: artifact.sha256 for artifact in manifest.artifacts}
     if manifest.primary_evidence_path not in artifact_paths:
-        issues.append(
+        issue = (
             f"primary evidence {manifest.primary_evidence_path!r} is not listed in artifacts"
+        )
+        issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="bundle_manifest",
+            subject=str(bundle_path),
+            status="failed",
+            method="primary_evidence_membership",
+            expected={"primary_evidence_path": manifest.primary_evidence_path},
+            observed={"artifact_paths": sorted(artifact_paths)},
+            issues=[issue],
+        )
+    else:
+        _append_claim(
+            verification_claims,
+            scope="bundle_manifest",
+            subject=str(bundle_path),
+            status="ok",
+            method="primary_evidence_membership",
+            expected={"primary_evidence_path": manifest.primary_evidence_path},
+            observed={"artifact_count": len(manifest.artifacts)},
         )
     for artifact in manifest.artifacts:
         checked.append(artifact.path)
         artifact_path = _resolve_artifact_path(base_dir, artifact.path)
         if not artifact_path.exists():
-            issues.append(f"{artifact.path}: missing artifact")
+            issue = f"{artifact.path}: missing artifact"
+            issues.append(issue)
+            _append_claim(
+                verification_claims,
+                scope="artifact_digest",
+                subject=artifact.path,
+                status="failed",
+                method="sha256_and_size",
+                expected={
+                    "sha256": artifact.sha256,
+                    "size_bytes": artifact.size_bytes,
+                },
+                observed={"exists": False},
+                issues=[issue],
+            )
             continue
         digest, size_bytes = _sha256_file(artifact_path)
+        digest_issues: list[str] = []
         if digest != artifact.sha256:
-            issues.append(f"{artifact.path}: sha256 mismatch")
+            issue = f"{artifact.path}: sha256 mismatch"
+            issues.append(issue)
+            digest_issues.append(issue)
         if size_bytes != artifact.size_bytes:
-            issues.append(f"{artifact.path}: size mismatch")
+            issue = f"{artifact.path}: size mismatch"
+            issues.append(issue)
+            digest_issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="artifact_digest",
+            subject=artifact.path,
+            status="ok" if not digest_issues else "failed",
+            method="sha256_and_size",
+            expected={
+                "sha256": artifact.sha256,
+                "size_bytes": artifact.size_bytes,
+            },
+            observed={
+                "exists": True,
+                "sha256": digest,
+                "size_bytes": size_bytes,
+            },
+            issues=digest_issues,
+        )
         if artifact.schema_version is not None:
             _verify_schema_version(
                 artifact=artifact,
                 artifact_path=artifact_path,
                 issues=issues,
+                verification_claims=verification_claims,
             )
         _verify_run_id(
             artifact=artifact,
             artifact_path=artifact_path,
             expected_run_id=manifest.run_id,
             issues=issues,
+            verification_claims=verification_claims,
         )
         if artifact.kind == "assessment":
             _verify_assessment_source(
@@ -151,11 +233,13 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
                 primary_evidence_path=manifest.primary_evidence_path,
                 primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
                 issues=issues,
+                verification_claims=verification_claims,
             )
     input_file_count, checked_input_files = _verify_primary_evidence_input_files(
         base_dir=base_dir,
         primary_evidence_path=manifest.primary_evidence_path,
         issues=issues,
+        verification_claims=verification_claims,
     )
     return EvidenceBundleVerification(
         path=str(bundle_path),
@@ -167,6 +251,7 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         input_file_count=input_file_count,
         checked_input_file_count=len(checked_input_files),
         checked_input_files=checked_input_files,
+        verification_claims=verification_claims,
     )
 
 
@@ -210,6 +295,30 @@ def _sha256_file(path: Path) -> tuple[str, int]:
     return digest.hexdigest(), size_bytes
 
 
+def _append_claim(
+    claims: list[VerificationClaim],
+    *,
+    scope: VerificationClaimScope,
+    subject: str,
+    status: VerificationClaimStatus,
+    method: str,
+    expected: dict[str, Any] | None = None,
+    observed: dict[str, Any] | None = None,
+    issues: list[str] | None = None,
+) -> None:
+    claims.append(
+        VerificationClaim(
+            scope=scope,
+            subject=subject,
+            status=status,
+            method=method,
+            expected=expected or {},
+            observed=observed or {},
+            issues=issues or [],
+        )
+    )
+
+
 def _schema_version(path: Path) -> str | None:
     if path.suffix.lower() not in {".json", ".yaml", ".yml"}:
         return None
@@ -225,13 +334,27 @@ def _verify_schema_version(
     artifact: EvidenceBundleArtifact,
     artifact_path: Path,
     issues: list[str],
+    verification_claims: list[VerificationClaim],
 ) -> None:
     observed = _schema_version(artifact_path)
+    claim_issues: list[str] = []
     if observed != artifact.schema_version:
-        issues.append(
+        issue = (
             f"{artifact.path}: schema_version mismatch "
             f"({observed!r} != {artifact.schema_version!r})"
         )
+        issues.append(issue)
+        claim_issues.append(issue)
+    _append_claim(
+        verification_claims,
+        scope="artifact_schema",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="schema_version_field",
+        expected={"schema_version": artifact.schema_version},
+        observed={"schema_version": observed},
+        issues=claim_issues,
+    )
 
 
 def _verify_run_id(
@@ -240,21 +363,62 @@ def _verify_run_id(
     artifact_path: Path,
     expected_run_id: str,
     issues: list[str],
+    verification_claims: list[VerificationClaim],
 ) -> None:
     if artifact.kind == "report-html":
+        _append_claim(
+            verification_claims,
+            scope="run_consistency",
+            subject=artifact.path,
+            status="skipped",
+            method="run_id_field",
+            expected={"run_id": expected_run_id},
+            observed={"reason": "html artifacts do not expose structured run metadata"},
+        )
         return
     try:
         payload = read_mapping(artifact_path)
     except Exception:
+        _append_claim(
+            verification_claims,
+            scope="run_consistency",
+            subject=artifact.path,
+            status="skipped",
+            method="run_id_field",
+            expected={"run_id": expected_run_id},
+            observed={"reason": "artifact could not be parsed as structured data"},
+        )
         return
     run = payload.get("run")
     if not isinstance(run, dict):
+        _append_claim(
+            verification_claims,
+            scope="run_consistency",
+            subject=artifact.path,
+            status="skipped",
+            method="run_id_field",
+            expected={"run_id": expected_run_id},
+            observed={"reason": "artifact has no run object"},
+        )
         return
     observed = run.get("id")
+    claim_issues: list[str] = []
     if observed != expected_run_id:
-        issues.append(
+        issue = (
             f"{artifact.path}: run id mismatch ({observed!r} != {expected_run_id!r})"
         )
+        issues.append(issue)
+        claim_issues.append(issue)
+    _append_claim(
+        verification_claims,
+        scope="run_consistency",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="run_id_field",
+        expected={"run_id": expected_run_id},
+        observed={"run_id": observed},
+        issues=claim_issues,
+    )
 
 
 def _verify_assessment_source(
@@ -264,27 +428,75 @@ def _verify_assessment_source(
     primary_evidence_path: str,
     primary_evidence_sha256: str | None,
     issues: list[str],
+    verification_claims: list[VerificationClaim],
 ) -> None:
     try:
         payload = read_mapping(artifact_path)
     except Exception:
+        _append_claim(
+            verification_claims,
+            scope="assessment_source",
+            subject=artifact.path,
+            status="skipped",
+            method="source_evidence_pointer",
+            expected={
+                "path": primary_evidence_path,
+                "sha256": primary_evidence_sha256,
+            },
+            observed={"reason": "assessment artifact could not be parsed"},
+        )
         return
     source = payload.get("source_evidence")
     if not isinstance(source, dict):
-        issues.append(f"{artifact.path}: missing source_evidence")
+        issue = f"{artifact.path}: missing source_evidence"
+        issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="assessment_source",
+            subject=artifact.path,
+            status="failed",
+            method="source_evidence_pointer",
+            expected={
+                "path": primary_evidence_path,
+                "sha256": primary_evidence_sha256,
+            },
+            observed={"source_evidence": None},
+            issues=[issue],
+        )
         return
     observed_path = source.get("path")
+    claim_issues: list[str] = []
     if observed_path is not None and observed_path != primary_evidence_path:
-        issues.append(
+        issue = (
             f"{artifact.path}: source evidence path mismatch "
             f"({observed_path!r} != {primary_evidence_path!r})"
         )
+        issues.append(issue)
+        claim_issues.append(issue)
     observed_digest = source.get("sha256")
     if primary_evidence_sha256 is not None and observed_digest != primary_evidence_sha256:
-        issues.append(
+        issue = (
             f"{artifact.path}: source evidence sha256 mismatch "
             f"({observed_digest!r} != {primary_evidence_sha256!r})"
         )
+        issues.append(issue)
+        claim_issues.append(issue)
+    _append_claim(
+        verification_claims,
+        scope="assessment_source",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="source_evidence_pointer",
+        expected={
+            "path": primary_evidence_path,
+            "sha256": primary_evidence_sha256,
+        },
+        observed={
+            "path": observed_path,
+            "sha256": observed_digest,
+        },
+        issues=claim_issues,
+    )
 
 
 def _verify_primary_evidence_input_files(
@@ -292,17 +504,45 @@ def _verify_primary_evidence_input_files(
     base_dir: Path,
     primary_evidence_path: str,
     issues: list[str],
+    verification_claims: list[VerificationClaim],
 ) -> tuple[int, list[str]]:
     evidence_path = _resolve_artifact_path(base_dir, primary_evidence_path)
     if not evidence_path.exists():
+        _append_claim(
+            verification_claims,
+            scope="input_file_digest",
+            subject=primary_evidence_path,
+            status="skipped",
+            method="sha256_and_size",
+            observed={"reason": "primary evidence artifact is missing"},
+        )
         return 0, []
     try:
         evidence = ReportEvidenceArtifact.model_validate(read_mapping(evidence_path))
     except Exception as exc:
-        issues.append(f"{primary_evidence_path}: invalid evidence artifact ({exc})")
+        issue = f"{primary_evidence_path}: invalid evidence artifact ({exc})"
+        issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="input_file_digest",
+            subject=primary_evidence_path,
+            status="skipped",
+            method="sha256_and_size",
+            observed={"reason": "primary evidence artifact is invalid"},
+            issues=[issue],
+        )
         return 0, []
     checked: list[str] = []
     evidence_dir = evidence_path.parent
+    if not evidence.input_files:
+        _append_claim(
+            verification_claims,
+            scope="input_file_digest",
+            subject=primary_evidence_path,
+            status="skipped",
+            method="sha256_and_size",
+            observed={"input_file_count": 0},
+        )
     for input_file in evidence.input_files:
         checked.append(input_file.path)
         path = _resolve_input_file_path(
@@ -310,18 +550,54 @@ def _verify_primary_evidence_input_files(
             evidence_dir=evidence_dir,
             path=input_file.path,
         )
+        expected = {
+            "path": input_file.path,
+            "sha256": input_file.sha256,
+            "size_bytes": input_file.size_bytes,
+        }
+        claim_issues: list[str] = []
         if not path.exists():
-            issues.append(f"{primary_evidence_path}: input file {input_file.path}: missing")
+            issue = f"{primary_evidence_path}: input file {input_file.path}: missing"
+            issues.append(issue)
+            claim_issues.append(issue)
+            _append_claim(
+                verification_claims,
+                scope="input_file_digest",
+                subject=input_file.path,
+                status="failed",
+                method="sha256_and_size",
+                expected=expected,
+                observed={"exists": False},
+                issues=claim_issues,
+            )
             continue
         digest, size_bytes = _sha256_file(path)
         if input_file.sha256 is not None and digest != input_file.sha256:
-            issues.append(
+            issue = (
                 f"{primary_evidence_path}: input file {input_file.path}: sha256 mismatch"
             )
+            issues.append(issue)
+            claim_issues.append(issue)
         if input_file.size_bytes is not None and size_bytes != input_file.size_bytes:
-            issues.append(
+            issue = (
                 f"{primary_evidence_path}: input file {input_file.path}: size mismatch"
             )
+            issues.append(issue)
+            claim_issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="input_file_digest",
+            subject=input_file.path,
+            status="ok" if not claim_issues else "failed",
+            method="sha256_and_size",
+            expected=expected,
+            observed={
+                "exists": True,
+                "sha256": digest,
+                "size_bytes": size_bytes,
+            },
+            issues=claim_issues,
+        )
     return len(evidence.input_files), checked
 
 
