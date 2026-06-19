@@ -223,6 +223,78 @@
           "default": null,
           "title": "Candidate Transform"
         },
+        "challenge_composition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Composition"
+        },
+        "challenge_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Id"
+        },
+        "challenge_min_accepted_correspondence_count": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Min Accepted Correspondence Count"
+        },
+        "challenge_min_support_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Min Support Ratio"
+        },
+        "challenge_tangent_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Tangent Frame"
+        },
+        "challenge_target_supported_detection_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Target Supported Detection Count"
+        },
         "correspondence_gate_m": {
           "anyOf": [
             {
@@ -294,6 +366,42 @@
           ],
           "default": null,
           "title": "Known Bad Case Count"
+        },
+        "mandatory_case_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Case Count"
+        },
+        "mandatory_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Rotation Deg"
+        },
+        "mandatory_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Translation M"
         },
         "metrics_origin": {
           "title": "Metrics Origin",

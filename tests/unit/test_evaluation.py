@@ -226,6 +226,12 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         "livox_pair_support:train=base:holdout=target:eligible_points=1000:"
         "voxel_m=1:gate_m=1.5"
     )
+    assert comparison.protocol_compatibility.left_protocols[0].challenge_id == (
+        "livox_pair_mandatory_6dof_large_controls/v0.1"
+    )
+    assert comparison.protocol_compatibility.left_protocols[
+        0
+    ].challenge_target_supported_detection_count == 8
     assert (
         comparison.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
         == "right"
@@ -278,6 +284,37 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         "voxel_m=1:gate_m=1.5)"
     )
 
+    challenge_changed = CalibrationResult(
+        run=RunInfo(
+            id="challenge-changed",
+            calibrex_version="0.1.0",
+            provenance=_livox_pair_provenance(metrics_origin="cached"),
+        ),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+        metrics={
+            "lidar_pair_holdout_point_to_plane_support_ratio": MetricResult(
+                value=0.95,
+                grade="pass",
+            )
+        },
+    )
+    challenge_changed.run.provenance["livox_pair_evidence"]["known_bad_challenge"][
+        "target_supported_detection_count"
+    ] = 10
+    challenge_mismatch = compare_results(left, challenge_changed)
+
+    assert challenge_mismatch.protocol_compatibility.status == "warning"
+    assert challenge_mismatch.protocol_compatibility.reasons == [
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1: "
+        "challenge supported-detection target differs (8 vs 10)"
+    ]
+    assert (
+        challenge_mismatch.metrics[
+            "lidar_pair_holdout_point_to_plane_support_ratio"
+        ].winner
+        == "not_comparable"
+    )
+
     right.run.provenance["metrics_origin"] = "recomputed"
     mixed = compare_results(left, right)
 
@@ -312,6 +349,17 @@ def _livox_pair_provenance(metrics_origin: str) -> dict[str, object]:
                 "correspondence_gate_m": 1.5,
                 "inlier_threshold_m": 0.25,
                 "plane_normal_source": "pcd_normal_fields_or_local_fallback",
+            },
+            "known_bad_challenge": {
+                "challenge_id": "livox_pair_mandatory_6dof_large_controls/v0.1",
+                "composition": "T_test = Exp(xi_hat) * T_source_target",
+                "tangent_frame": "source_lidar_frame",
+                "mandatory_rotation_deg": 1.0,
+                "mandatory_translation_m": 0.1,
+                "mandatory_case_count": 12,
+                "min_support_ratio": 0.1,
+                "min_accepted_correspondence_count": 500.0,
+                "target_supported_detection_count": 8,
             },
         },
     }

@@ -171,6 +171,15 @@ class EvidenceProtocolSide(StrictModel):
     inlier_threshold_m: float | None = None
     plane_normal_source: str | None = None
     known_bad_case_count: int | None = None
+    challenge_id: str | None = None
+    challenge_composition: str | None = None
+    challenge_tangent_frame: str | None = None
+    mandatory_rotation_deg: float | None = None
+    mandatory_translation_m: float | None = None
+    mandatory_case_count: int | None = None
+    challenge_min_support_ratio: float | None = None
+    challenge_min_accepted_correspondence_count: float | None = None
+    challenge_target_supported_detection_count: int | None = None
 
 
 class EvidenceProtocolCompatibility(StrictModel):
@@ -694,6 +703,8 @@ def _evidence_protocol_sides(result: CalibrationResult) -> list[EvidenceProtocol
     if isinstance(livox_pair, dict):
         holdout_geometry = livox_pair.get("holdout_geometry")
         holdout = holdout_geometry if isinstance(holdout_geometry, dict) else {}
+        challenge_payload = livox_pair.get("known_bad_challenge")
+        challenge = challenge_payload if isinstance(challenge_payload, dict) else {}
         protocols.append(
             EvidenceProtocolSide(
                 protocol_id="livox_pair_single_pair_holdout_point_to_plane/v0.1",
@@ -715,6 +726,25 @@ def _evidence_protocol_sides(result: CalibrationResult) -> list[EvidenceProtocol
                 inlier_threshold_m=_float_or_none(holdout.get("inlier_threshold_m")),
                 plane_normal_source=_str_or_none(holdout.get("plane_normal_source")),
                 known_bad_case_count=_int_or_none(livox_pair.get("known_bad_case_count")),
+                challenge_id=_str_or_none(challenge.get("challenge_id")),
+                challenge_composition=_str_or_none(challenge.get("composition")),
+                challenge_tangent_frame=_str_or_none(challenge.get("tangent_frame")),
+                mandatory_rotation_deg=_float_or_none(
+                    challenge.get("mandatory_rotation_deg")
+                ),
+                mandatory_translation_m=_float_or_none(
+                    challenge.get("mandatory_translation_m")
+                ),
+                mandatory_case_count=_int_or_none(challenge.get("mandatory_case_count")),
+                challenge_min_support_ratio=_float_or_none(
+                    challenge.get("min_support_ratio")
+                ),
+                challenge_min_accepted_correspondence_count=_float_or_none(
+                    challenge.get("min_accepted_correspondence_count")
+                ),
+                challenge_target_supported_detection_count=_int_or_none(
+                    challenge.get("target_supported_detection_count")
+                ),
             )
         )
     return protocols
@@ -790,6 +820,59 @@ def _protocol_mismatch_reasons(
         reasons.append(
             f"{protocol_id}: known-bad case count differs "
             f"({left.known_bad_case_count} vs {right.known_bad_case_count})"
+        )
+    if left.challenge_id != right.challenge_id:
+        reasons.append(
+            f"{protocol_id}: known-bad challenge differs "
+            f"({left.challenge_id} vs {right.challenge_id})"
+        )
+    if left.challenge_composition != right.challenge_composition:
+        reasons.append(
+            f"{protocol_id}: known-bad challenge composition differs "
+            f"({left.challenge_composition} vs {right.challenge_composition})"
+        )
+    if left.challenge_tangent_frame != right.challenge_tangent_frame:
+        reasons.append(
+            f"{protocol_id}: known-bad challenge tangent frame differs "
+            f"({left.challenge_tangent_frame} vs {right.challenge_tangent_frame})"
+        )
+    if left.mandatory_rotation_deg != right.mandatory_rotation_deg:
+        reasons.append(
+            f"{protocol_id}: mandatory rotation probe differs "
+            f"({left.mandatory_rotation_deg} vs {right.mandatory_rotation_deg})"
+        )
+    if left.mandatory_translation_m != right.mandatory_translation_m:
+        reasons.append(
+            f"{protocol_id}: mandatory translation probe differs "
+            f"({left.mandatory_translation_m} vs {right.mandatory_translation_m})"
+        )
+    if left.mandatory_case_count != right.mandatory_case_count:
+        reasons.append(
+            f"{protocol_id}: mandatory known-bad case count differs "
+            f"({left.mandatory_case_count} vs {right.mandatory_case_count})"
+        )
+    if left.challenge_min_support_ratio != right.challenge_min_support_ratio:
+        reasons.append(
+            f"{protocol_id}: challenge support-ratio gate differs "
+            f"({left.challenge_min_support_ratio} vs {right.challenge_min_support_ratio})"
+        )
+    if (
+        left.challenge_min_accepted_correspondence_count
+        != right.challenge_min_accepted_correspondence_count
+    ):
+        reasons.append(
+            f"{protocol_id}: challenge correspondence-count gate differs "
+            f"({left.challenge_min_accepted_correspondence_count} vs "
+            f"{right.challenge_min_accepted_correspondence_count})"
+        )
+    if (
+        left.challenge_target_supported_detection_count
+        != right.challenge_target_supported_detection_count
+    ):
+        reasons.append(
+            f"{protocol_id}: challenge supported-detection target differs "
+            f"({left.challenge_target_supported_detection_count} vs "
+            f"{right.challenge_target_supported_detection_count})"
         )
     return reasons
 
