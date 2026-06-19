@@ -86,6 +86,12 @@ artifacts/rig_3d.html
 The 3D rig viewer can show reference, candidate, and online/estimated
 extrinsics together.
 
+Committed JSON schemas are regenerated with:
+
+```bash
+calibrex schema all --output-dir schemas
+```
+
 ## Install
 
 ```bash
