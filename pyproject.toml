@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "calibrex"
 version = "0.1.0"
-description = "Universal Sensor Calibration Framework for Robotics"
+description = "Calibration evidence framework for robotics and autonomous driving"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -23,6 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
+  "Typing :: Typed",
 ]
 dependencies = [
   "jsonschema>=4.18",
@@ -48,6 +49,13 @@ autonomous = [
 
 [project.scripts]
 calibrex = "calibrex.cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/rsasaki0109/Calibrex"
+Repository = "https://github.com/rsasaki0109/Calibrex"
+Issues = "https://github.com/rsasaki0109/Calibrex/issues"
+Changelog = "https://github.com/rsasaki0109/Calibrex/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/rsasaki0109/Calibrex/tree/main/docs"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

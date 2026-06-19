@@ -1,6 +1,6 @@
 # Calibrex
 
-**Universal Sensor Calibration Framework for Robotics**
+**Universal Sensor Calibration Evidence Framework for Robotics**
 
 Calibrex compares calibration estimates as evidence, not just matrices.
 
