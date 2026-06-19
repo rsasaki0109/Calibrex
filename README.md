@@ -133,6 +133,7 @@ Public dataset examples:
 
 ```bash
 calibrex public-datasets list
+calibrex demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_sample
 python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json

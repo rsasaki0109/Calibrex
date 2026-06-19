@@ -21,6 +21,16 @@ calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 Solid-state LiDAR-to-LiDAR evidence demo:
 
 ```bash
+calibrex demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_sample
+```
+
+The demo command downloads the public Livox PCD sample when needed, writes a
+materialized `demo_config.yaml`, recomputes `result.yaml`, renders
+`evidence.json` and `assessment.json`, and verifies `bundle.json`.
+
+The same flow can be run step by step:
+
+```bash
 python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json

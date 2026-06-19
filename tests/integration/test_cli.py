@@ -8,6 +8,7 @@ import pytest
 from calibrex.cli.main import main
 from calibrex.core.assessment import AssessmentArtifact
 from calibrex.core.evidence_bundle import EvidenceBundleManifest
+from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.report_artifacts import (
     ReportDegeneracyArtifact,
     ReportEvidenceArtifact,
@@ -42,6 +43,48 @@ def _write_oxts_packet(path: Path, *, yaw_rad: float, vn: float, ve: float) -> N
         0.0,
     ]
     path.write_text(" ".join(str(value) for value in fields), encoding="utf-8")
+
+
+def _write_livox_demo_pair(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    base_points: list[tuple[float, float, float, float, float, float, float]] = []
+    target_points: list[tuple[float, float, float, float, float, float, float]] = []
+    for ix in range(30):
+        for iy in range(30):
+            x = ix * 0.35
+            y = iy * 0.35
+            z = 0.02 * ((ix + iy) % 3)
+            base_points.append((x, y, z, 10.0, 0.0, 0.0, 1.0))
+            target_points.append((x, y + 0.13, z, 10.0, 0.0, 0.0, 1.0))
+    _write_livox_binary_pcd_with_normals(path / "base_horizon_100432.pcd", base_points)
+    _write_livox_binary_pcd_with_normals(path / "target_horizon_100538.pcd", target_points)
+
+
+def _write_livox_binary_pcd_with_normals(
+    path: Path,
+    points: list[tuple[float, float, float, float, float, float, float]],
+) -> None:
+    header = "\n".join(
+        [
+            "# .PCD v0.7 - Point Cloud Data file format",
+            "VERSION 0.7",
+            "FIELDS x y z intensity normal_x normal_y normal_z curvature",
+            "SIZE 4 4 4 4 4 4 4 4",
+            "TYPE F F F F F F F F",
+            "COUNT 1 1 1 1 1 1 1 1",
+            f"WIDTH {len(points)}",
+            "HEIGHT 1",
+            "VIEWPOINT 0 0 0 1 0 0 0",
+            f"POINTS {len(points)}",
+            "DATA binary",
+            "",
+        ]
+    ).encode("ascii")
+    body = b"".join(
+        struct.pack("<ffffffff", x, y, z, intensity, nx, ny, nz, 0.0)
+        for x, y, z, intensity, nx, ny, nz in points
+    )
+    path.write_bytes(header + body)
 
 
 def _write_png(path: Path, *, width: int, height: int) -> None:
@@ -1211,27 +1254,37 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
 
 
 def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "livox_horizon_horizon_pair"
+    _write_livox_demo_pair(dataset_path)
+    config = read_mapping(
+        Path("examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml")
+    )
+    config["dataset"]["path"] = str(dataset_path)
+    config_path = tmp_path / "livox_config.yaml"
+    write_mapping(config_path, config)
+
     assert (
         main(
             [
                 "calibrate",
-                "examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml",
+                str(config_path),
                 "--output-dir",
-                str(tmp_path),
+                str(tmp_path / "outputs"),
                 "--json",
             ]
         )
         == 0
     )
 
-    evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
+    output_dir = tmp_path / "outputs"
+    evidence = json.loads((output_dir / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
     assert evidence["materialization"]["metrics_origin"] == "recomputed"
     assert evidence["materialization"].get("data_verified") is None
     assert evidence["protocols"][0]["family"] == "lidar_pair"
     assert evidence["protocols"][0]["known_bad_case_count"] == 24
-    assert evidence["protocols"][0]["parameters"]["matched_point_count"] == 16884
+    assert evidence["protocols"][0]["parameters"]["matched_point_count"] > 0
     assert "single source/target PCD pair" in evidence["protocols"][0]["limitations"][0]
     assert len(evidence["summaries"]) == 4
     assert {summary["check"] for summary in evidence["summaries"]} == {
@@ -1249,7 +1302,7 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
         "yaw_deg",
         "z_m",
     }
-    metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    metrics = json.loads((output_dir / "metrics.json").read_text(encoding="utf-8"))
     assert "lidar_pair_known_bad_detectable_fraction" in metrics["metrics"]
     assert "lidar_pair_holdout_point_to_plane_p90_abs_m" in metrics["metrics"]
     assert "lidar_pair_known_bad_point_to_plane_p90_delta_max_m" in metrics["metrics"]
@@ -1257,6 +1310,43 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
         "lidar_pair_holdout_point_to_plane_p90_abs_m" in case["metric_values"]
         for case in evidence["cases"]
     )
+
+
+def test_livox_demo_command_recomputes_and_verifies_bundle(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    data_dir = tmp_path / "data"
+    dataset_path = data_dir / "livox_horizon_horizon_pair"
+    _write_livox_demo_pair(dataset_path)
+    output_dir = tmp_path / "demo_output"
+
+    assert (
+        main(
+            [
+                "demo",
+                "livox-evidence",
+                "--data-dir",
+                str(data_dir),
+                "--output-dir",
+                str(output_dir),
+                "--no-download",
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["downloaded"] is False
+    assert payload["bundle_valid"] is True
+    assert payload["assessment_status"] == "inconclusive"
+    assert Path(payload["result"]).exists()
+    assert Path(payload["evidence"]).exists()
+    assert Path(payload["assessment"]).exists()
+    assert Path(payload["bundle"]).exists()
+    assert Path(payload["html_report"]).exists()
+    assert main(["verify", str(output_dir / "bundle.json"), "--json"]) == 0
 
 
 def test_compile_command(tmp_path: Path) -> None:

@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any, NoReturn, cast
 
 from calibrex import __version__
-from calibrex.core.assessment import assess_evidence_file, assessment_json_schema
+from calibrex.core.assessment import (
+    AssessmentArtifact,
+    assess_evidence_file,
+    assessment_json_schema,
+)
 from calibrex.core.config import (
     DatasetConfig,
     DatasetType,
@@ -25,7 +29,7 @@ from calibrex.core.evidence_bundle import (
 )
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
-from calibrex.core.io import write_mapping
+from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.report_artifacts import (
     report_artifact_json_schema,
     report_artifact_schema_kinds,
@@ -35,6 +39,12 @@ from calibrex.core.validation import (
     ValidationKind,
     validate_file,
     validation_kind_choices,
+)
+from calibrex.data.downloads import (
+    LIVOX_BASE_PCD_NAME,
+    LIVOX_TARGET_PCD_NAME,
+    download_livox_horizon_horizon_pcd_sample,
+    livox_horizon_horizon_pcd_sample_path,
 )
 from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
@@ -197,6 +207,38 @@ def _build_parser() -> argparse.ArgumentParser:
     public_show.add_argument("dataset")
     public_show.add_argument("--json", action="store_true")
     public_show.set_defaults(func=_cmd_public_datasets_show)
+
+    demo = subcommands.add_parser("demo", help="run reproducible public demos")
+    demo_subcommands = demo.add_subparsers(dest="demo_command", required=True)
+    livox_demo = demo_subcommands.add_parser(
+        "livox-evidence",
+        help="download public Livox PCD data and recompute evidence artifacts",
+    )
+    livox_demo.add_argument(
+        "--config",
+        type=Path,
+        default=Path("examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml"),
+        help="base Livox evidence config",
+    )
+    livox_demo.add_argument("--data-dir", type=Path, default=Path("data/public"))
+    livox_demo.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/livox_horizon_horizon_pcd_sample"),
+    )
+    livox_demo.add_argument(
+        "--no-download",
+        action="store_true",
+        help="use existing local PCD files instead of downloading",
+    )
+    livox_demo.add_argument(
+        "--strict-assessment",
+        action="store_true",
+        help="return non-zero unless the falsification assessment is PASS",
+    )
+    livox_demo.add_argument("--seed", type=int)
+    livox_demo.add_argument("--json", action="store_true")
+    livox_demo.set_defaults(func=_cmd_demo_livox_evidence)
 
     kitti = subcommands.add_parser("kitti", help="KITTI raw utilities")
     kitti_subcommands = kitti.add_subparsers(dest="kitti_command", required=True)
@@ -582,6 +624,87 @@ def _cmd_public_datasets_show(args: argparse.Namespace) -> int:
         for key, value in payload.items():
             print(f"{key}: {value}")
     return 0
+
+
+def _cmd_demo_livox_evidence(args: argparse.Namespace) -> int:
+    dataset_path = livox_horizon_horizon_pcd_sample_path(args.data_dir)
+    if args.no_download:
+        _require_livox_demo_files(dataset_path)
+        downloaded = False
+    else:
+        downloaded_result = download_livox_horizon_horizon_pcd_sample(args.data_dir)
+        dataset_path = downloaded_result.path
+        downloaded = downloaded_result.downloaded
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    demo_config = output_dir / "demo_config.yaml"
+    _write_demo_config(args.config, demo_config, dataset_path, output_dir)
+
+    result = run_calibration(
+        demo_config,
+        CalibrationRunOptions(output_dir=output_dir, seed=args.seed),
+    )
+    if result is None:
+        _die("Livox evidence demo did not produce a result")
+
+    evidence_path = output_dir / "evidence.json"
+    assessment_path = output_dir / "assessment.json"
+    bundle_path = output_dir / "bundle.json"
+    assessment = AssessmentArtifact.model_validate(read_mapping(assessment_path))
+    verification = verify_evidence_bundle(bundle_path)
+    payload = {
+        "status": "ok" if verification.valid else "invalid_bundle",
+        "dataset": str(dataset_path),
+        "downloaded": downloaded,
+        "config": str(demo_config),
+        "result": str(output_dir / "result.yaml"),
+        "evidence": str(evidence_path),
+        "assessment": str(assessment_path),
+        "assessment_status": assessment.status,
+        "assessment_reason": assessment.reason,
+        "bundle": str(bundle_path),
+        "bundle_valid": verification.valid,
+        "bundle_issues": verification.issues,
+        "html_report": str(output_dir / "report.html"),
+    }
+    _emit(payload, args.json)
+    if not verification.valid:
+        return 1
+    if args.strict_assessment and assessment.status != "pass":
+        return 1
+    return 0
+
+
+def _require_livox_demo_files(dataset_path: Path) -> None:
+    missing = [
+        name
+        for name in (LIVOX_BASE_PCD_NAME, LIVOX_TARGET_PCD_NAME)
+        if not (dataset_path / name).exists()
+    ]
+    if missing:
+        _die(
+            "Livox demo data is missing: "
+            f"{', '.join(missing)} under {dataset_path}. "
+            "Run without --no-download or use tools/download_public_dataset.py."
+        )
+
+
+def _write_demo_config(
+    source_config: Path,
+    output_config: Path,
+    dataset_path: Path,
+    output_dir: Path,
+) -> None:
+    config_payload = read_mapping(source_config)
+    dataset = config_payload.get("dataset")
+    if not isinstance(dataset, dict):
+        _die(f"{source_config} does not contain a dataset mapping")
+    dataset["path"] = str(dataset_path)
+    project = config_payload.get("project")
+    if isinstance(project, dict):
+        project["output_dir"] = str(output_dir)
+    write_mapping(output_config, config_payload)
 
 
 def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:

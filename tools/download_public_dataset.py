@@ -16,6 +16,8 @@ from urllib.request import Request, urlopen, urlretrieve
 
 import yaml
 
+from calibrex.data.downloads import download_livox_horizon_horizon_pcd_sample
+
 A2D2_LIDAR_SAMPLE_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
     "camera_lidar-20180810150607_lidar_frontleft.tar"
@@ -23,14 +25,6 @@ A2D2_LIDAR_SAMPLE_URL = (
 A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
 A2D2_LIDAR_SAMPLE_START = 1536
 A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
-LIVOX_BASE_PCD_URL = (
-    "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
-    "Showcase/Base_LiDAR_Frames.tar.gz"
-)
-LIVOX_TARGET_PCD_URL = (
-    "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
-    "Showcase/Target-LiDAR-Frames.tar.gz"
-)
 
 
 def main() -> int:
@@ -57,7 +51,9 @@ def main() -> int:
         download_a2d2_lidar_pair_sample(args.output_dir)
         return 0
     if args.dataset == "livox_horizon_horizon_pcd_sample":
-        download_livox_horizon_horizon_pcd_sample(args.output_dir)
+        downloaded = download_livox_horizon_horizon_pcd_sample(args.output_dir)
+        for path in downloaded.files:
+            print(f"ready {path}")
         return 0
 
     catalog = yaml.safe_load(args.catalog.read_text(encoding="utf-8"))
@@ -95,41 +91,6 @@ def download_a2d2_lidar_pair_sample(output_dir: Path) -> None:
         raise SystemExit(f"expected {A2D2_LIDAR_SAMPLE_SIZE} bytes, got {len(data)}")
     target.write_bytes(data)
     print(f"wrote {target}")
-
-
-def download_livox_horizon_horizon_pcd_sample(output_dir: Path) -> None:
-    """Stream one real base/target PCD frame from Livox public tarballs."""
-
-    target_dir = output_dir / "livox_horizon_horizon_pair"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    _extract_first_pcd_from_tar_gz(
-        LIVOX_BASE_PCD_URL,
-        target_dir / "base_horizon_100432.pcd",
-    )
-    _extract_first_pcd_from_tar_gz(
-        LIVOX_TARGET_PCD_URL,
-        target_dir / "target_horizon_100538.pcd",
-    )
-
-
-def _extract_first_pcd_from_tar_gz(url: str, output: Path) -> None:
-    print(f"streaming first PCD from {url}")
-    request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urlopen(request, timeout=90) as response, tarfile.open(
-        fileobj=response,
-        mode="r|gz",
-    ) as tar:
-        for member in tar:
-            if not member.isfile() or not member.name.endswith(".pcd"):
-                continue
-            handle = tar.extractfile(member)
-            if handle is None:
-                continue
-            output.write_bytes(handle.read())
-            print(f"wrote {output} from {member.name}")
-            return
-    raise SystemExit(f"{url} did not contain a PCD file")
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
