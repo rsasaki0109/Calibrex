@@ -111,6 +111,70 @@
       "title": "EvidenceCaseItem",
       "type": "object"
     },
+    "EvidenceInputFileItem": {
+      "additionalProperties": false,
+      "description": "Raw input file materialized into an evidence artifact.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "EvidenceInputFileItem",
+      "type": "object"
+    },
     "EvidenceMaterializationInfo": {
       "additionalProperties": false,
       "description": "How an evidence artifact was materialized for this report.",
@@ -422,6 +486,13 @@
         "$ref": "#/$defs/EvidenceCaseItem"
       },
       "title": "Cases",
+      "type": "array"
+    },
+    "input_files": {
+      "items": {
+        "$ref": "#/$defs/EvidenceInputFileItem"
+      },
+      "title": "Input Files",
       "type": "array"
     },
     "materialization": {

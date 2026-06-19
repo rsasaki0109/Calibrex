@@ -163,7 +163,26 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
                             "point_to_plane_rmse_delta_m": 0.004,
                         },
                     }
-                ]
+                ],
+                "raw_input_files": [
+                    {
+                        "path": "data/public/livox_horizon_horizon_pair/base_horizon_100432.pcd",
+                        "role": "source",
+                        "sha256": "0123456789abcdef0123456789abcdef",
+                        "size_bytes": 4096,
+                        "source_url": "https://example.invalid/base.tar.gz",
+                    },
+                    {
+                        "path": (
+                            "data/public/livox_horizon_horizon_pair/"
+                            "target_horizon_100538.pcd"
+                        ),
+                        "role": "target",
+                        "sha256": "abcdef0123456789abcdef0123456789",
+                        "size_bytes": 8192,
+                        "source_url": "https://example.invalid/target.tar.gz",
+                    },
+                ],
             },
         ),
         frame_graph=FrameGraphSnapshot(
@@ -196,6 +215,9 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
 
     assert "LiDAR Pair Evidence" in html
     assert "Evidence Protocol" in html
+    assert "Raw Input Files" in html
+    assert "base_horizon_100432.pcd" in html
+    assert "0123456789abcdef..." in html
     assert "Falsification Assessment" in html
     assert "INCONCLUSIVE" in html
     assert "holdout_independence" in html

@@ -32,8 +32,15 @@ from calibrex.core.result import (
     TransformQuality,
     TransformResult,
 )
+from calibrex.data.downloads import (
+    LIVOX_BASE_PCD_NAME,
+    LIVOX_BASE_PCD_URL,
+    LIVOX_TARGET_PCD_NAME,
+    LIVOX_TARGET_PCD_URL,
+)
 from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
+from calibrex.data.livox import find_livox_pcd_files
 from calibrex.data.nuscenes import read_nuscenes_reference_extrinsics
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.lidar import (
@@ -190,7 +197,11 @@ def _apply_livox_pair_candidate_evidence(
         target_transform=candidate.as_se3(),
         config=config,
     )
+    raw_input_files = _livox_raw_input_file_manifest(Path(config.dataset.path))
     result.metrics.update(evidence.metrics)
+    result.run.provenance["metrics_origin"] = "recomputed"
+    result.run.provenance["data_verified"] = _raw_input_files_verified(raw_input_files)
+    result.run.provenance["raw_input_files"] = raw_input_files
     result.run.provenance["livox_pair_evidence"] = {
         "candidate_transform": transform_name,
         "target_transform_applied": True,
@@ -205,6 +216,45 @@ def _apply_livox_pair_candidate_evidence(
         *cases,
         *(case.model_dump(mode="json") for case in evidence.cases),
     ]
+
+
+def _livox_raw_input_file_manifest(dataset_path: Path) -> list[dict[str, object]]:
+    files = find_livox_pcd_files(dataset_path)
+    roles = ("source", "target")
+    return [
+        _livox_raw_input_file_payload(
+            path=file_path,
+            role=roles[index] if index < len(roles) else f"sample_{index}",
+        )
+        for index, file_path in enumerate(files)
+    ]
+
+
+def _livox_raw_input_file_payload(path: Path, *, role: str) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "path": str(path),
+        "role": role,
+        "sha256": sha256_path(path),
+        "size_bytes": path.stat().st_size if path.exists() else None,
+    }
+    source_url = _livox_public_sample_source_url(path.name)
+    if source_url is not None:
+        payload["source_url"] = source_url
+    return payload
+
+
+def _raw_input_files_verified(files: list[dict[str, object]]) -> bool:
+    if len(files) < 2:
+        return False
+    return all(isinstance(item.get("sha256"), str) for item in files)
+
+
+def _livox_public_sample_source_url(filename: str) -> str | None:
+    if filename == LIVOX_BASE_PCD_NAME:
+        return LIVOX_BASE_PCD_URL
+    if filename == LIVOX_TARGET_PCD_NAME:
+        return LIVOX_TARGET_PCD_URL
+    return None
 
 
 def _dedupe(values: list[str]) -> list[str]:

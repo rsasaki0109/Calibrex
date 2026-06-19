@@ -437,6 +437,7 @@ def _evidence_payload(result: CalibrationResult) -> dict[str, Any]:
         "run": _run_payload(result),
         "materialization": _evidence_materialization_payload(result),
         "protocols": _evidence_protocol_payloads(result),
+        "input_files": _evidence_input_files_payload(result),
         "summaries": [
             item.model_dump(mode="json") for item in evidence_summaries_from_result(result)
         ],
@@ -456,6 +457,30 @@ def _evidence_materialization_payload(result: CalibrationResult) -> dict[str, An
         "computed_at": _provenance_text(result, "computed_at"),
         "report_generated_at": result.run.created_at,
     }
+
+
+def _evidence_input_files_payload(result: CalibrationResult) -> list[dict[str, Any]]:
+    raw_files = result.run.provenance.get("raw_input_files")
+    if not isinstance(raw_files, list):
+        return []
+    files: list[dict[str, Any]] = []
+    for raw_file in raw_files:
+        if not isinstance(raw_file, dict):
+            continue
+        path = _str_or_none(raw_file.get("path"))
+        if path is None:
+            continue
+        size_bytes = _int_or_none(raw_file.get("size_bytes"))
+        files.append(
+            {
+                "path": path,
+                "role": _str_or_none(raw_file.get("role")),
+                "sha256": _str_or_none(raw_file.get("sha256")),
+                "size_bytes": size_bytes,
+                "source_url": _str_or_none(raw_file.get("source_url")),
+            }
+        )
+    return files
 
 
 def _evidence_protocol_payloads(result: CalibrationResult) -> list[dict[str, Any]]:
@@ -851,6 +876,18 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     if not summary_rows:
         return ""
     materialization_rows = _evidence_materialization_rows(result)
+    input_file_rows = _evidence_input_file_rows(_evidence_input_files_payload(result))
+    input_files_section = (
+        f"""
+  <h3>Raw Input Files</h3>
+  <table>
+    <tr><th>Role</th><th>Path</th><th>SHA-256</th><th>Size bytes</th><th>Source URL</th></tr>
+    {input_file_rows}
+  </table>
+"""
+        if input_file_rows
+        else ""
+    )
     protocol_rows = _evidence_protocol_rows(
         [
             protocol
@@ -919,6 +956,7 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     <tr><th>Check</th><th>Status</th><th>Evidence</th><th>Interpretation</th></tr>
     {evidence_rows}
   </table>
+  {input_files_section}
   {evidence_case_section}
   <h3>Metric Details</h3>
   <table>
@@ -940,6 +978,24 @@ def _evidence_summary_row(item: EvidenceSummaryItem) -> str:
         f"<td>{escape(status.upper())}</td>"
         f"<td>{escape(item.evidence)}</td>"
         f"<td>{escape(item.interpretation)}</td>"
+        "</tr>"
+    )
+
+
+def _evidence_input_file_rows(input_files: list[dict[str, Any]]) -> str:
+    return "\n".join(_evidence_input_file_row(input_file) for input_file in input_files)
+
+
+def _evidence_input_file_row(input_file: dict[str, Any]) -> str:
+    sha256 = _payload_value(input_file.get("sha256"))
+    short_sha = sha256[:16] + "..." if len(sha256) > 16 else sha256
+    return (
+        "<tr>"
+        f"<td>{escape(_payload_value(input_file.get('role')))}</td>"
+        f"<td>{escape(_payload_value(input_file.get('path')))}</td>"
+        f"<td><code>{escape(short_sha)}</code></td>"
+        f"<td>{escape(_payload_value(input_file.get('size_bytes')))}</td>"
+        f"<td>{escape(_payload_value(input_file.get('source_url')))}</td>"
         "</tr>"
     )
 

@@ -80,6 +80,16 @@ class EvidenceCaseItem(StrictModel):
     delta_values: dict[str, float | None] = Field(default_factory=dict)
 
 
+class EvidenceInputFileItem(StrictModel):
+    """Raw input file materialized into an evidence artifact."""
+
+    path: str
+    role: str | None = None
+    sha256: str | None = None
+    size_bytes: int | None = Field(default=None, ge=0)
+    source_url: str | None = None
+
+
 class EvidenceMaterializationInfo(StrictModel):
     """How an evidence artifact was materialized for this report."""
 
@@ -178,6 +188,7 @@ class ReportEvidenceArtifact(StrictModel):
         default_factory=EvidenceMaterializationInfo
     )
     protocols: list[EvidenceProtocolItem] = Field(default_factory=list)
+    input_files: list[EvidenceInputFileItem] = Field(default_factory=list)
     summaries: list[EvidenceSummaryItem] = Field(default_factory=list)
     cases: list[EvidenceCaseItem] = Field(default_factory=list)
 

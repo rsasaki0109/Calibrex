@@ -1281,7 +1281,12 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
     assert evidence["materialization"]["metrics_origin"] == "recomputed"
-    assert evidence["materialization"].get("data_verified") is None
+    assert evidence["materialization"]["data_verified"] is True
+    assert len(evidence["input_files"]) == 2
+    assert {item["role"] for item in evidence["input_files"]} == {"source", "target"}
+    assert all(item["sha256"] for item in evidence["input_files"])
+    assert all(item["size_bytes"] > 0 for item in evidence["input_files"])
+    assert all(item["source_url"].startswith("https://") for item in evidence["input_files"])
     assert evidence["protocols"][0]["family"] == "lidar_pair"
     assert evidence["protocols"][0]["known_bad_case_count"] == 24
     assert evidence["protocols"][0]["parameters"]["matched_point_count"] > 0
@@ -1346,6 +1351,9 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert Path(payload["assessment"]).exists()
     assert Path(payload["bundle"]).exists()
     assert Path(payload["html_report"]).exists()
+    evidence = json.loads(Path(payload["evidence"]).read_text(encoding="utf-8"))
+    assert evidence["materialization"]["data_verified"] is True
+    assert len(evidence["input_files"]) == 2
     assert main(["verify", str(output_dir / "bundle.json"), "--json"]) == 0
 
 
