@@ -4,6 +4,9 @@ from pathlib import Path
 import jsonschema
 import yaml
 
+from calibrex.core.result import load_result
+from calibrex.evaluation.compare import compare_results
+
 
 def test_config_schema_validates_minimal_example() -> None:
     schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
@@ -53,6 +56,13 @@ def test_result_schema_validates_livox_precomputed_example() -> None:
         ).read_text(encoding="utf-8")
     )
     jsonschema.validate(result, schema)
+
+
+def test_comparison_schema_validates_generated_comparison() -> None:
+    schema = json.loads(Path("schemas/comparison.schema.json").read_text(encoding="utf-8"))
+    result = load_result("examples/precomputed/result.yaml")
+    comparison = compare_results(result, result).model_dump(mode="json")
+    jsonschema.validate(comparison, schema)
 
 
 def test_dataset_manifest_schema_validates_synthetic_example() -> None:

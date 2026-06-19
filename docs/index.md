@@ -12,5 +12,6 @@ Start with:
 - `docs/tutorials/public_datasets.md`
 - `docs/tutorials/open3d_slac.md`
 - `docs/tutorials/lidar_camera_adapter.md`
+- `schemas/comparison.schema.json`
 - `schemas/dataset_manifest.schema.json`
 - `docs/adr/0001-core-is-ros-independent.md`
