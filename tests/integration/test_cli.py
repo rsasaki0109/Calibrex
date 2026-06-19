@@ -322,6 +322,11 @@ def test_calibrate_evaluate_visualize_export(
         "evidence.json",
         "assessment.json",
     }
+    evidence_entry = next(
+        artifact for artifact in bundle["artifacts"] if artifact["path"] == "evidence.json"
+    )
+    assert summary["source_evidence"]["path"] == "evidence.json"
+    assert summary["source_evidence"]["sha256"] == evidence_entry["sha256"]
     assert main(["validate", str(result)]) == 0
     assert main(["validate", str(tmp_path / "summary.json")]) == 0
     assert main(["validate", str(tmp_path / "metrics.json")]) == 0
@@ -342,6 +347,12 @@ def test_calibrate_evaluate_visualize_export(
     assert verify_payload["input_file_count"] == 0
     assert verify_payload["checked_input_file_count"] == 0
     assert verify_payload["checked_input_files"] == []
+    assert any(
+        claim["scope"] == "source_evidence_link"
+        and claim["subject"] == "summary.json"
+        and claim["status"] == "ok"
+        for claim in verify_payload["verification_claims"]
+    )
     assert any(
         claim["scope"] == "input_file_digest"
         and claim["status"] == "skipped"
@@ -367,6 +378,25 @@ def test_calibrate_evaluate_visualize_export(
         and claim["subject"] == "summary.json"
         and claim["status"] == "failed"
         for claim in mixed_payload["verification_claims"]
+    )
+
+    summary["run"]["id"] = evidence["run"]["id"]
+    summary["source_evidence"]["sha256"] = "0" * 64
+    write_mapping(summary_path, summary)
+    summary_sha256, summary_size = _sha256_file_for_test(summary_path)
+    bundle = json.loads((tmp_path / "bundle.json").read_text(encoding="utf-8"))
+    for artifact in bundle["artifacts"]:
+        if artifact["path"] == "summary.json":
+            artifact["sha256"] = summary_sha256
+            artifact["size_bytes"] = summary_size
+    write_mapping(tmp_path / "bundle.json", bundle)
+    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 1
+    source_payload = json.loads(capsys.readouterr().out)
+    assert any(
+        claim["scope"] == "source_evidence_link"
+        and claim["subject"] == "summary.json"
+        and claim["status"] == "failed"
+        for claim in source_payload["verification_claims"]
     )
 
     (tmp_path / "summary.json").write_text(

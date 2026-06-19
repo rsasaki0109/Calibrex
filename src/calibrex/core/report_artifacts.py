@@ -99,6 +99,15 @@ class EvidenceMaterializationInfo(StrictModel):
     report_generated_at: str | None = None
 
 
+class SourceEvidenceReference(StrictModel):
+    """Reference from a derived sidecar back to its evidence artifact."""
+
+    path: str | None = None
+    sha256: str | None = None
+    schema_version: str | None = None
+    run_id: str | None = None
+
+
 class EvidenceProtocolItem(StrictModel):
     """Declared protocol metadata for one evidence family."""
 
@@ -121,6 +130,7 @@ class ReportSummaryArtifact(StrictModel):
 
     schema_version: Literal["calibrex.report.summary/v0.1"] = REPORT_SUMMARY_SCHEMA_VERSION
     run: ReportRunInfo
+    source_evidence: SourceEvidenceReference | None = None
     materialization: EvidenceMaterializationInfo = Field(
         default_factory=EvidenceMaterializationInfo
     )
@@ -140,6 +150,7 @@ class ReportMetricsArtifact(StrictModel):
 
     schema_version: Literal["calibrex.report.metrics/v0.1"] = REPORT_METRICS_SCHEMA_VERSION
     run: ReportRunInfo
+    source_evidence: SourceEvidenceReference | None = None
     metrics: dict[str, MetricResult] = Field(default_factory=dict)
     metric_families: dict[str, MetricFamilySummary] = Field(default_factory=dict)
 
@@ -163,6 +174,7 @@ class ReportObservabilityArtifact(StrictModel):
         REPORT_OBSERVABILITY_SCHEMA_VERSION
     )
     run: ReportRunInfo
+    source_evidence: SourceEvidenceReference | None = None
     observability: ObservabilityResult
     weak_directions: list[str] = Field(default_factory=list)
     metrics: dict[str, MetricResult] = Field(default_factory=dict)
@@ -173,6 +185,7 @@ class ReportDegeneracyArtifact(StrictModel):
 
     schema_version: Literal["calibrex.report.degeneracy/v0.1"] = REPORT_DEGENERACY_SCHEMA_VERSION
     run: ReportRunInfo
+    source_evidence: SourceEvidenceReference | None = None
     degeneracy: DegeneracyResult
     quality_warnings: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)

@@ -33,6 +33,7 @@ VerificationClaimScope = Literal[
     "artifact_schema",
     "run_consistency",
     "assessment_source",
+    "source_evidence_link",
     "input_file_digest",
 ]
 VerificationClaimStatus = Literal["ok", "failed", "skipped"]
@@ -228,6 +229,20 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         )
         if artifact.kind == "assessment":
             _verify_assessment_source(
+                artifact=artifact,
+                artifact_path=artifact_path,
+                primary_evidence_path=manifest.primary_evidence_path,
+                primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
+                issues=issues,
+                verification_claims=verification_claims,
+            )
+        elif artifact.kind in {
+            "report-summary",
+            "report-metrics",
+            "report-observability",
+            "report-degeneracy",
+        }:
+            _verify_source_evidence_link(
                 artifact=artifact,
                 artifact_path=artifact_path,
                 primary_evidence_path=manifest.primary_evidence_path,
@@ -484,6 +499,84 @@ def _verify_assessment_source(
     _append_claim(
         verification_claims,
         scope="assessment_source",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="source_evidence_pointer",
+        expected={
+            "path": primary_evidence_path,
+            "sha256": primary_evidence_sha256,
+        },
+        observed={
+            "path": observed_path,
+            "sha256": observed_digest,
+        },
+        issues=claim_issues,
+    )
+
+
+def _verify_source_evidence_link(
+    *,
+    artifact: EvidenceBundleArtifact,
+    artifact_path: Path,
+    primary_evidence_path: str,
+    primary_evidence_sha256: str | None,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    try:
+        payload = read_mapping(artifact_path)
+    except Exception:
+        _append_claim(
+            verification_claims,
+            scope="source_evidence_link",
+            subject=artifact.path,
+            status="skipped",
+            method="source_evidence_pointer",
+            expected={
+                "path": primary_evidence_path,
+                "sha256": primary_evidence_sha256,
+            },
+            observed={"reason": "artifact could not be parsed"},
+        )
+        return
+    source = payload.get("source_evidence")
+    if not isinstance(source, dict):
+        issue = f"{artifact.path}: missing source_evidence"
+        issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="source_evidence_link",
+            subject=artifact.path,
+            status="failed",
+            method="source_evidence_pointer",
+            expected={
+                "path": primary_evidence_path,
+                "sha256": primary_evidence_sha256,
+            },
+            observed={"source_evidence": None},
+            issues=[issue],
+        )
+        return
+    observed_path = source.get("path")
+    observed_digest = source.get("sha256")
+    claim_issues: list[str] = []
+    if observed_path != primary_evidence_path:
+        issue = (
+            f"{artifact.path}: source evidence path mismatch "
+            f"({observed_path!r} != {primary_evidence_path!r})"
+        )
+        issues.append(issue)
+        claim_issues.append(issue)
+    if primary_evidence_sha256 is not None and observed_digest != primary_evidence_sha256:
+        issue = (
+            f"{artifact.path}: source evidence sha256 mismatch "
+            f"({observed_digest!r} != {primary_evidence_sha256!r})"
+        )
+        issues.append(issue)
+        claim_issues.append(issue)
+    _append_claim(
+        verification_claims,
+        scope="source_evidence_link",
         subject=artifact.path,
         status="ok" if not claim_issues else "failed",
         method="source_evidence_pointer",

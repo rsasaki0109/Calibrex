@@ -71,6 +71,9 @@ cached report fixtures normally report zero input files. It also includes
 `verification_claims`, where each claim records a scope, status, method,
 expected values, observed values, and scoped issues for artifact digests,
 run consistency, assessment source links, and raw input digests.
+Derived sidecars such as `summary.json`, `metrics.json`, `observability.json`,
+and `degeneracy.json` also include `source_evidence` so reviewers can verify
+which immutable `evidence.json` they summarize.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports

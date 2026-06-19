@@ -234,6 +234,62 @@
       ],
       "title": "ReportRunInfo",
       "type": "object"
+    },
+    "SourceEvidenceReference": {
+      "additionalProperties": false,
+      "description": "Reference from a derived sidecar back to its evidence artifact.",
+      "properties": {
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Id"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "title": "SourceEvidenceReference",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -261,6 +317,17 @@
       "default": "calibrex.report.metrics/v0.1",
       "title": "Schema Version",
       "type": "string"
+    },
+    "source_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceEvidenceReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

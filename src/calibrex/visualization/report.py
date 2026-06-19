@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from html import escape
 from pathlib import Path
@@ -24,6 +25,7 @@ from calibrex.core.report_artifacts import (
     EvidenceCaseItem,
     EvidenceSummaryItem,
     ReportEvidenceArtifact,
+    SourceEvidenceReference,
     validate_report_sidecar_payload,
 )
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
@@ -306,7 +308,21 @@ def write_report_artifacts(
         result.artifacts.html_report = str(report_path)
         report_path.write_text(render_html_report(result), encoding="utf-8")
 
-    for name, payload in _report_sidecar_payloads(result).items():
+    evidence_payload = validate_report_sidecar_payload("report-evidence", _evidence_payload(result))
+    evidence_path = output_path / "evidence.json"
+    write_mapping(evidence_path, evidence_payload)
+    evidence_sha256 = _sha256_file(evidence_path)
+    source_evidence = SourceEvidenceReference(
+        path="evidence.json",
+        sha256=evidence_sha256,
+        schema_version=REPORT_EVIDENCE_SCHEMA_VERSION,
+        run_id=result.run.id,
+    )
+
+    for name, payload in _report_sidecar_payloads(
+        result,
+        source_evidence=source_evidence,
+    ).items():
         sidecar_path = output_path / name
         write_mapping(sidecar_path, payload)
     write_assessment_from_evidence(
@@ -352,13 +368,27 @@ def _resolve_output_path(output_dir: Path, filename: str | Path) -> Path:
     return output_dir / path
 
 
-def _report_sidecar_payloads(result: CalibrationResult) -> dict[str, dict[str, Any]]:
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _report_sidecar_payloads(
+    result: CalibrationResult,
+    *,
+    source_evidence: SourceEvidenceReference,
+) -> dict[str, dict[str, Any]]:
     payloads = {
-        "summary.json": _summary_payload(result),
-        "metrics.json": _metrics_payload(result),
-        "observability.json": _observability_payload(result),
-        "degeneracy.json": _degeneracy_payload(result),
-        "evidence.json": _evidence_payload(result),
+        "summary.json": _summary_payload(result, source_evidence=source_evidence),
+        "metrics.json": _metrics_payload(result, source_evidence=source_evidence),
+        "observability.json": _observability_payload(
+            result,
+            source_evidence=source_evidence,
+        ),
+        "degeneracy.json": _degeneracy_payload(result, source_evidence=source_evidence),
     }
     return {
         filename: validate_report_sidecar_payload(_REPORT_SIDECAR_KINDS[filename], payload)
@@ -366,10 +396,15 @@ def _report_sidecar_payloads(result: CalibrationResult) -> dict[str, dict[str, A
     }
 
 
-def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
+def _summary_payload(
+    result: CalibrationResult,
+    *,
+    source_evidence: SourceEvidenceReference,
+) -> dict[str, Any]:
     return {
         "schema_version": REPORT_SUMMARY_SCHEMA_VERSION,
         "run": _run_payload(result),
+        "source_evidence": source_evidence.model_dump(mode="json", exclude_none=True),
         "materialization": _evidence_materialization_payload(result),
         "quality": result.quality.model_dump(mode="json", exclude_none=True),
         "metric_counts": grade_counts(metric.grade for metric in result.metrics.values()),
@@ -387,10 +422,15 @@ def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
     }
 
 
-def _metrics_payload(result: CalibrationResult) -> dict[str, Any]:
+def _metrics_payload(
+    result: CalibrationResult,
+    *,
+    source_evidence: SourceEvidenceReference,
+) -> dict[str, Any]:
     return {
         "schema_version": REPORT_METRICS_SCHEMA_VERSION,
         "run": _run_payload(result),
+        "source_evidence": source_evidence.model_dump(mode="json", exclude_none=True),
         "metrics": {
             name: metric.model_dump(mode="json", exclude_none=True)
             for name, metric in sorted(result.metrics.items())
@@ -399,10 +439,15 @@ def _metrics_payload(result: CalibrationResult) -> dict[str, Any]:
     }
 
 
-def _observability_payload(result: CalibrationResult) -> dict[str, Any]:
+def _observability_payload(
+    result: CalibrationResult,
+    *,
+    source_evidence: SourceEvidenceReference,
+) -> dict[str, Any]:
     return {
         "schema_version": REPORT_OBSERVABILITY_SCHEMA_VERSION,
         "run": _run_payload(result),
+        "source_evidence": source_evidence.model_dump(mode="json", exclude_none=True),
         "observability": result.observability.model_dump(mode="json", exclude_none=True),
         "weak_directions": list(result.observability.weak_directions),
         "metrics": {
@@ -413,10 +458,15 @@ def _observability_payload(result: CalibrationResult) -> dict[str, Any]:
     }
 
 
-def _degeneracy_payload(result: CalibrationResult) -> dict[str, Any]:
+def _degeneracy_payload(
+    result: CalibrationResult,
+    *,
+    source_evidence: SourceEvidenceReference,
+) -> dict[str, Any]:
     return {
         "schema_version": REPORT_DEGENERACY_SCHEMA_VERSION,
         "run": _run_payload(result),
+        "source_evidence": source_evidence.model_dump(mode="json", exclude_none=True),
         "degeneracy": result.degeneracy.model_dump(mode="json", exclude_none=True),
         "quality_warnings": list(result.quality.warnings),
         "recommendations": list(result.quality.recommendation),
