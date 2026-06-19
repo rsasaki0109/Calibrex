@@ -342,8 +342,35 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["validate", str(tmp_path / "assessment.json"), "--kind", "assessment"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
     capsys.readouterr()
-    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 0
+    verification_path = tmp_path / "verification.json"
+    assert (
+        main(
+            [
+                "verify",
+                str(tmp_path / "bundle.json"),
+                "--output",
+                str(verification_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
     verify_payload = json.loads(capsys.readouterr().out)
+    assert verify_payload["schema_version"] == "calibrex.evidence_bundle.verification/v0.1"
+    assert verification_path.exists()
+    assert main(["validate", str(verification_path)]) == 0
+    assert (
+        main(
+            [
+                "validate",
+                str(verification_path),
+                "--kind",
+                "evidence-bundle-verification",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
     assert verify_payload["input_file_count"] == 0
     assert verify_payload["checked_input_file_count"] == 0
     assert verify_payload["checked_input_files"] == []
@@ -638,6 +665,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     report_degeneracy_schema = tmp_path / "report_degeneracy.schema.json"
     report_evidence_schema = tmp_path / "report_evidence.schema.json"
     evidence_bundle_schema = tmp_path / "evidence_bundle.schema.json"
+    evidence_bundle_verification_schema = (
+        tmp_path / "evidence_bundle_verification.schema.json"
+    )
     assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
@@ -653,6 +683,17 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert main(["schema", "report-degeneracy", "--output", str(report_degeneracy_schema)]) == 0
     assert main(["schema", "report-evidence", "--output", str(report_evidence_schema)]) == 0
     assert main(["schema", "evidence-bundle", "--output", str(evidence_bundle_schema)]) == 0
+    assert (
+        main(
+            [
+                "schema",
+                "evidence-bundle-verification",
+                "--output",
+                str(evidence_bundle_verification_schema),
+            ]
+        )
+        == 0
+    )
     assert config_schema.exists()
     assert result_schema.exists()
     assert comparison_schema.exists()
@@ -664,6 +705,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert report_degeneracy_schema.exists()
     assert report_evidence_schema.exists()
     assert evidence_bundle_schema.exists()
+    assert evidence_bundle_verification_schema.exists()
     for filename in [
         "config.schema.json",
         "result.schema.json",
@@ -676,6 +718,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         "report_degeneracy.schema.json",
         "report_evidence.schema.json",
         "evidence_bundle.schema.json",
+        "evidence_bundle_verification.schema.json",
     ]:
         assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
@@ -684,6 +727,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
     evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
     bundle_schema = json.loads(evidence_bundle_schema.read_text(encoding="utf-8"))
+    bundle_verification_schema = json.loads(
+        evidence_bundle_verification_schema.read_text(encoding="utf-8")
+    )
     assert summary_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.summary/v0.1"
     )
@@ -701,6 +747,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     )
     assert bundle_schema["properties"]["schema_version"]["const"] == (
         "calibrex.evidence_bundle/v0.1"
+    )
+    assert bundle_verification_schema["properties"]["schema_version"]["const"] == (
+        "calibrex.evidence_bundle.verification/v0.1"
     )
     assert json.loads((all_schema_dir / "comparison.schema.json").read_text(encoding="utf-8")) == (
         comparison_schema_payload

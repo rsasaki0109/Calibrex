@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "VerificationClaim": {
+      "additionalProperties": false,
+      "description": "One machine-readable verification check performed on a bundle.",
+      "properties": {
+        "expected": {
+          "additionalProperties": true,
+          "title": "Expected",
+          "type": "object"
+        },
+        "issues": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "observed": {
+          "additionalProperties": true,
+          "title": "Observed",
+          "type": "object"
+        },
+        "scope": {
+          "enum": [
+            "bundle_manifest",
+            "artifact_digest",
+            "artifact_schema",
+            "run_consistency",
+            "assessment_source",
+            "source_evidence_link",
+            "input_file_digest"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "failed",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope",
+        "subject",
+        "status",
+        "method"
+      ],
+      "title": "VerificationClaim",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable verification result for an evidence bundle.",
+  "properties": {
+    "artifact_count": {
+      "title": "Artifact Count",
+      "type": "integer"
+    },
+    "checked_artifacts": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Checked Artifacts",
+      "type": "array"
+    },
+    "checked_input_file_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Checked Input File Count",
+      "type": "integer"
+    },
+    "checked_input_files": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Checked Input Files",
+      "type": "array"
+    },
+    "input_file_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Input File Count",
+      "type": "integer"
+    },
+    "issue_count": {
+      "title": "Issue Count",
+      "type": "integer"
+    },
+    "issues": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "calibrex.evidence_bundle.verification/v0.1",
+      "default": "calibrex.evidence_bundle.verification/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "valid": {
+      "title": "Valid",
+      "type": "boolean"
+    },
+    "verification_claims": {
+      "items": {
+        "$ref": "#/$defs/VerificationClaim"
+      },
+      "title": "Verification Claims",
+      "type": "array"
+    }
+  },
+  "required": [
+    "path",
+    "valid",
+    "issue_count",
+    "issues",
+    "artifact_count",
+    "checked_artifacts"
+  ],
+  "title": "EvidenceBundleVerification",
+  "type": "object"
+}

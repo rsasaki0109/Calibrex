@@ -25,6 +25,7 @@ from calibrex.core.config import (
 )
 from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
+    evidence_bundle_verification_json_schema,
     verify_evidence_bundle,
 )
 from calibrex.core.exceptions import CalibrexError
@@ -106,6 +107,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "assessment",
             "dataset-manifest",
             "evidence-bundle",
+            "evidence-bundle-verification",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -127,6 +129,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     verify = subcommands.add_parser("verify", help="verify an evidence bundle manifest")
     verify.add_argument("bundle", type=Path)
+    verify.add_argument("--output", type=Path, help="write verification YAML/JSON")
     verify.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     verify.set_defaults(func=_cmd_verify)
 
@@ -355,6 +358,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "assessment": assessment_json_schema,
         "dataset-manifest": manifest_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
+        "evidence-bundle-verification": evidence_bundle_verification_json_schema,
     }
     for kind in report_artifact_schema_kinds():
         generators[kind] = _report_artifact_schema_generator(kind)
@@ -382,6 +386,8 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 def _cmd_verify(args: argparse.Namespace) -> int:
     report = verify_evidence_bundle(args.bundle)
     payload = report.model_dump(mode="json")
+    if args.output:
+        write_mapping(args.output, payload)
     _emit(payload, args.json)
     return 0 if report.valid else 1
 

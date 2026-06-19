@@ -8,7 +8,11 @@ import yaml
 
 from calibrex.core.assessment import assessment_json_schema
 from calibrex.core.config import config_json_schema
-from calibrex.core.evidence_bundle import evidence_bundle_json_schema
+from calibrex.core.evidence_bundle import (
+    evidence_bundle_json_schema,
+    evidence_bundle_verification_json_schema,
+    verify_evidence_bundle,
+)
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
 from calibrex.data.manifest import manifest_json_schema
@@ -24,6 +28,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "assessment.schema.json": assessment_json_schema,
         "dataset_manifest.schema.json": manifest_json_schema,
         "evidence_bundle.schema.json": evidence_bundle_json_schema,
+        "evidence_bundle_verification.schema.json": evidence_bundle_verification_json_schema,
         "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),
         "report_metrics.schema.json": lambda: report_artifact_json_schema("report-metrics"),
         "report_observability.schema.json": lambda: report_artifact_json_schema(
@@ -113,6 +118,11 @@ def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> N
         schema = json.loads((Path("schemas") / schema_name).read_text(encoding="utf-8"))
         sidecar = json.loads((tmp_path / sidecar_name).read_text(encoding="utf-8"))
         jsonschema.validate(sidecar, schema)
+    verification_schema = json.loads(
+        Path("schemas/evidence_bundle_verification.schema.json").read_text(encoding="utf-8")
+    )
+    verification = verify_evidence_bundle(tmp_path / "bundle.json").model_dump(mode="json")
+    jsonschema.validate(verification, verification_schema)
 
 
 def test_dataset_manifest_schema_validates_synthetic_example() -> None:

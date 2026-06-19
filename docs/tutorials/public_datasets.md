@@ -40,7 +40,8 @@ calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached
   --output-dir outputs/livox_horizon_horizon_pcd_sample
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/evidence.json --kind report-evidence
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/assessment.json --kind assessment
-calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json
+calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
+  --output outputs/livox_horizon_horizon_pcd_sample/verification.json
 ```
 
 The cached Livox evidence result is a report-rendering fixture, not a claim
@@ -71,6 +72,8 @@ cached report fixtures normally report zero input files. It also includes
 `verification_claims`, where each claim records a scope, status, method,
 expected values, observed values, and scoped issues for artifact digests,
 run consistency, assessment source links, and raw input digests.
+The saved `verification.json` is schema-versioned and can be validated or
+stored as a CI artifact.
 Derived sidecars such as `summary.json`, `metrics.json`, `observability.json`,
 and `degeneracy.json` also include `source_evidence` so reviewers can verify
 which immutable `evidence.json` they summarize.

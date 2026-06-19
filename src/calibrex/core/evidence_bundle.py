@@ -17,6 +17,9 @@ from calibrex.core.result import StrictModel
 EVIDENCE_BUNDLE_SCHEMA_VERSION: Literal["calibrex.evidence_bundle/v0.1"] = (
     "calibrex.evidence_bundle/v0.1"
 )
+EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION: Literal[
+    "calibrex.evidence_bundle.verification/v0.1"
+] = "calibrex.evidence_bundle.verification/v0.1"
 BundleArtifactKind = Literal[
     "assessment",
     "report-html",
@@ -77,6 +80,9 @@ class EvidenceBundleManifest(StrictModel):
 class EvidenceBundleVerification(StrictModel):
     """Machine-readable verification result for an evidence bundle."""
 
+    schema_version: Literal["calibrex.evidence_bundle.verification/v0.1"] = (
+        EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION
+    )
     path: str
     valid: bool
     issue_count: int
@@ -93,6 +99,12 @@ def evidence_bundle_json_schema() -> dict[str, Any]:
     """Return the JSON schema for evidence bundle manifests."""
 
     return EvidenceBundleManifest.model_json_schema()
+
+
+def evidence_bundle_verification_json_schema() -> dict[str, Any]:
+    """Return the JSON schema for evidence bundle verification artifacts."""
+
+    return EvidenceBundleVerification.model_json_schema()
 
 
 def write_evidence_bundle(
