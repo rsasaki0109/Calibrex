@@ -4,6 +4,30 @@
       "additionalProperties": false,
       "description": "Summary of one compared result.",
       "properties": {
+        "computed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed At"
+        },
+        "data_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Verified"
+        },
         "domain": {
           "title": "Domain",
           "type": "string"
@@ -15,6 +39,16 @@
             "fail"
           ],
           "title": "Grade",
+          "type": "string"
+        },
+        "metrics_origin": {
+          "default": "unknown",
+          "enum": [
+            "recomputed",
+            "cached",
+            "unknown"
+          ],
+          "title": "Metrics Origin",
           "type": "string"
         },
         "path": {

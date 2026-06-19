@@ -375,7 +375,9 @@ def test_compare_command_writes_machine_readable_summary(
     assert payload == written
     assert payload["schema_version"] == "calibrex.comparison/v0.1"
     assert payload["left"]["run_id"] == "precomputed_example"
+    assert payload["left"]["metrics_origin"] == "recomputed"
     assert payload["right"]["run_id"] == "candidate_variant"
+    assert payload["right"]["metrics_origin"] == "recomputed"
     assert payload["protocol_compatibility"]["status"] == "not_comparable"
     assert payload["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
     assert payload["summary"]["max_translation_delta_m"] == 0.05
@@ -1066,6 +1068,12 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
 
     assert main(["compare", str(result), str(result), "--json"]) == 0
     comparison = json.loads(capsys.readouterr().out)
+    assert comparison["left"]["metrics_origin"] == "cached"
+    assert comparison["left"]["data_verified"] is False
+    assert comparison["left"]["computed_at"] == "2026-06-18T10:53:34Z"
+    assert comparison["right"]["metrics_origin"] == "cached"
+    assert comparison["right"]["data_verified"] is False
+    assert comparison["right"]["computed_at"] == "2026-06-18T10:53:34Z"
     assert comparison["protocol_compatibility"]["status"] == "compatible"
     assert comparison["protocol_compatibility"]["shared_protocol_ids"] == [
         "livox_pair_single_pair_holdout_point_to_plane/v0.1"

@@ -29,6 +29,7 @@ MetricValueField = Literal["holdout", "value", "train", "none"]
 MetricPreference = Literal["lower", "higher", "unknown"]
 ComparisonWinner = Literal["left", "right", "tie", "not_comparable"]
 ProtocolCompatibilityStatus = Literal["compatible", "warning", "not_comparable"]
+MetricsOrigin = Literal["recomputed", "cached", "unknown"]
 
 
 class ComparisonSide(StrictModel):
@@ -39,6 +40,9 @@ class ComparisonSide(StrictModel):
     status: str
     grade: Grade
     domain: str
+    metrics_origin: MetricsOrigin = "unknown"
+    data_verified: bool | None = None
+    computed_at: str | None = None
 
 
 class MetricSide(StrictModel):
@@ -258,12 +262,16 @@ def comparison_json_schema() -> dict[str, object]:
 
 
 def _side(result: CalibrationResult, path: str | Path | None) -> ComparisonSide:
+    provenance = result.run.provenance
     return ComparisonSide(
         path=str(path) if path is not None else None,
         run_id=result.run.id,
         status=result.run.status,
         grade=result.quality.grade,
         domain=result.run.domain,
+        metrics_origin=_metrics_origin(provenance),
+        data_verified=_bool_or_none(provenance.get("data_verified")),
+        computed_at=_str_or_none(provenance.get("computed_at")),
     )
 
 
@@ -646,10 +654,14 @@ def _protocol_mismatch_reasons(
     return reasons
 
 
-def _metrics_origin(provenance: dict[str, object]) -> str:
+def _metrics_origin(provenance: dict[str, object]) -> MetricsOrigin:
     value = provenance.get("metrics_origin", "recomputed")
-    if isinstance(value, str) and value in {"recomputed", "cached", "unknown"}:
-        return value
+    if value == "recomputed":
+        return "recomputed"
+    if value == "cached":
+        return "cached"
+    if value == "unknown":
+        return "unknown"
     return "unknown"
 
 
