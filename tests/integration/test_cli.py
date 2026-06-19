@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from calibrex.cli.main import main
+from calibrex.core.assessment import AssessmentArtifact
 from calibrex.core.evidence_bundle import EvidenceBundleManifest
 from calibrex.core.report_artifacts import (
     ReportDegeneracyArtifact,
@@ -195,6 +196,7 @@ def test_calibrate_json_includes_report_artifacts(
         "observability": str(tmp_path / "observability.json"),
         "degeneracy": str(tmp_path / "degeneracy.json"),
         "evidence": str(tmp_path / "evidence.json"),
+        "assessment": str(tmp_path / "assessment.json"),
         "bundle": str(tmp_path / "bundle.json"),
     }
     for path in payload["report_artifacts"].values():
@@ -222,6 +224,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (tmp_path / "observability.json").exists()
     assert (tmp_path / "degeneracy.json").exists()
     assert (tmp_path / "evidence.json").exists()
+    assert (tmp_path / "assessment.json").exists()
     assert (tmp_path / "bundle.json").exists()
     report_html = (tmp_path / "report.html").read_text(encoding="utf-8")
     assert str(tmp_path / "evidence.json") in report_html
@@ -245,10 +248,14 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assessment = json.loads((tmp_path / "assessment.json").read_text(encoding="utf-8"))
+    assessment_model = AssessmentArtifact.model_validate(assessment)
+    assert assessment_model.schema_version == "calibrex.assessment/v0.1"
+    assert assessment_model.status == "inconclusive"
     bundle = json.loads((tmp_path / "bundle.json").read_text(encoding="utf-8"))
     bundle_model = EvidenceBundleManifest.model_validate(bundle)
     assert bundle_model.primary_evidence_path == "evidence.json"
-    assert bundle_model.artifact_count == 6
+    assert bundle_model.artifact_count == 7
     assert {artifact.path for artifact in bundle_model.artifacts} == {
         "report.html",
         "summary.json",
@@ -256,6 +263,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
         "observability.json",
         "degeneracy.json",
         "evidence.json",
+        "assessment.json",
     }
     assert main(["validate", str(result)]) == 0
     assert main(["validate", str(tmp_path / "summary.json")]) == 0
@@ -263,11 +271,13 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert main(["validate", str(tmp_path / "observability.json")]) == 0
     assert main(["validate", str(tmp_path / "degeneracy.json")]) == 0
     assert main(["validate", str(tmp_path / "evidence.json")]) == 0
+    assert main(["validate", str(tmp_path / "assessment.json")]) == 0
     assert main(["validate", str(tmp_path / "bundle.json")]) == 0
     assert (
         main(["validate", str(tmp_path / "summary.json"), "--kind", "report-summary"])
         == 0
     )
+    assert main(["validate", str(tmp_path / "assessment.json"), "--kind", "assessment"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
     assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 0
     (tmp_path / "summary.json").write_text(
@@ -296,6 +306,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (evaluated_dir / "observability.json").exists()
     assert (evaluated_dir / "degeneracy.json").exists()
     assert (evaluated_dir / "evidence.json").exists()
+    assert (evaluated_dir / "assessment.json").exists()
     assert (evaluated_dir / "bundle.json").exists()
     visualized_dir = tmp_path / "visualized"
     assert (
@@ -317,6 +328,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert (visualized_dir / "observability.json").exists()
     assert (visualized_dir / "degeneracy.json").exists()
     assert (visualized_dir / "evidence.json").exists()
+    assert (visualized_dir / "assessment.json").exists()
     assert (visualized_dir / "bundle.json").exists()
     assert (
         main(["export", str(result), "--format", "ros-tf", "--output", str(tmp_path / "tf.yaml")])
@@ -367,7 +379,23 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert evidence["materialization"]["metrics_origin"] == "cached"
     assert evidence["protocols"][0]["known_bad_case_count"] == 24
     assert len(evidence["cases"]) == 6
+    assessment = json.loads((output_dir / "assessment.json").read_text(encoding="utf-8"))
+    assert assessment["status"] == "inconclusive"
+    assert assessment["source_evidence"]["path"] == "evidence.json"
+    assert assessment["source_evidence"]["metrics_origin"] == "cached"
+    assert {
+        (rule["rule_id"], rule["status"])
+        for rule in assessment["rules"]
+    } >= {
+        ("raw_recomputation", "inconclusive"),
+        ("holdout_support_gate", "pass"),
+        ("holdout_independence", "inconclusive"),
+        ("known_bad_controls", "pass"),
+    }
     assert "CACHED EVIDENCE" in (output_dir / "report.html").read_text(encoding="utf-8")
+    assert main(["assess", str(output_dir / "evidence.json"), "--json"]) == 1
+    assessed = json.loads(capsys.readouterr().out)
+    assert assessed["status"] == "inconclusive"
     plain_dir = tmp_path / "cached_eval_plain"
     assert (
         main(
@@ -481,6 +509,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"
     comparison_schema = tmp_path / "comparison.schema.json"
+    assessment_schema = tmp_path / "assessment.schema.json"
     manifest_schema = tmp_path / "dataset_manifest.schema.json"
     report_summary_schema = tmp_path / "report_summary.schema.json"
     report_metrics_schema = tmp_path / "report_metrics.schema.json"
@@ -492,6 +521,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
     assert main(["schema", "comparison", "--output", str(comparison_schema)]) == 0
+    assert main(["schema", "assessment", "--output", str(assessment_schema)]) == 0
     assert main(["schema", "dataset-manifest", "--output", str(manifest_schema)]) == 0
     assert main(["schema", "report-summary", "--output", str(report_summary_schema)]) == 0
     assert main(["schema", "report-metrics", "--output", str(report_metrics_schema)]) == 0
@@ -505,6 +535,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert config_schema.exists()
     assert result_schema.exists()
     assert comparison_schema.exists()
+    assert assessment_schema.exists()
     assert manifest_schema.exists()
     assert report_summary_schema.exists()
     assert report_metrics_schema.exists()
@@ -516,6 +547,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         "config.schema.json",
         "result.schema.json",
         "comparison.schema.json",
+        "assessment.schema.json",
         "dataset_manifest.schema.json",
         "report_summary.schema.json",
         "report_metrics.schema.json",
@@ -527,6 +559,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
     comparison_schema_payload = json.loads(comparison_schema.read_text(encoding="utf-8"))
+    assessment_schema_payload = json.loads(assessment_schema.read_text(encoding="utf-8"))
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
     evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
     bundle_schema = json.loads(evidence_bundle_schema.read_text(encoding="utf-8"))
@@ -535,6 +568,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     )
     assert comparison_schema_payload["properties"]["schema_version"]["const"] == (
         "calibrex.comparison/v0.1"
+    )
+    assert assessment_schema_payload["properties"]["schema_version"]["const"] == (
+        "calibrex.assessment/v0.1"
     )
     assert metrics_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.metrics/v0.1"

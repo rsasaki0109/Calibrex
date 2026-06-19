@@ -13,6 +13,7 @@ Start with:
 - `docs/tutorials/public_datasets.md`
 - `docs/tutorials/open3d_slac.md`
 - `docs/tutorials/lidar_camera_adapter.md`
+- `schemas/assessment.schema.json`
 - `schemas/comparison.schema.json`
 - `schemas/evidence_bundle.schema.json`
 - `schemas/report_evidence.schema.json`

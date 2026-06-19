@@ -7,6 +7,7 @@ from typing import Final, Literal
 
 from pydantic import BaseModel
 
+from calibrex.core.assessment import ASSESSMENT_SCHEMA_VERSION, AssessmentArtifact
 from calibrex.core.config import CONFIG_SCHEMA_VERSION, CalibrationConfig
 from calibrex.core.evidence_bundle import (
     EVIDENCE_BUNDLE_SCHEMA_VERSION,
@@ -35,6 +36,7 @@ ValidationKind = Literal[
     "config",
     "result",
     "comparison",
+    "assessment",
     "dataset-manifest",
     "report-summary",
     "report-metrics",
@@ -48,6 +50,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "config": CalibrationConfig,
     "result": CalibrationResult,
     "comparison": ResultComparison,
+    "assessment": AssessmentArtifact,
     "dataset-manifest": DatasetManifest,
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
@@ -61,6 +64,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CONFIG_SCHEMA_VERSION: "config",
     RESULT_SCHEMA_VERSION: "result",
     COMPARISON_SCHEMA_VERSION: "comparison",
+    ASSESSMENT_SCHEMA_VERSION: "assessment",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",

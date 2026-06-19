@@ -7,6 +7,11 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+from calibrex.core.assessment import (
+    AssessmentArtifact,
+    assess_report_evidence,
+    write_assessment_from_evidence,
+)
 from calibrex.core.evidence_bundle import BundleArtifactKind, write_evidence_bundle
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
@@ -18,6 +23,7 @@ from calibrex.core.report_artifacts import (
     REPORT_SUMMARY_SCHEMA_VERSION,
     EvidenceCaseItem,
     EvidenceSummaryItem,
+    ReportEvidenceArtifact,
     validate_report_sidecar_payload,
 )
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
@@ -71,6 +77,7 @@ _REPORT_SIDECAR_KINDS = {
 }
 
 _REPORT_BUNDLE_FILENAME = "bundle.json"
+_ASSESSMENT_FILENAME = "assessment.json"
 
 
 def report_artifact_paths(
@@ -87,6 +94,7 @@ def report_artifact_paths(
         paths["html_report"] = str(_resolve_output_path(output_path, html_filename))
     for filename in _REPORT_SIDECAR_KINDS:
         paths[filename.removesuffix(".json")] = str(output_path / filename)
+    paths["assessment"] = str(output_path / _ASSESSMENT_FILENAME)
     paths["bundle"] = str(output_path / _REPORT_BUNDLE_FILENAME)
     return paths
 
@@ -126,6 +134,7 @@ def render_html_report(result: CalibrationResult) -> str:
     scoreboard_section = _scoreboard_section(result)
     artifact_rows = _artifact_rows(result)
     observability_rows = _observability_rows(result)
+    assessment_section = _assessment_section(result)
     lidar_world_map_section = _lidar_world_map_section(result)
     lidar_pair_section = _lidar_pair_section(result)
 
@@ -223,6 +232,7 @@ def render_html_report(result: CalibrationResult) -> str:
     <tr><th>Field</th><th>Value</th></tr>
     {observability_rows}
   </table>
+  {assessment_section}
   {lidar_world_map_section}
   {lidar_pair_section}
   <h2>Artifacts</h2>
@@ -299,6 +309,10 @@ def write_report_artifacts(
     for name, payload in _report_sidecar_payloads(result).items():
         sidecar_path = output_path / name
         write_mapping(sidecar_path, payload)
+    write_assessment_from_evidence(
+        output_path / "evidence.json",
+        output_path / _ASSESSMENT_FILENAME,
+    )
     write_evidence_bundle(
         output_path / _REPORT_BUNDLE_FILENAME,
         run_id=result.run.id,
@@ -325,6 +339,7 @@ def _bundle_artifacts(
             (output_path / "observability.json", "report-observability"),
             (output_path / "degeneracy.json", "report-degeneracy"),
             (output_path / "evidence.json", "report-evidence"),
+            (output_path / _ASSESSMENT_FILENAME, "assessment"),
         ]
     )
     return artifacts
@@ -754,6 +769,59 @@ def _cached_evidence_banner(result: CalibrationResult) -> str:
     )
 
 
+def _assessment_section(result: CalibrationResult) -> str:
+    assessment = _assessment_from_result(result)
+    if assessment is None:
+        return ""
+    rule_rows = "\n".join(_assessment_rule_row(rule) for rule in assessment.rules)
+    return f"""
+  <h2>Falsification Assessment</h2>
+  <p>
+    Status:
+    <span class="grade {_assessment_css_class(assessment.status)}">
+      {escape(assessment.status.upper())}
+    </span>
+    {escape(assessment.reason)}
+  </p>
+  <table>
+    <tr><th>Rule</th><th>Status</th><th>Reason</th><th>Observed</th><th>Thresholds</th></tr>
+    {rule_rows}
+  </table>
+"""
+
+
+def _assessment_from_result(result: CalibrationResult) -> AssessmentArtifact | None:
+    try:
+        evidence = ReportEvidenceArtifact.model_validate(_evidence_payload(result))
+    except Exception:
+        return None
+    return assess_report_evidence(evidence)
+
+
+def _assessment_rule_row(rule: Any) -> str:
+    return (
+        f'<tr class="{escape(_assessment_css_class(rule.status))}">'
+        f"<td>{escape(rule.rule_id)}</td>"
+        f"<td>{escape(rule.status.upper())}</td>"
+        f"<td>{escape(rule.reason)}</td>"
+        f"<td>{escape(_mapping_text(rule.observed))}</td>"
+        f"<td>{escape(_mapping_text(rule.thresholds))}</td>"
+        "</tr>"
+    )
+
+
+def _assessment_css_class(status: str) -> str:
+    if status == "fail":
+        return "fail"
+    if status == "inconclusive":
+        return "warn"
+    return "pass"
+
+
+def _mapping_text(values: dict[str, Any]) -> str:
+    return ", ".join(f"{key}={_payload_value(value)}" for key, value in sorted(values.items()))
+
+
 def _lidar_world_map_section(result: CalibrationResult) -> str:
     summary_rows = _selected_metric_rows(result, _WORLD_MAP_SUMMARY_METRICS)
     dof_rows = _world_map_dof_rows(result)
@@ -1093,6 +1161,7 @@ def _report_sidecar_artifact_rows(result: CalibrationResult) -> list[str]:
         filename.removesuffix(".json"): str(base_dir / filename)
         for filename in _REPORT_SIDECAR_KINDS
     }
+    sidecars["assessment"] = str(base_dir / _ASSESSMENT_FILENAME)
     sidecars["bundle"] = str(base_dir / _REPORT_BUNDLE_FILENAME)
     return [_artifact_row(name, path) for name, path in sidecars.items()]
 

@@ -6,6 +6,7 @@ from typing import Any
 import jsonschema
 import yaml
 
+from calibrex.core.assessment import assessment_json_schema
 from calibrex.core.config import config_json_schema
 from calibrex.core.evidence_bundle import evidence_bundle_json_schema
 from calibrex.core.report_artifacts import report_artifact_json_schema
@@ -20,6 +21,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "config.schema.json": config_json_schema,
         "result.schema.json": result_json_schema,
         "comparison.schema.json": comparison_json_schema,
+        "assessment.schema.json": assessment_json_schema,
         "dataset_manifest.schema.json": manifest_json_schema,
         "evidence_bundle.schema.json": evidence_bundle_json_schema,
         "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),
@@ -105,6 +107,7 @@ def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> N
         "observability.json": "report_observability.schema.json",
         "degeneracy.json": "report_degeneracy.schema.json",
         "evidence.json": "report_evidence.schema.json",
+        "assessment.json": "assessment.schema.json",
         "bundle.json": "evidence_bundle.schema.json",
     }.items():
         schema = json.loads((Path("schemas") / schema_name).read_text(encoding="utf-8"))

@@ -109,6 +109,7 @@ def test_report_renders_calibration_scoreboard() -> None:
     assert "summary.json" in html
     assert "metrics.json" in html
     assert "evidence.json" in html
+    assert "assessment.json" in html
 
 
 def test_report_renders_lidar_pair_evidence_section() -> None:
@@ -195,6 +196,9 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
 
     assert "LiDAR Pair Evidence" in html
     assert "Evidence Protocol" in html
+    assert "Falsification Assessment" in html
+    assert "INCONCLUSIVE" in html
+    assert "holdout_independence" in html
     assert "livox_pair_single_pair_holdout_point_to_plane/v0.1" in html
     assert "single_pair_source_map_target_query" in html
     assert "matched_point_count=16884" in html

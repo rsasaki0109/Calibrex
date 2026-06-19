@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, NoReturn, cast
 
 from calibrex import __version__
+from calibrex.core.assessment import assess_evidence_file, assessment_json_schema
 from calibrex.core.config import (
     DatasetConfig,
     DatasetType,
@@ -92,6 +93,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "config",
             "result",
             "comparison",
+            "assessment",
             "dataset-manifest",
             "evidence-bundle",
             *report_artifact_schema_kinds(),
@@ -117,6 +119,12 @@ def _build_parser() -> argparse.ArgumentParser:
     verify.add_argument("bundle", type=Path)
     verify.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     verify.set_defaults(func=_cmd_verify)
+
+    assess = subcommands.add_parser("assess", help="apply a policy to evidence")
+    assess.add_argument("evidence", type=Path, help="report evidence artifact")
+    assess.add_argument("--output", type=Path, help="write assessment YAML/JSON")
+    assess.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    assess.set_defaults(func=_cmd_assess)
 
     init = subcommands.add_parser("init", help="write a starter config")
     init.add_argument("profile", choices=["camera-lidar-imu", "autonomous-driving-rig"])
@@ -302,6 +310,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "config": config_json_schema,
         "result": result_json_schema,
         "comparison": comparison_json_schema,
+        "assessment": assessment_json_schema,
         "dataset-manifest": manifest_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
     }
@@ -333,6 +342,15 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     payload = report.model_dump(mode="json")
     _emit(payload, args.json)
     return 0 if report.valid else 1
+
+
+def _cmd_assess(args: argparse.Namespace) -> int:
+    assessment = assess_evidence_file(args.evidence)
+    payload = assessment.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    _emit(payload, args.json)
+    return 0 if assessment.status == "pass" else 1
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

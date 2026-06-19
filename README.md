@@ -21,7 +21,7 @@ calibrex visualize outputs/result.yaml --export-html
   <br>
   <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 16,884 holdout plane matches, P90 |point-to-plane| 0.806 m, 100% known-bad controls detected.</sub>
   <br>
-  <sub>Evidence protocol metadata, known-bad case count, and representative roll/pitch/yaw/x/y/z probe details are exported in <code>evidence.json</code>.</sub>
+  <sub>Evidence protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates are exported in <code>evidence.json</code> and <code>assessment.json</code>.</sub>
 </p>
 
 <p align="center">
@@ -79,6 +79,7 @@ report.html
 summary.json
 metrics.json
 evidence.json
+assessment.json
 observability.json
 degeneracy.json
 bundle.json
@@ -95,8 +96,9 @@ Report sidecars record evidence materialization:
 
 `calibrex report` renders an existing result. `calibrex evaluate` reapplies
 quality gates to a result. Cached inputs emit CLI and HTML warnings, and
-`calibrex compare` shows materialization for both sides. `bundle.json` records
-artifact SHA-256 digests and can be checked with `calibrex verify bundle.json`.
+`calibrex assess evidence.json` applies the falsification policy. `calibrex
+compare` shows materialization for both sides. `bundle.json` records artifact
+SHA-256 digests and can be checked with `calibrex verify bundle.json`.
 
 Committed JSON schemas are regenerated with:
 

@@ -29,6 +29,7 @@ calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/con
 calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml \
   --output-dir outputs/livox_horizon_horizon_pcd_sample
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/evidence.json --kind report-evidence
+calibrex validate outputs/livox_horizon_horizon_pcd_sample/assessment.json --kind assessment
 calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json
 ```
 
@@ -43,8 +44,12 @@ with `metrics_origin`, `data_verified`, `computed_at`, and
 `report_generated_at`. Cached fixtures show `metrics_origin: cached` and
 `data_verified: false`, and the HTML report displays a cached-evidence banner.
 Generated report directories also include `bundle.json`, which records SHA-256
-digests for the HTML report and machine-readable sidecars. `calibrex verify`
-checks those digests and catches stale or mixed report artifacts.
+digests for the HTML report and machine-readable sidecars. `assessment.json`
+records the falsification policy result. Cached or non-independent evidence can
+score useful known-bad controls while still returning `INCONCLUSIVE` because raw
+observations were not recomputed or the holdout split is not independent.
+`calibrex verify` checks those digests and catches stale or mixed report
+artifacts.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports

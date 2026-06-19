@@ -15,6 +15,7 @@ EVIDENCE_BUNDLE_SCHEMA_VERSION: Literal["calibrex.evidence_bundle/v0.1"] = (
     "calibrex.evidence_bundle/v0.1"
 )
 BundleArtifactKind = Literal[
+    "assessment",
     "report-html",
     "report-summary",
     "report-metrics",
@@ -109,6 +110,7 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
     issues: list[str] = []
     checked: list[str] = []
     artifact_paths = {artifact.path for artifact in manifest.artifacts}
+    artifact_digests = {artifact.path: artifact.sha256 for artifact in manifest.artifacts}
     if manifest.primary_evidence_path not in artifact_paths:
         issues.append(
             f"primary evidence {manifest.primary_evidence_path!r} is not listed in artifacts"
@@ -136,6 +138,14 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
             expected_run_id=manifest.run_id,
             issues=issues,
         )
+        if artifact.kind == "assessment":
+            _verify_assessment_source(
+                artifact=artifact,
+                artifact_path=artifact_path,
+                primary_evidence_path=manifest.primary_evidence_path,
+                primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
+                issues=issues,
+            )
     return EvidenceBundleVerification(
         path=str(bundle_path),
         valid=not issues,
@@ -230,4 +240,34 @@ def _verify_run_id(
     if observed != expected_run_id:
         issues.append(
             f"{artifact.path}: run id mismatch ({observed!r} != {expected_run_id!r})"
+        )
+
+
+def _verify_assessment_source(
+    *,
+    artifact: EvidenceBundleArtifact,
+    artifact_path: Path,
+    primary_evidence_path: str,
+    primary_evidence_sha256: str | None,
+    issues: list[str],
+) -> None:
+    try:
+        payload = read_mapping(artifact_path)
+    except Exception:
+        return
+    source = payload.get("source_evidence")
+    if not isinstance(source, dict):
+        issues.append(f"{artifact.path}: missing source_evidence")
+        return
+    observed_path = source.get("path")
+    if observed_path is not None and observed_path != primary_evidence_path:
+        issues.append(
+            f"{artifact.path}: source evidence path mismatch "
+            f"({observed_path!r} != {primary_evidence_path!r})"
+        )
+    observed_digest = source.get("sha256")
+    if primary_evidence_sha256 is not None and observed_digest != primary_evidence_sha256:
+        issues.append(
+            f"{artifact.path}: source evidence sha256 mismatch "
+            f"({observed_digest!r} != {primary_evidence_sha256!r})"
         )
