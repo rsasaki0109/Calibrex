@@ -67,6 +67,60 @@
       "title": "ArtifactSet",
       "type": "object"
     },
+    "EvidenceMaterializationInfo": {
+      "additionalProperties": false,
+      "description": "How an evidence artifact was materialized for this report.",
+      "properties": {
+        "computed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed At"
+        },
+        "data_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Verified"
+        },
+        "metrics_origin": {
+          "default": "unknown",
+          "enum": [
+            "recomputed",
+            "cached",
+            "unknown"
+          ],
+          "title": "Metrics Origin",
+          "type": "string"
+        },
+        "report_generated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Generated At"
+        }
+      },
+      "title": "EvidenceMaterializationInfo",
+      "type": "object"
+    },
     "EvidenceSummaryItem": {
       "additionalProperties": false,
       "description": "Machine-readable evidence summary row for report consumers.",
@@ -278,6 +332,9 @@
       "minimum": 0,
       "title": "Matched Candidate Reference Count",
       "type": "integer"
+    },
+    "materialization": {
+      "$ref": "#/$defs/EvidenceMaterializationInfo"
     },
     "metric_counts": {
       "$ref": "#/$defs/GradeCounts"

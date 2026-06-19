@@ -227,6 +227,7 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     ReportSummaryArtifact.model_validate(summary)
     assert summary["schema_version"] == "calibrex.report.summary/v0.1"
     assert summary["run"]["id"]
+    assert summary["materialization"]["metrics_origin"] == "recomputed"
     metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
     ReportMetricsArtifact.model_validate(metrics)
     assert metrics["schema_version"] == "calibrex.report.metrics/v0.1"
@@ -297,6 +298,49 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
         == 0
     )
     assert (tmp_path / "tf.yaml").exists()
+
+
+def test_evaluate_cached_result_reports_materialization_warning(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    result = Path(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/"
+        "cached_evidence_result.yaml"
+    )
+    output_dir = tmp_path / "cached_eval"
+
+    assert (
+        main(
+            [
+                "evaluate",
+                str(result),
+                "--output-dir",
+                str(output_dir),
+                "--export-html",
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["metrics_origin"] == "cached"
+    assert payload["data_verified"] is False
+    assert payload["evidence_case_count"] == 6
+    assert "cached evidence" in payload["warning"]
+    summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
+    assert summary["materialization"] == {
+        "metrics_origin": "cached",
+        "data_verified": False,
+        "computed_at": "2026-06-18T10:53:34Z",
+        "report_generated_at": summary["run"]["created_at"],
+    }
+    evidence = json.loads((output_dir / "evidence.json").read_text(encoding="utf-8"))
+    assert evidence["materialization"]["metrics_origin"] == "cached"
+    assert evidence["protocols"][0]["known_bad_case_count"] == 24
+    assert len(evidence["cases"]) == 6
+    assert "CACHED EVIDENCE" in (output_dir / "report.html").read_text(encoding="utf-8")
 
 
 def test_compare_command_writes_machine_readable_summary(

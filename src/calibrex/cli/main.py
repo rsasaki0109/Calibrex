@@ -396,7 +396,16 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
         "recommendation": result.quality.recommendation,
         "html_report": result.artifacts.html_report,
         "report_artifacts": report_artifacts,
+        "metrics_origin": result.run.provenance.get("metrics_origin", "unknown"),
+        "data_verified": result.run.provenance.get("data_verified"),
+        "evidence_case_count": len(evidence_cases_from_result(result)),
     }
+    warning = _report_materialization_warning(
+        payload["metrics_origin"],
+        payload["data_verified"],
+    )
+    if warning is not None:
+        payload["warning"] = warning
     _emit(payload, args.json)
     return 1 if result.quality.grade == "fail" else 0
 

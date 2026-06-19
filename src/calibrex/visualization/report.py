@@ -324,6 +324,7 @@ def _summary_payload(result: CalibrationResult) -> dict[str, Any]:
     return {
         "schema_version": REPORT_SUMMARY_SCHEMA_VERSION,
         "run": _run_payload(result),
+        "materialization": _evidence_materialization_payload(result),
         "quality": result.quality.model_dump(mode="json", exclude_none=True),
         "metric_counts": grade_counts(metric.grade for metric in result.metrics.values()),
         "transform_counts": grade_counts(

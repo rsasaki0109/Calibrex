@@ -111,6 +111,9 @@ class ReportSummaryArtifact(StrictModel):
 
     schema_version: Literal["calibrex.report.summary/v0.1"] = REPORT_SUMMARY_SCHEMA_VERSION
     run: ReportRunInfo
+    materialization: EvidenceMaterializationInfo = Field(
+        default_factory=EvidenceMaterializationInfo
+    )
     quality: QualitySummary
     metric_counts: GradeCounts
     transform_counts: GradeCounts
