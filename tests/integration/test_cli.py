@@ -386,6 +386,14 @@ def test_calibrate_evaluate_visualize_export(
         == 0
     )
     capsys.readouterr()
+    assert main(["verify", str(tmp_path / "bundle.json")]) == 0
+    verify_text = capsys.readouterr().out
+    assert "valid: yes" in verify_text
+    assert "claims: total=" in verify_text
+    assert "failed=0" in verify_text
+    assert "claim_scopes:" in verify_text
+    assert "  artifact_digest: 7" in verify_text
+    assert "  source_evidence_link: 4" in verify_text
     assert verify_payload["input_file_count"] == 0
     assert verify_payload["checked_input_file_count"] == 0
     assert verify_payload["checked_input_files"] == []

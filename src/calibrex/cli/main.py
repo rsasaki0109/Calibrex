@@ -24,6 +24,7 @@ from calibrex.core.config import (
     load_config,
 )
 from calibrex.core.evidence_bundle import (
+    EvidenceBundleVerification,
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
     verify_evidence_bundle,
@@ -388,7 +389,10 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     payload = report.model_dump(mode="json")
     if args.output:
         write_mapping(args.output, payload)
-    _emit(payload, args.json)
+    if args.json:
+        _emit(payload, True)
+    else:
+        _emit_verification(report)
     return 0 if report.valid else 1
 
 
@@ -915,6 +919,33 @@ def _emit(payload: dict[str, Any], as_json: bool) -> None:
         return
     for key, value in payload.items():
         print(f"{key}: {value}")
+
+
+def _emit_verification(verification: EvidenceBundleVerification) -> None:
+    summary = verification.verification_summary
+    print(f"bundle: {verification.path}")
+    print(f"valid: {_format_bool(verification.valid)}")
+    print(f"source_bundle_sha256: {verification.source_bundle.sha256}")
+    print(f"artifacts: {len(verification.checked_artifacts)}/{verification.artifact_count}")
+    print(
+        "input_files: "
+        f"{verification.checked_input_file_count}/{verification.input_file_count}"
+    )
+    print(
+        "claims: "
+        f"total={summary.total}, "
+        f"ok={summary.ok}, "
+        f"failed={summary.failed}, "
+        f"skipped={summary.skipped}"
+    )
+    if summary.by_scope:
+        print("claim_scopes:")
+        for scope, count in sorted(summary.by_scope.items()):
+            print(f"  {scope}: {count}")
+    if verification.issues:
+        print("issues:")
+        for issue in verification.issues:
+            print(f"  - {issue}")
 
 
 def _emit_inspection(inspection: DatasetInspection) -> None:

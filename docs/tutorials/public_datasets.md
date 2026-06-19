@@ -75,6 +75,8 @@ The detailed record remains in
 `verification_claims`, where each claim records a scope, status, method,
 expected values, observed values, and scoped issues for artifact digests,
 run consistency, assessment source links, and raw input digests.
+Without `--json`, `calibrex verify` prints the same rollup as a compact
+review summary before any issue list.
 The saved `verification.json` is schema-versioned and can be validated or
 stored as a CI artifact. It records the verified bundle path, SHA-256, size,
 schema version, and run id under `source_bundle`.
