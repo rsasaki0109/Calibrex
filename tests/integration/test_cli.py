@@ -644,6 +644,28 @@ def test_evaluate_cached_result_reports_materialization_warning(
         for claim in gated_verify["verification_claims"]
     )
     assert any("metrics_origin is 'cached'" in issue for issue in gated_verify["issues"])
+    assert (
+        main(
+            [
+                "verify",
+                str(output_dir / "verification.json"),
+                "--require-raw-recomputed",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    gated_saved_verify = json.loads(capsys.readouterr().out)
+    assert any(
+        claim["scope"] == "raw_recomputed_requirement"
+        and claim["status"] == "failed"
+        for claim in gated_saved_verify["verification_claims"]
+    )
+    assert not any(
+        claim["scope"] == "verification_record"
+        and claim["status"] == "failed"
+        for claim in gated_saved_verify["verification_claims"]
+    )
     plain_dir = tmp_path / "cached_eval_plain"
     assert (
         main(

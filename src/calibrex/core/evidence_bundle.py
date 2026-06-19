@@ -358,10 +358,9 @@ def verify_evidence_bundle_verification(
         verification_path.parent,
         saved.source_bundle.path,
     )
-    effective_raw_gate = require_raw_recomputed or saved.raw_recomputed_required
     recomputed = verify_evidence_bundle(
         source_bundle_path,
-        require_raw_recomputed=effective_raw_gate,
+        require_raw_recomputed=saved.raw_recomputed_required,
     )
     issues = list(recomputed.issues)
     verification_claims = list(recomputed.verification_claims)
@@ -372,6 +371,13 @@ def verify_evidence_bundle_verification(
         issues=issues,
         verification_claims=verification_claims,
     )
+    effective_raw_gate = require_raw_recomputed or saved.raw_recomputed_required
+    if require_raw_recomputed and not saved.raw_recomputed_required:
+        _append_raw_recomputed_gate(
+            source_bundle_path=source_bundle_path,
+            issues=issues,
+            verification_claims=verification_claims,
+        )
     source_bundle = recomputed.source_bundle.model_copy(
         update={"path": saved.source_bundle.path}
     )
@@ -391,6 +397,20 @@ def verify_evidence_bundle_verification(
         verification_summary=_verification_claim_summary(verification_claims),
         verification_claims=verification_claims,
     )
+
+
+def _append_raw_recomputed_gate(
+    *,
+    source_bundle_path: Path,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    gated = verify_evidence_bundle(source_bundle_path, require_raw_recomputed=True)
+    for claim in gated.verification_claims:
+        if claim.scope == "raw_recomputed_requirement":
+            verification_claims.append(claim)
+            issues.extend(claim.issues)
+            return
 
 
 def write_evidence_bundle_verification(

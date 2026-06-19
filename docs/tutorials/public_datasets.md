@@ -94,6 +94,9 @@ evidence `metrics_origin` / `data_verified` values under
 bundle check and reports `verification_record` claims if the saved record is
 stale or edited. Saved verification artifacts use relative `source_bundle`
 paths when the bundle is colocated with, or near, the verification file.
+If `--require-raw-recomputed` is added while checking a saved verification,
+Calibrex applies that stricter raw-input gate as an additional claim without
+treating the saved default verification record as stale.
 Derived sidecars such as `summary.json`, `metrics.json`, `observability.json`,
 and `degeneracy.json` also include `source_evidence` so reviewers can verify
 which immutable `evidence.json` they summarize.
