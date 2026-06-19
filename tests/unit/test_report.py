@@ -110,7 +110,34 @@ def test_report_renders_calibration_scoreboard() -> None:
 
 def test_report_renders_lidar_pair_evidence_section() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="livox-report-unit", calibrex_version="0.1.0"),
+        run=RunInfo(
+            id="livox-report-unit",
+            calibrex_version="0.1.0",
+            provenance={
+                "evidence_cases": [
+                    {
+                        "family": "lidar_pair",
+                        "case_id": "pitch_deg:+1deg",
+                        "check": "Known-Bad Controls",
+                        "status": "pass",
+                        "dof": "pitch_deg",
+                        "amount": 1.0,
+                        "unit": "deg",
+                        "convention": "left-multiplied source-frame SE(3) perturbation",
+                        "metric_values": {
+                            "lidar_pair_holdout_point_to_plane_p90_abs_m": 0.84,
+                            "lidar_pair_holdout_point_to_plane_unmatched_fraction": 0.29,
+                        },
+                        "delta_values": {
+                            "source_recall_delta": 0.007,
+                            "centroid_rmse_delta_m": -0.008,
+                            "point_to_plane_p90_delta_m": 0.034,
+                            "point_to_plane_rmse_delta_m": 0.004,
+                        },
+                    }
+                ]
+            },
+        ),
         frame_graph=FrameGraphSnapshot(
             root="base_horizon",
             frames={"base_horizon": None, "target_horizon": "base_horizon"},
@@ -144,8 +171,11 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     assert "Candidate Support" in html
     assert "Holdout Geometry" in html
     assert "Known-Bad Controls" in html
+    assert "Known-Bad Case Details" in html
     assert "Decision Boundary" in html
     assert "Supported by this evidence protocol" in html
+    assert "pitch_deg:+1deg" in html
+    assert "0.034" in html
     assert "lidar_pair_source_voxel_recall_in_target" in html
     assert "lidar_pair_shared_voxel_centroid_rmse_m" in html
     assert "lidar_pair_holdout_point_to_plane_p90_abs_m" in html

@@ -15,6 +15,7 @@ from calibrex.core.report_artifacts import (
     REPORT_METRICS_SCHEMA_VERSION,
     REPORT_OBSERVABILITY_SCHEMA_VERSION,
     REPORT_SUMMARY_SCHEMA_VERSION,
+    EvidenceCaseItem,
     EvidenceSummaryItem,
     validate_report_sidecar_payload,
 )
@@ -684,6 +685,29 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
             if item.family == "lidar_pair"
         ]
     )
+    evidence_case_rows = _evidence_case_rows(
+        [
+            item
+            for item in evidence_cases_from_result(result)
+            if item.family == "lidar_pair"
+        ]
+    )
+    evidence_case_section = (
+        f"""
+  <h3>Known-Bad Case Details</h3>
+  <table>
+    <tr>
+      <th>Case</th><th>Status</th><th>DoF</th><th>Amount</th>
+      <th>Source Recall Delta</th><th>Centroid RMSE Delta m</th>
+      <th>P90 Point-to-Plane Delta m</th><th>Point-to-Plane RMSE Delta m</th>
+      <th>P90 Point-to-Plane m</th><th>Unmatched Fraction</th>
+    </tr>
+    {evidence_case_rows}
+  </table>
+"""
+        if evidence_case_rows
+        else ""
+    )
     return f"""
   <h2>LiDAR Pair Evidence</h2>
   <p>
@@ -696,6 +720,7 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     <tr><th>Check</th><th>Status</th><th>Evidence</th><th>Interpretation</th></tr>
     {evidence_rows}
   </table>
+  {evidence_case_section}
   <h3>Metric Details</h3>
   <table>
     <tr><th>Metric</th><th>Grade</th><th>Train</th><th>Holdout</th><th>Value</th><th>Unit</th><th>Reason</th></tr>
@@ -718,6 +743,45 @@ def _evidence_summary_row(item: EvidenceSummaryItem) -> str:
         f"<td>{escape(item.interpretation)}</td>"
         "</tr>"
     )
+
+
+def _evidence_case_rows(items: list[EvidenceCaseItem]) -> str:
+    return "\n".join(_evidence_case_row(item) for item in items)
+
+
+def _evidence_case_row(item: EvidenceCaseItem) -> str:
+    status = item.status
+    amount = _case_amount(item)
+    return (
+        f'<tr class="{escape(_grade_css_class(status))}">'
+        f"<td>{escape(item.case_id)}</td>"
+        f"<td>{escape(status.upper())}</td>"
+        f"<td>{escape(item.dof or '')}</td>"
+        f"<td>{escape(amount)}</td>"
+        f"<td>{_fmt(_case_delta(item, 'source_recall_delta'))}</td>"
+        f"<td>{_fmt(_case_delta(item, 'centroid_rmse_delta_m'))}</td>"
+        f"<td>{_fmt(_case_delta(item, 'point_to_plane_p90_delta_m'))}</td>"
+        f"<td>{_fmt(_case_delta(item, 'point_to_plane_rmse_delta_m'))}</td>"
+        f"<td>{_fmt(_case_metric(item, 'lidar_pair_holdout_point_to_plane_p90_abs_m'))}</td>"
+        "<td>"
+        f"{_fmt(_case_metric(item, 'lidar_pair_holdout_point_to_plane_unmatched_fraction'))}"
+        "</td>"
+        "</tr>"
+    )
+
+
+def _case_amount(item: EvidenceCaseItem) -> str:
+    if item.amount is None:
+        return ""
+    return f"{item.amount:g}{item.unit or ''}"
+
+
+def _case_delta(item: EvidenceCaseItem, name: str) -> float | None:
+    return item.delta_values.get(name)
+
+
+def _case_metric(item: EvidenceCaseItem, name: str) -> float | None:
+    return item.metric_values.get(name)
 
 
 def _selected_metric_rows(result: CalibrationResult, metric_names: tuple[str, ...]) -> str:
