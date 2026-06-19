@@ -33,6 +33,8 @@ _MIN_SUPPORT_RATIO = 0.10
 _MAX_UNMATCHED_FRACTION = 0.90
 _MIN_KNOWN_BAD_CASE_COUNT = 1
 _MIN_KNOWN_BAD_PASS_FRACTION = 0.50
+_MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION = 0.50
+_DELTA_EPSILON = 1.0e-9
 
 
 def _default_policy_parameters() -> dict[str, AssessmentScalar]:
@@ -45,6 +47,9 @@ def _default_policy_parameters() -> dict[str, AssessmentScalar]:
         "max_unmatched_fraction": _MAX_UNMATCHED_FRACTION,
         "min_known_bad_case_count": _MIN_KNOWN_BAD_CASE_COUNT,
         "min_known_bad_pass_fraction": _MIN_KNOWN_BAD_PASS_FRACTION,
+        "min_supported_known_bad_pass_fraction": (
+            _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
+        ),
     }
 
 
@@ -366,15 +371,40 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
     case_count = protocol.known_bad_case_count if protocol else None
     pass_count = sum(1 for case in cases if case.status == "pass")
     pass_fraction = pass_count / len(cases) if cases else None
+    support_scored_cases = [case for case in cases if _case_has_support_metrics(case)]
+    supported_detection_count = sum(
+        1
+        for case in support_scored_cases
+        if _case_is_supported_known_bad_detection(case)
+    )
+    supported_pass_fraction = (
+        supported_detection_count / len(support_scored_cases)
+        if support_scored_cases
+        else None
+    )
+    support_collapse_count = sum(
+        1
+        for case in support_scored_cases
+        if not _case_has_sufficient_support(case)
+    )
     observed: dict[str, AssessmentScalar] = {
         "declared_known_bad_case_count": case_count,
         "materialized_case_count": len(cases),
         "materialized_pass_fraction": pass_fraction,
+        "support_scored_case_count": len(support_scored_cases),
+        "supported_detection_count": supported_detection_count,
+        "supported_pass_fraction": supported_pass_fraction,
+        "support_collapse_count": support_collapse_count,
         "summary_status": summary.status if summary else None,
     }
     thresholds: dict[str, AssessmentScalar] = {
         "min_known_bad_case_count": _MIN_KNOWN_BAD_CASE_COUNT,
         "min_materialized_pass_fraction": _MIN_KNOWN_BAD_PASS_FRACTION,
+        "min_supported_known_bad_pass_fraction": (
+            _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
+        ),
+        "min_accepted_correspondence_count": _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
+        "min_support_ratio": _MIN_SUPPORT_RATIO,
     }
     if protocol is None or case_count is None or case_count < _MIN_KNOWN_BAD_CASE_COUNT:
         return AssessmentRuleResult(
@@ -409,6 +439,22 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
             rule_id="known_bad_controls",
             status="fail",
             reason="too few materialized known-bad controls were detected",
+            metric_ids=summary.metric_ids if summary else [],
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=[protocol.protocol_id, "cases"],
+        )
+    if (
+        supported_pass_fraction is not None
+        and supported_pass_fraction < _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
+    ):
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="fail",
+            reason=(
+                "known-bad controls did not separate under enough supported geometry; "
+                "detections may be dominated by support collapse"
+            ),
             metric_ids=summary.metric_ids if summary else [],
             observed=observed,
             thresholds=thresholds,
@@ -488,6 +534,46 @@ def _lidar_pair_known_bad_cases(evidence: ReportEvidenceArtifact) -> list[Eviden
         for case in evidence.cases
         if case.family == "lidar_pair" and case.check == "Known-Bad Controls"
     ]
+
+
+def _case_has_support_metrics(case: EvidenceCaseItem) -> bool:
+    return (
+        "lidar_pair_holdout_point_to_plane_support_ratio" in case.metric_values
+        or "lidar_pair_holdout_point_to_plane_accepted_correspondence_count"
+        in case.metric_values
+    )
+
+
+def _case_has_sufficient_support(case: EvidenceCaseItem) -> bool:
+    support_ratio = _number(
+        case.metric_values.get("lidar_pair_holdout_point_to_plane_support_ratio")
+    )
+    accepted_count = _number(
+        case.metric_values.get(
+            "lidar_pair_holdout_point_to_plane_accepted_correspondence_count"
+        )
+    )
+    if support_ratio is None or accepted_count is None:
+        return False
+    return (
+        support_ratio >= _MIN_SUPPORT_RATIO
+        and accepted_count >= _MIN_ACCEPTED_CORRESPONDENCE_COUNT
+    )
+
+
+def _case_is_supported_known_bad_detection(case: EvidenceCaseItem) -> bool:
+    if case.status != "pass" or not _case_has_sufficient_support(case):
+        return False
+    delta_names = (
+        "centroid_rmse_delta_m",
+        "point_to_plane_p90_delta_m",
+        "point_to_plane_rmse_delta_m",
+    )
+    return any(
+        (delta := _number(case.delta_values.get(delta_name))) is not None
+        and delta > _DELTA_EPSILON
+        for delta_name in delta_names
+    )
 
 
 def _overall_status(rules: list[AssessmentRuleResult]) -> AssessmentStatus:

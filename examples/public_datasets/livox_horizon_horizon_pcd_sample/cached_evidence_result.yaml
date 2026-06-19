@@ -65,12 +65,16 @@ run:
           lidar_pair_shared_voxel_centroid_rmse_m: 0.5377439021393955
           lidar_pair_holdout_point_to_plane_p90_abs_m: 0.8180836124191293
           lidar_pair_holdout_point_to_plane_rmse_m: 0.4519073879025254
+          lidar_pair_holdout_point_to_plane_support_ratio: 0.7132172737260205
+          lidar_pair_holdout_point_to_plane_eligible_point_count: 23666.0
+          lidar_pair_holdout_point_to_plane_accepted_correspondence_count: 16879.0
           lidar_pair_holdout_point_to_plane_unmatched_fraction: 0.28678272627397955
         delta_values:
           source_recall_delta: 0.00589101620029453
           centroid_rmse_delta_m: 0.002041072825886836
           point_to_plane_p90_delta_m: 0.011641679502488067
           point_to_plane_rmse_delta_m: 0.0028977211986060958
+          support_ratio_delta: -0.0002112735570015678
       - family: lidar_pair
         case_id: pitch_deg:+1deg
         check: Known-Bad Controls
@@ -85,12 +89,16 @@ run:
           lidar_pair_shared_voxel_centroid_rmse_m: 0.5276199818035552
           lidar_pair_holdout_point_to_plane_p90_abs_m: 0.8401780221598
           lidar_pair_holdout_point_to_plane_rmse_m: 0.45271756875285946
+          lidar_pair_holdout_point_to_plane_support_ratio: 0.7098368968139948
+          lidar_pair_holdout_point_to_plane_eligible_point_count: 23666.0
+          lidar_pair_holdout_point_to_plane_accepted_correspondence_count: 16799.0
           lidar_pair_holdout_point_to_plane_unmatched_fraction: 0.29016310318600524
         delta_values:
           source_recall_delta: 0.007363770250368162
           centroid_rmse_delta_m: -0.008082847509953472
           point_to_plane_p90_delta_m: 0.03373608924315874
           point_to_plane_rmse_delta_m: 0.0037079020489401704
+          support_ratio_delta: -0.0035916504690273188
       - family: lidar_pair
         case_id: yaw_deg:+1deg
         check: Known-Bad Controls
@@ -105,12 +113,16 @@ run:
           lidar_pair_shared_voxel_centroid_rmse_m: 0.5289243299387517
           lidar_pair_holdout_point_to_plane_p90_abs_m: 0.8076202869415283
           lidar_pair_holdout_point_to_plane_rmse_m: 0.4508893104860028
+          lidar_pair_holdout_point_to_plane_support_ratio: 0.7222175272542889
+          lidar_pair_holdout_point_to_plane_eligible_point_count: 23666.0
+          lidar_pair_holdout_point_to_plane_accepted_correspondence_count: 17092.0
           lidar_pair_holdout_point_to_plane_unmatched_fraction: 0.27778247274571116
         delta_values:
           source_recall_delta: -0.011782032400589088
           centroid_rmse_delta_m: -0.006778499374756941
           point_to_plane_p90_delta_m: 0.001178354024887085
           point_to_plane_rmse_delta_m: 0.0018796437820834955
+          support_ratio_delta: 0.00878897997126682
       - family: lidar_pair
         case_id: x_m:+0.1m
         check: Known-Bad Controls
@@ -125,12 +137,16 @@ run:
           lidar_pair_shared_voxel_centroid_rmse_m: 0.5226647529715753
           lidar_pair_holdout_point_to_plane_p90_abs_m: 0.8079507350921631
           lidar_pair_holdout_point_to_plane_rmse_m: 0.4509925257656979
+          lidar_pair_holdout_point_to_plane_support_ratio: 0.7100904250823967
+          lidar_pair_holdout_point_to_plane_eligible_point_count: 23666.0
+          lidar_pair_holdout_point_to_plane_accepted_correspondence_count: 16805.0
           lidar_pair_holdout_point_to_plane_unmatched_fraction: 0.28990957491760333
         delta_values:
           source_recall_delta: 0.0014727540500736325
           centroid_rmse_delta_m: -0.013038076341933325
           point_to_plane_p90_delta_m: 0.0015088021755218506
           point_to_plane_rmse_delta_m: 0.0019828590617786412
+          support_ratio_delta: -0.0033381222006253486
       - family: lidar_pair
         case_id: y_m:+0.1m
         check: Known-Bad Controls
@@ -145,12 +161,16 @@ run:
           lidar_pair_shared_voxel_centroid_rmse_m: 0.5377955411366977
           lidar_pair_holdout_point_to_plane_p90_abs_m: 0.8100853619690678
           lidar_pair_holdout_point_to_plane_rmse_m: 0.45107362863369543
+          lidar_pair_holdout_point_to_plane_support_ratio: 0.718287839094059
+          lidar_pair_holdout_point_to_plane_eligible_point_count: 23666.0
+          lidar_pair_holdout_point_to_plane_accepted_correspondence_count: 16999.0
           lidar_pair_holdout_point_to_plane_unmatched_fraction: 0.28171216090594103
         delta_values:
           source_recall_delta: -0.004418262150220925
           centroid_rmse_delta_m: 0.002092711823189042
           point_to_plane_p90_delta_m: 0.003643429052426539
           point_to_plane_rmse_delta_m: 0.002063961929776148
+          support_ratio_delta: 0.004859291811036948
       - family: lidar_pair
         case_id: z_m:-0.1m
         check: Known-Bad Controls
@@ -165,12 +185,16 @@ run:
           lidar_pair_shared_voxel_centroid_rmse_m: 0.5352072207197818
           lidar_pair_holdout_point_to_plane_p90_abs_m: 0.8398338710392516
           lidar_pair_holdout_point_to_plane_rmse_m: 0.4541516083164363
+          lidar_pair_holdout_point_to_plane_support_ratio: 0.7113580664244064
+          lidar_pair_holdout_point_to_plane_eligible_point_count: 23666.0
+          lidar_pair_holdout_point_to_plane_accepted_correspondence_count: 16835.0
           lidar_pair_holdout_point_to_plane_unmatched_fraction: 0.2886419335755937
         delta_values:
           source_recall_delta: -0.005891016200294558
           centroid_rmse_delta_m: -0.0004956085937268817
           point_to_plane_p90_delta_m: 0.03339193812261032
           point_to_plane_rmse_delta_m: 0.00514194161251702
+          support_ratio_delta: -0.0020704808586157197
 frame_graph:
   root: base_horizon
   convention: T_parent_child

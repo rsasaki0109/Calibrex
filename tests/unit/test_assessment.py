@@ -1,7 +1,14 @@
-from calibrex.core.assessment import assess_report_evidence
+from calibrex.core.assessment import (
+    AssessmentArtifact,
+    AssessmentRuleResult,
+    assess_report_evidence,
+)
 from calibrex.core.report_artifacts import (
+    EvidenceCaseItem,
     EvidenceInputFileItem,
     EvidenceMaterializationInfo,
+    EvidenceProtocolItem,
+    EvidenceSummaryItem,
     ReportEvidenceArtifact,
     ReportRunInfo,
 )
@@ -42,3 +49,132 @@ def _raw_recomputation_status(*, data_verified: bool | None, input_files: bool) 
         if rule.rule_id == "raw_recomputation":
             return rule.status
     raise AssertionError("raw_recomputation rule was not emitted")
+
+
+def test_known_bad_controls_fail_when_only_support_collapse_is_detected() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.02,
+        accepted_correspondence_count=10.0,
+        point_to_plane_delta_m=0.10,
+    )
+
+    assessment = assess_report_evidence(evidence)
+    rule = _rule_status(assessment, "known_bad_controls")
+
+    assert rule.status == "fail"
+    assert rule.observed["support_scored_case_count"] == 1
+    assert rule.observed["supported_detection_count"] == 0
+    assert rule.observed["support_collapse_count"] == 1
+
+
+def test_known_bad_controls_pass_with_supported_geometry_detection() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.72,
+        accepted_correspondence_count=720.0,
+        point_to_plane_delta_m=0.10,
+    )
+
+    assessment = assess_report_evidence(evidence)
+    rule = _rule_status(assessment, "known_bad_controls")
+
+    assert rule.status == "pass"
+    assert rule.observed["support_scored_case_count"] == 1
+    assert rule.observed["supported_detection_count"] == 1
+    assert rule.observed["supported_pass_fraction"] == 1.0
+
+
+def _known_bad_evidence(
+    *,
+    support_ratio: float,
+    accepted_correspondence_count: float,
+    point_to_plane_delta_m: float,
+) -> ReportEvidenceArtifact:
+    return ReportEvidenceArtifact(
+        run=ReportRunInfo(
+            id="assessment-known-bad-unit",
+            status="success",
+            domain="robotics",
+            calibrex_version="0.1.0",
+            created_at="2026-06-19T00:00:00Z",
+        ),
+        materialization=EvidenceMaterializationInfo(
+            metrics_origin="recomputed",
+            data_verified=True,
+        ),
+        input_files=[
+            EvidenceInputFileItem(
+                path="raw.pcd",
+                sha256="0" * 64,
+                size_bytes=128,
+            )
+        ],
+        protocols=[
+            EvidenceProtocolItem(
+                family="lidar_pair",
+                protocol_id="livox_pair_single_pair_holdout_point_to_plane/v0.1",
+                status="scored",
+                split_policy="temporal_block_holdout",
+                independent_holdout=True,
+                candidate_transform="T_source_target",
+                transform_convention=(
+                    "T_source_target maps target PCD points into the source PCD frame"
+                ),
+                known_bad_case_count=1,
+                parameters={
+                    "map_voxel_count": 30,
+                    "matched_point_count": 720,
+                    "eligible_point_count": 1000,
+                    "accepted_correspondence_count": 720,
+                    "support_ratio": 0.72,
+                    "unmatched_fraction": 0.28,
+                },
+            )
+        ],
+        summaries=[
+            EvidenceSummaryItem(
+                family="lidar_pair",
+                check="Known-Bad Controls",
+                status="pass",
+                evidence="known-bad controls separated",
+                interpretation="controls are distinguishable",
+                metric_ids=["lidar_pair_known_bad_detectable_fraction"],
+            ),
+            EvidenceSummaryItem(
+                family="lidar_pair",
+                check="Decision Boundary",
+                status="pass",
+                evidence="candidate vs controls",
+                interpretation="supported under protocol",
+            ),
+        ],
+        cases=[
+            EvidenceCaseItem(
+                family="lidar_pair",
+                case_id="x_m:+0.1m",
+                check="Known-Bad Controls",
+                status="pass",
+                dof="x_m",
+                amount=0.1,
+                unit="m",
+                metric_values={
+                    "lidar_pair_holdout_point_to_plane_support_ratio": support_ratio,
+                    "lidar_pair_holdout_point_to_plane_accepted_correspondence_count": (
+                        accepted_correspondence_count
+                    ),
+                },
+                delta_values={
+                    "point_to_plane_p90_delta_m": point_to_plane_delta_m,
+                },
+            )
+        ],
+    )
+
+
+def _rule_status(
+    assessment: AssessmentArtifact,
+    rule_id: str,
+) -> AssessmentRuleResult:
+    for rule in assessment.rules:
+        if rule.rule_id == rule_id:
+            return rule
+    raise AssertionError(f"{rule_id} rule was not emitted")
