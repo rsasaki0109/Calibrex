@@ -102,7 +102,10 @@ Report sidecars record evidence materialization:
 `calibrex render` renders an existing result and does not recompute metrics.
 `calibrex report` remains a deprecated alias for HTML rendering. `calibrex
 evaluate` reapplies quality gates to a result. Cached inputs emit CLI and HTML
-warnings, and `calibrex assess evidence.json` applies the falsification policy.
+warnings, and `calibrex assess evidence.json` applies the falsification policy
+without treating a scientific `FAIL` or `INCONCLUSIVE` verdict as a software
+execution error. Use `calibrex assess --enforce evidence.json` when a non-pass
+assessment should return a non-zero exit code.
 `calibrex compare` shows materialization for both sides. `bundle.json` records
 artifact SHA-256 digests and can be checked with `calibrex verify bundle.json`;
 report outputs also include `verification.json` with that check materialized.

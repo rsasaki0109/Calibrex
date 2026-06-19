@@ -164,6 +164,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="policy artifact to apply; defaults to the built-in falsification policy",
     )
     assess.add_argument("--output", type=Path, help="write assessment YAML/JSON")
+    assess.add_argument(
+        "--enforce",
+        action="store_true",
+        help="return non-zero when the assessment status is not pass",
+    )
     assess.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     assess.set_defaults(func=_cmd_assess)
 
@@ -487,8 +492,13 @@ def _cmd_assess(args: argparse.Namespace) -> int:
     payload = assessment.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)
-    _emit(payload, args.json)
-    return 0 if assessment.status == "pass" else 1
+    cli_payload = {
+        **payload,
+        "enforced": args.enforce,
+        "would_fail_enforcement": assessment.status != "pass",
+    }
+    _emit(cli_payload, args.json)
+    return 1 if args.enforce and assessment.status != "pass" else 0
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

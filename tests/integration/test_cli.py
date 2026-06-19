@@ -400,6 +400,7 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["validate", str(tmp_path / "protocol.json"), "--kind", "protocol"]) == 0
     assert main(["validate", str(tmp_path / "transforms.json"), "--kind", "transforms"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
+    capsys.readouterr()
     reassessment_path = tmp_path / "reassessment.json"
     assert (
         main(
@@ -413,10 +414,32 @@ def test_calibrate_evaluate_visualize_export(
                 "--json",
             ]
         )
-        == 1
+        == 0
     )
     assert reassessment_path.exists()
+    reassessment_payload = json.loads(capsys.readouterr().out)
+    assert reassessment_payload["status"] == "inconclusive"
+    assert reassessment_payload["enforced"] is False
+    assert reassessment_payload["would_fail_enforcement"] is True
+    assert main(["validate", str(reassessment_path), "--kind", "assessment"]) == 0
     capsys.readouterr()
+    assert (
+        main(
+            [
+                "assess",
+                str(tmp_path / "evidence.json"),
+                "--policy",
+                str(tmp_path / "policy.json"),
+                "--enforce",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    enforced_reassessment = json.loads(capsys.readouterr().out)
+    assert enforced_reassessment["status"] == "inconclusive"
+    assert enforced_reassessment["enforced"] is True
+    assert enforced_reassessment["would_fail_enforcement"] is True
     verification_path = tmp_path / "verification.json"
     assert (
         main(
@@ -762,9 +785,19 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert "EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION" in (
         output_dir / "report.html"
     ).read_text(encoding="utf-8")
-    assert main(["assess", str(output_dir / "evidence.json"), "--json"]) == 1
+    assert main(["assess", str(output_dir / "evidence.json"), "--json"]) == 0
     assessed = json.loads(capsys.readouterr().out)
     assert assessed["status"] == "inconclusive"
+    assert assessed["enforced"] is False
+    assert assessed["would_fail_enforcement"] is True
+    assert (
+        main(["assess", str(output_dir / "evidence.json"), "--enforce", "--json"])
+        == 1
+    )
+    enforced_assessed = json.loads(capsys.readouterr().out)
+    assert enforced_assessed["status"] == "inconclusive"
+    assert enforced_assessed["enforced"] is True
+    assert enforced_assessed["would_fail_enforcement"] is True
     assert (
         main(
             [

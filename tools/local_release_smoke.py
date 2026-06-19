@@ -62,7 +62,7 @@ def main() -> int:
     _run(
         [
             str(smoke_calibrex),
-            "report",
+            "render",
             str(CACHED_EVIDENCE_RESULT),
             "--output-dir",
             str(args.report_dir),
@@ -110,8 +110,19 @@ def main() -> int:
             "--output",
             str(reassessment_path),
             "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "assess",
+            str(args.report_dir / "evidence.json"),
+            "--policy",
+            str(args.report_dir / "policy.json"),
+            "--enforce",
+            "--json",
         ],
-        allowed_return_codes={0, 1},
+        allowed_return_codes={1},
     )
     _run(
         [

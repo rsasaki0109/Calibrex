@@ -47,6 +47,9 @@ calibrex validate outputs/livox_horizon_horizon_pcd_sample/policy.json --kind po
 calibrex assess outputs/livox_horizon_horizon_pcd_sample/evidence.json \
   --policy outputs/livox_horizon_horizon_pcd_sample/policy.json \
   --output outputs/livox_horizon_horizon_pcd_sample/reassessment.json
+calibrex assess outputs/livox_horizon_horizon_pcd_sample/evidence.json \
+  --policy outputs/livox_horizon_horizon_pcd_sample/policy.json \
+  --enforce
 calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
   --output outputs/livox_horizon_horizon_pcd_sample/verification.json
 ```
@@ -85,7 +88,10 @@ returning `INCONCLUSIVE` because raw observations were not recomputed or the
 holdout split is not independent.
 `calibrex assess --policy policy.json` reapplies the declared policy to an
 existing `evidence.json`, so reviewers can verify that the verdict came from a
-versioned artifact rather than hidden CLI defaults.
+versioned artifact rather than hidden CLI defaults. By default, `assess`
+returns success when it writes a valid assessment artifact, even if the
+assessment status is `FAIL` or `INCONCLUSIVE`; add `--enforce` when a non-pass
+assessment should fail a shell pipeline.
 `calibrex verify` checks those digests and catches stale or mixed report
 artifacts. For raw recomputation artifacts with `input_files`, it also checks
 the referenced raw file sizes and SHA-256 digests. The verify JSON includes
