@@ -202,6 +202,35 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         "livox_pair_single_pair_holdout_point_to_plane/v0.1"
     ]
     assert comparison.protocol_compatibility.left_protocols[0].metrics_origin == "cached"
+    assert comparison.protocol_compatibility.left_protocols[0].support_population_id == (
+        "livox_pair_support:train=base:holdout=target:eligible_points=1000:"
+        "voxel_m=1:gate_m=1.5"
+    )
+
+    support_changed = CalibrationResult(
+        run=RunInfo(
+            id="support-changed",
+            calibrex_version="0.1.0",
+            provenance=_livox_pair_provenance(metrics_origin="cached"),
+        ),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+    )
+    support_changed.run.provenance["livox_pair_evidence"]["holdout_geometry"][
+        "support_population_id"
+    ] = (
+        "livox_pair_support:train=base:holdout=other:eligible_points=1000:"
+        "voxel_m=1:gate_m=1.5"
+    )
+    support_mismatch = compare_results(left, support_changed)
+
+    assert support_mismatch.protocol_compatibility.status == "warning"
+    assert support_mismatch.protocol_compatibility.reasons == [
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1: support population "
+        "differs (livox_pair_support:train=base:holdout=target:"
+        "eligible_points=1000:voxel_m=1:gate_m=1.5 vs "
+        "livox_pair_support:train=base:holdout=other:eligible_points=1000:"
+        "voxel_m=1:gate_m=1.5)"
+    ]
 
     right.run.provenance["metrics_origin"] = "recomputed"
     mixed = compare_results(left, right)
@@ -218,10 +247,25 @@ def _livox_pair_provenance(metrics_origin: str) -> dict[str, object]:
         "metrics_origin": metrics_origin,
         "data_verified": False,
         "livox_pair_evidence": {
+            "candidate_transform": "T_source_target",
+            "transform_convention": (
+                "T_source_target maps target PCD points into the source PCD frame"
+            ),
             "known_bad_case_count": 24,
             "holdout_geometry": {
                 "split_policy": "single_pair_source_map_target_query",
                 "independent_holdout": False,
+                "support_population_id": (
+                    "livox_pair_support:train=base:holdout=target:"
+                    "eligible_points=1000:voxel_m=1:gate_m=1.5"
+                ),
+                "support_definition": (
+                    "eligible population is every finite target PCD point"
+                ),
+                "voxel_size_m": 1.0,
+                "correspondence_gate_m": 1.5,
+                "inlier_threshold_m": 0.25,
+                "plane_normal_source": "pcd_normal_fields_or_local_fallback",
             },
         },
     }

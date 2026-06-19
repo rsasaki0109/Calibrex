@@ -211,6 +211,30 @@
       "additionalProperties": false,
       "description": "One declared evidence protocol on one side of a comparison.",
       "properties": {
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Transform"
+        },
+        "correspondence_gate_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Correspondence Gate M"
+        },
         "data_verified": {
           "anyOf": [
             {
@@ -247,6 +271,18 @@
           "default": null,
           "title": "Independent Holdout"
         },
+        "inlier_threshold_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inlier Threshold M"
+        },
         "known_bad_case_count": {
           "anyOf": [
             {
@@ -263,6 +299,18 @@
           "title": "Metrics Origin",
           "type": "string"
         },
+        "plane_normal_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plane Normal Source"
+        },
         "protocol_id": {
           "title": "Protocol Id",
           "type": "string"
@@ -278,6 +326,54 @@
           ],
           "default": null,
           "title": "Split Policy"
+        },
+        "support_definition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Definition"
+        },
+        "support_population_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Population Id"
+        },
+        "transform_convention": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transform Convention"
+        },
+        "voxel_size_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voxel Size M"
         }
       },
       "required": [

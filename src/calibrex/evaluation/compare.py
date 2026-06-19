@@ -160,6 +160,14 @@ class EvidenceProtocolSide(StrictModel):
     data_verified: bool | None = None
     split_policy: str | None = None
     independent_holdout: bool | None = None
+    candidate_transform: str | None = None
+    transform_convention: str | None = None
+    support_population_id: str | None = None
+    support_definition: str | None = None
+    voxel_size_m: float | None = None
+    correspondence_gate_m: float | None = None
+    inlier_threshold_m: float | None = None
+    plane_normal_source: str | None = None
     known_bad_case_count: int | None = None
 
 
@@ -614,6 +622,18 @@ def _evidence_protocol_sides(result: CalibrationResult) -> list[EvidenceProtocol
                 data_verified=_bool_or_none(provenance.get("data_verified")),
                 split_policy=_str_or_none(holdout.get("split_policy")),
                 independent_holdout=_bool_or_none(holdout.get("independent_holdout")),
+                candidate_transform=_str_or_none(livox_pair.get("candidate_transform")),
+                transform_convention=_str_or_none(
+                    livox_pair.get("transform_convention")
+                ),
+                support_population_id=_str_or_none(holdout.get("support_population_id")),
+                support_definition=_str_or_none(holdout.get("support_definition")),
+                voxel_size_m=_float_or_none(holdout.get("voxel_size_m")),
+                correspondence_gate_m=_float_or_none(
+                    holdout.get("correspondence_gate_m")
+                ),
+                inlier_threshold_m=_float_or_none(holdout.get("inlier_threshold_m")),
+                plane_normal_source=_str_or_none(holdout.get("plane_normal_source")),
                 known_bad_case_count=_int_or_none(livox_pair.get("known_bad_case_count")),
             )
         )
@@ -645,6 +665,46 @@ def _protocol_mismatch_reasons(
         reasons.append(
             f"{protocol_id}: independent holdout differs "
             f"({left.independent_holdout} vs {right.independent_holdout})"
+        )
+    if left.candidate_transform != right.candidate_transform:
+        reasons.append(
+            f"{protocol_id}: candidate transform key differs "
+            f"({left.candidate_transform} vs {right.candidate_transform})"
+        )
+    if left.transform_convention != right.transform_convention:
+        reasons.append(
+            f"{protocol_id}: transform convention differs "
+            f"({left.transform_convention} vs {right.transform_convention})"
+        )
+    if left.support_population_id != right.support_population_id:
+        reasons.append(
+            f"{protocol_id}: support population differs "
+            f"({left.support_population_id} vs {right.support_population_id})"
+        )
+    if left.support_definition != right.support_definition:
+        reasons.append(
+            f"{protocol_id}: support definition differs "
+            f"({left.support_definition} vs {right.support_definition})"
+        )
+    if left.voxel_size_m != right.voxel_size_m:
+        reasons.append(
+            f"{protocol_id}: voxel size differs "
+            f"({left.voxel_size_m} vs {right.voxel_size_m})"
+        )
+    if left.correspondence_gate_m != right.correspondence_gate_m:
+        reasons.append(
+            f"{protocol_id}: correspondence gate differs "
+            f"({left.correspondence_gate_m} vs {right.correspondence_gate_m})"
+        )
+    if left.inlier_threshold_m != right.inlier_threshold_m:
+        reasons.append(
+            f"{protocol_id}: inlier threshold differs "
+            f"({left.inlier_threshold_m} vs {right.inlier_threshold_m})"
+        )
+    if left.plane_normal_source != right.plane_normal_source:
+        reasons.append(
+            f"{protocol_id}: plane normal source differs "
+            f"({left.plane_normal_source} vs {right.plane_normal_source})"
         )
     if left.known_bad_case_count != right.known_bad_case_count:
         reasons.append(
@@ -679,6 +739,14 @@ def _int_or_none(value: object) -> int | None:
     if isinstance(value, bool):
         return None
     return value if isinstance(value, int) else None
+
+
+def _float_or_none(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    return None
 
 
 def _grade_rank(grade: Grade) -> int:
