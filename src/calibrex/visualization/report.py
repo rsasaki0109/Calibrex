@@ -750,6 +750,32 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     summary_rows = _selected_metric_rows(result, _LIDAR_PAIR_SUMMARY_METRICS)
     if not summary_rows:
         return ""
+    materialization_rows = _evidence_materialization_rows(result)
+    protocol_rows = _evidence_protocol_rows(
+        [
+            protocol
+            for protocol in _evidence_protocol_payloads(result)
+            if protocol.get("family") == "lidar_pair"
+        ]
+    )
+    protocol_section = (
+        f"""
+  <h3>Evidence Protocol</h3>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    {materialization_rows}
+  </table>
+  <table>
+    <tr>
+      <th>Protocol</th><th>Status</th><th>Split</th><th>Independent Holdout</th>
+      <th>Known-Bad Cases</th><th>Parameters</th><th>Limitations</th>
+    </tr>
+    {protocol_rows}
+  </table>
+"""
+        if protocol_rows
+        else ""
+    )
     evidence_rows = _evidence_summary_rows(
         [
             item
@@ -787,6 +813,7 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     or fixed-rig LiDAR extrinsic candidates. These are evidence metrics, not
     absolute ground truth.
   </p>
+  {protocol_section}
   <h3>Evidence Summary</h3>
   <table>
     <tr><th>Check</th><th>Status</th><th>Evidence</th><th>Interpretation</th></tr>
@@ -815,6 +842,67 @@ def _evidence_summary_row(item: EvidenceSummaryItem) -> str:
         f"<td>{escape(item.interpretation)}</td>"
         "</tr>"
     )
+
+
+def _evidence_materialization_rows(result: CalibrationResult) -> str:
+    materialization = _evidence_materialization_payload(result)
+    rows = [
+        ("Metrics Origin", _payload_value(materialization.get("metrics_origin"))),
+        ("Data Verified", _payload_value(materialization.get("data_verified"))),
+        ("Computed At", _payload_value(materialization.get("computed_at"))),
+        ("Report Generated At", _payload_value(materialization.get("report_generated_at"))),
+    ]
+    return "\n".join(
+        "<tr>"
+        f"<td>{escape(label)}</td>"
+        f"<td>{escape(value)}</td>"
+        "</tr>"
+        for label, value in rows
+        if value
+    )
+
+
+def _evidence_protocol_rows(protocols: list[dict[str, Any]]) -> str:
+    return "\n".join(_evidence_protocol_row(protocol) for protocol in protocols)
+
+
+def _evidence_protocol_row(protocol: dict[str, Any]) -> str:
+    return (
+        "<tr>"
+        f"<td>{escape(_payload_value(protocol.get('protocol_id')))}</td>"
+        f"<td>{escape(_payload_value(protocol.get('status')))}</td>"
+        f"<td>{escape(_payload_value(protocol.get('split_policy')))}</td>"
+        f"<td>{escape(_payload_value(protocol.get('independent_holdout')))}</td>"
+        f"<td>{escape(_payload_value(protocol.get('known_bad_case_count')))}</td>"
+        f"<td>{escape(_protocol_parameters_text(protocol))}</td>"
+        f"<td>{escape(_protocol_limitations_text(protocol))}</td>"
+        "</tr>"
+    )
+
+
+def _protocol_parameters_text(protocol: dict[str, Any]) -> str:
+    parameters = protocol.get("parameters")
+    if not isinstance(parameters, dict):
+        return ""
+    return ", ".join(
+        f"{key}={_payload_value(value)}"
+        for key, value in sorted(parameters.items())
+    )
+
+
+def _protocol_limitations_text(protocol: dict[str, Any]) -> str:
+    limitations = protocol.get("limitations")
+    if not isinstance(limitations, list):
+        return ""
+    return "; ".join(str(item) for item in limitations)
+
+
+def _payload_value(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value).lower()
+    return str(value)
 
 
 def _evidence_case_rows(items: list[EvidenceCaseItem]) -> str:

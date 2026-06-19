@@ -114,6 +114,30 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
             id="livox-report-unit",
             calibrex_version="0.1.0",
             provenance={
+                "livox_pair_evidence": {
+                    "candidate_transform": "T_base_horizon_target_horizon",
+                    "target_transform_applied": True,
+                    "transform_convention": (
+                        "T_source_target maps target PCD points into source PCD frame"
+                    ),
+                    "holdout_geometry": {
+                        "status": "scored",
+                        "split_policy": "single_pair_source_map_target_query",
+                        "independent_holdout": False,
+                        "map_voxel_count": 679,
+                        "matched_point_count": 16884,
+                        "unmatched_fraction": 0.2865714527169779,
+                        "voxel_size_m": 1.0,
+                        "correspondence_gate_m": 1.5,
+                        "inlier_threshold_m": 0.25,
+                        "plane_normal_source": "pcd_normal_fields_or_local_fallback",
+                        "reason": "single source/target PCD pair",
+                    },
+                    "known_bad_perturbation": (
+                        "left-multiplied source-frame SE(3) controls"
+                    ),
+                    "known_bad_case_count": 24,
+                },
                 "evidence_cases": [
                     {
                         "family": "lidar_pair",
@@ -167,6 +191,11 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     html = render_html_report(result)
 
     assert "LiDAR Pair Evidence" in html
+    assert "Evidence Protocol" in html
+    assert "livox_pair_single_pair_holdout_point_to_plane/v0.1" in html
+    assert "single_pair_source_map_target_query" in html
+    assert "matched_point_count=16884" in html
+    assert "Metrics Origin" in html
     assert "Evidence Summary" in html
     assert "Candidate Support" in html
     assert "Holdout Geometry" in html
