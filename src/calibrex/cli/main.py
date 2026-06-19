@@ -31,6 +31,7 @@ from calibrex.core.evidence_bundle import (
     verify_evidence_bundle_verification,
     write_evidence_bundle_verification,
 )
+from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping
@@ -108,6 +109,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "result",
             "comparison",
             "assessment",
+            "policy",
+            "protocol",
             "dataset-manifest",
             "evidence-bundle",
             "evidence-bundle-verification",
@@ -370,6 +373,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "result": result_json_schema,
         "comparison": comparison_json_schema,
         "assessment": assessment_json_schema,
+        "policy": policy_json_schema,
+        "protocol": protocol_json_schema,
         "dataset-manifest": manifest_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,

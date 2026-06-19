@@ -15,6 +15,12 @@ from calibrex.core.evidence_bundle import (
     EvidenceBundleManifest,
     EvidenceBundleVerification,
 )
+from calibrex.core.evidence_contract import (
+    POLICY_SCHEMA_VERSION,
+    PROTOCOL_SCHEMA_VERSION,
+    PolicyArtifact,
+    ProtocolArtifact,
+)
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping
 from calibrex.core.report_artifacts import (
@@ -39,6 +45,8 @@ ValidationKind = Literal[
     "result",
     "comparison",
     "assessment",
+    "policy",
+    "protocol",
     "dataset-manifest",
     "report-summary",
     "report-metrics",
@@ -54,6 +62,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "result": CalibrationResult,
     "comparison": ResultComparison,
     "assessment": AssessmentArtifact,
+    "policy": PolicyArtifact,
+    "protocol": ProtocolArtifact,
     "dataset-manifest": DatasetManifest,
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
@@ -69,6 +79,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     RESULT_SCHEMA_VERSION: "result",
     COMPARISON_SCHEMA_VERSION: "comparison",
     ASSESSMENT_SCHEMA_VERSION: "assessment",
+    POLICY_SCHEMA_VERSION: "policy",
+    PROTOCOL_SCHEMA_VERSION: "protocol",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",

@@ -1,0 +1,235 @@
+{
+  "$defs": {
+    "AssessmentPolicy": {
+      "additionalProperties": false,
+      "description": "Versioned policy metadata used to assess an evidence artifact.",
+      "properties": {
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "policy_id": {
+          "default": "calibrex.falsification.lidar_pair/v0.1",
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "status_semantics": {
+          "default": "pass means all required gates passed; fail means at least one gate rejected the candidate; inconclusive means the evidence cannot support or reject the candidate under this policy",
+          "title": "Status Semantics",
+          "type": "string"
+        }
+      },
+      "title": "AssessmentPolicy",
+      "type": "object"
+    },
+    "PolicyGateDefinition": {
+      "additionalProperties": false,
+      "description": "One declared assessment gate in a policy artifact.",
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "metric_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metric Ids",
+          "type": "array"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "status_on_failure": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "not_applicable"
+          ],
+          "title": "Status On Failure",
+          "type": "string"
+        },
+        "status_on_missing_evidence": {
+          "default": "inconclusive",
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "not_applicable"
+          ],
+          "title": "Status On Missing Evidence",
+          "type": "string"
+        },
+        "status_on_pass": {
+          "default": "pass",
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "not_applicable"
+          ],
+          "title": "Status On Pass",
+          "type": "string"
+        },
+        "thresholds": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Thresholds",
+          "type": "object"
+        }
+      },
+      "required": [
+        "rule_id",
+        "status_on_failure"
+      ],
+      "title": "PolicyGateDefinition",
+      "type": "object"
+    },
+    "ReportRunInfo": {
+      "additionalProperties": false,
+      "description": "Minimal run metadata repeated in report sidecars.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "domain",
+        "calibrex_version",
+        "created_at"
+      ],
+      "title": "ReportRunInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable assessment policy declarations for one run.",
+  "properties": {
+    "gates": {
+      "items": {
+        "$ref": "#/$defs/PolicyGateDefinition"
+      },
+      "title": "Gates",
+      "type": "array"
+    },
+    "policy": {
+      "$ref": "#/$defs/AssessmentPolicy"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "calibrex.policy/v0.1",
+      "default": "calibrex.policy/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run"
+  ],
+  "title": "PolicyArtifact",
+  "type": "object"
+}

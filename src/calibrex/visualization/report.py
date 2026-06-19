@@ -19,6 +19,10 @@ from calibrex.core.evidence_bundle import (
     write_evidence_bundle,
     write_evidence_bundle_verification,
 )
+from calibrex.core.evidence_contract import (
+    ProtocolArtifact,
+    policy_artifact_from_assessment,
+)
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
 from calibrex.core.report_artifacts import (
@@ -28,6 +32,7 @@ from calibrex.core.report_artifacts import (
     REPORT_OBSERVABILITY_SCHEMA_VERSION,
     REPORT_SUMMARY_SCHEMA_VERSION,
     EvidenceCaseItem,
+    EvidenceProtocolItem,
     EvidenceSummaryItem,
     ReportEvidenceArtifact,
     SourceEvidenceReference,
@@ -85,6 +90,8 @@ _REPORT_SIDECAR_KINDS = {
 
 _REPORT_BUNDLE_FILENAME = "bundle.json"
 _ASSESSMENT_FILENAME = "assessment.json"
+_POLICY_FILENAME = "policy.json"
+_PROTOCOL_FILENAME = "protocol.json"
 _VERIFICATION_FILENAME = "verification.json"
 
 
@@ -103,6 +110,8 @@ def report_artifact_paths(
     for filename in _REPORT_SIDECAR_KINDS:
         paths[filename.removesuffix(".json")] = str(output_path / filename)
     paths["assessment"] = str(output_path / _ASSESSMENT_FILENAME)
+    paths["policy"] = str(output_path / _POLICY_FILENAME)
+    paths["protocol"] = str(output_path / _PROTOCOL_FILENAME)
     paths["bundle"] = str(output_path / _REPORT_BUNDLE_FILENAME)
     paths["verification"] = str(output_path / _VERIFICATION_FILENAME)
     return paths
@@ -332,9 +341,20 @@ def write_report_artifacts(
     ).items():
         sidecar_path = output_path / name
         write_mapping(sidecar_path, payload)
-    write_assessment_from_evidence(
+    assessment = write_assessment_from_evidence(
         output_path / "evidence.json",
         output_path / _ASSESSMENT_FILENAME,
+    )
+    write_mapping(
+        output_path / _PROTOCOL_FILENAME,
+        _protocol_artifact(result).model_dump(mode="json", exclude_none=True),
+    )
+    write_mapping(
+        output_path / _POLICY_FILENAME,
+        policy_artifact_from_assessment(
+            assessment,
+            run=ReportEvidenceArtifact.model_validate(evidence_payload).run,
+        ).model_dump(mode="json", exclude_none=True),
     )
     write_evidence_bundle(
         output_path / _REPORT_BUNDLE_FILENAME,
@@ -369,6 +389,8 @@ def _bundle_artifacts(
             (output_path / "degeneracy.json", "report-degeneracy"),
             (output_path / "evidence.json", "report-evidence"),
             (output_path / _ASSESSMENT_FILENAME, "assessment"),
+            (output_path / _PROTOCOL_FILENAME, "protocol"),
+            (output_path / _POLICY_FILENAME, "policy"),
         ]
     )
     return artifacts
@@ -506,6 +528,16 @@ def _evidence_payload(result: CalibrationResult) -> dict[str, Any]:
         ],
         "cases": [item.model_dump(mode="json") for item in evidence_cases_from_result(result)],
     }
+
+
+def _protocol_artifact(result: CalibrationResult) -> ProtocolArtifact:
+    return ProtocolArtifact(
+        run=ReportEvidenceArtifact.model_validate(_evidence_payload(result)).run,
+        protocols=[
+            EvidenceProtocolItem.model_validate(protocol)
+            for protocol in _evidence_protocol_payloads(result)
+        ],
+    )
 
 
 def _evidence_materialization_payload(result: CalibrationResult) -> dict[str, Any]:
@@ -1281,6 +1313,8 @@ def _report_sidecar_artifact_rows(result: CalibrationResult) -> list[str]:
         for filename in _REPORT_SIDECAR_KINDS
     }
     sidecars["assessment"] = str(base_dir / _ASSESSMENT_FILENAME)
+    sidecars["protocol"] = str(base_dir / _PROTOCOL_FILENAME)
+    sidecars["policy"] = str(base_dir / _POLICY_FILENAME)
     sidecars["bundle"] = str(base_dir / _REPORT_BUNDLE_FILENAME)
     sidecars["verification"] = str(base_dir / _VERIFICATION_FILENAME)
     return [_artifact_row(name, path) for name, path in sidecars.items()]

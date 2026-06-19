@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "EvidenceProtocolItem": {
+      "additionalProperties": false,
+      "description": "Declared protocol metadata for one evidence family.",
+      "properties": {
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Transform"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "independent_holdout": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent Holdout"
+        },
+        "known_bad_case_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Case Count"
+        },
+        "known_bad_perturbation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Perturbation"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "metric_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metric Ids",
+          "type": "array"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "protocol_id": {
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "split_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Split Policy"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "transform_convention": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transform Convention"
+        }
+      },
+      "required": [
+        "family",
+        "protocol_id"
+      ],
+      "title": "EvidenceProtocolItem",
+      "type": "object"
+    },
+    "ReportRunInfo": {
+      "additionalProperties": false,
+      "description": "Minimal run metadata repeated in report sidecars.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "domain",
+        "calibrex_version",
+        "created_at"
+      ],
+      "title": "ReportRunInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable evidence protocol declarations for one run.",
+  "properties": {
+    "protocols": {
+      "items": {
+        "$ref": "#/$defs/EvidenceProtocolItem"
+      },
+      "title": "Protocols",
+      "type": "array"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "calibrex.protocol/v0.1",
+      "default": "calibrex.protocol/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run"
+  ],
+  "title": "ProtocolArtifact",
+  "type": "object"
+}

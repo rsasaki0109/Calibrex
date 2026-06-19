@@ -27,6 +27,8 @@ EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION: Literal[
 ] = "calibrex.evidence_bundle.verification/v0.1"
 BundleArtifactKind = Literal[
     "assessment",
+    "policy",
+    "protocol",
     "report-html",
     "report-summary",
     "report-metrics",

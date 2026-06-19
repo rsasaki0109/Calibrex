@@ -26,7 +26,8 @@ calibrex demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_samp
 
 The demo command downloads the public Livox PCD sample when needed, writes a
 materialized `demo_config.yaml`, recomputes `result.yaml`, renders
-`evidence.json` and `assessment.json`, and verifies `bundle.json`.
+`evidence.json`, `protocol.json`, `assessment.json`, and `policy.json`, and
+verifies `bundle.json`.
 
 The same flow can be run step by step:
 
@@ -40,6 +41,8 @@ calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached
   --output-dir outputs/livox_horizon_horizon_pcd_sample
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/evidence.json --kind report-evidence
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/assessment.json --kind assessment
+calibrex validate outputs/livox_horizon_horizon_pcd_sample/protocol.json --kind protocol
+calibrex validate outputs/livox_horizon_horizon_pcd_sample/policy.json --kind policy
 calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
   --output outputs/livox_horizon_horizon_pcd_sample/verification.json
 ```
@@ -68,10 +71,11 @@ be reviewed without rerunning `verify`.
 Generated report directories also include `bundle.json`, which records SHA-256
 digests for the HTML report and machine-readable sidecars, and
 `verification.json`, which materializes the default bundle integrity check.
-`assessment.json` records the falsification policy result. Cached or
-non-independent evidence can score useful known-bad controls while still
-returning `INCONCLUSIVE` because raw observations were not recomputed or the
-holdout split is not independent.
+`protocol.json` records the declared evidence protocol. `policy.json` records
+the falsification gates and thresholds, while `assessment.json` records the
+applied policy result. Cached or non-independent evidence can score useful
+known-bad controls while still returning `INCONCLUSIVE` because raw
+observations were not recomputed or the holdout split is not independent.
 `calibrex verify` checks those digests and catches stale or mixed report
 artifacts. For raw recomputation artifacts with `input_files`, it also checks
 the referenced raw file sizes and SHA-256 digests. The verify JSON includes

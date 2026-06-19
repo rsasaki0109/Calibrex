@@ -80,6 +80,8 @@ summary.json
 metrics.json
 evidence.json
 assessment.json
+protocol.json
+policy.json
 observability.json
 degeneracy.json
 bundle.json
@@ -94,6 +96,8 @@ Report sidecars record evidence materialization:
 - `metrics_origin`: `recomputed`, `cached`, or `unknown`
 - `data_verified`: whether raw input file digests were verified for this artifact
 - `evidence.json.input_files`: raw file paths, SHA-256 digests, sizes, and known public source URLs when available
+- `protocol.json`: declared evidence protocols, transform conventions, support parameters, and known-bad controls
+- `policy.json`: falsification gates and thresholds applied to the evidence
 
 `calibrex report` renders an existing result. `calibrex evaluate` reapplies
 quality gates to a result. Cached inputs emit CLI and HTML warnings, and
