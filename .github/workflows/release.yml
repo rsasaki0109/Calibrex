@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: python -m pip install -e ".[dev]"
+      - name: Build package
+        run: python -m build
+      - name: Wheel install smoke
+        run: |
+          python -m venv /tmp/calibrex-release-smoke
+          /tmp/calibrex-release-smoke/bin/python -m pip install dist/*.whl
+          /tmp/calibrex-release-smoke/bin/calibrex doctor --json
+          /tmp/calibrex-release-smoke/bin/calibrex schema all --output-dir /tmp/calibrex-release-schemas
+          test "$(find /tmp/calibrex-release-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists" >&2
+            exit 1
+          fi
+          gh release create "$tag" dist/* \
+            --draft \
+            --prerelease \
+            --title "$tag" \
+            --notes "Draft Calibrex release. Review CHANGELOG.md, wheel smoke results, and release artifacts before publishing."

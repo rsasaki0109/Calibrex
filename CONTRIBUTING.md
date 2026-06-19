@@ -57,3 +57,14 @@ ruff check .
 mypy src/calibrex
 pytest
 ```
+
+## Releases
+
+Release tags use `v*`, for example `v0.1.0-alpha.1`. A tag or manual release
+workflow builds wheel/sdist artifacts, installs the wheel in a clean virtual
+environment, runs `calibrex doctor --json`, regenerates schemas, and creates a
+draft prerelease on GitHub.
+
+The release workflow does not publish to PyPI. Publish release artifacts only
+after reviewing the draft release, `CHANGELOG.md`, wheel smoke results, license
+boundaries, and public dataset notes.
