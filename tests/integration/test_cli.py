@@ -1,3 +1,4 @@
+import hashlib
 import json
 import struct
 import zlib
@@ -22,6 +23,16 @@ from calibrex.core.result import load_result
 def _write_velodyne_points(path: Path, points: list[tuple[float, float, float, float]]) -> None:
     values = [value for point in points for value in point]
     path.write_bytes(struct.pack("<" + ("ffff" * len(points)), *values))
+
+
+def _sha256_file_for_test(path: Path) -> tuple[str, int]:
+    digest = hashlib.sha256()
+    size_bytes = 0
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            size_bytes += len(chunk)
+            digest.update(chunk)
+    return digest.hexdigest(), size_bytes
 
 
 def _write_oxts_packet(path: Path, *, yaw_rad: float, vn: float, ve: float) -> None:
@@ -246,7 +257,10 @@ def test_calibrate_json_includes_report_artifacts(
         assert Path(path).exists()
 
 
-def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
+def test_calibrate_evaluate_visualize_export(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     assert (
         main(
             [
@@ -323,6 +337,22 @@ def test_calibrate_evaluate_visualize_export(tmp_path: Path) -> None:
     assert main(["validate", str(tmp_path / "assessment.json"), "--kind", "assessment"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
     assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 0
+    capsys.readouterr()
+
+    summary["run"]["id"] = "other-run"
+    summary_path = tmp_path / "summary.json"
+    write_mapping(summary_path, summary)
+    summary_sha256, summary_size = _sha256_file_for_test(summary_path)
+    bundle = json.loads((tmp_path / "bundle.json").read_text(encoding="utf-8"))
+    for artifact in bundle["artifacts"]:
+        if artifact["path"] == "summary.json":
+            artifact["sha256"] = summary_sha256
+            artifact["size_bytes"] = summary_size
+    write_mapping(tmp_path / "bundle.json", bundle)
+    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 1
+    mixed_payload = json.loads(capsys.readouterr().out)
+    assert any("summary.json: run id mismatch" in issue for issue in mixed_payload["issues"])
+
     (tmp_path / "summary.json").write_text(
         (tmp_path / "summary.json").read_text(encoding="utf-8") + " \n",
         encoding="utf-8",
