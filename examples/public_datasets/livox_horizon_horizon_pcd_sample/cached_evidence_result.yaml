@@ -27,6 +27,14 @@ run:
         holdout_frame_ids:
           - target_horizon_100538
         independent_holdout: false
+        support_population_id: livox_pair_support:train=base_horizon_100432:holdout=target_horizon_100538:eligible_points=23666:voxel_m=1:gate_m=1.5
+        support_definition: eligible population is every finite target PCD point in the declared source/target pair; candidate transforms may change accepted correspondences but not this denominator
+        eligible_point_count: 23666
+        considered_point_count: 23666
+        accepted_correspondence_count: 16884
+        support_ratio: 0.7134285472830221
+        exclusion_counts:
+          no_plane_within_gate: 6782
         map_voxel_count: 679
         matched_point_count: 16884
         unmatched_point_count: 6782
@@ -264,6 +272,25 @@ metrics:
     grade: pass
     unit: voxels
     reason: lidar_pair_holdout_point_to_plane_map_voxel_count=679 voxels; pass >= 20 voxels, warn >= 1 voxels
+  lidar_pair_holdout_point_to_plane_eligible_point_count:
+    value: 23666.0
+    grade: pass
+    unit: points
+    reason: lidar_pair_holdout_point_to_plane_eligible_point_count=23666 points; pass >= 500 points, warn >= 20 points
+  lidar_pair_holdout_point_to_plane_considered_point_count:
+    value: 23666.0
+    grade: pass
+    unit: points
+    reason: lidar_pair_holdout_point_to_plane_considered_point_count=23666 points; pass >= 500 points, warn >= 20 points
+  lidar_pair_holdout_point_to_plane_accepted_correspondence_count:
+    value: 16884.0
+    grade: pass
+    unit: points
+    reason: lidar_pair_holdout_point_to_plane_accepted_correspondence_count=16884 points; pass >= 500 points, warn >= 20 points
+  lidar_pair_holdout_point_to_plane_support_ratio:
+    value: 0.7134285472830221
+    grade: pass
+    reason: lidar_pair_holdout_point_to_plane_support_ratio=0.713429; pass >= 0.2, warn >= 0.01
   lidar_pair_holdout_point_to_plane_matched_point_count:
     value: 16884.0
     grade: pass

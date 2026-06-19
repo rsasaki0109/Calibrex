@@ -378,6 +378,30 @@ def _register_builtin_metrics() -> None:
             "lidar",
         ),
         MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_eligible_point_count",
+            "Candidate-independent target point population for fixed LiDAR pair holdout evidence",
+            "points",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_considered_point_count",
+            "Target points considered for fixed LiDAR pair point-to-plane matching",
+            "points",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_accepted_correspondence_count",
+            "Accepted fixed LiDAR pair point-to-plane correspondences under "
+            "the fixed support denominator",
+            "points",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_support_ratio",
+            "Accepted correspondences divided by the candidate-independent support population",
+            family="lidar",
+        ),
+        MetricDefinition(
             "lidar_pair_holdout_point_to_plane_matched_point_count",
             "Transformed target points matched to source voxel planes",
             "points",

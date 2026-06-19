@@ -245,6 +245,33 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         direction="higher_is_better",
         unit="voxels",
     ),
+    "lidar_pair_holdout_point_to_plane_eligible_point_count": MetricThreshold(
+        metric="lidar_pair_holdout_point_to_plane_eligible_point_count",
+        pass_value=500.0,
+        warn_value=20.0,
+        direction="higher_is_better",
+        unit="points",
+    ),
+    "lidar_pair_holdout_point_to_plane_considered_point_count": MetricThreshold(
+        metric="lidar_pair_holdout_point_to_plane_considered_point_count",
+        pass_value=500.0,
+        warn_value=20.0,
+        direction="higher_is_better",
+        unit="points",
+    ),
+    "lidar_pair_holdout_point_to_plane_accepted_correspondence_count": MetricThreshold(
+        metric="lidar_pair_holdout_point_to_plane_accepted_correspondence_count",
+        pass_value=500.0,
+        warn_value=20.0,
+        direction="higher_is_better",
+        unit="points",
+    ),
+    "lidar_pair_holdout_point_to_plane_support_ratio": MetricThreshold(
+        metric="lidar_pair_holdout_point_to_plane_support_ratio",
+        pass_value=0.20,
+        warn_value=0.01,
+        direction="higher_is_better",
+    ),
     "lidar_pair_holdout_point_to_plane_matched_point_count": MetricThreshold(
         metric="lidar_pair_holdout_point_to_plane_matched_point_count",
         pass_value=500.0,

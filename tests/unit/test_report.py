@@ -132,6 +132,19 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
                         "status": "scored",
                         "split_policy": "single_pair_source_map_target_query",
                         "independent_holdout": False,
+                        "support_population_id": (
+                            "livox_pair_support:train=base_horizon_100432:"
+                            "holdout=target_horizon_100538:eligible_points=23666:"
+                            "voxel_m=1:gate_m=1.5"
+                        ),
+                        "support_definition": (
+                            "eligible population is every finite target PCD point"
+                        ),
+                        "eligible_point_count": 23666,
+                        "considered_point_count": 23666,
+                        "accepted_correspondence_count": 16884,
+                        "support_ratio": 0.7134285472830221,
+                        "exclusion_counts": {"no_plane_within_gate": 6782},
                         "map_voxel_count": 679,
                         "matched_point_count": 16884,
                         "unmatched_fraction": 0.2865714527169779,
@@ -158,6 +171,7 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
                         "convention": "left-multiplied source-frame SE(3) perturbation",
                         "metric_values": {
                             "lidar_pair_holdout_point_to_plane_p90_abs_m": 0.84,
+                            "lidar_pair_holdout_point_to_plane_support_ratio": 0.71,
                             "lidar_pair_holdout_point_to_plane_unmatched_fraction": 0.29,
                         },
                         "delta_values": {
@@ -165,6 +179,7 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
                             "centroid_rmse_delta_m": -0.008,
                             "point_to_plane_p90_delta_m": 0.034,
                             "point_to_plane_rmse_delta_m": 0.004,
+                            "support_ratio_delta": -0.003,
                         },
                     }
                 ],
@@ -228,6 +243,8 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     assert "livox_pair_single_pair_holdout_point_to_plane/v0.1" in html
     assert "single_pair_source_map_target_query" in html
     assert "matched_point_count=16884" in html
+    assert "support_ratio=0.7134285472830221" in html
+    assert "support_population_id=livox_pair_support:" in html
     assert "Metrics Origin" in html
     assert "Evidence Summary" in html
     assert "Candidate Support" in html

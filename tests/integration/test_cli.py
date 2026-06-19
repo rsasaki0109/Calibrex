@@ -1492,6 +1492,11 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     )
     assert evidence["protocols"][0]["independent_holdout"] is False
     assert evidence["protocols"][0]["parameters"]["matched_point_count"] == 16884
+    assert evidence["protocols"][0]["parameters"]["eligible_point_count"] == 23666
+    assert evidence["protocols"][0]["parameters"]["accepted_correspondence_count"] == 16884
+    assert evidence["protocols"][0]["parameters"]["support_ratio"] == pytest.approx(
+        0.7134285472830221
+    )
     assert evidence["summaries"] == evidence_summaries
     assert len(evidence["cases"]) == 6
     assert {case["dof"] for case in evidence["cases"]} == {
@@ -1586,6 +1591,11 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     assert evidence["protocols"][0]["family"] == "lidar_pair"
     assert evidence["protocols"][0]["known_bad_case_count"] == 24
     assert evidence["protocols"][0]["parameters"]["matched_point_count"] > 0
+    assert evidence["protocols"][0]["parameters"]["eligible_point_count"] > 0
+    assert evidence["protocols"][0]["parameters"]["considered_point_count"] > 0
+    assert evidence["protocols"][0]["parameters"]["accepted_correspondence_count"] > 0
+    assert evidence["protocols"][0]["parameters"]["support_ratio"] > 0
+    assert "support_population_id" in evidence["protocols"][0]["parameters"]
     assert "single source/target PCD pair" in evidence["protocols"][0]["limitations"][0]
     assert len(evidence["summaries"]) == 4
     assert {summary["check"] for summary in evidence["summaries"]} == {
@@ -1606,9 +1616,14 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     metrics = json.loads((output_dir / "metrics.json").read_text(encoding="utf-8"))
     assert "lidar_pair_known_bad_detectable_fraction" in metrics["metrics"]
     assert "lidar_pair_holdout_point_to_plane_p90_abs_m" in metrics["metrics"]
+    assert "lidar_pair_holdout_point_to_plane_support_ratio" in metrics["metrics"]
     assert "lidar_pair_known_bad_point_to_plane_p90_delta_max_m" in metrics["metrics"]
     assert any(
         "lidar_pair_holdout_point_to_plane_p90_abs_m" in case["metric_values"]
+        for case in evidence["cases"]
+    )
+    assert any(
+        "lidar_pair_holdout_point_to_plane_support_ratio" in case["metric_values"]
         for case in evidence["cases"]
     )
 

@@ -62,6 +62,9 @@ _LIDAR_PAIR_SUMMARY_METRICS = (
     "lidar_pair_source_voxel_recall_in_target",
     "lidar_pair_target_voxel_recall_in_source",
     "lidar_pair_shared_voxel_centroid_rmse_m",
+    "lidar_pair_holdout_point_to_plane_eligible_point_count",
+    "lidar_pair_holdout_point_to_plane_accepted_correspondence_count",
+    "lidar_pair_holdout_point_to_plane_support_ratio",
     "lidar_pair_holdout_point_to_plane_median_abs_m",
     "lidar_pair_holdout_point_to_plane_p90_abs_m",
     "lidar_pair_holdout_point_to_plane_rmse_m",
@@ -606,6 +609,13 @@ def _livox_pair_protocol_payload(
             if key
             in {
                 "map_voxel_count",
+                "support_population_id",
+                "support_definition",
+                "eligible_point_count",
+                "considered_point_count",
+                "accepted_correspondence_count",
+                "support_ratio",
+                "exclusion_counts",
                 "matched_point_count",
                 "unmatched_point_count",
                 "unmatched_fraction",
@@ -1030,7 +1040,8 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
       <th>Case</th><th>Status</th><th>DoF</th><th>Amount</th>
       <th>Source Recall Delta</th><th>Centroid RMSE Delta m</th>
       <th>P90 Point-to-Plane Delta m</th><th>Point-to-Plane RMSE Delta m</th>
-      <th>P90 Point-to-Plane m</th><th>Unmatched Fraction</th>
+      <th>Support Ratio Delta</th><th>P90 Point-to-Plane m</th>
+      <th>Support Ratio</th><th>Unmatched Fraction</th>
     </tr>
     {evidence_case_rows}
   </table>
@@ -1173,7 +1184,9 @@ def _evidence_case_row(item: EvidenceCaseItem) -> str:
         f"<td>{_fmt(_case_delta(item, 'centroid_rmse_delta_m'))}</td>"
         f"<td>{_fmt(_case_delta(item, 'point_to_plane_p90_delta_m'))}</td>"
         f"<td>{_fmt(_case_delta(item, 'point_to_plane_rmse_delta_m'))}</td>"
+        f"<td>{_fmt(_case_delta(item, 'support_ratio_delta'))}</td>"
         f"<td>{_fmt(_case_metric(item, 'lidar_pair_holdout_point_to_plane_p90_abs_m'))}</td>"
+        f"<td>{_fmt(_case_metric(item, 'lidar_pair_holdout_point_to_plane_support_ratio'))}</td>"
         "<td>"
         f"{_fmt(_case_metric(item, 'lidar_pair_holdout_point_to_plane_unmatched_fraction'))}"
         "</td>"

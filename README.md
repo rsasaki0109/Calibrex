@@ -19,7 +19,7 @@ calibrex visualize outputs/result.yaml --export-html
   <br>
   <sub>Livox public Horizon-Horizon PCD demo: fixed solid-state 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
   <br>
-  <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 16,884 holdout plane matches, P90 |point-to-plane| 0.806 m, 100% known-bad controls detected.</sub>
+  <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 16,884 / 23,666 fixed-denominator holdout plane matches, P90 |point-to-plane| 0.806 m, 100% known-bad controls detected.</sub>
   <br>
   <sub>Evidence protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates are exported in <code>evidence.json</code> and <code>assessment.json</code>.</sub>
 </p>

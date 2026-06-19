@@ -245,6 +245,10 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_pair_target_voxel_recall_in_source" in names
     assert "lidar_pair_shared_voxel_centroid_rmse_m" in names
     assert "lidar_pair_holdout_point_to_plane_map_voxel_count" in names
+    assert "lidar_pair_holdout_point_to_plane_eligible_point_count" in names
+    assert "lidar_pair_holdout_point_to_plane_considered_point_count" in names
+    assert "lidar_pair_holdout_point_to_plane_accepted_correspondence_count" in names
+    assert "lidar_pair_holdout_point_to_plane_support_ratio" in names
     assert "lidar_pair_holdout_point_to_plane_matched_point_count" in names
     assert "lidar_pair_holdout_point_to_plane_unmatched_fraction" in names
     assert "lidar_pair_holdout_point_to_plane_median_abs_m" in names

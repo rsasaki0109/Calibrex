@@ -27,6 +27,9 @@ AssessmentScalar = str | float | int | bool | None
 
 _MIN_MAP_VOXEL_COUNT = 20
 _MIN_MATCHED_POINT_COUNT = 500
+_MIN_ELIGIBLE_POINT_COUNT = 500
+_MIN_ACCEPTED_CORRESPONDENCE_COUNT = 500
+_MIN_SUPPORT_RATIO = 0.10
 _MAX_UNMATCHED_FRACTION = 0.90
 _MIN_KNOWN_BAD_CASE_COUNT = 1
 _MIN_KNOWN_BAD_PASS_FRACTION = 0.50
@@ -36,6 +39,9 @@ def _default_policy_parameters() -> dict[str, AssessmentScalar]:
     return {
         "min_map_voxel_count": _MIN_MAP_VOXEL_COUNT,
         "min_matched_point_count": _MIN_MATCHED_POINT_COUNT,
+        "min_eligible_point_count": _MIN_ELIGIBLE_POINT_COUNT,
+        "min_accepted_correspondence_count": _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
+        "min_support_ratio": _MIN_SUPPORT_RATIO,
         "max_unmatched_fraction": _MAX_UNMATCHED_FRACTION,
         "min_known_bad_case_count": _MIN_KNOWN_BAD_CASE_COUNT,
         "min_known_bad_pass_fraction": _MIN_KNOWN_BAD_PASS_FRACTION,
@@ -245,15 +251,26 @@ def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
         )
     map_voxels = _number(protocol.parameters.get("map_voxel_count"))
     matched_points = _number(protocol.parameters.get("matched_point_count"))
+    eligible_points = _number(protocol.parameters.get("eligible_point_count"))
+    accepted_correspondences = _number(
+        protocol.parameters.get("accepted_correspondence_count")
+    )
+    support_ratio = _number(protocol.parameters.get("support_ratio"))
     unmatched_fraction = _number(protocol.parameters.get("unmatched_fraction"))
     observed: dict[str, AssessmentScalar] = {
         "map_voxel_count": map_voxels,
         "matched_point_count": matched_points,
+        "eligible_point_count": eligible_points,
+        "accepted_correspondence_count": accepted_correspondences,
+        "support_ratio": support_ratio,
         "unmatched_fraction": unmatched_fraction,
     }
     thresholds: dict[str, AssessmentScalar] = {
         "min_map_voxel_count": _MIN_MAP_VOXEL_COUNT,
         "min_matched_point_count": _MIN_MATCHED_POINT_COUNT,
+        "min_eligible_point_count": _MIN_ELIGIBLE_POINT_COUNT,
+        "min_accepted_correspondence_count": _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
+        "min_support_ratio": _MIN_SUPPORT_RATIO,
         "max_unmatched_fraction": _MAX_UNMATCHED_FRACTION,
     }
     if map_voxels is None or matched_points is None or unmatched_fraction is None:
@@ -269,6 +286,15 @@ def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
         map_voxels < _MIN_MAP_VOXEL_COUNT
         or matched_points < _MIN_MATCHED_POINT_COUNT
         or unmatched_fraction > _MAX_UNMATCHED_FRACTION
+        or (
+            eligible_points is not None
+            and eligible_points < _MIN_ELIGIBLE_POINT_COUNT
+        )
+        or (
+            accepted_correspondences is not None
+            and accepted_correspondences < _MIN_ACCEPTED_CORRESPONDENCE_COUNT
+        )
+        or (support_ratio is not None and support_ratio < _MIN_SUPPORT_RATIO)
     ):
         return AssessmentRuleResult(
             rule_id="holdout_support_gate",
@@ -277,6 +303,9 @@ def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
             metric_ids=[
                 "lidar_pair_holdout_point_to_plane_map_voxel_count",
                 "lidar_pair_holdout_point_to_plane_matched_point_count",
+                "lidar_pair_holdout_point_to_plane_eligible_point_count",
+                "lidar_pair_holdout_point_to_plane_accepted_correspondence_count",
+                "lidar_pair_holdout_point_to_plane_support_ratio",
                 "lidar_pair_holdout_point_to_plane_unmatched_fraction",
             ],
             observed=observed,
@@ -286,10 +315,13 @@ def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
     return AssessmentRuleResult(
         rule_id="holdout_support_gate",
         status="pass",
-        reason="holdout support satisfies voxel, match, and unmatched gates",
+        reason="holdout support satisfies voxel, match, fixed-denominator, and unmatched gates",
         metric_ids=[
             "lidar_pair_holdout_point_to_plane_map_voxel_count",
             "lidar_pair_holdout_point_to_plane_matched_point_count",
+            "lidar_pair_holdout_point_to_plane_eligible_point_count",
+            "lidar_pair_holdout_point_to_plane_accepted_correspondence_count",
+            "lidar_pair_holdout_point_to_plane_support_ratio",
             "lidar_pair_holdout_point_to_plane_unmatched_fraction",
         ],
         observed=observed,

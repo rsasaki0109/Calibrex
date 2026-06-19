@@ -235,6 +235,12 @@ class LivoxPairPointToPlaneStats:
     train_frame_ids: tuple[str, ...]
     holdout_frame_ids: tuple[str, ...]
     independent_holdout: bool
+    support_population_id: str
+    support_definition: str
+    eligible_point_count: int
+    considered_point_count: int
+    accepted_correspondence_count: int
+    support_ratio: float | None
     map_voxel_count: int
     matched_point_count: int
     unmatched_point_count: int
@@ -258,6 +264,15 @@ class LivoxPairPointToPlaneStats:
             "train_frame_ids": list(self.train_frame_ids),
             "holdout_frame_ids": list(self.holdout_frame_ids),
             "independent_holdout": self.independent_holdout,
+            "support_population_id": self.support_population_id,
+            "support_definition": self.support_definition,
+            "eligible_point_count": self.eligible_point_count,
+            "considered_point_count": self.considered_point_count,
+            "accepted_correspondence_count": self.accepted_correspondence_count,
+            "support_ratio": self.support_ratio,
+            "exclusion_counts": {
+                "no_plane_within_gate": self.unmatched_point_count,
+            },
             "map_voxel_count": self.map_voxel_count,
             "matched_point_count": self.matched_point_count,
             "unmatched_point_count": self.unmatched_point_count,
@@ -423,12 +438,26 @@ def summarize_livox_pair_point_to_plane(
 
     files = find_livox_pcd_files(path)
     if len(files) < 2:
+        train_frame_ids = tuple(_frame_id(file_path) for file_path in files[:1])
+        holdout_frame_ids: tuple[str, ...] = ()
         return LivoxPairPointToPlaneStats(
             status="insufficient_support",
             split_policy="single_pair_source_map_target_query",
-            train_frame_ids=tuple(_frame_id(file_path) for file_path in files[:1]),
-            holdout_frame_ids=(),
+            train_frame_ids=train_frame_ids,
+            holdout_frame_ids=holdout_frame_ids,
             independent_holdout=False,
+            support_population_id=_support_population_id(
+                train_frame_ids=train_frame_ids,
+                holdout_frame_ids=holdout_frame_ids,
+                eligible_point_count=0,
+                voxel_size_m=voxel_size_m,
+                correspondence_gate_m=correspondence_gate_m,
+            ),
+            support_definition=_support_definition(),
+            eligible_point_count=0,
+            considered_point_count=0,
+            accepted_correspondence_count=0,
+            support_ratio=None,
             map_voxel_count=0,
             matched_point_count=0,
             unmatched_point_count=0,
@@ -448,12 +477,26 @@ def summarize_livox_pair_point_to_plane(
         source_records = read_livox_binary_pcd_records(files[0])
         target_records = read_livox_binary_pcd_records(files[1])
     except (ValueError, struct.error) as exc:
+        train_frame_ids = (_frame_id(files[0]),)
+        holdout_frame_ids = (_frame_id(files[1]),)
         return LivoxPairPointToPlaneStats(
             status="malformed",
             split_policy="single_pair_source_map_target_query",
-            train_frame_ids=(_frame_id(files[0]),),
-            holdout_frame_ids=(_frame_id(files[1]),),
+            train_frame_ids=train_frame_ids,
+            holdout_frame_ids=holdout_frame_ids,
             independent_holdout=False,
+            support_population_id=_support_population_id(
+                train_frame_ids=train_frame_ids,
+                holdout_frame_ids=holdout_frame_ids,
+                eligible_point_count=0,
+                voxel_size_m=voxel_size_m,
+                correspondence_gate_m=correspondence_gate_m,
+            ),
+            support_definition=_support_definition(),
+            eligible_point_count=0,
+            considered_point_count=0,
+            accepted_correspondence_count=0,
+            support_ratio=None,
             map_voxel_count=0,
             matched_point_count=0,
             unmatched_point_count=0,
@@ -470,9 +513,13 @@ def summarize_livox_pair_point_to_plane(
         )
 
     plane_map = _voxel_plane_map(source_records, voxel_size_m)
+    train_frame_ids = (_frame_id(files[0]),)
+    holdout_frame_ids = (_frame_id(files[1]),)
     query_points = [
         _transformed_point(record.point, target_transform) for record in target_records
     ]
+    eligible_count = len(target_records)
+    considered_count = len(query_points)
     residuals, unmatched_count = _point_to_plane_residuals(
         query_points,
         plane_map=plane_map,
@@ -482,14 +529,27 @@ def summarize_livox_pair_point_to_plane(
     query_count = len(query_points)
     matched_count = len(residuals)
     unmatched_fraction = unmatched_count / query_count if query_count else None
+    support_ratio = matched_count / eligible_count if eligible_count else None
     status = "scored" if residuals else "insufficient_support"
     inlier_count = sum(1 for residual in residuals if residual <= inlier_threshold_m)
     return LivoxPairPointToPlaneStats(
         status=status,
         split_policy="single_pair_source_map_target_query",
-        train_frame_ids=(_frame_id(files[0]),),
-        holdout_frame_ids=(_frame_id(files[1]),),
+        train_frame_ids=train_frame_ids,
+        holdout_frame_ids=holdout_frame_ids,
         independent_holdout=False,
+        support_population_id=_support_population_id(
+            train_frame_ids=train_frame_ids,
+            holdout_frame_ids=holdout_frame_ids,
+            eligible_point_count=eligible_count,
+            voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        ),
+        support_definition=_support_definition(),
+        eligible_point_count=eligible_count,
+        considered_point_count=considered_count,
+        accepted_correspondence_count=matched_count,
+        support_ratio=support_ratio,
         map_voxel_count=len(plane_map),
         matched_point_count=matched_count,
         unmatched_point_count=unmatched_count,
@@ -506,6 +566,31 @@ def summarize_livox_pair_point_to_plane(
             "single source/target PCD pair; use as limited holdout geometry evidence, "
             "not independent temporal validation"
         ),
+    )
+
+
+def _support_population_id(
+    *,
+    train_frame_ids: tuple[str, ...],
+    holdout_frame_ids: tuple[str, ...],
+    eligible_point_count: int,
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> str:
+    train = ",".join(train_frame_ids) or "none"
+    holdout = ",".join(holdout_frame_ids) or "none"
+    return (
+        "livox_pair_support:"
+        f"train={train}:holdout={holdout}:eligible_points={eligible_point_count}:"
+        f"voxel_m={voxel_size_m:g}:gate_m={correspondence_gate_m:g}"
+    )
+
+
+def _support_definition() -> str:
+    return (
+        "eligible population is every finite target PCD point in the declared "
+        "source/target pair; candidate transforms may change accepted "
+        "correspondences but not this denominator"
     )
 
 

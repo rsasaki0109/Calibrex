@@ -32,6 +32,9 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
     rmse_metric = result.metrics.get("lidar_pair_shared_voxel_centroid_rmse_m")
     p2p_median_metric = result.metrics.get("lidar_pair_holdout_point_to_plane_median_abs_m")
     p2p_p90_metric = result.metrics.get("lidar_pair_holdout_point_to_plane_p90_abs_m")
+    p2p_support_ratio_metric = result.metrics.get(
+        "lidar_pair_holdout_point_to_plane_support_ratio"
+    )
     p2p_unmatched_metric = result.metrics.get(
         "lidar_pair_holdout_point_to_plane_unmatched_fraction"
     )
@@ -97,6 +100,8 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
                     "median |p2plane| "
                     f"{_fmt(p2p_median_metric.value if p2p_median_metric else None)} m, "
                     f"P90 {_fmt(p2p_p90_metric.value if p2p_p90_metric else None)} m, "
+                    "support "
+                    f"{_fmt(_metric_value(p2p_support_ratio_metric))}, "
                     "unmatched "
                     f"{_fmt(p2p_unmatched_metric.value if p2p_unmatched_metric else None)}"
                 ),
@@ -108,6 +113,7 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
                 metric_ids=[
                     "lidar_pair_holdout_point_to_plane_median_abs_m",
                     "lidar_pair_holdout_point_to_plane_p90_abs_m",
+                    "lidar_pair_holdout_point_to_plane_support_ratio",
                     "lidar_pair_holdout_point_to_plane_unmatched_fraction",
                 ],
             )
@@ -159,3 +165,10 @@ def _fmt(value: float | None) -> str:
     if value is None:
         return ""
     return f"{value:.6g}"
+
+
+def _metric_value(metric: object) -> float | None:
+    if metric is None:
+        return None
+    value = getattr(metric, "value", None)
+    return value if isinstance(value, float | int) else None

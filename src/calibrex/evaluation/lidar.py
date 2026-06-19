@@ -230,6 +230,41 @@ def _livox_pair_point_to_plane_metrics(
         "not independent temporal validation"
     )
     return {
+        "lidar_pair_holdout_point_to_plane_eligible_point_count": MetricResult(
+            value=float(stats.eligible_point_count),
+            unit="points",
+            grade="pass" if stats.eligible_point_count > 0 else "warn",
+            reason=(
+                "candidate-independent target point population used as the "
+                f"support denominator; {reason_suffix}"
+            ),
+        ),
+        "lidar_pair_holdout_point_to_plane_considered_point_count": MetricResult(
+            value=float(stats.considered_point_count),
+            unit="points",
+            grade="pass" if stats.considered_point_count > 0 else "warn",
+            reason=(
+                "target points considered for source-plane matching after decoding; "
+                f"{reason_suffix}"
+            ),
+        ),
+        "lidar_pair_holdout_point_to_plane_accepted_correspondence_count": MetricResult(
+            value=float(stats.accepted_correspondence_count),
+            unit="points",
+            grade=support_grade,
+            reason=(
+                "candidate-dependent accepted point-to-plane correspondences under "
+                f"the fixed support denominator; {reason_suffix}"
+            ),
+        ),
+        "lidar_pair_holdout_point_to_plane_support_ratio": MetricResult(
+            value=stats.support_ratio,
+            grade=support_grade,
+            reason=(
+                "accepted correspondences divided by candidate-independent eligible "
+                f"target points; {reason_suffix}"
+            ),
+        ),
         "lidar_pair_holdout_point_to_plane_map_voxel_count": MetricResult(
             value=float(stats.map_voxel_count),
             unit="voxels",
@@ -383,6 +418,10 @@ def _livox_pair_known_bad_evidence(
             baseline_p2p_rmse,
             perturbed_point_to_plane.rmse_m,
         )
+        support_ratio_delta = _ratio_delta(
+            baseline_point_to_plane.support_ratio,
+            perturbed_point_to_plane.support_ratio,
+        )
         if recall_delta is not None:
             recall_deltas.append(recall_delta)
         if rmse_delta is not None:
@@ -413,6 +452,7 @@ def _livox_pair_known_bad_evidence(
                     rmse_delta=rmse_delta,
                     p2p_p90_delta=p2p_p90_delta,
                     p2p_rmse_delta=p2p_rmse_delta,
+                    support_ratio_delta=support_ratio_delta,
                     worsened=worsened,
                 )
             )
@@ -501,6 +541,7 @@ def _livox_pair_known_bad_case(
     rmse_delta: float | None,
     p2p_p90_delta: float | None,
     p2p_rmse_delta: float | None,
+    support_ratio_delta: float | None,
     worsened: bool,
 ) -> EvidenceCaseItem:
     return EvidenceCaseItem(
@@ -531,12 +572,22 @@ def _livox_pair_known_bad_case(
             "lidar_pair_holdout_point_to_plane_unmatched_fraction": _float_or_none(
                 perturbed_point_to_plane.unmatched_fraction
             ),
+            "lidar_pair_holdout_point_to_plane_support_ratio": _float_or_none(
+                perturbed_point_to_plane.support_ratio
+            ),
+            "lidar_pair_holdout_point_to_plane_eligible_point_count": _float_or_none(
+                perturbed_point_to_plane.eligible_point_count
+            ),
+            "lidar_pair_holdout_point_to_plane_accepted_correspondence_count": (
+                _float_or_none(perturbed_point_to_plane.accepted_correspondence_count)
+            ),
         },
         delta_values={
             "source_recall_delta": recall_delta,
             "centroid_rmse_delta_m": rmse_delta,
             "point_to_plane_p90_delta_m": p2p_p90_delta,
             "point_to_plane_rmse_delta_m": p2p_rmse_delta,
+            "support_ratio_delta": support_ratio_delta,
         },
     )
 
@@ -1072,6 +1123,12 @@ def _unavailable_perturbation_metrics(reason: str) -> dict[str, MetricResult]:
 
 
 def _rmse_delta(baseline: float | None, perturbed: float | None) -> float | None:
+    if baseline is None or perturbed is None:
+        return None
+    return perturbed - baseline
+
+
+def _ratio_delta(baseline: float | None, perturbed: float | None) -> float | None:
     if baseline is None or perturbed is None:
         return None
     return perturbed - baseline
