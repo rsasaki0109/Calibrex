@@ -34,6 +34,8 @@ _MAX_UNMATCHED_FRACTION = 0.90
 _MIN_KNOWN_BAD_CASE_COUNT = 1
 _MIN_KNOWN_BAD_PASS_FRACTION = 0.50
 _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION = 0.50
+_MIN_MANDATORY_KNOWN_BAD_CASE_COUNT = 12
+_MIN_MANDATORY_SUPPORTED_DETECTION_COUNT = 8
 _DELTA_EPSILON = 1.0e-9
 
 
@@ -49,6 +51,10 @@ def _default_policy_parameters() -> dict[str, AssessmentScalar]:
         "min_known_bad_pass_fraction": _MIN_KNOWN_BAD_PASS_FRACTION,
         "min_supported_known_bad_pass_fraction": (
             _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
+        ),
+        "min_mandatory_known_bad_case_count": _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT,
+        "min_mandatory_supported_detection_count": (
+            _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT
         ),
     }
 
@@ -387,6 +393,19 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         for case in support_scored_cases
         if not _case_has_sufficient_support(case)
     )
+    mandatory_case_count = _number_from_protocol_parameters(
+        protocol,
+        "mandatory_case_count",
+    )
+    mandatory_supported_detection_count = _number_from_protocol_parameters(
+        protocol,
+        "mandatory_supported_detection_count",
+    )
+    mandatory_support_collapse_count = _number_from_protocol_parameters(
+        protocol,
+        "mandatory_support_collapse_count",
+    )
+    challenge_id = _string_from_protocol_parameters(protocol, "challenge_id")
     observed: dict[str, AssessmentScalar] = {
         "declared_known_bad_case_count": case_count,
         "materialized_case_count": len(cases),
@@ -395,6 +414,10 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         "supported_detection_count": supported_detection_count,
         "supported_pass_fraction": supported_pass_fraction,
         "support_collapse_count": support_collapse_count,
+        "challenge_id": challenge_id,
+        "mandatory_case_count": mandatory_case_count,
+        "mandatory_supported_detection_count": mandatory_supported_detection_count,
+        "mandatory_support_collapse_count": mandatory_support_collapse_count,
         "summary_status": summary.status if summary else None,
     }
     thresholds: dict[str, AssessmentScalar] = {
@@ -402,6 +425,10 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         "min_materialized_pass_fraction": _MIN_KNOWN_BAD_PASS_FRACTION,
         "min_supported_known_bad_pass_fraction": (
             _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
+        ),
+        "min_mandatory_known_bad_case_count": _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT,
+        "min_mandatory_supported_detection_count": (
+            _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT
         ),
         "min_accepted_correspondence_count": _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
         "min_support_ratio": _MIN_SUPPORT_RATIO,
@@ -460,6 +487,37 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
             thresholds=thresholds,
             evidence_refs=[protocol.protocol_id, "cases"],
         )
+    if challenge_id is not None:
+        if (
+            mandatory_case_count is None
+            or mandatory_case_count < _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT
+        ):
+            return AssessmentRuleResult(
+                rule_id="known_bad_controls",
+                status="inconclusive",
+                reason="mandatory known-bad challenge is incomplete",
+                metric_ids=summary.metric_ids if summary else [],
+                observed=observed,
+                thresholds=thresholds,
+                evidence_refs=[protocol.protocol_id, "cases"],
+            )
+        if (
+            mandatory_supported_detection_count is None
+            or mandatory_supported_detection_count
+            < _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT
+        ):
+            return AssessmentRuleResult(
+                rule_id="known_bad_controls",
+                status="fail",
+                reason=(
+                    "mandatory known-bad controls were not rejected under enough "
+                    "supported geometry"
+                ),
+                metric_ids=summary.metric_ids if summary else [],
+                observed=observed,
+                thresholds=thresholds,
+                evidence_refs=[protocol.protocol_id, "cases"],
+            )
     if summary is not None and summary.status == "warn":
         return AssessmentRuleResult(
             rule_id="known_bad_controls",
@@ -574,6 +632,25 @@ def _case_is_supported_known_bad_detection(case: EvidenceCaseItem) -> bool:
         and delta > _DELTA_EPSILON
         for delta_name in delta_names
     )
+
+
+def _number_from_protocol_parameters(
+    protocol: EvidenceProtocolItem | None,
+    key: str,
+) -> float | None:
+    if protocol is None:
+        return None
+    return _number(protocol.parameters.get(key))
+
+
+def _string_from_protocol_parameters(
+    protocol: EvidenceProtocolItem | None,
+    key: str,
+) -> str | None:
+    if protocol is None:
+        return None
+    value = protocol.parameters.get(key)
+    return value if isinstance(value, str) else None
 
 
 def _overall_status(rules: list[AssessmentRuleResult]) -> AssessmentStatus:

@@ -1608,6 +1608,26 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     assert evidence["protocols"][0]["parameters"]["accepted_correspondence_count"] > 0
     assert evidence["protocols"][0]["parameters"]["support_ratio"] > 0
     assert "support_population_id" in evidence["protocols"][0]["parameters"]
+    assert evidence["protocols"][0]["parameters"]["challenge_id"] == (
+        "livox_pair_mandatory_6dof_large_controls/v0.1"
+    )
+    assert evidence["protocols"][0]["parameters"]["mandatory_case_count"] == 12
+    assert (
+        evidence["protocols"][0]["parameters"][
+            "mandatory_supported_detection_count"
+        ]
+        == 12
+    )
+    assert (
+        evidence["protocols"][0]["parameters"][
+            "mandatory_supported_detection_fraction"
+        ]
+        == 1.0
+    )
+    assert (
+        evidence["protocols"][0]["parameters"]["mandatory_support_collapse_count"]
+        == 0
+    )
     assert "single source/target PCD pair" in evidence["protocols"][0]["limitations"][0]
     assert len(evidence["summaries"]) == 4
     assert {summary["check"] for summary in evidence["summaries"]} == {
@@ -1630,6 +1650,18 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     assert "lidar_pair_holdout_point_to_plane_p90_abs_m" in metrics["metrics"]
     assert "lidar_pair_holdout_point_to_plane_support_ratio" in metrics["metrics"]
     assert "lidar_pair_known_bad_point_to_plane_p90_delta_max_m" in metrics["metrics"]
+    assert (
+        metrics["metrics"][
+            "lidar_pair_known_bad_mandatory_supported_detection_count"
+        ]["value"]
+        == 12.0
+    )
+    assert (
+        metrics["metrics"][
+            "lidar_pair_known_bad_mandatory_support_collapse_count"
+        ]["value"]
+        == 0.0
+    )
     assert any(
         "lidar_pair_holdout_point_to_plane_p90_abs_m" in case["metric_values"]
         for case in evidence["cases"]

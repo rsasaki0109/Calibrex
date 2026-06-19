@@ -209,6 +209,7 @@ def _apply_livox_pair_candidate_evidence(
         "holdout_geometry": evidence.point_to_plane.as_dict(),
         "known_bad_perturbation": "left-multiplied source-frame SE(3) controls",
         "known_bad_case_count": len(evidence.cases),
+        "known_bad_challenge": evidence.known_bad_challenge,
     }
     existing_cases = result.run.provenance.get("evidence_cases")
     cases = existing_cases if isinstance(existing_cases, list) else []

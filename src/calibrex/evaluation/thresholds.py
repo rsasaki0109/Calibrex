@@ -321,6 +321,32 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.10,
         direction="higher_is_better",
     ),
+    "lidar_pair_known_bad_mandatory_case_count": MetricThreshold(
+        metric="lidar_pair_known_bad_mandatory_case_count",
+        pass_value=12.0,
+        warn_value=1.0,
+        direction="higher_is_better",
+        unit="cases",
+    ),
+    "lidar_pair_known_bad_mandatory_supported_detection_count": MetricThreshold(
+        metric="lidar_pair_known_bad_mandatory_supported_detection_count",
+        pass_value=8.0,
+        warn_value=1.0,
+        direction="higher_is_better",
+        unit="cases",
+    ),
+    "lidar_pair_known_bad_mandatory_supported_detection_fraction": MetricThreshold(
+        metric="lidar_pair_known_bad_mandatory_supported_detection_fraction",
+        pass_value=0.66,
+        warn_value=0.10,
+        direction="higher_is_better",
+    ),
+    "lidar_pair_known_bad_mandatory_support_collapse_count": MetricThreshold(
+        metric="lidar_pair_known_bad_mandatory_support_collapse_count",
+        pass_value=0.0,
+        warn_value=4.0,
+        unit="cases",
+    ),
     "lidar_pair_known_bad_source_recall_delta_mean": MetricThreshold(
         metric="lidar_pair_known_bad_source_recall_delta_mean",
         pass_value=0.0,

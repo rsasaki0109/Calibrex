@@ -43,6 +43,12 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
     p2p_delta_metric = result.metrics.get(
         "lidar_pair_known_bad_point_to_plane_p90_delta_max_m"
     )
+    mandatory_detection_metric = result.metrics.get(
+        "lidar_pair_known_bad_mandatory_supported_detection_count"
+    )
+    mandatory_case_metric = result.metrics.get(
+        "lidar_pair_known_bad_mandatory_case_count"
+    )
     if (
         support_metric is None
         and shared_metric is None
@@ -52,6 +58,7 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
         and known_bad_metric is None
         and max_delta_metric is None
         and p2p_delta_metric is None
+        and mandatory_detection_metric is None
     ):
         return []
 
@@ -69,6 +76,10 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
     known_bad_fraction = _fmt(known_bad_metric.value if known_bad_metric else None)
     known_bad_max_delta = _fmt(max_delta_metric.value if max_delta_metric else None)
     known_bad_p2p_delta = _fmt(p2p_delta_metric.value if p2p_delta_metric else None)
+    mandatory_detection_count = _fmt(
+        mandatory_detection_metric.value if mandatory_detection_metric else None
+    )
+    mandatory_case_count = _fmt(mandatory_case_metric.value if mandatory_case_metric else None)
 
     items = [
         EvidenceSummaryItem(
@@ -126,6 +137,8 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
             status=known_bad_grade,
             evidence=(
                 f"detectable fraction {known_bad_fraction}, "
+                f"mandatory supported detections {mandatory_detection_count}/"
+                f"{mandatory_case_count}, "
                 f"max centroid RMSE delta {known_bad_max_delta} m, "
                 f"max P90 point-to-plane delta {known_bad_p2p_delta} m"
             ),
@@ -136,6 +149,8 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
             ),
             metric_ids=[
                 "lidar_pair_known_bad_detectable_fraction",
+                "lidar_pair_known_bad_mandatory_supported_detection_count",
+                "lidar_pair_known_bad_mandatory_case_count",
                 "lidar_pair_known_bad_centroid_rmse_delta_max_m",
                 "lidar_pair_known_bad_point_to_plane_p90_delta_max_m",
             ],

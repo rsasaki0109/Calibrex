@@ -628,6 +628,29 @@ def _livox_pair_protocol_payload(
         reason = _str_or_none(holdout_geometry.get("reason"))
         if reason:
             limitations.append(reason)
+    known_bad_challenge = livox_pair.get("known_bad_challenge")
+    if isinstance(known_bad_challenge, dict):
+        parameters.update(
+            {
+                key: value
+                for key, value in known_bad_challenge.items()
+                if key
+                in {
+                    "challenge_id",
+                    "composition",
+                    "tangent_frame",
+                    "mandatory_rotation_deg",
+                    "mandatory_translation_m",
+                    "mandatory_case_count",
+                    "mandatory_supported_detection_count",
+                    "mandatory_supported_detection_fraction",
+                    "mandatory_support_collapse_count",
+                    "min_support_ratio",
+                    "min_accepted_correspondence_count",
+                    "target_supported_detection_count",
+                }
+            }
+        )
     return {
         "family": "lidar_pair",
         "protocol_id": "livox_pair_single_pair_holdout_point_to_plane/v0.1",

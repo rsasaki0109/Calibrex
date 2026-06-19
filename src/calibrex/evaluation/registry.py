@@ -447,6 +447,29 @@ def _register_builtin_metrics() -> None:
             family="lidar",
         ),
         MetricDefinition(
+            "lidar_pair_known_bad_mandatory_case_count",
+            "Number of mandatory large 6-DoF known-bad LiDAR pair controls materialized",
+            "cases",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_mandatory_supported_detection_count",
+            "Mandatory known-bad controls detected under sufficient LiDAR pair support",
+            "cases",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_mandatory_supported_detection_fraction",
+            "Fraction of mandatory known-bad controls detected under sufficient support",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_mandatory_support_collapse_count",
+            "Mandatory known-bad controls dominated by support collapse",
+            "cases",
+            "lidar",
+        ),
+        MetricDefinition(
             "lidar_pair_known_bad_source_recall_delta_mean",
             "Mean source voxel recall drop under known-bad LiDAR pair perturbations",
             family="lidar",

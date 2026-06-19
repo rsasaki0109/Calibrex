@@ -24,6 +24,11 @@ from calibrex.data.livox import (
 from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneEvaluation
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
+_LIVOX_PAIR_MANDATORY_ROTATION_DEG = 1.0
+_LIVOX_PAIR_MANDATORY_TRANSLATION_M = 0.10
+_LIVOX_PAIR_MIN_SUPPORT_RATIO = 0.10
+_LIVOX_PAIR_MIN_ACCEPTED_CORRESPONDENCE_COUNT = 500.0
+_LIVOX_PAIR_MANDATORY_SUPPORTED_DETECTION_TARGET = 8
 _WORLD_MAP_DOF_METRICS = {
     "roll_deg": ("lidar_world_map_sensitivity_roll_m", "roll_lidar0"),
     "pitch_deg": ("lidar_world_map_sensitivity_pitch_m", "pitch_lidar0"),
@@ -41,6 +46,7 @@ class LivoxPairEvidenceEvaluation:
     metrics: dict[str, MetricResult]
     cases: list[EvidenceCaseItem]
     point_to_plane: LivoxPairPointToPlaneStats
+    known_bad_challenge: dict[str, object]
 
 
 def lidar_metrics_from_inspection(
@@ -360,6 +366,7 @@ def livox_pair_evidence_from_dataset(
         metrics=metrics,
         cases=cases,
         point_to_plane=point_to_plane,
+        known_bad_challenge=_livox_pair_known_bad_challenge_payload(cases),
     )
 
 
@@ -467,67 +474,118 @@ def _livox_pair_known_bad_evidence(
 
     detectable_fraction = worsened_cases / measurable_cases
     grade: Grade = "pass" if detectable_fraction > 0.0 else "warn"
-    return (
-        {
-            "lidar_pair_known_bad_case_count": MetricResult(
-                value=float(measurable_cases),
-                unit="cases",
-                grade="pass",
-                reason=(
-                    "left-multiplied source-frame roll/pitch/yaw/x/y/z perturbation "
-                    "cases evaluated against Livox pair voxel and holdout plane evidence"
-                ),
-            ),
-            "lidar_pair_known_bad_detectable_fraction": MetricResult(
-                value=detectable_fraction,
-                grade=grade,
-                reason=(
-                    "fraction of known-bad Livox pair perturbations that reduced "
-                    "source voxel recall, increased shared-voxel centroid RMSE, or "
-                    "increased holdout point-to-plane residual"
-                ),
-            ),
-            "lidar_pair_known_bad_source_recall_delta_mean": MetricResult(
-                value=_mean_or_none(recall_deltas),
-                grade=grade,
-                reason=(
-                    "mean baseline-minus-perturbed source voxel recall; positive "
-                    "means the candidate ranks better than the known-bad controls"
-                ),
-            ),
-            "lidar_pair_known_bad_centroid_rmse_delta_mean_m": MetricResult(
-                value=_mean_or_none(rmse_deltas),
-                unit="m",
-                grade=grade,
-                reason=(
-                    "mean perturbed-minus-baseline shared-voxel centroid RMSE; "
-                    "positive means the candidate ranks better than the known-bad controls"
-                ),
-            ),
-            "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
-                value=max(rmse_deltas) if rmse_deltas else None,
-                unit="m",
-                grade=grade,
-                reason="largest shared-voxel centroid RMSE increase among known-bad controls",
-            ),
-            "lidar_pair_known_bad_point_to_plane_p90_delta_max_m": MetricResult(
-                value=max(p2p_p90_deltas) if p2p_p90_deltas else None,
-                unit="m",
-                grade=grade,
-                reason="largest holdout point-to-plane P90 increase among known-bad controls",
-            ),
-            "lidar_pair_known_bad_point_to_plane_rmse_delta_mean_m": MetricResult(
-                value=_mean_or_none(p2p_rmse_deltas),
-                unit="m",
-                grade=grade,
-                reason=(
-                    "mean perturbed-minus-baseline holdout point-to-plane RMSE; "
-                    "positive means the candidate ranks better than the known-bad controls"
-                ),
-            ),
-        },
-        cases,
+    challenge = _livox_pair_known_bad_challenge_payload(cases)
+    mandatory_fraction = _float_or_none(
+        challenge.get("mandatory_supported_detection_fraction")
     )
+    mandatory_case_count = _float_or_none(challenge.get("mandatory_case_count"))
+    mandatory_supported_detection_count = _float_or_none(
+        challenge.get("mandatory_supported_detection_count")
+    )
+    mandatory_support_collapse_count = _float_or_none(
+        challenge.get("mandatory_support_collapse_count")
+    )
+    mandatory_grade: Grade = (
+        "pass"
+        if mandatory_supported_detection_count is not None
+        and mandatory_supported_detection_count
+        >= _LIVOX_PAIR_MANDATORY_SUPPORTED_DETECTION_TARGET
+        else "warn"
+    )
+    metrics = {
+        "lidar_pair_known_bad_case_count": MetricResult(
+            value=float(measurable_cases),
+            unit="cases",
+            grade="pass",
+            reason=(
+                "left-multiplied source-frame roll/pitch/yaw/x/y/z perturbation "
+                "cases evaluated against Livox pair voxel and holdout plane evidence"
+            ),
+        ),
+        "lidar_pair_known_bad_detectable_fraction": MetricResult(
+            value=detectable_fraction,
+            grade=grade,
+            reason=(
+                "fraction of known-bad Livox pair perturbations that reduced "
+                "source voxel recall, increased shared-voxel centroid RMSE, or "
+                "increased holdout point-to-plane residual"
+            ),
+        ),
+        "lidar_pair_known_bad_source_recall_delta_mean": MetricResult(
+            value=_mean_or_none(recall_deltas),
+            grade=grade,
+            reason=(
+                "mean baseline-minus-perturbed source voxel recall; positive "
+                "means the candidate ranks better than the known-bad controls"
+            ),
+        ),
+        "lidar_pair_known_bad_centroid_rmse_delta_mean_m": MetricResult(
+            value=_mean_or_none(rmse_deltas),
+            unit="m",
+            grade=grade,
+            reason=(
+                "mean perturbed-minus-baseline shared-voxel centroid RMSE; "
+                "positive means the candidate ranks better than the known-bad controls"
+            ),
+        ),
+        "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
+            value=max(rmse_deltas) if rmse_deltas else None,
+            unit="m",
+            grade=grade,
+            reason="largest shared-voxel centroid RMSE increase among known-bad controls",
+        ),
+        "lidar_pair_known_bad_point_to_plane_p90_delta_max_m": MetricResult(
+            value=max(p2p_p90_deltas) if p2p_p90_deltas else None,
+            unit="m",
+            grade=grade,
+            reason="largest holdout point-to-plane P90 increase among known-bad controls",
+        ),
+        "lidar_pair_known_bad_point_to_plane_rmse_delta_mean_m": MetricResult(
+            value=_mean_or_none(p2p_rmse_deltas),
+            unit="m",
+            grade=grade,
+            reason=(
+                "mean perturbed-minus-baseline holdout point-to-plane RMSE; "
+                "positive means the candidate ranks better than the known-bad controls"
+            ),
+        ),
+        "lidar_pair_known_bad_mandatory_case_count": MetricResult(
+            value=mandatory_case_count,
+            unit="cases",
+            grade="pass" if mandatory_case_count == 12.0 else "warn",
+            reason=(
+                "predeclared large ±1 deg and ±0.10 m known-bad control cases "
+                "materialized for roll/pitch/yaw/x/y/z"
+            ),
+        ),
+        "lidar_pair_known_bad_mandatory_supported_detection_count": MetricResult(
+            value=mandatory_supported_detection_count,
+            unit="cases",
+            grade=mandatory_grade,
+            reason=(
+                "mandatory known-bad controls detected under sufficient support; "
+                f"target >= {_LIVOX_PAIR_MANDATORY_SUPPORTED_DETECTION_TARGET} cases"
+            ),
+        ),
+        "lidar_pair_known_bad_mandatory_supported_detection_fraction": MetricResult(
+            value=mandatory_fraction,
+            grade=mandatory_grade,
+            reason=(
+                "fraction of mandatory known-bad controls detected under sufficient "
+                "support, excluding support-collapse-only detections"
+            ),
+        ),
+        "lidar_pair_known_bad_mandatory_support_collapse_count": MetricResult(
+            value=mandatory_support_collapse_count,
+            unit="cases",
+            grade="pass" if mandatory_support_collapse_count == 0.0 else "warn",
+            reason=(
+                "mandatory known-bad controls whose apparent detection is dominated "
+                "by insufficient point-to-plane support"
+            ),
+        ),
+    }
+    return (metrics, cases)
 
 
 def _livox_pair_known_bad_case(
@@ -592,6 +650,80 @@ def _livox_pair_known_bad_case(
     )
 
 
+def _livox_pair_known_bad_challenge_payload(
+    cases: list[EvidenceCaseItem],
+) -> dict[str, object]:
+    mandatory_cases = [case for case in cases if _is_mandatory_livox_pair_case(case)]
+    supported_detection_count = sum(
+        1 for case in mandatory_cases if _is_supported_livox_pair_detection(case)
+    )
+    support_collapse_count = sum(
+        1
+        for case in mandatory_cases
+        if case.status == "pass" and not _has_sufficient_livox_pair_support(case)
+    )
+    mandatory_count = len(mandatory_cases)
+    return {
+        "challenge_id": "livox_pair_mandatory_6dof_large_controls/v0.1",
+        "composition": "T_test = Exp(xi_hat) * T_source_target",
+        "tangent_frame": "source_lidar_frame",
+        "mandatory_rotation_deg": _LIVOX_PAIR_MANDATORY_ROTATION_DEG,
+        "mandatory_translation_m": _LIVOX_PAIR_MANDATORY_TRANSLATION_M,
+        "mandatory_case_count": mandatory_count,
+        "mandatory_supported_detection_count": supported_detection_count,
+        "mandatory_supported_detection_fraction": (
+            supported_detection_count / mandatory_count if mandatory_count else None
+        ),
+        "mandatory_support_collapse_count": support_collapse_count,
+        "min_support_ratio": _LIVOX_PAIR_MIN_SUPPORT_RATIO,
+        "min_accepted_correspondence_count": (
+            _LIVOX_PAIR_MIN_ACCEPTED_CORRESPONDENCE_COUNT
+        ),
+        "target_supported_detection_count": (
+            _LIVOX_PAIR_MANDATORY_SUPPORTED_DETECTION_TARGET
+        ),
+    }
+
+
+def _is_mandatory_livox_pair_case(case: EvidenceCaseItem) -> bool:
+    if case.unit == "deg":
+        return abs(case.amount or 0.0) >= _LIVOX_PAIR_MANDATORY_ROTATION_DEG
+    if case.unit == "m":
+        return abs(case.amount or 0.0) >= _LIVOX_PAIR_MANDATORY_TRANSLATION_M
+    return False
+
+
+def _has_sufficient_livox_pair_support(case: EvidenceCaseItem) -> bool:
+    support_ratio = _float_or_none(
+        case.metric_values.get("lidar_pair_holdout_point_to_plane_support_ratio")
+    )
+    accepted_count = _float_or_none(
+        case.metric_values.get(
+            "lidar_pair_holdout_point_to_plane_accepted_correspondence_count"
+        )
+    )
+    if support_ratio is None or accepted_count is None:
+        return False
+    return (
+        support_ratio >= _LIVOX_PAIR_MIN_SUPPORT_RATIO
+        and accepted_count >= _LIVOX_PAIR_MIN_ACCEPTED_CORRESPONDENCE_COUNT
+    )
+
+
+def _is_supported_livox_pair_detection(case: EvidenceCaseItem) -> bool:
+    if case.status != "pass" or not _has_sufficient_livox_pair_support(case):
+        return False
+    return any(
+        (delta := _float_or_none(case.delta_values.get(delta_name))) is not None
+        and delta > 1.0e-9
+        for delta_name in (
+            "centroid_rmse_delta_m",
+            "point_to_plane_p90_delta_m",
+            "point_to_plane_rmse_delta_m",
+        )
+    )
+
+
 def _unavailable_livox_pair_known_bad_metrics(reason: str) -> dict[str, MetricResult]:
     return {
         "lidar_pair_known_bad_case_count": MetricResult(
@@ -630,6 +762,29 @@ def _unavailable_livox_pair_known_bad_metrics(reason: str) -> dict[str, MetricRe
         "lidar_pair_known_bad_point_to_plane_rmse_delta_mean_m": MetricResult(
             value=None,
             unit="m",
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_pair_known_bad_mandatory_case_count": MetricResult(
+            value=0.0,
+            unit="cases",
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_pair_known_bad_mandatory_supported_detection_count": MetricResult(
+            value=None,
+            unit="cases",
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_pair_known_bad_mandatory_supported_detection_fraction": MetricResult(
+            value=None,
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_pair_known_bad_mandatory_support_collapse_count": MetricResult(
+            value=None,
+            unit="cases",
             grade="warn",
             reason=reason,
         ),

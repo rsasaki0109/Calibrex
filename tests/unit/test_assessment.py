@@ -83,12 +83,85 @@ def test_known_bad_controls_pass_with_supported_geometry_detection() -> None:
     assert rule.observed["supported_pass_fraction"] == 1.0
 
 
+def test_known_bad_controls_inconclusive_when_mandatory_challenge_incomplete() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.72,
+        accepted_correspondence_count=720.0,
+        point_to_plane_delta_m=0.10,
+        challenge={
+            "challenge_id": "livox_pair_mandatory_6dof_large_controls/v0.1",
+            "mandatory_case_count": 6,
+            "mandatory_supported_detection_count": 6,
+            "mandatory_support_collapse_count": 0,
+        },
+    )
+
+    assessment = assess_report_evidence(evidence)
+    rule = _rule_status(assessment, "known_bad_controls")
+
+    assert rule.status == "inconclusive"
+    assert rule.reason == "mandatory known-bad challenge is incomplete"
+    assert rule.observed["mandatory_case_count"] == 6.0
+
+
+def test_known_bad_controls_fail_when_mandatory_challenge_is_weak() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.72,
+        accepted_correspondence_count=720.0,
+        point_to_plane_delta_m=0.10,
+        challenge={
+            "challenge_id": "livox_pair_mandatory_6dof_large_controls/v0.1",
+            "mandatory_case_count": 12,
+            "mandatory_supported_detection_count": 7,
+            "mandatory_support_collapse_count": 0,
+        },
+    )
+
+    assessment = assess_report_evidence(evidence)
+    rule = _rule_status(assessment, "known_bad_controls")
+
+    assert rule.status == "fail"
+    assert "mandatory known-bad controls were not rejected" in rule.reason
+    assert rule.observed["mandatory_supported_detection_count"] == 7.0
+
+
+def test_known_bad_controls_pass_with_mandatory_challenge_support() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.72,
+        accepted_correspondence_count=720.0,
+        point_to_plane_delta_m=0.10,
+        challenge={
+            "challenge_id": "livox_pair_mandatory_6dof_large_controls/v0.1",
+            "mandatory_case_count": 12,
+            "mandatory_supported_detection_count": 8,
+            "mandatory_support_collapse_count": 0,
+        },
+    )
+
+    assessment = assess_report_evidence(evidence)
+    rule = _rule_status(assessment, "known_bad_controls")
+
+    assert rule.status == "pass"
+    assert rule.observed["mandatory_supported_detection_count"] == 8.0
+
+
 def _known_bad_evidence(
     *,
     support_ratio: float,
     accepted_correspondence_count: float,
     point_to_plane_delta_m: float,
+    challenge: dict[str, object] | None = None,
 ) -> ReportEvidenceArtifact:
+    parameters: dict[str, object] = {
+        "map_voxel_count": 30,
+        "matched_point_count": 720,
+        "eligible_point_count": 1000,
+        "accepted_correspondence_count": 720,
+        "support_ratio": 0.72,
+        "unmatched_fraction": 0.28,
+    }
+    if challenge is not None:
+        parameters.update(challenge)
     return ReportEvidenceArtifact(
         run=ReportRunInfo(
             id="assessment-known-bad-unit",
@@ -120,14 +193,7 @@ def _known_bad_evidence(
                     "T_source_target maps target PCD points into the source PCD frame"
                 ),
                 known_bad_case_count=1,
-                parameters={
-                    "map_voxel_count": 30,
-                    "matched_point_count": 720,
-                    "eligible_point_count": 1000,
-                    "accepted_correspondence_count": 720,
-                    "support_ratio": 0.72,
-                    "unmatched_fraction": 0.28,
-                },
+                parameters=parameters,
             )
         ],
         summaries=[
