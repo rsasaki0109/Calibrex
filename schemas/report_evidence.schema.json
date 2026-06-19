@@ -1,0 +1,459 @@
+{
+  "$defs": {
+    "EvidenceCaseItem": {
+      "additionalProperties": false,
+      "description": "Machine-readable evidence case for one negative-control probe.",
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount"
+        },
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "convention": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Convention"
+        },
+        "delta_values": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Delta Values",
+          "type": "object"
+        },
+        "dof": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dof"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "metric_values": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Metric Values",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "family",
+        "case_id",
+        "check",
+        "status"
+      ],
+      "title": "EvidenceCaseItem",
+      "type": "object"
+    },
+    "EvidenceMaterializationInfo": {
+      "additionalProperties": false,
+      "description": "How an evidence artifact was materialized for this report.",
+      "properties": {
+        "computed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed At"
+        },
+        "data_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Verified"
+        },
+        "metrics_origin": {
+          "default": "unknown",
+          "enum": [
+            "recomputed",
+            "cached",
+            "unknown"
+          ],
+          "title": "Metrics Origin",
+          "type": "string"
+        },
+        "report_generated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Generated At"
+        }
+      },
+      "title": "EvidenceMaterializationInfo",
+      "type": "object"
+    },
+    "EvidenceProtocolItem": {
+      "additionalProperties": false,
+      "description": "Declared protocol metadata for one evidence family.",
+      "properties": {
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Transform"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "independent_holdout": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent Holdout"
+        },
+        "known_bad_case_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Case Count"
+        },
+        "known_bad_perturbation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Perturbation"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "metric_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metric Ids",
+          "type": "array"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "protocol_id": {
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "split_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Split Policy"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "transform_convention": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transform Convention"
+        }
+      },
+      "required": [
+        "family",
+        "protocol_id"
+      ],
+      "title": "EvidenceProtocolItem",
+      "type": "object"
+    },
+    "EvidenceSummaryItem": {
+      "additionalProperties": false,
+      "description": "Machine-readable evidence summary row for report consumers.",
+      "properties": {
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "interpretation": {
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "metric_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metric Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "check",
+        "status",
+        "evidence",
+        "interpretation"
+      ],
+      "title": "EvidenceSummaryItem",
+      "type": "object"
+    },
+    "ReportRunInfo": {
+      "additionalProperties": false,
+      "description": "Minimal run metadata repeated in report sidecars.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "domain",
+        "calibrex_version",
+        "created_at"
+      ],
+      "title": "ReportRunInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema for `evidence.json` report sidecars.",
+  "properties": {
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/EvidenceCaseItem"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "materialization": {
+      "$ref": "#/$defs/EvidenceMaterializationInfo"
+    },
+    "protocols": {
+      "items": {
+        "$ref": "#/$defs/EvidenceProtocolItem"
+      },
+      "title": "Protocols",
+      "type": "array"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "calibrex.report.evidence/v0.1",
+      "default": "calibrex.report.evidence/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summaries": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSummaryItem"
+      },
+      "title": "Summaries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run"
+  ],
+  "title": "ReportEvidenceArtifact",
+  "type": "object"
+}

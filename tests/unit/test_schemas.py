@@ -6,6 +6,7 @@ import yaml
 
 from calibrex.core.result import load_result
 from calibrex.evaluation.compare import compare_results
+from calibrex.visualization.report import write_report_artifacts
 
 
 def test_config_schema_validates_minimal_example() -> None:
@@ -63,6 +64,16 @@ def test_comparison_schema_validates_generated_comparison() -> None:
     result = load_result("examples/precomputed/result.yaml")
     comparison = compare_results(result, result).model_dump(mode="json")
     jsonschema.validate(comparison, schema)
+
+
+def test_report_evidence_schema_validates_generated_sidecar(tmp_path: Path) -> None:
+    schema = json.loads(Path("schemas/report_evidence.schema.json").read_text(encoding="utf-8"))
+    result = load_result(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
+    )
+    write_report_artifacts(result, tmp_path)
+    evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
+    jsonschema.validate(evidence, schema)
 
 
 def test_dataset_manifest_schema_validates_synthetic_example() -> None:
