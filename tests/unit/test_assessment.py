@@ -1,5 +1,6 @@
 from calibrex.core.assessment import assess_report_evidence
 from calibrex.core.report_artifacts import (
+    EvidenceInputFileItem,
     EvidenceMaterializationInfo,
     ReportEvidenceArtifact,
     ReportRunInfo,
@@ -7,12 +8,13 @@ from calibrex.core.report_artifacts import (
 
 
 def test_raw_recomputation_requires_verified_raw_inputs() -> None:
-    assert _raw_recomputation_status(data_verified=True) == "pass"
-    assert _raw_recomputation_status(data_verified=False) == "inconclusive"
-    assert _raw_recomputation_status(data_verified=None) == "inconclusive"
+    assert _raw_recomputation_status(data_verified=True, input_files=True) == "pass"
+    assert _raw_recomputation_status(data_verified=True, input_files=False) == "inconclusive"
+    assert _raw_recomputation_status(data_verified=False, input_files=True) == "inconclusive"
+    assert _raw_recomputation_status(data_verified=None, input_files=True) == "inconclusive"
 
 
-def _raw_recomputation_status(*, data_verified: bool | None) -> str:
+def _raw_recomputation_status(*, data_verified: bool | None, input_files: bool) -> str:
     evidence = ReportEvidenceArtifact(
         run=ReportRunInfo(
             id="assessment-unit",
@@ -25,6 +27,15 @@ def _raw_recomputation_status(*, data_verified: bool | None) -> str:
             metrics_origin="recomputed",
             data_verified=data_verified,
         ),
+        input_files=[
+            EvidenceInputFileItem(
+                path="raw.pcd",
+                sha256="0" * 64,
+                size_bytes=128,
+            )
+        ]
+        if input_files
+        else [],
     )
     assessment = assess_report_evidence(evidence)
     for rule in assessment.rules:

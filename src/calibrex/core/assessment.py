@@ -163,19 +163,31 @@ def assess_report_evidence(
 def _materialization_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
     origin = evidence.materialization.metrics_origin
     data_verified = evidence.materialization.data_verified
-    if origin == "recomputed" and data_verified is True:
+    input_file_count = len(evidence.input_files)
+    input_digest_count = sum(
+        1
+        for input_file in evidence.input_files
+        if input_file.sha256 and input_file.size_bytes is not None
+    )
+    observed: dict[str, AssessmentScalar] = {
+        "metrics_origin": origin,
+        "data_verified": data_verified,
+        "input_file_count": input_file_count,
+        "input_digest_count": input_digest_count,
+    }
+    if origin == "recomputed" and data_verified is True and input_digest_count > 0:
         return AssessmentRuleResult(
             rule_id="raw_recomputation",
             status="pass",
             reason="evidence was materialized from recomputed metrics with verified raw inputs",
-            observed={"metrics_origin": origin, "data_verified": data_verified},
+            observed=observed,
         )
     return AssessmentRuleResult(
         rule_id="raw_recomputation",
         status="inconclusive",
         reason="raw observations were not verified as recomputed for this evidence",
-        observed={"metrics_origin": origin, "data_verified": data_verified},
-        evidence_refs=["materialization"],
+        observed=observed,
+        evidence_refs=["materialization", "input_files"],
     )
 
 
