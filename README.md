@@ -21,7 +21,7 @@ calibrex visualize outputs/result.yaml --export-html
   <br>
   <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 16,884 holdout plane matches, P90 |point-to-plane| 0.806 m, 100% known-bad controls detected.</sub>
   <br>
-  <sub>Evidence protocol metadata and each known-bad roll/pitch/yaw/x/y/z probe are exported in <code>evidence.json</code>.</sub>
+  <sub>Evidence protocol metadata, known-bad case count, and representative roll/pitch/yaw/x/y/z probe details are exported in <code>evidence.json</code>.</sub>
 </p>
 
 <p align="center">

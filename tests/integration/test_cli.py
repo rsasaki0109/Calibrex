@@ -1008,7 +1008,16 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert evidence["protocols"][0]["independent_holdout"] is False
     assert evidence["protocols"][0]["parameters"]["matched_point_count"] == 16884
     assert evidence["summaries"] == evidence_summaries
-    assert evidence["cases"] == []
+    assert len(evidence["cases"]) == 6
+    assert {case["dof"] for case in evidence["cases"]} == {
+        "pitch_deg",
+        "roll_deg",
+        "x_m",
+        "y_m",
+        "yaw_deg",
+        "z_m",
+    }
+    assert all(case["check"] == "Known-Bad Controls" for case in evidence["cases"])
 
     assert main(["compare", str(result), str(result), "--json"]) == 0
     comparison = json.loads(capsys.readouterr().out)
