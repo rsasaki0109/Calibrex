@@ -1,12 +1,38 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import jsonschema
 import yaml
 
-from calibrex.core.result import load_result
-from calibrex.evaluation.compare import compare_results
+from calibrex.core.config import config_json_schema
+from calibrex.core.report_artifacts import report_artifact_json_schema
+from calibrex.core.result import load_result, result_json_schema
+from calibrex.data.manifest import manifest_json_schema
+from calibrex.evaluation.compare import compare_results, comparison_json_schema
 from calibrex.visualization.report import write_report_artifacts
+
+
+def test_static_schema_files_match_generated_schemas() -> None:
+    generators: dict[str, Callable[[], dict[str, Any]]] = {
+        "config.schema.json": config_json_schema,
+        "result.schema.json": result_json_schema,
+        "comparison.schema.json": comparison_json_schema,
+        "dataset_manifest.schema.json": manifest_json_schema,
+        "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),
+        "report_metrics.schema.json": lambda: report_artifact_json_schema("report-metrics"),
+        "report_observability.schema.json": lambda: report_artifact_json_schema(
+            "report-observability"
+        ),
+        "report_degeneracy.schema.json": lambda: report_artifact_json_schema(
+            "report-degeneracy"
+        ),
+        "report_evidence.schema.json": lambda: report_artifact_json_schema("report-evidence"),
+    }
+    for filename, generate_schema in generators.items():
+        static_schema = json.loads((Path("schemas") / filename).read_text(encoding="utf-8"))
+        assert static_schema == generate_schema()
 
 
 def test_config_schema_validates_minimal_example() -> None:
