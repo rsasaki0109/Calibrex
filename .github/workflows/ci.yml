@@ -21,6 +21,8 @@ jobs:
         run: |
           calibrex schema all --output-dir /tmp/calibrex-schemas
           test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
+      - name: Build package
+        run: python -m build
       - name: Test
         run: pytest
       - name: Ruff
