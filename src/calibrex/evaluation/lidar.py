@@ -15,7 +15,12 @@ from calibrex.data.kitti import (
     summarize_lidar_world_map_consistency,
     summarize_velodyne_points,
 )
-from calibrex.data.livox import LivoxPCDDatasetStats, summarize_livox_pcd
+from calibrex.data.livox import (
+    LivoxPairPointToPlaneStats,
+    LivoxPCDDatasetStats,
+    summarize_livox_pair_point_to_plane,
+    summarize_livox_pcd,
+)
 from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneEvaluation
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
@@ -35,6 +40,7 @@ class LivoxPairEvidenceEvaluation:
 
     metrics: dict[str, MetricResult]
     cases: list[EvidenceCaseItem]
+    point_to_plane: LivoxPairPointToPlaneStats
 
 
 def lidar_metrics_from_inspection(
@@ -215,6 +221,70 @@ def _livox_pcd_metrics(diagnostics: Mapping[str, object]) -> dict[str, MetricRes
     return metrics
 
 
+def _livox_pair_point_to_plane_metrics(
+    stats: LivoxPairPointToPlaneStats,
+) -> dict[str, MetricResult]:
+    support_grade: Grade = "pass" if stats.matched_point_count > 0 else "warn"
+    reason_suffix = (
+        "single source/target PCD pair; limited holdout geometry evidence, "
+        "not independent temporal validation"
+    )
+    return {
+        "lidar_pair_holdout_point_to_plane_map_voxel_count": MetricResult(
+            value=float(stats.map_voxel_count),
+            unit="voxels",
+            grade=support_grade,
+            reason=(
+                f"source-frame voxel planes built for Livox pair point-to-plane; "
+                f"{reason_suffix}"
+            ),
+        ),
+        "lidar_pair_holdout_point_to_plane_matched_point_count": MetricResult(
+            value=float(stats.matched_point_count),
+            unit="points",
+            grade=support_grade,
+            reason=(
+                "transformed target points matched to source voxel planes; "
+                f"{reason_suffix}"
+            ),
+        ),
+        "lidar_pair_holdout_point_to_plane_unmatched_fraction": MetricResult(
+            value=stats.unmatched_fraction,
+            grade=support_grade,
+            reason=(
+                "fraction of transformed target points without a source voxel-plane "
+                f"correspondence; {reason_suffix}"
+            ),
+        ),
+        "lidar_pair_holdout_point_to_plane_median_abs_m": MetricResult(
+            value=stats.median_abs_m,
+            unit="m",
+            grade=support_grade,
+            reason=f"median absolute target-to-source plane residual; {reason_suffix}",
+        ),
+        "lidar_pair_holdout_point_to_plane_p90_abs_m": MetricResult(
+            value=stats.p90_abs_m,
+            unit="m",
+            grade=support_grade,
+            reason=f"P90 absolute target-to-source plane residual; {reason_suffix}",
+        ),
+        "lidar_pair_holdout_point_to_plane_rmse_m": MetricResult(
+            value=stats.rmse_m,
+            unit="m",
+            grade=support_grade,
+            reason=f"RMSE target-to-source plane residual; {reason_suffix}",
+        ),
+        "lidar_pair_holdout_point_to_plane_inlier_fraction": MetricResult(
+            value=stats.inlier_fraction,
+            grade=support_grade,
+            reason=(
+                f"fraction of matched residuals <= {stats.inlier_threshold_m:g} m; "
+                f"{reason_suffix}"
+            ),
+        ),
+    }
+
+
 def livox_pair_metrics_from_dataset(
     dataset_path: str,
     target_transform: SE3,
@@ -237,15 +307,25 @@ def livox_pair_evidence_from_dataset(
     """Evaluate Livox pair evidence and retain per-probe details."""
 
     baseline = summarize_livox_pcd(dataset_path, target_transform=target_transform)
+    point_to_plane = summarize_livox_pair_point_to_plane(
+        dataset_path,
+        target_transform=target_transform,
+    )
     metrics = _livox_pcd_metrics(baseline.as_dict())
+    metrics.update(_livox_pair_point_to_plane_metrics(point_to_plane))
     known_bad_metrics, cases = _livox_pair_known_bad_evidence(
         dataset_path=dataset_path,
         target_transform=target_transform,
         baseline=baseline,
+        baseline_point_to_plane=point_to_plane,
         config=config,
     )
     metrics.update(known_bad_metrics)
-    return LivoxPairEvidenceEvaluation(metrics=metrics, cases=cases)
+    return LivoxPairEvidenceEvaluation(
+        metrics=metrics,
+        cases=cases,
+        point_to_plane=point_to_plane,
+    )
 
 
 def _livox_pair_known_bad_evidence(
@@ -253,11 +333,19 @@ def _livox_pair_known_bad_evidence(
     dataset_path: str,
     target_transform: SE3,
     baseline: LivoxPCDDatasetStats,
+    baseline_point_to_plane: LivoxPairPointToPlaneStats,
     config: CalibrationConfig,
 ) -> tuple[dict[str, MetricResult], list[EvidenceCaseItem]]:
     baseline_recall = baseline.pair_source_voxel_recall_in_target
     baseline_rmse = baseline.pair_shared_voxel_centroid_rmse_m
-    if baseline_recall is None and baseline_rmse is None:
+    baseline_p2p_p90 = baseline_point_to_plane.p90_abs_m
+    baseline_p2p_rmse = baseline_point_to_plane.rmse_m
+    if (
+        baseline_recall is None
+        and baseline_rmse is None
+        and baseline_p2p_p90 is None
+        and baseline_p2p_rmse is None
+    ):
         return (
             _unavailable_livox_pair_known_bad_metrics(
                 "baseline Livox pair evidence is unavailable"
@@ -267,12 +355,18 @@ def _livox_pair_known_bad_evidence(
 
     recall_deltas: list[float] = []
     rmse_deltas: list[float] = []
+    p2p_p90_deltas: list[float] = []
+    p2p_rmse_deltas: list[float] = []
     cases: list[EvidenceCaseItem] = []
     measurable_cases = 0
     worsened_cases = 0
     for dof, amount, unit, perturbation in _perturbation_cases(config):
         perturbed_transform = perturbation.compose(target_transform)
         perturbed = summarize_livox_pcd(dataset_path, target_transform=perturbed_transform)
+        perturbed_point_to_plane = summarize_livox_pair_point_to_plane(
+            dataset_path,
+            target_transform=perturbed_transform,
+        )
         recall_delta = _recall_delta(
             baseline_recall,
             perturbed.pair_source_voxel_recall_in_target,
@@ -281,18 +375,32 @@ def _livox_pair_known_bad_evidence(
             baseline_rmse,
             perturbed.pair_shared_voxel_centroid_rmse_m,
         )
+        p2p_p90_delta = _rmse_delta(
+            baseline_p2p_p90,
+            perturbed_point_to_plane.p90_abs_m,
+        )
+        p2p_rmse_delta = _rmse_delta(
+            baseline_p2p_rmse,
+            perturbed_point_to_plane.rmse_m,
+        )
         if recall_delta is not None:
             recall_deltas.append(recall_delta)
         if rmse_delta is not None:
             rmse_deltas.append(rmse_delta)
-        if recall_delta is not None or rmse_delta is not None:
+        if p2p_p90_delta is not None:
+            p2p_p90_deltas.append(p2p_p90_delta)
+        if p2p_rmse_delta is not None:
+            p2p_rmse_deltas.append(p2p_rmse_delta)
+        if any(
+            value is not None
+            for value in (recall_delta, rmse_delta, p2p_p90_delta, p2p_rmse_delta)
+        ):
             measurable_cases += 1
-            worsened = (recall_delta is not None and recall_delta > 1.0e-9) or (
-                rmse_delta is not None and rmse_delta > 1.0e-9
+            worsened = any(
+                value is not None and value > 1.0e-9
+                for value in (recall_delta, rmse_delta, p2p_p90_delta, p2p_rmse_delta)
             )
-            if (recall_delta is not None and recall_delta > 1.0e-9) or (
-                rmse_delta is not None and rmse_delta > 1.0e-9
-            ):
+            if worsened:
                 worsened_cases += 1
             cases.append(
                 _livox_pair_known_bad_case(
@@ -300,8 +408,11 @@ def _livox_pair_known_bad_evidence(
                     amount=amount,
                     unit=unit,
                     perturbed=perturbed,
+                    perturbed_point_to_plane=perturbed_point_to_plane,
                     recall_delta=recall_delta,
                     rmse_delta=rmse_delta,
+                    p2p_p90_delta=p2p_p90_delta,
+                    p2p_rmse_delta=p2p_rmse_delta,
                     worsened=worsened,
                 )
             )
@@ -324,7 +435,7 @@ def _livox_pair_known_bad_evidence(
                 grade="pass",
                 reason=(
                     "left-multiplied source-frame roll/pitch/yaw/x/y/z perturbation "
-                    "cases evaluated against Livox pair voxel evidence"
+                    "cases evaluated against Livox pair voxel and holdout plane evidence"
                 ),
             ),
             "lidar_pair_known_bad_detectable_fraction": MetricResult(
@@ -332,7 +443,8 @@ def _livox_pair_known_bad_evidence(
                 grade=grade,
                 reason=(
                     "fraction of known-bad Livox pair perturbations that reduced "
-                    "source voxel recall or increased shared-voxel centroid RMSE"
+                    "source voxel recall, increased shared-voxel centroid RMSE, or "
+                    "increased holdout point-to-plane residual"
                 ),
             ),
             "lidar_pair_known_bad_source_recall_delta_mean": MetricResult(
@@ -358,6 +470,21 @@ def _livox_pair_known_bad_evidence(
                 grade=grade,
                 reason="largest shared-voxel centroid RMSE increase among known-bad controls",
             ),
+            "lidar_pair_known_bad_point_to_plane_p90_delta_max_m": MetricResult(
+                value=max(p2p_p90_deltas) if p2p_p90_deltas else None,
+                unit="m",
+                grade=grade,
+                reason="largest holdout point-to-plane P90 increase among known-bad controls",
+            ),
+            "lidar_pair_known_bad_point_to_plane_rmse_delta_mean_m": MetricResult(
+                value=_mean_or_none(p2p_rmse_deltas),
+                unit="m",
+                grade=grade,
+                reason=(
+                    "mean perturbed-minus-baseline holdout point-to-plane RMSE; "
+                    "positive means the candidate ranks better than the known-bad controls"
+                ),
+            ),
         },
         cases,
     )
@@ -369,8 +496,11 @@ def _livox_pair_known_bad_case(
     amount: float,
     unit: str,
     perturbed: LivoxPCDDatasetStats,
+    perturbed_point_to_plane: LivoxPairPointToPlaneStats,
     recall_delta: float | None,
     rmse_delta: float | None,
+    p2p_p90_delta: float | None,
+    p2p_rmse_delta: float | None,
     worsened: bool,
 ) -> EvidenceCaseItem:
     return EvidenceCaseItem(
@@ -392,10 +522,21 @@ def _livox_pair_known_bad_case(
             "lidar_pair_shared_voxel_centroid_rmse_m": _float_or_none(
                 perturbed.pair_shared_voxel_centroid_rmse_m
             ),
+            "lidar_pair_holdout_point_to_plane_p90_abs_m": _float_or_none(
+                perturbed_point_to_plane.p90_abs_m
+            ),
+            "lidar_pair_holdout_point_to_plane_rmse_m": _float_or_none(
+                perturbed_point_to_plane.rmse_m
+            ),
+            "lidar_pair_holdout_point_to_plane_unmatched_fraction": _float_or_none(
+                perturbed_point_to_plane.unmatched_fraction
+            ),
         },
         delta_values={
             "source_recall_delta": recall_delta,
             "centroid_rmse_delta_m": rmse_delta,
+            "point_to_plane_p90_delta_m": p2p_p90_delta,
+            "point_to_plane_rmse_delta_m": p2p_rmse_delta,
         },
     )
 
@@ -424,6 +565,18 @@ def _unavailable_livox_pair_known_bad_metrics(reason: str) -> dict[str, MetricRe
             reason=reason,
         ),
         "lidar_pair_known_bad_centroid_rmse_delta_max_m": MetricResult(
+            value=None,
+            unit="m",
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_pair_known_bad_point_to_plane_p90_delta_max_m": MetricResult(
+            value=None,
+            unit="m",
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_pair_known_bad_point_to_plane_rmse_delta_mean_m": MetricResult(
             value=None,
             unit="m",
             grade="warn",

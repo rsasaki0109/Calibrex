@@ -958,8 +958,9 @@ def test_livox_precomputed_result_reports_and_visualizes(
     evidence_summaries = summary["evidence_summaries"]
     assert evidence_summaries[0]["family"] == "lidar_pair"
     assert evidence_summaries[0]["check"] == "Candidate Support"
-    assert evidence_summaries[1]["check"] == "Known-Bad Controls"
-    assert evidence_summaries[2]["interpretation"].startswith("Supported by this evidence protocol")
+    assert evidence_summaries[1]["check"] == "Holdout Geometry"
+    assert evidence_summaries[2]["check"] == "Known-Bad Controls"
+    assert evidence_summaries[3]["interpretation"].startswith("Supported by this evidence protocol")
     evidence = json.loads((reported_dir / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
@@ -1009,7 +1010,13 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
-    assert len(evidence["summaries"]) == 3
+    assert len(evidence["summaries"]) == 4
+    assert {summary["check"] for summary in evidence["summaries"]} == {
+        "Candidate Support",
+        "Holdout Geometry",
+        "Known-Bad Controls",
+        "Decision Boundary",
+    }
     assert len(evidence["cases"]) == 24
     assert {case["dof"] for case in evidence["cases"]} == {
         "pitch_deg",
@@ -1021,6 +1028,12 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     }
     metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
     assert "lidar_pair_known_bad_detectable_fraction" in metrics["metrics"]
+    assert "lidar_pair_holdout_point_to_plane_p90_abs_m" in metrics["metrics"]
+    assert "lidar_pair_known_bad_point_to_plane_p90_delta_max_m" in metrics["metrics"]
+    assert any(
+        "lidar_pair_holdout_point_to_plane_p90_abs_m" in case["metric_values"]
+        for case in evidence["cases"]
+    )
 
 
 def test_compile_command(tmp_path: Path) -> None:

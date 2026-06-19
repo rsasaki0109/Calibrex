@@ -42,8 +42,13 @@ _LIDAR_PAIR_SUMMARY_METRICS = (
     "lidar_pair_source_voxel_recall_in_target",
     "lidar_pair_target_voxel_recall_in_source",
     "lidar_pair_shared_voxel_centroid_rmse_m",
+    "lidar_pair_holdout_point_to_plane_median_abs_m",
+    "lidar_pair_holdout_point_to_plane_p90_abs_m",
+    "lidar_pair_holdout_point_to_plane_rmse_m",
+    "lidar_pair_holdout_point_to_plane_unmatched_fraction",
     "lidar_pair_known_bad_detectable_fraction",
     "lidar_pair_known_bad_centroid_rmse_delta_max_m",
+    "lidar_pair_known_bad_point_to_plane_p90_delta_max_m",
 )
 
 _WORLD_MAP_DOF_METRICS = (
@@ -682,9 +687,9 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     return f"""
   <h2>LiDAR Pair Evidence</h2>
   <p>
-    Coarse fixed-LiDAR overlap metrics for comparing solid-state or fixed-rig
-    LiDAR extrinsic candidates. These are evidence metrics, not absolute ground
-    truth.
+    Fixed-LiDAR overlap and holdout geometry metrics for comparing solid-state
+    or fixed-rig LiDAR extrinsic candidates. These are evidence metrics, not
+    absolute ground truth.
   </p>
   <h3>Evidence Summary</h3>
   <table>

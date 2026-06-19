@@ -372,6 +372,46 @@ def _register_builtin_metrics() -> None:
             "lidar",
         ),
         MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_map_voxel_count",
+            "Source-frame voxel-plane count for fixed LiDAR pair holdout evidence",
+            "voxels",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_matched_point_count",
+            "Transformed target points matched to source voxel planes",
+            "points",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_unmatched_fraction",
+            "Fraction of target points without a source voxel-plane correspondence",
+            family="lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_median_abs_m",
+            "Median absolute holdout point-to-plane residual for a fixed LiDAR pair",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_p90_abs_m",
+            "P90 absolute holdout point-to-plane residual for a fixed LiDAR pair",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_rmse_m",
+            "Holdout point-to-plane RMSE for a fixed LiDAR pair",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_holdout_point_to_plane_inlier_fraction",
+            "Fraction of matched fixed LiDAR pair residuals below the inlier threshold",
+            family="lidar",
+        ),
+        MetricDefinition(
             "lidar_pair_known_bad_case_count",
             "Number of known-bad LiDAR pair perturbation cases scored",
             "cases",
@@ -396,6 +436,18 @@ def _register_builtin_metrics() -> None:
         MetricDefinition(
             "lidar_pair_known_bad_centroid_rmse_delta_max_m",
             "Largest shared-voxel centroid RMSE increase under known-bad LiDAR pair perturbations",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_point_to_plane_p90_delta_max_m",
+            "Largest holdout point-to-plane P90 increase under known-bad LiDAR pair perturbations",
+            "m",
+            "lidar",
+        ),
+        MetricDefinition(
+            "lidar_pair_known_bad_point_to_plane_rmse_delta_mean_m",
+            "Mean holdout point-to-plane RMSE increase under known-bad LiDAR pair perturbations",
             "m",
             "lidar",
         ),

@@ -125,6 +125,11 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
                 unit="m",
                 grade="pass",
             ),
+            "lidar_pair_holdout_point_to_plane_p90_abs_m": MetricResult(
+                value=0.22,
+                unit="m",
+                grade="pass",
+            ),
             "lidar_pair_known_bad_detectable_fraction": MetricResult(
                 value=0.75,
                 grade="pass",
@@ -137,13 +142,15 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     assert "LiDAR Pair Evidence" in html
     assert "Evidence Summary" in html
     assert "Candidate Support" in html
+    assert "Holdout Geometry" in html
     assert "Known-Bad Controls" in html
     assert "Decision Boundary" in html
     assert "Supported by this evidence protocol" in html
     assert "lidar_pair_source_voxel_recall_in_target" in html
     assert "lidar_pair_shared_voxel_centroid_rmse_m" in html
+    assert "lidar_pair_holdout_point_to_plane_p90_abs_m" in html
     assert "lidar_pair_known_bad_detectable_fraction" in html
-    assert "not absolute ground" in html
+    assert "absolute ground truth" in html
 
 
 def test_report_marks_cached_evidence_artifacts() -> None:

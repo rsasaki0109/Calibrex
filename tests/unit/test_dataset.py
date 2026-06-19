@@ -17,7 +17,12 @@ from calibrex.data.kitti import (
     read_calibration_file,
     read_kitti_initial_transforms,
 )
-from calibrex.data.livox import LivoxPCDDataset, read_livox_binary_pcd, summarize_livox_pcd
+from calibrex.data.livox import (
+    LivoxPCDDataset,
+    read_livox_binary_pcd,
+    summarize_livox_pair_point_to_plane,
+    summarize_livox_pcd,
+)
 from calibrex.data.manifest import load_manifest
 from calibrex.data.nuscenes import NuScenesDataset, read_nuscenes_reference_extrinsics
 from calibrex.data.tum_rgbd import (
@@ -211,6 +216,49 @@ def test_livox_pcd_reader_summarizes_solid_state_pair(tmp_path: Path) -> None:
     assert diagnostics["pair_source_voxel_recall_in_target"] == 1.0
 
 
+def test_livox_pair_point_to_plane_uses_source_normals(tmp_path: Path) -> None:
+    base = tmp_path / "base_horizon_100432.pcd"
+    target = tmp_path / "target_horizon_100538.pcd"
+    normal = (0.0, 0.0, 1.0)
+    _write_livox_binary_pcd_with_normals(
+        base,
+        [
+            (0.1, 0.1, 0.0, 10.0, *normal),
+            (0.4, 0.1, 0.0, 20.0, *normal),
+            (0.1, 0.4, 0.0, 30.0, *normal),
+        ],
+    )
+    _write_livox_binary_pcd_with_normals(
+        target,
+        [
+            (0.1, 0.1, 0.1, 11.0, *normal),
+            (0.4, 0.1, 0.1, 21.0, *normal),
+            (0.1, 0.4, 0.1, 31.0, *normal),
+        ],
+    )
+
+    stats = summarize_livox_pair_point_to_plane(
+        tmp_path,
+        voxel_size_m=1.0,
+        correspondence_gate_m=1.0,
+        inlier_threshold_m=0.2,
+    )
+
+    assert stats.status == "scored"
+    assert stats.split_policy == "single_pair_source_map_target_query"
+    assert stats.train_frame_ids == ("base_horizon_100432",)
+    assert stats.holdout_frame_ids == ("target_horizon_100538",)
+    assert not stats.independent_holdout
+    assert stats.map_voxel_count == 1
+    assert stats.matched_point_count == 3
+    assert stats.unmatched_point_count == 0
+    assert stats.unmatched_fraction == 0.0
+    assert round(stats.median_abs_m or 0.0, 6) == 0.1
+    assert round(stats.p90_abs_m or 0.0, 6) == 0.1
+    assert round(stats.rmse_m or 0.0, 6) == 0.1
+    assert stats.inlier_fraction == 1.0
+
+
 def test_nuscenes_reader_inspects_sensor_metadata(tmp_path: Path) -> None:
     version = tmp_path / "v1.0-mini"
     version.mkdir()
@@ -394,4 +442,31 @@ def _write_livox_binary_pcd(path: Path, points: list[tuple[float, float, float, 
         ]
     ).encode("ascii")
     body = b"".join(struct.pack("<ffff", *point) for point in points)
+    path.write_bytes(header + body)
+
+
+def _write_livox_binary_pcd_with_normals(
+    path: Path,
+    points: list[tuple[float, float, float, float, float, float, float]],
+) -> None:
+    header = "\n".join(
+        [
+            "# .PCD v0.7 - Point Cloud Data file format",
+            "VERSION 0.7",
+            "FIELDS x y z intensity normal_x normal_y normal_z curvature",
+            "SIZE 4 4 4 4 4 4 4 4",
+            "TYPE F F F F F F F F",
+            "COUNT 1 1 1 1 1 1 1 1",
+            f"WIDTH {len(points)}",
+            "HEIGHT 1",
+            "VIEWPOINT 0 0 0 1 0 0 0",
+            f"POINTS {len(points)}",
+            "DATA binary",
+            "",
+        ]
+    ).encode("ascii")
+    body = b"".join(
+        struct.pack("<ffffffff", x, y, z, intensity, nx, ny, nz, 0.0)
+        for x, y, z, intensity, nx, ny, nz in points
+    )
     path.write_bytes(header + body)

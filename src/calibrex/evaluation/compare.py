@@ -310,12 +310,14 @@ def _metric_preference(name: str) -> MetricPreference:
         "p95",
         "median_holdout",
         "point_to_plane",
+        "unmatched",
     )
     higher_tokens = (
         "coverage",
         "count",
         "rank",
         "detectable_fraction",
+        "inlier_fraction",
         "sharpness",
         "overlay_score",
         "alignment_score",

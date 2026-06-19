@@ -8,10 +8,18 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, Vector3
 from calibrex.data.base import StreamSummary, TimestampedRecord
 
 LivoxPoint = tuple[float, float, float, float]
+
+
+@dataclass(frozen=True)
+class LivoxPointRecord:
+    """Livox point with optional per-point normal fields from the PCD record."""
+
+    point: LivoxPoint
+    normal_xyz: Vector3 | None = None
 
 
 @dataclass(frozen=True)
@@ -160,6 +168,51 @@ class _VoxelCentroid:
         return (self.x_sum / self.count, self.y_sum / self.count, self.z_sum / self.count)
 
 
+@dataclass
+class _VoxelPlane:
+    count: int = 0
+    x_sum: float = 0.0
+    y_sum: float = 0.0
+    z_sum: float = 0.0
+    normal_x_sum: float = 0.0
+    normal_y_sum: float = 0.0
+    normal_z_sum: float = 0.0
+    normal_count: int = 0
+    fallback_points: list[Vector3] | None = None
+
+    def add(self, record: LivoxPointRecord) -> None:
+        x, y, z, _intensity = record.point
+        self.count += 1
+        self.x_sum += x
+        self.y_sum += y
+        self.z_sum += z
+        if self.fallback_points is None:
+            self.fallback_points = []
+        if len(self.fallback_points) < 12:
+            self.fallback_points.append((x, y, z))
+        if record.normal_xyz is None:
+            return
+        nx, ny, nz = record.normal_xyz
+        self.normal_x_sum += nx
+        self.normal_y_sum += ny
+        self.normal_z_sum += nz
+        self.normal_count += 1
+
+    @property
+    def centroid(self) -> Vector3:
+        if self.count == 0:
+            return (0.0, 0.0, 0.0)
+        return (self.x_sum / self.count, self.y_sum / self.count, self.z_sum / self.count)
+
+    @property
+    def normal(self) -> Vector3 | None:
+        if self.normal_count:
+            return _normalized3(
+                (self.normal_x_sum, self.normal_y_sum, self.normal_z_sum)
+            )
+        return _fallback_plane_normal(self.fallback_points or [])
+
+
 @dataclass(frozen=True)
 class _VoxelPairSummary:
     voxel_size_m: float
@@ -171,6 +224,54 @@ class _VoxelPairSummary:
     source_voxel_recall_in_target: float
     target_voxel_recall_in_source: float
     shared_voxel_centroid_rmse_m: float | None
+
+
+@dataclass(frozen=True)
+class LivoxPairPointToPlaneStats:
+    """Single-pair holdout point-to-plane evidence for a Livox PCD pair."""
+
+    status: str
+    split_policy: str
+    train_frame_ids: tuple[str, ...]
+    holdout_frame_ids: tuple[str, ...]
+    independent_holdout: bool
+    map_voxel_count: int
+    matched_point_count: int
+    unmatched_point_count: int
+    unmatched_fraction: float | None
+    median_abs_m: float | None
+    p90_abs_m: float | None
+    rmse_m: float | None
+    inlier_fraction: float | None
+    voxel_size_m: float
+    correspondence_gate_m: float
+    inlier_threshold_m: float
+    plane_normal_source: str
+    reason: str | None = None
+
+    def as_dict(self) -> dict[str, object]:
+        """Return a JSON/YAML-friendly representation."""
+
+        return {
+            "status": self.status,
+            "split_policy": self.split_policy,
+            "train_frame_ids": list(self.train_frame_ids),
+            "holdout_frame_ids": list(self.holdout_frame_ids),
+            "independent_holdout": self.independent_holdout,
+            "map_voxel_count": self.map_voxel_count,
+            "matched_point_count": self.matched_point_count,
+            "unmatched_point_count": self.unmatched_point_count,
+            "unmatched_fraction": self.unmatched_fraction,
+            "median_abs_m": self.median_abs_m,
+            "p90_abs_m": self.p90_abs_m,
+            "rmse_m": self.rmse_m,
+            "inlier_fraction": self.inlier_fraction,
+            "voxel_size_m": self.voxel_size_m,
+            "correspondence_gate_m": self.correspondence_gate_m,
+            "inlier_threshold_m": self.inlier_threshold_m,
+            "plane_normal_source": self.plane_normal_source,
+            "reason": self.reason,
+        }
 
 
 class LivoxPCDDataset:
@@ -305,8 +406,117 @@ def summarize_livox_pcd(
     )
 
 
+def summarize_livox_pair_point_to_plane(
+    path: str | Path,
+    *,
+    target_transform: SE3 | None = None,
+    voxel_size_m: float = 1.0,
+    correspondence_gate_m: float = 1.5,
+    inlier_threshold_m: float = 0.25,
+) -> LivoxPairPointToPlaneStats:
+    """Score transformed target PCD points against source-frame voxel planes.
+
+    The public Livox Horizon-Horizon sample contains one source and one target
+    PCD frame. This is therefore a single-pair holdout geometry check rather
+    than an independent multi-window temporal validation.
+    """
+
+    files = find_livox_pcd_files(path)
+    if len(files) < 2:
+        return LivoxPairPointToPlaneStats(
+            status="insufficient_support",
+            split_policy="single_pair_source_map_target_query",
+            train_frame_ids=tuple(_frame_id(file_path) for file_path in files[:1]),
+            holdout_frame_ids=(),
+            independent_holdout=False,
+            map_voxel_count=0,
+            matched_point_count=0,
+            unmatched_point_count=0,
+            unmatched_fraction=None,
+            median_abs_m=None,
+            p90_abs_m=None,
+            rmse_m=None,
+            inlier_fraction=None,
+            voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+            inlier_threshold_m=inlier_threshold_m,
+            plane_normal_source="pcd_normal_fields_or_local_fallback",
+            reason="at least two Livox PCD files are required",
+        )
+
+    try:
+        source_records = read_livox_binary_pcd_records(files[0])
+        target_records = read_livox_binary_pcd_records(files[1])
+    except (ValueError, struct.error) as exc:
+        return LivoxPairPointToPlaneStats(
+            status="malformed",
+            split_policy="single_pair_source_map_target_query",
+            train_frame_ids=(_frame_id(files[0]),),
+            holdout_frame_ids=(_frame_id(files[1]),),
+            independent_holdout=False,
+            map_voxel_count=0,
+            matched_point_count=0,
+            unmatched_point_count=0,
+            unmatched_fraction=None,
+            median_abs_m=None,
+            p90_abs_m=None,
+            rmse_m=None,
+            inlier_fraction=None,
+            voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+            inlier_threshold_m=inlier_threshold_m,
+            plane_normal_source="pcd_normal_fields_or_local_fallback",
+            reason=str(exc),
+        )
+
+    plane_map = _voxel_plane_map(source_records, voxel_size_m)
+    query_points = [
+        _transformed_point(record.point, target_transform) for record in target_records
+    ]
+    residuals, unmatched_count = _point_to_plane_residuals(
+        query_points,
+        plane_map=plane_map,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+    )
+    query_count = len(query_points)
+    matched_count = len(residuals)
+    unmatched_fraction = unmatched_count / query_count if query_count else None
+    status = "scored" if residuals else "insufficient_support"
+    inlier_count = sum(1 for residual in residuals if residual <= inlier_threshold_m)
+    return LivoxPairPointToPlaneStats(
+        status=status,
+        split_policy="single_pair_source_map_target_query",
+        train_frame_ids=(_frame_id(files[0]),),
+        holdout_frame_ids=(_frame_id(files[1]),),
+        independent_holdout=False,
+        map_voxel_count=len(plane_map),
+        matched_point_count=matched_count,
+        unmatched_point_count=unmatched_count,
+        unmatched_fraction=unmatched_fraction,
+        median_abs_m=_percentile(residuals, 0.5),
+        p90_abs_m=_percentile(residuals, 0.9),
+        rmse_m=_rmse(residuals),
+        inlier_fraction=inlier_count / matched_count if matched_count else None,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+        inlier_threshold_m=inlier_threshold_m,
+        plane_normal_source="pcd_normal_fields_or_local_fallback",
+        reason=(
+            "single source/target PCD pair; use as limited holdout geometry evidence, "
+            "not independent temporal validation"
+        ),
+    )
+
+
 def read_livox_binary_pcd(path: str | Path) -> list[LivoxPoint]:
     """Read x/y/z/intensity from a binary float32 PCD file."""
+
+    return [record.point for record in read_livox_binary_pcd_records(path)]
+
+
+def read_livox_binary_pcd_records(path: str | Path) -> list[LivoxPointRecord]:
+    """Read x/y/z/intensity plus optional normal_x/y/z from a binary float32 PCD file."""
 
     pcd_path = Path(path)
     data = pcd_path.read_bytes()
@@ -320,20 +530,29 @@ def read_livox_binary_pcd(path: str | Path) -> list[LivoxPoint]:
         raise ValueError("PCD must store x/y/z/intensity as the first fields")
     if sizes[:4] != [4, 4, 4, 4] or types[:4] != ["F", "F", "F", "F"]:
         raise ValueError("PCD x/y/z/intensity fields must be float32")
+    point_offsets = _pcd_field_offsets(sizes, counts)
     point_step = sum(size * count for size, count in zip(sizes, counts, strict=True))
     available = (len(data) - header_end) // point_step
     point_count = min(point_count or available, available)
-    points: list[LivoxPoint] = []
+    normal_indexes = _normal_field_indexes(fields, sizes, types, counts)
+    records: list[LivoxPointRecord] = []
     for index in range(point_count):
+        base_offset = header_end + index * point_step
         x, y, z, intensity = struct.unpack_from(
             "<ffff",
             data,
-            header_end + index * point_step,
+            base_offset,
         )
         if not (math.isfinite(x) and math.isfinite(y) and math.isfinite(z)):
             continue
-        points.append((float(x), float(y), float(z), float(intensity)))
-    return points
+        normal = _read_point_normal(data, base_offset, point_offsets, normal_indexes)
+        records.append(
+            LivoxPointRecord(
+                point=(float(x), float(y), float(z), float(intensity)),
+                normal_xyz=normal,
+            )
+        )
+    return records
 
 
 def _parse_pcd_header(
@@ -366,6 +585,51 @@ def _parse_pcd_header(
     if not (len(fields) == len(sizes) == len(types) == len(counts)):
         raise ValueError("PCD header field metadata lengths do not match")
     return fields, sizes, types, counts, point_count
+
+
+def _pcd_field_offsets(sizes: list[int], counts: list[int]) -> list[int]:
+    offsets: list[int] = []
+    offset = 0
+    for size, count in zip(sizes, counts, strict=True):
+        offsets.append(offset)
+        offset += size * count
+    return offsets
+
+
+def _normal_field_indexes(
+    fields: list[str],
+    sizes: list[int],
+    types: list[str],
+    counts: list[int],
+) -> tuple[int, int, int] | None:
+    try:
+        indexes = (
+            fields.index("normal_x"),
+            fields.index("normal_y"),
+            fields.index("normal_z"),
+        )
+    except ValueError:
+        return None
+    for index in indexes:
+        if sizes[index] != 4 or types[index] != "F" or counts[index] != 1:
+            return None
+    return indexes
+
+
+def _read_point_normal(
+    data: bytes,
+    base_offset: int,
+    point_offsets: list[int],
+    normal_indexes: tuple[int, int, int] | None,
+) -> Vector3 | None:
+    if normal_indexes is None:
+        return None
+    nx = struct.unpack_from("<f", data, base_offset + point_offsets[normal_indexes[0]])[0]
+    ny = struct.unpack_from("<f", data, base_offset + point_offsets[normal_indexes[1]])[0]
+    nz = struct.unpack_from("<f", data, base_offset + point_offsets[normal_indexes[2]])[0]
+    if not (math.isfinite(nx) and math.isfinite(ny) and math.isfinite(nz)):
+        return None
+    return _normalized3((float(nx), float(ny), float(nz)))
 
 
 def _summarize_sample(path: Path, points: list[LivoxPoint]) -> LivoxPCDSampleStats:
@@ -429,6 +693,71 @@ def _voxel_centroids(
     return voxels
 
 
+def _voxel_plane_map(
+    records: list[LivoxPointRecord],
+    voxel_size_m: float,
+) -> dict[tuple[int, int, int], _VoxelPlane]:
+    planes: dict[tuple[int, int, int], _VoxelPlane] = {}
+    for record in records:
+        voxel = planes.setdefault(_voxel_key(record.point, voxel_size_m), _VoxelPlane())
+        voxel.add(record)
+    return {key: plane for key, plane in planes.items() if plane.normal is not None}
+
+
+def _point_to_plane_residuals(
+    query_points: list[Vector3],
+    *,
+    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> tuple[list[float], int]:
+    residuals: list[float] = []
+    unmatched_count = 0
+    for point in query_points:
+        plane = _nearest_plane(
+            point,
+            plane_map=plane_map,
+            voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        )
+        if plane is None or plane.normal is None:
+            unmatched_count += 1
+            continue
+        residuals.append(abs(_dot3(plane.normal, _sub3(point, plane.centroid))))
+    return residuals, unmatched_count
+
+
+def _nearest_plane(
+    point: Vector3,
+    *,
+    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> _VoxelPlane | None:
+    key = _voxel_key((point[0], point[1], point[2], 0.0), voxel_size_m)
+    best_plane: _VoxelPlane | None = None
+    best_distance = float("inf")
+    for neighbor_key in _neighbor_keys(key):
+        plane = plane_map.get(neighbor_key)
+        if plane is None:
+            continue
+        distance = _norm3(_sub3(point, plane.centroid))
+        if distance < best_distance:
+            best_distance = distance
+            best_plane = plane
+    if best_plane is None or best_distance > correspondence_gate_m:
+        return None
+    return best_plane
+
+
+def _neighbor_keys(key: tuple[int, int, int]) -> Iterable[tuple[int, int, int]]:
+    x, y, z = key
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                yield (x + dx, y + dy, z + dz)
+
+
 def _transform_points(points: list[LivoxPoint], transform: SE3) -> list[LivoxPoint]:
     transformed: list[LivoxPoint] = []
     for x, y, z, intensity in points:
@@ -437,9 +766,74 @@ def _transform_points(points: list[LivoxPoint], transform: SE3) -> list[LivoxPoi
     return transformed
 
 
+def _transformed_point(point: LivoxPoint, transform: SE3 | None) -> Vector3:
+    if transform is None:
+        return (point[0], point[1], point[2])
+    return transform.transform_point((point[0], point[1], point[2]))
+
+
 def _voxel_key(point: LivoxPoint, voxel_size_m: float) -> tuple[int, int, int]:
     return (
         math.floor(point[0] / voxel_size_m),
         math.floor(point[1] / voxel_size_m),
         math.floor(point[2] / voxel_size_m),
     )
+
+
+def _frame_id(path: Path) -> str:
+    return path.stem
+
+
+def _normalized3(vector: Vector3) -> Vector3 | None:
+    norm = _norm3(vector)
+    if norm <= 1.0e-12:
+        return None
+    return (vector[0] / norm, vector[1] / norm, vector[2] / norm)
+
+
+def _fallback_plane_normal(points: list[Vector3]) -> Vector3 | None:
+    if len(points) < 3:
+        return None
+    origin = points[0]
+    first = max(points[1:], key=lambda point: _norm3(_sub3(point, origin)))
+    second = max(
+        points[1:],
+        key=lambda point: _norm3(
+            _cross3(_sub3(first, origin), _sub3(point, origin))
+        ),
+    )
+    return _normalized3(_cross3(_sub3(first, origin), _sub3(second, origin)))
+
+
+def _sub3(left: Vector3, right: Vector3) -> Vector3:
+    return (left[0] - right[0], left[1] - right[1], left[2] - right[2])
+
+
+def _dot3(left: Vector3, right: Vector3) -> float:
+    return left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
+
+
+def _cross3(left: Vector3, right: Vector3) -> Vector3:
+    return (
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    )
+
+
+def _norm3(vector: Vector3) -> float:
+    return math.sqrt(_dot3(vector, vector))
+
+
+def _rmse(values: list[float]) -> float | None:
+    if not values:
+        return None
+    return math.sqrt(sum(value * value for value in values) / len(values))
+
+
+def _percentile(values: list[float], ratio: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round((len(ordered) - 1) * ratio)))
+    return ordered[index]

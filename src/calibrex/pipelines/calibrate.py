@@ -195,6 +195,7 @@ def _apply_livox_pair_candidate_evidence(
         "candidate_transform": transform_name,
         "target_transform_applied": True,
         "transform_convention": "T_source_target maps target PCD points into source PCD frame",
+        "holdout_geometry": evidence.point_to_plane.as_dict(),
         "known_bad_perturbation": "left-multiplied source-frame SE(3) controls",
         "known_bad_case_count": len(evidence.cases),
     }

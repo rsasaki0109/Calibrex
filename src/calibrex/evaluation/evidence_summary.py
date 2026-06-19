@@ -30,26 +30,39 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
     support_metric = result.metrics.get("lidar_pair_source_voxel_recall_in_target")
     shared_metric = result.metrics.get("lidar_pair_shared_voxel_count")
     rmse_metric = result.metrics.get("lidar_pair_shared_voxel_centroid_rmse_m")
+    p2p_median_metric = result.metrics.get("lidar_pair_holdout_point_to_plane_median_abs_m")
+    p2p_p90_metric = result.metrics.get("lidar_pair_holdout_point_to_plane_p90_abs_m")
+    p2p_unmatched_metric = result.metrics.get(
+        "lidar_pair_holdout_point_to_plane_unmatched_fraction"
+    )
     known_bad_metric = result.metrics.get("lidar_pair_known_bad_detectable_fraction")
     max_delta_metric = result.metrics.get("lidar_pair_known_bad_centroid_rmse_delta_max_m")
     if (
         support_metric is None
         and shared_metric is None
         and rmse_metric is None
+        and p2p_median_metric is None
+        and p2p_p90_metric is None
         and known_bad_metric is None
         and max_delta_metric is None
     ):
         return []
 
     support_grade: Grade = support_metric.grade if support_metric is not None else "warn"
+    p2p_available = p2p_median_metric is not None or p2p_p90_metric is not None
+    p2p_grade: Grade = p2p_p90_metric.grade if p2p_p90_metric is not None else "warn"
     known_bad_grade: Grade = known_bad_metric.grade if known_bad_metric is not None else "warn"
     decision_grade: Grade = (
-        "pass" if support_grade == "pass" and known_bad_grade == "pass" else "warn"
+        "pass"
+        if support_grade == "pass"
+        and (not p2p_available or p2p_grade == "pass")
+        and known_bad_grade == "pass"
+        else "warn"
     )
     known_bad_fraction = _fmt(known_bad_metric.value if known_bad_metric else None)
     known_bad_max_delta = _fmt(max_delta_metric.value if max_delta_metric else None)
 
-    return [
+    items = [
         EvidenceSummaryItem(
             family="lidar_pair",
             check="Candidate Support",
@@ -68,6 +81,34 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
                 "lidar_pair_shared_voxel_centroid_rmse_m",
             ],
         ),
+    ]
+    if p2p_available:
+        items.append(
+            EvidenceSummaryItem(
+                family="lidar_pair",
+                check="Holdout Geometry",
+                status=p2p_grade,
+                evidence=(
+                    "median |p2plane| "
+                    f"{_fmt(p2p_median_metric.value if p2p_median_metric else None)} m, "
+                    f"P90 {_fmt(p2p_p90_metric.value if p2p_p90_metric else None)} m, "
+                    "unmatched "
+                    f"{_fmt(p2p_unmatched_metric.value if p2p_unmatched_metric else None)}"
+                ),
+                interpretation=(
+                    "Transformed target points are consistent with source-frame voxel planes."
+                    if p2p_grade == "pass"
+                    else "Point-to-plane support is weak or limited for this pair."
+                ),
+                metric_ids=[
+                    "lidar_pair_holdout_point_to_plane_median_abs_m",
+                    "lidar_pair_holdout_point_to_plane_p90_abs_m",
+                    "lidar_pair_holdout_point_to_plane_unmatched_fraction",
+                ],
+            )
+        )
+    items.extend(
+        [
         EvidenceSummaryItem(
             family="lidar_pair",
             check="Known-Bad Controls",
@@ -98,10 +139,13 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
             ),
             metric_ids=[
                 "lidar_pair_source_voxel_recall_in_target",
+                "lidar_pair_holdout_point_to_plane_p90_abs_m",
                 "lidar_pair_known_bad_detectable_fraction",
             ],
         ),
-    ]
+        ]
+    )
+    return items
 
 
 def _fmt(value: float | None) -> str:
