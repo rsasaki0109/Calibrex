@@ -388,10 +388,82 @@ def _evidence_payload(result: CalibrationResult) -> dict[str, Any]:
     return {
         "schema_version": REPORT_EVIDENCE_SCHEMA_VERSION,
         "run": _run_payload(result),
+        "materialization": _evidence_materialization_payload(result),
+        "protocols": _evidence_protocol_payloads(result),
         "summaries": [
             item.model_dump(mode="json") for item in evidence_summaries_from_result(result)
         ],
         "cases": [item.model_dump(mode="json") for item in evidence_cases_from_result(result)],
+    }
+
+
+def _evidence_materialization_payload(result: CalibrationResult) -> dict[str, Any]:
+    provenance = result.run.provenance
+    metrics_origin = str(provenance.get("metrics_origin", "recomputed"))
+    if metrics_origin not in {"recomputed", "cached", "unknown"}:
+        metrics_origin = "unknown"
+    data_verified = provenance.get("data_verified")
+    return {
+        "metrics_origin": metrics_origin,
+        "data_verified": data_verified if isinstance(data_verified, bool) else None,
+        "computed_at": _provenance_text(result, "computed_at"),
+        "report_generated_at": result.run.created_at,
+    }
+
+
+def _evidence_protocol_payloads(result: CalibrationResult) -> list[dict[str, Any]]:
+    protocols: list[dict[str, Any]] = []
+    livox_pair = result.run.provenance.get("livox_pair_evidence")
+    if isinstance(livox_pair, dict):
+        protocols.append(_livox_pair_protocol_payload(result, livox_pair))
+    return protocols
+
+
+def _livox_pair_protocol_payload(
+    result: CalibrationResult,
+    livox_pair: dict[str, Any],
+) -> dict[str, Any]:
+    holdout_geometry = livox_pair.get("holdout_geometry")
+    parameters: dict[str, Any] = {}
+    limitations: list[str] = []
+    status: str | None = None
+    split_policy: str | None = None
+    independent_holdout: bool | None = None
+    if isinstance(holdout_geometry, dict):
+        status = _str_or_none(holdout_geometry.get("status"))
+        split_policy = _str_or_none(holdout_geometry.get("split_policy"))
+        independent_holdout = _bool_or_none(holdout_geometry.get("independent_holdout"))
+        parameters = {
+            key: value
+            for key, value in holdout_geometry.items()
+            if key
+            in {
+                "map_voxel_count",
+                "matched_point_count",
+                "unmatched_point_count",
+                "unmatched_fraction",
+                "voxel_size_m",
+                "correspondence_gate_m",
+                "inlier_threshold_m",
+                "plane_normal_source",
+            }
+        }
+        reason = _str_or_none(holdout_geometry.get("reason"))
+        if reason:
+            limitations.append(reason)
+    return {
+        "family": "lidar_pair",
+        "protocol_id": "livox_pair_single_pair_holdout_point_to_plane/v0.1",
+        "status": status,
+        "split_policy": split_policy,
+        "independent_holdout": independent_holdout,
+        "candidate_transform": _str_or_none(livox_pair.get("candidate_transform")),
+        "transform_convention": _str_or_none(livox_pair.get("transform_convention")),
+        "known_bad_perturbation": _str_or_none(livox_pair.get("known_bad_perturbation")),
+        "known_bad_case_count": _int_or_none(livox_pair.get("known_bad_case_count")),
+        "metric_ids": _evidence_metric_ids(result, family="lidar_pair"),
+        "parameters": parameters,
+        "limitations": limitations,
     }
 
 
@@ -782,6 +854,38 @@ def _case_delta(item: EvidenceCaseItem, name: str) -> float | None:
 
 def _case_metric(item: EvidenceCaseItem, name: str) -> float | None:
     return item.metric_values.get(name)
+
+
+def _evidence_metric_ids(result: CalibrationResult, *, family: str) -> list[str]:
+    metric_ids: list[str] = []
+    seen: set[str] = set()
+    for item in evidence_summaries_from_result(result):
+        if item.family != family:
+            continue
+        for metric_id in item.metric_ids:
+            if metric_id in seen:
+                continue
+            metric_ids.append(metric_id)
+            seen.add(metric_id)
+    return metric_ids
+
+
+def _str_or_none(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _bool_or_none(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
+def _int_or_none(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
 
 
 def _selected_metric_rows(result: CalibrationResult, metric_names: tuple[str, ...]) -> str:

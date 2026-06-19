@@ -964,6 +964,15 @@ def test_livox_precomputed_result_reports_and_visualizes(
     evidence = json.loads((reported_dir / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert evidence["materialization"]["metrics_origin"] == "cached"
+    assert evidence["materialization"]["data_verified"] is False
+    assert evidence["materialization"]["computed_at"] == "2026-06-18T10:53:34Z"
+    assert evidence["protocols"][0]["family"] == "lidar_pair"
+    assert evidence["protocols"][0]["protocol_id"] == (
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1"
+    )
+    assert evidence["protocols"][0]["independent_holdout"] is False
+    assert evidence["protocols"][0]["parameters"]["matched_point_count"] == 16884
     assert evidence["summaries"] == evidence_summaries
     assert evidence["cases"] == []
 
@@ -1010,6 +1019,12 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
     assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert evidence["materialization"]["metrics_origin"] == "recomputed"
+    assert evidence["materialization"].get("data_verified") is None
+    assert evidence["protocols"][0]["family"] == "lidar_pair"
+    assert evidence["protocols"][0]["known_bad_case_count"] == 24
+    assert evidence["protocols"][0]["parameters"]["matched_point_count"] == 16884
+    assert "single source/target PCD pair" in evidence["protocols"][0]["limitations"][0]
     assert len(evidence["summaries"]) == 4
     assert {summary["check"] for summary in evidence["summaries"]} == {
         "Candidate Support",

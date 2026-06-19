@@ -37,6 +37,9 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
     )
     known_bad_metric = result.metrics.get("lidar_pair_known_bad_detectable_fraction")
     max_delta_metric = result.metrics.get("lidar_pair_known_bad_centroid_rmse_delta_max_m")
+    p2p_delta_metric = result.metrics.get(
+        "lidar_pair_known_bad_point_to_plane_p90_delta_max_m"
+    )
     if (
         support_metric is None
         and shared_metric is None
@@ -45,6 +48,7 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
         and p2p_p90_metric is None
         and known_bad_metric is None
         and max_delta_metric is None
+        and p2p_delta_metric is None
     ):
         return []
 
@@ -61,6 +65,7 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
     )
     known_bad_fraction = _fmt(known_bad_metric.value if known_bad_metric else None)
     known_bad_max_delta = _fmt(max_delta_metric.value if max_delta_metric else None)
+    known_bad_p2p_delta = _fmt(p2p_delta_metric.value if p2p_delta_metric else None)
 
     items = [
         EvidenceSummaryItem(
@@ -115,7 +120,8 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
             status=known_bad_grade,
             evidence=(
                 f"detectable fraction {known_bad_fraction}, "
-                f"max RMSE delta {known_bad_max_delta} m"
+                f"max centroid RMSE delta {known_bad_max_delta} m, "
+                f"max P90 point-to-plane delta {known_bad_p2p_delta} m"
             ),
             interpretation=(
                 "Declared perturbations are distinguishable from the candidate."
@@ -125,6 +131,7 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
             metric_ids=[
                 "lidar_pair_known_bad_detectable_fraction",
                 "lidar_pair_known_bad_centroid_rmse_delta_max_m",
+                "lidar_pair_known_bad_point_to_plane_p90_delta_max_m",
             ],
         ),
         EvidenceSummaryItem(

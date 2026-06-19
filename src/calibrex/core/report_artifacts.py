@@ -80,6 +80,32 @@ class EvidenceCaseItem(StrictModel):
     delta_values: dict[str, float | None] = Field(default_factory=dict)
 
 
+class EvidenceMaterializationInfo(StrictModel):
+    """How an evidence artifact was materialized for this report."""
+
+    metrics_origin: Literal["recomputed", "cached", "unknown"] = "unknown"
+    data_verified: bool | None = None
+    computed_at: str | None = None
+    report_generated_at: str | None = None
+
+
+class EvidenceProtocolItem(StrictModel):
+    """Declared protocol metadata for one evidence family."""
+
+    family: str
+    protocol_id: str
+    status: str | None = None
+    split_policy: str | None = None
+    independent_holdout: bool | None = None
+    candidate_transform: str | None = None
+    transform_convention: str | None = None
+    known_bad_perturbation: str | None = None
+    known_bad_case_count: int | None = Field(default=None, ge=0)
+    metric_ids: list[str] = Field(default_factory=list)
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    limitations: list[str] = Field(default_factory=list)
+
+
 class ReportSummaryArtifact(StrictModel):
     """Schema for `summary.json` report sidecars."""
 
@@ -145,6 +171,10 @@ class ReportEvidenceArtifact(StrictModel):
 
     schema_version: Literal["calibrex.report.evidence/v0.1"] = REPORT_EVIDENCE_SCHEMA_VERSION
     run: ReportRunInfo
+    materialization: EvidenceMaterializationInfo = Field(
+        default_factory=EvidenceMaterializationInfo
+    )
+    protocols: list[EvidenceProtocolItem] = Field(default_factory=list)
     summaries: list[EvidenceSummaryItem] = Field(default_factory=list)
     cases: list[EvidenceCaseItem] = Field(default_factory=list)
 
