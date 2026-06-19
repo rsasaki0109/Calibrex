@@ -8,6 +8,7 @@ Start with:
 - `docs/concepts/slac.md`
 - `docs/concepts/lidar_slac.md`
 - `docs/concepts/frame_conventions.md`
+- `docs/concepts/license_boundaries.md`
 - `docs/concepts/problem_builder.md`
 - `docs/tutorials/public_datasets.md`
 - `docs/tutorials/open3d_slac.md`

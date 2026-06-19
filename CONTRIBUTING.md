@@ -15,6 +15,8 @@ Core rules:
 - Do not copy GPL code into the core package.
 - Keep external tools behind adapters or subprocess boundaries.
 - Preserve `T_parent_child`, meters, nanoseconds, and quaternion `xyzw`.
+- Follow [license boundary policy](docs/concepts/license_boundaries.md) for
+  external tools and public datasets.
 
 ## Schema Changes
 
