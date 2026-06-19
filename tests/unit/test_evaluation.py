@@ -161,8 +161,16 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
     known_bad_delta = comparison.metrics["lidar_pair_known_bad_centroid_rmse_delta_max_m"]
     assert known_bad_delta.preference == "higher"
     assert known_bad_delta.winner == "not_comparable"
+    assert known_bad_delta.not_comparable_reason == (
+        "LiDAR pair evidence protocol is not_comparable: "
+        "neither result declares an evidence protocol"
+    )
     evidence = {(item.family, item.check): item for item in comparison.evidence_comparisons}
     assert evidence[("lidar_pair", "Candidate Support")].winner == "not_comparable"
+    assert evidence[("lidar_pair", "Candidate Support")].not_comparable_reason == (
+        "LiDAR pair evidence protocol is not_comparable: "
+        "neither result declares an evidence protocol"
+    )
     assert evidence[("lidar_pair", "Known-Bad Controls")].winner == "not_comparable"
     assert evidence[("lidar_pair", "Decision Boundary")].winner == "not_comparable"
     transform = comparison.transform_groups["transforms"].comparisons[0]
@@ -256,6 +264,18 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     assert (
         support_mismatch.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
         == "not_comparable"
+    )
+    assert (
+        support_mismatch.metrics[
+            "lidar_pair_holdout_point_to_plane_support_ratio"
+        ].not_comparable_reason
+        == "LiDAR pair evidence protocol is warning: "
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1: "
+        "support population differs "
+        "(livox_pair_support:train=base:holdout=target:eligible_points=1000:"
+        "voxel_m=1:gate_m=1.5 vs "
+        "livox_pair_support:train=base:holdout=other:eligible_points=1000:"
+        "voxel_m=1:gate_m=1.5)"
     )
 
     right.run.provenance["metrics_origin"] = "recomputed"

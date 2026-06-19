@@ -406,6 +406,18 @@
           ],
           "default": null
         },
+        "not_comparable_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Comparable Reason"
+        },
         "right": {
           "anyOf": [
             {
@@ -511,6 +523,18 @@
         "name": {
           "title": "Name",
           "type": "string"
+        },
+        "not_comparable_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Comparable Reason"
         },
         "preference": {
           "default": "unknown",

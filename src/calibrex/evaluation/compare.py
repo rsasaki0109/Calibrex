@@ -70,6 +70,7 @@ class MetricComparison(StrictModel):
     delta_right_minus_left: float | None = None
     preference: MetricPreference = "unknown"
     winner: ComparisonWinner = "not_comparable"
+    not_comparable_reason: str | None = None
 
 
 class MetricFamilyComparison(StrictModel):
@@ -149,6 +150,7 @@ class EvidenceSummaryComparison(StrictModel):
     left: EvidenceSummarySide | None = None
     right: EvidenceSummarySide | None = None
     winner: ComparisonWinner = "not_comparable"
+    not_comparable_reason: str | None = None
 
 
 class EvidenceProtocolSide(StrictModel):
@@ -307,9 +309,16 @@ def _compare_metrics(
         right_value = _metric_value(right, preferred_field)
         delta = None if left_value is None or right_value is None else right_value - left_value
         preference = _metric_preference(name)
+        not_comparable_reason = _metric_not_comparable_reason(
+            name=name,
+            left_value=left_value,
+            right_value=right_value,
+            preference=preference,
+            protocol_compatibility=protocol_compatibility,
+        )
         winner = (
             "not_comparable"
-            if _metric_blocked_by_protocol(name, protocol_compatibility)
+            if not_comparable_reason is not None
             else _metric_winner(left_value, right_value, preference)
         )
         comparisons[name] = MetricComparison(
@@ -324,18 +333,25 @@ def _compare_metrics(
             delta_right_minus_left=delta,
             preference=preference,
             winner=winner,
+            not_comparable_reason=not_comparable_reason,
         )
     return comparisons
 
 
-def _metric_blocked_by_protocol(
+def _metric_not_comparable_reason(
     name: str,
+    left_value: float | None,
+    right_value: float | None,
+    preference: MetricPreference,
     protocol_compatibility: EvidenceProtocolCompatibility,
-) -> bool:
-    return (
-        name.startswith("lidar_pair_")
-        and protocol_compatibility.status != "compatible"
-    )
+) -> str | None:
+    if name.startswith("lidar_pair_") and protocol_compatibility.status != "compatible":
+        return _protocol_not_comparable_reason(protocol_compatibility)
+    if left_value is None or right_value is None:
+        return "metric does not expose comparable numeric values on both sides"
+    if preference == "unknown":
+        return "metric preference is unknown"
+    return None
 
 
 def _metric_side(metric: MetricResult) -> MetricSide:
@@ -566,6 +582,11 @@ def _compare_evidence_summaries(
                     right_item,
                     protocol_compatibility=protocol_compatibility,
                 ),
+                not_comparable_reason=_evidence_not_comparable_reason(
+                    left_item,
+                    right_item,
+                    protocol_compatibility=protocol_compatibility,
+                ),
             )
         )
     return comparisons
@@ -603,6 +624,28 @@ def _evidence_winner(
     if left_rank == right_rank:
         return "tie"
     return "left" if left_rank > right_rank else "right"
+
+
+def _evidence_not_comparable_reason(
+    left: EvidenceSummaryItem | None,
+    right: EvidenceSummaryItem | None,
+    *,
+    protocol_compatibility: EvidenceProtocolCompatibility,
+) -> str | None:
+    if left is None or right is None:
+        return "evidence check is missing on one side"
+    if left.family == "lidar_pair" and protocol_compatibility.status != "compatible":
+        return _protocol_not_comparable_reason(protocol_compatibility)
+    return None
+
+
+def _protocol_not_comparable_reason(
+    protocol_compatibility: EvidenceProtocolCompatibility,
+) -> str:
+    prefix = f"LiDAR pair evidence protocol is {protocol_compatibility.status}"
+    if not protocol_compatibility.reasons:
+        return prefix
+    return f"{prefix}: {'; '.join(protocol_compatibility.reasons)}"
 
 
 def _compare_protocol_compatibility(
