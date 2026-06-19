@@ -131,6 +131,9 @@ calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml \
   --output outputs/comparison.json
 ```
 
+`comparison.json` includes `protocol_compatibility` so cached, recomputed, and
+mismatched evidence protocols are not silently ranked together.
+
 ## Design Principles
 
 - Sensor-agnostic core; sensor-specific factors live at the edges.

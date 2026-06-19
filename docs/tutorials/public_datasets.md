@@ -32,6 +32,11 @@ calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/precom
 The precomputed Livox result is a cached evidence artifact for report rendering.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
+When comparing two results, `calibrex compare` reports
+`protocol_compatibility` as `compatible`, `warning`, or `not_comparable`.
+This keeps cached evidence, recomputed evidence, and different holdout
+protocols from being silently ranked as if they were produced under the same
+conditions.
 
 Autonomous driving:
 
