@@ -66,14 +66,21 @@ def test_comparison_schema_validates_generated_comparison() -> None:
     jsonschema.validate(comparison, schema)
 
 
-def test_report_evidence_schema_validates_generated_sidecar(tmp_path: Path) -> None:
-    schema = json.loads(Path("schemas/report_evidence.schema.json").read_text(encoding="utf-8"))
+def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> None:
     result = load_result(
         "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
     )
     write_report_artifacts(result, tmp_path)
-    evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
-    jsonschema.validate(evidence, schema)
+    for sidecar_name, schema_name in {
+        "summary.json": "report_summary.schema.json",
+        "metrics.json": "report_metrics.schema.json",
+        "observability.json": "report_observability.schema.json",
+        "degeneracy.json": "report_degeneracy.schema.json",
+        "evidence.json": "report_evidence.schema.json",
+    }.items():
+        schema = json.loads((Path("schemas") / schema_name).read_text(encoding="utf-8"))
+        sidecar = json.loads((tmp_path / sidecar_name).read_text(encoding="utf-8"))
+        jsonschema.validate(sidecar, schema)
 
 
 def test_dataset_manifest_schema_validates_synthetic_example() -> None:

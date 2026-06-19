@@ -39,6 +39,18 @@
           "default": null,
           "title": "Residual Histogram"
         },
+        "rig_3d_viewer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rig 3D Viewer"
+        },
         "trajectory_plot": {
           "anyOf": [
             {
@@ -53,6 +65,53 @@
         }
       },
       "title": "ArtifactSet",
+      "type": "object"
+    },
+    "EvidenceSummaryItem": {
+      "additionalProperties": false,
+      "description": "Machine-readable evidence summary row for report consumers.",
+      "properties": {
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "interpretation": {
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "metric_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metric Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "check",
+        "status",
+        "evidence",
+        "interpretation"
+      ],
+      "title": "EvidenceSummaryItem",
       "type": "object"
     },
     "GradeCounts": {
@@ -207,6 +266,13 @@
       "minimum": 0,
       "title": "Candidate Extrinsic Count",
       "type": "integer"
+    },
+    "evidence_summaries": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSummaryItem"
+      },
+      "title": "Evidence Summaries",
+      "type": "array"
     },
     "matched_candidate_reference_count": {
       "minimum": 0,
