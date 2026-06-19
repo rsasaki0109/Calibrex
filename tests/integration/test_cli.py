@@ -365,6 +365,9 @@ def test_calibrate_evaluate_visualize_export(
         "schema_version": "calibrex.evidence_bundle/v0.1",
         "run_id": evidence["run"]["id"],
     }
+    assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == (
+        "recomputed"
+    )
     assert verify_payload["verification_summary"]["total"] == len(
         verify_payload["verification_claims"]
     )
@@ -389,6 +392,7 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["verify", str(tmp_path / "bundle.json")]) == 0
     verify_text = capsys.readouterr().out
     assert "valid: yes" in verify_text
+    assert "primary_evidence: metrics_origin=recomputed" in verify_text
     assert "claims: total=" in verify_text
     assert "failed=0" in verify_text
     assert "claim_scopes:" in verify_text
@@ -1511,6 +1515,10 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert verify_payload["input_file_count"] == 2
     assert verify_payload["checked_input_file_count"] == 2
     assert len(verify_payload["checked_input_files"]) == 2
+    assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == (
+        "recomputed"
+    )
+    assert verify_payload["primary_evidence_materialization"]["data_verified"] is True
     input_claims = [
         claim
         for claim in verify_payload["verification_claims"]

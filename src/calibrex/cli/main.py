@@ -926,6 +926,13 @@ def _emit_verification(verification: EvidenceBundleVerification) -> None:
     print(f"bundle: {verification.path}")
     print(f"valid: {_format_bool(verification.valid)}")
     print(f"source_bundle_sha256: {verification.source_bundle.sha256}")
+    if verification.primary_evidence_materialization is not None:
+        materialization = verification.primary_evidence_materialization
+        print(
+            "primary_evidence: "
+            f"metrics_origin={materialization.metrics_origin}, "
+            f"data_verified={_format_optional_bool(materialization.data_verified)}"
+        )
     print(f"artifacts: {len(verification.checked_artifacts)}/{verification.artifact_count}")
     print(
         "input_files: "

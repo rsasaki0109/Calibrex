@@ -36,6 +36,60 @@
       "title": "EvidenceBundleSource",
       "type": "object"
     },
+    "EvidenceMaterializationInfo": {
+      "additionalProperties": false,
+      "description": "How an evidence artifact was materialized for this report.",
+      "properties": {
+        "computed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed At"
+        },
+        "data_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Verified"
+        },
+        "metrics_origin": {
+          "default": "unknown",
+          "enum": [
+            "recomputed",
+            "cached",
+            "unknown"
+          ],
+          "title": "Metrics Origin",
+          "type": "string"
+        },
+        "report_generated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Generated At"
+        }
+      },
+      "title": "EvidenceMaterializationInfo",
+      "type": "object"
+    },
     "VerificationClaim": {
       "additionalProperties": false,
       "description": "One machine-readable verification check performed on a bundle.",
@@ -186,6 +240,17 @@
     "path": {
       "title": "Path",
       "type": "string"
+    },
+    "primary_evidence_materialization": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EvidenceMaterializationInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "schema_version": {
       "const": "calibrex.evidence_bundle.verification/v0.1",

@@ -11,7 +11,10 @@ from pydantic import Field
 
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping, write_mapping
-from calibrex.core.report_artifacts import ReportEvidenceArtifact
+from calibrex.core.report_artifacts import (
+    EvidenceMaterializationInfo,
+    ReportEvidenceArtifact,
+)
 from calibrex.core.result import StrictModel
 
 EVIDENCE_BUNDLE_SCHEMA_VERSION: Literal["calibrex.evidence_bundle/v0.1"] = (
@@ -110,6 +113,7 @@ class EvidenceBundleVerification(StrictModel):
     issues: list[str]
     artifact_count: int
     checked_artifacts: list[str]
+    primary_evidence_materialization: EvidenceMaterializationInfo | None = None
     input_file_count: int = Field(default=0, ge=0)
     checked_input_file_count: int = Field(default=0, ge=0)
     checked_input_files: list[str] = Field(default_factory=list)
@@ -305,6 +309,10 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         issues=issues,
         artifact_count=len(manifest.artifacts),
         checked_artifacts=checked,
+        primary_evidence_materialization=_primary_evidence_materialization(
+            base_dir,
+            manifest.primary_evidence_path,
+        ),
         input_file_count=input_file_count,
         checked_input_file_count=len(checked_input_files),
         checked_input_files=checked_input_files,
@@ -351,6 +359,20 @@ def _sha256_file(path: Path) -> tuple[str, int]:
             size_bytes += len(chunk)
             digest.update(chunk)
     return digest.hexdigest(), size_bytes
+
+
+def _primary_evidence_materialization(
+    base_dir: Path,
+    primary_evidence_path: str,
+) -> EvidenceMaterializationInfo | None:
+    evidence_path = _resolve_artifact_path(base_dir, primary_evidence_path)
+    if not evidence_path.exists():
+        return None
+    try:
+        evidence = ReportEvidenceArtifact.model_validate(read_mapping(evidence_path))
+    except Exception:
+        return None
+    return evidence.materialization
 
 
 def _verification_claim_summary(
