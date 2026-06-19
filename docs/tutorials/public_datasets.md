@@ -14,15 +14,15 @@ calibrex public-datasets show tum_rgbd_freiburg1_xyz
 RGB-D / Open3D SLAC:
 
 ```bash
-python tools/download_public_dataset.py tum_rgbd_freiburg1_xyz --output-dir data/public
+python3 tools/download_public_dataset.py tum_rgbd_freiburg1_xyz --output-dir data/public
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```
 
 Solid-state LiDAR-to-LiDAR evidence demo:
 
 ```bash
-python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
-python tools/generate_calibration_evidence_gif.py
+python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
+python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml

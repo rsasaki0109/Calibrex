@@ -21,7 +21,7 @@ calibrex visualize outputs/result.yaml --export-html
   <br>
   <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 16,884 holdout plane matches, P90 |point-to-plane| 0.806 m, 100% known-bad controls detected.</sub>
   <br>
-  <sub>Each known-bad roll/pitch/yaw/x/y/z probe is exported in <code>evidence.json</code>.</sub>
+  <sub>Evidence protocol metadata and each known-bad roll/pitch/yaw/x/y/z probe are exported in <code>evidence.json</code>.</sub>
 </p>
 
 <p align="center">
@@ -113,8 +113,8 @@ Public dataset examples:
 
 ```bash
 calibrex public-datasets list
-python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
-python tools/generate_calibration_evidence_gif.py
+python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
+python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml

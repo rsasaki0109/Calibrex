@@ -98,10 +98,17 @@ class LidarCloudPair:
     shared_voxel_count: int
     source_recall: float
     shared_centroid_rmse_m: float
+    holdout_plane_match_count: int
+    holdout_point_to_plane_p90_m: float
+    holdout_unmatched_fraction: float
     known_bad_detectable_fraction: float
     known_bad_max_rmse_delta_m: float
+    known_bad_max_point_to_plane_p90_delta_m: float
     support_summary: str
+    holdout_summary: str
     known_bad_summary: str
+    protocol_summary: str
+    case_summary: str
 
 
 def main() -> int:
@@ -258,10 +265,17 @@ def load_livox_horizon_cloud_pair(data_dir: Path) -> LidarCloudPair:
         shared_voxel_count=167,
         source_recall=0.24594992636229748,
         shared_centroid_rmse_m=0.5357028293135087,
-        known_bad_detectable_fraction=0.75,
+        holdout_plane_match_count=16_884,
+        holdout_point_to_plane_p90_m=0.8064419329166412,
+        holdout_unmatched_fraction=0.2865714527169779,
+        known_bad_detectable_fraction=1.0,
         known_bad_max_rmse_delta_m=0.019921626765770584,
+        known_bad_max_point_to_plane_p90_delta_m=0.03373608924315874,
         support_summary="167 shared 1 m voxels / 0.246 source recall",
-        known_bad_summary="24 known-bad controls / 0.75 detected",
+        holdout_summary="16,884 plane matches / P90 |p2plane| 0.806 m",
+        known_bad_summary="24 known-bad controls / 1.00 detected",
+        protocol_summary="protocol: single-pair holdout",
+        case_summary="pitch +1deg -> P90 point-to-plane +0.034 m",
     )
 
 
@@ -370,10 +384,17 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
         shared_voxel_count=0,
         source_recall=0.0,
         shared_centroid_rmse_m=0.0,
+        holdout_plane_match_count=0,
+        holdout_point_to_plane_p90_m=0.0,
+        holdout_unmatched_fraction=0.0,
         known_bad_detectable_fraction=0.0,
         known_bad_max_rmse_delta_m=0.0,
+        known_bad_max_point_to_plane_p90_delta_m=0.0,
         support_summary="A2D2 real point split / metrics computed by Calibrex CLI",
+        holdout_summary="holdout geometry shown in the Livox README demo",
         known_bad_summary="known-bad controls shown in the Livox README demo",
+        protocol_summary="protocol metadata exported",
+        case_summary="case table shown in the HTML report",
     )
 
 
@@ -690,8 +711,8 @@ def draw_evidence_panel(
     residual_history: list[float],
     metadata_source: str,
 ) -> None:
-    fill_rect(image, 674, 132, 220, 100, PANEL_ALT)
-    rect(image, 674, 132, 220, 100, GRID, alpha=0.92)
+    fill_rect(image, 674, 132, 220, 132, PANEL_ALT)
+    rect(image, 674, 132, 220, 132, GRID, alpha=0.92)
     metric_bar(
         image,
         674,
@@ -699,9 +720,10 @@ def draw_evidence_panel(
         cloud_pair.source_recall / 0.40,
         mix(WARNING, GOOD, progress),
     )
-    rmse_score = 1.0 - min(1.0, cloud_pair.shared_centroid_rmse_m / 1.50)
-    metric_bar(image, 674, 180, rmse_score, OPTIMIZED)
+    holdout_score = 1.0 - min(1.0, cloud_pair.holdout_point_to_plane_p90_m / 2.0)
+    metric_bar(image, 674, 180, holdout_score, OPTIMIZED)
     metric_bar(image, 674, 204, cloud_pair.known_bad_detectable_fraction, GOOD)
+    metric_bar(image, 674, 228, 1.0 if progress > 0.22 else progress / 0.22, REFERENCE)
 
     chart_x, chart_y, chart_width, chart_height = CHART
     fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
@@ -711,24 +733,15 @@ def draw_evidence_panel(
         line(image, chart_x, y, chart_x + chart_width, y, GRID, alpha=0.45)
     draw_curve(image, residual_history, CHART, OPTIMIZED)
 
-    draw_dof_cells(image, 674, 378, progress)
+    draw_case_detail(image, 674, 354, progress)
+    draw_dof_cells(image, 674, 424, progress)
     draw_source_badge(image, metadata_source)
-    draw_sample_count_ticks(image, cloud_pair)
 
 
 def draw_source_badge(image: bytearray, metadata_source: str) -> None:
     color = GOOD if metadata_source.startswith(("A2D2", "Livox")) else WARNING
-    fill_rect(image, 674, 464, 220, 16, PANEL_ALT)
-    metric_bar(image, 674, 464, 1.0, color)
-
-
-def draw_sample_count_ticks(image: bytearray, cloud_pair: LidarCloudPair) -> None:
-    source_ratio = min(1.0, cloud_pair.source_total / 12_000)
-    target_ratio = min(1.0, cloud_pair.target_total / 10_000)
-    fill_rect(image, 674, 486, 220, 8, (31, 41, 55), alpha=1.0)
-    fill_rect(image, 674, 486, round(220 * source_ratio), 8, REFERENCE, alpha=0.85)
-    fill_rect(image, 674, 496, 220, 8, (31, 41, 55), alpha=1.0)
-    fill_rect(image, 674, 496, round(220 * target_ratio), 8, OPTIMIZED, alpha=0.85)
+    fill_rect(image, 674, 460, 220, 42, PANEL_ALT)
+    rect(image, 674, 460, 220, 42, color, alpha=0.72)
 
 
 def draw_curve(
@@ -765,6 +778,22 @@ def draw_dof_cells(image: bytearray, x: int, y: int, progress: float) -> None:
         color = GOOD if good else WARNING
         fill_rect(image, cell_x, y, 24, 22, color, alpha=0.90)
         rect(image, cell_x, y, 24, 22, (229, 231, 235), alpha=0.24)
+
+
+def draw_case_detail(image: bytearray, x: int, y: int, progress: float) -> None:
+    fill_rect(image, x, y, 220, 42, PANEL_ALT)
+    rect(image, x, y, 220, 42, GRID, alpha=0.80)
+    # Three compact rows approximate the HTML Known-Bad Case Details table.
+    row_widths = (
+        round(174 * min(1.0, progress + 0.20)),
+        round(132 * min(1.0, progress + 0.08)),
+        round(82 * min(1.0, progress)),
+    )
+    colors = (GOOD, OPTIMIZED, WARNING)
+    for index, row_width in enumerate(row_widths):
+        row_y = y + 8 + index * 10
+        fill_rect(image, x + 84, row_y, 96, 5, (31, 41, 55), alpha=1.0)
+        fill_rect(image, x + 84, row_y, min(96, row_width), 5, colors[index], alpha=0.92)
 
 
 def draw_timeline(image: bytearray, progress: float) -> None:
@@ -1025,16 +1054,22 @@ def build_text_filter(cloud_pair: LidarCloudPair) -> str:
         ),
         ("Evidence", 674, 104, 17, "E5E7EB"),
         ("source voxel recall", 674, 138, 13, "CBD5E1"),
-        ("shared voxel RMSE", 674, 162, 13, "CBD5E1"),
+        ("P90 point-to-plane", 674, 162, 13, "CBD5E1"),
         ("known-bad controls", 674, 186, 13, "CBD5E1"),
+        ("evidence protocol", 674, 210, 13, "CBD5E1"),
         (cloud_pair.support_summary, 674, 238, 12, "CBD5E1"),
-        (cloud_pair.known_bad_summary, 674, 252, 12, "CBD5E1"),
+        (cloud_pair.holdout_summary, 674, 252, 12, "CBD5E1"),
+        (cloud_pair.known_bad_summary, 674, 266, 12, "CBD5E1"),
         ("evidence curve", 676, 274, 16, "E5E7EB"),
-        ("DoF visibility", 674, 354, 16, "E5E7EB"),
-        ("x  y  z  r  p  yaw", 674, 406, 13, "CBD5E1"),
-        (cloud_pair.provenance, 674, 444, 13, "CBD5E1"),
-        (cloud_pair.source_label, 674, 486, 12, "CBD5E1"),
-        (cloud_pair.target_label, 674, 496, 12, "CBD5E1"),
+        ("Known-Bad Case Details", 674, 330, 16, "E5E7EB"),
+        ("pitch +1deg", 684, 360, 12, "CBD5E1"),
+        ("P90 +0.034m", 684, 370, 12, "CBD5E1"),
+        (cloud_pair.case_summary, 674, 400, 12, "CBD5E1"),
+        ("DoF visibility", 674, 410, 14, "E5E7EB"),
+        ("x  y  z  r  p  yaw", 674, 450, 12, "CBD5E1"),
+        (cloud_pair.provenance, 682, 468, 12, "CBD5E1"),
+        (cloud_pair.protocol_summary, 682, 482, 12, "CBD5E1"),
+        ("evidence.json sidecar", 682, 494, 12, "CBD5E1"),
         ("public setup", 62, 520, 14, "CBD5E1"),
         ("candidate", 325, 520, 14, "CBD5E1"),
         ("optimize", 588, 520, 14, "CBD5E1"),
