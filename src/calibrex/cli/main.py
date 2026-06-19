@@ -35,7 +35,12 @@ from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
-from calibrex.evaluation.compare import ResultComparison, compare_results, comparison_json_schema
+from calibrex.evaluation.compare import (
+    ComparisonSide,
+    ResultComparison,
+    compare_results,
+    comparison_json_schema,
+)
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.evidence_summary import evidence_cases_from_result
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
@@ -888,7 +893,9 @@ def _format_bool(value: bool) -> str:
 def _emit_comparison(comparison: ResultComparison) -> None:
     summary = comparison.summary
     print(f"left: {comparison.left.run_id} ({comparison.left.grade})")
+    print(f"left_materialization: {_format_comparison_materialization(comparison.left)}")
     print(f"right: {comparison.right.run_id} ({comparison.right.grade})")
+    print(f"right_materialization: {_format_comparison_materialization(comparison.right)}")
     print(f"metrics: {summary.metric_comparison_count}")
     print(
         "metric_winners: "
@@ -918,6 +925,22 @@ def _emit_comparison(comparison: ResultComparison) -> None:
             f"tie={winners.count('tie')}, "
             f"not_comparable={winners.count('not_comparable')}"
         )
+
+
+def _format_comparison_materialization(side: ComparisonSide) -> str:
+    parts = [
+        f"metrics_origin={side.metrics_origin}",
+        f"data_verified={_format_optional_bool(side.data_verified)}",
+    ]
+    if side.computed_at is not None:
+        parts.append(f"computed_at={side.computed_at}")
+    return ", ".join(parts)
+
+
+def _format_optional_bool(value: bool | None) -> str:
+    if value is None:
+        return "n/a"
+    return _format_bool(value)
 
 
 def _format_value(value: object) -> str:

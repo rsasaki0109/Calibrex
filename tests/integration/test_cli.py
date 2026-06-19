@@ -384,6 +384,10 @@ def test_compare_command_writes_machine_readable_summary(
     assert payload["transform_groups"]["transforms"]["comparison_count"] == 2
     assert main(["validate", str(output)]) == 0
     assert main(["validate", str(output), "--kind", "comparison"]) == 0
+    assert main(["compare", str(left_result), str(right_result)]) == 0
+    text_output = capsys.readouterr().out
+    assert "left_materialization: metrics_origin=recomputed, data_verified=n/a" in text_output
+    assert "right_materialization: metrics_origin=recomputed, data_verified=n/a" in text_output
 
 
 def test_visualize_reference_result_writes_3d_rig_overlay(
@@ -1082,6 +1086,16 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert evidence_comparisons[0]["family"] == "lidar_pair"
     assert evidence_comparisons[0]["check"] == "Candidate Support"
     assert evidence_comparisons[0]["winner"] == "tie"
+    assert main(["compare", str(result), str(result)]) == 0
+    compare_text = capsys.readouterr().out
+    assert (
+        "left_materialization: metrics_origin=cached, data_verified=no, "
+        "computed_at=2026-06-18T10:53:34Z"
+    ) in compare_text
+    assert (
+        "right_materialization: metrics_origin=cached, data_verified=no, "
+        "computed_at=2026-06-18T10:53:34Z"
+    ) in compare_text
 
     visualized_dir = tmp_path / "visualized"
     assert (
