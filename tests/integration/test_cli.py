@@ -328,7 +328,9 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert payload["metrics_origin"] == "cached"
     assert payload["data_verified"] is False
     assert payload["evidence_case_count"] == 6
-    assert "cached evidence" in payload["warning"]
+    assert payload["warning"] == (
+        "cached evidence: raw data was not read or recomputed by this evaluate command"
+    )
     summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
     assert summary["materialization"] == {
         "metrics_origin": "cached",
@@ -341,6 +343,23 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert evidence["protocols"][0]["known_bad_case_count"] == 24
     assert len(evidence["cases"]) == 6
     assert "CACHED EVIDENCE" in (output_dir / "report.html").read_text(encoding="utf-8")
+    plain_dir = tmp_path / "cached_eval_plain"
+    assert (
+        main(
+            [
+                "evaluate",
+                str(result),
+                "--output-dir",
+                str(plain_dir),
+                "--export-html",
+            ]
+        )
+        == 0
+    )
+    evaluate_text = capsys.readouterr().out
+    assert (
+        "warning: cached evidence: raw data was not read or recomputed by this evaluate command"
+    ) in evaluate_text
 
 
 def test_compare_command_writes_machine_readable_summary(
@@ -1034,7 +1053,14 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert report_payload["metrics_origin"] == "cached"
     assert report_payload["data_verified"] is False
     assert report_payload["evidence_case_count"] == 6
-    assert report_payload["warning"].startswith("cached evidence")
+    assert report_payload["warning"] == (
+        "cached evidence: raw data was not read or recomputed by this report command"
+    )
+    assert main(["report", str(result), "--output-dir", str(reported_dir / "plain")]) == 0
+    report_text = capsys.readouterr().out
+    assert (
+        "warning: cached evidence: raw data was not read or recomputed by this report command"
+    ) in report_text
     report_html = (reported_dir / "report.html").read_text(encoding="utf-8")
     assert "CACHED EVIDENCE" in report_html
     assert "LiDAR Pair Evidence" in report_html

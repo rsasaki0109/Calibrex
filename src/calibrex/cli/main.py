@@ -408,6 +408,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     warning = _report_materialization_warning(
         payload["metrics_origin"],
         payload["data_verified"],
+        command="evaluate",
     )
     if warning is not None:
         payload["warning"] = warning
@@ -434,7 +435,7 @@ def _cmd_report(args: argparse.Namespace) -> int:
         "data_verified": data_verified,
         "evidence_case_count": len(evidence_cases_from_result(result)),
     }
-    warning = _report_materialization_warning(metrics_origin, data_verified)
+    warning = _report_materialization_warning(metrics_origin, data_verified, command="report")
     if warning is not None:
         payload["warning"] = warning
     _emit(payload, args.json)
@@ -444,9 +445,11 @@ def _cmd_report(args: argparse.Namespace) -> int:
 def _report_materialization_warning(
     metrics_origin: object,
     data_verified: object,
+    *,
+    command: str,
 ) -> str | None:
     if metrics_origin == "cached" or data_verified is False:
-        return "cached evidence: raw data was not read or recomputed by this report command"
+        return f"cached evidence: raw data was not read or recomputed by this {command} command"
     return None
 
 
