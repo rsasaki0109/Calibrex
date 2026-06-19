@@ -23,6 +23,13 @@ jobs:
           test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
       - name: Build package
         run: python -m build
+      - name: Wheel install smoke
+        run: |
+          python -m venv /tmp/calibrex-wheel-smoke
+          /tmp/calibrex-wheel-smoke/bin/python -m pip install dist/*.whl
+          /tmp/calibrex-wheel-smoke/bin/calibrex doctor --json
+          /tmp/calibrex-wheel-smoke/bin/calibrex schema all --output-dir /tmp/calibrex-wheel-schemas
+          test "$(find /tmp/calibrex-wheel-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
       - name: Test
         run: pytest
       - name: Ruff
