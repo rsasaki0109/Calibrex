@@ -357,6 +357,14 @@ def test_calibrate_evaluate_visualize_export(
     )
     verify_payload = json.loads(capsys.readouterr().out)
     assert verify_payload["schema_version"] == "calibrex.evidence_bundle.verification/v0.1"
+    bundle_sha256, bundle_size = _sha256_file_for_test(tmp_path / "bundle.json")
+    assert verify_payload["source_bundle"] == {
+        "path": str(tmp_path / "bundle.json"),
+        "sha256": bundle_sha256,
+        "size_bytes": bundle_size,
+        "schema_version": "calibrex.evidence_bundle/v0.1",
+        "run_id": evidence["run"]["id"],
+    }
     assert verification_path.exists()
     assert main(["validate", str(verification_path)]) == 0
     assert (

@@ -73,7 +73,8 @@ cached report fixtures normally report zero input files. It also includes
 expected values, observed values, and scoped issues for artifact digests,
 run consistency, assessment source links, and raw input digests.
 The saved `verification.json` is schema-versioned and can be validated or
-stored as a CI artifact.
+stored as a CI artifact. It records the verified bundle path, SHA-256, size,
+schema version, and run id under `source_bundle`.
 Derived sidecars such as `summary.json`, `metrics.json`, `observability.json`,
 and `degeneracy.json` also include `source_evidence` so reviewers can verify
 which immutable `evidence.json` they summarize.

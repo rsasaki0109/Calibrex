@@ -77,6 +77,16 @@ class EvidenceBundleManifest(StrictModel):
     artifacts: list[EvidenceBundleArtifact]
 
 
+class EvidenceBundleSource(StrictModel):
+    """Digest identity of the bundle verified by a verification artifact."""
+
+    path: str
+    sha256: str
+    size_bytes: int = Field(ge=0)
+    schema_version: str
+    run_id: str
+
+
 class EvidenceBundleVerification(StrictModel):
     """Machine-readable verification result for an evidence bundle."""
 
@@ -84,6 +94,7 @@ class EvidenceBundleVerification(StrictModel):
         EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION
     )
     path: str
+    source_bundle: EvidenceBundleSource
     valid: bool
     issue_count: int
     issues: list[str]
@@ -147,6 +158,7 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
 
     bundle_path = Path(path)
     manifest = load_evidence_bundle(bundle_path)
+    bundle_sha256, bundle_size_bytes = _sha256_file(bundle_path)
     base_dir = bundle_path.parent
     issues: list[str] = []
     verification_claims: list[VerificationClaim] = []
@@ -270,6 +282,13 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
     )
     return EvidenceBundleVerification(
         path=str(bundle_path),
+        source_bundle=EvidenceBundleSource(
+            path=str(bundle_path),
+            sha256=bundle_sha256,
+            size_bytes=bundle_size_bytes,
+            schema_version=manifest.schema_version,
+            run_id=manifest.run_id,
+        ),
         valid=not issues,
         issue_count=len(issues),
         issues=issues,
