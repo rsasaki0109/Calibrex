@@ -62,6 +62,7 @@ The built-in falsification policy only passes the raw recomputation gate when
 Use `calibrex verify --require-raw-recomputed bundle.json` when that same
 requirement should be enforced as an integrity gate instead of only reported as
 assessment evidence.
+The Livox public demo applies this gate before reporting `bundle_valid: true`.
 Generated report directories also include `bundle.json`, which records SHA-256
 digests for the HTML report and machine-readable sidecars. `assessment.json`
 records the falsification policy result. Cached or non-independent evidence can

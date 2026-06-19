@@ -673,7 +673,7 @@ def _cmd_demo_livox_evidence(args: argparse.Namespace) -> int:
     assessment_path = output_dir / "assessment.json"
     bundle_path = output_dir / "bundle.json"
     assessment = AssessmentArtifact.model_validate(read_mapping(assessment_path))
-    verification = verify_evidence_bundle(bundle_path)
+    verification = verify_evidence_bundle(bundle_path, require_raw_recomputed=True)
     payload = {
         "status": "ok" if verification.valid else "invalid_bundle",
         "dataset": str(dataset_path),
@@ -687,6 +687,7 @@ def _cmd_demo_livox_evidence(args: argparse.Namespace) -> int:
         "bundle": str(bundle_path),
         "bundle_valid": verification.valid,
         "bundle_issues": verification.issues,
+        "raw_recomputed_required": verification.raw_recomputed_required,
         "html_report": str(output_dir / "report.html"),
     }
     _emit(payload, args.json)

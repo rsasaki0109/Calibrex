@@ -1519,6 +1519,7 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     payload = json.loads(capsys.readouterr().out)
     assert payload["downloaded"] is False
     assert payload["bundle_valid"] is True
+    assert payload["raw_recomputed_required"] is True
     assert payload["assessment_status"] == "inconclusive"
     assert Path(payload["result"]).exists()
     assert Path(payload["evidence"]).exists()
