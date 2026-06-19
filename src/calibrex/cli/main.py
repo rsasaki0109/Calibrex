@@ -404,6 +404,8 @@ def _cmd_report(args: argparse.Namespace) -> int:
     result = load_result(args.result)
     output_dir = args.output_dir or _report_output_dir(args.result, args.html)
     html_filename = _report_html_filename(args.html)
+    metrics_origin = result.run.provenance.get("metrics_origin", "unknown")
+    data_verified = result.run.provenance.get("data_verified")
     report_artifacts = write_report_artifacts(
         result,
         output_dir,
@@ -413,11 +415,23 @@ def _cmd_report(args: argparse.Namespace) -> int:
         "status": "ok",
         "html_report": report_artifacts["html_report"],
         "report_artifacts": report_artifacts,
-        "metrics_origin": result.run.provenance.get("metrics_origin", "unknown"),
-        "data_verified": result.run.provenance.get("data_verified"),
+        "metrics_origin": metrics_origin,
+        "data_verified": data_verified,
     }
+    warning = _report_materialization_warning(metrics_origin, data_verified)
+    if warning is not None:
+        payload["warning"] = warning
     _emit(payload, args.json)
     return 0
+
+
+def _report_materialization_warning(
+    metrics_origin: object,
+    data_verified: object,
+) -> str | None:
+    if metrics_origin == "cached" or data_verified is False:
+        return "cached evidence: raw data was not read or recomputed by this report command"
+    return None
 
 
 def _report_output_dir(result_path: Path, html_path: Path | None) -> Path:

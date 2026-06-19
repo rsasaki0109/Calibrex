@@ -960,12 +960,12 @@ outputs:
     assert result.quality.recommendation
 
 
-def test_livox_precomputed_result_reports_and_visualizes(
+def test_livox_cached_evidence_result_reports_and_visualizes(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     result = Path(
-        "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
     )
     reported_dir = tmp_path / "reported"
     assert (
@@ -980,6 +980,10 @@ def test_livox_precomputed_result_reports_and_visualizes(
         )
         == 0
     )
+    report_payload = json.loads(capsys.readouterr().out)
+    assert report_payload["metrics_origin"] == "cached"
+    assert report_payload["data_verified"] is False
+    assert report_payload["warning"].startswith("cached evidence")
     report_html = (reported_dir / "report.html").read_text(encoding="utf-8")
     assert "CACHED EVIDENCE" in report_html
     assert "LiDAR Pair Evidence" in report_html
@@ -1006,7 +1010,6 @@ def test_livox_precomputed_result_reports_and_visualizes(
     assert evidence["summaries"] == evidence_summaries
     assert evidence["cases"] == []
 
-    capsys.readouterr()
     assert main(["compare", str(result), str(result), "--json"]) == 0
     comparison = json.loads(capsys.readouterr().out)
     assert comparison["protocol_compatibility"]["status"] == "compatible"

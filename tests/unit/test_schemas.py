@@ -75,11 +75,11 @@ def test_result_schema_validates_precomputed_example() -> None:
     jsonschema.validate(result, schema)
 
 
-def test_result_schema_validates_livox_precomputed_example() -> None:
+def test_result_schema_validates_livox_cached_evidence_example() -> None:
     schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
     result = yaml.safe_load(
         Path(
-            "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
+            "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
         ).read_text(encoding="utf-8")
     )
     jsonschema.validate(result, schema)
@@ -94,7 +94,7 @@ def test_comparison_schema_validates_generated_comparison() -> None:
 
 def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> None:
     result = load_result(
-        "examples/public_datasets/livox_horizon_horizon_pcd_sample/precomputed_result.yaml"
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
     )
     write_report_artifacts(result, tmp_path)
     for sidecar_name, schema_name in {
