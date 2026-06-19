@@ -30,7 +30,7 @@ calibrex visualize outputs/result.yaml --export-html
 
 <p align="center">
   <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776ab">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
 </p>
@@ -74,6 +74,7 @@ Calibrex writes schema-valid artifacts instead of one-off notebook state:
 
 ```text
 result.yaml
+comparison.json
 report.html
 summary.json
 metrics.json
