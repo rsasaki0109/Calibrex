@@ -571,6 +571,26 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert main(["assess", str(output_dir / "evidence.json"), "--json"]) == 1
     assessed = json.loads(capsys.readouterr().out)
     assert assessed["status"] == "inconclusive"
+    assert (
+        main(
+            [
+                "verify",
+                str(output_dir / "bundle.json"),
+                "--require-raw-recomputed",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    gated_verify = json.loads(capsys.readouterr().out)
+    assert gated_verify["raw_recomputed_required"] is True
+    assert gated_verify["valid"] is False
+    assert any(
+        claim["scope"] == "raw_recomputed_requirement"
+        and claim["status"] == "failed"
+        for claim in gated_verify["verification_claims"]
+    )
+    assert any("metrics_origin is 'cached'" in issue for issue in gated_verify["issues"])
     plain_dir = tmp_path / "cached_eval_plain"
     assert (
         main(
@@ -1526,6 +1546,24 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     ]
     assert len(input_claims) == 2
     assert {claim["status"] for claim in input_claims} == {"ok"}
+    assert (
+        main(
+            [
+                "verify",
+                str(output_dir / "bundle.json"),
+                "--require-raw-recomputed",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    gated_verify = json.loads(capsys.readouterr().out)
+    assert gated_verify["raw_recomputed_required"] is True
+    assert any(
+        claim["scope"] == "raw_recomputed_requirement"
+        and claim["status"] == "ok"
+        for claim in gated_verify["verification_claims"]
+    )
 
     with (dataset_path / "base_horizon_100432.pcd").open("ab") as stream:
         stream.write(b"\n")

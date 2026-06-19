@@ -123,7 +123,8 @@
             "run_consistency",
             "assessment_source",
             "source_evidence_link",
-            "input_file_digest"
+            "input_file_digest",
+            "raw_recomputed_requirement"
           ],
           "title": "Scope",
           "type": "string"
@@ -251,6 +252,11 @@
         }
       ],
       "default": null
+    },
+    "raw_recomputed_required": {
+      "default": false,
+      "title": "Raw Recomputed Required",
+      "type": "boolean"
     },
     "schema_version": {
       "const": "calibrex.evidence_bundle.verification/v0.1",

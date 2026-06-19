@@ -41,6 +41,7 @@ VerificationClaimScope = Literal[
     "assessment_source",
     "source_evidence_link",
     "input_file_digest",
+    "raw_recomputed_requirement",
 ]
 VerificationClaimStatus = Literal["ok", "failed", "skipped"]
 
@@ -114,6 +115,7 @@ class EvidenceBundleVerification(StrictModel):
     artifact_count: int
     checked_artifacts: list[str]
     primary_evidence_materialization: EvidenceMaterializationInfo | None = None
+    raw_recomputed_required: bool = False
     input_file_count: int = Field(default=0, ge=0)
     checked_input_file_count: int = Field(default=0, ge=0)
     checked_input_files: list[str] = Field(default_factory=list)
@@ -168,7 +170,11 @@ def load_evidence_bundle(path: str | Path) -> EvidenceBundleManifest:
         raise CalibrexError(f"invalid evidence bundle {bundle_path}: {exc}") from exc
 
 
-def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
+def verify_evidence_bundle(
+    path: str | Path,
+    *,
+    require_raw_recomputed: bool = False,
+) -> EvidenceBundleVerification:
     """Verify artifact digests and basic run consistency for an evidence bundle."""
 
     bundle_path = Path(path)
@@ -289,12 +295,24 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
                 issues=issues,
                 verification_claims=verification_claims,
             )
+    primary_evidence_materialization = _primary_evidence_materialization(
+        base_dir,
+        manifest.primary_evidence_path,
+    )
     input_file_count, checked_input_files = _verify_primary_evidence_input_files(
         base_dir=base_dir,
         primary_evidence_path=manifest.primary_evidence_path,
         issues=issues,
         verification_claims=verification_claims,
     )
+    if require_raw_recomputed:
+        _verify_raw_recomputed_requirement(
+            materialization=primary_evidence_materialization,
+            input_file_count=input_file_count,
+            checked_input_file_count=len(checked_input_files),
+            issues=issues,
+            verification_claims=verification_claims,
+        )
     return EvidenceBundleVerification(
         path=str(bundle_path),
         source_bundle=EvidenceBundleSource(
@@ -309,10 +327,8 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         issues=issues,
         artifact_count=len(manifest.artifacts),
         checked_artifacts=checked,
-        primary_evidence_materialization=_primary_evidence_materialization(
-            base_dir,
-            manifest.primary_evidence_path,
-        ),
+        primary_evidence_materialization=primary_evidence_materialization,
+        raw_recomputed_required=require_raw_recomputed,
         input_file_count=input_file_count,
         checked_input_file_count=len(checked_input_files),
         checked_input_files=checked_input_files,
@@ -373,6 +389,70 @@ def _primary_evidence_materialization(
     except Exception:
         return None
     return evidence.materialization
+
+
+def _verify_raw_recomputed_requirement(
+    *,
+    materialization: EvidenceMaterializationInfo | None,
+    input_file_count: int,
+    checked_input_file_count: int,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    claim_issues: list[str] = []
+    metrics_origin = None
+    data_verified = None
+    if materialization is None:
+        issue = "raw recomputation required: primary evidence materialization is missing"
+        issues.append(issue)
+        claim_issues.append(issue)
+    else:
+        metrics_origin = materialization.metrics_origin
+        data_verified = materialization.data_verified
+        if metrics_origin != "recomputed":
+            issue = (
+                "raw recomputation required: "
+                f"metrics_origin is {metrics_origin!r}, expected 'recomputed'"
+            )
+            issues.append(issue)
+            claim_issues.append(issue)
+        if data_verified is not True:
+            issue = (
+                "raw recomputation required: "
+                f"data_verified is {data_verified!r}, expected true"
+            )
+            issues.append(issue)
+            claim_issues.append(issue)
+    if input_file_count <= 0:
+        issue = "raw recomputation required: no SHA-backed input files are declared"
+        issues.append(issue)
+        claim_issues.append(issue)
+    elif checked_input_file_count != input_file_count:
+        issue = (
+            "raw recomputation required: "
+            f"checked {checked_input_file_count} of {input_file_count} input files"
+        )
+        issues.append(issue)
+        claim_issues.append(issue)
+    _append_claim(
+        verification_claims,
+        scope="raw_recomputed_requirement",
+        subject="primary_evidence",
+        status="ok" if not claim_issues else "failed",
+        method="materialization_and_input_digest_gate",
+        expected={
+            "metrics_origin": "recomputed",
+            "data_verified": True,
+            "input_file_count_gt": 0,
+        },
+        observed={
+            "metrics_origin": metrics_origin,
+            "data_verified": data_verified,
+            "input_file_count": input_file_count,
+            "checked_input_file_count": checked_input_file_count,
+        },
+        issues=claim_issues,
+    )
 
 
 def _verification_claim_summary(

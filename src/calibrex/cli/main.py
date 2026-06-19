@@ -131,6 +131,14 @@ def _build_parser() -> argparse.ArgumentParser:
     verify = subcommands.add_parser("verify", help="verify an evidence bundle manifest")
     verify.add_argument("bundle", type=Path)
     verify.add_argument("--output", type=Path, help="write verification YAML/JSON")
+    verify.add_argument(
+        "--require-raw-recomputed",
+        action="store_true",
+        help=(
+            "fail unless primary evidence is recomputed from verified raw inputs "
+            "with SHA-backed input files"
+        ),
+    )
     verify.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     verify.set_defaults(func=_cmd_verify)
 
@@ -385,7 +393,10 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
-    report = verify_evidence_bundle(args.bundle)
+    report = verify_evidence_bundle(
+        args.bundle,
+        require_raw_recomputed=args.require_raw_recomputed,
+    )
     payload = report.model_dump(mode="json")
     if args.output:
         write_mapping(args.output, payload)
@@ -926,6 +937,8 @@ def _emit_verification(verification: EvidenceBundleVerification) -> None:
     print(f"bundle: {verification.path}")
     print(f"valid: {_format_bool(verification.valid)}")
     print(f"source_bundle_sha256: {verification.source_bundle.sha256}")
+    if verification.raw_recomputed_required:
+        print("raw_recomputed_required: yes")
     if verification.primary_evidence_materialization is not None:
         materialization = verification.primary_evidence_materialization
         print(
