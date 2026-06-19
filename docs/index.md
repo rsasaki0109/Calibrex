@@ -16,6 +16,7 @@ Start with:
 - `schemas/assessment.schema.json`
 - `schemas/comparison.schema.json`
 - `schemas/evidence_bundle.schema.json`
+- `schemas/transforms.schema.json`
 - `schemas/report_evidence.schema.json`
 - `schemas/dataset_manifest.schema.json`
 - `docs/adr/0001-core-is-ros-independent.md`

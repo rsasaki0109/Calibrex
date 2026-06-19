@@ -19,6 +19,7 @@ from calibrex.core.report_artifacts import (
     ReportSummaryArtifact,
 )
 from calibrex.core.result import load_result
+from calibrex.core.transform_artifacts import TransformArtifact
 
 
 def _write_velodyne_points(path: Path, points: list[tuple[float, float, float, float]]) -> None:
@@ -254,6 +255,7 @@ def test_calibrate_json_includes_report_artifacts(
         "assessment": str(tmp_path / "assessment.json"),
         "policy": str(tmp_path / "policy.json"),
         "protocol": str(tmp_path / "protocol.json"),
+        "transforms": str(tmp_path / "transforms.json"),
         "bundle": str(tmp_path / "bundle.json"),
         "verification": str(tmp_path / "verification.json"),
     }
@@ -288,6 +290,7 @@ def test_calibrate_evaluate_visualize_export(
     assert (tmp_path / "assessment.json").exists()
     assert (tmp_path / "policy.json").exists()
     assert (tmp_path / "protocol.json").exists()
+    assert (tmp_path / "transforms.json").exists()
     assert (tmp_path / "bundle.json").exists()
     assert (tmp_path / "verification.json").exists()
     report_html = (tmp_path / "report.html").read_text(encoding="utf-8")
@@ -338,10 +341,13 @@ def test_calibrate_evaluate_visualize_export(
     protocol = json.loads((tmp_path / "protocol.json").read_text(encoding="utf-8"))
     protocol_model = ProtocolArtifact.model_validate(protocol)
     assert protocol_model.schema_version == "calibrex.protocol/v0.1"
+    transforms = json.loads((tmp_path / "transforms.json").read_text(encoding="utf-8"))
+    transforms_model = TransformArtifact.model_validate(transforms)
+    assert transforms_model.schema_version == "calibrex.transforms/v0.1"
     bundle = json.loads((tmp_path / "bundle.json").read_text(encoding="utf-8"))
     bundle_model = EvidenceBundleManifest.model_validate(bundle)
     assert bundle_model.primary_evidence_path == "evidence.json"
-    assert bundle_model.artifact_count == 9
+    assert bundle_model.artifact_count == 10
     assert {artifact.path for artifact in bundle_model.artifacts} == {
         "report.html",
         "summary.json",
@@ -352,6 +358,7 @@ def test_calibrate_evaluate_visualize_export(
         "assessment.json",
         "policy.json",
         "protocol.json",
+        "transforms.json",
     }
     evidence_entry = next(
         artifact for artifact in bundle["artifacts"] if artifact["path"] == "evidence.json"
@@ -367,6 +374,7 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["validate", str(tmp_path / "assessment.json")]) == 0
     assert main(["validate", str(tmp_path / "policy.json")]) == 0
     assert main(["validate", str(tmp_path / "protocol.json")]) == 0
+    assert main(["validate", str(tmp_path / "transforms.json")]) == 0
     assert main(["validate", str(tmp_path / "bundle.json")]) == 0
     assert (
         main(["validate", str(tmp_path / "summary.json"), "--kind", "report-summary"])
@@ -375,6 +383,7 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["validate", str(tmp_path / "assessment.json"), "--kind", "assessment"]) == 0
     assert main(["validate", str(tmp_path / "policy.json"), "--kind", "policy"]) == 0
     assert main(["validate", str(tmp_path / "protocol.json"), "--kind", "protocol"]) == 0
+    assert main(["validate", str(tmp_path / "transforms.json"), "--kind", "transforms"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
     capsys.readouterr()
     verification_path = tmp_path / "verification.json"
@@ -409,7 +418,7 @@ def test_calibrate_evaluate_visualize_export(
     )
     assert verify_payload["verification_summary"]["failed"] == 0
     assert verify_payload["verification_summary"]["skipped"] >= 1
-    assert verify_payload["verification_summary"]["by_scope"]["artifact_digest"] == 9
+    assert verify_payload["verification_summary"]["by_scope"]["artifact_digest"] == 10
     assert verify_payload["verification_summary"]["by_scope"]["source_evidence_link"] == 4
     assert verification_path.exists()
     assert main(["validate", str(verification_path)]) == 0
@@ -432,7 +441,7 @@ def test_calibrate_evaluate_visualize_export(
     assert "claims: total=" in verify_text
     assert "failed=0" in verify_text
     assert "claim_scopes:" in verify_text
-    assert "  artifact_digest: 9" in verify_text
+    assert "  artifact_digest: 10" in verify_text
     assert "  source_evidence_link: 4" in verify_text
     assert main(["verify", str(verification_path), "--json"]) == 0
     saved_verify_payload = json.loads(capsys.readouterr().out)
@@ -813,6 +822,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assessment_schema = tmp_path / "assessment.schema.json"
     policy_schema = tmp_path / "policy.schema.json"
     protocol_schema = tmp_path / "protocol.schema.json"
+    transforms_schema = tmp_path / "transforms.schema.json"
     manifest_schema = tmp_path / "dataset_manifest.schema.json"
     report_summary_schema = tmp_path / "report_summary.schema.json"
     report_metrics_schema = tmp_path / "report_metrics.schema.json"
@@ -830,6 +840,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert main(["schema", "assessment", "--output", str(assessment_schema)]) == 0
     assert main(["schema", "policy", "--output", str(policy_schema)]) == 0
     assert main(["schema", "protocol", "--output", str(protocol_schema)]) == 0
+    assert main(["schema", "transforms", "--output", str(transforms_schema)]) == 0
     assert main(["schema", "dataset-manifest", "--output", str(manifest_schema)]) == 0
     assert main(["schema", "report-summary", "--output", str(report_summary_schema)]) == 0
     assert main(["schema", "report-metrics", "--output", str(report_metrics_schema)]) == 0
@@ -857,6 +868,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert assessment_schema.exists()
     assert policy_schema.exists()
     assert protocol_schema.exists()
+    assert transforms_schema.exists()
     assert manifest_schema.exists()
     assert report_summary_schema.exists()
     assert report_metrics_schema.exists()
@@ -872,6 +884,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         "assessment.schema.json",
         "policy.schema.json",
         "protocol.schema.json",
+        "transforms.schema.json",
         "dataset_manifest.schema.json",
         "report_summary.schema.json",
         "report_metrics.schema.json",
@@ -887,6 +900,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assessment_schema_payload = json.loads(assessment_schema.read_text(encoding="utf-8"))
     policy_schema_payload = json.loads(policy_schema.read_text(encoding="utf-8"))
     protocol_schema_payload = json.loads(protocol_schema.read_text(encoding="utf-8"))
+    transforms_schema_payload = json.loads(transforms_schema.read_text(encoding="utf-8"))
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
     evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
     bundle_schema = json.loads(evidence_bundle_schema.read_text(encoding="utf-8"))
@@ -907,6 +921,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     )
     assert protocol_schema_payload["properties"]["schema_version"]["const"] == (
         "calibrex.protocol/v0.1"
+    )
+    assert transforms_schema_payload["properties"]["schema_version"]["const"] == (
+        "calibrex.transforms/v0.1"
     )
     assert metrics_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.metrics/v0.1"

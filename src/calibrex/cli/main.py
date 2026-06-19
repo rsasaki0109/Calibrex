@@ -40,6 +40,7 @@ from calibrex.core.report_artifacts import (
     report_artifact_schema_kinds,
 )
 from calibrex.core.result import CalibrationResult, load_result, result_json_schema
+from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.core.validation import (
     ValidationKind,
     validate_file,
@@ -111,6 +112,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "assessment",
             "policy",
             "protocol",
+            "transforms",
             "dataset-manifest",
             "evidence-bundle",
             "evidence-bundle-verification",
@@ -375,6 +377,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "assessment": assessment_json_schema,
         "policy": policy_json_schema,
         "protocol": protocol_json_schema,
+        "transforms": transform_artifact_json_schema,
         "dataset-manifest": manifest_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,

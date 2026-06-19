@@ -36,6 +36,10 @@ from calibrex.core.report_artifacts import (
     ReportSummaryArtifact,
 )
 from calibrex.core.result import RESULT_SCHEMA_VERSION, CalibrationResult, StrictModel
+from calibrex.core.transform_artifacts import (
+    TRANSFORMS_SCHEMA_VERSION,
+    TransformArtifact,
+)
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
 from calibrex.evaluation.compare import COMPARISON_SCHEMA_VERSION, ResultComparison
 
@@ -47,6 +51,7 @@ ValidationKind = Literal[
     "assessment",
     "policy",
     "protocol",
+    "transforms",
     "dataset-manifest",
     "report-summary",
     "report-metrics",
@@ -64,6 +69,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "assessment": AssessmentArtifact,
     "policy": PolicyArtifact,
     "protocol": ProtocolArtifact,
+    "transforms": TransformArtifact,
     "dataset-manifest": DatasetManifest,
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
@@ -81,6 +87,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     ASSESSMENT_SCHEMA_VERSION: "assessment",
     POLICY_SCHEMA_VERSION: "policy",
     PROTOCOL_SCHEMA_VERSION: "protocol",
+    TRANSFORMS_SCHEMA_VERSION: "transforms",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",

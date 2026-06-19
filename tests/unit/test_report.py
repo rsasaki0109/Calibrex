@@ -112,6 +112,7 @@ def test_report_renders_calibration_scoreboard() -> None:
     assert "assessment.json" in html
     assert "protocol.json" in html
     assert "policy.json" in html
+    assert "transforms.json" in html
     assert "bundle.json" in html
     assert "verification.json" in html
 

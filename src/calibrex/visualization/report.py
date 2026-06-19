@@ -39,6 +39,7 @@ from calibrex.core.report_artifacts import (
     validate_report_sidecar_payload,
 )
 from calibrex.core.result import CalibrationResult, MetricResult, TransformResult
+from calibrex.core.transform_artifacts import transform_artifact_from_result
 from calibrex.evaluation.evidence_summary import (
     evidence_cases_from_result,
     evidence_summaries_from_result,
@@ -95,6 +96,7 @@ _REPORT_BUNDLE_FILENAME = "bundle.json"
 _ASSESSMENT_FILENAME = "assessment.json"
 _POLICY_FILENAME = "policy.json"
 _PROTOCOL_FILENAME = "protocol.json"
+_TRANSFORMS_FILENAME = "transforms.json"
 _VERIFICATION_FILENAME = "verification.json"
 
 
@@ -115,6 +117,7 @@ def report_artifact_paths(
     paths["assessment"] = str(output_path / _ASSESSMENT_FILENAME)
     paths["policy"] = str(output_path / _POLICY_FILENAME)
     paths["protocol"] = str(output_path / _PROTOCOL_FILENAME)
+    paths["transforms"] = str(output_path / _TRANSFORMS_FILENAME)
     paths["bundle"] = str(output_path / _REPORT_BUNDLE_FILENAME)
     paths["verification"] = str(output_path / _VERIFICATION_FILENAME)
     return paths
@@ -344,6 +347,7 @@ def write_report_artifacts(
     ).items():
         sidecar_path = output_path / name
         write_mapping(sidecar_path, payload)
+    evidence_model = ReportEvidenceArtifact.model_validate(evidence_payload)
     assessment = write_assessment_from_evidence(
         output_path / "evidence.json",
         output_path / _ASSESSMENT_FILENAME,
@@ -356,7 +360,14 @@ def write_report_artifacts(
         output_path / _POLICY_FILENAME,
         policy_artifact_from_assessment(
             assessment,
-            run=ReportEvidenceArtifact.model_validate(evidence_payload).run,
+            run=evidence_model.run,
+        ).model_dump(mode="json", exclude_none=True),
+    )
+    write_mapping(
+        output_path / _TRANSFORMS_FILENAME,
+        transform_artifact_from_result(
+            result,
+            run=evidence_model.run,
         ).model_dump(mode="json", exclude_none=True),
     )
     write_evidence_bundle(
@@ -394,6 +405,7 @@ def _bundle_artifacts(
             (output_path / _ASSESSMENT_FILENAME, "assessment"),
             (output_path / _PROTOCOL_FILENAME, "protocol"),
             (output_path / _POLICY_FILENAME, "policy"),
+            (output_path / _TRANSFORMS_FILENAME, "transforms"),
         ]
     )
     return artifacts
@@ -1351,6 +1363,7 @@ def _report_sidecar_artifact_rows(result: CalibrationResult) -> list[str]:
     sidecars["assessment"] = str(base_dir / _ASSESSMENT_FILENAME)
     sidecars["protocol"] = str(base_dir / _PROTOCOL_FILENAME)
     sidecars["policy"] = str(base_dir / _POLICY_FILENAME)
+    sidecars["transforms"] = str(base_dir / _TRANSFORMS_FILENAME)
     sidecars["bundle"] = str(base_dir / _REPORT_BUNDLE_FILENAME)
     sidecars["verification"] = str(base_dir / _VERIFICATION_FILENAME)
     return [_artifact_row(name, path) for name, path in sidecars.items()]

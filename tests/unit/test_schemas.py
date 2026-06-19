@@ -16,6 +16,7 @@ from calibrex.core.evidence_bundle import (
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
+from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
 from calibrex.visualization.report import write_report_artifacts
@@ -29,6 +30,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "assessment.schema.json": assessment_json_schema,
         "policy.schema.json": policy_json_schema,
         "protocol.schema.json": protocol_json_schema,
+        "transforms.schema.json": transform_artifact_json_schema,
         "dataset_manifest.schema.json": manifest_json_schema,
         "evidence_bundle.schema.json": evidence_bundle_json_schema,
         "evidence_bundle_verification.schema.json": evidence_bundle_verification_json_schema,
@@ -118,6 +120,7 @@ def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> N
         "assessment.json": "assessment.schema.json",
         "policy.json": "policy.schema.json",
         "protocol.json": "protocol.schema.json",
+        "transforms.json": "transforms.schema.json",
         "bundle.json": "evidence_bundle.schema.json",
         "verification.json": "evidence_bundle_verification.schema.json",
     }.items():

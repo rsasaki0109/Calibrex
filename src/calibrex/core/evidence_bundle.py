@@ -29,6 +29,7 @@ BundleArtifactKind = Literal[
     "assessment",
     "policy",
     "protocol",
+    "transforms",
     "report-html",
     "report-summary",
     "report-metrics",
