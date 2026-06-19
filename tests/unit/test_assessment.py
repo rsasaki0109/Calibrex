@@ -1,5 +1,6 @@
 from calibrex.core.assessment import (
     AssessmentArtifact,
+    AssessmentPolicy,
     AssessmentRuleResult,
     assess_report_evidence,
 )
@@ -123,6 +124,33 @@ def test_known_bad_controls_fail_when_mandatory_challenge_is_weak() -> None:
     assert rule.status == "fail"
     assert "mandatory known-bad controls were not rejected" in rule.reason
     assert rule.observed["mandatory_supported_detection_count"] == 7.0
+
+
+def test_custom_policy_parameters_are_applied_to_mandatory_challenge() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.72,
+        accepted_correspondence_count=720.0,
+        point_to_plane_delta_m=0.10,
+        challenge={
+            "challenge_id": "livox_pair_mandatory_6dof_large_controls/v0.1",
+            "mandatory_case_count": 12,
+            "mandatory_supported_detection_count": 7,
+            "mandatory_support_collapse_count": 0,
+        },
+    )
+    policy = AssessmentPolicy(
+        parameters={
+            **AssessmentPolicy().parameters,
+            "min_mandatory_supported_detection_count": 7,
+        }
+    )
+
+    assessment = assess_report_evidence(evidence, policy=policy)
+    rule = _rule_status(assessment, "known_bad_controls")
+
+    assert assessment.policy.parameters["min_mandatory_supported_detection_count"] == 7
+    assert rule.status == "pass"
+    assert rule.thresholds["min_mandatory_supported_detection_count"] == 7.0
 
 
 def test_known_bad_controls_pass_with_mandatory_challenge_support() -> None:

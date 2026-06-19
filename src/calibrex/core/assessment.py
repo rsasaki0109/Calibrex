@@ -113,7 +113,11 @@ def assessment_json_schema() -> dict[str, Any]:
     return AssessmentArtifact.model_json_schema()
 
 
-def assess_evidence_file(path: str | Path) -> AssessmentArtifact:
+def assess_evidence_file(
+    path: str | Path,
+    *,
+    policy: AssessmentPolicy | None = None,
+) -> AssessmentArtifact:
     """Assess a report evidence artifact from disk."""
 
     evidence_path = Path(path)
@@ -123,12 +127,15 @@ def assess_evidence_file(path: str | Path) -> AssessmentArtifact:
         evidence,
         source_path=evidence_path,
         source_sha256=_sha256_file(evidence_path),
+        policy=policy,
     )
 
 
 def write_assessment_from_evidence(
     evidence_path: str | Path,
     assessment_path: str | Path,
+    *,
+    policy: AssessmentPolicy | None = None,
 ) -> AssessmentArtifact:
     """Assess evidence and write an immutable assessment artifact."""
 
@@ -139,6 +146,7 @@ def write_assessment_from_evidence(
         evidence,
         source_path=_portable_path(assessment_file.parent, evidence_file),
         source_sha256=_sha256_file(evidence_file),
+        policy=policy,
     )
     write_mapping(assessment_file, assessment.model_dump(mode="json", exclude_none=True))
     return assessment
@@ -149,15 +157,17 @@ def assess_report_evidence(
     *,
     source_path: str | Path | None = None,
     source_sha256: str | None = None,
+    policy: AssessmentPolicy | None = None,
 ) -> AssessmentArtifact:
     """Apply the built-in falsification policy to report evidence."""
 
+    active_policy = policy or AssessmentPolicy()
     rules = [
         _materialization_rule(evidence),
-        _protocol_declaration_rule(evidence),
-        _holdout_support_rule(evidence),
+        _protocol_declaration_rule(evidence, active_policy),
+        _holdout_support_rule(evidence, active_policy),
         _holdout_independence_rule(evidence),
-        _known_bad_rule(evidence),
+        _known_bad_rule(evidence, active_policy),
         _summary_decision_rule(evidence),
     ]
     status = _overall_status(rules)
@@ -171,6 +181,7 @@ def assess_report_evidence(
             metrics_origin=evidence.materialization.metrics_origin,
             data_verified=evidence.materialization.data_verified,
         ),
+        policy=active_policy,
         status=status,
         reason=reason,
         rules=rules,
@@ -208,7 +219,10 @@ def _materialization_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
     )
 
 
-def _protocol_declaration_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
+def _protocol_declaration_rule(
+    evidence: ReportEvidenceArtifact,
+    policy: AssessmentPolicy,
+) -> AssessmentRuleResult:
     protocol = _lidar_pair_protocol(evidence)
     if protocol is None:
         return AssessmentRuleResult(
@@ -231,14 +245,19 @@ def _protocol_declaration_rule(evidence: ReportEvidenceArtifact) -> AssessmentRu
             observed=observed,
             evidence_refs=[protocol.protocol_id],
         )
+    min_known_bad_case_count = _policy_number(
+        policy,
+        "min_known_bad_case_count",
+        _MIN_KNOWN_BAD_CASE_COUNT,
+    )
     case_count = protocol.known_bad_case_count
-    if case_count is None or case_count < _MIN_KNOWN_BAD_CASE_COUNT:
+    if case_count is None or case_count < min_known_bad_case_count:
         return AssessmentRuleResult(
             rule_id="protocol_declared",
             status="fail",
             reason="declared known-bad perturbation case count is below policy minimum",
             observed=observed,
-            thresholds={"min_known_bad_case_count": _MIN_KNOWN_BAD_CASE_COUNT},
+            thresholds={"min_known_bad_case_count": min_known_bad_case_count},
             evidence_refs=[protocol.protocol_id],
         )
     return AssessmentRuleResult(
@@ -246,12 +265,15 @@ def _protocol_declaration_rule(evidence: ReportEvidenceArtifact) -> AssessmentRu
         status="pass",
         reason="lidar_pair evidence protocol declares transform convention and controls",
         observed=observed,
-        thresholds={"min_known_bad_case_count": _MIN_KNOWN_BAD_CASE_COUNT},
+        thresholds={"min_known_bad_case_count": min_known_bad_case_count},
         evidence_refs=[protocol.protocol_id],
     )
 
 
-def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
+def _holdout_support_rule(
+    evidence: ReportEvidenceArtifact,
+    policy: AssessmentPolicy,
+) -> AssessmentRuleResult:
     protocol = _lidar_pair_protocol(evidence)
     if protocol is None:
         return AssessmentRuleResult(
@@ -276,13 +298,39 @@ def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
         "support_ratio": support_ratio,
         "unmatched_fraction": unmatched_fraction,
     }
+    min_map_voxel_count = _policy_number(
+        policy,
+        "min_map_voxel_count",
+        _MIN_MAP_VOXEL_COUNT,
+    )
+    min_matched_point_count = _policy_number(
+        policy,
+        "min_matched_point_count",
+        _MIN_MATCHED_POINT_COUNT,
+    )
+    min_eligible_point_count = _policy_number(
+        policy,
+        "min_eligible_point_count",
+        _MIN_ELIGIBLE_POINT_COUNT,
+    )
+    min_accepted_correspondence_count = _policy_number(
+        policy,
+        "min_accepted_correspondence_count",
+        _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
+    )
+    min_support_ratio = _policy_number(policy, "min_support_ratio", _MIN_SUPPORT_RATIO)
+    max_unmatched_fraction = _policy_number(
+        policy,
+        "max_unmatched_fraction",
+        _MAX_UNMATCHED_FRACTION,
+    )
     thresholds: dict[str, AssessmentScalar] = {
-        "min_map_voxel_count": _MIN_MAP_VOXEL_COUNT,
-        "min_matched_point_count": _MIN_MATCHED_POINT_COUNT,
-        "min_eligible_point_count": _MIN_ELIGIBLE_POINT_COUNT,
-        "min_accepted_correspondence_count": _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
-        "min_support_ratio": _MIN_SUPPORT_RATIO,
-        "max_unmatched_fraction": _MAX_UNMATCHED_FRACTION,
+        "min_map_voxel_count": min_map_voxel_count,
+        "min_matched_point_count": min_matched_point_count,
+        "min_eligible_point_count": min_eligible_point_count,
+        "min_accepted_correspondence_count": min_accepted_correspondence_count,
+        "min_support_ratio": min_support_ratio,
+        "max_unmatched_fraction": max_unmatched_fraction,
     }
     if map_voxels is None or matched_points is None or unmatched_fraction is None:
         return AssessmentRuleResult(
@@ -294,18 +342,15 @@ def _holdout_support_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleRes
             evidence_refs=[protocol.protocol_id],
         )
     if (
-        map_voxels < _MIN_MAP_VOXEL_COUNT
-        or matched_points < _MIN_MATCHED_POINT_COUNT
-        or unmatched_fraction > _MAX_UNMATCHED_FRACTION
-        or (
-            eligible_points is not None
-            and eligible_points < _MIN_ELIGIBLE_POINT_COUNT
-        )
+        map_voxels < min_map_voxel_count
+        or matched_points < min_matched_point_count
+        or unmatched_fraction > max_unmatched_fraction
+        or (eligible_points is not None and eligible_points < min_eligible_point_count)
         or (
             accepted_correspondences is not None
-            and accepted_correspondences < _MIN_ACCEPTED_CORRESPONDENCE_COUNT
+            and accepted_correspondences < min_accepted_correspondence_count
         )
-        or (support_ratio is not None and support_ratio < _MIN_SUPPORT_RATIO)
+        or (support_ratio is not None and support_ratio < min_support_ratio)
     ):
         return AssessmentRuleResult(
             rule_id="holdout_support_gate",
@@ -370,7 +415,10 @@ def _holdout_independence_rule(evidence: ReportEvidenceArtifact) -> AssessmentRu
     )
 
 
-def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
+def _known_bad_rule(
+    evidence: ReportEvidenceArtifact,
+    policy: AssessmentPolicy,
+) -> AssessmentRuleResult:
     protocol = _lidar_pair_protocol(evidence)
     cases = _lidar_pair_known_bad_cases(evidence)
     summary = _summary(evidence, family="lidar_pair", check="Known-Bad Controls")
@@ -381,7 +429,7 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
     supported_detection_count = sum(
         1
         for case in support_scored_cases
-        if _case_is_supported_known_bad_detection(case)
+        if _case_is_supported_known_bad_detection(case, policy)
     )
     supported_pass_fraction = (
         supported_detection_count / len(support_scored_cases)
@@ -391,7 +439,7 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
     support_collapse_count = sum(
         1
         for case in support_scored_cases
-        if not _case_has_sufficient_support(case)
+        if not _case_has_sufficient_support(case, policy)
     )
     mandatory_case_count = _number_from_protocol_parameters(
         protocol,
@@ -406,6 +454,37 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         "mandatory_support_collapse_count",
     )
     challenge_id = _string_from_protocol_parameters(protocol, "challenge_id")
+    min_known_bad_case_count = _policy_number(
+        policy,
+        "min_known_bad_case_count",
+        _MIN_KNOWN_BAD_CASE_COUNT,
+    )
+    min_known_bad_pass_fraction = _policy_number(
+        policy,
+        "min_known_bad_pass_fraction",
+        _MIN_KNOWN_BAD_PASS_FRACTION,
+    )
+    min_supported_known_bad_pass_fraction = _policy_number(
+        policy,
+        "min_supported_known_bad_pass_fraction",
+        _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION,
+    )
+    min_mandatory_known_bad_case_count = _policy_number(
+        policy,
+        "min_mandatory_known_bad_case_count",
+        _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT,
+    )
+    min_mandatory_supported_detection_count = _policy_number(
+        policy,
+        "min_mandatory_supported_detection_count",
+        _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT,
+    )
+    min_accepted_correspondence_count = _policy_number(
+        policy,
+        "min_accepted_correspondence_count",
+        _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
+    )
+    min_support_ratio = _policy_number(policy, "min_support_ratio", _MIN_SUPPORT_RATIO)
     observed: dict[str, AssessmentScalar] = {
         "declared_known_bad_case_count": case_count,
         "materialized_case_count": len(cases),
@@ -421,19 +500,17 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         "summary_status": summary.status if summary else None,
     }
     thresholds: dict[str, AssessmentScalar] = {
-        "min_known_bad_case_count": _MIN_KNOWN_BAD_CASE_COUNT,
-        "min_materialized_pass_fraction": _MIN_KNOWN_BAD_PASS_FRACTION,
-        "min_supported_known_bad_pass_fraction": (
-            _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
-        ),
-        "min_mandatory_known_bad_case_count": _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT,
+        "min_known_bad_case_count": min_known_bad_case_count,
+        "min_materialized_pass_fraction": min_known_bad_pass_fraction,
+        "min_supported_known_bad_pass_fraction": min_supported_known_bad_pass_fraction,
+        "min_mandatory_known_bad_case_count": min_mandatory_known_bad_case_count,
         "min_mandatory_supported_detection_count": (
-            _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT
+            min_mandatory_supported_detection_count
         ),
-        "min_accepted_correspondence_count": _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
-        "min_support_ratio": _MIN_SUPPORT_RATIO,
+        "min_accepted_correspondence_count": min_accepted_correspondence_count,
+        "min_support_ratio": min_support_ratio,
     }
-    if protocol is None or case_count is None or case_count < _MIN_KNOWN_BAD_CASE_COUNT:
+    if protocol is None or case_count is None or case_count < min_known_bad_case_count:
         return AssessmentRuleResult(
             rule_id="known_bad_controls",
             status="inconclusive",
@@ -461,7 +538,7 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
             thresholds=thresholds,
             evidence_refs=[protocol.protocol_id, "Known-Bad Controls"],
         )
-    if pass_fraction is not None and pass_fraction < _MIN_KNOWN_BAD_PASS_FRACTION:
+    if pass_fraction is not None and pass_fraction < min_known_bad_pass_fraction:
         return AssessmentRuleResult(
             rule_id="known_bad_controls",
             status="fail",
@@ -473,7 +550,7 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         )
     if (
         supported_pass_fraction is not None
-        and supported_pass_fraction < _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION
+        and supported_pass_fraction < min_supported_known_bad_pass_fraction
     ):
         return AssessmentRuleResult(
             rule_id="known_bad_controls",
@@ -490,7 +567,7 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
     if challenge_id is not None:
         if (
             mandatory_case_count is None
-            or mandatory_case_count < _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT
+            or mandatory_case_count < min_mandatory_known_bad_case_count
         ):
             return AssessmentRuleResult(
                 rule_id="known_bad_controls",
@@ -504,7 +581,7 @@ def _known_bad_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
         if (
             mandatory_supported_detection_count is None
             or mandatory_supported_detection_count
-            < _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT
+            < min_mandatory_supported_detection_count
         ):
             return AssessmentRuleResult(
                 rule_id="known_bad_controls",
@@ -602,7 +679,10 @@ def _case_has_support_metrics(case: EvidenceCaseItem) -> bool:
     )
 
 
-def _case_has_sufficient_support(case: EvidenceCaseItem) -> bool:
+def _case_has_sufficient_support(
+    case: EvidenceCaseItem,
+    policy: AssessmentPolicy,
+) -> bool:
     support_ratio = _number(
         case.metric_values.get("lidar_pair_holdout_point_to_plane_support_ratio")
     )
@@ -613,14 +693,23 @@ def _case_has_sufficient_support(case: EvidenceCaseItem) -> bool:
     )
     if support_ratio is None or accepted_count is None:
         return False
+    min_support_ratio = _policy_number(policy, "min_support_ratio", _MIN_SUPPORT_RATIO)
+    min_accepted_correspondence_count = _policy_number(
+        policy,
+        "min_accepted_correspondence_count",
+        _MIN_ACCEPTED_CORRESPONDENCE_COUNT,
+    )
     return (
-        support_ratio >= _MIN_SUPPORT_RATIO
-        and accepted_count >= _MIN_ACCEPTED_CORRESPONDENCE_COUNT
+        support_ratio >= min_support_ratio
+        and accepted_count >= min_accepted_correspondence_count
     )
 
 
-def _case_is_supported_known_bad_detection(case: EvidenceCaseItem) -> bool:
-    if case.status != "pass" or not _case_has_sufficient_support(case):
+def _case_is_supported_known_bad_detection(
+    case: EvidenceCaseItem,
+    policy: AssessmentPolicy,
+) -> bool:
+    if case.status != "pass" or not _case_has_sufficient_support(case, policy):
         return False
     delta_names = (
         "centroid_rmse_delta_m",
@@ -651,6 +740,19 @@ def _string_from_protocol_parameters(
         return None
     value = protocol.parameters.get(key)
     return value if isinstance(value, str) else None
+
+
+def _policy_number(
+    policy: AssessmentPolicy,
+    key: str,
+    default: int | float,
+) -> float:
+    value = policy.parameters.get(key)
+    if isinstance(value, bool):
+        return float(default)
+    if isinstance(value, int | float):
+        return float(value)
+    return float(default)
 
 
 def _overall_status(rules: list[AssessmentRuleResult]) -> AssessmentStatus:

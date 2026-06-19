@@ -31,7 +31,11 @@ from calibrex.core.evidence_bundle import (
     verify_evidence_bundle_verification,
     write_evidence_bundle_verification,
 )
-from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
+from calibrex.core.evidence_contract import (
+    PolicyArtifact,
+    policy_json_schema,
+    protocol_json_schema,
+)
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping
@@ -154,6 +158,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     assess = subcommands.add_parser("assess", help="apply a policy to evidence")
     assess.add_argument("evidence", type=Path, help="report evidence artifact")
+    assess.add_argument(
+        "--policy",
+        type=Path,
+        help="policy artifact to apply; defaults to the built-in falsification policy",
+    )
     assess.add_argument("--output", type=Path, help="write assessment YAML/JSON")
     assess.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     assess.set_defaults(func=_cmd_assess)
@@ -451,7 +460,11 @@ def _resolve_related_artifact_path(base_dir: Path, path: str) -> Path:
 
 
 def _cmd_assess(args: argparse.Namespace) -> int:
-    assessment = assess_evidence_file(args.evidence)
+    policy = None
+    if args.policy is not None:
+        policy_artifact = PolicyArtifact.model_validate(read_mapping(args.policy))
+        policy = policy_artifact.policy
+    assessment = assess_evidence_file(args.evidence, policy=policy)
     payload = assessment.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)

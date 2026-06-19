@@ -385,6 +385,22 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["validate", str(tmp_path / "protocol.json"), "--kind", "protocol"]) == 0
     assert main(["validate", str(tmp_path / "transforms.json"), "--kind", "transforms"]) == 0
     assert main(["validate", str(tmp_path / "bundle.json"), "--kind", "evidence-bundle"]) == 0
+    reassessment_path = tmp_path / "reassessment.json"
+    assert (
+        main(
+            [
+                "assess",
+                str(tmp_path / "evidence.json"),
+                "--policy",
+                str(tmp_path / "policy.json"),
+                "--output",
+                str(reassessment_path),
+                "--json",
+            ]
+        )
+        == 1
+    )
+    assert reassessment_path.exists()
     capsys.readouterr()
     verification_path = tmp_path / "verification.json"
     assert (

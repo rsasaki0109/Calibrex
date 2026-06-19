@@ -44,6 +44,9 @@ calibrex validate outputs/livox_horizon_horizon_pcd_sample/assessment.json --kin
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/protocol.json --kind protocol
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/transforms.json --kind transforms
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/policy.json --kind policy
+calibrex assess outputs/livox_horizon_horizon_pcd_sample/evidence.json \
+  --policy outputs/livox_horizon_horizon_pcd_sample/policy.json \
+  --output outputs/livox_horizon_horizon_pcd_sample/reassessment.json
 calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
   --output outputs/livox_horizon_horizon_pcd_sample/verification.json
 ```
@@ -79,6 +82,9 @@ output transform estimate sets as a standalone artifact. Cached or
 non-independent evidence can score useful known-bad controls while still
 returning `INCONCLUSIVE` because raw observations were not recomputed or the
 holdout split is not independent.
+`calibrex assess --policy policy.json` reapplies the declared policy to an
+existing `evidence.json`, so reviewers can verify that the verdict came from a
+versioned artifact rather than hidden CLI defaults.
 `calibrex verify` checks those digests and catches stale or mixed report
 artifacts. For raw recomputation artifacts with `input_files`, it also checks
 the referenced raw file sizes and SHA-256 digests. The verify JSON includes

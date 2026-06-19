@@ -99,6 +99,30 @@ def main() -> int:
             "--json",
         ]
     )
+    reassessment_path = args.report_dir / "reassessment.json"
+    _run(
+        [
+            str(smoke_calibrex),
+            "assess",
+            str(args.report_dir / "evidence.json"),
+            "--policy",
+            str(args.report_dir / "policy.json"),
+            "--output",
+            str(reassessment_path),
+            "--json",
+        ],
+        allowed_return_codes={0, 1},
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "validate",
+            str(reassessment_path),
+            "--kind",
+            "assessment",
+            "--json",
+        ]
+    )
     _run(
         [
             str(smoke_calibrex),
@@ -198,9 +222,12 @@ def _remove(path: Path) -> None:
         path.unlink()
 
 
-def _run(command: list[str]) -> None:
+def _run(command: list[str], *, allowed_return_codes: set[int] | None = None) -> None:
     print("+ " + " ".join(command))
-    subprocess.run(command, check=True)
+    completed = subprocess.run(command, check=False)
+    allowed = allowed_return_codes or {0}
+    if completed.returncode not in allowed:
+        raise subprocess.CalledProcessError(completed.returncode, command)
 
 
 def _build_python(build_env: Path) -> Path:
