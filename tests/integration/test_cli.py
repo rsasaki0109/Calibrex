@@ -1525,8 +1525,26 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert Path(payload["evidence"]).exists()
     assert Path(payload["assessment"]).exists()
     assert Path(payload["bundle"]).exists()
+    assert Path(payload["verification"]).exists()
     assert Path(payload["html_report"]).exists()
+    assert (
+        main(
+            [
+                "validate",
+                str(payload["verification"]),
+                "--kind",
+                "evidence-bundle-verification",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
     evidence = json.loads(Path(payload["evidence"]).read_text(encoding="utf-8"))
+    saved_verification = json.loads(
+        Path(payload["verification"]).read_text(encoding="utf-8")
+    )
+    assert saved_verification["raw_recomputed_required"] is True
+    assert saved_verification["valid"] is True
     assert evidence["materialization"]["data_verified"] is True
     assert len(evidence["input_files"]) == 2
     report_html = Path(payload["html_report"]).read_text(encoding="utf-8")
