@@ -66,10 +66,12 @@ The Livox public demo applies this gate before reporting `bundle_valid: true`.
 It also writes `verification.json` beside `bundle.json` so the gate result can
 be reviewed without rerunning `verify`.
 Generated report directories also include `bundle.json`, which records SHA-256
-digests for the HTML report and machine-readable sidecars. `assessment.json`
-records the falsification policy result. Cached or non-independent evidence can
-score useful known-bad controls while still returning `INCONCLUSIVE` because raw
-observations were not recomputed or the holdout split is not independent.
+digests for the HTML report and machine-readable sidecars, and
+`verification.json`, which materializes the default bundle integrity check.
+`assessment.json` records the falsification policy result. Cached or
+non-independent evidence can score useful known-bad controls while still
+returning `INCONCLUSIVE` because raw observations were not recomputed or the
+holdout split is not independent.
 `calibrex verify` checks those digests and catches stale or mixed report
 artifacts. For raw recomputation artifacts with `input_files`, it also checks
 the referenced raw file sizes and SHA-256 digests. The verify JSON includes

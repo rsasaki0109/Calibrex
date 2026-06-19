@@ -114,6 +114,7 @@ def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> N
         "evidence.json": "report_evidence.schema.json",
         "assessment.json": "assessment.schema.json",
         "bundle.json": "evidence_bundle.schema.json",
+        "verification.json": "evidence_bundle_verification.schema.json",
     }.items():
         schema = json.loads((Path("schemas") / schema_name).read_text(encoding="utf-8"))
         sidecar = json.loads((tmp_path / sidecar_name).read_text(encoding="utf-8"))

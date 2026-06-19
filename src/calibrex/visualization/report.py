@@ -13,7 +13,11 @@ from calibrex.core.assessment import (
     assess_report_evidence,
     write_assessment_from_evidence,
 )
-from calibrex.core.evidence_bundle import BundleArtifactKind, write_evidence_bundle
+from calibrex.core.evidence_bundle import (
+    BundleArtifactKind,
+    verify_evidence_bundle,
+    write_evidence_bundle,
+)
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
 from calibrex.core.report_artifacts import (
@@ -80,6 +84,7 @@ _REPORT_SIDECAR_KINDS = {
 
 _REPORT_BUNDLE_FILENAME = "bundle.json"
 _ASSESSMENT_FILENAME = "assessment.json"
+_VERIFICATION_FILENAME = "verification.json"
 
 
 def report_artifact_paths(
@@ -98,6 +103,7 @@ def report_artifact_paths(
         paths[filename.removesuffix(".json")] = str(output_path / filename)
     paths["assessment"] = str(output_path / _ASSESSMENT_FILENAME)
     paths["bundle"] = str(output_path / _REPORT_BUNDLE_FILENAME)
+    paths["verification"] = str(output_path / _VERIFICATION_FILENAME)
     return paths
 
 
@@ -335,6 +341,8 @@ def write_report_artifacts(
         primary_evidence_path=output_path / "evidence.json",
         artifacts=_bundle_artifacts(output_path, written, include_html=include_html),
     )
+    verification = verify_evidence_bundle(output_path / _REPORT_BUNDLE_FILENAME)
+    write_mapping(output_path / _VERIFICATION_FILENAME, verification.model_dump(mode="json"))
 
     return written
 

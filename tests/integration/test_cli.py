@@ -252,6 +252,7 @@ def test_calibrate_json_includes_report_artifacts(
         "evidence": str(tmp_path / "evidence.json"),
         "assessment": str(tmp_path / "assessment.json"),
         "bundle": str(tmp_path / "bundle.json"),
+        "verification": str(tmp_path / "verification.json"),
     }
     for path in payload["report_artifacts"].values():
         assert Path(path).exists()
@@ -283,6 +284,7 @@ def test_calibrate_evaluate_visualize_export(
     assert (tmp_path / "evidence.json").exists()
     assert (tmp_path / "assessment.json").exists()
     assert (tmp_path / "bundle.json").exists()
+    assert (tmp_path / "verification.json").exists()
     report_html = (tmp_path / "report.html").read_text(encoding="utf-8")
     assert str(tmp_path / "evidence.json") in report_html
     assert str(tmp_path / "summary.json") in report_html
@@ -481,6 +483,7 @@ def test_calibrate_evaluate_visualize_export(
     assert (evaluated_dir / "evidence.json").exists()
     assert (evaluated_dir / "assessment.json").exists()
     assert (evaluated_dir / "bundle.json").exists()
+    assert (evaluated_dir / "verification.json").exists()
     visualized_dir = tmp_path / "visualized"
     assert (
         main(
@@ -503,6 +506,7 @@ def test_calibrate_evaluate_visualize_export(
     assert (visualized_dir / "evidence.json").exists()
     assert (visualized_dir / "assessment.json").exists()
     assert (visualized_dir / "bundle.json").exists()
+    assert (visualized_dir / "verification.json").exists()
     assert (
         main(["export", str(result), "--format", "ros-tf", "--output", str(tmp_path / "tf.yaml")])
         == 0
