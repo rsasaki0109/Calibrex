@@ -28,6 +28,7 @@ from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
     verify_evidence_bundle,
+    verify_evidence_bundle_verification,
 )
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
@@ -128,8 +129,11 @@ def _build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     validate.set_defaults(func=_cmd_validate)
 
-    verify = subcommands.add_parser("verify", help="verify an evidence bundle manifest")
-    verify.add_argument("bundle", type=Path)
+    verify = subcommands.add_parser(
+        "verify",
+        help="verify an evidence bundle manifest or saved verification artifact",
+    )
+    verify.add_argument("artifact", type=Path)
     verify.add_argument("--output", type=Path, help="write verification YAML/JSON")
     verify.add_argument(
         "--require-raw-recomputed",
@@ -393,10 +397,18 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
-    report = verify_evidence_bundle(
-        args.bundle,
-        require_raw_recomputed=args.require_raw_recomputed,
-    )
+    artifact = Path(args.artifact)
+    schema_version = read_mapping(artifact).get("schema_version")
+    if schema_version == "calibrex.evidence_bundle.verification/v0.1":
+        report = verify_evidence_bundle_verification(
+            artifact,
+            require_raw_recomputed=args.require_raw_recomputed,
+        )
+    else:
+        report = verify_evidence_bundle(
+            artifact,
+            require_raw_recomputed=args.require_raw_recomputed,
+        )
     payload = report.model_dump(mode="json")
     if args.output:
         write_mapping(args.output, payload)
@@ -938,7 +950,11 @@ def _emit(payload: dict[str, Any], as_json: bool) -> None:
 
 def _emit_verification(verification: EvidenceBundleVerification) -> None:
     summary = verification.verification_summary
-    print(f"bundle: {verification.path}")
+    if verification.path == verification.source_bundle.path:
+        print(f"bundle: {verification.path}")
+    else:
+        print(f"verification: {verification.path}")
+        print(f"source_bundle: {verification.source_bundle.path}")
     print(f"valid: {_format_bool(verification.valid)}")
     print(f"source_bundle_sha256: {verification.source_bundle.sha256}")
     if verification.raw_recomputed_required:

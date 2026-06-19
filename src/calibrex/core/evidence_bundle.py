@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -42,6 +43,7 @@ VerificationClaimScope = Literal[
     "source_evidence_link",
     "input_file_digest",
     "raw_recomputed_requirement",
+    "verification_record",
 ]
 VerificationClaimStatus = Literal["ok", "failed", "skipped"]
 
@@ -337,6 +339,56 @@ def verify_evidence_bundle(
     )
 
 
+def verify_evidence_bundle_verification(
+    path: str | Path,
+    *,
+    require_raw_recomputed: bool = False,
+) -> EvidenceBundleVerification:
+    """Verify a saved verification artifact against its source bundle."""
+
+    verification_path = Path(path)
+    try:
+        saved = EvidenceBundleVerification.model_validate(read_mapping(verification_path))
+    except Exception as exc:
+        msg = f"invalid evidence bundle verification {verification_path}: {exc}"
+        raise CalibrexError(msg) from exc
+
+    source_bundle_path = _resolve_artifact_path(
+        verification_path.parent,
+        saved.source_bundle.path,
+    )
+    effective_raw_gate = require_raw_recomputed or saved.raw_recomputed_required
+    recomputed = verify_evidence_bundle(
+        source_bundle_path,
+        require_raw_recomputed=effective_raw_gate,
+    )
+    issues = list(recomputed.issues)
+    verification_claims = list(recomputed.verification_claims)
+    _verify_saved_verification_record(
+        saved=saved,
+        recomputed=recomputed,
+        verification_path=verification_path,
+        issues=issues,
+        verification_claims=verification_claims,
+    )
+    return EvidenceBundleVerification(
+        path=str(verification_path),
+        source_bundle=recomputed.source_bundle,
+        valid=not issues,
+        issue_count=len(issues),
+        issues=issues,
+        artifact_count=recomputed.artifact_count,
+        checked_artifacts=recomputed.checked_artifacts,
+        primary_evidence_materialization=recomputed.primary_evidence_materialization,
+        raw_recomputed_required=effective_raw_gate,
+        input_file_count=recomputed.input_file_count,
+        checked_input_file_count=recomputed.checked_input_file_count,
+        checked_input_files=recomputed.checked_input_files,
+        verification_summary=_verification_claim_summary(verification_claims),
+        verification_claims=verification_claims,
+    )
+
+
 def _bundle_artifact(
     base_dir: Path,
     path: Path,
@@ -453,6 +505,116 @@ def _verify_raw_recomputed_requirement(
         },
         issues=claim_issues,
     )
+
+
+def _verify_saved_verification_record(
+    *,
+    saved: EvidenceBundleVerification,
+    recomputed: EvidenceBundleVerification,
+    verification_path: Path,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    identity_fields = {
+        "sha256": saved.source_bundle.sha256,
+        "size_bytes": saved.source_bundle.size_bytes,
+        "schema_version": saved.source_bundle.schema_version,
+        "run_id": saved.source_bundle.run_id,
+    }
+    observed_identity = {
+        "sha256": recomputed.source_bundle.sha256,
+        "size_bytes": recomputed.source_bundle.size_bytes,
+        "schema_version": recomputed.source_bundle.schema_version,
+        "run_id": recomputed.source_bundle.run_id,
+    }
+    identity_issues = _field_mismatch_issues(
+        subject="source_bundle",
+        expected=identity_fields,
+        observed=observed_identity,
+    )
+    issues.extend(identity_issues)
+    _append_claim(
+        verification_claims,
+        scope="verification_record",
+        subject=str(verification_path),
+        status="ok" if not identity_issues else "failed",
+        method="saved_source_bundle_identity",
+        expected={
+            "path": saved.source_bundle.path,
+            **identity_fields,
+        },
+        observed={
+            "path": recomputed.source_bundle.path,
+            **observed_identity,
+        },
+        issues=identity_issues,
+    )
+
+    expected_record = _verification_record_fingerprint(saved)
+    observed_record = _verification_record_fingerprint(recomputed)
+    record_issues = _field_mismatch_issues(
+        subject="verification_record",
+        expected=expected_record,
+        observed=observed_record,
+    )
+    issues.extend(record_issues)
+    _append_claim(
+        verification_claims,
+        scope="verification_record",
+        subject=str(verification_path),
+        status="ok" if not record_issues else "failed",
+        method="saved_verification_recompute_match",
+        expected=expected_record,
+        observed=observed_record,
+        issues=record_issues,
+    )
+
+
+def _verification_record_fingerprint(
+    verification: EvidenceBundleVerification,
+) -> dict[str, Any]:
+    base_claims = [
+        claim
+        for claim in verification.verification_claims
+        if claim.scope != "verification_record"
+    ]
+    return {
+        "valid": verification.valid,
+        "issue_count": verification.issue_count,
+        "artifact_count": verification.artifact_count,
+        "checked_artifacts": list(verification.checked_artifacts),
+        "raw_recomputed_required": verification.raw_recomputed_required,
+        "input_file_count": verification.input_file_count,
+        "checked_input_file_count": verification.checked_input_file_count,
+        "checked_input_files": list(verification.checked_input_files),
+        "verification_summary": _verification_claim_summary(base_claims).model_dump(
+            mode="json"
+        ),
+        "verification_claims_sha256": _canonical_json_sha256(
+            [claim.model_dump(mode="json") for claim in base_claims]
+        ),
+    }
+
+
+def _field_mismatch_issues(
+    *,
+    subject: str,
+    expected: dict[str, Any],
+    observed: dict[str, Any],
+) -> list[str]:
+    mismatches = []
+    for key, expected_value in expected.items():
+        observed_value = observed.get(key)
+        if observed_value != expected_value:
+            mismatches.append(
+                f"{subject}: {key} mismatch ({observed_value!r} != {expected_value!r})"
+            )
+    return mismatches
+
+
+def _canonical_json_sha256(payload: Any) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _verification_claim_summary(

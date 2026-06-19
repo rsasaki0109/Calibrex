@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the local release smoke test used by CI and release workflows."""
+"""Run the local release smoke test used before packaging."""
 
 from __future__ import annotations
 
@@ -120,6 +120,7 @@ def main() -> int:
             "--json",
         ]
     )
+    _run([str(smoke_calibrex), "verify", str(verification_path), "--json"])
     _run(
         [
             str(smoke_calibrex),

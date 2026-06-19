@@ -402,6 +402,32 @@ def test_calibrate_evaluate_visualize_export(
     assert "claim_scopes:" in verify_text
     assert "  artifact_digest: 7" in verify_text
     assert "  source_evidence_link: 4" in verify_text
+    assert main(["verify", str(verification_path), "--json"]) == 0
+    saved_verify_payload = json.loads(capsys.readouterr().out)
+    assert saved_verify_payload["path"] == str(verification_path)
+    saved_verify_scopes = saved_verify_payload["verification_summary"]["by_scope"]
+    assert saved_verify_scopes["verification_record"] == 2
+    assert any(
+        claim["scope"] == "verification_record"
+        and claim["method"] == "saved_verification_recompute_match"
+        and claim["status"] == "ok"
+        for claim in saved_verify_payload["verification_claims"]
+    )
+    saved_verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    saved_verification["valid"] = False
+    write_mapping(verification_path, saved_verification)
+    assert main(["verify", str(verification_path), "--json"]) == 1
+    tampered_verification_payload = json.loads(capsys.readouterr().out)
+    assert any(
+        claim["scope"] == "verification_record"
+        and claim["method"] == "saved_verification_recompute_match"
+        and claim["status"] == "failed"
+        for claim in tampered_verification_payload["verification_claims"]
+    )
+    assert any(
+        "verification_record: valid mismatch" in issue
+        for issue in tampered_verification_payload["issues"]
+    )
     assert verify_payload["input_file_count"] == 0
     assert verify_payload["checked_input_file_count"] == 0
     assert verify_payload["checked_input_files"] == []

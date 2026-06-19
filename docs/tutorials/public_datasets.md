@@ -86,10 +86,13 @@ run consistency, assessment source links, and raw input digests.
 Without `--json`, `calibrex verify` prints the same rollup as a compact
 review summary before any issue list.
 The saved `verification.json` is schema-versioned and can be validated or
-stored as a CI artifact. It records the verified bundle path, SHA-256, size,
-schema version, and run id under `source_bundle`, plus the primary evidence
-`metrics_origin` / `data_verified` values under
-`primary_evidence_materialization`.
+stored as a review artifact. It records the verified bundle path, SHA-256,
+size, schema version, and run id under `source_bundle`, plus the primary
+evidence `metrics_origin` / `data_verified` values under
+`primary_evidence_materialization`. You can also pass the saved
+`verification.json` back to `calibrex verify`; Calibrex recomputes the source
+bundle check and reports `verification_record` claims if the saved record is
+stale or edited.
 Derived sidecars such as `summary.json`, `metrics.json`, `observability.json`,
 and `degeneracy.json` also include `source_evidence` so reviewers can verify
 which immutable `evidence.json` they summarize.

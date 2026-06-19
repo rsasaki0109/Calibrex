@@ -100,9 +100,10 @@ quality gates to a result. Cached inputs emit CLI and HTML warnings, and
 `calibrex assess evidence.json` applies the falsification policy. `calibrex
 compare` shows materialization for both sides. `bundle.json` records artifact
 SHA-256 digests and can be checked with `calibrex verify bundle.json`; report
-outputs also include `verification.json` with that check materialized. When
-`evidence.json.input_files` is present, `verify` also checks those raw input
-file sizes and digests.
+outputs also include `verification.json` with that check materialized.
+`calibrex verify verification.json` recomputes the source bundle check and
+detects stale or edited verification records. When `evidence.json.input_files`
+is present, `verify` also checks those raw input file sizes and digests.
 
 Committed JSON schemas are regenerated with:
 
