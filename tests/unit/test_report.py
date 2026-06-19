@@ -110,6 +110,8 @@ def test_report_renders_calibration_scoreboard() -> None:
     assert "metrics.json" in html
     assert "evidence.json" in html
     assert "assessment.json" in html
+    assert "bundle.json" in html
+    assert "verification.json" in html
 
 
 def test_report_renders_lidar_pair_evidence_section() -> None:

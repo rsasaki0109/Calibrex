@@ -1277,6 +1277,7 @@ def _report_sidecar_artifact_rows(result: CalibrationResult) -> list[str]:
     }
     sidecars["assessment"] = str(base_dir / _ASSESSMENT_FILENAME)
     sidecars["bundle"] = str(base_dir / _REPORT_BUNDLE_FILENAME)
+    sidecars["verification"] = str(base_dir / _VERIFICATION_FILENAME)
     return [_artifact_row(name, path) for name, path in sidecars.items()]
 
 

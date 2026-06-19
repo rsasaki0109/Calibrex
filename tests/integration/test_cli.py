@@ -288,6 +288,8 @@ def test_calibrate_evaluate_visualize_export(
     report_html = (tmp_path / "report.html").read_text(encoding="utf-8")
     assert str(tmp_path / "evidence.json") in report_html
     assert str(tmp_path / "summary.json") in report_html
+    assert str(tmp_path / "bundle.json") in report_html
+    assert str(tmp_path / "verification.json") in report_html
     summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
     ReportSummaryArtifact.model_validate(summary)
     assert summary["schema_version"] == "calibrex.report.summary/v0.1"
