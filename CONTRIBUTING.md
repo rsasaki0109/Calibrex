@@ -69,16 +69,7 @@ Before tagging, run the local release smoke when GitHub Actions is unavailable
 or when package metadata changed:
 
 ```bash
-rm -rf dist build src/calibrex.egg-info /tmp/calibrex-release-smoke
-python -m build
-python -m venv /tmp/calibrex-release-smoke
-/tmp/calibrex-release-smoke/bin/python -m pip install dist/*.whl
-/tmp/calibrex-release-smoke/bin/calibrex doctor --json
-/tmp/calibrex-release-smoke/bin/calibrex schema all --output-dir /tmp/calibrex-release-schemas
-test "$(find /tmp/calibrex-release-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 9
-/tmp/calibrex-release-smoke/bin/calibrex validate examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --kind result --json
-/tmp/calibrex-release-smoke/bin/calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml --output-dir /tmp/calibrex-release-report --json
-/tmp/calibrex-release-smoke/bin/calibrex validate /tmp/calibrex-release-report/evidence.json --kind report-evidence --json
+python3 tools/local_release_smoke.py
 ```
 
 The release workflow does not publish to PyPI. Publish release artifacts only
