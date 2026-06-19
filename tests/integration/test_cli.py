@@ -37,6 +37,21 @@ def _sha256_file_for_test(path: Path) -> tuple[str, int]:
     return digest.hexdigest(), size_bytes
 
 
+def _refresh_bundle_artifact_for_test(
+    bundle_path: Path,
+    artifact_path: Path,
+) -> None:
+    sha256, size_bytes = _sha256_file_for_test(artifact_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    for artifact in bundle["artifacts"]:
+        if artifact["path"] == artifact_path.name:
+            artifact["sha256"] = sha256
+            artifact["size_bytes"] = size_bytes
+            write_mapping(bundle_path, bundle)
+            return
+    raise AssertionError(f"{artifact_path.name} was not listed in bundle")
+
+
 def _write_oxts_packet(path: Path, *, yaw_rad: float, vn: float, ve: float) -> None:
     fields = [
         49.0,
@@ -436,6 +451,76 @@ def test_calibrate_evaluate_visualize_export(
     assert verify_payload["verification_summary"]["skipped"] >= 1
     assert verify_payload["verification_summary"]["by_scope"]["artifact_digest"] == 10
     assert verify_payload["verification_summary"]["by_scope"]["source_evidence_link"] == 4
+    assert verify_payload["verification_summary"]["by_scope"]["protocol_evidence_link"] == 1
+    assert verify_payload["verification_summary"]["by_scope"]["policy_assessment_link"] == 1
+    assert any(
+        claim["scope"] == "protocol_evidence_link"
+        and claim["subject"] == "protocol.json"
+        and claim["status"] == "ok"
+        for claim in verify_payload["verification_claims"]
+    )
+    assert any(
+        claim["scope"] == "policy_assessment_link"
+        and claim["subject"] == "policy.json"
+        and claim["status"] == "ok"
+        for claim in verify_payload["verification_claims"]
+    )
+
+    protocol_path = tmp_path / "protocol.json"
+    tampered_protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    tampered_protocol["protocols"].append(
+        {"family": "lidar_pair", "protocol_id": "tampered/protocol"}
+    )
+    write_mapping(protocol_path, tampered_protocol)
+    _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", protocol_path)
+    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 1
+    protocol_mismatch_payload = json.loads(capsys.readouterr().out)
+    assert any(
+        claim["scope"] == "protocol_evidence_link"
+        and claim["subject"] == "protocol.json"
+        and claim["status"] == "failed"
+        for claim in protocol_mismatch_payload["verification_claims"]
+    )
+    assert any(
+        "protocol.json: protocols do not match primary evidence" in issue
+        for issue in protocol_mismatch_payload["issues"]
+    )
+    write_mapping(protocol_path, protocol)
+    _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", protocol_path)
+
+    policy_path = tmp_path / "policy.json"
+    tampered_policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    tampered_policy["policy"]["parameters"]["min_support_ratio"] = 0.99
+    write_mapping(policy_path, tampered_policy)
+    _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", policy_path)
+    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 1
+    policy_mismatch_payload = json.loads(capsys.readouterr().out)
+    assert any(
+        claim["scope"] == "policy_assessment_link"
+        and claim["subject"] == "policy.json"
+        and claim["status"] == "failed"
+        for claim in policy_mismatch_payload["verification_claims"]
+    )
+    assert any(
+        "policy.json: policy_sha256 mismatch" in issue
+        for issue in policy_mismatch_payload["issues"]
+    )
+    write_mapping(policy_path, policy)
+    _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", policy_path)
+
+    assert (
+        main(
+            [
+                "verify",
+                str(tmp_path / "bundle.json"),
+                "--output",
+                str(verification_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
     assert verification_path.exists()
     assert main(["validate", str(verification_path)]) == 0
     assert (

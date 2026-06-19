@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.assessment import AssessmentArtifact
+from calibrex.core.evidence_contract import PolicyArtifact, ProtocolArtifact
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.report_artifacts import (
@@ -45,6 +47,8 @@ VerificationClaimScope = Literal[
     "run_consistency",
     "assessment_source",
     "source_evidence_link",
+    "protocol_evidence_link",
+    "policy_assessment_link",
     "input_file_digest",
     "raw_recomputed_requirement",
     "verification_record",
@@ -192,6 +196,7 @@ def verify_evidence_bundle(
     checked: list[str] = []
     artifact_paths = {artifact.path for artifact in manifest.artifacts}
     artifact_digests = {artifact.path: artifact.sha256 for artifact in manifest.artifacts}
+    artifact_by_kind = _artifact_by_kind(manifest.artifacts)
     if manifest.primary_evidence_path not in artifact_paths:
         issue = (
             f"primary evidence {manifest.primary_evidence_path!r} is not listed in artifacts"
@@ -284,6 +289,29 @@ def verify_evidence_bundle(
                 artifact_path=artifact_path,
                 primary_evidence_path=manifest.primary_evidence_path,
                 primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
+                issues=issues,
+                verification_claims=verification_claims,
+            )
+        elif artifact.kind == "protocol":
+            _verify_protocol_evidence_link(
+                artifact=artifact,
+                artifact_path=artifact_path,
+                bundle_dir=base_dir,
+                primary_evidence_path=manifest.primary_evidence_path,
+                issues=issues,
+                verification_claims=verification_claims,
+            )
+        elif artifact.kind == "policy":
+            assessment_artifact = artifact_by_kind.get("assessment")
+            assessment_path = (
+                _resolve_artifact_path(base_dir, assessment_artifact.path)
+                if assessment_artifact is not None
+                else None
+            )
+            _verify_policy_assessment_link(
+                artifact=artifact,
+                artifact_path=artifact_path,
+                assessment_path=assessment_path,
                 issues=issues,
                 verification_claims=verification_claims,
             )
@@ -461,6 +489,15 @@ def _bundle_artifact(
         size_bytes=size_bytes,
         schema_version=schema_version,
     )
+
+
+def _artifact_by_kind(
+    artifacts: list[EvidenceBundleArtifact],
+) -> dict[str, EvidenceBundleArtifact]:
+    by_kind: dict[str, EvidenceBundleArtifact] = {}
+    for artifact in artifacts:
+        by_kind.setdefault(artifact.kind, artifact)
+    return by_kind
 
 
 def _portable_path(base_dir: Path, path: Path) -> str:
@@ -906,6 +943,160 @@ def _verify_assessment_source(
         },
         issues=claim_issues,
     )
+
+
+def _verify_protocol_evidence_link(
+    *,
+    artifact: EvidenceBundleArtifact,
+    artifact_path: Path,
+    bundle_dir: Path,
+    primary_evidence_path: str,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    evidence_path = _resolve_artifact_path(bundle_dir, primary_evidence_path)
+    try:
+        protocol_artifact = ProtocolArtifact.model_validate(read_mapping(artifact_path))
+        evidence = ReportEvidenceArtifact.model_validate(read_mapping(evidence_path))
+    except Exception:
+        _append_claim(
+            verification_claims,
+            scope="protocol_evidence_link",
+            subject=artifact.path,
+            status="skipped",
+            method="protocols_match_primary_evidence",
+            expected={"primary_evidence_path": primary_evidence_path},
+            observed={"reason": "protocol or primary evidence could not be parsed"},
+        )
+        return
+
+    expected_protocols = [
+        protocol.model_dump(mode="json", exclude_none=True)
+        for protocol in evidence.protocols
+    ]
+    observed_protocols = [
+        protocol.model_dump(mode="json", exclude_none=True)
+        for protocol in protocol_artifact.protocols
+    ]
+    claim_issues: list[str] = []
+    if observed_protocols != expected_protocols:
+        issue = f"{artifact.path}: protocols do not match primary evidence"
+        issues.append(issue)
+        claim_issues.append(issue)
+    _append_claim(
+        verification_claims,
+        scope="protocol_evidence_link",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="protocols_match_primary_evidence",
+        expected={
+            "primary_evidence_path": primary_evidence_path,
+            "protocol_count": len(expected_protocols),
+            "protocols_sha256": _canonical_json_sha256(expected_protocols),
+        },
+        observed={
+            "protocol_count": len(observed_protocols),
+            "protocols_sha256": _canonical_json_sha256(observed_protocols),
+        },
+        issues=claim_issues,
+    )
+
+
+def _verify_policy_assessment_link(
+    *,
+    artifact: EvidenceBundleArtifact,
+    artifact_path: Path,
+    assessment_path: Path | None,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    if assessment_path is None:
+        issue = f"{artifact.path}: policy artifact has no bundled assessment artifact"
+        issues.append(issue)
+        _append_claim(
+            verification_claims,
+            scope="policy_assessment_link",
+            subject=artifact.path,
+            status="failed",
+            method="policy_matches_assessment",
+            expected={"assessment_artifact": "present"},
+            observed={"assessment_artifact": None},
+            issues=[issue],
+        )
+        return
+    try:
+        policy_artifact = PolicyArtifact.model_validate(read_mapping(artifact_path))
+        assessment = AssessmentArtifact.model_validate(read_mapping(assessment_path))
+    except Exception:
+        _append_claim(
+            verification_claims,
+            scope="policy_assessment_link",
+            subject=artifact.path,
+            status="skipped",
+            method="policy_matches_assessment",
+            expected={"assessment_path": str(assessment_path)},
+            observed={"reason": "policy or assessment could not be parsed"},
+        )
+        return
+
+    expected = _policy_fingerprint_from_assessment(assessment)
+    observed = _policy_fingerprint_from_artifact(policy_artifact)
+    claim_issues = _field_mismatch_issues(
+        subject=artifact.path,
+        expected=expected,
+        observed=observed,
+    )
+    issues.extend(claim_issues)
+    _append_claim(
+        verification_claims,
+        scope="policy_assessment_link",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="policy_matches_assessment",
+        expected=expected,
+        observed=observed,
+        issues=claim_issues,
+    )
+
+
+def _policy_fingerprint_from_assessment(
+    assessment: AssessmentArtifact,
+) -> dict[str, Any]:
+    gates = [
+        {
+            "rule_id": rule.rule_id,
+            "metric_ids": list(rule.metric_ids),
+            "thresholds": dict(rule.thresholds),
+            "evidence_refs": list(rule.evidence_refs),
+        }
+        for rule in assessment.rules
+    ]
+    return {
+        "policy_sha256": _canonical_json_sha256(
+            assessment.policy.model_dump(mode="json")
+        ),
+        "gates_sha256": _canonical_json_sha256(gates),
+        "gate_rule_ids": [gate["rule_id"] for gate in gates],
+    }
+
+
+def _policy_fingerprint_from_artifact(policy_artifact: PolicyArtifact) -> dict[str, Any]:
+    gates = [
+        {
+            "rule_id": gate.rule_id,
+            "metric_ids": list(gate.metric_ids),
+            "thresholds": dict(gate.thresholds),
+            "evidence_refs": list(gate.evidence_refs),
+        }
+        for gate in policy_artifact.gates
+    ]
+    return {
+        "policy_sha256": _canonical_json_sha256(
+            policy_artifact.policy.model_dump(mode="json")
+        ),
+        "gates_sha256": _canonical_json_sha256(gates),
+        "gate_rule_ids": [gate["rule_id"] for gate in gates],
+    }
 
 
 def _verify_source_evidence_link(

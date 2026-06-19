@@ -92,6 +92,9 @@ the referenced raw file sizes and SHA-256 digests. The verify JSON includes
 cached report fixtures normally report zero input files. It also includes
 `verification_summary` with total, ok, failed, skipped, and per-scope claim
 counts, so automated review can fail quickly without parsing every claim.
+Verification also checks semantic links between sidecars: `protocol.json` must
+match the protocols embedded in `evidence.json`, and `policy.json` must match
+the policy and gate fingerprints recorded by `assessment.json`.
 The detailed record remains in
 `verification_claims`, where each claim records a scope, status, method,
 expected values, observed values, and scoped issues for artifact digests,
