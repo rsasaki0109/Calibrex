@@ -251,6 +251,12 @@ def compare_results(
     )
 
 
+def comparison_json_schema() -> dict[str, object]:
+    """Return the JSON schema for comparison artifacts."""
+
+    return ResultComparison.model_json_schema()
+
+
 def _side(result: CalibrationResult, path: str | Path | None) -> ComparisonSide:
     return ComparisonSide(
         path=str(path) if path is not None else None,

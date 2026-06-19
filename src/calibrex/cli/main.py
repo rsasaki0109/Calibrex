@@ -36,7 +36,7 @@ from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
-from calibrex.evaluation.compare import ResultComparison, compare_results
+from calibrex.evaluation.compare import ResultComparison, compare_results, comparison_json_schema
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
 from calibrex.evaluation.metrics import evaluate_quality
@@ -82,6 +82,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=[
             "config",
             "result",
+            "comparison",
             "dataset-manifest",
             *report_artifact_schema_kinds(),
         ],
@@ -260,6 +261,8 @@ def _cmd_schema(args: argparse.Namespace) -> int:
         schema = config_json_schema()
     elif args.kind == "result":
         schema = result_json_schema()
+    elif args.kind == "comparison":
+        schema = comparison_json_schema()
     elif args.kind == "dataset-manifest":
         schema = manifest_json_schema()
     elif is_report_artifact_schema_kind(args.kind):

@@ -336,6 +336,8 @@ def test_compare_command_writes_machine_readable_summary(
     assert payload["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
     assert payload["summary"]["max_translation_delta_m"] == 0.05
     assert payload["transform_groups"]["transforms"]["comparison_count"] == 2
+    assert main(["validate", str(output)]) == 0
+    assert main(["validate", str(output), "--kind", "comparison"]) == 0
 
 
 def test_visualize_reference_result_writes_3d_rig_overlay(
@@ -383,6 +385,7 @@ def test_visualize_reference_result_writes_3d_rig_overlay(
 def test_schema_commands(tmp_path: Path) -> None:
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"
+    comparison_schema = tmp_path / "comparison.schema.json"
     manifest_schema = tmp_path / "dataset_manifest.schema.json"
     report_summary_schema = tmp_path / "report_summary.schema.json"
     report_metrics_schema = tmp_path / "report_metrics.schema.json"
@@ -391,6 +394,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     report_evidence_schema = tmp_path / "report_evidence.schema.json"
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
+    assert main(["schema", "comparison", "--output", str(comparison_schema)]) == 0
     assert main(["schema", "dataset-manifest", "--output", str(manifest_schema)]) == 0
     assert main(["schema", "report-summary", "--output", str(report_summary_schema)]) == 0
     assert main(["schema", "report-metrics", "--output", str(report_metrics_schema)]) == 0
@@ -402,6 +406,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert main(["schema", "report-evidence", "--output", str(report_evidence_schema)]) == 0
     assert config_schema.exists()
     assert result_schema.exists()
+    assert comparison_schema.exists()
     assert manifest_schema.exists()
     assert report_summary_schema.exists()
     assert report_metrics_schema.exists()
@@ -409,10 +414,14 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert report_degeneracy_schema.exists()
     assert report_evidence_schema.exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
+    comparison_schema_payload = json.loads(comparison_schema.read_text(encoding="utf-8"))
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
     evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
     assert summary_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.summary/v0.1"
+    )
+    assert comparison_schema_payload["properties"]["schema_version"]["const"] == (
+        "calibrex.comparison/v0.1"
     )
     assert metrics_schema["properties"]["schema_version"]["const"] == (
         "calibrex.report.metrics/v0.1"

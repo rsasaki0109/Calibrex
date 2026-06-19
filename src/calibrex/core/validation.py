@@ -24,11 +24,13 @@ from calibrex.core.report_artifacts import (
 )
 from calibrex.core.result import RESULT_SCHEMA_VERSION, CalibrationResult, StrictModel
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
+from calibrex.evaluation.compare import COMPARISON_SCHEMA_VERSION, ResultComparison
 
 ValidationKind = Literal[
     "auto",
     "config",
     "result",
+    "comparison",
     "dataset-manifest",
     "report-summary",
     "report-metrics",
@@ -40,6 +42,7 @@ ValidationKind = Literal[
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "config": CalibrationConfig,
     "result": CalibrationResult,
+    "comparison": ResultComparison,
     "dataset-manifest": DatasetManifest,
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
@@ -51,6 +54,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CONFIG_SCHEMA_VERSION: "config",
     RESULT_SCHEMA_VERSION: "result",
+    COMPARISON_SCHEMA_VERSION: "comparison",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",
