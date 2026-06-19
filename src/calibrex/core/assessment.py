@@ -163,11 +163,11 @@ def assess_report_evidence(
 def _materialization_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
     origin = evidence.materialization.metrics_origin
     data_verified = evidence.materialization.data_verified
-    if origin == "recomputed" and data_verified is not False:
+    if origin == "recomputed" and data_verified is True:
         return AssessmentRuleResult(
             rule_id="raw_recomputation",
             status="pass",
-            reason="evidence was materialized from recomputed metrics",
+            reason="evidence was materialized from recomputed metrics with verified raw inputs",
             observed={"metrics_origin": origin, "data_verified": data_verified},
         )
     return AssessmentRuleResult(

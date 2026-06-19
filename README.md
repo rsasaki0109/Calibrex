@@ -92,7 +92,7 @@ extrinsics together.
 Report sidecars record evidence materialization:
 
 - `metrics_origin`: `recomputed`, `cached`, or `unknown`
-- `data_verified`: whether raw data was read for this artifact
+- `data_verified`: whether raw input file digests were verified for this artifact
 - `evidence.json.input_files`: raw file paths, SHA-256 digests, sizes, and known public source URLs when available
 
 `calibrex report` renders an existing result. `calibrex evaluate` reapplies

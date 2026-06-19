@@ -55,6 +55,8 @@ with `metrics_origin`, `data_verified`, `computed_at`, and
 `data_verified: false`, and the HTML report displays a cached-evidence banner.
 Raw Livox recomputation also writes `evidence.json.input_files` with the PCD
 paths, SHA-256 digests, byte sizes, and known public source URLs.
+The built-in falsification policy only passes the raw recomputation gate when
+`metrics_origin: recomputed` and `data_verified: true` are both present.
 Generated report directories also include `bundle.json`, which records SHA-256
 digests for the HTML report and machine-readable sidecars. `assessment.json`
 records the falsification policy result. Cached or non-independent evidence can

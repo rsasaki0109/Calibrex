@@ -435,7 +435,9 @@ def test_evaluate_cached_result_reports_materialization_warning(
         ("holdout_independence", "inconclusive"),
         ("known_bad_controls", "pass"),
     }
-    assert "CACHED EVIDENCE" in (output_dir / "report.html").read_text(encoding="utf-8")
+    assert "EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION" in (
+        output_dir / "report.html"
+    ).read_text(encoding="utf-8")
     assert main(["assess", str(output_dir / "evidence.json"), "--json"]) == 1
     assessed = json.loads(capsys.readouterr().out)
     assert assessed["status"] == "inconclusive"
@@ -1174,7 +1176,7 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
         "warning: cached evidence: raw data was not read or recomputed by this report command"
     ) in report_text
     report_html = (reported_dir / "report.html").read_text(encoding="utf-8")
-    assert "CACHED EVIDENCE" in report_html
+    assert "EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION" in report_html
     assert "LiDAR Pair Evidence" in report_html
     assert "lidar_pair_source_voxel_recall_in_target" in report_html
     summary = json.loads((reported_dir / "summary.json").read_text(encoding="utf-8"))
@@ -1354,6 +1356,8 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     evidence = json.loads(Path(payload["evidence"]).read_text(encoding="utf-8"))
     assert evidence["materialization"]["data_verified"] is True
     assert len(evidence["input_files"]) == 2
+    report_html = Path(payload["html_report"]).read_text(encoding="utf-8")
+    assert "EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION" not in report_html
     assert main(["verify", str(output_dir / "bundle.json"), "--json"]) == 0
     verify_payload = json.loads(capsys.readouterr().out)
     assert len(verify_payload["checked_input_files"]) == 2

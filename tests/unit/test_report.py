@@ -257,8 +257,7 @@ def test_report_marks_cached_evidence_artifacts() -> None:
 
     html = render_html_report(result)
 
-    assert "CACHED EVIDENCE" in html
-    assert "RAW DATA NOT READ OR RECOMPUTED" in html
+    assert "EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION" in html
     assert "metrics_origin" in html
     assert "data_verified" in html
 

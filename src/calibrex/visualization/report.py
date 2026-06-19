@@ -775,18 +775,18 @@ def _observability_rows(result: CalibrationResult) -> str:
 
 def _cached_evidence_banner(result: CalibrationResult) -> str:
     provenance = result.run.provenance
-    if (
-        provenance.get("metrics_origin") != "cached"
-        and provenance.get("data_verified") is not False
-    ):
+    metrics_origin_raw = provenance.get("metrics_origin")
+    data_verified_raw = provenance.get("data_verified")
+    if metrics_origin_raw == "recomputed" and data_verified_raw is True:
         return ""
-    metrics_origin = escape(str(provenance.get("metrics_origin", "unknown")))
-    data_verified = escape(str(provenance.get("data_verified", "unknown")).lower())
+    metrics_origin = escape(str(metrics_origin_raw or "unknown"))
+    data_verified_value = data_verified_raw if data_verified_raw is not None else "unknown"
+    data_verified = escape(str(data_verified_value).lower())
     computed_at = provenance.get("computed_at")
     computed = f" Computed at: <code>{escape(str(computed_at))}</code>." if computed_at else ""
     return (
         '<div class="banner">'
-        "<strong>CACHED EVIDENCE - RAW DATA NOT READ OR RECOMPUTED.</strong> "
+        "<strong>EVIDENCE INPUTS NOT VERIFIED AS RAW RECOMPUTATION.</strong> "
         f"metrics_origin=<code>{metrics_origin}</code>, "
         f"data_verified=<code>{data_verified}</code>."
         f"{computed}"
