@@ -171,6 +171,60 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
     assert comparison.summary.max_translation_delta_m == 0.1
     assert comparison.observability.only_left_weak_directions == ["yaw_lidar0"]
     assert comparison.observability.rank_delta_right_minus_left == 1
+    assert comparison.protocol_compatibility.status == "not_comparable"
+    assert comparison.protocol_compatibility.reasons == [
+        "neither result declares an evidence protocol"
+    ]
+
+
+def test_compare_results_reports_protocol_compatibility() -> None:
+    left = CalibrationResult(
+        run=RunInfo(
+            id="left",
+            calibrex_version="0.1.0",
+            provenance=_livox_pair_provenance(metrics_origin="cached"),
+        ),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+    )
+    right = CalibrationResult(
+        run=RunInfo(
+            id="right",
+            calibrex_version="0.1.0",
+            provenance=_livox_pair_provenance(metrics_origin="cached"),
+        ),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+    )
+
+    comparison = compare_results(left, right)
+
+    assert comparison.protocol_compatibility.status == "compatible"
+    assert comparison.protocol_compatibility.shared_protocol_ids == [
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1"
+    ]
+    assert comparison.protocol_compatibility.left_protocols[0].metrics_origin == "cached"
+
+    right.run.provenance["metrics_origin"] = "recomputed"
+    mixed = compare_results(left, right)
+
+    assert mixed.protocol_compatibility.status == "warning"
+    assert mixed.protocol_compatibility.reasons == [
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1: "
+        "metrics origin differs (cached vs recomputed)"
+    ]
+
+
+def _livox_pair_provenance(metrics_origin: str) -> dict[str, object]:
+    return {
+        "metrics_origin": metrics_origin,
+        "data_verified": False,
+        "livox_pair_evidence": {
+            "known_bad_case_count": 24,
+            "holdout_geometry": {
+                "split_policy": "single_pair_source_map_target_query",
+                "independent_holdout": False,
+            },
+        },
+    }
 
 
 def test_metric_registry_contains_autonomous_metrics() -> None:

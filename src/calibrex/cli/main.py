@@ -848,6 +848,10 @@ def _emit_comparison(comparison: ResultComparison) -> None:
         print(f"max_rotation_delta_deg: {summary.max_rotation_delta_deg:.6g}")
     if comparison.observability.only_right_weak_directions:
         print(f"new_weak_directions: {comparison.observability.only_right_weak_directions}")
+    protocol = comparison.protocol_compatibility
+    print(f"protocol_compatibility: {protocol.status}")
+    if protocol.reasons:
+        print(f"protocol_notes: {protocol.reasons}")
     if comparison.evidence_comparisons:
         winners = [item.winner for item in comparison.evidence_comparisons]
         print(f"evidence_checks: {len(comparison.evidence_comparisons)}")

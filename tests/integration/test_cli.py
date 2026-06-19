@@ -332,6 +332,7 @@ def test_compare_command_writes_machine_readable_summary(
     assert payload["schema_version"] == "calibrex.comparison/v0.1"
     assert payload["left"]["run_id"] == "precomputed_example"
     assert payload["right"]["run_id"] == "candidate_variant"
+    assert payload["protocol_compatibility"]["status"] == "not_comparable"
     assert payload["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
     assert payload["summary"]["max_translation_delta_m"] == 0.05
     assert payload["transform_groups"]["transforms"]["comparison_count"] == 2
@@ -982,6 +983,10 @@ def test_livox_precomputed_result_reports_and_visualizes(
     capsys.readouterr()
     assert main(["compare", str(result), str(result), "--json"]) == 0
     comparison = json.loads(capsys.readouterr().out)
+    assert comparison["protocol_compatibility"]["status"] == "compatible"
+    assert comparison["protocol_compatibility"]["shared_protocol_ids"] == [
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1"
+    ]
     evidence_comparisons = comparison["evidence_comparisons"]
     assert evidence_comparisons[0]["family"] == "lidar_pair"
     assert evidence_comparisons[0]["check"] == "Candidate Support"

@@ -28,6 +28,7 @@ COMPARISON_SCHEMA_VERSION: Literal["calibrex.comparison/v0.1"] = (
 MetricValueField = Literal["holdout", "value", "train", "none"]
 MetricPreference = Literal["lower", "higher", "unknown"]
 ComparisonWinner = Literal["left", "right", "tie", "not_comparable"]
+ProtocolCompatibilityStatus = Literal["compatible", "warning", "not_comparable"]
 
 
 class ComparisonSide(StrictModel):
@@ -146,6 +147,30 @@ class EvidenceSummaryComparison(StrictModel):
     winner: ComparisonWinner = "not_comparable"
 
 
+class EvidenceProtocolSide(StrictModel):
+    """One declared evidence protocol on one side of a comparison."""
+
+    protocol_id: str
+    family: str | None = None
+    metrics_origin: str
+    data_verified: bool | None = None
+    split_policy: str | None = None
+    independent_holdout: bool | None = None
+    known_bad_case_count: int | None = None
+
+
+class EvidenceProtocolCompatibility(StrictModel):
+    """Whether two results were evaluated under comparable evidence protocols."""
+
+    status: ProtocolCompatibilityStatus
+    reasons: list[str] = Field(default_factory=list)
+    shared_protocol_ids: list[str] = Field(default_factory=list)
+    only_left_protocol_ids: list[str] = Field(default_factory=list)
+    only_right_protocol_ids: list[str] = Field(default_factory=list)
+    left_protocols: list[EvidenceProtocolSide] = Field(default_factory=list)
+    right_protocols: list[EvidenceProtocolSide] = Field(default_factory=list)
+
+
 class ComparisonSummary(StrictModel):
     """High-level comparison counters."""
 
@@ -172,6 +197,7 @@ class ResultComparison(StrictModel):
     only_right_metrics: list[str] = Field(default_factory=list)
     transform_groups: dict[str, TransformGroupComparison] = Field(default_factory=dict)
     observability: ObservabilityComparison
+    protocol_compatibility: EvidenceProtocolCompatibility
     evidence_comparisons: list[EvidenceSummaryComparison] = Field(default_factory=list)
     left_degeneracy_grade: Grade
     right_degeneracy_grade: Grade
@@ -216,6 +242,7 @@ def compare_results(
         only_right_metrics=sorted(set(right.metrics) - set(left.metrics)),
         transform_groups=transform_groups,
         observability=_compare_observability(left, right),
+        protocol_compatibility=_compare_protocol_compatibility(left, right),
         evidence_comparisons=evidence_comparisons,
         left_degeneracy_grade=left.degeneracy.grade,
         right_degeneracy_grade=right.degeneracy.grade,
@@ -517,6 +544,123 @@ def _evidence_winner(
     if left_rank == right_rank:
         return "tie"
     return "left" if left_rank > right_rank else "right"
+
+
+def _compare_protocol_compatibility(
+    left: CalibrationResult,
+    right: CalibrationResult,
+) -> EvidenceProtocolCompatibility:
+    left_protocols = _evidence_protocol_sides(left)
+    right_protocols = _evidence_protocol_sides(right)
+    left_by_id = {protocol.protocol_id: protocol for protocol in left_protocols}
+    right_by_id = {protocol.protocol_id: protocol for protocol in right_protocols}
+    shared_ids = sorted(set(left_by_id) & set(right_by_id))
+    only_left_ids = sorted(set(left_by_id) - set(right_by_id))
+    only_right_ids = sorted(set(right_by_id) - set(left_by_id))
+    reasons: list[str] = []
+    if not shared_ids:
+        if left_protocols or right_protocols:
+            reasons.append("no shared evidence protocol IDs")
+        else:
+            reasons.append("neither result declares an evidence protocol")
+        status: ProtocolCompatibilityStatus = "not_comparable"
+    else:
+        if only_left_ids:
+            reasons.append(f"protocols only on left: {', '.join(only_left_ids)}")
+        if only_right_ids:
+            reasons.append(f"protocols only on right: {', '.join(only_right_ids)}")
+        for protocol_id in shared_ids:
+            left_protocol = left_by_id[protocol_id]
+            right_protocol = right_by_id[protocol_id]
+            reasons.extend(_protocol_mismatch_reasons(protocol_id, left_protocol, right_protocol))
+        status = "compatible" if not reasons else "warning"
+    return EvidenceProtocolCompatibility(
+        status=status,
+        reasons=reasons,
+        shared_protocol_ids=shared_ids,
+        only_left_protocol_ids=only_left_ids,
+        only_right_protocol_ids=only_right_ids,
+        left_protocols=left_protocols,
+        right_protocols=right_protocols,
+    )
+
+
+def _evidence_protocol_sides(result: CalibrationResult) -> list[EvidenceProtocolSide]:
+    provenance = result.run.provenance
+    protocols: list[EvidenceProtocolSide] = []
+    livox_pair = provenance.get("livox_pair_evidence")
+    if isinstance(livox_pair, dict):
+        holdout_geometry = livox_pair.get("holdout_geometry")
+        holdout = holdout_geometry if isinstance(holdout_geometry, dict) else {}
+        protocols.append(
+            EvidenceProtocolSide(
+                protocol_id="livox_pair_single_pair_holdout_point_to_plane/v0.1",
+                family="lidar_pair",
+                metrics_origin=_metrics_origin(provenance),
+                data_verified=_bool_or_none(provenance.get("data_verified")),
+                split_policy=_str_or_none(holdout.get("split_policy")),
+                independent_holdout=_bool_or_none(holdout.get("independent_holdout")),
+                known_bad_case_count=_int_or_none(livox_pair.get("known_bad_case_count")),
+            )
+        )
+    return protocols
+
+
+def _protocol_mismatch_reasons(
+    protocol_id: str,
+    left: EvidenceProtocolSide,
+    right: EvidenceProtocolSide,
+) -> list[str]:
+    reasons: list[str] = []
+    if left.metrics_origin != right.metrics_origin:
+        reasons.append(
+            f"{protocol_id}: metrics origin differs "
+            f"({left.metrics_origin} vs {right.metrics_origin})"
+        )
+    if left.data_verified != right.data_verified:
+        reasons.append(
+            f"{protocol_id}: data verification differs "
+            f"({left.data_verified} vs {right.data_verified})"
+        )
+    if left.split_policy != right.split_policy:
+        reasons.append(
+            f"{protocol_id}: split policy differs "
+            f"({left.split_policy} vs {right.split_policy})"
+        )
+    if left.independent_holdout != right.independent_holdout:
+        reasons.append(
+            f"{protocol_id}: independent holdout differs "
+            f"({left.independent_holdout} vs {right.independent_holdout})"
+        )
+    if left.known_bad_case_count != right.known_bad_case_count:
+        reasons.append(
+            f"{protocol_id}: known-bad case count differs "
+            f"({left.known_bad_case_count} vs {right.known_bad_case_count})"
+        )
+    return reasons
+
+
+def _metrics_origin(provenance: dict[str, object]) -> str:
+    value = provenance.get("metrics_origin", "recomputed")
+    if isinstance(value, str) and value in {"recomputed", "cached", "unknown"}:
+        return value
+    return "unknown"
+
+
+def _str_or_none(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _bool_or_none(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
+def _int_or_none(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    return value if isinstance(value, int) else None
 
 
 def _grade_rank(grade: Grade) -> int:
