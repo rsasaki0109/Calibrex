@@ -1,0 +1,46 @@
+name: Calibration Failure
+description: Report a case where a calibration estimate or evidence report looks wrong.
+title: "[Calibration failure]: "
+labels: ["calibration-failure"]
+body:
+  - type: textarea
+    id: setup
+    attributes:
+      label: Sensor Setup
+      description: Sensors, mounting, dataset, sequence, and whether the reference is synthetic, dataset-provided, factory-provided, or measured independently.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands
+      description: Commands used to produce the result and report.
+      value: |
+        ```bash
+        calibrex calibrate ...
+        calibrex evaluate ...
+        calibrex compare ...
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence Artifacts
+      description: Attach or paste `result.yaml`, `comparison.json`, `evidence.json`, `metrics.json`, `observability.json`, and report snippets when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: interpretation
+    attributes:
+      label: What Looks Wrong?
+      description: Describe the unexpected metric, weak direction, protocol compatibility warning, overlay, or transform delta.
+    validations:
+      required: true
+  - type: textarea
+    id: limitations
+    attributes:
+      label: Known Limitations
+      description: Dynamic objects, short sequences, missing timestamps, weak motion excitation, private data restrictions, or non-independent reference concerns.
+    validations:
+      required: false

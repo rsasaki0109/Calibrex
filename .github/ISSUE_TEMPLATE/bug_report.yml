@@ -1,0 +1,42 @@
+name: Bug Report
+description: Report a reproducible Calibrex bug.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What failed, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Commands, config path, dataset adapter, and minimal files needed to reproduce.
+      value: |
+        ```bash
+        calibrex ...
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Calibrex version, Python version, OS, install method, and optional extras.
+      value: |
+        - Calibrex:
+        - Python:
+        - OS:
+        - Install command:
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Artifacts
+      description: Attach or paste relevant `result.yaml`, `comparison.json`, `evidence.json`, logs, or report snippets. Remove private paths or data.
+    validations:
+      required: false

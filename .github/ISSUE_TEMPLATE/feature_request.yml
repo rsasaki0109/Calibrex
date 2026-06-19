@@ -1,0 +1,40 @@
+name: Feature Request
+description: Propose a Calibrex capability, dataset adapter, metric, factor, or report feature.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What calibration evidence gap does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the CLI, schema, metric, adapter, factor, or report behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Dataset adapter
+        - Metric or evidence protocol
+        - Solver or factor
+        - Report or visualization
+        - Schema or provenance
+        - External tool adapter
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Public dataset availability, license boundary, ROS/GPL dependency, runtime, or reproducibility constraints.
+    validations:
+      required: false
