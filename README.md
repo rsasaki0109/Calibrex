@@ -87,6 +87,15 @@ artifacts/rig_3d.html
 The 3D rig viewer can show reference, candidate, and online/estimated
 extrinsics together.
 
+Report sidecars record evidence materialization:
+
+- `metrics_origin`: `recomputed`, `cached`, or `unknown`
+- `data_verified`: whether raw data was read for this artifact
+
+`calibrex report` renders an existing result. `calibrex evaluate` reapplies
+quality gates to a result. Cached inputs emit CLI and HTML warnings, and
+`calibrex compare` shows materialization for both sides.
+
 Committed JSON schemas are regenerated with:
 
 ```bash

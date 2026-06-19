@@ -36,10 +36,15 @@ Its `calibrex report --json` payload includes `evidence_case_count`; the cached
 fixture keeps representative roll/pitch/yaw/x/y/z cases, while raw
 `calibrex calibrate` recomputes the full configured perturbation set when the
 public PCD files are available locally.
+Generated `summary.json` and `evidence.json` include a `materialization` block
+with `metrics_origin`, `data_verified`, `computed_at`, and
+`report_generated_at`. Cached fixtures show `metrics_origin: cached` and
+`data_verified: false`, and the HTML report displays a cached-evidence banner.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports
-`protocol_compatibility` as `compatible`, `warning`, or `not_comparable`.
+`protocol_compatibility` as `compatible`, `warning`, or `not_comparable`, and
+prints `left_materialization` / `right_materialization` in non-JSON output.
 This keeps cached evidence, recomputed evidence, and different holdout
 protocols from being silently ranked as if they were produced under the same
 conditions.
