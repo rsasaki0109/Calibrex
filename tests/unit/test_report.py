@@ -106,6 +106,9 @@ def test_report_renders_calibration_scoreboard() -> None:
     assert "yaw_lidar0, z_lidar0" in html
     assert "limited vertical excitation" in html
     assert "linked report outputs" in html
+    assert "summary.json" in html
+    assert "metrics.json" in html
+    assert "evidence.json" in html
 
 
 def test_report_renders_lidar_pair_evidence_section() -> None:

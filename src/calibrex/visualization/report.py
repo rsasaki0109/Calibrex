@@ -1050,10 +1050,33 @@ def _artifact_rows(result: CalibrationResult) -> str:
     }
     for name, path in artifacts.items():
         if path:
-            rows.append(
-                "<tr>"
-                f"<td>{escape(name)}</td>"
-                f"<td><code>{escape(path)}</code></td>"
-                "</tr>"
-            )
+            rows.append(_artifact_row(name, path))
+    rows.extend(_report_sidecar_artifact_rows(result))
     return "\n".join(rows) or '<tr><td colspan="2">None</td></tr>'
+
+
+def _report_sidecar_artifact_rows(result: CalibrationResult) -> list[str]:
+    base_dir = _report_artifact_base_dir(result)
+    sidecars = {
+        filename.removesuffix(".json"): str(base_dir / filename)
+        for filename in _REPORT_SIDECAR_KINDS
+    }
+    return [_artifact_row(name, path) for name, path in sidecars.items()]
+
+
+def _report_artifact_base_dir(result: CalibrationResult) -> Path:
+    html_report = result.artifacts.html_report
+    if not html_report:
+        return Path(".")
+    html_path = Path(html_report)
+    parent = html_path.parent
+    return parent if str(parent) else Path(".")
+
+
+def _artifact_row(name: str, path: str) -> str:
+    return (
+        "<tr>"
+        f"<td>{escape(name)}</td>"
+        f'<td><a href="{escape(path)}"><code>{escape(path)}</code></a></td>'
+        "</tr>"
+    )
