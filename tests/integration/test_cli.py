@@ -983,6 +983,7 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     report_payload = json.loads(capsys.readouterr().out)
     assert report_payload["metrics_origin"] == "cached"
     assert report_payload["data_verified"] is False
+    assert report_payload["evidence_case_count"] == 6
     assert report_payload["warning"].startswith("cached evidence")
     report_html = (reported_dir / "report.html").read_text(encoding="utf-8")
     assert "CACHED EVIDENCE" in report_html

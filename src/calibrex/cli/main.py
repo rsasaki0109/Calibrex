@@ -37,6 +37,7 @@ from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
 from calibrex.evaluation.compare import ResultComparison, compare_results, comparison_json_schema
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
+from calibrex.evaluation.evidence_summary import evidence_cases_from_result
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
@@ -417,6 +418,7 @@ def _cmd_report(args: argparse.Namespace) -> int:
         "report_artifacts": report_artifacts,
         "metrics_origin": metrics_origin,
         "data_verified": data_verified,
+        "evidence_case_count": len(evidence_cases_from_result(result)),
     }
     warning = _report_materialization_warning(metrics_origin, data_verified)
     if warning is not None:

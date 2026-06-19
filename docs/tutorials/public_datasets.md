@@ -27,10 +27,15 @@ calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
 calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
+calibrex validate outputs/livox_horizon_horizon_pcd_sample/evidence.json --kind report-evidence
 ```
 
 The cached Livox evidence result is a report-rendering fixture, not a claim
 that raw observations were reread and recomputed.
+Its `calibrex report --json` payload includes `evidence_case_count`; the cached
+fixture keeps representative roll/pitch/yaw/x/y/z cases, while raw
+`calibrex calibrate` recomputes the full configured perturbation set when the
+public PCD files are available locally.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports
