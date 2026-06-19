@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_SCHEMA_COUNT = 9
+EXPECTED_SCHEMA_COUNT = 10
 DEFAULT_VENV = Path("/tmp/calibrex-release-smoke")
 DEFAULT_BUILD_ENV = Path("/tmp/calibrex-release-build")
 DEFAULT_SCHEMA_DIR = Path("/tmp/calibrex-release-schemas")
@@ -76,6 +76,24 @@ def main() -> int:
             str(args.report_dir / "summary.json"),
             "--kind",
             "report-summary",
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "validate",
+            str(args.report_dir / "bundle.json"),
+            "--kind",
+            "evidence-bundle",
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "verify",
+            str(args.report_dir / "bundle.json"),
             "--json",
         ]
     )

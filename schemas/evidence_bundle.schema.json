@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "EvidenceBundleArtifact": {
+      "additionalProperties": false,
+      "description": "One immutable artifact tracked by an evidence bundle.",
+      "properties": {
+        "kind": {
+          "default": "unknown",
+          "enum": [
+            "report-html",
+            "report-summary",
+            "report-metrics",
+            "report-observability",
+            "report-degeneracy",
+            "report-evidence",
+            "unknown"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "EvidenceBundleArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest manifest for report and evidence artifacts.",
+  "properties": {
+    "artifact_count": {
+      "title": "Artifact Count",
+      "type": "integer"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/EvidenceBundleArtifact"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "created_at": {
+      "default": "",
+      "title": "Created At",
+      "type": "string"
+    },
+    "primary_evidence_path": {
+      "title": "Primary Evidence Path",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "calibrex.evidence_bundle/v0.1",
+      "default": "calibrex.evidence_bundle/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "primary_evidence_path",
+    "artifact_count",
+    "artifacts"
+  ],
+  "title": "EvidenceBundleManifest",
+  "type": "object"
+}

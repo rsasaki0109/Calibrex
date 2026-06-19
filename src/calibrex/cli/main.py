@@ -18,6 +18,10 @@ from calibrex.core.config import (
     config_json_schema,
     load_config,
 )
+from calibrex.core.evidence_bundle import (
+    evidence_bundle_json_schema,
+    verify_evidence_bundle,
+)
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import write_mapping
@@ -89,6 +93,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "result",
             "comparison",
             "dataset-manifest",
+            "evidence-bundle",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -107,6 +112,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     validate.set_defaults(func=_cmd_validate)
+
+    verify = subcommands.add_parser("verify", help="verify an evidence bundle manifest")
+    verify.add_argument("bundle", type=Path)
+    verify.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    verify.set_defaults(func=_cmd_verify)
 
     init = subcommands.add_parser("init", help="write a starter config")
     init.add_argument("profile", choices=["camera-lidar-imu", "autonomous-driving-rig"])
@@ -293,6 +303,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "result": result_json_schema,
         "comparison": comparison_json_schema,
         "dataset-manifest": manifest_json_schema,
+        "evidence-bundle": evidence_bundle_json_schema,
     }
     for kind in report_artifact_schema_kinds():
         generators[kind] = _report_artifact_schema_generator(kind)
@@ -315,6 +326,13 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     payload = report.model_dump(mode="json")
     _emit(payload, args.json)
     return 0
+
+
+def _cmd_verify(args: argparse.Namespace) -> int:
+    report = verify_evidence_bundle(args.bundle)
+    payload = report.model_dump(mode="json")
+    _emit(payload, args.json)
+    return 0 if report.valid else 1
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

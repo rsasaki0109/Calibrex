@@ -7,6 +7,7 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+from calibrex.core.evidence_bundle import BundleArtifactKind, write_evidence_bundle
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
 from calibrex.core.report_artifacts import (
@@ -69,6 +70,8 @@ _REPORT_SIDECAR_KINDS = {
     "evidence.json": "report-evidence",
 }
 
+_REPORT_BUNDLE_FILENAME = "bundle.json"
+
 
 def report_artifact_paths(
     output_dir: str | Path,
@@ -84,6 +87,7 @@ def report_artifact_paths(
         paths["html_report"] = str(_resolve_output_path(output_path, html_filename))
     for filename in _REPORT_SIDECAR_KINDS:
         paths[filename.removesuffix(".json")] = str(output_path / filename)
+    paths["bundle"] = str(output_path / _REPORT_BUNDLE_FILENAME)
     return paths
 
 
@@ -295,8 +299,35 @@ def write_report_artifacts(
     for name, payload in _report_sidecar_payloads(result).items():
         sidecar_path = output_path / name
         write_mapping(sidecar_path, payload)
+    write_evidence_bundle(
+        output_path / _REPORT_BUNDLE_FILENAME,
+        run_id=result.run.id,
+        primary_evidence_path=output_path / "evidence.json",
+        artifacts=_bundle_artifacts(output_path, written, include_html=include_html),
+    )
 
     return written
+
+
+def _bundle_artifacts(
+    output_path: Path,
+    written: dict[str, str],
+    *,
+    include_html: bool,
+) -> list[tuple[Path, BundleArtifactKind]]:
+    artifacts: list[tuple[Path, BundleArtifactKind]] = []
+    if include_html:
+        artifacts.append((Path(written["html_report"]), "report-html"))
+    artifacts.extend(
+        [
+            (output_path / "summary.json", "report-summary"),
+            (output_path / "metrics.json", "report-metrics"),
+            (output_path / "observability.json", "report-observability"),
+            (output_path / "degeneracy.json", "report-degeneracy"),
+            (output_path / "evidence.json", "report-evidence"),
+        ]
+    )
+    return artifacts
 
 
 def _resolve_output_path(output_dir: Path, filename: str | Path) -> Path:
@@ -1062,6 +1093,7 @@ def _report_sidecar_artifact_rows(result: CalibrationResult) -> list[str]:
         filename.removesuffix(".json"): str(base_dir / filename)
         for filename in _REPORT_SIDECAR_KINDS
     }
+    sidecars["bundle"] = str(base_dir / _REPORT_BUNDLE_FILENAME)
     return [_artifact_row(name, path) for name, path in sidecars.items()]
 
 

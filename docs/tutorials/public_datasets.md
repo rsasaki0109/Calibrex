@@ -26,8 +26,10 @@ python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
-calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
+calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml \
+  --output-dir outputs/livox_horizon_horizon_pcd_sample
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/evidence.json --kind report-evidence
+calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json
 ```
 
 The cached Livox evidence result is a report-rendering fixture, not a claim
@@ -40,6 +42,9 @@ Generated `summary.json` and `evidence.json` include a `materialization` block
 with `metrics_origin`, `data_verified`, `computed_at`, and
 `report_generated_at`. Cached fixtures show `metrics_origin: cached` and
 `data_verified: false`, and the HTML report displays a cached-evidence banner.
+Generated report directories also include `bundle.json`, which records SHA-256
+digests for the HTML report and machine-readable sidecars. `calibrex verify`
+checks those digests and catches stale or mixed report artifacts.
 Use `calibrex calibrate` or future dataset-backed `evaluate` flows when metrics
 must be recomputed from raw observations.
 When comparing two results, `calibrex compare` reports

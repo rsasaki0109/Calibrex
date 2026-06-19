@@ -81,6 +81,7 @@ metrics.json
 evidence.json
 observability.json
 degeneracy.json
+bundle.json
 artifacts/rig_3d.html
 ```
 
@@ -94,7 +95,8 @@ Report sidecars record evidence materialization:
 
 `calibrex report` renders an existing result. `calibrex evaluate` reapplies
 quality gates to a result. Cached inputs emit CLI and HTML warnings, and
-`calibrex compare` shows materialization for both sides.
+`calibrex compare` shows materialization for both sides. `bundle.json` records
+artifact SHA-256 digests and can be checked with `calibrex verify bundle.json`.
 
 Committed JSON schemas are regenerated with:
 

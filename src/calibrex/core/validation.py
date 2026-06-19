@@ -8,6 +8,10 @@ from typing import Final, Literal
 from pydantic import BaseModel
 
 from calibrex.core.config import CONFIG_SCHEMA_VERSION, CalibrationConfig
+from calibrex.core.evidence_bundle import (
+    EVIDENCE_BUNDLE_SCHEMA_VERSION,
+    EvidenceBundleManifest,
+)
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping
 from calibrex.core.report_artifacts import (
@@ -37,6 +41,7 @@ ValidationKind = Literal[
     "report-observability",
     "report-degeneracy",
     "report-evidence",
+    "evidence-bundle",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -49,6 +54,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "report-observability": ReportObservabilityArtifact,
     "report-degeneracy": ReportDegeneracyArtifact,
     "report-evidence": ReportEvidenceArtifact,
+    "evidence-bundle": EvidenceBundleManifest,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -61,6 +67,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     REPORT_OBSERVABILITY_SCHEMA_VERSION: "report-observability",
     REPORT_DEGENERACY_SCHEMA_VERSION: "report-degeneracy",
     REPORT_EVIDENCE_SCHEMA_VERSION: "report-evidence",
+    EVIDENCE_BUNDLE_SCHEMA_VERSION: "evidence-bundle",
 }
 
 
