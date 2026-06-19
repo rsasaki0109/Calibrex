@@ -96,6 +96,47 @@
       ],
       "title": "VerificationClaim",
       "type": "object"
+    },
+    "VerificationClaimSummary": {
+      "additionalProperties": false,
+      "description": "Rollup counts for verification claims.",
+      "properties": {
+        "by_scope": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "By Scope",
+          "type": "object"
+        },
+        "failed": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Failed",
+          "type": "integer"
+        },
+        "ok": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Ok",
+          "type": "integer"
+        },
+        "skipped": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Skipped",
+          "type": "integer"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total"
+      ],
+      "title": "VerificationClaimSummary",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -165,6 +206,9 @@
       },
       "title": "Verification Claims",
       "type": "array"
+    },
+    "verification_summary": {
+      "$ref": "#/$defs/VerificationClaimSummary"
     }
   },
   "required": [
@@ -174,7 +218,8 @@
     "issue_count",
     "issues",
     "artifact_count",
-    "checked_artifacts"
+    "checked_artifacts",
+    "verification_summary"
   ],
   "title": "EvidenceBundleVerification",
   "type": "object"

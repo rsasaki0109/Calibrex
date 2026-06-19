@@ -365,6 +365,13 @@ def test_calibrate_evaluate_visualize_export(
         "schema_version": "calibrex.evidence_bundle/v0.1",
         "run_id": evidence["run"]["id"],
     }
+    assert verify_payload["verification_summary"]["total"] == len(
+        verify_payload["verification_claims"]
+    )
+    assert verify_payload["verification_summary"]["failed"] == 0
+    assert verify_payload["verification_summary"]["skipped"] >= 1
+    assert verify_payload["verification_summary"]["by_scope"]["artifact_digest"] == 7
+    assert verify_payload["verification_summary"]["by_scope"]["source_evidence_link"] == 4
     assert verification_path.exists()
     assert main(["validate", str(verification_path)]) == 0
     assert (
@@ -1516,6 +1523,7 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
         and "sha256 mismatch" in " ".join(claim["issues"])
         for claim in tampered_payload["verification_claims"]
     )
+    assert tampered_payload["verification_summary"]["failed"] >= 1
 
 
 def test_compile_command(tmp_path: Path) -> None:

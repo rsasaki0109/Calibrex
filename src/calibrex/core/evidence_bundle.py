@@ -54,6 +54,16 @@ class VerificationClaim(StrictModel):
     issues: list[str] = Field(default_factory=list)
 
 
+class VerificationClaimSummary(StrictModel):
+    """Rollup counts for verification claims."""
+
+    total: int = Field(ge=0)
+    ok: int = Field(default=0, ge=0)
+    failed: int = Field(default=0, ge=0)
+    skipped: int = Field(default=0, ge=0)
+    by_scope: dict[str, int] = Field(default_factory=dict)
+
+
 class EvidenceBundleArtifact(StrictModel):
     """One immutable artifact tracked by an evidence bundle."""
 
@@ -103,6 +113,7 @@ class EvidenceBundleVerification(StrictModel):
     input_file_count: int = Field(default=0, ge=0)
     checked_input_file_count: int = Field(default=0, ge=0)
     checked_input_files: list[str] = Field(default_factory=list)
+    verification_summary: VerificationClaimSummary
     verification_claims: list[VerificationClaim] = Field(default_factory=list)
 
 
@@ -297,6 +308,7 @@ def verify_evidence_bundle(path: str | Path) -> EvidenceBundleVerification:
         input_file_count=input_file_count,
         checked_input_file_count=len(checked_input_files),
         checked_input_files=checked_input_files,
+        verification_summary=_verification_claim_summary(verification_claims),
         verification_claims=verification_claims,
     )
 
@@ -339,6 +351,30 @@ def _sha256_file(path: Path) -> tuple[str, int]:
             size_bytes += len(chunk)
             digest.update(chunk)
     return digest.hexdigest(), size_bytes
+
+
+def _verification_claim_summary(
+    claims: list[VerificationClaim],
+) -> VerificationClaimSummary:
+    by_scope: dict[str, int] = {}
+    ok = 0
+    failed = 0
+    skipped = 0
+    for claim in claims:
+        by_scope[claim.scope] = by_scope.get(claim.scope, 0) + 1
+        if claim.status == "ok":
+            ok += 1
+        elif claim.status == "failed":
+            failed += 1
+        else:
+            skipped += 1
+    return VerificationClaimSummary(
+        total=len(claims),
+        ok=ok,
+        failed=failed,
+        skipped=skipped,
+        by_scope=dict(sorted(by_scope.items())),
+    )
 
 
 def _append_claim(
