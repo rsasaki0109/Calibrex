@@ -157,6 +157,7 @@ mismatched evidence protocols are not silently ranked together.
 - [License boundaries](docs/concepts/license_boundaries.md)
 - [Public datasets](docs/tutorials/public_datasets.md)
 - [LiDAR-camera adapter](docs/tutorials/lidar_camera_adapter.md)
+- [Support](SUPPORT.md)
 
 ## License
 
