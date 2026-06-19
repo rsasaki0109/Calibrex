@@ -211,7 +211,26 @@ def _build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--json", action="store_true")
     evaluate.set_defaults(func=_cmd_evaluate)
 
-    report = subcommands.add_parser("report", help="render a report from an existing result")
+    render = subcommands.add_parser(
+        "render",
+        help="render artifacts from an existing result without recomputing metrics",
+    )
+    render.add_argument("result", type=Path)
+    render.add_argument(
+        "--format",
+        choices=["html"],
+        default="html",
+        help="rendered artifact format; only html is supported in v0.1",
+    )
+    render.add_argument("--output-dir", type=Path)
+    render.add_argument("--html", type=Path, help="HTML report path or filename")
+    render.add_argument("--json", action="store_true")
+    render.set_defaults(func=_cmd_render)
+
+    report = subcommands.add_parser(
+        "report",
+        help="deprecated alias for 'render --format html'",
+    )
     report.add_argument("result", type=Path)
     report.add_argument("--output-dir", type=Path)
     report.add_argument("--html", type=Path, help="HTML report path or filename")
@@ -571,7 +590,22 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 1 if result.quality.grade == "fail" else 0
 
 
+def _cmd_render(args: argparse.Namespace) -> int:
+    if args.format != "html":
+        _die(f"unsupported render format: {args.format}")
+    return _render_result_report(args, command="render", deprecated_alias=None)
+
+
 def _cmd_report(args: argparse.Namespace) -> int:
+    return _render_result_report(args, command="report", deprecated_alias="report")
+
+
+def _render_result_report(
+    args: argparse.Namespace,
+    *,
+    command: str,
+    deprecated_alias: str | None,
+) -> int:
     result = load_result(args.result)
     output_dir = args.output_dir or _report_output_dir(args.result, args.html)
     html_filename = _report_html_filename(args.html)
@@ -584,13 +618,20 @@ def _cmd_report(args: argparse.Namespace) -> int:
     )
     payload = {
         "status": "ok",
+        "command": command,
+        "canonical_command": "render",
+        "deprecated_alias": deprecated_alias,
+        "render_only": True,
+        "recomputed_metrics": False,
+        "source_result": str(args.result),
+        "output_format": "html",
         "html_report": report_artifacts["html_report"],
         "report_artifacts": report_artifacts,
         "metrics_origin": metrics_origin,
         "data_verified": data_verified,
         "evidence_case_count": len(evidence_cases_from_result(result)),
     }
-    warning = _report_materialization_warning(metrics_origin, data_verified, command="report")
+    warning = _report_materialization_warning(metrics_origin, data_verified, command=command)
     if warning is not None:
         payload["warning"] = warning
     _emit(payload, args.json)

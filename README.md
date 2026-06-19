@@ -11,7 +11,7 @@ metric suite, and one report.
 ```bash
 calibrex calibrate config.yaml
 calibrex evaluate outputs/result.yaml
-calibrex visualize outputs/result.yaml --export-html
+calibrex render outputs/result.yaml --format html
 ```
 
 <p align="center">
@@ -54,7 +54,7 @@ It records:
 | Area | Status |
 |---|---|
 | Typed config/result schemas | Stable alpha |
-| `calibrate`, `evaluate`, `visualize`, `compare`, `inspect`, `export` CLI | Stable alpha |
+| `calibrate`, `evaluate`, `render`, `visualize`, `compare`, `inspect`, `export` CLI | Stable alpha |
 | KITTI raw fixed-vehicle LiDAR evaluation | Experimental end-to-end |
 | nuScenes metadata and reference extrinsic import | Experimental |
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
@@ -99,12 +99,13 @@ Report sidecars record evidence materialization:
 - `protocol.json`: declared evidence protocols, transform conventions, support parameters, and known-bad controls
 - `policy.json`: falsification gates and thresholds applied to the evidence
 
-`calibrex report` renders an existing result. `calibrex evaluate` reapplies
-quality gates to a result. Cached inputs emit CLI and HTML warnings, and
-`calibrex assess evidence.json` applies the falsification policy. `calibrex
-compare` shows materialization for both sides. `bundle.json` records artifact
-SHA-256 digests and can be checked with `calibrex verify bundle.json`; report
-outputs also include `verification.json` with that check materialized.
+`calibrex render` renders an existing result and does not recompute metrics.
+`calibrex report` remains a deprecated alias for HTML rendering. `calibrex
+evaluate` reapplies quality gates to a result. Cached inputs emit CLI and HTML
+warnings, and `calibrex assess evidence.json` applies the falsification policy.
+`calibrex compare` shows materialization for both sides. `bundle.json` records
+artifact SHA-256 digests and can be checked with `calibrex verify bundle.json`;
+report outputs also include `verification.json` with that check materialized.
 `calibrex verify verification.json` recomputes the source bundle check and
 detects stale or edited verification records. Saved verification artifacts use
 relative paths to colocated bundles where possible. When
@@ -137,6 +138,7 @@ calibrex init camera-lidar-imu --output config.yaml
 calibrex calibrate config.yaml --output-dir outputs/example
 calibrex validate outputs/example/result.yaml --json
 calibrex evaluate outputs/example/result.yaml --export-html
+calibrex render outputs/example/result.yaml --output-dir outputs/example/rendered
 calibrex visualize outputs/example/result.yaml --export-html
 ```
 
@@ -150,7 +152,7 @@ python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
-calibrex report examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
+calibrex render examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
 calibrex public-datasets show tiers_livox_lidars_cali --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml

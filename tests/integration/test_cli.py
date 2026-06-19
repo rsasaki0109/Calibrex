@@ -1562,6 +1562,35 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     result = Path(
         "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
     )
+    rendered_dir = tmp_path / "rendered"
+    assert (
+        main(
+            [
+                "render",
+                str(result),
+                "--output-dir",
+                str(rendered_dir),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    render_payload = json.loads(capsys.readouterr().out)
+    assert render_payload["command"] == "render"
+    assert render_payload["canonical_command"] == "render"
+    assert render_payload["deprecated_alias"] is None
+    assert render_payload["render_only"] is True
+    assert render_payload["recomputed_metrics"] is False
+    assert render_payload["source_result"] == str(result)
+    assert render_payload["output_format"] == "html"
+    assert render_payload["metrics_origin"] == "cached"
+    assert render_payload["data_verified"] is False
+    assert render_payload["evidence_case_count"] == 6
+    assert render_payload["warning"] == (
+        "cached evidence: raw data was not read or recomputed by this render command"
+    )
+    assert (rendered_dir / "report.html").exists()
+
     reported_dir = tmp_path / "reported"
     assert (
         main(
@@ -1576,6 +1605,11 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
         == 0
     )
     report_payload = json.loads(capsys.readouterr().out)
+    assert report_payload["command"] == "report"
+    assert report_payload["canonical_command"] == "render"
+    assert report_payload["deprecated_alias"] == "report"
+    assert report_payload["render_only"] is True
+    assert report_payload["recomputed_metrics"] is False
     assert report_payload["metrics_origin"] == "cached"
     assert report_payload["data_verified"] is False
     assert report_payload["evidence_case_count"] == 6
