@@ -210,6 +210,16 @@ def main() -> int:
     _run(
         [
             str(smoke_calibrex),
+            "compare",
+            str(CACHED_EVIDENCE_RESULT),
+            str(CACHED_EVIDENCE_RESULT),
+            "--enforce-compatible",
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
             "validate",
             str(comparison_path),
             "--kind",

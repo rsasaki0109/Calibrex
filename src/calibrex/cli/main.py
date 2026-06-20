@@ -246,6 +246,11 @@ def _build_parser() -> argparse.ArgumentParser:
     compare.add_argument("left_result", type=Path)
     compare.add_argument("right_result", type=Path)
     compare.add_argument("--output", type=Path, help="write comparison as YAML/JSON")
+    compare.add_argument(
+        "--enforce-compatible",
+        action="store_true",
+        help="return non-zero unless evidence protocols are compatible",
+    )
     compare.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     compare.set_defaults(func=_cmd_compare)
 
@@ -688,7 +693,15 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif not args.output:
-        _emit_comparison(comparison)
+        _emit_comparison(
+            comparison,
+            enforce_compatible=args.enforce_compatible,
+        )
+    if (
+        args.enforce_compatible
+        and comparison.protocol_compatibility.status != "compatible"
+    ):
+        return 1
     return 0
 
 
@@ -1228,7 +1241,11 @@ def _format_bool(value: bool) -> str:
     return "yes" if value else "no"
 
 
-def _emit_comparison(comparison: ResultComparison) -> None:
+def _emit_comparison(
+    comparison: ResultComparison,
+    *,
+    enforce_compatible: bool = False,
+) -> None:
     summary = comparison.summary
     print(f"left: {comparison.left.run_id} ({comparison.left.grade})")
     print(f"left_materialization: {_format_comparison_materialization(comparison.left)}")
@@ -1251,6 +1268,7 @@ def _emit_comparison(comparison: ResultComparison) -> None:
         print(f"new_weak_directions: {comparison.observability.only_right_weak_directions}")
     protocol = comparison.protocol_compatibility
     print(f"protocol_compatibility: {protocol.status}")
+    print(f"protocol_compatibility_enforced: {_format_bool(enforce_compatible)}")
     if protocol.reasons:
         print(f"protocol_notes: {protocol.reasons}")
     if comparison.evidence_comparisons:

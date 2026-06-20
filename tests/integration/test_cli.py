@@ -898,12 +898,27 @@ def test_compare_command_writes_machine_readable_summary(
     assert payload["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
     assert payload["summary"]["max_translation_delta_m"] == 0.05
     assert payload["transform_groups"]["transforms"]["comparison_count"] == 2
+    assert (
+        main(
+            [
+                "compare",
+                str(left_result),
+                str(right_result),
+                "--enforce-compatible",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    enforced_payload = json.loads(capsys.readouterr().out)
+    assert enforced_payload["protocol_compatibility"]["status"] == "not_comparable"
     assert main(["validate", str(output)]) == 0
     assert main(["validate", str(output), "--kind", "comparison"]) == 0
     assert main(["compare", str(left_result), str(right_result)]) == 0
     text_output = capsys.readouterr().out
     assert "left_materialization: metrics_origin=recomputed, data_verified=n/a" in text_output
     assert "right_materialization: metrics_origin=recomputed, data_verified=n/a" in text_output
+    assert "protocol_compatibility_enforced: no" in text_output
 
 
 def test_visualize_reference_result_writes_3d_rig_overlay(
@@ -1710,6 +1725,12 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert evidence_comparisons[0]["family"] == "lidar_pair"
     assert evidence_comparisons[0]["check"] == "Candidate Support"
     assert evidence_comparisons[0]["winner"] == "tie"
+    assert (
+        main(["compare", str(result), str(result), "--enforce-compatible", "--json"])
+        == 0
+    )
+    enforced_comparison = json.loads(capsys.readouterr().out)
+    assert enforced_comparison["protocol_compatibility"]["status"] == "compatible"
     assert main(["compare", str(result), str(result)]) == 0
     compare_text = capsys.readouterr().out
     assert (
@@ -1732,6 +1753,12 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert "not_comparable_reasons:" in mismatch_text
     assert "LiDAR pair evidence protocol is warning" in mismatch_text
     assert "support population differs" in mismatch_text
+    assert (
+        main(["compare", str(result), str(mismatch_path), "--enforce-compatible", "--json"])
+        == 1
+    )
+    enforced_mismatch = json.loads(capsys.readouterr().out)
+    assert enforced_mismatch["protocol_compatibility"]["status"] == "warning"
 
     visualized_dir = tmp_path / "visualized"
     assert (

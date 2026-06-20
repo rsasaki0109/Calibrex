@@ -166,10 +166,14 @@ Compare two calibration runs:
 ```bash
 calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml \
   --output outputs/comparison.json
+calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml \
+  --enforce-compatible
 ```
 
 `comparison.json` includes `protocol_compatibility` so cached, recomputed, and
-mismatched evidence protocols are not silently ranked together.
+mismatched evidence protocols are not silently ranked together. Use
+`--enforce-compatible` when a protocol warning or non-comparable comparison
+should fail a shell pipeline.
 
 ## Design Principles
 

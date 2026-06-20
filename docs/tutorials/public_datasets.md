@@ -130,7 +130,9 @@ When comparing two results, `calibrex compare` reports
 prints `left_materialization` / `right_materialization` in non-JSON output.
 This keeps cached evidence, recomputed evidence, and different holdout
 protocols from being silently ranked as if they were produced under the same
-conditions.
+conditions. By default, comparison artifact generation succeeds even when the
+protocols are not comparable; add `--enforce-compatible` when protocol warnings
+or non-comparable inputs should fail a shell pipeline.
 
 Autonomous driving:
 
