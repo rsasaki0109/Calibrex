@@ -2,11 +2,26 @@
 
 **Universal Sensor Calibration Evidence Framework for Robotics**
 
+<p align="center">
+  <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
+  <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
+  <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
+</p>
+
 Calibrex compares calibration estimates as evidence, not just matrices.
 
 It lets you evaluate dataset references, manual candidates, native estimates,
 online estimates, and external tool outputs through one schema, one CLI, one
 metric suite, and one report.
+
+<p align="center">
+  <img src="docs/assets/online-calibration-loop.gif" alt="Online calibration evidence loop animation" width="100%">
+</p>
+
+<p align="center">
+  <sub>Online-style replay: live LiDAR batches, a converging extrinsic estimate, rolling residuals, holdout checks, and provenance-backed PASS gates. Generated from public A2D2 sample data.</sub>
+</p>
 
 ```bash
 calibrex calibrate config.yaml
@@ -45,19 +60,13 @@ calibrex render outputs/result.yaml --format html
 
 | View | Public input | Calibration view | What to inspect |
 |---|---|---|---|
+| Online calibration loop | A2D2 NPZ range sample | Streaming fixed-rig estimate replay | Rolling residual, holdout gate, provenance lock |
 | Livox Horizon ↔ Horizon | Official Livox PCD sample | Solid-state LiDAR pair | Known-bad rejection and holdout residual evidence |
 | A2D2 front pair | A2D2 NPZ range sample | Fixed front LiDAR baseline | Multi-LiDAR metadata and support accounting |
 | A2D2 front-rear pair | A2D2 NPZ range sample | Longer fixed-rig LiDAR baseline | Different overlap and support behavior |
 
 <p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex calibration report overview" width="100%">
-</p>
-
-<p align="center">
-  <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
-  <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
-  <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
 </p>
 
 ## Why Calibrex

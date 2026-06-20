@@ -24,6 +24,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -69,6 +70,7 @@ CHART = (676, 294, 216, 48)
 Color = tuple[int, int, int]
 Point3 = tuple[float, float, float]
 Point2 = tuple[int, int]
+VisualMode = Literal["evidence", "online"]
 
 BG = (10, 15, 27)
 PANEL = (18, 27, 43)
@@ -127,11 +129,19 @@ class LidarCloudPair:
 class ReadmeGifJob:
     source: str
     output: Path
+    visual: VisualMode = "evidence"
     a2d2_source_id: int = 0
     a2d2_target_id: int = 1
 
 
 README_GIF_JOBS = (
+    ReadmeGifJob(
+        source="a2d2",
+        output=Path("docs/assets/online-calibration-loop.gif"),
+        visual="online",
+        a2d2_source_id=0,
+        a2d2_target_id=3,
+    ),
     ReadmeGifJob(
         source="livox-horizon-horizon",
         output=Path("docs/assets/calibration-evidence-demo.gif"),
@@ -173,6 +183,12 @@ def main() -> int:
         "--output",
         type=Path,
         default=Path("docs/assets/calibration-evidence-demo.gif"),
+    )
+    parser.add_argument(
+        "--visual",
+        choices=["evidence", "online"],
+        default="evidence",
+        help="Animation layout to render for a single-source GIF.",
     )
     parser.add_argument(
         "--readme-gallery",
@@ -235,6 +251,7 @@ def main() -> int:
         cloud_pair=cloud_pair,
         lidars=lidars,
         metadata_source=metadata_source,
+        visual=args.visual,
     )
     return 0
 
@@ -265,6 +282,7 @@ def generate_readme_gallery(
             cloud_pair=cloud_pair,
             lidars=lidars,
             metadata_source=metadata_source,
+            visual=job.visual,
         )
         manifest_assets.append(
             readme_gallery_manifest_asset(
@@ -336,6 +354,7 @@ def readme_gallery_manifest_asset(
         "sha256": sha256_file(job.output),
         "size_bytes": job.output.stat().st_size,
         "source": job.source,
+        "visual": job.visual,
         "sensor_pair": sensor_pair,
         "source_label": cloud_pair.source_label,
         "target_label": cloud_pair.target_label,
@@ -426,6 +445,7 @@ def generate_gif(
     cloud_pair: LidarCloudPair,
     lidars: list[LidarPose],
     metadata_source: str,
+    visual: VisualMode,
 ) -> None:
     """Render one evidence animation to a GIF."""
 
@@ -435,18 +455,33 @@ def generate_gif(
         residual_history: list[float] = []
         for index in range(frames):
             progress = smoothstep(index / max(1, frames - 1))
-            residual_history.append(residual_proxy(progress))
-            image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
-            draw_frame(
-                image=image,
-                lidars=lidars,
-                cloud_pair=cloud_pair,
-                progress=progress,
-                residual_history=residual_history,
-                metadata_source=metadata_source,
+            residual_history.append(
+                online_residual_proxy(progress)
+                if visual == "online"
+                else residual_proxy(progress)
             )
+            image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
+            if visual == "online":
+                draw_online_calibration_frame(
+                    image=image,
+                    lidars=lidars,
+                    cloud_pair=cloud_pair,
+                    progress=progress,
+                    cycle=index / max(1, frames),
+                    residual_history=residual_history,
+                    metadata_source=metadata_source,
+                )
+            else:
+                draw_frame(
+                    image=image,
+                    lidars=lidars,
+                    cloud_pair=cloud_pair,
+                    progress=progress,
+                    residual_history=residual_history,
+                    metadata_source=metadata_source,
+                )
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
-        encode_gif(tmp, output, cloud_pair)
+        encode_gif(tmp, output, cloud_pair, visual=visual)
 
 
 def ensure_livox_horizon_pair(data_dir: Path, *, allow_network: bool) -> None:
@@ -912,6 +947,264 @@ def draw_frame(
     draw_timeline(image, progress)
 
 
+def draw_online_calibration_frame(
+    *,
+    image: bytearray,
+    lidars: list[LidarPose],
+    cloud_pair: LidarCloudPair,
+    progress: float,
+    cycle: float,
+    residual_history: list[float],
+    metadata_source: str,
+) -> None:
+    fill_rect(image, 0, 0, WIDTH, HEIGHT, BG)
+    fill_rect(image, SCENE_PANEL[0], SCENE_PANEL[1], SCENE_PANEL[2], SCENE_PANEL[3], PANEL)
+    fill_rect(image, RIGHT_PANEL[0], RIGHT_PANEL[1], RIGHT_PANEL[2], RIGHT_PANEL[3], PANEL)
+    rect(image, SCENE_PANEL[0], SCENE_PANEL[1], SCENE_PANEL[2], SCENE_PANEL[3], GRID, alpha=0.85)
+    rect(
+        image,
+        RIGHT_PANEL[0],
+        RIGHT_PANEL[1],
+        RIGHT_PANEL[2],
+        RIGHT_PANEL[3],
+        GRID,
+        alpha=0.85,
+    )
+
+    draw_online_calibration_scene(image, lidars, cloud_pair, progress, cycle)
+    draw_online_evidence_panel(
+        image,
+        cloud_pair,
+        progress,
+        cycle,
+        residual_history,
+        metadata_source,
+    )
+    draw_online_timeline(image, progress, cycle)
+
+
+def draw_online_calibration_scene(
+    image: bytearray,
+    lidars: list[LidarPose],
+    cloud_pair: LidarCloudPair,
+    progress: float,
+    cycle: float,
+) -> None:
+    draw_road_grid(image)
+    draw_live_lidar_clouds(image, cloud_pair, progress, cycle)
+    draw_vehicle_box(image)
+
+    source = lidar_by_name(lidars, cloud_pair.source_pose_name)
+    target = lidar_by_name(lidars, cloud_pair.target_pose_name)
+    current_target = animated_candidate_pose(target, progress)
+
+    draw_scanline(image, cycle)
+    draw_packet_flow(image, cycle)
+    draw_candidate_trail(image, target, progress)
+    for lidar in lidars:
+        strong = lidar.name in {source.name, target.name}
+        color = REFERENCE if lidar.name != target.name else mix(CANDIDATE, OPTIMIZED, progress)
+        draw_lidar_sensor(image, lidar.origin, color, strong=strong)
+        if strong:
+            draw_lidar_sweep(image, lidar.origin, cycle, color)
+
+    draw_lidar_sensor(
+        image,
+        current_target.origin,
+        mix(CANDIDATE, OPTIMIZED, progress),
+        strong=True,
+    )
+    draw_transform_arrow(image, source.origin, target.origin, REFERENCE, alpha=0.42)
+    draw_transform_arrow(
+        image,
+        source.origin,
+        current_target.origin,
+        mix(CANDIDATE, OPTIMIZED, progress),
+        alpha=0.94,
+    )
+    draw_delta_vector(image, target.origin, current_target.origin, progress)
+    draw_lock_envelope(image, target.origin, progress)
+
+
+def draw_live_lidar_clouds(
+    image: bytearray,
+    cloud_pair: LidarCloudPair,
+    progress: float,
+    cycle: float,
+) -> None:
+    remaining = 1.0 - progress
+    candidate_color = mix(CANDIDATE, OPTIMIZED, progress)
+    for index, point in enumerate(cloud_pair.source_points):
+        if index % 2:
+            continue
+        px, py = project_lidar_point(point)
+        pulse = 1.0 - min(1.0, abs(((index * 0.019 + cycle) % 1.0) - 0.5) * 3.5)
+        circle(image, px, py, 1, REFERENCE, alpha=0.18 + 0.48 * pulse)
+        if pulse > 0.78 and index % 7 == 0:
+            circle(image, px, py, 2, (134, 239, 172), alpha=0.32)
+    for index, point in enumerate(cloud_pair.target_points):
+        if index % 2:
+            continue
+        shifted = (
+            point[0] + 1.65 * remaining,
+            point[1] - 1.05 * remaining,
+            point[2] + 0.38 * remaining,
+        )
+        px, py = project_lidar_point(shifted)
+        pulse = 1.0 - min(1.0, abs(((index * 0.023 + cycle + 0.28) % 1.0) - 0.5) * 3.2)
+        circle(image, px, py, 1, candidate_color, alpha=0.20 + 0.56 * pulse)
+        if pulse > 0.80 and index % 6 == 0:
+            circle(image, px, py, 2, candidate_color, alpha=0.34)
+
+
+def draw_scanline(image: bytearray, cycle: float) -> None:
+    x = SCENE_PANEL[0] + round(SCENE_PANEL[2] * cycle)
+    fill_rect(image, x - 5, SCENE_PANEL[1] + 2, 2, SCENE_PANEL[3] - 4, OPTIMIZED, alpha=0.12)
+    fill_rect(image, x - 2, SCENE_PANEL[1] + 2, 4, SCENE_PANEL[3] - 4, OPTIMIZED, alpha=0.44)
+    fill_rect(image, x + 4, SCENE_PANEL[1] + 2, 2, SCENE_PANEL[3] - 4, OPTIMIZED, alpha=0.16)
+    for offset in (54, 132, 218):
+        yy = SCENE_PANEL[1] + offset
+        line(
+            image,
+            SCENE_PANEL[0] + 16,
+            yy,
+            SCENE_PANEL[0] + SCENE_PANEL[2] - 16,
+            yy,
+            GRID,
+            alpha=0.30,
+        )
+
+
+def draw_packet_flow(image: bytearray, cycle: float) -> None:
+    x0 = SCENE_PANEL[0] + 24
+    y = SCENE_PANEL[1] + 46
+    width = SCENE_PANEL[2] - 48
+    fill_rect(image, x0, y, width, 5, (31, 41, 55), alpha=0.72)
+    for index in range(18):
+        phase = (cycle + index / 18) % 1.0
+        x = x0 + round(width * phase)
+        color = OPTIMIZED if index % 3 else GOOD
+        circle(image, x, y + 2, 4, color, alpha=0.54)
+
+
+def draw_candidate_trail(image: bytearray, target: LidarPose, progress: float) -> None:
+    trail_points: list[Point2] = []
+    for index in range(8):
+        trail_progress = progress * index / 7
+        pose = animated_candidate_pose(target, trail_progress)
+        x, y = project((pose.origin[0], pose.origin[1], pose.origin[2] + 0.42))
+        trail_points.append((x, y))
+        color = mix(CANDIDATE, OPTIMIZED, trail_progress)
+        circle(image, x, y, 3 + index // 3, color, alpha=0.32 + 0.06 * index)
+    for index in range(1, len(trail_points)):
+        trail_progress = progress * index / 7
+        line_between(
+            image,
+            trail_points[index - 1],
+            trail_points[index],
+            mix(CANDIDATE, OPTIMIZED, trail_progress),
+            0.46,
+            thickness=2,
+        )
+
+
+def draw_lock_envelope(image: bytearray, origin: Point3, progress: float) -> None:
+    x, y = project((origin[0], origin[1], origin[2] + 0.42))
+    radius = max(9, round(34 * (1.0 - progress) + 9))
+    color = mix(WARNING, GOOD, progress)
+    for index in range(3):
+        circle(image, x, y, radius + index * 7, color, alpha=0.06 + progress * 0.04)
+    circle(image, x, y, 8, color, alpha=0.32 + progress * 0.34)
+
+
+def draw_lidar_sweep(image: bytearray, origin: Point3, cycle: float, color: Color) -> None:
+    ox, oy = project(origin)
+    for index in range(9):
+        phase = cycle * math.tau + index * 0.14
+        endpoint = (
+            origin[0] + 2.35 * math.cos(phase),
+            origin[1] + 2.35 * math.sin(phase),
+            origin[2] - 0.08,
+        )
+        ex, ey = project(endpoint)
+        line(image, ox, oy, ex, ey, color, alpha=0.15 + index * 0.030)
+
+
+def draw_online_evidence_panel(
+    image: bytearray,
+    cloud_pair: LidarCloudPair,
+    progress: float,
+    cycle: float,
+    residual_history: list[float],
+    metadata_source: str,
+) -> None:
+    residual_score = 1.0 - min(1.0, online_residual_proxy(progress) / 0.110)
+    stability_score = min(1.0, 0.34 + progress * 0.68)
+    holdout_score = min(1.0, 0.44 + progress * 0.62)
+    provenance_score = 1.0 if metadata_source.startswith(("A2D2", "Livox")) else 0.55
+
+    fill_rect(image, 674, 132, 220, 132, PANEL_ALT)
+    rect(image, 674, 132, 220, 132, GRID, alpha=0.92)
+    metric_bar(image, 674, 156, residual_score, mix(WARNING, GOOD, progress))
+    metric_bar(image, 674, 180, stability_score, OPTIMIZED)
+    metric_bar(image, 674, 204, holdout_score, REFERENCE)
+    metric_bar(image, 674, 228, provenance_score, GOOD if provenance_score == 1.0 else WARNING)
+
+    chart_x, chart_y, chart_width, chart_height = CHART
+    fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
+    rect(image, chart_x, chart_y, chart_width, chart_height, GRID, alpha=0.95)
+    for line_index in range(1, 4):
+        y = chart_y + line_index * chart_height // 4
+        line(image, chart_x, y, chart_x + chart_width, y, GRID, alpha=0.45)
+    threshold_y = chart_y + round(chart_height * 0.72)
+    line(image, chart_x, threshold_y, chart_x + chart_width, threshold_y, GOOD, alpha=0.42)
+    draw_curve(image, residual_history, CHART, OPTIMIZED)
+
+    draw_stream_packets(image, 674, 354, progress, cycle)
+    draw_gate_cells(image, 674, 424, progress)
+    draw_source_badge(image, metadata_source)
+
+
+def draw_stream_packets(
+    image: bytearray,
+    x: int,
+    y: int,
+    progress: float,
+    cycle: float,
+) -> None:
+    fill_rect(image, x, y, 220, 42, PANEL_ALT)
+    rect(image, x, y, 220, 42, GRID, alpha=0.80)
+    for index in range(12):
+        packet_x = x + 10 + index * 17
+        phase = (cycle + index * 0.083) % 1.0
+        height = 8 + round(20 * (0.35 + 0.65 * math.sin(phase * math.pi) ** 2))
+        color = OPTIMIZED if index / 11 <= progress else mix(WARNING, OPTIMIZED, progress)
+        fill_rect(image, packet_x, y + 32 - height, 10, height, color, alpha=0.86)
+
+
+def draw_gate_cells(image: bytearray, x: int, y: int, progress: float) -> None:
+    labels = 6
+    for index in range(labels):
+        cell_x = x + index * 35
+        good = index < 3 or progress > 0.72 + index * 0.035
+        color = GOOD if good else WARNING
+        fill_rect(image, cell_x, y, 24, 22, color, alpha=0.90)
+        rect(image, cell_x, y, 24, 22, (229, 231, 235), alpha=0.24)
+        if good and (index == labels - 1 or index >= 3):
+            rect(image, cell_x - 2, y - 2, 28, 26, color, alpha=0.40 + 0.25 * progress)
+
+
+def draw_online_timeline(image: bytearray, progress: float, cycle: float) -> None:
+    x0, y, width = 82, 516, 786
+    fill_rect(image, x0, y, width, 8, (31, 41, 55), alpha=1.0)
+    fill_rect(image, x0, y, round(width * progress), 8, OPTIMIZED, alpha=0.95)
+    cursor_x = x0 + round(width * cycle)
+    fill_rect(image, cursor_x - 2, y - 12, 4, 32, WARNING, alpha=0.82)
+    for marker in [0.0, 0.33, 0.66, 1.0]:
+        x = x0 + round(width * marker)
+        circle(image, x, y + 4, 8, OPTIMIZED if progress >= marker else TEXT_DIM, alpha=1.0)
+
+
 def draw_calibration_scene(
     image: bytearray,
     lidars: list[LidarPose],
@@ -1187,6 +1480,11 @@ def residual_proxy(progress: float) -> float:
     return 0.024 + 0.080 * remaining * remaining
 
 
+def online_residual_proxy(progress: float) -> float:
+    remaining = 1.0 - progress
+    return 0.020 + 0.086 * remaining * remaining + 0.004 * math.sin(progress * math.pi * 4.0) ** 2
+
+
 def project(point: Point3) -> Point2:
     x, y, z = point
     return (
@@ -1362,9 +1660,19 @@ def write_ppm(path: Path, image: bytearray) -> None:
         handle.write(image)
 
 
-def encode_gif(frame_dir: Path, output: Path, cloud_pair: LidarCloudPair) -> None:
+def encode_gif(
+    frame_dir: Path,
+    output: Path,
+    cloud_pair: LidarCloudPair,
+    *,
+    visual: VisualMode,
+) -> None:
     palette = frame_dir / "palette.png"
-    text_filter = build_text_filter(cloud_pair)
+    text_filter = (
+        build_online_text_filter(cloud_pair)
+        if visual == "online"
+        else build_text_filter(cloud_pair)
+    )
     subprocess.run(
         [
             "ffmpeg",
@@ -1451,6 +1759,40 @@ def build_text_filter(cloud_pair: LidarCloudPair) -> str:
         ("candidate", 325, 520, 14, "CBD5E1"),
         ("optimize", 588, 520, 14, "CBD5E1"),
         ("report", 842, 520, 14, "CBD5E1"),
+    ]
+    return ",".join(drawtext(font_file, *label) for label in labels)
+
+
+def build_online_text_filter(cloud_pair: LidarCloudPair) -> str:
+    font_file = subprocess.check_output(
+        ["fc-match", "-f", "%{file}", "Noto Sans"],
+        text=True,
+    ).strip()
+    labels = [
+        ("Online Calibration Evidence Loop", 34, 22, 26, "E5E7EB"),
+        (cloud_pair.subtitle, 34, 55, 16, "CBD5E1"),
+        ("Live point batches, rolling residuals, and schema-valid gates", 50, 104, 17, "E5E7EB"),
+        ("green: reference stream   cyan/pink: online estimate converging", 50, 486, 14, "CBD5E1"),
+        ("Streaming checks", 674, 104, 17, "E5E7EB"),
+        ("rolling residual", 674, 138, 13, "CBD5E1"),
+        ("temporal stability", 674, 162, 13, "CBD5E1"),
+        ("holdout gate", 674, 186, 13, "CBD5E1"),
+        ("provenance lock", 674, 210, 13, "CBD5E1"),
+        (cloud_pair.support_summary, 674, 238, 12, "CBD5E1"),
+        (cloud_pair.holdout_summary, 674, 252, 12, "CBD5E1"),
+        ("rolling residual", 676, 274, 16, "E5E7EB"),
+        ("Stream Batches", 674, 330, 16, "E5E7EB"),
+        ("sensor packets", 684, 360, 12, "CBD5E1"),
+        ("accepted window", 684, 380, 12, "CBD5E1"),
+        ("Policy gates", 674, 410, 14, "E5E7EB"),
+        ("raw  hold  bad  drift  dof  pass", 674, 450, 12, "CBD5E1"),
+        (cloud_pair.provenance, 682, 468, 12, "CBD5E1"),
+        ("protocol.json + evidence.json", 682, 482, 12, "CBD5E1"),
+        ("assessment: PASS after holdout", 682, 494, 12, "CBD5E1"),
+        ("ingest", 62, 520, 14, "CBD5E1"),
+        ("estimate", 320, 520, 14, "CBD5E1"),
+        ("holdout", 586, 520, 14, "CBD5E1"),
+        ("assess", 842, 520, 14, "CBD5E1"),
     ]
     return ",".join(drawtext(font_file, *label) for label in labels)
 
