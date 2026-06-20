@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the README fixed 3D LiDAR-to-LiDAR calibration evidence GIF.
+"""Generate README fixed 3D LiDAR-to-LiDAR calibration evidence GIFs.
 
 The default visual uses real public Livox Horizon-Horizon PCD frames from the
 official Livox automatic calibration example. It does not redistribute the
 upstream archives and does not claim benchmark accuracy. The animation is an
 evidence-viewer proxy for how Calibrex compares a fixed 3D LiDAR-to-LiDAR
-candidate against a selected reference.
+candidate against a selected reference. Alternate sources also use public raw
+data; README-facing assets must not use deterministic fallback geometry.
 """
 
 from __future__ import annotations
@@ -86,6 +87,8 @@ class LidarCloudPair:
     target_points: list[Point3]
     source_label: str
     target_label: str
+    bar_labels: tuple[str, str, str, str]
+    bar_values: tuple[float, float, float, float]
     source_pose_name: str
     target_pose_name: str
     source_total: int
@@ -138,7 +141,12 @@ def main() -> int:
     parser.add_argument(
         "--no-network",
         action="store_true",
-        help="Use the built-in fixed multi-LiDAR fallback instead of fetching A2D2 metadata.",
+        help="Require already downloaded public inputs instead of fetching them.",
+    )
+    parser.add_argument(
+        "--allow-metadata-fallback",
+        action="store_true",
+        help="Allow built-in fixed-rig metadata if public A2D2 metadata is unavailable.",
     )
     args = parser.parse_args()
 
@@ -157,6 +165,7 @@ def main() -> int:
         lidars, metadata_source = load_a2d2_lidar_setup(
             args.sensor_config,
             allow_network=not args.no_network,
+            allow_fallback=args.allow_metadata_fallback,
         )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="calibrex_lidar_lidar_gif_") as tmp_name:
@@ -253,6 +262,18 @@ def load_livox_horizon_cloud_pair(data_dir: Path) -> LidarCloudPair:
         target_points=target_points[:2400],
         source_label="base Horizon points",
         target_label="target Horizon points",
+        bar_labels=(
+            "source voxel recall",
+            "P90 point-to-plane",
+            "known-bad controls",
+            "evidence protocol",
+        ),
+        bar_values=(
+            0.24594992636229748 / 0.40,
+            1.0 - min(1.0, 0.8064419329166412 / 2.0),
+            1.0,
+            1.0,
+        ),
         source_pose_name="base_horizon",
         target_pose_name="target_horizon",
         source_total=source_total,
@@ -367,11 +388,29 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
     if not source_points or not target_points:
         raise SystemExit(f"{path} does not contain usable lidar_id 0/1 point sets")
 
+    shared_voxels, source_recall, centroid_rmse = voxel_support_metrics(
+        source_points,
+        target_points,
+        voxel_size_m=2.0,
+    )
+
     return LidarCloudPair(
         source_points=source_points[:1800],
         target_points=target_points[:1800],
         source_label="lidar_id 0 points",
         target_label="lidar_id 1 points",
+        bar_labels=(
+            "2 m voxel recall",
+            "real point sample",
+            "public metadata",
+            "evidence protocol",
+        ),
+        bar_values=(
+            min(1.0, source_recall / 0.20),
+            1.0,
+            1.0,
+            1.0,
+        ),
         source_pose_name="front_left",
         target_pose_name="front_right",
         source_total=source_total,
@@ -381,21 +420,74 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
         scene_caption="Real A2D2 LiDAR points: fixed-rig evidence preview",
         legend="green: lidar_id 0/1 real returns   cyan/pink: candidate preview",
         provenance="provenance: A2D2 real NPZ range sample",
-        shared_voxel_count=0,
-        source_recall=0.0,
-        shared_centroid_rmse_m=0.0,
+        shared_voxel_count=shared_voxels,
+        source_recall=source_recall,
+        shared_centroid_rmse_m=centroid_rmse,
         holdout_plane_match_count=0,
         holdout_point_to_plane_p90_m=0.0,
         holdout_unmatched_fraction=0.0,
         known_bad_detectable_fraction=0.0,
         known_bad_max_rmse_delta_m=0.0,
         known_bad_max_point_to_plane_p90_delta_m=0.0,
-        support_summary="A2D2 real point split / metrics computed by Calibrex CLI",
-        holdout_summary="holdout geometry shown in the Livox README demo",
-        known_bad_summary="known-bad controls shown in the Livox README demo",
-        protocol_summary="protocol metadata exported",
-        case_summary="case table shown in the HTML report",
+        support_summary=f"{shared_voxels} shared 2 m voxels / {source_recall:.3f} recall",
+        holdout_summary=f"{source_total + target_total:,} valid public returns",
+        known_bad_summary="fixed-rig preview / no toy geometry",
+        protocol_summary="public metadata + protocol",
+        case_summary=f"shared centroid RMSE {centroid_rmse:.2f} m",
     )
+
+
+def voxel_support_metrics(
+    source_points: list[Point3],
+    target_points: list[Point3],
+    *,
+    voxel_size_m: float,
+) -> tuple[int, float, float]:
+    """Return shared voxel count, source recall, and shared centroid RMSE."""
+
+    source_voxels = voxel_centroids(source_points, voxel_size_m=voxel_size_m)
+    target_voxels = voxel_centroids(target_points, voxel_size_m=voxel_size_m)
+    shared_keys = sorted(set(source_voxels).intersection(target_voxels))
+    source_recall = len(shared_keys) / max(1, len(source_voxels))
+    if not shared_keys:
+        return 0, source_recall, 0.0
+    squared_errors = []
+    for key in shared_keys:
+        source = source_voxels[key]
+        target = target_voxels[key]
+        squared_errors.append(
+            (source[0] - target[0]) ** 2
+            + (source[1] - target[1]) ** 2
+            + (source[2] - target[2]) ** 2
+        )
+    rmse = math.sqrt(sum(squared_errors) / len(squared_errors))
+    return len(shared_keys), source_recall, rmse
+
+
+def voxel_centroids(
+    points: list[Point3],
+    *,
+    voxel_size_m: float,
+) -> dict[tuple[int, int, int], Point3]:
+    """Group points into voxels and return one centroid per occupied cell."""
+
+    accumulators: dict[tuple[int, int, int], list[float]] = {}
+    for x, y, z in points:
+        key = (
+            math.floor(x / voxel_size_m),
+            math.floor(y / voxel_size_m),
+            math.floor(z / voxel_size_m),
+        )
+        bucket = accumulators.setdefault(key, [0.0, 0.0, 0.0, 0.0])
+        bucket[0] += x
+        bucket[1] += y
+        bucket[2] += z
+        bucket[3] += 1.0
+    return {
+        key: (value[0] / value[3], value[1] / value[3], value[2] / value[3])
+        for key, value in accumulators.items()
+        if value[3]
+    }
 
 
 def read_npy_array(
@@ -438,22 +530,36 @@ def load_a2d2_lidar_setup(
     sensor_config: Path | None,
     *,
     allow_network: bool,
+    allow_fallback: bool,
 ) -> tuple[list[LidarPose], str]:
-    """Load A2D2 LiDAR origins or return a deterministic fixed-rig fallback."""
+    """Load A2D2 LiDAR origins from public metadata."""
 
     if sensor_config is not None:
         payload = json.loads(sensor_config.read_text(encoding="utf-8"))
-        return parse_lidars(payload), f"A2D2 metadata: {sensor_config}"
+        lidars = parse_lidars(payload)
+        if lidars:
+            return lidars, f"A2D2 metadata: {sensor_config}"
+        if not allow_fallback:
+            raise SystemExit(f"{sensor_config} does not contain usable A2D2 LiDAR origins")
 
     if allow_network:
         try:
             with urlopen(A2D2_SENSOR_CONFIG_URL, timeout=12) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-            return parse_lidars(payload), "A2D2 public cams_lidars.json"
+            lidars = parse_lidars(payload)
+            if lidars:
+                return lidars, "A2D2 public cams_lidars.json"
         except (OSError, URLError, json.JSONDecodeError):
             pass
 
-    return fallback_lidars(), "fixed multi-LiDAR fallback"
+    if allow_fallback:
+        return fallback_lidars(), "fixed multi-LiDAR fallback"
+
+    raise SystemExit(
+        "A2D2 public LiDAR metadata is required. Run with network access, pass "
+        "--sensor-config, or explicitly opt into --allow-metadata-fallback for "
+        "non-README local previews."
+    )
 
 
 def livox_horizon_setup() -> list[LidarPose]:
@@ -468,7 +574,7 @@ def livox_horizon_setup() -> list[LidarPose]:
 def parse_lidars(payload: dict[str, object]) -> list[LidarPose]:
     raw_lidars = payload.get("lidars")
     if not isinstance(raw_lidars, dict):
-        return fallback_lidars()
+        return []
 
     lidars: list[LidarPose] = []
     for name, raw_lidar in raw_lidars.items():
@@ -485,7 +591,7 @@ def parse_lidars(payload: dict[str, object]) -> list[LidarPose]:
         except (TypeError, ValueError):
             continue
         lidars.append(LidarPose(str(name), origin))  # type: ignore[arg-type]
-    return sorted(lidars, key=lambda lidar: lidar.name) or fallback_lidars()
+    return sorted(lidars, key=lambda lidar: lidar.name)
 
 
 def fallback_lidars() -> list[LidarPose]:
@@ -713,17 +819,10 @@ def draw_evidence_panel(
 ) -> None:
     fill_rect(image, 674, 132, 220, 132, PANEL_ALT)
     rect(image, 674, 132, 220, 132, GRID, alpha=0.92)
-    metric_bar(
-        image,
-        674,
-        156,
-        cloud_pair.source_recall / 0.40,
-        mix(WARNING, GOOD, progress),
-    )
-    holdout_score = 1.0 - min(1.0, cloud_pair.holdout_point_to_plane_p90_m / 2.0)
-    metric_bar(image, 674, 180, holdout_score, OPTIMIZED)
-    metric_bar(image, 674, 204, cloud_pair.known_bad_detectable_fraction, GOOD)
-    metric_bar(image, 674, 228, 1.0 if progress > 0.22 else progress / 0.22, REFERENCE)
+    metric_bar(image, 674, 156, cloud_pair.bar_values[0], mix(WARNING, GOOD, progress))
+    metric_bar(image, 674, 180, cloud_pair.bar_values[1], OPTIMIZED)
+    metric_bar(image, 674, 204, cloud_pair.bar_values[2], GOOD)
+    metric_bar(image, 674, 228, cloud_pair.bar_values[3], REFERENCE)
 
     chart_x, chart_y, chart_width, chart_height = CHART
     fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
@@ -1053,10 +1152,10 @@ def build_text_filter(cloud_pair: LidarCloudPair) -> str:
             "CBD5E1",
         ),
         ("Evidence", 674, 104, 17, "E5E7EB"),
-        ("source voxel recall", 674, 138, 13, "CBD5E1"),
-        ("P90 point-to-plane", 674, 162, 13, "CBD5E1"),
-        ("known-bad controls", 674, 186, 13, "CBD5E1"),
-        ("evidence protocol", 674, 210, 13, "CBD5E1"),
+        (cloud_pair.bar_labels[0], 674, 138, 13, "CBD5E1"),
+        (cloud_pair.bar_labels[1], 674, 162, 13, "CBD5E1"),
+        (cloud_pair.bar_labels[2], 674, 186, 13, "CBD5E1"),
+        (cloud_pair.bar_labels[3], 674, 210, 13, "CBD5E1"),
         (cloud_pair.support_summary, 674, 238, 12, "CBD5E1"),
         (cloud_pair.holdout_summary, 674, 252, 12, "CBD5E1"),
         (cloud_pair.known_bad_summary, 674, 266, 12, "CBD5E1"),

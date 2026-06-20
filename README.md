@@ -14,14 +14,27 @@ calibrex evaluate outputs/result.yaml
 calibrex render outputs/result.yaml --format html
 ```
 
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/calibration-evidence-demo.gif" alt="Livox public solid-state LiDAR evidence animation" width="100%">
+    </td>
+    <td width="50%">
+      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public fixed multi-LiDAR evidence animation" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <sub><b>Livox Horizon ↔ Horizon</b>: public solid-state 3D LiDAR PCD sample with known-bad controls and holdout point-to-plane evidence.</sub>
+    </td>
+    <td>
+      <sub><b>A2D2 fixed multi-LiDAR</b>: public NPZ point cloud split by physical <code>lidar_id</code>, using public sensor metadata. No toy geometry.</sub>
+    </td>
+  </tr>
+</table>
+
 <p align="center">
-  <img src="docs/assets/calibration-evidence-demo.gif" alt="Calibrex calibration evidence animation" width="100%">
-  <br>
-  <sub>Livox public Horizon-Horizon PCD demo: fixed solid-state 3D LiDAR-to-LiDAR extrinsic comparison on real point-cloud returns.</sub>
-  <br>
-  <sub>Calibrex evidence metrics on the sample: 47,587 points, 167 shared 1 m voxels, 16,884 / 23,666 fixed-denominator holdout plane matches, P90 |point-to-plane| 0.806 m, 100% known-bad controls detected.</sub>
-  <br>
-  <sub>Evidence protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates are exported in <code>evidence.json</code> and <code>assessment.json</code>.</sub>
+  <sub>README visuals are generated from public raw samples. Calibrex records protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates in <code>evidence.json</code> and <code>assessment.json</code>.</sub>
 </p>
 
 <p align="center">
@@ -155,6 +168,8 @@ calibrex public-datasets list
 calibrex demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_sample
 python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python3 tools/generate_calibration_evidence_gif.py
+python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
+  --output docs/assets/a2d2-multilidar-evidence-demo.gif
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
