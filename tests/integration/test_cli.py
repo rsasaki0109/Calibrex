@@ -1944,6 +1944,27 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
         ]
         == 1.0
     )
+    mandatory_detection_by_dof = evidence["protocols"][0]["parameters"][
+        "mandatory_detection_by_dof"
+    ]
+    assert set(mandatory_detection_by_dof) == {
+        "pitch_deg",
+        "roll_deg",
+        "x_m",
+        "y_m",
+        "yaw_deg",
+        "z_m",
+    }
+    assert all(
+        dof_summary["case_count"] == 2
+        for dof_summary in mandatory_detection_by_dof.values()
+    )
+    assert all(
+        dof_summary["supported_detection_count"] == 2
+        for dof_summary in mandatory_detection_by_dof.values()
+    )
+    assert mandatory_detection_by_dof["x_m"]["amounts"] == [0.1, -0.1]
+    assert mandatory_detection_by_dof["roll_deg"]["amounts"] == [1.0, -1.0]
     assert (
         evidence["protocols"][0]["parameters"]["mandatory_support_collapse_count"]
         == 0

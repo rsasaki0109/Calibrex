@@ -744,6 +744,7 @@ def _livox_pair_protocol_payload(
                     "mandatory_case_count",
                     "mandatory_supported_detection_count",
                     "mandatory_supported_detection_fraction",
+                    "mandatory_detection_by_dof",
                     "mandatory_support_collapse_count",
                     "min_support_ratio",
                     "min_accepted_correspondence_count",

@@ -674,6 +674,7 @@ def _livox_pair_known_bad_challenge_payload(
         "mandatory_supported_detection_fraction": (
             supported_detection_count / mandatory_count if mandatory_count else None
         ),
+        "mandatory_detection_by_dof": _mandatory_detection_by_dof(mandatory_cases),
         "mandatory_support_collapse_count": support_collapse_count,
         "min_support_ratio": _LIVOX_PAIR_MIN_SUPPORT_RATIO,
         "min_accepted_correspondence_count": (
@@ -683,6 +684,50 @@ def _livox_pair_known_bad_challenge_payload(
             _LIVOX_PAIR_MANDATORY_SUPPORTED_DETECTION_TARGET
         ),
     }
+
+
+def _mandatory_detection_by_dof(
+    mandatory_cases: list[EvidenceCaseItem],
+) -> dict[str, dict[str, object]]:
+    by_dof: dict[str, dict[str, object]] = {}
+    for case in mandatory_cases:
+        if case.dof is None:
+            continue
+        state = by_dof.setdefault(
+            case.dof,
+            {
+                "case_count": 0,
+                "detected_count": 0,
+                "supported_detection_count": 0,
+                "support_collapse_count": 0,
+                "amounts": [],
+            },
+        )
+        state["case_count"] = _int_counter(state["case_count"]) + 1
+        amounts = state["amounts"]
+        if isinstance(amounts, list) and case.amount is not None:
+            amounts.append(case.amount)
+        if case.status != "pass":
+            continue
+        state["detected_count"] = _int_counter(state["detected_count"]) + 1
+        if _has_sufficient_livox_pair_support(case):
+            if _is_supported_livox_pair_detection(case):
+                state["supported_detection_count"] = (
+                    _int_counter(state["supported_detection_count"]) + 1
+                )
+        else:
+            state["support_collapse_count"] = (
+                _int_counter(state["support_collapse_count"]) + 1
+            )
+    return by_dof
+
+
+def _int_counter(value: object) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return value
+    return 0
 
 
 def _is_mandatory_livox_pair_case(case: EvidenceCaseItem) -> bool:
