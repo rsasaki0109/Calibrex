@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+import jsonschema
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -63,6 +64,19 @@ def test_readme_gallery_manifest_matches_assets() -> None:
         assert asset["visual"] in {"evidence", "online"}
         assert asset["uses_builtin_metadata_fallback"] is False
         assert asset["public_inputs"]
+
+
+def test_readme_gallery_manifest_is_schema_valid() -> None:
+    manifest = json.loads(
+        (ROOT / "docs" / "assets" / "readme-gif-gallery.json").read_text(encoding="utf-8")
+    )
+    schema = json.loads(
+        (ROOT / "docs" / "assets" / "readme-gif-gallery.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    jsonschema.validate(manifest, schema)
 
 
 def test_readme_gallery_has_multiple_public_sources() -> None:
