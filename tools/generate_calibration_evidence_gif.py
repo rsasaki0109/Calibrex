@@ -121,6 +121,34 @@ class LidarCloudPair:
     case_summary: str
 
 
+@dataclass(frozen=True)
+class ReadmeGifJob:
+    source: str
+    output: Path
+    a2d2_source_id: int = 0
+    a2d2_target_id: int = 1
+
+
+README_GIF_JOBS = (
+    ReadmeGifJob(
+        source="livox-horizon-horizon",
+        output=Path("docs/assets/calibration-evidence-demo.gif"),
+    ),
+    ReadmeGifJob(
+        source="a2d2",
+        output=Path("docs/assets/a2d2-multilidar-evidence-demo.gif"),
+        a2d2_source_id=0,
+        a2d2_target_id=1,
+    ),
+    ReadmeGifJob(
+        source="a2d2",
+        output=Path("docs/assets/a2d2-front-rear-evidence-demo.gif"),
+        a2d2_source_id=1,
+        a2d2_target_id=3,
+    ),
+)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -143,6 +171,11 @@ def main() -> int:
         "--output",
         type=Path,
         default=Path("docs/assets/calibration-evidence-demo.gif"),
+    )
+    parser.add_argument(
+        "--readme-gallery",
+        action="store_true",
+        help="Generate every public-data GIF referenced by the README.",
     )
     parser.add_argument("--frames", type=int, default=FRAME_COUNT)
     parser.add_argument(
@@ -174,30 +207,119 @@ def main() -> int:
     if shutil.which("ffmpeg") is None:
         raise SystemExit("ffmpeg is required to generate the GIF")
 
-    if args.source == "livox-horizon-horizon":
-        data_dir = args.data_dir or Path("data/public/livox_horizon_horizon_pair")
-        ensure_livox_horizon_pair(data_dir, allow_network=not args.no_network)
-        cloud_pair = load_livox_horizon_cloud_pair(data_dir)
-        lidars, metadata_source = livox_horizon_setup(), "Livox official PCD sample"
-    else:
-        data_dir = args.data_dir or Path("data/public/a2d2_lidar_pair")
-        ensure_a2d2_lidar_sample(data_dir, allow_network=not args.no_network)
-        cloud_pair = load_a2d2_lidar_cloud_pair(
-            data_dir / A2D2_LIDAR_SAMPLE_NAME,
-            source_lidar_id=args.a2d2_source_id,
-            target_lidar_id=args.a2d2_target_id,
-        )
-        lidars, metadata_source = load_a2d2_lidar_setup(
-            args.sensor_config,
+    if args.readme_gallery:
+        if args.data_dir is not None:
+            raise SystemExit("--data-dir is only supported for single-source GIF generation")
+        generate_readme_gallery(
+            frames=args.frames,
+            sensor_config=args.sensor_config,
             allow_network=not args.no_network,
             allow_fallback=args.allow_metadata_fallback,
         )
-    args.output.parent.mkdir(parents=True, exist_ok=True)
+        return 0
+
+    cloud_pair, lidars, metadata_source = load_gif_inputs(
+        source=args.source,
+        data_dir=args.data_dir,
+        sensor_config=args.sensor_config,
+        allow_network=not args.no_network,
+        allow_fallback=args.allow_metadata_fallback,
+        a2d2_source_id=args.a2d2_source_id,
+        a2d2_target_id=args.a2d2_target_id,
+    )
+    generate_gif(
+        output=args.output,
+        frames=args.frames,
+        cloud_pair=cloud_pair,
+        lidars=lidars,
+        metadata_source=metadata_source,
+    )
+    return 0
+
+
+def generate_readme_gallery(
+    *,
+    frames: int,
+    sensor_config: Path | None,
+    allow_network: bool,
+    allow_fallback: bool,
+) -> None:
+    """Generate every README GIF from its public data source."""
+
+    for job in README_GIF_JOBS:
+        cloud_pair, lidars, metadata_source = load_gif_inputs(
+            source=job.source,
+            data_dir=None,
+            sensor_config=sensor_config,
+            allow_network=allow_network,
+            allow_fallback=allow_fallback,
+            a2d2_source_id=job.a2d2_source_id,
+            a2d2_target_id=job.a2d2_target_id,
+        )
+        generate_gif(
+            output=job.output,
+            frames=frames,
+            cloud_pair=cloud_pair,
+            lidars=lidars,
+            metadata_source=metadata_source,
+        )
+
+
+def load_gif_inputs(
+    *,
+    source: str,
+    data_dir: Path | None,
+    sensor_config: Path | None,
+    allow_network: bool,
+    allow_fallback: bool,
+    a2d2_source_id: int,
+    a2d2_target_id: int,
+) -> tuple[LidarCloudPair, list[LidarPose], str]:
+    """Load the public data and rig metadata for one GIF."""
+
+    if source == "livox-horizon-horizon":
+        resolved_data_dir = data_dir or Path("data/public/livox_horizon_horizon_pair")
+        ensure_livox_horizon_pair(resolved_data_dir, allow_network=allow_network)
+        return (
+            load_livox_horizon_cloud_pair(resolved_data_dir),
+            livox_horizon_setup(),
+            "Livox official PCD sample",
+        )
+
+    if source == "a2d2":
+        resolved_data_dir = data_dir or Path("data/public/a2d2_lidar_pair")
+        ensure_a2d2_lidar_sample(resolved_data_dir, allow_network=allow_network)
+        cloud_pair = load_a2d2_lidar_cloud_pair(
+            resolved_data_dir / A2D2_LIDAR_SAMPLE_NAME,
+            source_lidar_id=a2d2_source_id,
+            target_lidar_id=a2d2_target_id,
+        )
+        lidars, metadata_source = load_a2d2_lidar_setup(
+            sensor_config,
+            allow_network=allow_network,
+            allow_fallback=allow_fallback,
+        )
+        return cloud_pair, lidars, metadata_source
+
+    raise SystemExit(f"unsupported GIF source: {source}")
+
+
+def generate_gif(
+    *,
+    output: Path,
+    frames: int,
+    cloud_pair: LidarCloudPair,
+    lidars: list[LidarPose],
+    metadata_source: str,
+) -> None:
+    """Render one evidence animation to a GIF."""
+
+    output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="calibrex_lidar_lidar_gif_") as tmp_name:
         tmp = Path(tmp_name)
         residual_history: list[float] = []
-        for index in range(args.frames):
-            progress = smoothstep(index / max(1, args.frames - 1))
+        for index in range(frames):
+            progress = smoothstep(index / max(1, frames - 1))
             residual_history.append(residual_proxy(progress))
             image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
             draw_frame(
@@ -209,8 +331,7 @@ def main() -> int:
                 metadata_source=metadata_source,
             )
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
-        encode_gif(tmp, args.output, cloud_pair)
-    return 0
+        encode_gif(tmp, output, cloud_pair)
 
 
 def ensure_livox_horizon_pair(data_dir: Path, *, allow_network: bool) -> None:

@@ -33,12 +33,7 @@ The same flow can be run step by step:
 
 ```bash
 python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
-python3 tools/generate_calibration_evidence_gif.py
-python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
-  --output docs/assets/a2d2-multilidar-evidence-demo.gif
-python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
-  --a2d2-source-id 1 --a2d2-target-id 3 \
-  --output docs/assets/a2d2-front-rear-evidence-demo.gif
+python3 tools/generate_calibration_evidence_gif.py --readme-gallery
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
@@ -60,6 +55,10 @@ calibrex assess outputs/livox_horizon_horizon_pcd_sample/evidence.json \
 calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
   --output outputs/livox_horizon_horizon_pcd_sample/verification.json
 ```
+
+`--readme-gallery` regenerates the Livox and A2D2 README GIF assets from public
+raw samples. It downloads the small A2D2 range sample when needed and refuses to
+use built-in fallback geometry unless `--allow-metadata-fallback` is passed.
 
 The cached Livox evidence result is a report-rendering fixture, not a claim
 that raw observations were reread and recomputed.
