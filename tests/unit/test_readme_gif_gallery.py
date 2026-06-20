@@ -39,7 +39,7 @@ def test_readme_gallery_manifest_matches_assets() -> None:
     manifest_path = ROOT / "docs" / "assets" / "readme-gif-gallery.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-    assert manifest["schema_version"] == "calibrex.readme_gif_gallery/v0.1"
+    assert manifest["schema_version"] == tool.README_GIF_MANIFEST_SCHEMA_VERSION
     assert manifest["generator"] == "tools/generate_calibration_evidence_gif.py"
     assert manifest["fallback_metadata_allowed"] is False
     assert manifest["dimensions"] == {
