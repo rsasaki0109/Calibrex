@@ -106,6 +106,8 @@ warnings, and `calibrex assess evidence.json` applies the falsification policy
 without treating a scientific `FAIL` or `INCONCLUSIVE` verdict as a software
 execution error. Use `calibrex assess --enforce evidence.json` when a non-pass
 assessment should return a non-zero exit code.
+`calibrex evidence result.yaml --output evidence.json` materializes the
+evidence sidecar from an existing result without recomputing metrics.
 `calibrex compare` shows materialization for both sides. `bundle.json` records
 artifact SHA-256 digests and can be checked with `calibrex verify bundle.json`;
 report outputs also include `verification.json` with that check materialized.
@@ -140,6 +142,7 @@ calibrex doctor
 calibrex init camera-lidar-imu --output config.yaml
 calibrex calibrate config.yaml --output-dir outputs/example
 calibrex validate outputs/example/result.yaml --json
+calibrex evidence outputs/example/result.yaml --output outputs/example/evidence.json
 calibrex evaluate outputs/example/result.yaml --export-html
 calibrex render outputs/example/result.yaml --output-dir outputs/example/rendered
 calibrex visualize outputs/example/result.yaml --export-html
@@ -155,6 +158,8 @@ python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
+calibrex evidence outputs/livox_horizon_horizon_pcd_sample/result.yaml \
+  --output outputs/livox_horizon_horizon_pcd_sample/evidence.json
 calibrex render examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
 calibrex public-datasets show tiers_livox_lidars_cali --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw

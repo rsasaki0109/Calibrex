@@ -1610,6 +1610,35 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     result = Path(
         "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
     )
+    standalone_evidence = tmp_path / "standalone_evidence.json"
+    assert (
+        main(
+            [
+                "evidence",
+                str(result),
+                "--output",
+                str(standalone_evidence),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    evidence_payload = json.loads(capsys.readouterr().out)
+    assert evidence_payload == {
+        "status": "ok",
+        "source_result": str(result),
+        "evidence": str(standalone_evidence),
+        "run_id": "livox_horizon_horizon_pcd_evidence_example",
+        "metrics_origin": "cached",
+        "data_verified": False,
+        "protocol_count": 1,
+        "case_count": 6,
+        "summary_count": 4,
+        "recomputed_metrics": False,
+    }
+    assert main(["validate", str(standalone_evidence), "--kind", "report-evidence"]) == 0
+    capsys.readouterr()
+
     rendered_dir = tmp_path / "rendered"
     assert (
         main(

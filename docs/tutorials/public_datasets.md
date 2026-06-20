@@ -37,6 +37,8 @@ python3 tools/generate_calibration_evidence_gif.py
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
+calibrex evidence outputs/livox_horizon_horizon_pcd_sample/result.yaml \
+  --output outputs/livox_horizon_horizon_pcd_sample/evidence.json
 calibrex render examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml \
   --output-dir outputs/livox_horizon_horizon_pcd_sample
 calibrex validate outputs/livox_horizon_horizon_pcd_sample/evidence.json --kind report-evidence
@@ -56,6 +58,8 @@ calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
 
 The cached Livox evidence result is a report-rendering fixture, not a claim
 that raw observations were reread and recomputed.
+`calibrex evidence` materializes an `evidence.json` sidecar from an existing
+result and does not recompute metrics from raw observations.
 Its `calibrex render --json` payload includes `render_only: true`,
 `recomputed_metrics: false`, and `evidence_case_count`; the cached fixture keeps
 representative roll/pitch/yaw/x/y/z cases, while raw

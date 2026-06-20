@@ -59,6 +59,27 @@ def main() -> int:
             "--json",
         ]
     )
+    standalone_evidence_path = args.report_dir / "standalone_evidence.json"
+    _run(
+        [
+            str(smoke_calibrex),
+            "evidence",
+            str(CACHED_EVIDENCE_RESULT),
+            "--output",
+            str(standalone_evidence_path),
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "validate",
+            str(standalone_evidence_path),
+            "--kind",
+            "report-evidence",
+            "--json",
+        ]
+    )
     _run(
         [
             str(smoke_calibrex),

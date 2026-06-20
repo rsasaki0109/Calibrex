@@ -80,7 +80,11 @@ from calibrex.export.ros_tf import export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
-from calibrex.visualization.report import report_artifact_paths, write_report_artifacts
+from calibrex.visualization.report import (
+    report_artifact_paths,
+    write_evidence_artifact,
+    write_report_artifacts,
+)
 from calibrex.visualization.rig3d import write_rig_3d_artifact
 
 
@@ -171,6 +175,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     assess.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     assess.set_defaults(func=_cmd_assess)
+
+    evidence = subcommands.add_parser(
+        "evidence",
+        help="materialize evidence.json from an existing result without recomputing metrics",
+    )
+    evidence.add_argument("result", type=Path)
+    evidence.add_argument("--output", type=Path, required=True)
+    evidence.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    evidence.set_defaults(func=_cmd_evidence)
 
     init = subcommands.add_parser("init", help="write a starter config")
     init.add_argument("profile", choices=["camera-lidar-imu", "autonomous-driving-rig"])
@@ -504,6 +517,25 @@ def _cmd_assess(args: argparse.Namespace) -> int:
     }
     _emit(cli_payload, args.json)
     return 1 if args.enforce and assessment.status != "pass" else 0
+
+
+def _cmd_evidence(args: argparse.Namespace) -> int:
+    result = load_result(args.result)
+    evidence = write_evidence_artifact(result, args.output)
+    payload = {
+        "status": "ok",
+        "source_result": str(args.result),
+        "evidence": str(args.output),
+        "run_id": evidence.run.id,
+        "metrics_origin": evidence.materialization.metrics_origin,
+        "data_verified": evidence.materialization.data_verified,
+        "protocol_count": len(evidence.protocols),
+        "case_count": len(evidence.cases),
+        "summary_count": len(evidence.summaries),
+        "recomputed_metrics": False,
+    }
+    _emit(payload, args.json)
+    return 0
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

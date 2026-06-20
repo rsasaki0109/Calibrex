@@ -386,6 +386,26 @@ def write_report_artifacts(
     return written
 
 
+def evidence_artifact_from_result(result: CalibrationResult) -> ReportEvidenceArtifact:
+    """Build the standalone evidence artifact represented by a result."""
+
+    payload = validate_report_sidecar_payload("report-evidence", _evidence_payload(result))
+    return ReportEvidenceArtifact.model_validate(payload)
+
+
+def write_evidence_artifact(
+    result: CalibrationResult,
+    output_path: str | Path,
+) -> ReportEvidenceArtifact:
+    """Write only `evidence.json` for an existing result."""
+
+    evidence = evidence_artifact_from_result(result)
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_mapping(path, evidence.model_dump(mode="json", exclude_none=True))
+    return evidence
+
+
 def _bundle_artifacts(
     output_path: Path,
     written: dict[str, str],
