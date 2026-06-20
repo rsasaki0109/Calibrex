@@ -1,6 +1,38 @@
 {
   "assets": [
     {
+      "metadata_source": "A2D2 public cams_lidars.json",
+      "output": "docs/assets/online-calibration-loop.gif",
+      "public_inputs": [
+        {
+          "byte_range": [
+            1536,
+            2978960
+          ],
+          "kind": "npz_range_from_tar",
+          "selected_member": "20180810150607_lidar_front_left_000000060.npz",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar"
+        },
+        {
+          "kind": "sensor_metadata_json",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json"
+        }
+      ],
+      "sensor_pair": {
+        "source": "front_center",
+        "source_lidar_id": 0,
+        "target": "rear_left",
+        "target_lidar_id": 3
+      },
+      "sha256": "5d016481dd7fd961d08340ff34945ab0e7a42d509239c3eab3a0f7d3913d21b4",
+      "size_bytes": 543938,
+      "source": "a2d2",
+      "source_label": "lidar_id 0 (front_center) points",
+      "target_label": "lidar_id 3 (rear_left) points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "online"
+    },
+    {
       "metadata_source": "Livox official PCD sample",
       "output": "docs/assets/calibration-evidence-demo.gif",
       "public_inputs": [
@@ -24,7 +56,8 @@
       "source": "livox-horizon-horizon",
       "source_label": "base Horizon points",
       "target_label": "target Horizon points",
-      "uses_builtin_metadata_fallback": false
+      "uses_builtin_metadata_fallback": false,
+      "visual": "evidence"
     },
     {
       "metadata_source": "A2D2 public cams_lidars.json",
@@ -55,7 +88,8 @@
       "source": "a2d2",
       "source_label": "lidar_id 0 (front_center) points",
       "target_label": "lidar_id 1 (front_left) points",
-      "uses_builtin_metadata_fallback": false
+      "uses_builtin_metadata_fallback": false,
+      "visual": "evidence"
     },
     {
       "metadata_source": "A2D2 public cams_lidars.json",
@@ -86,7 +120,8 @@
       "source": "a2d2",
       "source_label": "lidar_id 1 (front_left) points",
       "target_label": "lidar_id 3 (rear_left) points",
-      "uses_builtin_metadata_fallback": false
+      "uses_builtin_metadata_fallback": false,
+      "visual": "evidence"
     }
   ],
   "dimensions": {
