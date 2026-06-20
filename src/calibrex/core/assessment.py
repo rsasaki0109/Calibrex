@@ -36,6 +36,8 @@ _MIN_KNOWN_BAD_PASS_FRACTION = 0.50
 _MIN_SUPPORTED_KNOWN_BAD_PASS_FRACTION = 0.50
 _MIN_MANDATORY_KNOWN_BAD_CASE_COUNT = 12
 _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT = 8
+_MANDATORY_ROTATION_DEG = 1.0
+_MANDATORY_TRANSLATION_M = 0.10
 _DELTA_EPSILON = 1.0e-9
 
 
@@ -449,19 +451,29 @@ def _known_bad_rule(
         for case in support_scored_cases
         if not _case_has_sufficient_support(case, policy)
     )
-    mandatory_case_count = _number_from_protocol_parameters(
+    declared_mandatory_case_count = _number_from_protocol_parameters(
         protocol,
         "mandatory_case_count",
     )
-    mandatory_supported_detection_count = _number_from_protocol_parameters(
+    declared_mandatory_supported_detection_count = _number_from_protocol_parameters(
         protocol,
         "mandatory_supported_detection_count",
     )
-    mandatory_support_collapse_count = _number_from_protocol_parameters(
+    declared_mandatory_support_collapse_count = _number_from_protocol_parameters(
         protocol,
         "mandatory_support_collapse_count",
     )
     challenge_id = _string_from_protocol_parameters(protocol, "challenge_id")
+    mandatory_cases = _mandatory_known_bad_cases(cases, protocol)
+    materialized_mandatory_case_count = len(mandatory_cases)
+    materialized_mandatory_supported_detection_count = sum(
+        1 for case in mandatory_cases if _case_is_supported_known_bad_detection(case, policy)
+    )
+    materialized_mandatory_support_collapse_count = sum(
+        1
+        for case in mandatory_cases
+        if case.status == "pass" and not _case_has_sufficient_support(case, policy)
+    )
     min_known_bad_case_count = _policy_number(
         policy,
         "min_known_bad_case_count",
@@ -502,9 +514,16 @@ def _known_bad_rule(
         "supported_pass_fraction": supported_pass_fraction,
         "support_collapse_count": support_collapse_count,
         "challenge_id": challenge_id,
-        "mandatory_case_count": mandatory_case_count,
-        "mandatory_supported_detection_count": mandatory_supported_detection_count,
-        "mandatory_support_collapse_count": mandatory_support_collapse_count,
+        "mandatory_case_count": declared_mandatory_case_count,
+        "mandatory_supported_detection_count": declared_mandatory_supported_detection_count,
+        "mandatory_support_collapse_count": declared_mandatory_support_collapse_count,
+        "materialized_mandatory_case_count": materialized_mandatory_case_count,
+        "materialized_mandatory_supported_detection_count": (
+            materialized_mandatory_supported_detection_count
+        ),
+        "materialized_mandatory_support_collapse_count": (
+            materialized_mandatory_support_collapse_count
+        ),
         "summary_status": summary.status if summary else None,
     }
     thresholds: dict[str, AssessmentScalar] = {
@@ -574,8 +593,8 @@ def _known_bad_rule(
         )
     if challenge_id is not None:
         if (
-            mandatory_case_count is None
-            or mandatory_case_count < min_mandatory_known_bad_case_count
+            declared_mandatory_case_count is None
+            or materialized_mandatory_case_count < min_mandatory_known_bad_case_count
         ):
             return AssessmentRuleResult(
                 rule_id="known_bad_controls",
@@ -586,9 +605,55 @@ def _known_bad_rule(
                 thresholds=thresholds,
                 evidence_refs=[protocol.protocol_id, "cases"],
             )
+        if declared_mandatory_case_count != float(materialized_mandatory_case_count):
+            return AssessmentRuleResult(
+                rule_id="known_bad_controls",
+                status="inconclusive",
+                reason=(
+                    "mandatory known-bad challenge declaration does not match "
+                    "materialized case evidence"
+                ),
+                metric_ids=summary.metric_ids if summary else [],
+                observed=observed,
+                thresholds=thresholds,
+                evidence_refs=[protocol.protocol_id, "cases"],
+            )
         if (
-            mandatory_supported_detection_count is None
-            or mandatory_supported_detection_count
+            declared_mandatory_supported_detection_count is not None
+            and declared_mandatory_supported_detection_count
+            != float(materialized_mandatory_supported_detection_count)
+        ):
+            return AssessmentRuleResult(
+                rule_id="known_bad_controls",
+                status="inconclusive",
+                reason=(
+                    "mandatory known-bad supported detection declaration does not "
+                    "match materialized case evidence"
+                ),
+                metric_ids=summary.metric_ids if summary else [],
+                observed=observed,
+                thresholds=thresholds,
+                evidence_refs=[protocol.protocol_id, "cases"],
+            )
+        if (
+            declared_mandatory_support_collapse_count is not None
+            and declared_mandatory_support_collapse_count
+            != float(materialized_mandatory_support_collapse_count)
+        ):
+            return AssessmentRuleResult(
+                rule_id="known_bad_controls",
+                status="inconclusive",
+                reason=(
+                    "mandatory known-bad support-collapse declaration does not "
+                    "match materialized case evidence"
+                ),
+                metric_ids=summary.metric_ids if summary else [],
+                observed=observed,
+                thresholds=thresholds,
+                evidence_refs=[protocol.protocol_id, "cases"],
+            )
+        if (
+            materialized_mandatory_supported_detection_count
             < min_mandatory_supported_detection_count
         ):
             return AssessmentRuleResult(
@@ -729,6 +794,43 @@ def _case_is_supported_known_bad_detection(
         and delta > _DELTA_EPSILON
         for delta_name in delta_names
     )
+
+
+def _mandatory_known_bad_cases(
+    cases: list[EvidenceCaseItem],
+    protocol: EvidenceProtocolItem | None,
+) -> list[EvidenceCaseItem]:
+    rotation_deg = _number_from_protocol_parameters(protocol, "mandatory_rotation_deg")
+    translation_m = _number_from_protocol_parameters(protocol, "mandatory_translation_m")
+    rotation_threshold = rotation_deg if rotation_deg is not None else _MANDATORY_ROTATION_DEG
+    translation_threshold = (
+        translation_m if translation_m is not None else _MANDATORY_TRANSLATION_M
+    )
+    return [
+        case
+        for case in cases
+        if _is_mandatory_known_bad_case(
+            case,
+            rotation_deg=rotation_threshold,
+            translation_m=translation_threshold,
+        )
+    ]
+
+
+def _is_mandatory_known_bad_case(
+    case: EvidenceCaseItem,
+    *,
+    rotation_deg: float,
+    translation_m: float,
+) -> bool:
+    amount = _number(case.amount)
+    if amount is None:
+        return False
+    if case.unit == "deg":
+        return abs(amount) >= rotation_deg
+    if case.unit == "m":
+        return abs(amount) >= translation_m
+    return False
 
 
 def _number_from_protocol_parameters(
