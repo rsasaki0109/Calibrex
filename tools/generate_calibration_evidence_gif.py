@@ -42,6 +42,13 @@ A2D2_LIDAR_SAMPLE_URL = (
 A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
 A2D2_LIDAR_SAMPLE_START = 1536
 A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
+A2D2_LIDAR_ID_TO_NAME = {
+    0: "front_center",
+    1: "front_left",
+    2: "front_right",
+    3: "rear_left",
+    4: "rear_right",
+}
 LIVOX_BASE_PCD_URL = (
     "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
     "Showcase/Base_LiDAR_Frames.tar.gz"
@@ -139,6 +146,20 @@ def main() -> int:
     )
     parser.add_argument("--frames", type=int, default=FRAME_COUNT)
     parser.add_argument(
+        "--a2d2-source-id",
+        type=int,
+        default=0,
+        choices=sorted(A2D2_LIDAR_ID_TO_NAME),
+        help="A2D2 lidar_id used as the source point set.",
+    )
+    parser.add_argument(
+        "--a2d2-target-id",
+        type=int,
+        default=1,
+        choices=sorted(A2D2_LIDAR_ID_TO_NAME),
+        help="A2D2 lidar_id used as the target point set.",
+    )
+    parser.add_argument(
         "--no-network",
         action="store_true",
         help="Require already downloaded public inputs instead of fetching them.",
@@ -161,7 +182,11 @@ def main() -> int:
     else:
         data_dir = args.data_dir or Path("data/public/a2d2_lidar_pair")
         ensure_a2d2_lidar_sample(data_dir, allow_network=not args.no_network)
-        cloud_pair = load_a2d2_lidar_cloud_pair(data_dir / A2D2_LIDAR_SAMPLE_NAME)
+        cloud_pair = load_a2d2_lidar_cloud_pair(
+            data_dir / A2D2_LIDAR_SAMPLE_NAME,
+            source_lidar_id=args.a2d2_source_id,
+            target_lidar_id=args.a2d2_target_id,
+        )
         lidars, metadata_source = load_a2d2_lidar_setup(
             args.sensor_config,
             allow_network=not args.no_network,
@@ -351,8 +376,16 @@ def read_binary_pcd_xyz(path: Path, *, stride: int) -> tuple[list[Point3], int]:
     return points, total
 
 
-def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
+def load_a2d2_lidar_cloud_pair(
+    path: Path,
+    *,
+    source_lidar_id: int,
+    target_lidar_id: int,
+) -> LidarCloudPair:
     """Load two physical LiDAR point sets from a real A2D2 NPZ file."""
+
+    if source_lidar_id == target_lidar_id:
+        raise SystemExit("A2D2 source and target lidar_id must differ")
 
     with zipfile.ZipFile(path) as archive:
         points_header, points_raw = read_npy_array(archive, "pcloud_points.npy")
@@ -376,17 +409,20 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
         if not (2.0 <= x <= 55.0 and -22.0 <= y <= 22.0 and -3.2 <= z <= 7.5):
             continue
         point = (x, y, z)
-        if lidar_id == 0:
+        if lidar_id == source_lidar_id:
             source_total += 1
             if source_total % 5 == 0:
                 source_points.append(point)
-        elif lidar_id == 1:
+        elif lidar_id == target_lidar_id:
             target_total += 1
             if target_total % 4 == 0:
                 target_points.append(point)
 
     if not source_points or not target_points:
-        raise SystemExit(f"{path} does not contain usable lidar_id 0/1 point sets")
+        raise SystemExit(
+            f"{path} does not contain usable lidar_id "
+            f"{source_lidar_id}/{target_lidar_id} point sets"
+        )
 
     shared_voxels, source_recall, centroid_rmse = voxel_support_metrics(
         source_points,
@@ -394,11 +430,14 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
         voxel_size_m=2.0,
     )
 
+    source_name = A2D2_LIDAR_ID_TO_NAME[source_lidar_id]
+    target_name = A2D2_LIDAR_ID_TO_NAME[target_lidar_id]
+
     return LidarCloudPair(
         source_points=source_points[:1800],
         target_points=target_points[:1800],
-        source_label="lidar_id 0 points",
-        target_label="lidar_id 1 points",
+        source_label=f"lidar_id {source_lidar_id} ({source_name}) points",
+        target_label=f"lidar_id {target_lidar_id} ({target_name}) points",
         bar_labels=(
             "2 m voxel recall",
             "real point sample",
@@ -411,14 +450,17 @@ def load_a2d2_lidar_cloud_pair(path: Path) -> LidarCloudPair:
             1.0,
             1.0,
         ),
-        source_pose_name="front_left",
-        target_pose_name="front_right",
+        source_pose_name=source_name,
+        target_pose_name=target_name,
         source_total=source_total,
         target_total=target_total,
         source_path=path,
-        subtitle="A2D2 public NPZ point cloud split by physical lidar_id",
-        scene_caption="Real A2D2 LiDAR points: fixed-rig evidence preview",
-        legend="green: lidar_id 0/1 real returns   cyan/pink: candidate preview",
+        subtitle=(
+            f"A2D2 public NPZ point cloud: lidar_id "
+            f"{source_lidar_id} -> {target_lidar_id}"
+        ),
+        scene_caption=f"Real A2D2 returns: {source_name} to {target_name}",
+        legend="green: selected real returns   cyan/pink: candidate preview",
         provenance="provenance: A2D2 real NPZ range sample",
         shared_voxel_count=shared_voxels,
         source_recall=source_recall,

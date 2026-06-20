@@ -16,11 +16,14 @@ calibrex render outputs/result.yaml --format html
 
 <table>
   <tr>
-    <td width="50%">
+    <td width="33%">
       <img src="docs/assets/calibration-evidence-demo.gif" alt="Livox public solid-state LiDAR evidence animation" width="100%">
     </td>
-    <td width="50%">
-      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public fixed multi-LiDAR evidence animation" width="100%">
+    <td width="33%">
+      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public fixed front LiDAR evidence animation" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/a2d2-front-rear-evidence-demo.gif" alt="A2D2 public fixed front-rear LiDAR evidence animation" width="100%">
     </td>
   </tr>
   <tr>
@@ -28,7 +31,10 @@ calibrex render outputs/result.yaml --format html
       <sub><b>Livox Horizon ↔ Horizon</b>: public solid-state 3D LiDAR PCD sample with known-bad controls and holdout point-to-plane evidence.</sub>
     </td>
     <td>
-      <sub><b>A2D2 fixed multi-LiDAR</b>: public NPZ point cloud split by physical <code>lidar_id</code>, using public sensor metadata. No toy geometry.</sub>
+      <sub><b>A2D2 front pair</b>: public NPZ point cloud, <code>lidar_id 0 → 1</code>, using public fixed-rig sensor metadata.</sub>
+    </td>
+    <td>
+      <sub><b>A2D2 front-rear pair</b>: public NPZ point cloud, <code>lidar_id 1 → 3</code>, showing a different fixed LiDAR baseline. No toy geometry.</sub>
     </td>
   </tr>
 </table>
@@ -170,6 +176,9 @@ python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --outp
 python3 tools/generate_calibration_evidence_gif.py
 python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
   --output docs/assets/a2d2-multilidar-evidence-demo.gif
+python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
+  --a2d2-source-id 1 --a2d2-target-id 3 \
+  --output docs/assets/a2d2-front-rear-evidence-demo.gif
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml

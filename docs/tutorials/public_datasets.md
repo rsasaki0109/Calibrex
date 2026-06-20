@@ -36,6 +36,9 @@ python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --outp
 python3 tools/generate_calibration_evidence_gif.py
 python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
   --output docs/assets/a2d2-multilidar-evidence-demo.gif
+python3 tools/generate_calibration_evidence_gif.py --source a2d2 \
+  --a2d2-source-id 1 --a2d2-target-id 3 \
+  --output docs/assets/a2d2-front-rear-evidence-demo.gif
 calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
 calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
 calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
