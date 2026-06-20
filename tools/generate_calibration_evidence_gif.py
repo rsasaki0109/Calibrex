@@ -33,6 +33,7 @@ HEIGHT = 540
 FPS = 12
 FRAME_COUNT = 36
 README_GIF_MANIFEST = Path("docs/assets/readme-gif-gallery.json")
+README_GIF_MANIFEST_SCHEMA_VERSION = "calibrex.readme_gif_gallery/v0.2"
 
 A2D2_SENSOR_CONFIG_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
@@ -374,7 +375,7 @@ def write_readme_gallery_manifest(
     """Write a machine-readable manifest for README GIF assets."""
 
     payload = {
-        "schema_version": "calibrex.readme_gif_gallery/v0.1",
+        "schema_version": README_GIF_MANIFEST_SCHEMA_VERSION,
         "generator": "tools/generate_calibration_evidence_gif.py",
         "dimensions": {
             "width": WIDTH,
