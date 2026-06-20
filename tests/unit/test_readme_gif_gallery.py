@@ -50,13 +50,17 @@ def test_readme_gallery_manifest_matches_assets() -> None:
     }
 
     job_outputs = {str(job.output) for job in tool.README_GIF_JOBS}
+    jobs_by_output = {str(job.output): job for job in tool.README_GIF_JOBS}
     asset_outputs = {asset["output"] for asset in manifest["assets"]}
     assert asset_outputs == job_outputs
 
     for asset in manifest["assets"]:
         asset_path = ROOT / asset["output"]
+        job = jobs_by_output[asset["output"]]
         assert asset["sha256"] == hashlib.sha256(asset_path.read_bytes()).hexdigest()
         assert asset["size_bytes"] == asset_path.stat().st_size
+        assert asset["visual"] == job.visual
+        assert asset["visual"] in {"evidence", "online"}
         assert asset["uses_builtin_metadata_fallback"] is False
         assert asset["public_inputs"]
 
@@ -65,6 +69,7 @@ def test_readme_gallery_has_multiple_public_sources() -> None:
     tool = load_gif_tool()
 
     sources = {job.source for job in tool.README_GIF_JOBS}
+    visuals = {job.visual for job in tool.README_GIF_JOBS}
     a2d2_pairs = {
         (job.a2d2_source_id, job.a2d2_target_id)
         for job in tool.README_GIF_JOBS
@@ -72,6 +77,7 @@ def test_readme_gallery_has_multiple_public_sources() -> None:
     }
 
     assert sources == {"livox-horizon-horizon", "a2d2"}
+    assert visuals == {"evidence", "online"}
     assert len(a2d2_pairs) >= 2
     assert all(source_id != target_id for source_id, target_id in a2d2_pairs)
 
