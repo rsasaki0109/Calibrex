@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from calibrex.core.assessment import AssessmentArtifact
+from calibrex.core.assessment import AssessmentArtifact, assess_report_evidence
 from calibrex.core.evidence_contract import PolicyArtifact, ProtocolArtifact
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping, write_mapping
@@ -287,6 +287,7 @@ def verify_evidence_bundle(
             _verify_assessment_source(
                 artifact=artifact,
                 artifact_path=artifact_path,
+                bundle_dir=base_dir,
                 primary_evidence_path=manifest.primary_evidence_path,
                 primary_evidence_sha256=artifact_digests.get(manifest.primary_evidence_path),
                 issues=issues,
@@ -871,6 +872,7 @@ def _verify_assessment_source(
     *,
     artifact: EvidenceBundleArtifact,
     artifact_path: Path,
+    bundle_dir: Path,
     primary_evidence_path: str,
     primary_evidence_sha256: str | None,
     issues: list[str],
@@ -943,6 +945,79 @@ def _verify_assessment_source(
         },
         issues=claim_issues,
     )
+    _verify_assessment_recompute_match(
+        artifact=artifact,
+        artifact_path=artifact_path,
+        bundle_dir=bundle_dir,
+        primary_evidence_path=primary_evidence_path,
+        primary_evidence_sha256=primary_evidence_sha256,
+        issues=issues,
+        verification_claims=verification_claims,
+    )
+
+
+def _verify_assessment_recompute_match(
+    *,
+    artifact: EvidenceBundleArtifact,
+    artifact_path: Path,
+    bundle_dir: Path,
+    primary_evidence_path: str,
+    primary_evidence_sha256: str | None,
+    issues: list[str],
+    verification_claims: list[VerificationClaim],
+) -> None:
+    evidence_path = _resolve_artifact_path(bundle_dir, primary_evidence_path)
+    try:
+        observed_assessment = AssessmentArtifact.model_validate(read_mapping(artifact_path))
+        evidence = ReportEvidenceArtifact.model_validate(read_mapping(evidence_path))
+        expected_assessment = assess_report_evidence(
+            evidence,
+            source_path=primary_evidence_path,
+            source_sha256=primary_evidence_sha256,
+            policy=observed_assessment.policy,
+        )
+    except Exception:
+        _append_claim(
+            verification_claims,
+            scope="assessment_source",
+            subject=artifact.path,
+            status="skipped",
+            method="assessment_recompute_match",
+            expected={"primary_evidence_path": primary_evidence_path},
+            observed={"reason": "assessment or primary evidence could not be parsed"},
+        )
+        return
+    expected = _assessment_fingerprint(expected_assessment)
+    observed = _assessment_fingerprint(observed_assessment)
+    claim_issues = _field_mismatch_issues(
+        subject=artifact.path,
+        expected=expected,
+        observed=observed,
+    )
+    issues.extend(claim_issues)
+    _append_claim(
+        verification_claims,
+        scope="assessment_source",
+        subject=artifact.path,
+        status="ok" if not claim_issues else "failed",
+        method="assessment_recompute_match",
+        expected=expected,
+        observed=observed,
+        issues=claim_issues,
+    )
+
+
+def _assessment_fingerprint(assessment: AssessmentArtifact) -> dict[str, Any]:
+    return {
+        "status": assessment.status,
+        "reason": assessment.reason,
+        "source_evidence_sha256": assessment.source_evidence.sha256,
+        "policy_sha256": _canonical_json_sha256(assessment.policy.model_dump(mode="json")),
+        "rules_sha256": _canonical_json_sha256(
+            [rule.model_dump(mode="json") for rule in assessment.rules]
+        ),
+        "rule_ids": [rule.rule_id for rule in assessment.rules],
+    }
 
 
 def _verify_protocol_evidence_link(

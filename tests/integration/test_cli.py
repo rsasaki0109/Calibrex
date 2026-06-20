@@ -476,6 +476,7 @@ def test_calibrate_evaluate_visualize_export(
     assert verify_payload["verification_summary"]["failed"] == 0
     assert verify_payload["verification_summary"]["skipped"] >= 1
     assert verify_payload["verification_summary"]["by_scope"]["artifact_digest"] == 10
+    assert verify_payload["verification_summary"]["by_scope"]["assessment_source"] == 2
     assert verify_payload["verification_summary"]["by_scope"]["source_evidence_link"] == 4
     assert verify_payload["verification_summary"]["by_scope"]["protocol_evidence_link"] == 1
     assert verify_payload["verification_summary"]["by_scope"]["policy_assessment_link"] == 1
@@ -488,6 +489,13 @@ def test_calibrate_evaluate_visualize_export(
     assert any(
         claim["scope"] == "policy_assessment_link"
         and claim["subject"] == "policy.json"
+        and claim["status"] == "ok"
+        for claim in verify_payload["verification_claims"]
+    )
+    assert any(
+        claim["scope"] == "assessment_source"
+        and claim["subject"] == "assessment.json"
+        and claim["method"] == "assessment_recompute_match"
         and claim["status"] == "ok"
         for claim in verify_payload["verification_claims"]
     )
@@ -513,6 +521,28 @@ def test_calibrate_evaluate_visualize_export(
     )
     write_mapping(protocol_path, protocol)
     _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", protocol_path)
+
+    assessment_path = tmp_path / "assessment.json"
+    assessment = json.loads(assessment_path.read_text(encoding="utf-8"))
+    tampered_assessment = dict(assessment)
+    tampered_assessment["status"] = "pass"
+    write_mapping(assessment_path, tampered_assessment)
+    _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", assessment_path)
+    assert main(["verify", str(tmp_path / "bundle.json"), "--json"]) == 1
+    assessment_mismatch_payload = json.loads(capsys.readouterr().out)
+    assert any(
+        claim["scope"] == "assessment_source"
+        and claim["subject"] == "assessment.json"
+        and claim["method"] == "assessment_recompute_match"
+        and claim["status"] == "failed"
+        for claim in assessment_mismatch_payload["verification_claims"]
+    )
+    assert any(
+        "assessment.json: status mismatch" in issue
+        for issue in assessment_mismatch_payload["issues"]
+    )
+    write_mapping(assessment_path, assessment)
+    _refresh_bundle_artifact_for_test(tmp_path / "bundle.json", assessment_path)
 
     policy_path = tmp_path / "policy.json"
     tampered_policy = json.loads(policy_path.read_text(encoding="utf-8"))
