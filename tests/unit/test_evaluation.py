@@ -233,6 +233,12 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         0
     ].challenge_target_supported_detection_count == 8
     assert (
+        comparison.protocol_compatibility.left_protocols[
+            0
+        ].mandatory_detection_by_dof_digest
+        is not None
+    )
+    assert (
         comparison.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
         == "right"
     )
@@ -315,6 +321,35 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         == "not_comparable"
     )
 
+    dof_changed = CalibrationResult(
+        run=RunInfo(
+            id="dof-changed",
+            calibrex_version="0.1.0",
+            provenance=_livox_pair_provenance(metrics_origin="cached"),
+        ),
+        frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
+        metrics={
+            "lidar_pair_holdout_point_to_plane_support_ratio": MetricResult(
+                value=0.95,
+                grade="pass",
+            )
+        },
+    )
+    dof_changed.run.provenance["livox_pair_evidence"]["known_bad_challenge"][
+        "mandatory_detection_by_dof"
+    ]["yaw_deg"]["supported_detection_count"] = 1
+    dof_mismatch = compare_results(left, dof_changed)
+
+    assert dof_mismatch.protocol_compatibility.status == "warning"
+    assert dof_mismatch.protocol_compatibility.reasons == [
+        "livox_pair_single_pair_holdout_point_to_plane/v0.1: "
+        "mandatory detection-by-DoF summary differs"
+    ]
+    assert (
+        dof_mismatch.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
+        == "not_comparable"
+    )
+
     right.run.provenance["metrics_origin"] = "recomputed"
     mixed = compare_results(left, right)
 
@@ -357,6 +392,50 @@ def _livox_pair_provenance(metrics_origin: str) -> dict[str, object]:
                 "mandatory_rotation_deg": 1.0,
                 "mandatory_translation_m": 0.1,
                 "mandatory_case_count": 12,
+                "mandatory_detection_by_dof": {
+                    "roll_deg": {
+                        "case_count": 2,
+                        "detected_count": 2,
+                        "supported_detection_count": 2,
+                        "support_collapse_count": 0,
+                        "amounts": [1.0, -1.0],
+                    },
+                    "pitch_deg": {
+                        "case_count": 2,
+                        "detected_count": 2,
+                        "supported_detection_count": 2,
+                        "support_collapse_count": 0,
+                        "amounts": [1.0, -1.0],
+                    },
+                    "yaw_deg": {
+                        "case_count": 2,
+                        "detected_count": 2,
+                        "supported_detection_count": 2,
+                        "support_collapse_count": 0,
+                        "amounts": [1.0, -1.0],
+                    },
+                    "x_m": {
+                        "case_count": 2,
+                        "detected_count": 2,
+                        "supported_detection_count": 2,
+                        "support_collapse_count": 0,
+                        "amounts": [0.1, -0.1],
+                    },
+                    "y_m": {
+                        "case_count": 2,
+                        "detected_count": 2,
+                        "supported_detection_count": 2,
+                        "support_collapse_count": 0,
+                        "amounts": [0.1, -0.1],
+                    },
+                    "z_m": {
+                        "case_count": 2,
+                        "detected_count": 2,
+                        "supported_detection_count": 2,
+                        "support_collapse_count": 0,
+                        "amounts": [0.1, -0.1],
+                    },
+                },
                 "min_support_ratio": 0.1,
                 "min_accepted_correspondence_count": 500.0,
                 "target_supported_detection_count": 8,

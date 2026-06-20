@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Iterable
 from math import acos, degrees, sqrt
 from pathlib import Path
@@ -177,6 +179,7 @@ class EvidenceProtocolSide(StrictModel):
     mandatory_rotation_deg: float | None = None
     mandatory_translation_m: float | None = None
     mandatory_case_count: int | None = None
+    mandatory_detection_by_dof_digest: str | None = None
     challenge_min_support_ratio: float | None = None
     challenge_min_accepted_correspondence_count: float | None = None
     challenge_target_supported_detection_count: int | None = None
@@ -736,6 +739,9 @@ def _evidence_protocol_sides(result: CalibrationResult) -> list[EvidenceProtocol
                     challenge.get("mandatory_translation_m")
                 ),
                 mandatory_case_count=_int_or_none(challenge.get("mandatory_case_count")),
+                mandatory_detection_by_dof_digest=_json_digest_or_none(
+                    challenge.get("mandatory_detection_by_dof")
+                ),
                 challenge_min_support_ratio=_float_or_none(
                     challenge.get("min_support_ratio")
                 ),
@@ -851,6 +857,8 @@ def _protocol_mismatch_reasons(
             f"{protocol_id}: mandatory known-bad case count differs "
             f"({left.mandatory_case_count} vs {right.mandatory_case_count})"
         )
+    if left.mandatory_detection_by_dof_digest != right.mandatory_detection_by_dof_digest:
+        reasons.append(f"{protocol_id}: mandatory detection-by-DoF summary differs")
     if left.challenge_min_support_ratio != right.challenge_min_support_ratio:
         reasons.append(
             f"{protocol_id}: challenge support-ratio gate differs "
@@ -886,6 +894,21 @@ def _metrics_origin(provenance: dict[str, object]) -> MetricsOrigin:
     if value == "unknown":
         return "unknown"
     return "unknown"
+
+
+def _json_digest_or_none(value: object) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    try:
+        payload = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+    except TypeError:
+        return None
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _str_or_none(value: object) -> str | None:
