@@ -1,0 +1,101 @@
+{
+  "assets": [
+    {
+      "metadata_source": "Livox official PCD sample",
+      "output": "docs/assets/calibration-evidence-demo.gif",
+      "public_inputs": [
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "base_horizon_100432.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz"
+        },
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "target_horizon_100538.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Target-LiDAR-Frames.tar.gz"
+        }
+      ],
+      "sensor_pair": {
+        "source": "base_horizon",
+        "target": "target_horizon"
+      },
+      "sha256": "d6b6b41b3437630442bc30e904032ecb8bc7fd082ca1b73ee3f2becb7eae1d2e",
+      "size_bytes": 154835,
+      "source": "livox-horizon-horizon",
+      "source_label": "base Horizon points",
+      "target_label": "target Horizon points",
+      "uses_builtin_metadata_fallback": false
+    },
+    {
+      "metadata_source": "A2D2 public cams_lidars.json",
+      "output": "docs/assets/a2d2-multilidar-evidence-demo.gif",
+      "public_inputs": [
+        {
+          "byte_range": [
+            1536,
+            2978960
+          ],
+          "kind": "npz_range_from_tar",
+          "selected_member": "20180810150607_lidar_front_left_000000060.npz",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar"
+        },
+        {
+          "kind": "sensor_metadata_json",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json"
+        }
+      ],
+      "sensor_pair": {
+        "source": "front_center",
+        "source_lidar_id": 0,
+        "target": "front_left",
+        "target_lidar_id": 1
+      },
+      "sha256": "ef6c7f4dbc043e75e8c76ede93d2a69b9df665835f695c6ca5a9a7f998b1ca74",
+      "size_bytes": 172002,
+      "source": "a2d2",
+      "source_label": "lidar_id 0 (front_center) points",
+      "target_label": "lidar_id 1 (front_left) points",
+      "uses_builtin_metadata_fallback": false
+    },
+    {
+      "metadata_source": "A2D2 public cams_lidars.json",
+      "output": "docs/assets/a2d2-front-rear-evidence-demo.gif",
+      "public_inputs": [
+        {
+          "byte_range": [
+            1536,
+            2978960
+          ],
+          "kind": "npz_range_from_tar",
+          "selected_member": "20180810150607_lidar_front_left_000000060.npz",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar"
+        },
+        {
+          "kind": "sensor_metadata_json",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json"
+        }
+      ],
+      "sensor_pair": {
+        "source": "front_left",
+        "source_lidar_id": 1,
+        "target": "rear_left",
+        "target_lidar_id": 3
+      },
+      "sha256": "601eb63f18afa50197928ec81bf98c14d0d86f4b3e225d22c0cb52b80d17bf7c",
+      "size_bytes": 188523,
+      "source": "a2d2",
+      "source_label": "lidar_id 1 (front_left) points",
+      "target_label": "lidar_id 3 (rear_left) points",
+      "uses_builtin_metadata_fallback": false
+    }
+  ],
+  "dimensions": {
+    "fps": 12,
+    "frames": 36,
+    "height": 540,
+    "width": 960
+  },
+  "fallback_metadata_allowed": false,
+  "generator": "tools/generate_calibration_evidence_gif.py",
+  "schema_version": "calibrex.readme_gif_gallery/v0.1"
+}

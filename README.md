@@ -40,7 +40,7 @@ calibrex render outputs/result.yaml --format html
 </table>
 
 <p align="center">
-  <sub>README visuals are generated from public raw samples. Calibrex records protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates in <code>evidence.json</code> and <code>assessment.json</code>.</sub>
+  <sub>README visuals are generated from public raw samples. Calibrex records protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates in <code>evidence.json</code> and <code>assessment.json</code>. The GIF source manifest is <code>docs/assets/readme-gif-gallery.json</code>.</sub>
 </p>
 
 | View | Public input | Calibration view | What to inspect |

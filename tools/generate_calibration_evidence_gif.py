@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import math
 import shutil
@@ -30,6 +31,7 @@ WIDTH = 960
 HEIGHT = 540
 FPS = 12
 FRAME_COUNT = 36
+README_GIF_MANIFEST = Path("docs/assets/readme-gif-gallery.json")
 
 A2D2_SENSOR_CONFIG_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
@@ -246,6 +248,7 @@ def generate_readme_gallery(
 ) -> None:
     """Generate every README GIF from its public data source."""
 
+    manifest_assets: list[dict[str, object]] = []
     for job in README_GIF_JOBS:
         cloud_pair, lidars, metadata_source = load_gif_inputs(
             source=job.source,
@@ -263,6 +266,118 @@ def generate_readme_gallery(
             lidars=lidars,
             metadata_source=metadata_source,
         )
+        manifest_assets.append(
+            readme_gallery_manifest_asset(
+                job=job,
+                cloud_pair=cloud_pair,
+                metadata_source=metadata_source,
+            )
+        )
+    write_readme_gallery_manifest(
+        README_GIF_MANIFEST,
+        frames=frames,
+        allow_fallback=allow_fallback,
+        assets=manifest_assets,
+    )
+
+
+def readme_gallery_manifest_asset(
+    *,
+    job: ReadmeGifJob,
+    cloud_pair: LidarCloudPair,
+    metadata_source: str,
+) -> dict[str, object]:
+    """Return a stable provenance manifest entry for one README GIF."""
+
+    if job.source == "livox-horizon-horizon":
+        public_inputs: list[dict[str, object]] = [
+            {
+                "kind": "pcd_tar_gz",
+                "url": LIVOX_BASE_PCD_URL,
+                "selected_member": LIVOX_BASE_SAMPLE_NAME,
+            },
+            {
+                "kind": "pcd_tar_gz",
+                "url": LIVOX_TARGET_PCD_URL,
+                "selected_member": LIVOX_TARGET_SAMPLE_NAME,
+            },
+        ]
+        sensor_pair = {
+            "source": "base_horizon",
+            "target": "target_horizon",
+        }
+    elif job.source == "a2d2":
+        public_inputs = [
+            {
+                "kind": "npz_range_from_tar",
+                "url": A2D2_LIDAR_SAMPLE_URL,
+                "selected_member": A2D2_LIDAR_SAMPLE_NAME,
+                "byte_range": [
+                    A2D2_LIDAR_SAMPLE_START,
+                    A2D2_LIDAR_SAMPLE_START + A2D2_LIDAR_SAMPLE_SIZE - 1,
+                ],
+            },
+            {
+                "kind": "sensor_metadata_json",
+                "url": A2D2_SENSOR_CONFIG_URL,
+            },
+        ]
+        sensor_pair = {
+            "source_lidar_id": job.a2d2_source_id,
+            "source": A2D2_LIDAR_ID_TO_NAME[job.a2d2_source_id],
+            "target_lidar_id": job.a2d2_target_id,
+            "target": A2D2_LIDAR_ID_TO_NAME[job.a2d2_target_id],
+        }
+    else:
+        raise SystemExit(f"unsupported README GIF source: {job.source}")
+
+    return {
+        "output": str(job.output),
+        "sha256": sha256_file(job.output),
+        "size_bytes": job.output.stat().st_size,
+        "source": job.source,
+        "sensor_pair": sensor_pair,
+        "source_label": cloud_pair.source_label,
+        "target_label": cloud_pair.target_label,
+        "public_inputs": public_inputs,
+        "metadata_source": metadata_source,
+        "uses_builtin_metadata_fallback": metadata_source == "fixed multi-LiDAR fallback",
+    }
+
+
+def write_readme_gallery_manifest(
+    path: Path,
+    *,
+    frames: int,
+    allow_fallback: bool,
+    assets: list[dict[str, object]],
+) -> None:
+    """Write a machine-readable manifest for README GIF assets."""
+
+    payload = {
+        "schema_version": "calibrex.readme_gif_gallery/v0.1",
+        "generator": "tools/generate_calibration_evidence_gif.py",
+        "dimensions": {
+            "width": WIDTH,
+            "height": HEIGHT,
+            "fps": FPS,
+            "frames": frames,
+        },
+        "fallback_metadata_allowed": allow_fallback,
+        "assets": assets,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def sha256_file(path: Path) -> str:
+    """Return the SHA-256 digest for a local asset."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def load_gif_inputs(

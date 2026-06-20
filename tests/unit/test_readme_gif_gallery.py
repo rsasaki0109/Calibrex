@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import re
 import sys
 from pathlib import Path
@@ -30,6 +32,33 @@ def test_readme_gallery_jobs_match_readme_gifs() -> None:
     gallery_gifs = {str(job.output) for job in tool.README_GIF_JOBS}
 
     assert gallery_gifs == readme_gifs
+
+
+def test_readme_gallery_manifest_matches_assets() -> None:
+    tool = load_gif_tool()
+    manifest_path = ROOT / "docs" / "assets" / "readme-gif-gallery.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert manifest["schema_version"] == "calibrex.readme_gif_gallery/v0.1"
+    assert manifest["generator"] == "tools/generate_calibration_evidence_gif.py"
+    assert manifest["fallback_metadata_allowed"] is False
+    assert manifest["dimensions"] == {
+        "width": tool.WIDTH,
+        "height": tool.HEIGHT,
+        "fps": tool.FPS,
+        "frames": tool.FRAME_COUNT,
+    }
+
+    job_outputs = {str(job.output) for job in tool.README_GIF_JOBS}
+    asset_outputs = {asset["output"] for asset in manifest["assets"]}
+    assert asset_outputs == job_outputs
+
+    for asset in manifest["assets"]:
+        asset_path = ROOT / asset["output"]
+        assert asset["sha256"] == hashlib.sha256(asset_path.read_bytes()).hexdigest()
+        assert asset["size_bytes"] == asset_path.stat().st_size
+        assert asset["uses_builtin_metadata_fallback"] is False
+        assert asset["public_inputs"]
 
 
 def test_readme_gallery_has_multiple_public_sources() -> None:
