@@ -43,6 +43,12 @@ calibrex render outputs/result.yaml --format html
   <sub>README visuals are generated from public raw samples. Calibrex records protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates in <code>evidence.json</code> and <code>assessment.json</code>.</sub>
 </p>
 
+| View | Public input | Calibration view | What to inspect |
+|---|---|---|---|
+| Livox Horizon ↔ Horizon | Official Livox PCD sample | Solid-state LiDAR pair | Known-bad rejection and holdout residual evidence |
+| A2D2 front pair | A2D2 NPZ range sample | Fixed front LiDAR baseline | Multi-LiDAR metadata and support accounting |
+| A2D2 front-rear pair | A2D2 NPZ range sample | Longer fixed-rig LiDAR baseline | Different overlap and support behavior |
+
 <p align="center">
   <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex calibration report overview" width="100%">
 </p>
