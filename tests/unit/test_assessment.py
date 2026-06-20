@@ -84,6 +84,30 @@ def test_known_bad_controls_pass_with_supported_geometry_detection() -> None:
     assert rule.observed["supported_pass_fraction"] == 1.0
 
 
+def test_holdout_support_gate_requires_candidate_independent_denominator() -> None:
+    evidence = _known_bad_evidence(
+        support_ratio=0.72,
+        accepted_correspondence_count=720.0,
+        point_to_plane_delta_m=0.10,
+        missing_protocol_parameters={
+            "eligible_point_count",
+            "accepted_correspondence_count",
+            "support_ratio",
+        },
+    )
+
+    assessment = assess_report_evidence(evidence)
+    rule = _rule_status(assessment, "holdout_support_gate")
+
+    assert rule.status == "inconclusive"
+    assert "candidate-independent eligible population" in rule.reason
+    assert rule.observed["map_voxel_count"] == 30.0
+    assert rule.observed["matched_point_count"] == 720.0
+    assert rule.observed["eligible_point_count"] is None
+    assert rule.observed["accepted_correspondence_count"] is None
+    assert rule.observed["support_ratio"] is None
+
+
 def test_known_bad_controls_inconclusive_when_mandatory_challenge_incomplete() -> None:
     evidence = _known_bad_evidence(
         support_ratio=0.72,
@@ -179,6 +203,7 @@ def _known_bad_evidence(
     accepted_correspondence_count: float,
     point_to_plane_delta_m: float,
     challenge: dict[str, object] | None = None,
+    missing_protocol_parameters: set[str] | None = None,
 ) -> ReportEvidenceArtifact:
     parameters: dict[str, object] = {
         "map_voxel_count": 30,
@@ -190,6 +215,8 @@ def _known_bad_evidence(
     }
     if challenge is not None:
         parameters.update(challenge)
+    for key in missing_protocol_parameters or set():
+        parameters.pop(key, None)
     return ReportEvidenceArtifact(
         run=ReportRunInfo(
             id="assessment-known-bad-unit",

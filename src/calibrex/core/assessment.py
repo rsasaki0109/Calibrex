@@ -332,11 +332,22 @@ def _holdout_support_rule(
         "min_support_ratio": min_support_ratio,
         "max_unmatched_fraction": max_unmatched_fraction,
     }
-    if map_voxels is None or matched_points is None or unmatched_fraction is None:
+    if (
+        map_voxels is None
+        or matched_points is None
+        or eligible_points is None
+        or accepted_correspondences is None
+        or support_ratio is None
+        or unmatched_fraction is None
+    ):
         return AssessmentRuleResult(
             rule_id="holdout_support_gate",
             status="inconclusive",
-            reason="holdout support parameters are incomplete",
+            reason=(
+                "holdout support parameters are incomplete; candidate-independent "
+                "eligible population, accepted correspondences, and support ratio "
+                "are required"
+            ),
             observed=observed,
             thresholds=thresholds,
             evidence_refs=[protocol.protocol_id],
@@ -345,12 +356,9 @@ def _holdout_support_rule(
         map_voxels < min_map_voxel_count
         or matched_points < min_matched_point_count
         or unmatched_fraction > max_unmatched_fraction
-        or (eligible_points is not None and eligible_points < min_eligible_point_count)
-        or (
-            accepted_correspondences is not None
-            and accepted_correspondences < min_accepted_correspondence_count
-        )
-        or (support_ratio is not None and support_ratio < min_support_ratio)
+        or eligible_points < min_eligible_point_count
+        or accepted_correspondences < min_accepted_correspondence_count
+        or support_ratio < min_support_ratio
     ):
         return AssessmentRuleResult(
             rule_id="holdout_support_gate",
