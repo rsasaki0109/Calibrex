@@ -59,6 +59,18 @@ calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
 `--readme-gallery` regenerates the Livox and A2D2 README GIF assets from public
 raw samples. It downloads the small A2D2 range sample when needed and refuses to
 use built-in fallback geometry unless `--allow-metadata-fallback` is passed.
+The README gallery includes an online-style A2D2 replay that shows live point
+batches, a converging extrinsic estimate, rolling residuals, holdout checks, and
+provenance-backed policy gates. To render only that hero asset, run:
+
+```bash
+python3 tools/generate_calibration_evidence_gif.py \
+  --source a2d2 \
+  --a2d2-source-id 0 \
+  --a2d2-target-id 3 \
+  --visual online \
+  --output docs/assets/online-calibration-loop.gif
+```
 
 The cached Livox evidence result is a report-rendering fixture, not a claim
 that raw observations were reread and recomputed.
