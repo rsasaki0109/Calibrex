@@ -8,7 +8,10 @@ import pytest
 
 from calibrex.cli.main import main
 from calibrex.core.assessment import AssessmentArtifact
-from calibrex.core.evidence_bundle import EvidenceBundleManifest
+from calibrex.core.evidence_bundle import (
+    EvidenceBundleManifest,
+    EvidenceBundleVerification,
+)
 from calibrex.core.evidence_contract import PolicyArtifact, ProtocolArtifact
 from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.report_artifacts import (
@@ -1637,6 +1640,82 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
         "recomputed_metrics": False,
     }
     assert main(["validate", str(standalone_evidence), "--kind", "report-evidence"]) == 0
+    capsys.readouterr()
+
+    evidence_contract_dir = tmp_path / "evidence_contract"
+    evidence_contract = evidence_contract_dir / "evidence.json"
+    assert (
+        main(
+            [
+                "evidence",
+                str(result),
+                "--output",
+                str(evidence_contract),
+                "--sidecars-dir",
+                str(evidence_contract_dir),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    contract_payload = json.loads(capsys.readouterr().out)
+    assert contract_payload["evidence"] == str(evidence_contract)
+    assert contract_payload["sidecars_dir"] == str(evidence_contract_dir)
+    assert contract_payload["contract_artifacts"] == {
+        "evidence": str(evidence_contract),
+        "assessment": str(evidence_contract_dir / "assessment.json"),
+        "protocol": str(evidence_contract_dir / "protocol.json"),
+        "policy": str(evidence_contract_dir / "policy.json"),
+        "transforms": str(evidence_contract_dir / "transforms.json"),
+        "bundle": str(evidence_contract_dir / "bundle.json"),
+        "verification": str(evidence_contract_dir / "verification.json"),
+    }
+    assert main(["validate", str(evidence_contract), "--kind", "report-evidence"]) == 0
+    assert main(["validate", str(evidence_contract_dir / "assessment.json")]) == 0
+    assert main(["validate", str(evidence_contract_dir / "protocol.json")]) == 0
+    assert main(["validate", str(evidence_contract_dir / "policy.json")]) == 0
+    assert main(["validate", str(evidence_contract_dir / "transforms.json")]) == 0
+    assert (
+        main(
+            [
+                "validate",
+                str(evidence_contract_dir / "bundle.json"),
+                "--kind",
+                "evidence-bundle",
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "validate",
+                str(evidence_contract_dir / "verification.json"),
+                "--kind",
+                "evidence-bundle-verification",
+            ]
+        )
+        == 0
+    )
+    bundle = EvidenceBundleManifest.model_validate(
+        json.loads((evidence_contract_dir / "bundle.json").read_text(encoding="utf-8"))
+    )
+    assert bundle.primary_evidence_path == "evidence.json"
+    assert bundle.artifact_count == 5
+    assert {artifact.path for artifact in bundle.artifacts} == {
+        "evidence.json",
+        "assessment.json",
+        "protocol.json",
+        "policy.json",
+        "transforms.json",
+    }
+    verification = EvidenceBundleVerification.model_validate(
+        json.loads(
+            (evidence_contract_dir / "verification.json").read_text(encoding="utf-8")
+        )
+    )
+    assert verification.valid is True
+    assert verification.source_bundle.path == "bundle.json"
     capsys.readouterr()
 
     rendered_dir = tmp_path / "rendered"

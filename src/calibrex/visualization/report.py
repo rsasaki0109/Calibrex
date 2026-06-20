@@ -406,6 +406,74 @@ def write_evidence_artifact(
     return evidence
 
 
+def write_evidence_contract_artifacts(
+    result: CalibrationResult,
+    *,
+    evidence_path: str | Path,
+    output_dir: str | Path,
+) -> dict[str, str]:
+    """Write evidence and its audit sidecars without rendering HTML."""
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    evidence_file = Path(evidence_path)
+    evidence = write_evidence_artifact(result, evidence_file)
+
+    assessment = write_assessment_from_evidence(
+        evidence_file,
+        output_path / _ASSESSMENT_FILENAME,
+    )
+    write_mapping(
+        output_path / _PROTOCOL_FILENAME,
+        ProtocolArtifact(run=evidence.run, protocols=list(evidence.protocols)).model_dump(
+            mode="json",
+            exclude_none=True,
+        ),
+    )
+    write_mapping(
+        output_path / _POLICY_FILENAME,
+        policy_artifact_from_assessment(
+            assessment,
+            run=evidence.run,
+        ).model_dump(mode="json", exclude_none=True),
+    )
+    write_mapping(
+        output_path / _TRANSFORMS_FILENAME,
+        transform_artifact_from_result(
+            result,
+            run=evidence.run,
+        ).model_dump(mode="json", exclude_none=True),
+    )
+    bundle_path = output_path / _REPORT_BUNDLE_FILENAME
+    write_evidence_bundle(
+        bundle_path,
+        run_id=result.run.id,
+        primary_evidence_path=evidence_file,
+        artifacts=[
+            (evidence_file, "report-evidence"),
+            (output_path / _ASSESSMENT_FILENAME, "assessment"),
+            (output_path / _PROTOCOL_FILENAME, "protocol"),
+            (output_path / _POLICY_FILENAME, "policy"),
+            (output_path / _TRANSFORMS_FILENAME, "transforms"),
+        ],
+    )
+    verification = verify_evidence_bundle(bundle_path)
+    write_evidence_bundle_verification(
+        output_path / _VERIFICATION_FILENAME,
+        verification,
+        source_bundle_path=bundle_path,
+    )
+    return {
+        "evidence": str(evidence_file),
+        "assessment": str(output_path / _ASSESSMENT_FILENAME),
+        "protocol": str(output_path / _PROTOCOL_FILENAME),
+        "policy": str(output_path / _POLICY_FILENAME),
+        "transforms": str(output_path / _TRANSFORMS_FILENAME),
+        "bundle": str(bundle_path),
+        "verification": str(output_path / _VERIFICATION_FILENAME),
+    }
+
+
 def _bundle_artifacts(
     output_path: Path,
     written: dict[str, str],

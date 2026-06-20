@@ -81,8 +81,10 @@ from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import (
+    evidence_artifact_from_result,
     report_artifact_paths,
     write_evidence_artifact,
+    write_evidence_contract_artifacts,
     write_report_artifacts,
 )
 from calibrex.visualization.rig3d import write_rig_3d_artifact
@@ -182,6 +184,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     evidence.add_argument("result", type=Path)
     evidence.add_argument("--output", type=Path, required=True)
+    evidence.add_argument(
+        "--sidecars-dir",
+        type=Path,
+        help=(
+            "also write assessment/protocol/policy/transforms/bundle/verification "
+            "sidecars into this directory"
+        ),
+    )
     evidence.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     evidence.set_defaults(func=_cmd_evidence)
 
@@ -521,8 +531,17 @@ def _cmd_assess(args: argparse.Namespace) -> int:
 
 def _cmd_evidence(args: argparse.Namespace) -> int:
     result = load_result(args.result)
-    evidence = write_evidence_artifact(result, args.output)
-    payload = {
+    if args.sidecars_dir is None:
+        evidence = write_evidence_artifact(result, args.output)
+        contract_artifacts: dict[str, str] = {}
+    else:
+        contract_artifacts = write_evidence_contract_artifacts(
+            result,
+            evidence_path=args.output,
+            output_dir=args.sidecars_dir,
+        )
+        evidence = evidence_artifact_from_result(result)
+    payload: dict[str, Any] = {
         "status": "ok",
         "source_result": str(args.result),
         "evidence": str(args.output),
@@ -534,6 +553,9 @@ def _cmd_evidence(args: argparse.Namespace) -> int:
         "summary_count": len(evidence.summaries),
         "recomputed_metrics": False,
     }
+    if args.sidecars_dir is not None:
+        payload["sidecars_dir"] = str(args.sidecars_dir)
+        payload["contract_artifacts"] = contract_artifacts
     _emit(payload, args.json)
     return 0
 
