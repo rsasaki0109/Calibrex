@@ -20,7 +20,7 @@ jobs:
       - name: Schema generation
         run: |
           calibrex schema all --output-dir /tmp/calibrex-schemas
-          test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 11
+          test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 15
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

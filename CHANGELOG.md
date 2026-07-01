@@ -4,7 +4,7 @@
 
 - Project bootstrap.
 - Typed config and result models.
-- CLI skeleton with `doctor`, `schema`, `validate`, `init`, `inspect`, `calibrate`, `evaluate`, `visualize`, `compare`, `report`, and `export`.
+- CLI skeleton with `doctor`, `schema`, `validate`, `verify`, `assess`, `evidence`, `init`, `inspect`, `calibrate`, `evaluate`, `render`, `visualize`, `compare`, `report`, and `export`.
 - Frame graph and SE3 utilities.
 - Dataset manifest schema, filesystem dataset adapter, timestamp normalization, and MCAP adapter boundary.
 - HTML report, report sidecars, and PASS/WARN/FAIL quality aggregation.
@@ -22,3 +22,9 @@
 - Static JSON schemas for config, result, comparison, dataset manifest, and report sidecars.
 - Bulk schema generation via `calibrex schema all --output-dir schemas`, with schema drift tests and CI smoke coverage.
 - 3D rig viewer artifact for reference, candidate, and estimated extrinsic comparison.
+- Falsification assessment framework: `calibrex assess` applying a policy to evidence, policy artifacts, `--enforce` exit codes, per-DoF known-bad challenge summaries, a fixed support denominator, mandatory challenge verification, and assessment recomputation verification inside evidence bundles.
+- Evidence bundle verification: `calibrex verify`, an `evidence-bundle-verification` schema, a `--require-raw-recomputed` raw recomputation gate, a verified-raw-inputs requirement, and structured verification claims.
+- `calibrex render` and `calibrex evidence` commands for producing report and evidence artifacts from an existing result without recomputing metrics.
+- Protocol and policy JSON schemas, and `compare --enforce-compatible` protocol compatibility enforcement.
+- README GIF gallery generation (`generate_calibration_evidence_gif.py --readme-gallery`) with a provenance manifest and schema-validated visual modes.
+- Local release smoke helper, wheel smoke coverage in CI, and a draft GitHub release workflow.
