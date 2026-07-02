@@ -24,6 +24,12 @@ from calibrex.data.mcap import inspect_mcap
 from calibrex.data.nuscenes import NuScenesDataset, summarize_nuscenes_metadata
 from calibrex.data.tum_rgbd import TUMRGBDDataset
 
+# Default diagnostic sample/frame counts, preserved from the previously hardcoded
+# call sites. `DatasetConfig.sample_limit` overrides these on a per-dataset basis.
+DEFAULT_A2D2_SAMPLE_LIMIT = 3
+DEFAULT_LIVOX_SAMPLE_LIMIT = 4
+DEFAULT_KITTI_SAMPLE_LIMIT = 3
+
 
 @dataclass(frozen=True)
 class DatasetInspection:
@@ -56,13 +62,16 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
 
     path = Path(dataset.path)
     if dataset.type == "a2d2_lidar":
-        return _inspect_a2d2_lidar(path, dataset.type)
+        sample_limit = dataset.sample_limit or DEFAULT_A2D2_SAMPLE_LIMIT
+        return _inspect_a2d2_lidar(path, dataset.type, sample_limit=sample_limit)
     if dataset.type == "filesystem":
         return _inspect_filesystem(path, dataset.type)
     if dataset.type == "kitti_raw":
-        return _inspect_kitti_raw(path, dataset.type)
+        sample_limit = dataset.sample_limit or DEFAULT_KITTI_SAMPLE_LIMIT
+        return _inspect_kitti_raw(path, dataset.type, sample_limit=sample_limit)
     if dataset.type == "livox_pcd":
-        return _inspect_livox_pcd(path, dataset.type)
+        sample_limit = dataset.sample_limit or DEFAULT_LIVOX_SAMPLE_LIMIT
+        return _inspect_livox_pcd(path, dataset.type, sample_limit=sample_limit)
     if dataset.type == "tum_rgbd":
         return _inspect_tum_rgbd(path, dataset.type)
     if dataset.type == "mcap":
@@ -90,7 +99,12 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
     raise DatasetError(msg)
 
 
-def _inspect_a2d2_lidar(path: Path, dataset_type: str) -> DatasetInspection:
+def _inspect_a2d2_lidar(
+    path: Path,
+    dataset_type: str,
+    *,
+    sample_limit: int = DEFAULT_A2D2_SAMPLE_LIMIT,
+) -> DatasetInspection:
     if not path.exists():
         return DatasetInspection(
             dataset_type=dataset_type,
@@ -100,7 +114,7 @@ def _inspect_a2d2_lidar(path: Path, dataset_type: str) -> DatasetInspection:
         )
     manifest = find_manifest(path)
     reader = A2D2LidarDataset(path)
-    stats = summarize_a2d2_lidar_npz(path, sample_limit=3)
+    stats = summarize_a2d2_lidar_npz(path, sample_limit=sample_limit)
     warnings: list[str] = []
     if stats.status != "scored":
         warnings.append(stats.reason or "A2D2 LiDAR NPZ samples could not be parsed")
@@ -140,7 +154,12 @@ def _inspect_filesystem(path: Path, dataset_type: str) -> DatasetInspection:
     )
 
 
-def _inspect_livox_pcd(path: Path, dataset_type: str) -> DatasetInspection:
+def _inspect_livox_pcd(
+    path: Path,
+    dataset_type: str,
+    *,
+    sample_limit: int = DEFAULT_LIVOX_SAMPLE_LIMIT,
+) -> DatasetInspection:
     if not path.exists():
         return DatasetInspection(
             dataset_type=dataset_type,
@@ -150,7 +169,7 @@ def _inspect_livox_pcd(path: Path, dataset_type: str) -> DatasetInspection:
         )
     manifest = find_manifest(path)
     reader = LivoxPCDDataset(path)
-    stats = summarize_livox_pcd(path, sample_limit=4)
+    stats = summarize_livox_pcd(path, sample_limit=sample_limit)
     warnings: list[str] = []
     if stats.status != "scored":
         warnings.append(stats.reason or "Livox PCD files could not be parsed")
@@ -197,7 +216,12 @@ def _inspect_tum_rgbd(path: Path, dataset_type: str) -> DatasetInspection:
     )
 
 
-def _inspect_kitti_raw(path: Path, dataset_type: str) -> DatasetInspection:
+def _inspect_kitti_raw(
+    path: Path,
+    dataset_type: str,
+    *,
+    sample_limit: int = DEFAULT_KITTI_SAMPLE_LIMIT,
+) -> DatasetInspection:
     if not path.exists():
         return DatasetInspection(
             dataset_type=dataset_type,
@@ -209,8 +233,8 @@ def _inspect_kitti_raw(path: Path, dataset_type: str) -> DatasetInspection:
     reader = KITTIRawDataset(path)
     warnings: list[str] = []
     counts = {stream.name: stream.message_count or 0 for stream in reader.streams()}
-    velodyne_stats = summarize_velodyne_points(path, sample_limit=3)
-    lidar_world_map_stats = summarize_lidar_world_map_consistency(path, sample_limit=3)
+    velodyne_stats = summarize_velodyne_points(path, sample_limit=sample_limit)
+    lidar_world_map_stats = summarize_lidar_world_map_consistency(path, sample_limit=sample_limit)
     oxts_stats = summarize_oxts_motion(path)
     timestamp_stats = summarize_timestamp_alignment(path)
     camera_lidar_pairs = find_camera_lidar_pairs(path, max_pairs=3)

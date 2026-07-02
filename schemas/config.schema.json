@@ -79,6 +79,20 @@
           "title": "Path",
           "type": "string"
         },
+        "sample_limit": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "override the number of frames/files sampled for public-dataset diagnostics (a2d2_lidar, livox_pcd, kitti_raw); unset preserves each dataset type's current default",
+          "title": "Sample Limit"
+        },
         "time_base": {
           "default": "sensor_time_ns",
           "title": "Time Base",

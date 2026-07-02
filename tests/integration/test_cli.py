@@ -1362,6 +1362,46 @@ def test_kitti_inspect_human_output_includes_lidar_diagnostics(
     assert "recommendations:" in output
 
 
+def test_kitti_inspect_sample_limit_flag_controls_sampled_frames(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    sequence = tmp_path / "2011_09_26_drive_0005_sync"
+    velodyne_dir = sequence / "velodyne_points" / "data"
+    velodyne_dir.mkdir(parents=True)
+    points = [(float(x), float(y), 0.0, 1.0) for x in range(3) for y in range(3)]
+    for index in range(5):
+        _write_velodyne_points(velodyne_dir / f"{index:010d}.bin", points)
+
+    assert main(["inspect", str(sequence), "--type", "kitti-raw", "--json"]) == 0
+    default_payload = json.loads(capsys.readouterr().out)
+    assert default_payload["diagnostics"]["velodyne_points"]["sampled_frame_count"] == 3
+
+    assert (
+        main(
+            [
+                "inspect",
+                str(sequence),
+                "--type",
+                "kitti-raw",
+                "--sample-limit",
+                "5",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    custom_payload = json.loads(capsys.readouterr().out)
+    assert custom_payload["diagnostics"]["velodyne_points"]["sampled_frame_count"] == 5
+
+
+def test_inspect_rejects_non_positive_sample_limit(tmp_path: Path) -> None:
+    for invalid in ("0", "-3", "abc"):
+        with pytest.raises(SystemExit) as excinfo:
+            main(["inspect", str(tmp_path), "--sample-limit", invalid])
+        assert excinfo.value.code == 2
+
+
 def test_kitti_import_calib_command(tmp_path: Path) -> None:
     (tmp_path / "calib_velo_to_cam.txt").write_text("R: 1 0 0 0 1 0 0 0 1\nT: 1 2 3\n")
     output = tmp_path / "transforms.yaml"

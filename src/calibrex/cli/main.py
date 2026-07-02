@@ -103,6 +103,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
 
+def _positive_int(value: str) -> int:
+    """Parse an argparse value as a positive (>= 1) integer."""
+
+    try:
+        number = int(value)
+    except ValueError as exc:
+        msg = f"invalid positive integer: {value!r}"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if number < 1:
+        msg = f"must be >= 1, got {number}"
+        raise argparse.ArgumentTypeError(msg)
+    return number
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="calibrex")
     parser.add_argument("--version", action="version", version=f"calibrex {__version__}")
@@ -366,6 +380,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "tum_rgbd",
         ],
         default="filesystem",
+    )
+    inspect.add_argument(
+        "--sample-limit",
+        type=_positive_int,
+        help=(
+            "override the number of frames/files sampled for public-dataset diagnostics "
+            "(a2d2_lidar, livox_pcd, kitti_raw); defaults preserve today's behavior"
+        ),
     )
     inspect.add_argument("--json", action="store_true")
     inspect.set_defaults(func=_cmd_inspect)
@@ -954,7 +976,13 @@ def _cmd_visualize(args: argparse.Namespace) -> int:
 
 def _cmd_inspect(args: argparse.Namespace) -> int:
     dataset_type = cast(DatasetType, str(args.type).replace("-", "_"))
-    inspection = inspect_dataset(DatasetConfig(type=dataset_type, path=str(args.path)))
+    inspection = inspect_dataset(
+        DatasetConfig(
+            type=dataset_type,
+            path=str(args.path),
+            sample_limit=args.sample_limit,
+        )
+    )
     if args.json:
         _emit(inspection.as_dict(), as_json=True)
     else:
