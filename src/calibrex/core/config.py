@@ -44,6 +44,15 @@ class DatasetConfig(StrictModel):
     type: DatasetType
     path: str
     time_base: str = "sensor_time_ns"
+    sample_limit: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "override the number of frames/files sampled for public-dataset diagnostics "
+            "(a2d2_lidar, livox_pcd, kitti_raw); unset preserves each dataset type's "
+            "current default"
+        ),
+    )
 
 
 class CameraIntrinsicsConfig(StrictModel):

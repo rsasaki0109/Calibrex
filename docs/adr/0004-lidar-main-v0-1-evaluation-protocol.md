@@ -61,3 +61,30 @@ schema behavior are stable.
 - Make radar native calibration part of v0.1.
 - Treat public dataset calibration as absolute ground truth.
 - Use visual overlay as a substitute for holdout metrics.
+
+## Scope status (2026-07-02 audit)
+
+A code audit against this ADR found that the alpha statement above describes
+the multi-sensor destination, not the v0.1 delivered surface. To keep public
+claims accurate, v0.1 alpha should be described as LiDAR-main:
+
+- **LiDAR**: delivered. Holdout point-to-plane consistency, per-DoF
+  known-bad perturbation challenges, and observability/degeneracy sidecars
+  are implemented and exercised on public KITTI/A2D2/Livox data.
+- **Camera**: partial. `src/calibrex/evaluation/lidar_camera.py` computes
+  KITTI camera-LiDAR projection and edge-alignment metrics as a diagnostic
+  overlay on the LiDAR candidate. There is no standalone camera-only
+  candidate evaluation path.
+- **IMU**: roadmap, not evaluation. `src/calibrex/evaluation/motion.py`
+  computes vehicle-motion excitation from OXTS to flag degenerate LiDAR
+  segments; it does not evaluate IMU extrinsic candidates.
+- **Radar**: roadmap only. `radar_lidar_velocity_consistency` is registered
+  by name in `src/calibrex/evaluation/registry.py` and
+  `src/calibrex/evaluation/thresholds.py`, but no function computes it yet.
+
+The original alpha statement in the Context section above is kept as the
+project's multi-sensor vision and is not rewritten, since this ADR is a
+historical record of the v0.1 planning decision. Public-facing docs (README,
+docs/index.md) should describe v0.1 as LiDAR-main evaluation with an
+experimental camera-LiDAR overlay, and should not imply that IMU or radar
+extrinsic candidates are evaluated today.

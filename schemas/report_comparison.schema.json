@@ -1,0 +1,1631 @@
+{
+  "$defs": {
+    "ComparisonSide": {
+      "additionalProperties": false,
+      "description": "Summary of one compared result.",
+      "properties": {
+        "computed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed At"
+        },
+        "data_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Verified"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "metrics_origin": {
+          "default": "unknown",
+          "enum": [
+            "recomputed",
+            "cached",
+            "unknown"
+          ],
+          "title": "Metrics Origin",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "status",
+        "grade",
+        "domain"
+      ],
+      "title": "ComparisonSide",
+      "type": "object"
+    },
+    "ComparisonSummary": {
+      "additionalProperties": false,
+      "description": "High-level comparison counters.",
+      "properties": {
+        "left_better_metric_count": {
+          "title": "Left Better Metric Count",
+          "type": "integer"
+        },
+        "max_rotation_delta_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rotation Delta Deg"
+        },
+        "max_translation_delta_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Translation Delta M"
+        },
+        "metric_comparison_count": {
+          "title": "Metric Comparison Count",
+          "type": "integer"
+        },
+        "not_comparable_metric_count": {
+          "title": "Not Comparable Metric Count",
+          "type": "integer"
+        },
+        "right_better_metric_count": {
+          "title": "Right Better Metric Count",
+          "type": "integer"
+        },
+        "tied_metric_count": {
+          "title": "Tied Metric Count",
+          "type": "integer"
+        },
+        "transform_comparison_count": {
+          "title": "Transform Comparison Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "metric_comparison_count",
+        "left_better_metric_count",
+        "right_better_metric_count",
+        "tied_metric_count",
+        "not_comparable_metric_count",
+        "transform_comparison_count"
+      ],
+      "title": "ComparisonSummary",
+      "type": "object"
+    },
+    "EvidenceProtocolCompatibility": {
+      "additionalProperties": false,
+      "description": "Whether two results were evaluated under comparable evidence protocols.",
+      "properties": {
+        "left_protocols": {
+          "items": {
+            "$ref": "#/$defs/EvidenceProtocolSide"
+          },
+          "title": "Left Protocols",
+          "type": "array"
+        },
+        "only_left_protocol_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Left Protocol Ids",
+          "type": "array"
+        },
+        "only_right_protocol_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Right Protocol Ids",
+          "type": "array"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "right_protocols": {
+          "items": {
+            "$ref": "#/$defs/EvidenceProtocolSide"
+          },
+          "title": "Right Protocols",
+          "type": "array"
+        },
+        "shared_protocol_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shared Protocol Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "compatible",
+            "warning",
+            "not_comparable"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "EvidenceProtocolCompatibility",
+      "type": "object"
+    },
+    "EvidenceProtocolSide": {
+      "additionalProperties": false,
+      "description": "One declared evidence protocol on one side of a comparison.",
+      "properties": {
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Transform"
+        },
+        "challenge_composition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Composition"
+        },
+        "challenge_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Id"
+        },
+        "challenge_min_accepted_correspondence_count": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Min Accepted Correspondence Count"
+        },
+        "challenge_min_support_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Min Support Ratio"
+        },
+        "challenge_tangent_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Tangent Frame"
+        },
+        "challenge_target_supported_detection_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Challenge Target Supported Detection Count"
+        },
+        "correspondence_gate_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Correspondence Gate M"
+        },
+        "data_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Verified"
+        },
+        "family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family"
+        },
+        "independent_holdout": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent Holdout"
+        },
+        "inlier_threshold_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inlier Threshold M"
+        },
+        "known_bad_case_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Case Count"
+        },
+        "mandatory_case_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Case Count"
+        },
+        "mandatory_detection_by_dof_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Detection By Dof Digest"
+        },
+        "mandatory_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Rotation Deg"
+        },
+        "mandatory_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mandatory Translation M"
+        },
+        "metrics_origin": {
+          "title": "Metrics Origin",
+          "type": "string"
+        },
+        "plane_normal_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plane Normal Source"
+        },
+        "protocol_id": {
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "split_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Split Policy"
+        },
+        "support_definition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Definition"
+        },
+        "support_population_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Population Id"
+        },
+        "transform_convention": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transform Convention"
+        },
+        "voxel_size_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voxel Size M"
+        }
+      },
+      "required": [
+        "protocol_id",
+        "metrics_origin"
+      ],
+      "title": "EvidenceProtocolSide",
+      "type": "object"
+    },
+    "EvidenceSummaryComparison": {
+      "additionalProperties": false,
+      "description": "Comparison for one evidence summary check.",
+      "properties": {
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "left": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceSummarySide"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "not_comparable_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Comparable Reason"
+        },
+        "right": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceSummarySide"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "winner": {
+          "default": "not_comparable",
+          "enum": [
+            "left",
+            "right",
+            "tie",
+            "not_comparable"
+          ],
+          "title": "Winner",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "check"
+      ],
+      "title": "EvidenceSummaryComparison",
+      "type": "object"
+    },
+    "EvidenceSummarySide": {
+      "additionalProperties": false,
+      "description": "One side of an evidence summary comparison.",
+      "properties": {
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "interpretation": {
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "metric_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metric Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "evidence",
+        "interpretation"
+      ],
+      "title": "EvidenceSummarySide",
+      "type": "object"
+    },
+    "MetricComparison": {
+      "additionalProperties": false,
+      "description": "Comparison for one shared metric.",
+      "properties": {
+        "delta_right_minus_left": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delta Right Minus Left"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "left": {
+          "$ref": "#/$defs/MetricSide"
+        },
+        "left_preferred": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Left Preferred"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "not_comparable_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Comparable Reason"
+        },
+        "preference": {
+          "default": "unknown",
+          "enum": [
+            "lower",
+            "higher",
+            "unknown"
+          ],
+          "title": "Preference",
+          "type": "string"
+        },
+        "preferred_field": {
+          "enum": [
+            "holdout",
+            "value",
+            "train",
+            "none"
+          ],
+          "title": "Preferred Field",
+          "type": "string"
+        },
+        "right": {
+          "$ref": "#/$defs/MetricSide"
+        },
+        "right_preferred": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Right Preferred"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "winner": {
+          "default": "not_comparable",
+          "enum": [
+            "left",
+            "right",
+            "tie",
+            "not_comparable"
+          ],
+          "title": "Winner",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "family",
+        "left",
+        "right",
+        "preferred_field"
+      ],
+      "title": "MetricComparison",
+      "type": "object"
+    },
+    "MetricFamilyComparison": {
+      "additionalProperties": false,
+      "description": "Metric comparison rollup for one family.",
+      "properties": {
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "left_better_count": {
+          "default": 0,
+          "title": "Left Better Count",
+          "type": "integer"
+        },
+        "metric_count": {
+          "title": "Metric Count",
+          "type": "integer"
+        },
+        "metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "not_comparable_count": {
+          "default": 0,
+          "title": "Not Comparable Count",
+          "type": "integer"
+        },
+        "right_better_count": {
+          "default": 0,
+          "title": "Right Better Count",
+          "type": "integer"
+        },
+        "tied_count": {
+          "default": 0,
+          "title": "Tied Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "family",
+        "metric_count"
+      ],
+      "title": "MetricFamilyComparison",
+      "type": "object"
+    },
+    "MetricFamilyRanking": {
+      "additionalProperties": false,
+      "description": "Cross-result ranking table for one metric family.\n\nBuilt entirely from `MetricFamilyComparison` rollups already produced by\n`compare_results` for each pair; no metric preference or winner logic is\nreimplemented here.",
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/MetricFamilyRankingEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "metric_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Metric Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "family"
+      ],
+      "title": "MetricFamilyRanking",
+      "type": "object"
+    },
+    "MetricFamilyRankingEntry": {
+      "additionalProperties": false,
+      "description": "One labeled entry's rollup within a metric family ranking.",
+      "properties": {
+        "comparison_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Comparison Count",
+          "type": "integer"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "loss_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Loss Count",
+          "type": "integer"
+        },
+        "not_comparable_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Not Comparable Count",
+          "type": "integer"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "tie_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tie Count",
+          "type": "integer"
+        },
+        "win_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Win Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "MetricFamilyRankingEntry",
+      "type": "object"
+    },
+    "MetricSide": {
+      "additionalProperties": false,
+      "description": "One side of a metric comparison.",
+      "properties": {
+        "grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "train": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "grade"
+      ],
+      "title": "MetricSide",
+      "type": "object"
+    },
+    "ObservabilityComparison": {
+      "additionalProperties": false,
+      "description": "Observability and weak-DoF comparison.",
+      "properties": {
+        "condition_number_delta_right_minus_left": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition Number Delta Right Minus Left"
+        },
+        "left_condition_number": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Left Condition Number"
+        },
+        "left_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Left Rank"
+        },
+        "only_left_weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Left Weak Directions",
+          "type": "array"
+        },
+        "only_right_weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Right Weak Directions",
+          "type": "array"
+        },
+        "rank_delta_right_minus_left": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank Delta Right Minus Left"
+        },
+        "right_condition_number": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Right Condition Number"
+        },
+        "right_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Right Rank"
+        },
+        "shared_weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shared Weak Directions",
+          "type": "array"
+        }
+      },
+      "title": "ObservabilityComparison",
+      "type": "object"
+    },
+    "ReportComparisonEntry": {
+      "additionalProperties": false,
+      "description": "One labeled input to an N-way report comparison.",
+      "properties": {
+        "is_reference": {
+          "default": false,
+          "title": "Is Reference",
+          "type": "boolean"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ReportComparisonEntryProvenance"
+        },
+        "side": {
+          "$ref": "#/$defs/ComparisonSide"
+        }
+      },
+      "required": [
+        "label",
+        "side",
+        "provenance"
+      ],
+      "title": "ReportComparisonEntry",
+      "type": "object"
+    },
+    "ReportComparisonEntryProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance summary for one labeled report-compare entry.\n\nDerived from `TransformEstimateProvenance` on the entry's transforms\n(preferring `transforms`, then `candidate_extrinsics`, then\n`reference_extrinsics`) so reference vs candidate vs external baseline vs\nnative output is explicit rather than inferred from the label string.",
+      "properties": {
+        "dominant_evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Dominant Evidence Level",
+          "type": "string"
+        },
+        "dominant_producer": {
+          "default": "unknown",
+          "enum": [
+            "calibrex_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Dominant Producer",
+          "type": "string"
+        },
+        "dominant_role": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dominant Role"
+        },
+        "evidence_levels": {
+          "items": {
+            "enum": [
+              "synthetic_truth",
+              "independently_measured",
+              "dataset_provided",
+              "factory_provided",
+              "algorithmically_refined",
+              "imported_without_documented_derivation",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "title": "Evidence Levels",
+          "type": "array"
+        },
+        "execution_modes": {
+          "items": {
+            "enum": [
+              "offline_batch",
+              "sliding_window",
+              "online_stream",
+              "manual",
+              "imported",
+              "dataset_reference",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "title": "Execution Modes",
+          "type": "array"
+        },
+        "producers": {
+          "items": {
+            "enum": [
+              "calibrex_native",
+              "external_tool",
+              "human",
+              "dataset_provider",
+              "factory",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "title": "Producers",
+          "type": "array"
+        },
+        "provenance_group": {
+          "default": "none",
+          "enum": [
+            "transforms",
+            "candidate_extrinsics",
+            "reference_extrinsics",
+            "none"
+          ],
+          "title": "Provenance Group",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "enum": [
+              "initial",
+              "candidate",
+              "selected_reference",
+              "output",
+              "comparison_baseline"
+            ],
+            "type": "string"
+          },
+          "title": "Roles",
+          "type": "array"
+        }
+      },
+      "title": "ReportComparisonEntryProvenance",
+      "type": "object"
+    },
+    "ReportComparisonPair": {
+      "additionalProperties": false,
+      "description": "One pairwise comparison computed with the existing compare machinery.",
+      "properties": {
+        "comparison": {
+          "$ref": "#/$defs/ResultComparison"
+        },
+        "left_label": {
+          "title": "Left Label",
+          "type": "string"
+        },
+        "right_label": {
+          "title": "Right Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "left_label",
+        "right_label",
+        "comparison"
+      ],
+      "title": "ReportComparisonPair",
+      "type": "object"
+    },
+    "ReportComparisonSummary": {
+      "additionalProperties": false,
+      "description": "High-level counters for an N-way report comparison.",
+      "properties": {
+        "comparison_mode": {
+          "enum": [
+            "all_pairs",
+            "reference_vs_each"
+          ],
+          "title": "Comparison Mode",
+          "type": "string"
+        },
+        "compatible_pair_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Compatible Pair Count",
+          "type": "integer"
+        },
+        "entry_count": {
+          "minimum": 2,
+          "title": "Entry Count",
+          "type": "integer"
+        },
+        "not_comparable_pair_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Not Comparable Pair Count",
+          "type": "integer"
+        },
+        "not_comparable_pairs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Not Comparable Pairs",
+          "type": "array"
+        },
+        "pairwise_comparison_count": {
+          "minimum": 0,
+          "title": "Pairwise Comparison Count",
+          "type": "integer"
+        },
+        "protocol_compatibility_status": {
+          "enum": [
+            "compatible",
+            "warning",
+            "not_comparable"
+          ],
+          "title": "Protocol Compatibility Status",
+          "type": "string"
+        },
+        "reference_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Label"
+        },
+        "warning_pair_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Warning Pair Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "entry_count",
+        "comparison_mode",
+        "pairwise_comparison_count",
+        "protocol_compatibility_status"
+      ],
+      "title": "ReportComparisonSummary",
+      "type": "object"
+    },
+    "ResultComparison": {
+      "additionalProperties": false,
+      "description": "Machine-readable comparison between two Calibrex results.",
+      "properties": {
+        "evidence_comparisons": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSummaryComparison"
+          },
+          "title": "Evidence Comparisons",
+          "type": "array"
+        },
+        "left": {
+          "$ref": "#/$defs/ComparisonSide"
+        },
+        "left_degeneracy_grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Left Degeneracy Grade",
+          "type": "string"
+        },
+        "left_degeneracy_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Left Degeneracy Reason"
+        },
+        "metric_families": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MetricFamilyComparison"
+          },
+          "title": "Metric Families",
+          "type": "object"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MetricComparison"
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "observability": {
+          "$ref": "#/$defs/ObservabilityComparison"
+        },
+        "only_left_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Left Metrics",
+          "type": "array"
+        },
+        "only_right_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Right Metrics",
+          "type": "array"
+        },
+        "protocol_compatibility": {
+          "$ref": "#/$defs/EvidenceProtocolCompatibility"
+        },
+        "right": {
+          "$ref": "#/$defs/ComparisonSide"
+        },
+        "right_degeneracy_grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Right Degeneracy Grade",
+          "type": "string"
+        },
+        "right_degeneracy_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Right Degeneracy Reason"
+        },
+        "schema_version": {
+          "const": "calibrex.comparison/v0.1",
+          "default": "calibrex.comparison/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/ComparisonSummary"
+        },
+        "transform_groups": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TransformGroupComparison"
+          },
+          "title": "Transform Groups",
+          "type": "object"
+        }
+      },
+      "required": [
+        "left",
+        "right",
+        "summary",
+        "observability",
+        "protocol_compatibility",
+        "left_degeneracy_grade",
+        "right_degeneracy_grade"
+      ],
+      "title": "ResultComparison",
+      "type": "object"
+    },
+    "TransformComparison": {
+      "additionalProperties": false,
+      "description": "Comparison for one shared transform entry.",
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "left": {
+          "$ref": "#/$defs/TransformSide"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "right": {
+          "$ref": "#/$defs/TransformSide"
+        },
+        "rotation_delta_deg": {
+          "title": "Rotation Delta Deg",
+          "type": "number"
+        },
+        "translation_delta_m": {
+          "title": "Translation Delta M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "left",
+        "right",
+        "parent",
+        "child",
+        "translation_delta_m",
+        "rotation_delta_deg"
+      ],
+      "title": "TransformComparison",
+      "type": "object"
+    },
+    "TransformGroupComparison": {
+      "additionalProperties": false,
+      "description": "Comparison for one transform namespace.",
+      "properties": {
+        "comparison_count": {
+          "title": "Comparison Count",
+          "type": "integer"
+        },
+        "comparisons": {
+          "items": {
+            "$ref": "#/$defs/TransformComparison"
+          },
+          "title": "Comparisons",
+          "type": "array"
+        },
+        "group": {
+          "enum": [
+            "transforms",
+            "candidate_extrinsics",
+            "reference_extrinsics"
+          ],
+          "title": "Group",
+          "type": "string"
+        },
+        "max_rotation_delta_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rotation Delta Deg"
+        },
+        "max_translation_delta_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Translation Delta M"
+        },
+        "only_left": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Left",
+          "type": "array"
+        },
+        "only_right": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Only Right",
+          "type": "array"
+        }
+      },
+      "required": [
+        "group",
+        "comparison_count"
+      ],
+      "title": "TransformGroupComparison",
+      "type": "object"
+    },
+    "TransformSide": {
+      "additionalProperties": false,
+      "description": "One side of a transform comparison.",
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw",
+        "grade"
+      ],
+      "title": "TransformSide",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable N-way comparison across labeled Calibrex results.",
+  "properties": {
+    "entries": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ReportComparisonEntry"
+      },
+      "title": "Entries",
+      "type": "object"
+    },
+    "metric_family_rankings": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetricFamilyRanking"
+      },
+      "title": "Metric Family Rankings",
+      "type": "object"
+    },
+    "pairwise": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ReportComparisonPair"
+      },
+      "title": "Pairwise",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "calibrex.report_comparison/v0.1",
+      "default": "calibrex.report_comparison/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/ReportComparisonSummary"
+    }
+  },
+  "required": [
+    "summary",
+    "entries"
+  ],
+  "title": "ReportComparison",
+  "type": "object"
+}

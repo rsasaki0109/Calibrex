@@ -1,7 +1,12 @@
 # Calibrex Docs
 
 Calibrex is a universal sensor calibration framework for robotics and
-autonomous-driving systems.
+autonomous-driving systems. The v0.1 alpha is LiDAR-main: LiDAR extrinsic
+candidate evaluation (holdout point-to-plane, perturbation challenges,
+observability/degeneracy reporting) is the delivered capability, camera-LiDAR
+projection metrics are an experimental overlay, and IMU/radar candidate
+evaluation are roadmap items (see
+`docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`).
 
 Start with:
 
