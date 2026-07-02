@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "calibrex.readme_gif_gallery/v0.2",
+  "$id": "calibrex.readme_gif_gallery/v0.3",
   "title": "Calibrex README GIF gallery manifest",
   "type": "object",
   "additionalProperties": false,
@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "calibrex.readme_gif_gallery/v0.2"
+      "const": "calibrex.readme_gif_gallery/v0.3"
     },
     "generator": {
       "const": "tools/generate_calibration_evidence_gif.py"
@@ -119,6 +119,78 @@
           },
           "uses_builtin_metadata_fallback": {
             "type": "boolean"
+          },
+          "pipeline": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "source"],
+            "properties": {
+              "mode": {
+                "const": "real_online"
+              },
+              "source": {
+                "const": "calibrex calibrate --online"
+              },
+              "timeline_schema_version": {
+                "const": "calibrex.online_timeline/v0.1"
+              }
+            }
+          },
+          "online_run": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "accepted_batch_count",
+              "batch_count",
+              "final_gate_status",
+              "gate_thresholds",
+              "inconclusive_batch_count",
+              "rejected_batch_count"
+            ],
+            "properties": {
+              "batch_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "accepted_batch_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rejected_batch_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "inconclusive_batch_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "final_gate_status": {
+                "enum": ["pass", "fail", "inconclusive"]
+              },
+              "gate_thresholds": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max_holdout_rmse_m",
+                  "max_rolling_regression_m",
+                  "min_rank"
+                ],
+                "properties": {
+                  "min_rank": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "max_holdout_rmse_m": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "max_rolling_regression_m": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            }
           },
           "public_inputs": {
             "type": "array",

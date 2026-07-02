@@ -33,7 +33,20 @@ HEIGHT = 540
 FPS = 12
 FRAME_COUNT = 36
 README_GIF_MANIFEST = Path("docs/assets/readme-gif-gallery.json")
-README_GIF_MANIFEST_SCHEMA_VERSION = "calibrex.readme_gif_gallery/v0.2"
+README_GIF_MANIFEST_SCHEMA_VERSION = "calibrex.readme_gif_gallery/v0.3"
+ONLINE_PIPELINE_SOURCE = "calibrex calibrate --online"
+ONLINE_PIPELINE_MODE = "real_online"
+ONLINE_TIMELINE_SCHEMA_VERSION = "calibrex.online_timeline/v0.1"
+ONLINE_BATCH_SIZE = 400
+ONLINE_HOLDOUT_RATIO = 0.2
+ONLINE_ROLLING_WINDOW = 2000
+ONLINE_RESIDUAL_CHART_MAX_M = 0.45
+ONLINE_RESIDUAL_CHART_MIN_M = 0.020
+# A2D2 VLP-16 sparse clouds converge near ~0.29 m holdout RMSE on the front pair
+# (see tests/integration/test_native_point_to_plane_pipeline.py). Library defaults
+# stay at 0.05 m; the README online GIF uses an explicit, manifest-recorded gate.
+ONLINE_GIF_MAX_HOLDOUT_RMSE_M = 0.40
+ONLINE_GIF_MAX_ROLLING_REGRESSION_M = 0.15
 
 A2D2_SENSOR_CONFIG_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
@@ -127,6 +140,48 @@ class LidarCloudPair:
 
 
 @dataclass(frozen=True)
+class OnlineGifFrameState:
+    """One rendered frame derived from a real online calibration timeline."""
+
+    batch_index: int
+    progress: float
+    cycle: float
+    residual_history: list[float]
+    gate_statuses: tuple[str, ...]
+    batch_point_counts: tuple[int, ...]
+    batch_accepted: tuple[bool, ...]
+    current_holdout_rmse_m: float | None
+    current_rolling_rmse_m: float | None
+    visual_offset: Point3
+    convergence_ratio: float
+    final_gate_status: str
+    accepted_batch_count: int
+
+
+@dataclass(frozen=True)
+class OnlineGifGateThresholds:
+    """Explicit online gate settings used for the README online GIF run."""
+
+    min_rank: int
+    max_holdout_rmse_m: float
+    max_rolling_regression_m: float
+
+
+@dataclass(frozen=True)
+class OnlineGifRun:
+    """Real online pipeline output used to render the README online GIF."""
+
+    timeline_path: Path
+    frame_states: tuple[OnlineGifFrameState, ...]
+    batch_count: int
+    accepted_batch_count: int
+    rejected_batch_count: int
+    inconclusive_batch_count: int
+    final_gate_status: str
+    gate_thresholds: OnlineGifGateThresholds
+
+
+@dataclass(frozen=True)
 class ReadmeGifJob:
     source: str
     output: Path
@@ -141,7 +196,7 @@ README_GIF_JOBS = (
         output=Path("docs/assets/online-calibration-loop.gif"),
         visual="online",
         a2d2_source_id=0,
-        a2d2_target_id=3,
+        a2d2_target_id=1,
     ),
     ReadmeGifJob(
         source="livox-horizon-horizon",
@@ -253,7 +308,20 @@ def main() -> int:
         lidars=lidars,
         metadata_source=metadata_source,
         visual=args.visual,
+        a2d2_source_id=args.a2d2_source_id,
+        a2d2_target_id=args.a2d2_target_id,
+        data_dir=args.data_dir,
+        allow_network=not args.no_network,
     )
+    matching_job = next((job for job in README_GIF_JOBS if job.output == args.output), None)
+    if matching_job is not None:
+        patch_readme_gallery_manifest(
+            job=matching_job,
+            cloud_pair=cloud_pair,
+            metadata_source=metadata_source,
+            frames=args.frames,
+            allow_fallback=args.allow_metadata_fallback,
+        )
     return 0
 
 
@@ -284,12 +352,17 @@ def generate_readme_gallery(
             lidars=lidars,
             metadata_source=metadata_source,
             visual=job.visual,
+            a2d2_source_id=job.a2d2_source_id,
+            a2d2_target_id=job.a2d2_target_id,
+            data_dir=None,
+            allow_network=allow_network,
         )
         manifest_assets.append(
             readme_gallery_manifest_asset(
                 job=job,
                 cloud_pair=cloud_pair,
                 metadata_source=metadata_source,
+                online_run=load_online_run_for_manifest(job),
             )
         )
     write_readme_gallery_manifest(
@@ -305,6 +378,7 @@ def readme_gallery_manifest_asset(
     job: ReadmeGifJob,
     cloud_pair: LidarCloudPair,
     metadata_source: str,
+    online_run: OnlineGifRun | None = None,
 ) -> dict[str, object]:
     """Return a stable provenance manifest entry for one README GIF."""
 
@@ -350,7 +424,7 @@ def readme_gallery_manifest_asset(
     else:
         raise SystemExit(f"unsupported README GIF source: {job.source}")
 
-    return {
+    asset: dict[str, object] = {
         "output": str(job.output),
         "sha256": sha256_file(job.output),
         "size_bytes": job.output.stat().st_size,
@@ -363,6 +437,107 @@ def readme_gallery_manifest_asset(
         "metadata_source": metadata_source,
         "uses_builtin_metadata_fallback": metadata_source == "fixed multi-LiDAR fallback",
     }
+    if job.visual == "online":
+        if online_run is None:
+            raise SystemExit("online README GIF manifest requires a real online pipeline run")
+        asset["pipeline"] = {
+            "mode": ONLINE_PIPELINE_MODE,
+            "source": ONLINE_PIPELINE_SOURCE,
+            "timeline_schema_version": ONLINE_TIMELINE_SCHEMA_VERSION,
+        }
+        asset["online_run"] = {
+            "batch_count": online_run.batch_count,
+            "accepted_batch_count": online_run.accepted_batch_count,
+            "rejected_batch_count": online_run.rejected_batch_count,
+            "inconclusive_batch_count": online_run.inconclusive_batch_count,
+            "final_gate_status": online_run.final_gate_status,
+            "gate_thresholds": {
+                "min_rank": online_run.gate_thresholds.min_rank,
+                "max_holdout_rmse_m": online_run.gate_thresholds.max_holdout_rmse_m,
+                "max_rolling_regression_m": online_run.gate_thresholds.max_rolling_regression_m,
+            },
+        }
+    return asset
+
+
+def patch_readme_gallery_manifest(
+    *,
+    job: ReadmeGifJob,
+    cloud_pair: LidarCloudPair,
+    metadata_source: str,
+    frames: int,
+    allow_fallback: bool,
+) -> None:
+    """Update one README GIF entry inside the gallery manifest."""
+
+    manifest_path = README_GIF_MANIFEST
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    else:
+        manifest = {
+            "schema_version": README_GIF_MANIFEST_SCHEMA_VERSION,
+            "generator": "tools/generate_calibration_evidence_gif.py",
+            "dimensions": {
+                "width": WIDTH,
+                "height": HEIGHT,
+                "fps": FPS,
+                "frames": frames,
+            },
+            "fallback_metadata_allowed": allow_fallback,
+            "assets": [],
+        }
+
+    online_run = load_online_run_for_manifest(job) if job.visual == "online" else None
+    updated_asset = readme_gallery_manifest_asset(
+        job=job,
+        cloud_pair=cloud_pair,
+        metadata_source=metadata_source,
+        online_run=online_run,
+    )
+    assets = [asset for asset in manifest.get("assets", []) if asset["output"] != str(job.output)]
+    assets.append(updated_asset)
+    assets.sort(key=lambda asset: str(asset["output"]))
+    manifest["schema_version"] = README_GIF_MANIFEST_SCHEMA_VERSION
+    manifest["generator"] = "tools/generate_calibration_evidence_gif.py"
+    manifest["dimensions"] = {
+        "width": WIDTH,
+        "height": HEIGHT,
+        "fps": FPS,
+        "frames": frames,
+    }
+    manifest["fallback_metadata_allowed"] = allow_fallback
+    manifest["assets"] = assets
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def load_online_run_for_manifest(job: ReadmeGifJob) -> OnlineGifRun | None:
+    """Return the cached online run metadata written during GIF generation."""
+
+    if job.visual != "online":
+        return None
+    cache_path = job.output.with_suffix(".online-run.json")
+    if not cache_path.exists():
+        return None
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    gate_payload = payload["gate_thresholds"]
+    return OnlineGifRun(
+        timeline_path=Path(payload["timeline_path"]),
+        frame_states=(),
+        batch_count=int(payload["batch_count"]),
+        accepted_batch_count=int(payload["accepted_batch_count"]),
+        rejected_batch_count=int(payload["rejected_batch_count"]),
+        inconclusive_batch_count=int(payload["inconclusive_batch_count"]),
+        final_gate_status=str(payload["final_gate_status"]),
+        gate_thresholds=OnlineGifGateThresholds(
+            min_rank=int(gate_payload["min_rank"]),
+            max_holdout_rmse_m=float(gate_payload["max_holdout_rmse_m"]),
+            max_rolling_regression_m=float(gate_payload["max_rolling_regression_m"]),
+        ),
+    )
 
 
 def write_readme_gallery_manifest(
@@ -424,16 +599,22 @@ def load_gif_inputs(
     if source == "a2d2":
         resolved_data_dir = data_dir or Path("data/public/a2d2_lidar_pair")
         ensure_a2d2_lidar_sample(resolved_data_dir, allow_network=allow_network)
+        local_sensor_config = resolved_data_dir / "cams_lidars.json"
+        resolved_sensor_config = sensor_config
+        if resolved_sensor_config is None and local_sensor_config.exists():
+            resolved_sensor_config = local_sensor_config
         cloud_pair = load_a2d2_lidar_cloud_pair(
             resolved_data_dir / A2D2_LIDAR_SAMPLE_NAME,
             source_lidar_id=a2d2_source_id,
             target_lidar_id=a2d2_target_id,
         )
         lidars, metadata_source = load_a2d2_lidar_setup(
-            sensor_config,
+            resolved_sensor_config,
             allow_network=allow_network,
             allow_fallback=allow_fallback,
         )
+        if resolved_sensor_config == local_sensor_config:
+            metadata_source = "A2D2 public cams_lidars.json"
         return cloud_pair, lidars, metadata_source
 
     raise SystemExit(f"unsupported GIF source: {source}")
@@ -447,32 +628,45 @@ def generate_gif(
     lidars: list[LidarPose],
     metadata_source: str,
     visual: VisualMode,
+    a2d2_source_id: int = 0,
+    a2d2_target_id: int = 1,
+    data_dir: Path | None = None,
+    allow_network: bool = True,
 ) -> None:
     """Render one evidence animation to a GIF."""
 
     output.parent.mkdir(parents=True, exist_ok=True)
+    online_run: OnlineGifRun | None = None
+    if visual == "online":
+        sample_path = cloud_pair.source_path
+        online_run = run_online_gif_pipeline(
+            sample_path=sample_path,
+            source_lidar_id=a2d2_source_id,
+            target_lidar_id=a2d2_target_id,
+            frames=frames,
+            data_dir=data_dir,
+            allow_network=allow_network,
+        )
+        write_online_run_cache(output, online_run)
+
     with tempfile.TemporaryDirectory(prefix="calibrex_lidar_lidar_gif_") as tmp_name:
         tmp = Path(tmp_name)
         residual_history: list[float] = []
         for index in range(frames):
-            progress = smoothstep(index / max(1, frames - 1))
-            residual_history.append(
-                online_residual_proxy(progress)
-                if visual == "online"
-                else residual_proxy(progress)
-            )
             image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
             if visual == "online":
+                assert online_run is not None
+                frame_state = online_run.frame_states[index]
                 draw_online_calibration_frame(
                     image=image,
                     lidars=lidars,
                     cloud_pair=cloud_pair,
-                    progress=progress,
-                    cycle=index / max(1, frames),
-                    residual_history=residual_history,
+                    frame_state=frame_state,
                     metadata_source=metadata_source,
                 )
             else:
+                progress = smoothstep(index / max(1, frames - 1))
+                residual_history.append(residual_proxy(progress))
                 draw_frame(
                     image=image,
                     lidars=lidars,
@@ -482,7 +676,403 @@ def generate_gif(
                     metadata_source=metadata_source,
                 )
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
-        encode_gif(tmp, output, cloud_pair, visual=visual)
+        encode_gif(
+            tmp,
+            output,
+            cloud_pair,
+            visual=visual,
+            online_run=online_run,
+        )
+
+
+def write_online_run_cache(output: Path, online_run: OnlineGifRun) -> None:
+    """Persist online-run summary for manifest provenance."""
+
+    cache_path = output.with_suffix(".online-run.json")
+    payload = {
+        "timeline_path": str(online_run.timeline_path),
+        "batch_count": online_run.batch_count,
+        "accepted_batch_count": online_run.accepted_batch_count,
+        "rejected_batch_count": online_run.rejected_batch_count,
+        "inconclusive_batch_count": online_run.inconclusive_batch_count,
+        "final_gate_status": online_run.final_gate_status,
+        "gate_thresholds": {
+            "min_rank": online_run.gate_thresholds.min_rank,
+            "max_holdout_rmse_m": online_run.gate_thresholds.max_holdout_rmse_m,
+            "max_rolling_regression_m": online_run.gate_thresholds.max_rolling_regression_m,
+        },
+    }
+    cache_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def run_online_gif_pipeline(
+    *,
+    sample_path: Path,
+    source_lidar_id: int,
+    target_lidar_id: int,
+    frames: int,
+    data_dir: Path | None,
+    allow_network: bool,
+) -> OnlineGifRun:
+    """Run `calibrex calibrate --online` and build per-frame GIF states."""
+
+    from calibrex.core.io import read_mapping
+    from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
+    from calibrex.pipelines.online import (
+        OnlineCalibrationRunOptions,
+        OnlineGateThresholds,
+        run_online_calibration,
+    )
+
+    gate_thresholds = OnlineGateThresholds(
+        max_holdout_rmse_m=ONLINE_GIF_MAX_HOLDOUT_RMSE_M,
+        max_rolling_regression_m=ONLINE_GIF_MAX_ROLLING_REGRESSION_M,
+    )
+    gif_gate_thresholds = OnlineGifGateThresholds(
+        min_rank=gate_thresholds.min_rank,
+        max_holdout_rmse_m=gate_thresholds.max_holdout_rmse_m,
+        max_rolling_regression_m=gate_thresholds.max_rolling_regression_m,
+    )
+
+    source_name = A2D2_LIDAR_ID_TO_NAME[source_lidar_id]
+    target_name = A2D2_LIDAR_ID_TO_NAME[target_lidar_id]
+    with tempfile.TemporaryDirectory(prefix="calibrex_online_gif_") as tmp_name:
+        tmp = Path(tmp_name)
+        dataset_dir = tmp / "a2d2_online_pair"
+        dataset_dir.mkdir(parents=True, exist_ok=True)
+        source_npz = dataset_dir / f"source_{source_name}.npz"
+        target_npz = dataset_dir / f"target_{target_name}.npz"
+        write_a2d2_lidar_id_filtered_npz(sample_path, source_npz, lidar_id=source_lidar_id)
+        write_a2d2_lidar_id_filtered_npz(sample_path, target_npz, lidar_id=target_lidar_id)
+
+        output_dir = tmp / "outputs"
+        config_path = write_a2d2_online_gif_config(
+            config_path=tmp / "online_config.yaml",
+            dataset_dir=dataset_dir,
+            output_dir=output_dir,
+            source_name=source_name,
+            target_name=target_name,
+        )
+        result = run_online_calibration(
+            config_path,
+            OnlineCalibrationRunOptions(
+                output_dir=output_dir,
+                batch_size=ONLINE_BATCH_SIZE,
+                rolling_window=ONLINE_ROLLING_WINDOW,
+                holdout_ratio=ONLINE_HOLDOUT_RATIO,
+                gate_thresholds=gate_thresholds,
+            ),
+        )
+        if result is None:
+            raise SystemExit("online GIF generation requires a real online calibration run")
+
+        timeline_path = Path(result.run.provenance["online_timeline_path"])
+        timeline = OnlineCalibrationTimelineArtifact.model_validate(read_mapping(timeline_path))
+        if not timeline.batches:
+            raise SystemExit("online calibration produced no timeline batches for the GIF")
+
+        initial_transform = _transform_result_to_se3(timeline.batches[0].estimate)
+        final_transform = _accepted_transform_at_batch(timeline.batches, len(timeline.batches) - 1)
+        frame_states = build_online_gif_frame_states(
+            timeline=timeline,
+            frames=frames,
+            initial_transform=initial_transform,
+            final_transform=final_transform,
+        )
+        return OnlineGifRun(
+            timeline_path=timeline_path,
+            frame_states=tuple(frame_states),
+            batch_count=len(timeline.batches),
+            accepted_batch_count=timeline.accepted_batch_count,
+            rejected_batch_count=timeline.rejected_batch_count,
+            inconclusive_batch_count=timeline.inconclusive_batch_count,
+            final_gate_status=timeline.final_gate_status,
+            gate_thresholds=gif_gate_thresholds,
+        )
+
+
+def write_a2d2_online_gif_config(
+    *,
+    config_path: Path,
+    dataset_dir: Path,
+    output_dir: Path,
+    source_name: str,
+    target_name: str,
+) -> Path:
+    """Write a minimal online calibration config for one A2D2 sensor pair."""
+
+    source_sensor = f"lidar_{source_name}"
+    target_sensor = f"lidar_{target_name}"
+    config_path.write_text(
+        f"""
+schema_version: calibrex.config/v0.1
+project:
+  name: readme_online_gif
+  output_dir: {output_dir}
+dataset:
+  type: a2d2_lidar
+  path: {dataset_dir}
+sensors:
+  {source_sensor}:
+    type: lidar
+  {target_sensor}:
+    type: lidar
+frames:
+  base_link:
+    root: true
+  {source_sensor}:
+    parent: base_link
+    transform:
+      estimate: false
+  {target_sensor}:
+    parent: base_link
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 5.0
+pipeline:
+  type: multi_sensor_slac
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.75
+        correspondence_gate_m: 1.0
+        max_target_points: 3000
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+""",
+        encoding="utf-8",
+    )
+    return config_path
+
+
+def write_a2d2_lidar_id_filtered_npz(
+    source: Path,
+    output: Path,
+    *,
+    lidar_id: int,
+) -> None:
+    """Write one A2D2 NPZ containing only points from a physical LiDAR id."""
+
+    with zipfile.ZipFile(source) as archive:
+        points_header, points_raw = read_npy_array(archive, "pcloud_points.npy")
+        _ids_header, lidar_ids_raw = read_npy_array(archive, "pcloud_attr.lidar_id.npy")
+        _valid_header, valid_raw = read_npy_array(archive, "pcloud_attr.valid.npy")
+        attr_arrays: dict[str, tuple[dict[str, object], tuple[object, ...]]] = {
+            "pcloud_attr.lidar_id.npy": (_ids_header, lidar_ids_raw),
+            "pcloud_attr.valid.npy": (_valid_header, valid_raw),
+        }
+        for member in archive.namelist():
+            if (
+                member.startswith("pcloud_attr.")
+                and member.endswith(".npy")
+                and member not in attr_arrays
+            ):
+                attr_arrays[member] = read_npy_array(archive, member)
+
+    shape = points_header["shape"]
+    if not isinstance(shape, tuple) or len(shape) != 2 or shape[1] != 3:
+        raise SystemExit(f"{source} pcloud_points must be Nx3")
+    selected_indices = [
+        index
+        for index, (raw_lidar_id, valid) in enumerate(zip(lidar_ids_raw, valid_raw, strict=True))
+        if int(raw_lidar_id) == lidar_id and bool(valid)
+    ]
+    if not selected_indices:
+        raise SystemExit(f"{source} does not contain usable lidar_id {lidar_id} points")
+
+    filtered_points: list[float] = []
+    for index in selected_indices:
+        filtered_points.extend(
+            (
+                float(points_raw[index * 3]),
+                float(points_raw[index * 3 + 1]),
+                float(points_raw[index * 3 + 2]),
+            )
+        )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        _write_npy_array(
+            archive,
+            "pcloud_points.npy",
+            "<f8",
+            (len(selected_indices), 3),
+            filtered_points,
+        )
+        for name, (header, values) in attr_arrays.items():
+            if name == "pcloud_attr.lidar_id.npy":
+                filtered = [lidar_id] * len(selected_indices)
+                _write_npy_array(archive, name, "<i8", (len(selected_indices),), filtered)
+                continue
+            if name == "pcloud_attr.valid.npy":
+                filtered = [True] * len(selected_indices)
+                _write_npy_array(archive, name, "|b1", (len(selected_indices),), filtered)
+                continue
+            filtered = [values[index] for index in selected_indices]
+            dtype = str(header.get("descr"))
+            header_shape = header.get("shape", ())
+            if len(header_shape) == 1:
+                filtered_shape = (len(selected_indices),)
+            else:
+                filtered_shape = (len(selected_indices), 1)
+            _write_npy_array(archive, name, dtype, filtered_shape, filtered)
+
+
+def _write_npy_array(
+    archive: zipfile.ZipFile,
+    name: str,
+    descr: str,
+    shape: tuple[int, ...],
+    values: list[object],
+) -> None:
+    header = {
+        "descr": descr,
+        "fortran_order": False,
+        "shape": shape,
+    }
+    header_bytes = (repr(header) + " " * 64).encode("latin1")
+    padding = 16 - ((10 + len(header_bytes) + 1) % 16)
+    header_bytes = header_bytes + b" " * padding + b"\n"
+    if descr == "<f8":
+        body = struct.pack("<" + "d" * len(values), *(float(value) for value in values))
+    elif descr == "<i8":
+        body = struct.pack("<" + "q" * len(values), *(int(value) for value in values))
+    elif descr == "|b1":
+        body = bytes(1 if bool(value) else 0 for value in values)
+    else:
+        raise SystemExit(f"unsupported dtype {descr} for {name}")
+    archive.writestr(
+        name,
+        b"\x93NUMPY\x01\x00" + struct.pack("<H", len(header_bytes)) + header_bytes + body,
+    )
+
+
+def build_online_gif_frame_states(
+    *,
+    timeline: object,
+    frames: int,
+    initial_transform: object,
+    final_transform: object,
+) -> list[OnlineGifFrameState]:
+    """Map timeline batches onto the fixed README GIF frame count."""
+
+    batches = timeline.batches
+    final_gate_status = timeline.final_gate_status
+    accepted_batch_count = timeline.accepted_batch_count
+    frame_states: list[OnlineGifFrameState] = []
+    residual_history: list[float] = []
+    for frame_index in range(frames):
+        progress = smoothstep(frame_index / max(1, frames - 1))
+        cycle = frame_index / max(1, frames)
+        batch_index = min(
+            len(batches) - 1,
+            round(progress * max(1, len(batches) - 1)),
+        )
+        batch = batches[batch_index]
+        residual_value = _timeline_residual_value(batch)
+        if residual_value is not None:
+            residual_history.append(residual_value)
+        elif residual_history:
+            residual_history.append(residual_history[-1])
+        else:
+            residual_history.append(ONLINE_RESIDUAL_CHART_MIN_M)
+
+        visible_batches = batches[: batch_index + 1]
+        current_transform = _accepted_transform_at_batch(batches, batch_index)
+        convergence_ratio = _transform_convergence_ratio(
+            initial=initial_transform,
+            current=current_transform,
+            final=final_transform,
+        )
+        frame_states.append(
+            OnlineGifFrameState(
+                batch_index=batch_index,
+                progress=progress,
+                cycle=cycle,
+                residual_history=list(residual_history),
+                gate_statuses=tuple(batch.gate_status for batch in visible_batches),
+                batch_point_counts=tuple(batch.point_count for batch in visible_batches),
+                batch_accepted=tuple(batch.estimate_accepted for batch in visible_batches),
+                current_holdout_rmse_m=batch.batch_holdout_rmse_m,
+                current_rolling_rmse_m=batch.rolling_rmse_m,
+                visual_offset=_estimate_visual_offset(
+                    initial=initial_transform,
+                    current=_transform_result_to_se3(batch.estimate),
+                    remaining_ratio=1.0 - convergence_ratio,
+                ),
+                convergence_ratio=convergence_ratio,
+                final_gate_status=final_gate_status,
+                accepted_batch_count=accepted_batch_count,
+            )
+        )
+    return frame_states
+
+
+def _timeline_residual_value(batch: object) -> float | None:
+    if batch.rolling_rmse_m is not None:
+        return float(batch.rolling_rmse_m)
+    if batch.batch_holdout_rmse_m is not None:
+        return float(batch.batch_holdout_rmse_m)
+    return None
+
+
+def _transform_result_to_se3(transform_result: object) -> object:
+    from calibrex.core.geometry import SE3
+
+    return SE3.from_lists(
+        transform_result.translation_m,
+        transform_result.rotation_quat_xyzw,
+    )
+
+
+def _accepted_transform_at_batch(batches: list[object], batch_index: int) -> object:
+    from calibrex.core.geometry import SE3
+
+    accepted = SE3.identity()
+    found = False
+    for index in range(batch_index + 1):
+        batch = batches[index]
+        if batch.estimate_accepted:
+            accepted = _transform_result_to_se3(batch.estimate)
+            found = True
+    if not found:
+        return _transform_result_to_se3(batches[0].estimate)
+    return accepted
+
+
+def _transform_convergence_ratio(*, initial: object, current: object, final: object) -> float:
+    initial_error = _translation_error_m(initial, final)
+    current_error = _translation_error_m(current, final)
+    if initial_error <= 1.0e-9:
+        return 1.0
+    return max(0.0, min(1.0, 1.0 - current_error / initial_error))
+
+
+def _translation_error_m(left: object, right: object) -> float:
+    delta = (
+        left.translation_m[0] - right.translation_m[0],
+        left.translation_m[1] - right.translation_m[1],
+        left.translation_m[2] - right.translation_m[2],
+    )
+    return math.sqrt(delta[0] ** 2 + delta[1] ** 2 + delta[2] ** 2)
+
+
+def _estimate_visual_offset(*, initial: object, current: object, remaining_ratio: float) -> Point3:
+    delta = (
+        current.translation_m[0] - initial.translation_m[0],
+        current.translation_m[1] - initial.translation_m[1],
+        current.translation_m[2] - initial.translation_m[2],
+    )
+    scale = 8.0
+    return (
+        delta[0] * scale * remaining_ratio,
+        delta[1] * scale * remaining_ratio,
+        delta[2] * scale * remaining_ratio,
+    )
 
 
 def ensure_livox_horizon_pair(data_dir: Path, *, allow_network: bool) -> None:
@@ -535,7 +1125,10 @@ def ensure_a2d2_lidar_sample(data_dir: Path, *, allow_network: bool) -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
     start = A2D2_LIDAR_SAMPLE_START
     end = start + A2D2_LIDAR_SAMPLE_SIZE - 1
-    request = Request(A2D2_LIDAR_SAMPLE_URL, headers={"Range": f"bytes={start}-{end}"})
+    request = Request(
+        A2D2_LIDAR_SAMPLE_URL,
+        headers={"Range": f"bytes={start}-{end}", "User-Agent": "Mozilla/5.0"},
+    )
     with urlopen(request, timeout=90) as response:
         data = response.read()
     if len(data) != A2D2_LIDAR_SAMPLE_SIZE:
@@ -953,9 +1546,7 @@ def draw_online_calibration_frame(
     image: bytearray,
     lidars: list[LidarPose],
     cloud_pair: LidarCloudPair,
-    progress: float,
-    cycle: float,
-    residual_history: list[float],
+    frame_state: OnlineGifFrameState,
     metadata_source: str,
 ) -> None:
     fill_rect(image, 0, 0, WIDTH, HEIGHT, BG)
@@ -972,47 +1563,51 @@ def draw_online_calibration_frame(
         alpha=0.85,
     )
 
-    draw_online_calibration_scene(image, lidars, cloud_pair, progress, cycle)
+    draw_online_calibration_scene(
+        image,
+        lidars,
+        cloud_pair,
+        frame_state,
+    )
     draw_online_evidence_panel(
         image,
         cloud_pair,
-        progress,
-        cycle,
-        residual_history,
+        frame_state,
         metadata_source,
     )
-    draw_online_timeline(image, progress, cycle)
+    draw_online_timeline(image, frame_state)
 
 
 def draw_online_calibration_scene(
     image: bytearray,
     lidars: list[LidarPose],
     cloud_pair: LidarCloudPair,
-    progress: float,
-    cycle: float,
+    frame_state: OnlineGifFrameState,
 ) -> None:
     draw_road_grid(image)
-    draw_live_lidar_clouds(image, cloud_pair, progress, cycle)
+    draw_live_lidar_clouds(image, cloud_pair, frame_state)
     draw_vehicle_box(image)
 
     source = lidar_by_name(lidars, cloud_pair.source_pose_name)
     target = lidar_by_name(lidars, cloud_pair.target_pose_name)
-    current_target = animated_candidate_pose(target, progress)
+    current_target = candidate_pose_from_offset(target, frame_state.visual_offset)
 
-    draw_scanline(image, cycle)
-    draw_packet_flow(image, cycle)
-    draw_candidate_trail(image, target, progress)
+    draw_scanline(image, frame_state.cycle)
+    draw_packet_flow(image, frame_state.cycle)
+    draw_candidate_trail(image, target, frame_state)
     for lidar in lidars:
         strong = lidar.name in {source.name, target.name}
-        color = REFERENCE if lidar.name != target.name else mix(CANDIDATE, OPTIMIZED, progress)
+        color = REFERENCE if lidar.name != target.name else mix(
+            CANDIDATE, OPTIMIZED, frame_state.convergence_ratio
+        )
         draw_lidar_sensor(image, lidar.origin, color, strong=strong)
         if strong:
-            draw_lidar_sweep(image, lidar.origin, cycle, color)
+            draw_lidar_sweep(image, lidar.origin, frame_state.cycle, color)
 
     draw_lidar_sensor(
         image,
         current_target.origin,
-        mix(CANDIDATE, OPTIMIZED, progress),
+        mix(CANDIDATE, OPTIMIZED, frame_state.convergence_ratio),
         strong=True,
     )
     draw_transform_arrow(image, source.origin, target.origin, REFERENCE, alpha=0.42)
@@ -1020,26 +1615,28 @@ def draw_online_calibration_scene(
         image,
         source.origin,
         current_target.origin,
-        mix(CANDIDATE, OPTIMIZED, progress),
+        mix(CANDIDATE, OPTIMIZED, frame_state.convergence_ratio),
         alpha=0.94,
     )
-    draw_delta_vector(image, target.origin, current_target.origin, progress)
-    draw_lock_envelope(image, target.origin, progress)
+    draw_delta_vector(image, target.origin, current_target.origin, frame_state.convergence_ratio)
+    draw_lock_envelope(image, target.origin, frame_state.convergence_ratio)
 
 
 def draw_live_lidar_clouds(
     image: bytearray,
     cloud_pair: LidarCloudPair,
-    progress: float,
-    cycle: float,
+    frame_state: OnlineGifFrameState,
 ) -> None:
-    remaining = 1.0 - progress
-    candidate_color = mix(CANDIDATE, OPTIMIZED, progress)
+    remaining = 1.0 - frame_state.convergence_ratio
+    offset = frame_state.visual_offset
+    candidate_color = mix(CANDIDATE, OPTIMIZED, frame_state.convergence_ratio)
     for index, point in enumerate(cloud_pair.source_points):
         if index % 2:
             continue
         px, py = project_lidar_point(point)
-        pulse = 1.0 - min(1.0, abs(((index * 0.019 + cycle) % 1.0) - 0.5) * 3.5)
+        pulse = 1.0 - min(
+            1.0, abs(((index * 0.019 + frame_state.cycle) % 1.0) - 0.5) * 3.5
+        )
         circle(image, px, py, 1, REFERENCE, alpha=0.18 + 0.48 * pulse)
         if pulse > 0.78 and index % 7 == 0:
             circle(image, px, py, 2, (134, 239, 172), alpha=0.32)
@@ -1047,12 +1644,14 @@ def draw_live_lidar_clouds(
         if index % 2:
             continue
         shifted = (
-            point[0] + 1.65 * remaining,
-            point[1] - 1.05 * remaining,
-            point[2] + 0.38 * remaining,
+            point[0] + offset[0] * remaining,
+            point[1] + offset[1] * remaining,
+            point[2] + offset[2] * remaining,
         )
         px, py = project_lidar_point(shifted)
-        pulse = 1.0 - min(1.0, abs(((index * 0.023 + cycle + 0.28) % 1.0) - 0.5) * 3.2)
+        pulse = 1.0 - min(
+            1.0, abs(((index * 0.023 + frame_state.cycle + 0.28) % 1.0) - 0.5) * 3.2
+        )
         circle(image, px, py, 1, candidate_color, alpha=0.20 + 0.56 * pulse)
         if pulse > 0.80 and index % 6 == 0:
             circle(image, px, py, 2, candidate_color, alpha=0.34)
@@ -1088,17 +1687,26 @@ def draw_packet_flow(image: bytearray, cycle: float) -> None:
         circle(image, x, y + 2, 4, color, alpha=0.54)
 
 
-def draw_candidate_trail(image: bytearray, target: LidarPose, progress: float) -> None:
+def draw_candidate_trail(
+    image: bytearray,
+    target: LidarPose,
+    frame_state: OnlineGifFrameState,
+) -> None:
     trail_points: list[Point2] = []
     for index in range(8):
-        trail_progress = progress * index / 7
-        pose = animated_candidate_pose(target, trail_progress)
+        trail_progress = frame_state.convergence_ratio * index / 7
+        offset = (
+            frame_state.visual_offset[0] * (1.0 - trail_progress),
+            frame_state.visual_offset[1] * (1.0 - trail_progress),
+            frame_state.visual_offset[2] * (1.0 - trail_progress),
+        )
+        pose = candidate_pose_from_offset(target, offset)
         x, y = project((pose.origin[0], pose.origin[1], pose.origin[2] + 0.42))
         trail_points.append((x, y))
         color = mix(CANDIDATE, OPTIMIZED, trail_progress)
         circle(image, x, y, 3 + index // 3, color, alpha=0.32 + 0.06 * index)
     for index in range(1, len(trail_points)):
-        trail_progress = progress * index / 7
+        trail_progress = frame_state.convergence_ratio * index / 7
         line_between(
             image,
             trail_points[index - 1],
@@ -1107,6 +1715,17 @@ def draw_candidate_trail(image: bytearray, target: LidarPose, progress: float) -
             0.46,
             thickness=2,
         )
+
+
+def candidate_pose_from_offset(reference: LidarPose, offset: Point3) -> LidarPose:
+    return LidarPose(
+        f"{reference.name}_candidate",
+        (
+            reference.origin[0] + offset[0],
+            reference.origin[1] + offset[1],
+            reference.origin[2] + offset[2],
+        ),
+    )
 
 
 def draw_lock_envelope(image: bytearray, origin: Point3, progress: float) -> None:
@@ -1134,22 +1753,32 @@ def draw_lidar_sweep(image: bytearray, origin: Point3, cycle: float, color: Colo
 def draw_online_evidence_panel(
     image: bytearray,
     cloud_pair: LidarCloudPair,
-    progress: float,
-    cycle: float,
-    residual_history: list[float],
+    frame_state: OnlineGifFrameState,
     metadata_source: str,
 ) -> None:
-    residual_score = 1.0 - min(1.0, online_residual_proxy(progress) / 0.110)
-    stability_score = min(1.0, 0.34 + progress * 0.68)
-    holdout_score = min(1.0, 0.44 + progress * 0.62)
-    provenance_score = 1.0 if metadata_source.startswith(("A2D2", "Livox")) else 0.55
+    current_residual = frame_state.residual_history[-1] if frame_state.residual_history else None
+    residual_score = 0.0
+    if current_residual is not None:
+        residual_score = 1.0 - min(
+            1.0,
+            (current_residual - ONLINE_RESIDUAL_CHART_MIN_M)
+            / (ONLINE_RESIDUAL_CHART_MAX_M - ONLINE_RESIDUAL_CHART_MIN_M),
+        )
+    visible_batches = max(1, len(frame_state.gate_statuses))
+    stability_score = frame_state.accepted_batch_count / visible_batches
+    holdout_score = 0.0
+    if frame_state.current_holdout_rmse_m is not None:
+        holdout_score = 1.0 - min(
+            1.0, frame_state.current_holdout_rmse_m / ONLINE_GIF_MAX_HOLDOUT_RMSE_M
+        )
+    provenance_score = 1.0
 
     fill_rect(image, 674, 132, 220, 132, PANEL_ALT)
     rect(image, 674, 132, 220, 132, GRID, alpha=0.92)
-    metric_bar(image, 674, 156, residual_score, mix(WARNING, GOOD, progress))
+    metric_bar(image, 674, 156, residual_score, mix(WARNING, GOOD, frame_state.convergence_ratio))
     metric_bar(image, 674, 180, stability_score, OPTIMIZED)
     metric_bar(image, 674, 204, holdout_score, REFERENCE)
-    metric_bar(image, 674, 228, provenance_score, GOOD if provenance_score == 1.0 else WARNING)
+    metric_bar(image, 674, 228, provenance_score, GOOD)
 
     chart_x, chart_y, chart_width, chart_height = CHART
     fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
@@ -1157,12 +1786,23 @@ def draw_online_evidence_panel(
     for line_index in range(1, 4):
         y = chart_y + line_index * chart_height // 4
         line(image, chart_x, y, chart_x + chart_width, y, GRID, alpha=0.45)
-    threshold_y = chart_y + round(chart_height * 0.72)
+    threshold_ratio = 1.0 - (
+        (ONLINE_GIF_MAX_HOLDOUT_RMSE_M - ONLINE_RESIDUAL_CHART_MIN_M)
+        / (ONLINE_RESIDUAL_CHART_MAX_M - ONLINE_RESIDUAL_CHART_MIN_M)
+    )
+    threshold_y = chart_y + round(chart_height * max(0.0, min(1.0, threshold_ratio)))
     line(image, chart_x, threshold_y, chart_x + chart_width, threshold_y, GOOD, alpha=0.42)
-    draw_curve(image, residual_history, CHART, OPTIMIZED)
+    draw_curve(
+        image,
+        frame_state.residual_history,
+        CHART,
+        OPTIMIZED,
+        min_value=ONLINE_RESIDUAL_CHART_MIN_M,
+        max_value=ONLINE_RESIDUAL_CHART_MAX_M,
+    )
 
-    draw_stream_packets(image, 674, 354, progress, cycle)
-    draw_gate_cells(image, 674, 424, progress)
+    draw_stream_packets(image, 674, 354, frame_state)
+    draw_gate_cells(image, 674, 424, frame_state)
     draw_source_badge(image, metadata_source)
 
 
@@ -1170,40 +1810,69 @@ def draw_stream_packets(
     image: bytearray,
     x: int,
     y: int,
-    progress: float,
-    cycle: float,
+    frame_state: OnlineGifFrameState,
 ) -> None:
     fill_rect(image, x, y, 220, 42, PANEL_ALT)
     rect(image, x, y, 220, 42, GRID, alpha=0.80)
-    for index in range(12):
+    counts = frame_state.batch_point_counts[-12:]
+    accepted = frame_state.batch_accepted[-12:]
+    if not counts:
+        return
+    max_count = max(counts)
+    for index, point_count in enumerate(counts):
         packet_x = x + 10 + index * 17
-        phase = (cycle + index * 0.083) % 1.0
-        height = 8 + round(20 * (0.35 + 0.65 * math.sin(phase * math.pi) ** 2))
-        color = OPTIMIZED if index / 11 <= progress else mix(WARNING, OPTIMIZED, progress)
+        phase = (frame_state.cycle + index * 0.083) % 1.0
+        normalized = point_count / max(1, max_count)
+        height = 8 + round(20 * normalized * (0.35 + 0.65 * math.sin(phase * math.pi) ** 2))
+        color = OPTIMIZED if accepted[index] else WARNING
         fill_rect(image, packet_x, y + 32 - height, 10, height, color, alpha=0.86)
 
 
-def draw_gate_cells(image: bytearray, x: int, y: int, progress: float) -> None:
+def draw_gate_cells(image: bytearray, x: int, y: int, frame_state: OnlineGifFrameState) -> None:
     labels = 6
+    statuses = list(frame_state.gate_statuses[-labels:])
     for index in range(labels):
         cell_x = x + index * 35
-        good = index < 3 or progress > 0.72 + index * 0.035
-        color = GOOD if good else WARNING
-        fill_rect(image, cell_x, y, 24, 22, color, alpha=0.90)
+        if index < len(statuses):
+            status = statuses[index]
+            if status == "pass":
+                color = GOOD
+            elif status == "fail":
+                color = CANDIDATE
+            else:
+                color = WARNING
+        else:
+            color = TEXT_DIM
+        fill_rect(image, cell_x, y, 24, 22, color, alpha=0.90 if index < len(statuses) else 0.35)
         rect(image, cell_x, y, 24, 22, (229, 231, 235), alpha=0.24)
-        if good and (index == labels - 1 or index >= 3):
-            rect(image, cell_x - 2, y - 2, 28, 26, color, alpha=0.40 + 0.25 * progress)
+        if index < len(statuses) and statuses[index] == "pass":
+            rect(
+                image,
+                cell_x - 2,
+                y - 2,
+                28,
+                26,
+                color,
+                alpha=0.40 + 0.25 * frame_state.convergence_ratio,
+            )
 
 
-def draw_online_timeline(image: bytearray, progress: float, cycle: float) -> None:
+def draw_online_timeline(image: bytearray, frame_state: OnlineGifFrameState) -> None:
     x0, y, width = 82, 516, 786
     fill_rect(image, x0, y, width, 8, (31, 41, 55), alpha=1.0)
-    fill_rect(image, x0, y, round(width * progress), 8, OPTIMIZED, alpha=0.95)
-    cursor_x = x0 + round(width * cycle)
+    fill_rect(image, x0, y, round(width * frame_state.progress), 8, OPTIMIZED, alpha=0.95)
+    cursor_x = x0 + round(width * frame_state.cycle)
     fill_rect(image, cursor_x - 2, y - 12, 4, 32, WARNING, alpha=0.82)
     for marker in [0.0, 0.33, 0.66, 1.0]:
         x = x0 + round(width * marker)
-        circle(image, x, y + 4, 8, OPTIMIZED if progress >= marker else TEXT_DIM, alpha=1.0)
+        circle(
+            image,
+            x,
+            y + 4,
+            8,
+            OPTIMIZED if frame_state.progress >= marker else TEXT_DIM,
+            alpha=1.0,
+        )
 
 
 def draw_calibration_scene(
@@ -1420,12 +2089,13 @@ def draw_curve(
     values: list[float],
     chart: tuple[int, int, int, int],
     color: Color,
+    *,
+    min_value: float = 0.020,
+    max_value: float = 0.110,
 ) -> None:
     if len(values) < 2:
         return
     x, y, width, height = chart
-    min_value = 0.020
-    max_value = 0.110
     points: list[Point2] = []
     for index, value in enumerate(values):
         px = x + round(index * width / max(1, len(values) - 1))
@@ -1479,11 +2149,6 @@ def draw_timeline(image: bytearray, progress: float) -> None:
 def residual_proxy(progress: float) -> float:
     remaining = 1.0 - progress
     return 0.024 + 0.080 * remaining * remaining
-
-
-def online_residual_proxy(progress: float) -> float:
-    remaining = 1.0 - progress
-    return 0.020 + 0.086 * remaining * remaining + 0.004 * math.sin(progress * math.pi * 4.0) ** 2
 
 
 def project(point: Point3) -> Point2:
@@ -1667,10 +2332,11 @@ def encode_gif(
     cloud_pair: LidarCloudPair,
     *,
     visual: VisualMode,
+    online_run: OnlineGifRun | None = None,
 ) -> None:
     palette = frame_dir / "palette.png"
     text_filter = (
-        build_online_text_filter(cloud_pair)
+        build_online_text_filter(cloud_pair, online_run=online_run)
         if visual == "online"
         else build_text_filter(cloud_pair)
     )
@@ -1764,11 +2430,25 @@ def build_text_filter(cloud_pair: LidarCloudPair) -> str:
     return ",".join(drawtext(font_file, *label) for label in labels)
 
 
-def build_online_text_filter(cloud_pair: LidarCloudPair) -> str:
+def build_online_text_filter(
+    cloud_pair: LidarCloudPair,
+    *,
+    online_run: OnlineGifRun | None = None,
+) -> str:
     font_file = subprocess.check_output(
         ["fc-match", "-f", "%{file}", "Noto Sans"],
         text=True,
     ).strip()
+    if online_run is not None:
+        assessment = f"assessment: {online_run.final_gate_status.upper()} from timeline"
+        accepted_summary = (
+            f"{online_run.accepted_batch_count}/{online_run.batch_count} batches accepted"
+        )
+        provenance = "provenance: A2D2 NPZ + calibrate --online timeline"
+    else:
+        assessment = "assessment: timeline unavailable"
+        accepted_summary = "accepted window"
+        provenance = cloud_pair.provenance
     labels = [
         ("Online Calibration Evidence Loop", 34, 22, 26, "E5E7EB"),
         (cloud_pair.subtitle, 34, 55, 16, "CBD5E1"),
@@ -1784,12 +2464,12 @@ def build_online_text_filter(cloud_pair: LidarCloudPair) -> str:
         ("rolling residual", 676, 274, 16, "E5E7EB"),
         ("Stream Batches", 674, 330, 16, "E5E7EB"),
         ("sensor packets", 684, 360, 12, "CBD5E1"),
-        ("accepted window", 684, 380, 12, "CBD5E1"),
+        (accepted_summary, 684, 380, 12, "CBD5E1"),
         ("Policy gates", 674, 410, 14, "E5E7EB"),
-        ("raw  hold  bad  drift  dof  pass", 674, 450, 12, "CBD5E1"),
-        (cloud_pair.provenance, 682, 468, 12, "CBD5E1"),
-        ("protocol.json + evidence.json", 682, 482, 12, "CBD5E1"),
-        ("assessment: PASS after holdout", 682, 494, 12, "CBD5E1"),
+        ("pass  fail  inconclusive (real batches)", 674, 450, 12, "CBD5E1"),
+        (provenance, 682, 468, 12, "CBD5E1"),
+        ("timeline.json + evidence.json", 682, 482, 12, "CBD5E1"),
+        (assessment, 682, 494, 12, "CBD5E1"),
         ("ingest", 62, 520, 14, "CBD5E1"),
         ("estimate", 320, 520, 14, "CBD5E1"),
         ("holdout", 586, 520, 14, "CBD5E1"),

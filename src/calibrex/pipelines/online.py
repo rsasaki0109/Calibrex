@@ -329,6 +329,7 @@ class OnlineCalibrationRunOptions:
     batch_size: int = 500
     rolling_window: int = 2000
     holdout_ratio: float = 0.2
+    gate_thresholds: OnlineGateThresholds | None = None
 
 
 def run_online_calibration(
@@ -416,6 +417,7 @@ def run_online_calibration(
             convergence_tolerance=config.solver.convergence_tolerance,
             robust_loss=_robust_loss(config.solver.robust_loss),
         ),
+        gate_thresholds=options.gate_thresholds,
     )
 
     batch_size = max(1, options.batch_size)
