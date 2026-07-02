@@ -23,6 +23,10 @@ from calibrex.core.evidence_contract import (
 )
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.io import read_mapping
+from calibrex.core.online_timeline import (
+    ONLINE_TIMELINE_SCHEMA_VERSION,
+    OnlineCalibrationTimelineArtifact,
+)
 from calibrex.core.report_artifacts import (
     REPORT_DEGENERACY_SCHEMA_VERSION,
     REPORT_EVIDENCE_SCHEMA_VERSION,
@@ -65,6 +69,7 @@ ValidationKind = Literal[
     "report-evidence",
     "evidence-bundle",
     "evidence-bundle-verification",
+    "online-timeline",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -84,6 +89,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "report-evidence": ReportEvidenceArtifact,
     "evidence-bundle": EvidenceBundleManifest,
     "evidence-bundle-verification": EvidenceBundleVerification,
+    "online-timeline": OnlineCalibrationTimelineArtifact,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -103,6 +109,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     REPORT_EVIDENCE_SCHEMA_VERSION: "report-evidence",
     EVIDENCE_BUNDLE_SCHEMA_VERSION: "evidence-bundle",
     EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION: "evidence-bundle-verification",
+    ONLINE_TIMELINE_SCHEMA_VERSION: "online-timeline",
 }
 
 
