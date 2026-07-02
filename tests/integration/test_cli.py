@@ -954,6 +954,125 @@ def test_compare_command_writes_machine_readable_summary(
     assert "protocol_compatibility_enforced: no" in text_output
 
 
+def test_report_compare_command_assembles_nway_artifact(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    reference_result = Path("examples/precomputed/result.yaml")
+    perturbed = load_result(reference_result)
+    perturbed.run.id = "perturbed_candidate"
+    perturbed.metrics["lidar_point_to_plane_rmse_m"].holdout = 0.031
+    perturbed_result = tmp_path / "perturbed_result.yaml"
+    perturbed.save(perturbed_result)
+    native_result = Path(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
+    )
+    output = tmp_path / "report_comparison.json"
+
+    assert (
+        main(
+            [
+                "report-compare",
+                f"reference={reference_result}",
+                f"perturbed={perturbed_result}",
+                f"native={native_result}",
+                "--reference",
+                "reference",
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    written = json.loads(output.read_text(encoding="utf-8"))
+    assert payload == written
+    assert payload["schema_version"] == "calibrex.report_comparison/v0.1"
+    assert payload["summary"]["entry_count"] == 3
+    assert payload["summary"]["comparison_mode"] == "reference_vs_each"
+    assert payload["summary"]["reference_label"] == "reference"
+    assert payload["summary"]["pairwise_comparison_count"] == 2
+    assert payload["summary"]["protocol_compatibility_status"] == "not_comparable"
+    assert set(payload["pairwise"]) == {"reference__perturbed", "reference__native"}
+    assert payload["entries"]["reference"]["is_reference"] is True
+    assert payload["entries"]["reference"]["side"]["run_id"] == "precomputed_example"
+    assert payload["entries"]["perturbed"]["side"]["run_id"] == "perturbed_candidate"
+    assert payload["entries"]["native"]["provenance"]["dominant_producer"] == (
+        "calibrex_native"
+    )
+    assert payload["entries"]["native"]["provenance"]["dominant_role"] == "output"
+    pairwise = payload["pairwise"]["reference__perturbed"]["comparison"]
+    assert pairwise["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
+    lidar_ranking = payload["metric_family_rankings"]["lidar"]
+    ranked = {entry["label"]: entry for entry in lidar_ranking["entries"]}
+    assert ranked["reference"]["win_count"] >= 1
+    assert ranked["perturbed"]["loss_count"] >= 1
+    assert main(["validate", str(output)]) == 0
+    assert main(["validate", str(output), "--kind", "report-comparison"]) == 0
+    capsys.readouterr()
+
+    assert (
+        main(
+            [
+                "report-compare",
+                f"reference={reference_result}",
+                f"perturbed={perturbed_result}",
+                "--enforce-compatible",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    enforced_payload = json.loads(capsys.readouterr().out)
+    assert (
+        enforced_payload["summary"]["protocol_compatibility_status"]
+        == "not_comparable"
+    )
+
+    assert (
+        main(
+            [
+                "report-compare",
+                f"reference={reference_result}",
+                f"perturbed={perturbed_result}",
+            ]
+        )
+        == 0
+    )
+    text_output = capsys.readouterr().out
+    assert "entries: 2" in text_output
+    assert "comparison_mode: all_pairs" in text_output
+    assert "protocol_compatibility: not_comparable" in text_output
+    assert "metric_family_rankings:" in text_output
+
+    assert main(["report-compare", "only_one=result.yaml"]) == 2
+    assert "at least two" in capsys.readouterr().err
+    assert (
+        main(
+            [
+                "report-compare",
+                f"reference={reference_result}",
+                "missing-separator",
+            ]
+        )
+        == 2
+    )
+    assert "LABEL=RESULT" in capsys.readouterr().err
+    assert (
+        main(
+            [
+                "report-compare",
+                f"dup={reference_result}",
+                f"dup={perturbed_result}",
+            ]
+        )
+        == 2
+    )
+    assert "duplicate report-compare labels: dup" in capsys.readouterr().err
+
+
 def test_visualize_reference_result_writes_3d_rig_overlay(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

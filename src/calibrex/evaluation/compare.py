@@ -268,8 +268,8 @@ def compare_results(
     )
 
     return ResultComparison(
-        left=_side(left, left_path),
-        right=_side(right, right_path),
+        left=comparison_side(left, left_path),
+        right=comparison_side(right, right_path),
         summary=summary,
         metric_families=metric_families,
         metrics=metric_comparisons,
@@ -290,6 +290,20 @@ def comparison_json_schema() -> dict[str, object]:
     """Return the JSON schema for comparison artifacts."""
 
     return ResultComparison.model_json_schema()
+
+
+def comparison_side(
+    result: CalibrationResult,
+    path: str | Path | None = None,
+) -> ComparisonSide:
+    """Return the machine-readable summary for one side of a comparison.
+
+    Exposed publicly so N-way report assembly (see
+    `calibrex.evaluation.report_compare`) can build per-entry summaries
+    without reimplementing this projection.
+    """
+
+    return _side(result, path)
 
 
 def _side(result: CalibrationResult, path: str | Path | None) -> ComparisonSide:

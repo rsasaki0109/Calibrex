@@ -73,6 +73,11 @@ from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
 from calibrex.evaluation.recommendations import build_inspection_recommendations
 from calibrex.evaluation.registry import list_metric_definitions
+from calibrex.evaluation.report_compare import (
+    ReportComparison,
+    compare_reports,
+    report_comparison_json_schema,
+)
 from calibrex.evaluation.thresholds import ThresholdProfile, apply_metric_thresholds
 from calibrex.evaluation.timing import timing_metrics_from_inspection
 from calibrex.export.autoware import export_autoware_yaml
@@ -119,6 +124,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "config",
             "result",
             "comparison",
+            "report-comparison",
             "assessment",
             "policy",
             "protocol",
@@ -276,6 +282,30 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     compare.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     compare.set_defaults(func=_cmd_compare)
+
+    report_compare = subcommands.add_parser(
+        "report-compare",
+        help="compare two or more labeled result files in one report artifact",
+    )
+    report_compare.add_argument(
+        "entries",
+        nargs="+",
+        metavar="LABEL=RESULT",
+        help="labeled result file, e.g. reference=dataset_result.yaml",
+    )
+    report_compare.add_argument(
+        "--reference",
+        metavar="LABEL",
+        help="compare this entry against each other entry instead of all pairs",
+    )
+    report_compare.add_argument("--output", type=Path, help="write report comparison as YAML/JSON")
+    report_compare.add_argument(
+        "--enforce-compatible",
+        action="store_true",
+        help="return non-zero unless every compared pair has compatible evidence protocols",
+    )
+    report_compare.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    report_compare.set_defaults(func=_cmd_report_compare)
 
     metrics = subcommands.add_parser("metrics", help="list registered metric definitions")
     metrics.add_argument("--json", action="store_true")
@@ -435,6 +465,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "config": config_json_schema,
         "result": result_json_schema,
         "comparison": comparison_json_schema,
+        "report-comparison": report_comparison_json_schema,
         "assessment": assessment_json_schema,
         "policy": policy_json_schema,
         "protocol": protocol_json_schema,
@@ -757,6 +788,52 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     ):
         return 1
     return 0
+
+
+def _cmd_report_compare(args: argparse.Namespace) -> int:
+    labeled_paths = _parse_labeled_results(args.entries)
+    labeled_results = [(label, load_result(path)) for label, path in labeled_paths]
+    paths = {label: cast(Path | str | None, path) for label, path in labeled_paths}
+    try:
+        report = compare_reports(
+            labeled_results,
+            paths=paths,
+            reference_label=args.reference,
+        )
+    except ValueError as exc:
+        _die(str(exc))
+    payload = report.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    elif not args.output:
+        _emit_report_comparison(report, enforce_compatible=args.enforce_compatible)
+    if (
+        args.enforce_compatible
+        and report.summary.protocol_compatibility_status != "compatible"
+    ):
+        return 1
+    return 0
+
+
+def _parse_labeled_results(entries: list[str]) -> list[tuple[str, Path]]:
+    labeled: list[tuple[str, Path]] = []
+    for entry in entries:
+        label, separator, path = entry.partition("=")
+        if not separator or not label or not path:
+            _die(
+                "report-compare entries must use LABEL=RESULT syntax, "
+                f"got: {entry}"
+            )
+        labeled.append((label, Path(path)))
+    if len(labeled) < 2:
+        _die("report-compare requires at least two LABEL=RESULT entries")
+    labels = [label for label, _ in labeled]
+    duplicates = sorted({label for label in labels if labels.count(label) > 1})
+    if duplicates:
+        _die(f"duplicate report-compare labels: {', '.join(duplicates)}")
+    return labeled
 
 
 def _cmd_metrics(args: argparse.Namespace) -> int:
@@ -1340,6 +1417,58 @@ def _emit_comparison(
         print("not_comparable_reasons:")
         for reason, count in not_comparable_reasons:
             print(f"  - {reason} ({count})")
+
+
+def _emit_report_comparison(
+    report: ReportComparison,
+    *,
+    enforce_compatible: bool = False,
+) -> None:
+    summary = report.summary
+    print(f"entries: {summary.entry_count}")
+    print(f"comparison_mode: {summary.comparison_mode}")
+    if summary.reference_label is not None:
+        print(f"reference: {summary.reference_label}")
+    for label, entry in report.entries.items():
+        provenance = entry.provenance
+        role = provenance.dominant_role or "n/a"
+        reference_marker = " [reference]" if entry.is_reference else ""
+        print(
+            f"  {label}{reference_marker}: run_id={entry.side.run_id}, "
+            f"grade={entry.side.grade}, "
+            f"producer={provenance.dominant_producer}, "
+            f"role={role}, "
+            f"evidence_level={provenance.dominant_evidence_level}"
+        )
+    print(f"pairwise_comparisons: {summary.pairwise_comparison_count}")
+    print(f"protocol_compatibility: {summary.protocol_compatibility_status}")
+    print(f"protocol_compatibility_enforced: {_format_bool(enforce_compatible)}")
+    print(
+        "pair_compatibility: "
+        f"compatible={summary.compatible_pair_count}, "
+        f"warning={summary.warning_pair_count}, "
+        f"not_comparable={summary.not_comparable_pair_count}"
+    )
+    if summary.not_comparable_pairs:
+        print("not_comparable_pairs:")
+        for pair_key in summary.not_comparable_pairs:
+            pair = report.pairwise[pair_key]
+            reasons = pair.comparison.protocol_compatibility.reasons
+            suffix = f": {'; '.join(reasons)}" if reasons else ""
+            print(f"  - {pair.left_label} vs {pair.right_label}{suffix}")
+    if report.metric_family_rankings:
+        print("metric_family_rankings:")
+        for family, ranking in report.metric_family_rankings.items():
+            print(f"  {family} ({ranking.metric_count} metrics):")
+            for entry_rank in ranking.entries:
+                rank = "n/a" if entry_rank.rank is None else str(entry_rank.rank)
+                print(
+                    f"    {rank}. {entry_rank.label}: "
+                    f"wins={entry_rank.win_count}, "
+                    f"ties={entry_rank.tie_count}, "
+                    f"losses={entry_rank.loss_count}, "
+                    f"not_comparable={entry_rank.not_comparable_count}"
+                )
 
 
 def _format_comparison_materialization(side: ComparisonSide) -> str:
