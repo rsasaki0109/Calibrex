@@ -8,11 +8,15 @@ Per batch, `OnlineCalibrationSession` warm-starts the native point-to-plane
 solve from the previous *accepted* estimate, splits the batch into a
 deterministic train/holdout split (reusing `calibrex.evaluation.holdout`),
 and evaluates a holdout gate mirroring the pass/fail/inconclusive semantics of
-`calibrex.core.assessment`. A batch that fails the gate (weak observability,
-an absolute holdout RMSE spike, or a sharp regression against the rolling
-baseline) is rejected: the session keeps its previous estimate, so a
-known-bad/corrupted batch cannot silently drag the running extrinsic away
-from a good solution.
+`calibrex.core.assessment`. Only a batch whose gate PASSES is adopted (the
+tentative estimate becomes the running estimate and its holdout residuals feed
+the rolling window). A batch that FAILS the gate (weak observability, an
+absolute holdout RMSE spike, or a sharp regression against the rolling
+baseline) is rejected, and a batch whose evidence is INCONCLUSIVE (too few
+train or holdout correspondences to score) is likewise not adopted: in both
+cases the session keeps its previous estimate and rolling window untouched, so
+a known-bad/corrupted or unscoreable batch cannot silently drag the running
+extrinsic away from a good solution.
 
 `run_online_calibration` is the CLI/Python entry point: it loads the same
 `CalibrationConfig` YAML used by `solver.backend: native_lidar_point_to_plane`,
@@ -100,10 +104,12 @@ class OnlineCalibrationSession:
     Consumes ordered LiDAR point batches against a fixed source-frame plane
     map (built once from ``source_records``), warm-starting the native
     fixed-trajectory solve from the previously *accepted* estimate. Each
-    batch is scored with a deterministic holdout split; a batch whose holdout
-    evidence fails the gate is rejected and does not change
-    ``current_estimate``, but is still recorded in ``history`` so operators
-    can see what was proposed and why it was rejected.
+    batch is scored with a deterministic holdout split; only a batch whose
+    holdout gate passes updates ``current_estimate`` and the rolling residual
+    window. Batches that fail the gate or are inconclusive (too little
+    train/holdout evidence to score) leave both untouched, but are still
+    recorded in ``history`` so operators can see what was proposed and why it
+    was not adopted.
     """
 
     def __init__(
@@ -167,7 +173,12 @@ class OnlineCalibrationSession:
             evaluation=evaluation,
             prior_rolling_rmse=prior_rolling_rmse,
         )
-        accepted = gate_status != "fail"
+        # Only a PASS gate adopts the batch: fail and inconclusive are both
+        # fully non-destructive (estimate unchanged, rolling window unchanged).
+        # An inconclusive batch's tentative solve was never holdout-scored or
+        # rank-checked, so adopting it would let unvalidated geometry warm-start
+        # every later batch.
+        accepted = gate_status == "pass"
         if accepted:
             self.current_estimate = tentative_transform
             self._rolling_residuals.extend(abs(value) for value in holdout_residuals)
@@ -325,6 +336,13 @@ def run_online_calibration(
     options: OnlineCalibrationRunOptions,
 ) -> CalibrationResult | None:
     """Replay a LiDAR pair as an online/streaming calibration session."""
+
+    if not 0.0 < options.holdout_ratio <= 0.9:
+        raise ConfigError(
+            "online calibration holdout_ratio must be > 0.0 and <= 0.9 "
+            f"(got {options.holdout_ratio}); 0.0 would leave every batch "
+            "without holdout evidence, so no batch could ever be accepted"
+        )
 
     config_file = Path(config_path)
     config = load_config(config_file)
@@ -532,7 +550,10 @@ def _transform_result(
             notes=(
                 []
                 if accepted
-                else ["batch rejected by the online holdout gate; estimate is unchanged"]
+                else [
+                    "batch was not adopted by the online holdout gate "
+                    "(fail or inconclusive); the running estimate is unchanged"
+                ]
             ),
         ),
     )
@@ -779,7 +800,10 @@ def _summary_metrics(
             value=float(inconclusive_count),
             unit="batches",
             grade="pass" if inconclusive_count == 0 else "warn",
-            reason="batches with too little holdout evidence to accept or reject",
+            reason=(
+                "batches with too little train/holdout evidence to accept or "
+                "reject (estimate left unchanged)"
+            ),
         ),
         "online_calibration_gate_pass_fraction": MetricResult(
             value=pass_fraction,

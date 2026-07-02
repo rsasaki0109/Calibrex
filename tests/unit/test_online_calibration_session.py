@@ -101,16 +101,82 @@ def test_online_session_insufficient_batch_is_inconclusive_and_unchanged() -> No
     session = _session()
     rng = random.Random(2)
     scene = _corner_scene()
-    session.process_batch(_clean_batch(rng, scene, 90))
+    baseline = session.process_batch(_clean_batch(rng, scene, 90))
     before = session.current_estimate
+    window_count_before = baseline.rolling_window_residual_count
+    rolling_rmse_before = baseline.rolling_rmse_m
 
     # a tiny batch cannot produce enough point-to-plane correspondences
     snapshot = session.process_batch([scene[0], scene[1]])
 
     assert snapshot.gate_status == "inconclusive"
-    assert snapshot.estimate_accepted is True
+    # an inconclusive batch is never adopted: estimate and window untouched
+    assert snapshot.estimate_accepted is False
     assert session.current_estimate.translation_m == before.translation_m
     assert session.current_estimate.rotation_quat_xyzw == before.rotation_quat_xyzw
+    assert snapshot.rolling_window_residual_count == window_count_before
+    assert snapshot.rolling_rmse_m == rolling_rmse_before
+
+
+def test_online_session_inconclusive_holdout_batch_is_fully_non_destructive() -> None:
+    """Regression test: a batch that solves on train but has too few holdout
+    correspondences must not adopt its (never holdout-scored, never
+    rank-checked) tentative estimate, and must not extend the rolling window.
+    """
+
+    session = _session()
+    rng = random.Random(5)
+    scene = _corner_scene()
+    baseline = session.process_batch(_clean_batch(rng, scene, 90))
+    assert baseline.gate_status == "pass"
+    before = session.current_estimate
+    window_count_before = baseline.rolling_window_residual_count
+    rolling_rmse_before = baseline.rolling_rmse_m
+    assert window_count_before > 0
+
+    # 8 points with holdout_ratio=0.3: round(8 * 0.3) = 2 holdout points
+    # (< _MIN_HOLDOUT_OBSERVATIONS = 3) and 6 train points
+    # (>= _MIN_TRAIN_OBSERVATIONS = 6), so the tentative solve runs but the
+    # batch cannot be holdout-scored.
+    snapshot = session.process_batch(_clean_batch(rng, scene, 8))
+
+    assert snapshot.train_point_count == 6
+    assert snapshot.holdout_point_count == 2
+    assert snapshot.correspondence_count >= 6
+    assert snapshot.gate_status == "inconclusive"
+    assert "holdout" in snapshot.gate_reason
+    assert snapshot.estimate_accepted is False
+    assert session.current_estimate.translation_m == before.translation_m
+    assert session.current_estimate.rotation_quat_xyzw == before.rotation_quat_xyzw
+    assert snapshot.rolling_window_residual_count == window_count_before
+    assert snapshot.rolling_rmse_m == rolling_rmse_before
+
+    # the next batch still warm-starts from the last *accepted* estimate
+    recovery = session.process_batch(_clean_batch(rng, scene, 90))
+    assert recovery.gate_status == "pass"
+
+
+def test_online_session_estimate_accepted_matches_gate_status() -> None:
+    session = _session()
+    rng = random.Random(6)
+    scene = _corner_scene()
+
+    session.process_batch(_clean_batch(rng, scene, 90))  # pass
+    session.process_batch([scene[0], scene[1]])  # inconclusive
+    noisy_batch = [
+        (x + rng.uniform(-0.3, 0.3), y + rng.uniform(-0.3, 0.3), z + rng.uniform(-0.3, 0.3))
+        for x, y, z in _clean_batch(rng, scene, 90)
+    ]
+    session.process_batch(noisy_batch)  # fail
+
+    statuses = [snapshot.gate_status for snapshot in session.history]
+    assert statuses == ["pass", "inconclusive", "fail"]
+    for snapshot in session.history:
+        assert snapshot.estimate_accepted == (snapshot.gate_status == "pass")
+    accepted_count = sum(1 for snapshot in session.history if snapshot.gate_status == "pass")
+    assert accepted_count == sum(
+        1 for snapshot in session.history if snapshot.estimate_accepted
+    )
 
 
 def test_online_session_rolling_window_accumulates_holdout_residuals() -> None:

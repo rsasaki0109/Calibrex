@@ -27,8 +27,10 @@ ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.1"] = (
 
 # Mirrors the pass/fail/inconclusive semantics of `AssessmentStatus` in
 # `core/assessment.py`: pass means the batch update is adopted, fail means the
-# batch is rejected (the running estimate is left unchanged), and inconclusive
-# means the evidence in this batch cannot support or reject the update.
+# batch is rejected, and inconclusive means the evidence in this batch cannot
+# support or reject the update. Only pass adopts the batch: for both fail and
+# inconclusive the running estimate and rolling residual window are unchanged
+# (`estimate_accepted` is true exactly when the gate status is pass).
 OnlineGateStatus = Literal["pass", "fail", "inconclusive"]
 
 

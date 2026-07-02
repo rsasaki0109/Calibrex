@@ -125,6 +125,25 @@ def _positive_int(value: str) -> int:
     return number
 
 
+def _holdout_ratio(value: str) -> float:
+    """Parse an argparse value as a holdout ratio in (0.0, 0.9].
+
+    The upper bound matches `calibrex.evaluation.holdout.split_indices`;
+    a ratio of 0.0 is rejected because it would leave every online batch
+    without holdout evidence, so no batch could ever be accepted.
+    """
+
+    try:
+        ratio = float(value)
+    except ValueError as exc:
+        msg = f"invalid holdout ratio: {value!r}"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if not 0.0 < ratio <= 0.9:
+        msg = f"must be > 0.0 and <= 0.9, got {ratio}"
+        raise argparse.ArgumentTypeError(msg)
+    return ratio
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="calibrex")
     parser.add_argument("--version", action="version", version=f"calibrex {__version__}")
@@ -265,9 +284,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     calibrate.add_argument(
         "--holdout-ratio",
-        type=float,
+        type=_holdout_ratio,
         default=0.2,
-        help="online mode: fraction of each batch held out for the per-batch gate",
+        help=(
+            "online mode: fraction of each batch held out for the per-batch gate; "
+            "must be > 0.0 and <= 0.9"
+        ),
     )
     calibrate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     calibrate.set_defaults(func=_cmd_calibrate)
@@ -692,6 +714,11 @@ def _cmd_init(args: argparse.Namespace) -> int:
 
 
 def _cmd_calibrate(args: argparse.Namespace) -> int:
+    if args.online and args.candidate_extrinsics:
+        _die(
+            "--candidate-extrinsics is not supported with --online; "
+            "run the offline `calibrex calibrate` to compare candidate extrinsics"
+        )
     config = load_config(args.config)
     if args.online:
         return _cmd_calibrate_online(args, config)
