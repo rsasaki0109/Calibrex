@@ -94,9 +94,11 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
+| Camera-LiDAR projection / edge-alignment metrics | Experimental diagnostic overlay on the LiDAR candidate, not standalone camera evaluation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
 | Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo / TIERS LidarsCali planned |
-| Radar native calibration | Planned |
+| IMU extrinsic candidate evaluation | Planned; OXTS motion excitation checks exist today but do not evaluate IMU extrinsics |
+| Radar native calibration and extrinsic candidate evaluation | Planned; result schema and metric registry reserve `radar_lidar_velocity_consistency`, no metric is computed yet |
 
 <p align="center">
   <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
