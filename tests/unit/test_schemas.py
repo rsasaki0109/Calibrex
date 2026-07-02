@@ -19,6 +19,10 @@ from calibrex.core.result import load_result, result_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
+from calibrex.evaluation.report_compare import (
+    compare_reports,
+    report_comparison_json_schema,
+)
 from calibrex.visualization.report import write_report_artifacts
 
 
@@ -27,6 +31,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "config.schema.json": config_json_schema,
         "result.schema.json": result_json_schema,
         "comparison.schema.json": comparison_json_schema,
+        "report_comparison.schema.json": report_comparison_json_schema,
         "assessment.schema.json": assessment_json_schema,
         "policy.schema.json": policy_json_schema,
         "protocol.schema.json": protocol_json_schema,
@@ -114,6 +119,23 @@ def test_comparison_schema_validates_generated_comparison() -> None:
     result = load_result("examples/precomputed/result.yaml")
     comparison = compare_results(result, result).model_dump(mode="json")
     jsonschema.validate(comparison, schema)
+
+
+def test_report_comparison_schema_validates_generated_report_comparison() -> None:
+    schema = json.loads(
+        Path("schemas/report_comparison.schema.json").read_text(encoding="utf-8")
+    )
+    reference = load_result("examples/precomputed/result.yaml")
+    candidate = load_result("examples/precomputed/result.yaml")
+    candidate.run.id = "candidate_variant"
+    native = load_result(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
+    )
+    report = compare_reports(
+        [("reference", reference), ("candidate", candidate), ("native", native)],
+        reference_label="reference",
+    ).model_dump(mode="json")
+    jsonschema.validate(report, schema)
 
 
 def test_report_sidecar_schemas_validate_generated_sidecars(tmp_path: Path) -> None:

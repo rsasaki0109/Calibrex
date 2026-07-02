@@ -94,9 +94,11 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
+| Camera-LiDAR projection / edge-alignment metrics | Experimental diagnostic overlay on the LiDAR candidate, not standalone camera evaluation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
 | Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo / TIERS LidarsCali planned |
-| Radar native calibration | Planned |
+| IMU extrinsic candidate evaluation | Planned; OXTS motion excitation checks exist today but do not evaluate IMU extrinsics |
+| Radar native calibration and extrinsic candidate evaluation | Planned; result schema and metric registry reserve `radar_lidar_velocity_consistency`, no metric is computed yet |
 
 <p align="center">
   <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
@@ -216,6 +218,26 @@ calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml \
 mismatched evidence protocols are not silently ranked together. Use
 `--enforce-compatible` when a protocol warning or non-comparable comparison
 should fail a shell pipeline.
+
+Compare more than two labeled runs in one report artifact:
+
+```bash
+calibrex report-compare \
+  reference=outputs/dataset/result.yaml \
+  perturbed=outputs/perturbed/result.yaml \
+  koide=outputs/koide_adapter/result.yaml \
+  native=outputs/calibrex/result.yaml \
+  --reference reference \
+  --output outputs/report_comparison.json
+```
+
+`report_comparison.json` reuses the pairwise comparison machinery for every
+compared pair, keeps per-pair `protocol_compatibility` gating, records each
+entry's transform provenance (producer, role, evidence level), and adds a
+cross-result ranking table per metric family. `--reference LABEL` compares one
+baseline against each other entry instead of all pairs, and
+`--enforce-compatible` fails the pipeline unless every compared pair is
+protocol-compatible.
 
 ## Design Principles
 
