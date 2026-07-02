@@ -21,13 +21,13 @@ jobs:
       - name: Build
         run: mkdocs build --strict
       - name: Upload site artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_DOCS == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_DOCS == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:
