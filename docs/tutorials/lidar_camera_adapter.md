@@ -113,3 +113,43 @@ absolute ground-truth accuracy claim.
 
 This is the first step toward comparing Koide-style single-shot targetless
 calibration against native SLAC factors under the same evaluation report.
+
+## Try it: KITTI raw camera-LiDAR evidence demo
+
+`calibrex demo kitti-lidar-camera-evidence` runs this whole flow end to end on
+a KITTI raw sequence:
+
+```bash
+calibrex demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
+```
+
+By default it uses a small synthetic fixture bundled at
+`examples/public_datasets/kitti_lidar_camera_evidence/` (KITTI raw data itself
+requires the official login-gated download flow, so Calibrex cannot fetch it
+automatically the way it does the Livox pair demo). Pass
+`--dataset-path /path/to/2011_09_26/2011_09_26_drive_0005_sync` to point at a
+real, locally downloaded KITTI raw sequence instead.
+
+The demo:
+
+- uses the dataset's `calib_velo_to_cam.txt` extrinsic as the reference/output
+  `T_base_link_lidar0` transform (`run.provenance.dataset_initialization`
+  records `source: kitti_raw`, `status: loaded`, and the applied transform
+  name; the transform's own provenance records
+  `producer: dataset_provider`, `evidence_level: dataset_provided`);
+- enables the `koide_lidar_camera` adapter factor without `execute: true` or a
+  `result_path`, so `koide_lidar_camera_*` metrics report readiness only —
+  the external tool is not invoked and no transform is imported from it;
+- reports the projection, edge-alignment, and `lidar_camera_perturbation_*`
+  known-bad roll/pitch/yaw/x/y/z probes described above as diagnostic overlay
+  evidence on the LiDAR candidate extrinsic, not a standalone camera
+  calibration result;
+- writes `result.yaml`, `evidence.json`, `assessment.json`, `protocol.json`,
+  `policy.json`, `transforms.json`, and `bundle.json`, and verifies the
+  bundle (KITTI raw does not yet populate per-frame raw-input-file hashes the
+  way the Livox pair demo does, so verification does not gate on raw
+  recomputation here).
+
+A cached example result for report rendering without rerunning the pipeline is
+available at
+`examples/public_datasets/kitti_lidar_camera_evidence/cached_evidence_result.yaml`.

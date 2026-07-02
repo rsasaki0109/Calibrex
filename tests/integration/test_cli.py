@@ -76,6 +76,50 @@ def _write_oxts_packet(path: Path, *, yaw_rad: float, vn: float, ve: float) -> N
     path.write_text(" ".join(str(value) for value in fields), encoding="utf-8")
 
 
+def _write_kitti_lidar_camera_demo_fixture(sequence: Path) -> None:
+    for directory in [
+        sequence / "image_02" / "data",
+        sequence / "velodyne_points" / "data",
+        sequence / "oxts" / "data",
+    ]:
+        directory.mkdir(parents=True)
+
+    kitti_points = [
+        *((float(x), float(y), 5.0, 1.0) for x in range(3) for y in range(3)),
+        *((0.0, float(y), 8.0, 1.0) for y in range(3)),
+    ]
+    _write_png(sequence / "image_02" / "data" / "0000000000.png", width=20, height=20)
+    _write_png(sequence / "image_02" / "data" / "0000000001.png", width=20, height=20)
+    _write_velodyne_points(sequence / "velodyne_points" / "data" / "0000000000.bin", kitti_points)
+    _write_velodyne_points(sequence / "velodyne_points" / "data" / "0000000001.bin", kitti_points)
+    _write_oxts_packet(sequence / "oxts" / "data" / "0000000000.txt", yaw_rad=0.0, vn=2.0, ve=0.0)
+    _write_oxts_packet(sequence / "oxts" / "data" / "0000000001.txt", yaw_rad=0.2, vn=4.0, ve=1.0)
+    (sequence / "image_02" / "timestamps.txt").write_text(
+        "2011-09-26 13:00:00.000000000\n2011-09-26 13:00:01.000000000\n",
+        encoding="utf-8",
+    )
+    (sequence / "velodyne_points" / "timestamps.txt").write_text(
+        "2011-09-26 13:00:00.005000000\n2011-09-26 13:00:01.005000000\n",
+        encoding="utf-8",
+    )
+    (sequence / "oxts" / "timestamps.txt").write_text(
+        "2011-09-26 13:00:00.000000000\n2011-09-26 13:00:02.000000000\n",
+        encoding="utf-8",
+    )
+    (sequence.parent / "calib_velo_to_cam.txt").write_text(
+        "R: 1 0 0 0 1 0 0 0 1\nT: 0 0 0\n",
+        encoding="utf-8",
+    )
+    (sequence.parent / "calib_cam_to_cam.txt").write_text(
+        """
+S_rect_02: 20 20
+R_rect_00: 1 0 0 0 1 0 0 0 1
+P_rect_02: 10 0 10 0 0 10 10 0 0 0 1 0
+""".strip(),
+        encoding="utf-8",
+    )
+
+
 def _write_livox_demo_pair(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     base_points: list[tuple[float, float, float, float, float, float, float]] = []
@@ -1257,6 +1301,7 @@ def test_public_datasets_commands() -> None:
     assert main(["public-datasets", "show", "a2d2_lidar_pair_sample", "--json"]) == 0
     assert main(["public-datasets", "show", "livox_horizon_horizon_pcd_sample", "--json"]) == 0
     assert main(["public-datasets", "show", "tiers_livox_lidars_cali", "--json"]) == 0
+    assert main(["public-datasets", "show", "kitti_lidar_camera_evidence", "--json"]) == 0
     assert (
         main(
             [
@@ -2312,6 +2357,67 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
         for claim in tampered_payload["verification_claims"]
     )
     assert tampered_payload["verification_summary"]["failed"] >= 1
+
+
+def test_kitti_lidar_camera_demo_command_produces_evidence_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    sequence = tmp_path / "2011_09_26" / "2011_09_26_drive_0005_sync"
+    _write_kitti_lidar_camera_demo_fixture(sequence)
+    output_dir = tmp_path / "demo_output"
+
+    assert (
+        main(
+            [
+                "demo",
+                "kitti-lidar-camera-evidence",
+                "--dataset-path",
+                str(sequence),
+                "--output-dir",
+                str(output_dir),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["dataset"] == str(sequence)
+    assert Path(payload["result"]).exists()
+    assert Path(payload["evidence"]).exists()
+    assert Path(payload["assessment"]).exists()
+    assert Path(payload["bundle"]).exists()
+    assert Path(payload["verification"]).exists()
+    assert Path(payload["html_report"]).exists()
+    assert "diagnostic overlay evidence" in payload["note"]
+    assert "not a standalone camera calibration" in payload["note"]
+
+    result = load_result(payload["result"])
+    assert result.metrics["lidar_camera_projection_frame_count"].value == 2.0
+    assert result.metrics["lidar_camera_perturbation_case_count"].value is not None
+    assert result.metrics["koide_lidar_camera_execution_success"].reason == (
+        "external execution was not requested"
+    )
+    assert result.run.provenance.get("solver_adapter_applied_transforms") is None
+
+    lidar_transform = result.transforms["T_base_link_lidar0"]
+    assert lidar_transform.provenance is not None
+    assert lidar_transform.provenance.producer == "dataset_provider"
+    assert lidar_transform.provenance.execution_mode == "dataset_reference"
+    assert lidar_transform.provenance.role_in_comparison == "output"
+    assert lidar_transform.provenance.evidence_level == "dataset_provided"
+    assert lidar_transform.provenance.source == (
+        "kitti_raw.calib_cam_to_cam_and_calib_velo_to_cam"
+    )
+
+    dataset_initialization = result.run.provenance.get("dataset_initialization")
+    assert isinstance(dataset_initialization, dict)
+    assert dataset_initialization["status"] == "loaded"
+    assert dataset_initialization["applied_to"] == "T_base_link_lidar0"
+
+    assert main(["validate", str(output_dir / "evidence.json"), "--kind", "report-evidence"]) == 0
+    assert main(["validate", str(output_dir / "result.yaml"), "--kind", "result"]) == 0
 
 
 def test_compile_command(tmp_path: Path) -> None:

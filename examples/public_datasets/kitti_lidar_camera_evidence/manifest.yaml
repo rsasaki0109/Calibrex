@@ -1,0 +1,47 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: kitti_lidar_camera_evidence
+description: >-
+  Small synthetic KITTI-raw-shaped fixture bundled for the camera-LiDAR
+  diagnostic overlay evidence demo. Real KITTI raw data requires the official
+  login-gated download flow (see official_url below) and is too large to
+  bundle, so this manifest documents a tiny fixture with the same directory
+  layout for a runnable out-of-the-box demo. Point the demo at a real KITTI
+  raw sequence with `--dataset-path` to evaluate real data.
+time_base: sensor_time_sec
+streams:
+  camera_left_color:
+    kind: image
+    count: 2
+    path: 2011_09_26/2011_09_26_drive_0005_sync/image_02/data/*.png
+    topic: image_02
+    sensor: camera0
+    frame_id: camera0
+    timestamp_field: timestamp_sec
+  velodyne_points:
+    kind: pointcloud
+    count: 2
+    path: 2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/*.bin
+    topic: velodyne_points
+    sensor: lidar0
+    frame_id: lidar0
+    timestamp_field: timestamp_sec
+    fields: [x, y, z, intensity]
+  oxts:
+    kind: imu
+    count: 2
+    path: 2011_09_26/2011_09_26_drive_0005_sync/oxts/data/*.txt
+    topic: oxts
+    sensor: imu0
+    frame_id: imu0
+    timestamp_field: timestamp_sec
+  calibration:
+    kind: metadata
+    count: 2
+    path: 2011_09_26/calib_*.txt
+    timestamp_field: timestamp_sec
+provenance:
+  public_dataset: kitti_lidar_camera_evidence
+  official_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+  fixture_note: >-
+    synthetic fixture data shipped in this repository; not real recorded
+    KITTI sensor data

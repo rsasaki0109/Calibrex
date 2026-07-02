@@ -199,6 +199,7 @@ calibrex evidence outputs/livox_horizon_horizon_pcd_sample/result.yaml \
 calibrex render examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
 calibrex public-datasets show tiers_livox_lidars_cali --json
 calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
+calibrex demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```
 
