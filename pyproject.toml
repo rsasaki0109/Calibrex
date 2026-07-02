@@ -55,6 +55,10 @@ open3d = [
 autonomous = [
   "mcap>=1.1",
 ]
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocs-include-markdown-plugin>=6.0",
+]
 
 [project.scripts]
 calibrex = "calibrex.cli.main:main"
