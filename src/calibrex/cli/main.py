@@ -367,6 +367,44 @@ def _build_parser() -> argparse.ArgumentParser:
     livox_demo.add_argument("--json", action="store_true")
     livox_demo.set_defaults(func=_cmd_demo_livox_evidence)
 
+    kitti_demo = demo_subcommands.add_parser(
+        "kitti-lidar-camera-evidence",
+        help=(
+            "recompute KITTI raw camera-LiDAR overlay evidence artifacts "
+            "(diagnostic overlay on the LiDAR candidate, not a standalone "
+            "camera calibration)"
+        ),
+    )
+    kitti_demo.add_argument(
+        "--config",
+        type=Path,
+        default=Path("examples/public_datasets/kitti_lidar_camera_evidence/config.yaml"),
+        help="base KITTI camera-LiDAR evidence config",
+    )
+    kitti_demo.add_argument(
+        "--dataset-path",
+        type=Path,
+        default=None,
+        help=(
+            "KITTI raw sequence directory (for example one obtained through the "
+            "official KITTI raw download flow); defaults to the small synthetic "
+            "fixture bundled with the example config"
+        ),
+    )
+    kitti_demo.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/kitti_lidar_camera_evidence"),
+    )
+    kitti_demo.add_argument(
+        "--strict-assessment",
+        action="store_true",
+        help="return non-zero unless the falsification assessment is PASS",
+    )
+    kitti_demo.add_argument("--seed", type=int)
+    kitti_demo.add_argument("--json", action="store_true")
+    kitti_demo.set_defaults(func=_cmd_demo_kitti_lidar_camera_evidence)
+
     kitti = subcommands.add_parser("kitti", help="KITTI raw utilities")
     kitti_subcommands = kitti.add_subparsers(dest="kitti_command", required=True)
     kitti_import = kitti_subcommands.add_parser(
@@ -1007,6 +1045,94 @@ def _write_demo_config(
     if isinstance(project, dict):
         project["output_dir"] = str(output_dir)
     write_mapping(output_config, config_payload)
+
+
+def _cmd_demo_kitti_lidar_camera_evidence(args: argparse.Namespace) -> int:
+    config_payload = read_mapping(args.config)
+    dataset_section = config_payload.get("dataset")
+    if not isinstance(dataset_section, dict) or "path" not in dataset_section:
+        _die(f"{args.config} does not contain a dataset mapping")
+    dataset_path = (
+        Path(args.dataset_path)
+        if args.dataset_path is not None
+        else Path(str(dataset_section["path"]))
+    )
+    _require_kitti_lidar_camera_demo_files(dataset_path)
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    demo_config = output_dir / "demo_config.yaml"
+    _write_demo_config(args.config, demo_config, dataset_path, output_dir)
+
+    result = run_calibration(
+        demo_config,
+        CalibrationRunOptions(output_dir=output_dir, seed=args.seed),
+    )
+    if result is None:
+        _die("KITTI camera-LiDAR evidence demo did not produce a result")
+
+    evidence_path = output_dir / "evidence.json"
+    assessment_path = output_dir / "assessment.json"
+    bundle_path = output_dir / "bundle.json"
+    assessment = AssessmentArtifact.model_validate(read_mapping(assessment_path))
+    # Unlike the Livox pair demo, the KITTI raw pipeline does not yet populate
+    # per-frame raw input file hashes, so raw-recomputation cannot be gated on
+    # here; verification still checks that bundle artifacts are internally
+    # consistent and unmodified.
+    verification = verify_evidence_bundle(bundle_path, require_raw_recomputed=False)
+    verification_path = output_dir / "verification.json"
+    verification = write_evidence_bundle_verification(
+        verification_path,
+        verification,
+        source_bundle_path=bundle_path,
+    )
+    payload = {
+        "status": "ok" if verification.valid else "invalid_bundle",
+        "dataset": str(dataset_path),
+        "config": str(demo_config),
+        "result": str(output_dir / "result.yaml"),
+        "evidence": str(evidence_path),
+        "assessment": str(assessment_path),
+        "assessment_status": assessment.status,
+        "assessment_reason": assessment.reason,
+        "bundle": str(bundle_path),
+        "verification": str(verification_path),
+        "bundle_valid": verification.valid,
+        "bundle_issues": verification.issues,
+        "raw_recomputed_required": verification.raw_recomputed_required,
+        "html_report": str(output_dir / "report.html"),
+        "note": (
+            "camera-LiDAR metrics are diagnostic overlay evidence on the LiDAR "
+            "candidate extrinsic, scored against the calib_velo_to_cam.txt "
+            "dataset reference; this is not a standalone camera calibration. "
+            "Raw-recomputation input hashing is not yet implemented for KITTI "
+            "raw, so verification does not gate on it here."
+        ),
+    }
+    _emit(payload, args.json)
+    if not verification.valid:
+        return 1
+    if args.strict_assessment and assessment.status != "pass":
+        return 1
+    return 0
+
+
+def _require_kitti_lidar_camera_demo_files(dataset_path: Path) -> None:
+    required_paths = {
+        "calib_velo_to_cam.txt": dataset_path.parent / "calib_velo_to_cam.txt",
+        "calib_cam_to_cam.txt": dataset_path.parent / "calib_cam_to_cam.txt",
+        "image_02/data": dataset_path / "image_02" / "data",
+        "velodyne_points/data": dataset_path / "velodyne_points" / "data",
+    }
+    missing = [name for name, path in required_paths.items() if not path.exists()]
+    if missing:
+        _die(
+            "KITTI camera-LiDAR demo data is missing: "
+            f"{', '.join(missing)} under {dataset_path} (and its parent). "
+            "Point --dataset-path at a local KITTI raw sequence obtained through "
+            "the official KITTI raw download flow, or use the small synthetic "
+            "fixture bundled with the example config."
+        )
 
 
 def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:
