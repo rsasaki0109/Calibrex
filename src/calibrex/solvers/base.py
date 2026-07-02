@@ -9,7 +9,7 @@ from typing import Any
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
-from calibrex.core.result import MetricResult
+from calibrex.core.result import MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
 
 
@@ -24,6 +24,7 @@ class SolverAdapterResult:
     transforms: dict[str, SE3] = field(default_factory=dict)
     provenance: dict[str, Any] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    observability: ObservabilityResult | None = None
 
 
 class SolverAdapter(ABC):

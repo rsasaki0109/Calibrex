@@ -88,6 +88,16 @@ def test_config_schema_validates_livox_pcd_example() -> None:
     jsonschema.validate(config, schema)
 
 
+def test_config_schema_validates_a2d2_native_point_to_plane_example() -> None:
+    schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
+    config = yaml.safe_load(
+        Path(
+            "examples/public_datasets/a2d2_lidar_pair_sample/native_point_to_plane_config.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    jsonschema.validate(config, schema)
+
+
 def test_result_schema_validates_precomputed_example() -> None:
     schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
     result = yaml.safe_load(Path("examples/precomputed/result.yaml").read_text(encoding="utf-8"))

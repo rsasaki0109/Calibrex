@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from calibrex.core.config import CalibrationConfig
-from calibrex.core.geometry import SE3, QuaternionXYZW
+from calibrex.core.geometry import SE3, QuaternionXYZW, Vector3
 from calibrex.core.report_artifacts import EvidenceCaseItem
 from calibrex.core.result import Grade, MetricResult
 from calibrex.data.inspect import DatasetInspection
@@ -18,10 +18,16 @@ from calibrex.data.kitti import (
 from calibrex.data.livox import (
     LivoxPairPointToPlaneStats,
     LivoxPCDDatasetStats,
+    LivoxPointRecord,
+    build_voxel_plane_map,
+    nearest_voxel_plane,
     summarize_livox_pair_point_to_plane,
     summarize_livox_pcd,
 )
-from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneEvaluation
+from calibrex.graph.lidar_point_to_plane import (
+    LidarPointToPlaneObservation,
+    LidarRigPointToPlaneEvaluation,
+)
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
 _LIVOX_PAIR_MANDATORY_ROTATION_DEG = 1.0
@@ -903,6 +909,52 @@ def _unavailable_livox_pair_known_bad_metrics(reason: str) -> dict[str, MetricRe
             reason=reason,
         ),
     }
+
+
+def build_rig_point_to_plane_observations(
+    *,
+    source_records: list[LivoxPointRecord],
+    target_points: list[Vector3],
+    initial_t_source_target: SE3,
+    voxel_size_m: float = 1.0,
+    correspondence_gate_m: float = 1.5,
+) -> list[LidarPointToPlaneObservation]:
+    """Build fixed-correspondence point-to-plane observations for a LiDAR pair.
+
+    ``source_records`` provide the voxel-plane map expressed in the source (world)
+    frame. Each target point ``p_target`` is matched to its nearest source plane
+    after applying ``initial_t_source_target`` (``T_source_target``); the raw
+    target-frame point is stored so the factor can re-apply the optimized
+    extrinsic. ``t_world_ego`` is identity because the source frame is treated as
+    the world frame for a single fixed-trajectory pair.
+    """
+
+    plane_map = build_voxel_plane_map(source_records, voxel_size_m)
+    if not plane_map:
+        return []
+    observations: list[LidarPointToPlaneObservation] = []
+    for point in target_points:
+        world_point = initial_t_source_target.transform_point(point)
+        plane = nearest_voxel_plane(
+            world_point,
+            plane_map,
+            voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        )
+        if plane is None:
+            continue
+        normal = plane.normal
+        if normal is None:
+            continue
+        observations.append(
+            LidarPointToPlaneObservation(
+                point_lidar_m=point,
+                plane_point_world_m=plane.centroid,
+                plane_normal_world=normal,
+                t_world_ego=SE3.identity(),
+            )
+        )
+    return observations
 
 
 def lidar_rig_point_to_plane_metrics_from_evaluation(
