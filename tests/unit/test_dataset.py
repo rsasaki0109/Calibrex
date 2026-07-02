@@ -3,6 +3,9 @@ import struct
 import zipfile
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from calibrex.core.config import DatasetConfig
 from calibrex.core.geometry import SE3
 from calibrex.core.time import (
@@ -366,6 +369,87 @@ def test_nuscenes_reader_inspects_sensor_metadata(tmp_path: Path) -> None:
         0.0,
         1.0,
     ]
+
+
+def test_dataset_config_sample_limit_defaults_to_none() -> None:
+    dataset = DatasetConfig(type="a2d2_lidar", path="unused")
+    assert dataset.sample_limit is None
+
+
+def test_dataset_config_rejects_non_positive_sample_limit() -> None:
+    for invalid in (0, -1):
+        with pytest.raises(ValidationError):
+            DatasetConfig(type="a2d2_lidar", path="unused", sample_limit=invalid)
+
+
+def test_a2d2_lidar_inspection_defaults_to_three_samples(tmp_path: Path) -> None:
+    for index in range(5):
+        _write_a2d2_lidar_npz(tmp_path / f"20180810150607_lidar_front_left_{index:06d}.npz")
+
+    inspection = inspect_dataset(DatasetConfig(type="a2d2_lidar", path=str(tmp_path)))
+    diagnostics = inspection.diagnostics["a2d2_lidar"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["sample_count"] == 5
+    assert diagnostics["sampled_file_count"] == 3
+
+
+def test_a2d2_lidar_inspection_honors_custom_sample_limit(tmp_path: Path) -> None:
+    for index in range(5):
+        _write_a2d2_lidar_npz(tmp_path / f"20180810150607_lidar_front_left_{index:06d}.npz")
+
+    inspection = inspect_dataset(
+        DatasetConfig(type="a2d2_lidar", path=str(tmp_path), sample_limit=2)
+    )
+    diagnostics = inspection.diagnostics["a2d2_lidar"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["sample_count"] == 5
+    assert diagnostics["sampled_file_count"] == 2
+
+
+def test_livox_pcd_inspection_honors_custom_sample_limit(tmp_path: Path) -> None:
+    for index in range(6):
+        _write_livox_binary_pcd(
+            tmp_path / f"frame_horizon_{index:06d}.pcd",
+            [(0.1 * index, 0.1, 0.0, 10.0), (0.2 * index, 0.2, 0.0, 20.0)],
+        )
+
+    default_inspection = inspect_dataset(DatasetConfig(type="livox_pcd", path=str(tmp_path)))
+    default_diagnostics = default_inspection.diagnostics["livox_pcd"]
+    assert isinstance(default_diagnostics, dict)
+    assert default_diagnostics["sample_count"] == 6
+    assert default_diagnostics["sampled_file_count"] == 4
+
+    custom_inspection = inspect_dataset(
+        DatasetConfig(type="livox_pcd", path=str(tmp_path), sample_limit=2)
+    )
+    custom_diagnostics = custom_inspection.diagnostics["livox_pcd"]
+    assert isinstance(custom_diagnostics, dict)
+    assert custom_diagnostics["sample_count"] == 6
+    assert custom_diagnostics["sampled_file_count"] == 2
+
+
+def test_kitti_raw_inspection_honors_custom_sample_limit(tmp_path: Path) -> None:
+    sequence = tmp_path / "2011_09_26_drive_0005_sync"
+    velodyne_dir = sequence / "velodyne_points" / "data"
+    velodyne_dir.mkdir(parents=True)
+    for index in range(5):
+        (velodyne_dir / f"{index:010d}.bin").write_bytes(
+            struct.pack("<4f", 1.0, 2.0, 3.0, 0.5)
+        )
+
+    default_inspection = inspect_dataset(DatasetConfig(type="kitti_raw", path=str(sequence)))
+    default_velodyne = default_inspection.diagnostics["velodyne_points"]
+    assert isinstance(default_velodyne, dict)
+    assert default_velodyne["frame_count"] == 5
+    assert default_velodyne["sampled_frame_count"] == 3
+
+    custom_inspection = inspect_dataset(
+        DatasetConfig(type="kitti_raw", path=str(sequence), sample_limit=1)
+    )
+    custom_velodyne = custom_inspection.diagnostics["velodyne_points"]
+    assert isinstance(custom_velodyne, dict)
+    assert custom_velodyne["frame_count"] == 5
+    assert custom_velodyne["sampled_frame_count"] == 1
 
 
 def _write_json(path: Path, data: object) -> None:
