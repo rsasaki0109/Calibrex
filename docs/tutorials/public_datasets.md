@@ -203,6 +203,39 @@ KITTI raw data and nuScenes require their official download flows and terms.
 After downloading, point the dataset manifest paths at the local extracted
 dataset.
 
+KITTI raw camera-LiDAR diagnostic overlay evidence demo:
+
+```bash
+calibrex demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
+```
+
+Because KITTI raw data requires the official login-gated download flow,
+Calibrex cannot fetch it automatically the way it does for the Livox pair
+demo. This demo instead defaults to a small synthetic fixture bundled at
+`examples/public_datasets/kitti_lidar_camera_evidence/` that mirrors the
+KITTI raw directory layout, so the command is runnable end to end with no
+setup. Point it at a real, locally downloaded KITTI raw sequence with
+`--dataset-path /path/to/2011_09_26/2011_09_26_drive_0005_sync` to evaluate
+real data instead. The demo writes a materialized `demo_config.yaml`,
+recomputes `result.yaml` using the dataset's `calib_velo_to_cam.txt` extrinsic
+as the reference/output transform, renders `evidence.json`, `assessment.json`,
+`protocol.json`, `policy.json`, and `transforms.json`, and verifies
+`bundle.json`. It reports the `lidar_camera_projection_*`,
+`lidar_camera_edge_alignment_score`, and `lidar_camera_perturbation_*`
+diagnostic overlay metrics described below, plus `koide_lidar_camera_*`
+adapter readiness metrics — the demo does not execute the external Koide-style
+adapter, so those metrics reflect availability, not a computed result. As with
+the rest of this document, treat these camera-LiDAR numbers as diagnostic
+overlay evidence on the LiDAR candidate extrinsic, not a standalone camera
+calibration.
+A cached example result is available for report rendering without rerunning
+the pipeline:
+
+```bash
+calibrex render examples/public_datasets/kitti_lidar_camera_evidence/cached_evidence_result.yaml \
+  --output-dir outputs/kitti_lidar_camera_evidence
+```
+
 nuScenes inspection reads the JSON metadata tables directly, without requiring
 the nuScenes SDK. It discovers sensor streams from `sensor.json`,
 `calibrated_sensor.json`, and `sample_data.json`, then reports channel counts,
