@@ -1134,6 +1134,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     evidence_bundle_verification_schema = (
         tmp_path / "evidence_bundle_verification.schema.json"
     )
+    online_timeline_schema = tmp_path / "online_timeline.schema.json"
     assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
@@ -1163,6 +1164,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         )
         == 0
     )
+    assert main(["schema", "online-timeline", "--output", str(online_timeline_schema)]) == 0
     assert config_schema.exists()
     assert result_schema.exists()
     assert comparison_schema.exists()
@@ -1178,6 +1180,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert report_evidence_schema.exists()
     assert evidence_bundle_schema.exists()
     assert evidence_bundle_verification_schema.exists()
+    assert online_timeline_schema.exists()
     for filename in [
         "config.schema.json",
         "result.schema.json",
@@ -1194,6 +1197,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         "report_evidence.schema.json",
         "evidence_bundle.schema.json",
         "evidence_bundle_verification.schema.json",
+        "online_timeline.schema.json",
     ]:
         assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))

@@ -18,6 +18,7 @@ from calibrex.core.assessment import (
     assessment_json_schema,
 )
 from calibrex.core.config import (
+    CalibrationConfig,
     DatasetConfig,
     DatasetType,
     config_json_schema,
@@ -39,6 +40,7 @@ from calibrex.core.evidence_contract import (
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.report_artifacts import (
     report_artifact_json_schema,
     report_artifact_schema_kinds,
@@ -84,6 +86,7 @@ from calibrex.export.autoware import export_autoware_yaml
 from calibrex.export.ros_tf import export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import (
     evidence_artifact_from_result,
@@ -146,6 +149,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "dataset-manifest",
             "evidence-bundle",
             "evidence-bundle-verification",
+            "online-timeline",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -237,6 +241,34 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     calibrate.add_argument("--strict", action="store_true", help="treat warnings as failures")
     calibrate.add_argument("--seed", type=int)
+    calibrate.add_argument(
+        "--online",
+        action="store_true",
+        help=(
+            "run an online/streaming calibration session instead of one offline solve; "
+            "replays the dataset's LiDAR frames as an ordered point stream, warm-starting "
+            "the native point-to-plane solve per batch and gating each batch with a "
+            "holdout check (see --batch-size, --rolling-window, --holdout-ratio)"
+        ),
+    )
+    calibrate.add_argument(
+        "--batch-size",
+        type=_positive_int,
+        default=500,
+        help="online mode: number of target LiDAR points replayed per batch",
+    )
+    calibrate.add_argument(
+        "--rolling-window",
+        type=_positive_int,
+        default=2000,
+        help="online mode: number of recent holdout residuals kept in the rolling RMSE window",
+    )
+    calibrate.add_argument(
+        "--holdout-ratio",
+        type=float,
+        default=0.2,
+        help="online mode: fraction of each batch held out for the per-batch gate",
+    )
     calibrate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     calibrate.set_defaults(func=_cmd_calibrate)
 
@@ -495,6 +527,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "dataset-manifest": manifest_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,
+        "online-timeline": online_timeline_json_schema,
     }
     for kind in report_artifact_schema_kinds():
         generators[kind] = _report_artifact_schema_generator(kind)
@@ -622,6 +655,8 @@ def _cmd_init(args: argparse.Namespace) -> int:
 
 def _cmd_calibrate(args: argparse.Namespace) -> int:
     config = load_config(args.config)
+    if args.online:
+        return _cmd_calibrate_online(args, config)
     result = run_calibration(
         args.config,
         CalibrationRunOptions(
@@ -652,6 +687,49 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
         "result": str(output_dir / config.outputs.result),
         "report": artifacts["html_report"],
         "report_artifacts": artifacts,
+    }
+    _emit(summary, args.json)
+    return 1 if args.strict and result.quality.grade != "pass" else 0
+
+
+def _cmd_calibrate_online(args: argparse.Namespace, config: CalibrationConfig) -> int:
+    result = run_online_calibration(
+        args.config,
+        OnlineCalibrationRunOptions(
+            dry_run=args.dry_run,
+            output_dir=args.output_dir,
+            strict=args.strict,
+            seed=args.seed if args.seed is not None else 0,
+            batch_size=args.batch_size,
+            rolling_window=args.rolling_window,
+            holdout_ratio=args.holdout_ratio,
+        ),
+    )
+    if args.dry_run:
+        inspection = inspect_dataset(config.dataset)
+        payload = {
+            "status": "ok",
+            "config": str(args.config),
+            "dataset": inspection.as_dict(),
+        }
+        _emit(payload, args.json)
+        return 0
+    if result is None:
+        _die("online calibration did not produce a result")
+    output_dir = args.output_dir or config.output_dir
+    artifacts = report_artifact_paths(output_dir, html_filename=config.outputs.report)
+    summary: dict[str, Any] = {
+        "status": result.run.status,
+        "grade": result.quality.grade,
+        "run_id": result.run.id,
+        "result": str(output_dir / config.outputs.result),
+        "report": artifacts["html_report"],
+        "report_artifacts": artifacts,
+        "timeline": result.run.provenance.get("online_timeline_path"),
+        "batch_count": result.run.provenance.get("online_batch_count"),
+        "accepted_batch_count": result.run.provenance.get("online_accepted_batch_count"),
+        "rejected_batch_count": result.run.provenance.get("online_rejected_batch_count"),
+        "final_gate_status": result.run.provenance.get("online_final_gate_status"),
     }
     _emit(summary, args.json)
     return 1 if args.strict and result.quality.grade != "pass" else 0
