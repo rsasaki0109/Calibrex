@@ -50,6 +50,7 @@ from calibrex.evaluation.lidar import (
 from calibrex.evaluation.lidar_camera import lidar_camera_metrics_from_result
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
+from calibrex.evaluation.radar import radar_velocity_metrics_from_result
 from calibrex.evaluation.timing import timing_metrics_from_inspection
 from calibrex.graph.problem import build_problem
 from calibrex.solvers.base import SolverAdapterResult
@@ -113,6 +114,7 @@ def run_calibration(
     _apply_extrinsic_reference_comparisons(result)
     _apply_pipeline_adapter(config, frame_graph, inspection, result)
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
+    result.metrics.update(radar_velocity_metrics_from_result(config, result, inspection))
     _apply_world_map_dof_diagnostics(result)
     result.artifacts.html_report = str(report_path)
     evaluate_quality(result, strict=options.strict)
