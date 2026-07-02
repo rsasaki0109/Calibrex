@@ -2,7 +2,7 @@
   "assets": [
     {
       "metadata_source": "A2D2 public cams_lidars.json",
-      "output": "docs/assets/online-calibration-loop.gif",
+      "output": "docs/assets/a2d2-front-rear-evidence-demo.gif",
       "public_inputs": [
         {
           "byte_range": [
@@ -19,43 +19,16 @@
         }
       ],
       "sensor_pair": {
-        "source": "front_center",
-        "source_lidar_id": 0,
+        "source": "front_left",
+        "source_lidar_id": 1,
         "target": "rear_left",
         "target_lidar_id": 3
       },
-      "sha256": "5d016481dd7fd961d08340ff34945ab0e7a42d509239c3eab3a0f7d3913d21b4",
-      "size_bytes": 543938,
+      "sha256": "601eb63f18afa50197928ec81bf98c14d0d86f4b3e225d22c0cb52b80d17bf7c",
+      "size_bytes": 188523,
       "source": "a2d2",
-      "source_label": "lidar_id 0 (front_center) points",
+      "source_label": "lidar_id 1 (front_left) points",
       "target_label": "lidar_id 3 (rear_left) points",
-      "uses_builtin_metadata_fallback": false,
-      "visual": "online"
-    },
-    {
-      "metadata_source": "Livox official PCD sample",
-      "output": "docs/assets/calibration-evidence-demo.gif",
-      "public_inputs": [
-        {
-          "kind": "pcd_tar_gz",
-          "selected_member": "base_horizon_100432.pcd",
-          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz"
-        },
-        {
-          "kind": "pcd_tar_gz",
-          "selected_member": "target_horizon_100538.pcd",
-          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Target-LiDAR-Frames.tar.gz"
-        }
-      ],
-      "sensor_pair": {
-        "source": "base_horizon",
-        "target": "target_horizon"
-      },
-      "sha256": "d6b6b41b3437630442bc30e904032ecb8bc7fd082ca1b73ee3f2becb7eae1d2e",
-      "size_bytes": 154835,
-      "source": "livox-horizon-horizon",
-      "source_label": "base Horizon points",
-      "target_label": "target Horizon points",
       "uses_builtin_metadata_fallback": false,
       "visual": "evidence"
     },
@@ -92,8 +65,52 @@
       "visual": "evidence"
     },
     {
+      "metadata_source": "Livox official PCD sample",
+      "output": "docs/assets/calibration-evidence-demo.gif",
+      "public_inputs": [
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "base_horizon_100432.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz"
+        },
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "target_horizon_100538.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Target-LiDAR-Frames.tar.gz"
+        }
+      ],
+      "sensor_pair": {
+        "source": "base_horizon",
+        "target": "target_horizon"
+      },
+      "sha256": "d6b6b41b3437630442bc30e904032ecb8bc7fd082ca1b73ee3f2becb7eae1d2e",
+      "size_bytes": 154835,
+      "source": "livox-horizon-horizon",
+      "source_label": "base Horizon points",
+      "target_label": "target Horizon points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "evidence"
+    },
+    {
       "metadata_source": "A2D2 public cams_lidars.json",
-      "output": "docs/assets/a2d2-front-rear-evidence-demo.gif",
+      "online_run": {
+        "accepted_batch_count": 6,
+        "batch_count": 7,
+        "final_gate_status": "fail",
+        "gate_thresholds": {
+          "max_holdout_rmse_m": 0.4,
+          "max_rolling_regression_m": 0.15,
+          "min_rank": 6
+        },
+        "inconclusive_batch_count": 0,
+        "rejected_batch_count": 1
+      },
+      "output": "docs/assets/online-calibration-loop.gif",
+      "pipeline": {
+        "mode": "real_online",
+        "source": "calibrex calibrate --online",
+        "timeline_schema_version": "calibrex.online_timeline/v0.1"
+      },
       "public_inputs": [
         {
           "byte_range": [
@@ -110,18 +127,18 @@
         }
       ],
       "sensor_pair": {
-        "source": "front_left",
-        "source_lidar_id": 1,
-        "target": "rear_left",
-        "target_lidar_id": 3
+        "source": "front_center",
+        "source_lidar_id": 0,
+        "target": "front_left",
+        "target_lidar_id": 1
       },
-      "sha256": "601eb63f18afa50197928ec81bf98c14d0d86f4b3e225d22c0cb52b80d17bf7c",
-      "size_bytes": 188523,
+      "sha256": "54754503664a138f784f4517e62597985866542fca5bc7fa4b025fb10f61c6a9",
+      "size_bytes": 443077,
       "source": "a2d2",
-      "source_label": "lidar_id 1 (front_left) points",
-      "target_label": "lidar_id 3 (rear_left) points",
+      "source_label": "lidar_id 0 (front_center) points",
+      "target_label": "lidar_id 1 (front_left) points",
       "uses_builtin_metadata_fallback": false,
-      "visual": "evidence"
+      "visual": "online"
     }
   ],
   "dimensions": {
@@ -132,5 +149,5 @@
   },
   "fallback_metadata_allowed": false,
   "generator": "tools/generate_calibration_evidence_gif.py",
-  "schema_version": "calibrex.readme_gif_gallery/v0.2"
+  "schema_version": "calibrex.readme_gif_gallery/v0.3"
 }
