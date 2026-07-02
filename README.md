@@ -219,6 +219,26 @@ mismatched evidence protocols are not silently ranked together. Use
 `--enforce-compatible` when a protocol warning or non-comparable comparison
 should fail a shell pipeline.
 
+Compare more than two labeled runs in one report artifact:
+
+```bash
+calibrex report-compare \
+  reference=outputs/dataset/result.yaml \
+  perturbed=outputs/perturbed/result.yaml \
+  koide=outputs/koide_adapter/result.yaml \
+  native=outputs/calibrex/result.yaml \
+  --reference reference \
+  --output outputs/report_comparison.json
+```
+
+`report_comparison.json` reuses the pairwise comparison machinery for every
+compared pair, keeps per-pair `protocol_compatibility` gating, records each
+entry's transform provenance (producer, role, evidence level), and adds a
+cross-result ranking table per metric family. `--reference LABEL` compares one
+baseline against each other entry instead of all pairs, and
+`--enforce-compatible` fails the pipeline unless every compared pair is
+protocol-compatible.
+
 ## Design Principles
 
 - Sensor-agnostic core; sensor-specific factors live at the edges.
