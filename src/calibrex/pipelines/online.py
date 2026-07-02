@@ -1,0 +1,890 @@
+"""Online/streaming LiDAR-pair extrinsic calibration.
+
+This module drives the same native fixed-trajectory point-to-plane primitives
+used by the offline path (`calibrex.solvers.native_lidar_point_to_plane_solver`)
+from a stream of incremental point batches instead of one offline solve.
+
+Per batch, `OnlineCalibrationSession` warm-starts the native point-to-plane
+solve from the previous *accepted* estimate, splits the batch into a
+deterministic train/holdout split (reusing `calibrex.evaluation.holdout`),
+and evaluates a holdout gate mirroring the pass/fail/inconclusive semantics of
+`calibrex.core.assessment`. Only a batch whose gate PASSES is adopted (the
+tentative estimate becomes the running estimate and its holdout residuals feed
+the rolling window). A batch that FAILS the gate (weak observability, an
+absolute holdout RMSE spike, or a sharp regression against the rolling
+baseline) is rejected, and a batch whose evidence is INCONCLUSIVE (too few
+train or holdout correspondences to score) is likewise not adopted: in both
+cases the session keeps its previous estimate and rolling window untouched, so
+a known-bad/corrupted or unscoreable batch cannot silently drag the running
+extrinsic away from a good solution.
+
+`run_online_calibration` is the CLI/Python entry point: it loads the same
+`CalibrationConfig` YAML used by `solver.backend: native_lidar_point_to_plane`,
+replays the dataset's LiDAR frames as an ordered point stream, and produces a
+standard `CalibrationResult` (`producer=calibrex_native`,
+`execution_mode=online_stream`) plus a machine-readable per-batch timeline
+artifact (`calibrex.core.online_timeline`).
+"""
+
+from __future__ import annotations
+
+import re
+from collections import deque
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from calibrex import __version__
+from calibrex.core.config import CalibrationConfig, load_config
+from calibrex.core.exceptions import ConfigError
+from calibrex.core.frames import FrameGraph, FrameNode
+from calibrex.core.geometry import SE3, Vector3
+from calibrex.core.io import write_mapping
+from calibrex.core.online_timeline import (
+    ONLINE_TIMELINE_SCHEMA_VERSION,
+    OnlineBatchSnapshot,
+    OnlineCalibrationTimelineArtifact,
+    OnlineGateStatus,
+)
+from calibrex.core.provenance import git_commit, sha256_path
+from calibrex.core.report_artifacts import ReportRunInfo
+from calibrex.core.result import (
+    CalibrationResult,
+    DegeneracyResult,
+    Grade,
+    MetricResult,
+    ObservabilityResult,
+    QualitySummary,
+    RunInfo,
+    TransformEstimateProvenance,
+    TransformQuality,
+    TransformResult,
+)
+from calibrex.data.a2d2 import find_a2d2_lidar_npz_files, read_a2d2_lidar_points
+from calibrex.data.livox import (
+    LivoxPointRecord,
+    find_livox_pcd_files,
+    read_livox_binary_pcd_records,
+)
+from calibrex.evaluation.holdout import split_indices
+from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
+from calibrex.evaluation.metrics import evaluate_quality
+from calibrex.graph.lidar_point_to_plane import (
+    LidarRigPointToPlaneEvaluation,
+    LidarRigPointToPlaneFactor,
+)
+from calibrex.solvers.fixed_trajectory_se3_solver import (
+    FixedTrajectorySe3ExtrinsicSolver,
+    FixedTrajectorySe3SolverOptions,
+    RobustLoss,
+)
+from calibrex.visualization.report import write_report_artifacts
+
+ONLINE_LIDAR_POINT_TO_PLANE_BACKEND = "online_lidar_point_to_plane"
+_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd")
+_FACTOR_NAME = "lidar_rig_point_to_plane"
+_MIN_TRAIN_OBSERVATIONS = 6
+_MIN_HOLDOUT_OBSERVATIONS = 3
+_TIMELINE_FILENAME = "timeline.json"
+
+
+@dataclass(frozen=True)
+class OnlineGateThresholds:
+    """Thresholds controlling the per-batch holdout gate."""
+
+    min_rank: int = 6
+    max_holdout_rmse_m: float = 0.05
+    max_rolling_regression_m: float = 0.02
+
+
+class OnlineCalibrationSession:
+    """Incremental online/streaming point-to-plane calibration session.
+
+    Consumes ordered LiDAR point batches against a fixed source-frame plane
+    map (built once from ``source_records``), warm-starting the native
+    fixed-trajectory solve from the previously *accepted* estimate. Each
+    batch is scored with a deterministic holdout split; only a batch whose
+    holdout gate passes updates ``current_estimate`` and the rolling residual
+    window. Batches that fail the gate or are inconclusive (too little
+    train/holdout evidence to score) leave both untouched, but are still
+    recorded in ``history`` so operators can see what was proposed and why it
+    was not adopted.
+    """
+
+    def __init__(
+        self,
+        *,
+        variable: str,
+        parent: str,
+        sensor: str,
+        source_records: list[LivoxPointRecord],
+        initial_transform: SE3,
+        voxel_size_m: float = 1.0,
+        correspondence_gate_m: float = 1.5,
+        holdout_ratio: float = 0.2,
+        rolling_window: int = 2000,
+        seed: int = 0,
+        solver_options: FixedTrajectorySe3SolverOptions | None = None,
+        gate_thresholds: OnlineGateThresholds | None = None,
+    ) -> None:
+        self.variable = variable
+        self.parent = parent
+        self.sensor = sensor
+        self.source_records = source_records
+        self.voxel_size_m = voxel_size_m
+        self.correspondence_gate_m = correspondence_gate_m
+        self.holdout_ratio = holdout_ratio
+        self.rolling_window = max(1, rolling_window)
+        self.seed = seed
+        self.solver_options = solver_options or FixedTrajectorySe3SolverOptions()
+        self.gate_thresholds = gate_thresholds or OnlineGateThresholds()
+
+        self.current_estimate = initial_transform
+        self.batch_index = 0
+        self.history: list[OnlineBatchSnapshot] = []
+        self._rolling_residuals: deque[float] = deque(maxlen=self.rolling_window)
+
+    def process_batch(
+        self,
+        points: list[Vector3],
+        *,
+        frame_count: int = 1,
+    ) -> OnlineBatchSnapshot:
+        """Consume one batch of target LiDAR points and return its snapshot."""
+
+        batch_seed = self.seed + self.batch_index
+        train_indices, holdout_indices = split_indices(
+            len(points), self.holdout_ratio, seed=batch_seed
+        )
+        train_points = [points[index] for index in train_indices]
+        holdout_points = [points[index] for index in holdout_indices]
+
+        prior_rolling_rmse = self._rolling_rmse()
+        tentative_transform, train_observation_count = self._solve_batch(train_points)
+        holdout_observation_count, holdout_rmse, holdout_residuals, evaluation = (
+            self._evaluate_holdout(holdout_points, tentative_transform)
+        )
+
+        gate_status, gate_reason = self._evaluate_gate(
+            train_observation_count=train_observation_count,
+            holdout_observation_count=holdout_observation_count,
+            holdout_rmse=holdout_rmse,
+            evaluation=evaluation,
+            prior_rolling_rmse=prior_rolling_rmse,
+        )
+        # Only a PASS gate adopts the batch: fail and inconclusive are both
+        # fully non-destructive (estimate unchanged, rolling window unchanged).
+        # An inconclusive batch's tentative solve was never holdout-scored or
+        # rank-checked, so adopting it would let unvalidated geometry warm-start
+        # every later batch.
+        accepted = gate_status == "pass"
+        if accepted:
+            self.current_estimate = tentative_transform
+            self._rolling_residuals.extend(abs(value) for value in holdout_residuals)
+
+        snapshot = OnlineBatchSnapshot(
+            batch_index=self.batch_index,
+            frame_count=frame_count,
+            point_count=len(points),
+            train_point_count=len(train_points),
+            holdout_point_count=len(holdout_points),
+            correspondence_count=train_observation_count,
+            holdout_correspondence_count=holdout_observation_count,
+            estimate=_transform_result(
+                variable=self.variable,
+                parent=self.parent,
+                child=self.sensor,
+                transform=tentative_transform,
+                accepted=accepted,
+            ),
+            estimate_accepted=accepted,
+            batch_holdout_rmse_m=holdout_rmse,
+            rolling_rmse_m=self._rolling_rmse(),
+            rolling_window_residual_count=len(self._rolling_residuals),
+            observability=_observability_from_evaluation(evaluation),
+            gate_status=gate_status,
+            gate_reason=gate_reason,
+            provenance={
+                "batch_seed": batch_seed,
+                "warm_start_from": (
+                    "previous_accepted_estimate"
+                    if self.batch_index > 0
+                    else "config_initial_transform"
+                ),
+            },
+        )
+        self.history.append(snapshot)
+        self.batch_index += 1
+        return snapshot
+
+    def _solve_batch(self, train_points: list[Vector3]) -> tuple[SE3, int]:
+        observations = build_rig_point_to_plane_observations(
+            source_records=self.source_records,
+            target_points=train_points,
+            initial_t_source_target=self.current_estimate,
+            voxel_size_m=self.voxel_size_m,
+            correspondence_gate_m=self.correspondence_gate_m,
+        )
+        if len(observations) < _MIN_TRAIN_OBSERVATIONS:
+            return self.current_estimate, len(observations)
+        factor = LidarRigPointToPlaneFactor(
+            variable=self.variable,
+            t_ego_lidar=self.current_estimate,
+            observations=observations,
+            sensor=self.sensor,
+        )
+        solver_result = FixedTrajectorySe3ExtrinsicSolver().solve(factor, self.solver_options)
+        return solver_result.refined_transform, len(observations)
+
+    def _evaluate_holdout(
+        self,
+        holdout_points: list[Vector3],
+        tentative_transform: SE3,
+    ) -> tuple[int, float | None, list[float], LidarRigPointToPlaneEvaluation | None]:
+        observations = build_rig_point_to_plane_observations(
+            source_records=self.source_records,
+            target_points=holdout_points,
+            initial_t_source_target=tentative_transform,
+            voxel_size_m=self.voxel_size_m,
+            correspondence_gate_m=self.correspondence_gate_m,
+        )
+        if not observations:
+            return 0, None, [], None
+        factor = LidarRigPointToPlaneFactor(
+            variable=self.variable,
+            t_ego_lidar=tentative_transform,
+            observations=observations,
+            sensor=self.sensor,
+        )
+        residuals = factor.residuals()
+        evaluation = factor.evaluate()
+        return len(observations), evaluation.rmse_m, residuals, evaluation
+
+    def _evaluate_gate(
+        self,
+        *,
+        train_observation_count: int,
+        holdout_observation_count: int,
+        holdout_rmse: float | None,
+        evaluation: LidarRigPointToPlaneEvaluation | None,
+        prior_rolling_rmse: float | None,
+    ) -> tuple[OnlineGateStatus, str]:
+        thresholds = self.gate_thresholds
+        if train_observation_count < _MIN_TRAIN_OBSERVATIONS:
+            return (
+                "inconclusive",
+                "too few train point-to-plane correspondences to fit this batch "
+                f"({train_observation_count} < {_MIN_TRAIN_OBSERVATIONS})",
+            )
+        if holdout_observation_count < _MIN_HOLDOUT_OBSERVATIONS or evaluation is None:
+            return (
+                "inconclusive",
+                "too few holdout point-to-plane correspondences to score this batch "
+                f"({holdout_observation_count} < {_MIN_HOLDOUT_OBSERVATIONS})",
+            )
+        if evaluation.rank < thresholds.min_rank or evaluation.weak_directions:
+            return (
+                "fail",
+                "batch geometry is rank-deficient or has weak DoF "
+                f"(rank={evaluation.rank}, weak={list(evaluation.weak_directions)}); "
+                "rejecting this batch's update",
+            )
+        if holdout_rmse is not None and holdout_rmse > thresholds.max_holdout_rmse_m:
+            return (
+                "fail",
+                f"holdout RMSE {holdout_rmse:.4f} m exceeds the "
+                f"{thresholds.max_holdout_rmse_m:.4f} m gate; rejecting this batch's update",
+            )
+        if (
+            holdout_rmse is not None
+            and prior_rolling_rmse is not None
+            and (holdout_rmse - prior_rolling_rmse) > thresholds.max_rolling_regression_m
+        ):
+            return (
+                "fail",
+                f"holdout RMSE regressed by {holdout_rmse - prior_rolling_rmse:.4f} m "
+                f"against the rolling baseline ({prior_rolling_rmse:.4f} m); "
+                "rejecting this batch's update",
+            )
+        return "pass", "holdout evidence supports this batch's update"
+
+    def _rolling_rmse(self) -> float | None:
+        if not self._rolling_residuals:
+            return None
+        mean_square = sum(value * value for value in self._rolling_residuals) / len(
+            self._rolling_residuals
+        )
+        return float(mean_square**0.5)
+
+
+@dataclass(frozen=True)
+class OnlineCalibrationRunOptions:
+    """Runtime options for the online/streaming calibration pipeline."""
+
+    dry_run: bool = False
+    output_dir: Path | None = None
+    strict: bool = False
+    seed: int = 0
+    batch_size: int = 500
+    rolling_window: int = 2000
+    holdout_ratio: float = 0.2
+
+
+def run_online_calibration(
+    config_path: str | Path,
+    options: OnlineCalibrationRunOptions,
+) -> CalibrationResult | None:
+    """Replay a LiDAR pair as an online/streaming calibration session."""
+
+    if not 0.0 < options.holdout_ratio <= 0.9:
+        raise ConfigError(
+            "online calibration holdout_ratio must be > 0.0 and <= 0.9 "
+            f"(got {options.holdout_ratio}); 0.0 would leave every batch "
+            "without holdout evidence, so no batch could ever be accepted"
+        )
+
+    config_file = Path(config_path)
+    config = load_config(config_file)
+    frame_graph = FrameGraph.from_config(config)
+
+    lidars = sorted(name for name, sensor in config.sensors.items() if sensor.type == "lidar")
+    if len(lidars) < 2:
+        raise ConfigError("online calibration requires at least two LiDAR sensors")
+    if config.dataset.type not in _SUPPORTED_DATASET_TYPES:
+        raise ConfigError(
+            f"online calibration does not support dataset type '{config.dataset.type}'; "
+            f"expected one of {_SUPPORTED_DATASET_TYPES}"
+        )
+
+    source_sensor, target_sensor = lidars[0], lidars[1]
+    source_node = frame_graph.nodes.get(source_sensor)
+    target_node = frame_graph.nodes.get(target_sensor)
+    if source_node is None or target_node is None or target_node.parent is None:
+        raise ConfigError(
+            "source and target LiDAR frames must be present in the frame graph"
+        )
+
+    if options.dry_run:
+        return None
+
+    parent = target_node.parent
+    variable = f"T_{parent}_{target_sensor}"
+    files = _dataset_files(config)
+
+    if len(files) < 2:
+        return _unavailable_result(
+            config=config,
+            config_file=config_file,
+            frame_graph=frame_graph,
+            options=options,
+            reason=(
+                "online calibration requires at least two LiDAR frames "
+                f"(found {len(files)})"
+            ),
+        )
+
+    inputs = _solve_inputs(config)
+    source_records = _load_source_records(config, files[0], inputs)
+    target_stream = _load_target_stream(config, files[1:], inputs)
+    if not target_stream:
+        return _unavailable_result(
+            config=config,
+            config_file=config_file,
+            frame_graph=frame_graph,
+            options=options,
+            reason="online calibration found no target LiDAR points to replay",
+        )
+
+    t_base_source = source_node.transform_to_parent
+    t_base_target = target_node.transform_to_parent
+    t_source_target_init = t_base_source.inverse().compose(t_base_target)
+
+    session = OnlineCalibrationSession(
+        variable=variable,
+        parent=parent,
+        sensor=target_sensor,
+        source_records=source_records,
+        initial_transform=t_source_target_init,
+        voxel_size_m=inputs.voxel_size_m,
+        correspondence_gate_m=inputs.correspondence_gate_m,
+        holdout_ratio=options.holdout_ratio,
+        rolling_window=options.rolling_window,
+        seed=options.seed,
+        solver_options=FixedTrajectorySe3SolverOptions(
+            max_iterations=max(1, config.solver.max_iterations),
+            convergence_tolerance=config.solver.convergence_tolerance,
+            robust_loss=_robust_loss(config.solver.robust_loss),
+        ),
+    )
+
+    batch_size = max(1, options.batch_size)
+    for start in range(0, len(target_stream), batch_size):
+        chunk = target_stream[start : start + batch_size]
+        batch_points = [point for _frame_index, point in chunk]
+        frame_count = len({frame_index for frame_index, _point in chunk})
+        session.process_batch(batch_points, frame_count=frame_count)
+
+    return _build_result(
+        config=config,
+        config_file=config_file,
+        frame_graph=frame_graph,
+        options=options,
+        session=session,
+        variable=variable,
+        parent=parent,
+        source_sensor=source_sensor,
+        target_sensor=target_sensor,
+        t_base_source=t_base_source,
+        batch_size=batch_size,
+    )
+
+
+@dataclass(frozen=True)
+class _OnlineSolveInputs:
+    voxel_size_m: float
+    correspondence_gate_m: float
+    max_source_points: int | None
+    max_target_points: int | None
+
+
+def _solve_inputs(config: CalibrationConfig) -> _OnlineSolveInputs:
+    factor = config.pipeline.factors.get(_FACTOR_NAME)
+    options: dict[str, Any] = dict(factor.options) if factor is not None else {}
+    return _OnlineSolveInputs(
+        voxel_size_m=_float_option(options, "voxel_size_m", default=1.0, minimum=0.05),
+        correspondence_gate_m=_float_option(
+            options, "correspondence_gate_m", default=1.5, minimum=0.05
+        ),
+        max_source_points=_int_option(options, "max_source_points", default=None),
+        max_target_points=_int_option(options, "max_target_points", default=2000),
+    )
+
+
+def _float_option(
+    options: dict[str, Any], key: str, *, default: float, minimum: float
+) -> float:
+    try:
+        value = float(options[key])
+    except (KeyError, TypeError, ValueError):
+        return default
+    return max(value, minimum)
+
+
+def _int_option(options: dict[str, Any], key: str, *, default: int | None) -> int | None:
+    if key not in options:
+        return default
+    try:
+        value = int(options[key])
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else None
+
+
+def _robust_loss(name: str) -> RobustLoss:
+    return "huber" if name == "huber" else "none"
+
+
+def _dataset_files(config: CalibrationConfig) -> list[Path]:
+    if config.dataset.type == "a2d2_lidar":
+        return find_a2d2_lidar_npz_files(config.dataset.path)
+    if config.dataset.type == "livox_pcd":
+        return find_livox_pcd_files(config.dataset.path)
+    return []
+
+
+def _load_source_records(
+    config: CalibrationConfig,
+    source_path: Path,
+    inputs: _OnlineSolveInputs,
+) -> list[LivoxPointRecord]:
+    if config.dataset.type == "a2d2_lidar":
+        points = read_a2d2_lidar_points(source_path, max_points=inputs.max_source_points)
+        return [LivoxPointRecord(point=(x, y, z, 0.0), normal_xyz=None) for x, y, z in points]
+    records = read_livox_binary_pcd_records(source_path)
+    return _stride(records, inputs.max_source_points)
+
+
+def _load_target_stream(
+    config: CalibrationConfig,
+    target_files: list[Path],
+    inputs: _OnlineSolveInputs,
+) -> list[tuple[int, Vector3]]:
+    """Return an ordered `(frame_index, point)` stream across target frames."""
+
+    stream: list[tuple[int, Vector3]] = []
+    for frame_index, path in enumerate(target_files):
+        if config.dataset.type == "a2d2_lidar":
+            points = read_a2d2_lidar_points(path, max_points=inputs.max_target_points)
+        else:
+            records = _stride(read_livox_binary_pcd_records(path), inputs.max_target_points)
+            points = [(record.point[0], record.point[1], record.point[2]) for record in records]
+        stream.extend((frame_index, point) for point in points)
+    return stream
+
+
+def _stride(records: list[LivoxPointRecord], max_records: int | None) -> list[LivoxPointRecord]:
+    if max_records is None or max_records <= 0 or len(records) <= max_records:
+        return records
+    step = (len(records) + max_records - 1) // max_records
+    return records[::step]
+
+
+def _transform_result(
+    *, variable: str, parent: str, child: str, transform: SE3, accepted: bool
+) -> TransformResult:
+    return TransformResult(
+        parent=parent,
+        child=child,
+        translation_m=list(transform.translation_m),
+        rotation_quat_xyzw=list(transform.rotation_quat_xyzw),
+        estimate_id=variable,
+        quality=TransformQuality(grade="pass" if accepted else "warn"),
+        provenance=TransformEstimateProvenance(
+            producer="calibrex_native",
+            execution_mode="online_stream",
+            role_in_comparison="output" if accepted else "candidate",
+            evidence_level="algorithmically_refined",
+            tool_name=ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+            source="online_lidar_point_to_plane_session",
+            notes=(
+                []
+                if accepted
+                else [
+                    "batch was not adopted by the online holdout gate "
+                    "(fail or inconclusive); the running estimate is unchanged"
+                ]
+            ),
+        ),
+    )
+
+
+def _observability_from_evaluation(
+    evaluation: LidarRigPointToPlaneEvaluation | None,
+) -> ObservabilityResult:
+    if evaluation is None:
+        return ObservabilityResult()
+    return ObservabilityResult(
+        rank=evaluation.rank,
+        condition_number=evaluation.normalized_condition_number_estimate,
+        weak_directions=list(evaluation.weak_directions),
+        grade="pass" if evaluation.rank >= 6 and not evaluation.weak_directions else "warn",
+    )
+
+
+def _unavailable_result(
+    *,
+    config: CalibrationConfig,
+    config_file: Path,
+    frame_graph: FrameGraph,
+    options: OnlineCalibrationRunOptions,
+    reason: str,
+) -> CalibrationResult:
+    output_dir = options.output_dir or config.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result = CalibrationResult(
+        run=RunInfo(
+            id=_run_id(config.project.name),
+            calibrex_version=__version__,
+            git_commit=git_commit(),
+            config_sha256=sha256_path(config_file),
+            dataset_sha256=sha256_path(Path(config.dataset.path)),
+            status="warning",
+            domain=config.project.domain,
+            provenance={
+                "pipeline": "online_calibration",
+                "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+                "solver_adapter_status": "unavailable",
+                "dataset_type": config.dataset.type,
+                "dataset_path": config.dataset.path,
+                "online_batch_size": options.batch_size,
+                "dry_run": False,
+            },
+        ),
+        frame_graph=frame_graph.snapshot(),
+        metrics={
+            "online_lidar_point_to_plane_available": MetricResult(
+                value=0.0, grade="warn", reason=reason
+            )
+        },
+        quality=QualitySummary(grade="warn", warnings=[reason]),
+    )
+    result.save(output_dir / config.outputs.result)
+    write_report_artifacts(result, output_dir, html_filename=config.outputs.report)
+    return result
+
+
+def _build_result(
+    *,
+    config: CalibrationConfig,
+    config_file: Path,
+    frame_graph: FrameGraph,
+    options: OnlineCalibrationRunOptions,
+    session: OnlineCalibrationSession,
+    variable: str,
+    parent: str,
+    source_sensor: str,
+    target_sensor: str,
+    t_base_source: SE3,
+    batch_size: int,
+) -> CalibrationResult:
+    history = session.history
+    final_snapshot = history[-1]
+    accepted_count = sum(1 for snapshot in history if snapshot.gate_status == "pass")
+    rejected_count = sum(1 for snapshot in history if snapshot.gate_status == "fail")
+    inconclusive_count = sum(1 for snapshot in history if snapshot.gate_status == "inconclusive")
+
+    t_base_target_refined = t_base_source.compose(session.current_estimate)
+    final_grade = _grade_from_gate(final_snapshot.gate_status)
+    output_transform = TransformResult(
+        parent=parent,
+        child=target_sensor,
+        translation_m=list(t_base_target_refined.translation_m),
+        rotation_quat_xyzw=list(t_base_target_refined.rotation_quat_xyzw),
+        estimate_id=variable,
+        quality=TransformQuality(grade=final_grade),
+        provenance=TransformEstimateProvenance(
+            producer="calibrex_native",
+            execution_mode="online_stream",
+            role_in_comparison="output",
+            evidence_level="algorithmically_refined",
+            tool_name=ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+            source="online_lidar_point_to_plane_session",
+            notes=[
+                f"warm-started online session over {len(history)} batches "
+                f"({accepted_count} accepted, {rejected_count} rejected, "
+                f"{inconclusive_count} inconclusive)"
+            ],
+        ),
+    )
+    transforms: dict[str, TransformResult] = {
+        f"T_{node.parent}_{name}": _initial_transform_result(name, node.parent, node)
+        for name, node in sorted(frame_graph.nodes.items())
+        if node.parent is not None and name != target_sensor
+    }
+    transforms[variable] = output_transform
+
+    metrics = _summary_metrics(
+        history,
+        accepted_count=accepted_count,
+        rejected_count=rejected_count,
+        inconclusive_count=inconclusive_count,
+        gate_thresholds=session.gate_thresholds,
+    )
+
+    result = CalibrationResult(
+        run=RunInfo(
+            id=_run_id(config.project.name),
+            calibrex_version=__version__,
+            git_commit=git_commit(),
+            config_sha256=sha256_path(config_file),
+            dataset_sha256=sha256_path(Path(config.dataset.path)),
+            status="warning",
+            domain=config.project.domain,
+            provenance={
+                "pipeline": "online_calibration",
+                "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+                "solver_adapter_status": final_snapshot.gate_status,
+                "dataset_type": config.dataset.type,
+                "dataset_path": config.dataset.path,
+                "online_variable": variable,
+                "online_source_sensor": source_sensor,
+                "online_target_sensor": target_sensor,
+                "online_batch_size": batch_size,
+                "online_rolling_window": session.rolling_window,
+                "online_holdout_ratio": session.holdout_ratio,
+                "online_seed": session.seed,
+                "online_batch_count": len(history),
+                "online_accepted_batch_count": accepted_count,
+                "online_rejected_batch_count": rejected_count,
+                "online_inconclusive_batch_count": inconclusive_count,
+                "online_final_rolling_rmse_m": final_snapshot.rolling_rmse_m,
+                "online_final_gate_status": final_snapshot.gate_status,
+                "dry_run": False,
+            },
+        ),
+        frame_graph=frame_graph.snapshot(),
+        transforms=transforms,
+        metrics=metrics,
+        observability=final_snapshot.observability,
+        degeneracy=DegeneracyResult(
+            grade="pass" if rejected_count == 0 else "warn",
+            reason=(
+                None
+                if rejected_count == 0
+                else f"{rejected_count} of {len(history)} online batches were "
+                "rejected by the holdout gate"
+            ),
+        ),
+    )
+
+    output_dir = options.output_dir or config.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result.artifacts.html_report = str(output_dir / config.outputs.report)
+    evaluate_quality(result, strict=options.strict)
+    result.save(output_dir / config.outputs.result)
+    write_report_artifacts(result, output_dir, html_filename=config.outputs.report)
+
+    timeline_path = output_dir / _TIMELINE_FILENAME
+    write_online_timeline_artifact(
+        result=result,
+        session=session,
+        variable=variable,
+        source_sensor=source_sensor,
+        target_sensor=target_sensor,
+        batch_size=batch_size,
+        output_path=timeline_path,
+    )
+    result.run.provenance["online_timeline_path"] = str(timeline_path)
+    result.save(output_dir / config.outputs.result)
+    return result
+
+
+def _grade_from_gate(status: OnlineGateStatus) -> Grade:
+    if status == "pass":
+        return "pass"
+    if status == "inconclusive":
+        return "warn"
+    return "fail"
+
+
+def _initial_transform_result(name: str, parent: str, node: FrameNode) -> TransformResult:
+    transform = node.transform_to_parent
+    return TransformResult(
+        parent=parent,
+        child=name,
+        translation_m=list(transform.translation_m),
+        rotation_quat_xyzw=list(transform.rotation_quat_xyzw),
+        estimate_id=f"T_{parent}_{name}",
+        quality=TransformQuality(grade="warn" if node.estimate else "pass"),
+        provenance=TransformEstimateProvenance(
+            producer="human" if node.estimate else "unknown",
+            execution_mode="manual",
+            role_in_comparison="candidate" if node.estimate else "output",
+            evidence_level="imported_without_documented_derivation",
+            source="config.frame_graph",
+        ),
+    )
+
+
+def _summary_metrics(
+    history: list[OnlineBatchSnapshot],
+    *,
+    accepted_count: int,
+    rejected_count: int,
+    inconclusive_count: int,
+    gate_thresholds: OnlineGateThresholds,
+) -> dict[str, MetricResult]:
+    final_snapshot = history[-1]
+    pass_fraction = accepted_count / len(history) if history else None
+    return {
+        "online_calibration_batch_count": MetricResult(
+            value=float(len(history)),
+            unit="batches",
+            grade="pass" if history else "warn",
+            reason="number of streamed batches processed by the online session",
+        ),
+        "online_calibration_accepted_batch_count": MetricResult(
+            value=float(accepted_count),
+            unit="batches",
+            grade="pass" if accepted_count > 0 else "warn",
+            reason="batches whose holdout gate passed and updated the running estimate",
+        ),
+        "online_calibration_rejected_batch_count": MetricResult(
+            value=float(rejected_count),
+            unit="batches",
+            grade="pass" if rejected_count == 0 else "warn",
+            reason="batches rejected by the holdout gate (estimate left unchanged)",
+        ),
+        "online_calibration_inconclusive_batch_count": MetricResult(
+            value=float(inconclusive_count),
+            unit="batches",
+            grade="pass" if inconclusive_count == 0 else "warn",
+            reason=(
+                "batches with too little train/holdout evidence to accept or "
+                "reject (estimate left unchanged)"
+            ),
+        ),
+        "online_calibration_gate_pass_fraction": MetricResult(
+            value=pass_fraction,
+            grade="pass" if pass_fraction == 1.0 else "warn",
+            reason="fraction of streamed batches accepted by the holdout gate",
+        ),
+        "online_calibration_final_rolling_rmse_m": MetricResult(
+            value=final_snapshot.rolling_rmse_m,
+            unit="m",
+            grade=(
+                "pass"
+                if final_snapshot.rolling_rmse_m is not None
+                and final_snapshot.rolling_rmse_m <= gate_thresholds.max_holdout_rmse_m
+                else "warn"
+            ),
+            reason="rolling holdout RMSE over the most recent accepted residual window",
+        ),
+        "prototype_solver": MetricResult(
+            value=1.0 if final_snapshot.gate_status == "pass" else 0.0,
+            grade="pass" if final_snapshot.gate_status == "pass" else "warn",
+            reason=(
+                "native online fixed-trajectory point-to-plane solver produced "
+                f"optimized extrinsics (final gate={final_snapshot.gate_status})"
+            ),
+        ),
+    }
+
+
+def _run_id(project_name: str) -> str:
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+    slug = re.sub(r"[^a-zA-Z0-9_.-]+", "_", project_name).strip("_") or "calibrex"
+    return f"{timestamp}_{slug}_online"
+
+
+def write_online_timeline_artifact(
+    *,
+    result: CalibrationResult,
+    session: OnlineCalibrationSession,
+    variable: str,
+    source_sensor: str,
+    target_sensor: str,
+    batch_size: int,
+    output_path: str | Path,
+) -> OnlineCalibrationTimelineArtifact:
+    """Build and write the machine-readable per-batch timeline artifact."""
+
+    history = session.history
+    final_status: OnlineGateStatus = history[-1].gate_status if history else "inconclusive"
+    artifact = OnlineCalibrationTimelineArtifact(
+        schema_version=ONLINE_TIMELINE_SCHEMA_VERSION,
+        run=_report_run_info(result),
+        variable=variable,
+        source_sensor=source_sensor,
+        target_sensor=target_sensor,
+        batch_size=batch_size,
+        rolling_window=session.rolling_window,
+        holdout_ratio=session.holdout_ratio,
+        seed=session.seed,
+        batches=history,
+        final_gate_status=final_status,
+        accepted_batch_count=sum(1 for s in history if s.gate_status == "pass"),
+        rejected_batch_count=sum(1 for s in history if s.gate_status == "fail"),
+        inconclusive_batch_count=sum(1 for s in history if s.gate_status == "inconclusive"),
+    )
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_mapping(path, artifact.model_dump(mode="json", exclude_none=True))
+    return artifact
+
+
+def _report_run_info(result: CalibrationResult) -> ReportRunInfo:
+    provenance = result.run.provenance
+    dataset_type = provenance.get("dataset_type")
+    dataset_path = provenance.get("dataset_path")
+    return ReportRunInfo(
+        id=result.run.id,
+        status=result.run.status,
+        domain=result.run.domain,
+        calibrex_version=result.run.calibrex_version,
+        git_commit=result.run.git_commit,
+        created_at=result.run.created_at,
+        dataset_type=dataset_type if isinstance(dataset_type, str) else None,
+        dataset_path=dataset_path if isinstance(dataset_path, str) else None,
+    )

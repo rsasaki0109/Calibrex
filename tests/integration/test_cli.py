@@ -274,6 +274,38 @@ def test_calibrate_dry_run() -> None:
     assert main(["calibrate", "examples/configs/minimal.yaml", "--dry-run", "--json"]) == 0
 
 
+@pytest.mark.parametrize("ratio", ["0", "0.0", "1.5", "-0.1", "not-a-number"])
+def test_calibrate_online_rejects_invalid_holdout_ratio(ratio: str) -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        main(
+            [
+                "calibrate",
+                "--online",
+                "--holdout-ratio",
+                ratio,
+                "examples/configs/minimal.yaml",
+            ]
+        )
+    assert excinfo.value.code == 2
+
+
+def test_calibrate_online_rejects_candidate_extrinsics(tmp_path: Path) -> None:
+    candidates = tmp_path / "candidates.yaml"
+    candidates.write_text("{}", encoding="utf-8")
+    assert (
+        main(
+            [
+                "calibrate",
+                "--online",
+                "--candidate-extrinsics",
+                str(candidates),
+                "examples/configs/minimal.yaml",
+            ]
+        )
+        == 2
+    )
+
+
 def test_validate_command_detects_schema_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["validate", "examples/configs/minimal.yaml", "--json"]) == 0
 
@@ -1178,6 +1210,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     evidence_bundle_verification_schema = (
         tmp_path / "evidence_bundle_verification.schema.json"
     )
+    online_timeline_schema = tmp_path / "online_timeline.schema.json"
     assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
@@ -1207,6 +1240,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         )
         == 0
     )
+    assert main(["schema", "online-timeline", "--output", str(online_timeline_schema)]) == 0
     assert config_schema.exists()
     assert result_schema.exists()
     assert comparison_schema.exists()
@@ -1222,6 +1256,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert report_evidence_schema.exists()
     assert evidence_bundle_schema.exists()
     assert evidence_bundle_verification_schema.exists()
+    assert online_timeline_schema.exists()
     for filename in [
         "config.schema.json",
         "result.schema.json",
@@ -1238,6 +1273,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         "report_evidence.schema.json",
         "evidence_bundle.schema.json",
         "evidence_bundle_verification.schema.json",
+        "online_timeline.schema.json",
     ]:
         assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))

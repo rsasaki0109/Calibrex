@@ -14,6 +14,7 @@ from calibrex.core.evidence_bundle import (
     verify_evidence_bundle,
 )
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
+from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
@@ -39,6 +40,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "dataset_manifest.schema.json": manifest_json_schema,
         "evidence_bundle.schema.json": evidence_bundle_json_schema,
         "evidence_bundle_verification.schema.json": evidence_bundle_verification_json_schema,
+        "online_timeline.schema.json": online_timeline_json_schema,
         "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),
         "report_metrics.schema.json": lambda: report_artifact_json_schema("report-metrics"),
         "report_observability.schema.json": lambda: report_artifact_json_schema(
