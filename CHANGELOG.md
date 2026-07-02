@@ -28,3 +28,7 @@
 - Protocol and policy JSON schemas, and `compare --enforce-compatible` protocol compatibility enforcement.
 - README GIF gallery generation (`generate_calibration_evidence_gif.py --readme-gallery`) with a provenance manifest and schema-validated visual modes.
 - Local release smoke helper, wheel smoke coverage in CI, and a draft GitHub release workflow.
+- Configurable public-dataset frame sampling: `DatasetConfig.sample_limit` and `calibrex inspect --sample-limit`.
+- N-way `calibrex report-compare` command with labeled results, protocol-compatibility gating, metric-family rankings, and a `report_comparison` schema (16 schemas total).
+- Pure-Python rosbag1 (v2.0) reader with PointCloud2 decoding (`none`/`bz2`, optional `lz4` extra), `calibrex inspect --type rosbag1`, and the TIERS LidarsCali example config.
+- Native LiDAR point-to-plane solver backend (`solver.backend: native_lidar_point_to_plane`) wired into `calibrex calibrate`, with real rank/condition-number/weak-DoF observability replacing the `uncomputed_alpha_backend` stub and point-to-plane metrics in results.
