@@ -57,6 +57,10 @@ from calibrex.solvers.koide_lidar_camera_solver import (
     ADAPTER_FACTOR_NAMES as KOIDE_LIDAR_CAMERA_FACTOR_NAMES,
 )
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.solvers.native_lidar_point_to_plane_solver import (
+    NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+    NativeLidarPointToPlaneSolver,
+)
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import write_report_artifacts
@@ -128,6 +132,8 @@ def _apply_pipeline_adapter(
     adapter_result: SolverAdapterResult | None = None
     if config.pipeline.type == "rgbd_open3d_slac" or config.solver.backend == "open3d_slac":
         adapter_result = Open3DSLACSolver().solve(config, frame_graph, inspection)
+    elif config.solver.backend == NATIVE_LIDAR_POINT_TO_PLANE_BACKEND:
+        adapter_result = NativeLidarPointToPlaneSolver().solve(config, frame_graph, inspection)
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -137,6 +143,8 @@ def _apply_pipeline_adapter(
     result.run.provenance["solver_adapter"] = adapter_result.backend
     result.run.provenance["solver_adapter_status"] = adapter_result.status
     _apply_adapter_transforms(result, adapter_result)
+    if adapter_result.observability is not None:
+        result.observability = adapter_result.observability
     result.degeneracy.reason = _append_reason(result.degeneracy.reason, adapter_result.warnings)
 
 
@@ -289,32 +297,44 @@ def _apply_adapter_transforms(
             result.transforms[name].translation_m = list(transform.translation_m)
             result.transforms[name].rotation_quat_xyzw = list(transform.rotation_quat_xyzw)
             result.transforms[name].estimate_id = name
-            result.transforms[name].provenance = TransformEstimateProvenance(
-                producer="external_tool",
-                execution_mode="imported",
-                role_in_comparison="output",
-                evidence_level="algorithmically_refined",
-                tool_name=adapter_result.backend,
-                source="solver_adapter",
-                notes=["adapter output applied to Calibrex output estimate"],
+            result.transforms[name].provenance = _adapter_output_provenance(
+                adapter_result.backend,
+                note="adapter output applied to Calibrex output estimate",
             )
             applied.append(name)
         elif name == "T_camera0_lidar0":
             applied_name = _apply_relative_lidar_camera_transform(result, transform)
             if applied_name is not None:
                 result.transforms[applied_name].estimate_id = applied_name
-                result.transforms[applied_name].provenance = TransformEstimateProvenance(
-                    producer="external_tool",
-                    execution_mode="imported",
-                    role_in_comparison="output",
-                    evidence_level="algorithmically_refined",
-                    tool_name=adapter_result.backend,
-                    source="solver_adapter",
-                    notes=["relative adapter output composed into rig-frame estimate"],
+                result.transforms[applied_name].provenance = _adapter_output_provenance(
+                    adapter_result.backend,
+                    note="relative adapter output composed into rig-frame estimate",
                 )
                 applied.append(applied_name)
     if applied:
         result.run.provenance["solver_adapter_applied_transforms"] = applied
+
+
+def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateProvenance:
+    if backend == NATIVE_LIDAR_POINT_TO_PLANE_BACKEND:
+        return TransformEstimateProvenance(
+            producer="calibrex_native",
+            execution_mode="offline_batch",
+            role_in_comparison="output",
+            evidence_level="algorithmically_refined",
+            tool_name=backend,
+            source="native_lidar_point_to_plane_solver",
+            notes=[note],
+        )
+    return TransformEstimateProvenance(
+        producer="external_tool",
+        execution_mode="imported",
+        role_in_comparison="output",
+        evidence_level="algorithmically_refined",
+        tool_name=backend,
+        source="solver_adapter",
+        notes=[note],
+    )
 
 
 def _apply_dataset_initialization(
