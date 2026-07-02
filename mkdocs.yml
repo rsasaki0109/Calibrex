@@ -1,0 +1,58 @@
+site_name: Calibrex
+site_description: Universal sensor calibration evidence framework for robotics
+repo_url: https://github.com/rsasaki0109/Calibrex
+repo_name: rsasaki0109/Calibrex
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search
+  - include-markdown
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+
+nav:
+  - Home: index.md
+  - Concepts:
+      - SLAC: concepts/slac.md
+      - LiDAR SLAC: concepts/lidar_slac.md
+      - Frame Conventions: concepts/frame_conventions.md
+      - License Boundaries: concepts/license_boundaries.md
+      - Problem Builder: concepts/problem_builder.md
+  - Tutorials:
+      - Public Datasets: tutorials/public_datasets.md
+      - Open3D SLAC Adapter: tutorials/open3d_slac.md
+      - Targetless LiDAR-Camera Adapter: tutorials/lidar_camera_adapter.md
+  - ADRs:
+      - "0001: Core Is ROS-Independent": adr/0001-core-is-ros-independent.md
+      - "0004: LiDAR-Main v0.1 Evaluation Protocol": adr/0004-lidar-main-v0-1-evaluation-protocol.md
+  - Schemas Reference: reference/schemas.md
+  - Changelog: changelog.md
