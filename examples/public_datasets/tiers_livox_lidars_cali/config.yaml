@@ -1,0 +1,70 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: tiers_livox_lidars_cali_evidence
+  description: TIERS LidarsCali Livox Horizon-Avia solid-state LiDAR-pair evidence demo from a ROS 1 bag.
+  output_dir: outputs/tiers_livox_lidars_cali
+  domain: robotics
+
+dataset:
+  type: rosbag1
+  path: data/public/tiers_lidars_cali/LidarsCali.bag
+  time_base: unix_time_ns
+
+sensors:
+  livox_horizon:
+    type: lidar
+    model: livox_horizon
+    topic: /livox/lidar
+    frame_id: horizon_frame
+    fields: [x, y, z, intensity]
+  livox_avia:
+    type: lidar
+    model: livox_avia
+    topic: /avia/livox/lidar
+    frame_id: avia_frame
+    fields: [x, y, z, intensity]
+
+frames:
+  livox_horizon:
+    root: true
+  livox_avia:
+    parent: livox_horizon
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag1_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    fixed_lidar_mount_prior:
+      enabled: true
+
+solver:
+  backend: scipy
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - lidar_pointcloud_topic_count
+    - lidar_frame_coverage
+    - lidar_point_coverage
+    - lidar_spatial_coverage_m
+    - lidar_pair_source_voxel_recall_in_target
+    - lidar_pair_shared_voxel_centroid_rmse_m
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

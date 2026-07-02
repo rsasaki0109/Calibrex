@@ -60,6 +60,9 @@ def lidar_metrics_from_inspection(
         livox = inspection.diagnostics.get("livox_pcd")
         if isinstance(livox, Mapping):
             return _livox_pcd_metrics(livox)
+        rosbag1 = inspection.diagnostics.get("rosbag1")
+        if isinstance(rosbag1, Mapping):
+            return _rosbag1_pointcloud_metrics(rosbag1)
         return {}
     world_map = inspection.diagnostics.get("lidar_world_map_consistency")
     world_map_diagnostics = world_map if isinstance(world_map, Mapping) else None
@@ -223,6 +226,72 @@ def _livox_pcd_metrics(diagnostics: Mapping[str, object]) -> dict[str, MetricRes
             reason=(
                 "coarse shared-voxel centroid RMSE for the first two Livox PCD frames"
             ),
+        )
+    return metrics
+
+
+def _rosbag1_pointcloud_metrics(diagnostics: Mapping[str, object]) -> dict[str, MetricResult]:
+    topic_count = _float_or_none(diagnostics.get("pointcloud_topic_count"))
+    streams = diagnostics.get("streams")
+    message_count = 0.0
+    sampled_point_count = 0.0
+    bounds_min: tuple[float, float, float] | None = None
+    bounds_max: tuple[float, float, float] | None = None
+    if isinstance(streams, Iterable):
+        for stream in streams:
+            if not isinstance(stream, Mapping):
+                continue
+            message_count += _float_or_none(stream.get("message_count")) or 0.0
+            sampled_point_count += _float_or_none(stream.get("sampled_point_count")) or 0.0
+            stream_min = _vector3_or_none(stream.get("bounds_min_m"))
+            stream_max = _vector3_or_none(stream.get("bounds_max_m"))
+            if stream_min is not None:
+                bounds_min = (
+                    stream_min
+                    if bounds_min is None
+                    else (
+                        min(bounds_min[0], stream_min[0]),
+                        min(bounds_min[1], stream_min[1]),
+                        min(bounds_min[2], stream_min[2]),
+                    )
+                )
+            if stream_max is not None:
+                bounds_max = (
+                    stream_max
+                    if bounds_max is None
+                    else (
+                        max(bounds_max[0], stream_max[0]),
+                        max(bounds_max[1], stream_max[1]),
+                        max(bounds_max[2], stream_max[2]),
+                    )
+                )
+
+    metrics: dict[str, MetricResult] = {}
+    if topic_count is not None:
+        metrics["lidar_pointcloud_topic_count"] = MetricResult(
+            value=topic_count,
+            unit="topics",
+            grade="pass" if topic_count >= 2 else "warn",
+            reason=f"ROS bag exposes {topic_count:g} PointCloud2 topics",
+        )
+    if message_count:
+        metrics["lidar_frame_coverage"] = MetricResult(
+            value=message_count,
+            unit="frames",
+            reason=f"inspected {message_count:g} PointCloud2 messages across topics",
+        )
+    if sampled_point_count:
+        metrics["lidar_point_coverage"] = MetricResult(
+            value=sampled_point_count,
+            unit="points",
+            reason=f"sampled {sampled_point_count:g} PointCloud2 points",
+        )
+    if bounds_min is not None and bounds_max is not None:
+        extent = math.dist(bounds_min, bounds_max)
+        metrics["lidar_spatial_coverage_m"] = MetricResult(
+            value=extent,
+            unit="m",
+            reason=f"sampled PointCloud2 XYZ extent is {extent:g} m",
         )
     return metrics
 
