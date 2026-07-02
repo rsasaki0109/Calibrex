@@ -1,0 +1,75 @@
+schema_version: calibrex.config/v0.1
+
+# Native fixed-rig LiDAR point-to-plane calibration on the public A2D2 LiDAR
+# NPZ pair. Selecting `solver.backend: native_lidar_point_to_plane` runs the
+# built-in `FixedTrajectorySe3ExtrinsicSolver` on `LidarRigPointToPlaneFactor`
+# correspondences and populates result observability (rank, condition number,
+# weak DoF) from the real factor evaluation.
+#
+# Download the sample first:
+#   python tools/download_public_dataset.py a2d2_lidar_pair_sample
+
+project:
+  name: a2d2_native_point_to_plane
+  description: Native LiDAR-to-LiDAR point-to-plane refinement on the A2D2 pair sample
+  output_dir: outputs/a2d2_native_point_to_plane
+  domain: autonomous_driving
+
+dataset:
+  type: a2d2_lidar
+  path: data/public/a2d2_lidar_pair
+
+sensors:
+  lidar_front_left:
+    type: lidar
+    model: a2d2_front_left
+    frame_id: lidar_front_left
+  lidar_front_right:
+    type: lidar
+    model: a2d2_front_right
+    frame_id: lidar_front_right
+
+frames:
+  base_link:
+    root: true
+  lidar_front_left:
+    parent: base_link
+    transform:
+      estimate: false
+  lidar_front_right:
+    parent: base_link
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 5.0
+
+pipeline:
+  type: multi_sensor_slac
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.75
+        correspondence_gate_m: 1.0
+        max_target_points: 3000
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  metrics:
+    - lidar_rig_point_to_plane_residual_count
+    - lidar_rig_point_to_plane_rmse_m
+    - lidar_rig_point_to_plane_rank
+    - lidar_rig_point_to_plane_condition_number
+    - lidar_rig_point_to_plane_weak_dof_count
+    - native_lidar_point_to_plane_correspondence_count
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
