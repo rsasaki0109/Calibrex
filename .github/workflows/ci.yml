@@ -38,5 +38,7 @@ jobs:
         run: pytest
       - name: Ruff
         run: ruff check .
+      - name: Install uv
+        run: python -m pip install uv
       - name: Mypy
-        run: mypy src/calibrex
+        run: uvx --with pydantic --with PyYAML --with jsonschema mypy src/calibrex

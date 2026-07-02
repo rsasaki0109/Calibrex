@@ -56,6 +56,43 @@ calibrex verify outputs/livox_horizon_horizon_pcd_sample/bundle.json \
   --output outputs/livox_horizon_horizon_pcd_sample/verification.json
 ```
 
+## TIERS LidarsCali ROS 1 bag (Livox Horizon + Avia)
+
+The TIERS `LidarsCali` sequence records a Livox Horizon
+(`/livox/lidar`) and a Livox Avia (`/avia/livox/lidar`) in one ROS 1 bag.
+Calibrex reads the bag directly with a pure-Python rosbag v2.0 parser
+(`calibrex.data.rosbag1`); no ROS installation is required. Decoding
+`sensor_msgs/PointCloud2` payloads to arrays requires numpy
+(`pip install "calibrex[rosbag1]"`); bags with `lz4` chunk compression
+additionally need `pip install "calibrex[rosbag1-lz4]"` (`none` and `bz2`
+compression work out of the box).
+
+The bag is multiple gigabytes, so Calibrex never downloads it automatically.
+Fetch it manually from the upstream dataset:
+
+1. Open the TIERS dataset repository:
+   <https://github.com/TIERS/tiers-lidars-dataset> and follow its download
+   table to the `LidarsCali` sequence (hosted on the University of Turku
+   SharePoint; the direct link is recorded in
+   `examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml` under
+   `provenance.download_url`).
+2. Save the bag as `data/public/tiers_lidars_cali/LidarsCali.bag`
+   (the path declared in the example config).
+
+Then inspect and run the LiDAR-pair evidence config:
+
+```bash
+calibrex public-datasets show tiers_livox_lidars_cali --json
+calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag --type rosbag1 --json
+calibrex calibrate examples/public_datasets/tiers_livox_lidars_cali/config.yaml
+```
+
+`calibrex inspect --type rosbag1` lists every `sensor_msgs/PointCloud2` topic
+with message counts, and samples a few messages per topic to report decoded
+point counts, intensity presence, spatial bounds, and first/last ROS
+timestamps (normalized to integer nanoseconds). Other message types are
+ignored by design; the alpha reader is scoped to point clouds.
+
 `--readme-gallery` regenerates the Livox and A2D2 README GIF assets from public
 raw samples. It downloads the small A2D2 range sample when needed and refuses to
 use built-in fallback geometry unless `--allow-metadata-fallback` is passed.

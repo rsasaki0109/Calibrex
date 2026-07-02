@@ -1299,7 +1299,8 @@ def _emit_diagnostics(inspection: DatasetInspection) -> None:
             if value is not None and value != []:
                 print(f"    {key}: {_format_value(value)}")
 
-    if "velodyne_points" in inspection.diagnostics or "livox_pcd" in inspection.diagnostics:
+    lidar_diagnostic_keys = {"velodyne_points", "livox_pcd", "rosbag1"}
+    if lidar_diagnostic_keys & set(inspection.diagnostics):
         _emit_lidar_quality_hint(inspection)
 
 

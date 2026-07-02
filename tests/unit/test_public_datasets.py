@@ -87,6 +87,7 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert catalog.datasets["livox_horizon_horizon_pcd_sample"].family == "livox_calibration"
     assert catalog.datasets["livox_horizon_horizon_pcd_sample"].calibrex_config is not None
     assert catalog.datasets["tiers_livox_lidars_cali"].family == "tiers_lidars"
+    assert catalog.datasets["tiers_livox_lidars_cali"].calibrex_config is not None
 
 
 def test_tum_rgbd_public_config_compiles() -> None:
@@ -134,6 +135,17 @@ def test_livox_public_config_compiles_solid_state_lidar_pair() -> None:
     assert inspection.dataset_type == "livox_pcd"
     assert "base_horizon" in config.sensors
     assert "target_horizon" in config.sensors
+    assert "fixed_lidar_mount_prior" in {factor.name for factor in problem.factors}
+
+
+def test_tiers_public_config_compiles_rosbag1_lidar_pair() -> None:
+    config = load_config("examples/public_datasets/tiers_livox_lidars_cali/config.yaml")
+    inspection = inspect_dataset(config.dataset)
+    problem = build_problem(config, FrameGraph.from_config(config), inspection)
+    assert config.dataset.type == "rosbag1"
+    assert inspection.dataset_type == "rosbag1"
+    assert config.sensors["livox_horizon"].topic == "/livox/lidar"
+    assert config.sensors["livox_avia"].topic == "/avia/livox/lidar"
     assert "fixed_lidar_mount_prior" in {factor.name for factor in problem.factors}
 
 

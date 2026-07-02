@@ -22,6 +22,7 @@ from calibrex.data.livox import LivoxPCDDataset, summarize_livox_pcd
 from calibrex.data.manifest import find_manifest
 from calibrex.data.mcap import inspect_mcap
 from calibrex.data.nuscenes import NuScenesDataset, summarize_nuscenes_metadata
+from calibrex.data.rosbag1 import summarize_rosbag1
 from calibrex.data.tum_rgbd import TUMRGBDDataset
 
 # Default diagnostic sample/frame counts, preserved from the previously hardcoded
@@ -85,13 +86,15 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
         )
     if dataset.type == "nuscenes":
         return _inspect_nuscenes(path, dataset.type)
-    if dataset.type in {"rosbag1", "rosbag2"}:
+    if dataset.type == "rosbag1":
+        return _inspect_rosbag1(path, dataset.type)
+    if dataset.type == "rosbag2":
         return DatasetInspection(
             dataset_type=dataset.type,
             path=str(path),
             exists=path.exists(),
             warnings=[
-                "ROS bag support is adapter-only in this alpha; convert to MCAP or use "
+                "rosbag2 support is adapter-only in this alpha; convert to MCAP or use "
                 "an optional adapter.",
             ],
         )
@@ -278,6 +281,49 @@ def _inspect_kitti_raw(
             "timestamp_alignment": timestamp_stats.as_dict(),
             "camera_lidar_pairs": [pair.as_dict() for pair in camera_lidar_pairs],
         },
+    )
+
+
+def _inspect_rosbag1(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    stats = summarize_rosbag1(path, sample_limit=4)
+    warnings: list[str] = []
+    if stats.status == "malformed":
+        warnings.append(stats.reason or "ROS bag could not be parsed")
+    if stats.pointcloud_topic_count == 0:
+        warnings.append("no sensor_msgs/PointCloud2 topics found in ROS bag")
+    elif stats.pointcloud_topic_count < 2:
+        warnings.append(
+            "fewer than two PointCloud2 topics; a LiDAR-to-LiDAR pair needs two clouds"
+        )
+    for stream in stats.streams:
+        if stream.sampled_point_count == 0:
+            warnings.append(f"PointCloud2 topic {stream.topic} decoded no points")
+    streams = [
+        StreamSummary(
+            name=stream.topic,
+            kind="pointcloud",
+            message_count=stream.message_count,
+            topic=stream.topic,
+            sensor=stream.message_type,
+        )
+        for stream in stats.streams
+    ]
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=streams,
+        warnings=warnings,
+        diagnostics={"rosbag1": stats.as_dict()},
     )
 
 
