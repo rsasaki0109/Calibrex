@@ -214,6 +214,55 @@ def summarize_a2d2_lidar_npz(path: str | Path, *, sample_limit: int = 3) -> A2D2
     )
 
 
+def read_a2d2_lidar_points(
+    path: str | Path,
+    *,
+    max_points: int | None = None,
+) -> list[tuple[float, float, float]]:
+    """Return valid ``(x, y, z)`` points from one A2D2 LiDAR NPZ sample.
+
+    Points are expressed in the frame stored in ``pcloud_points.npy`` (the A2D2
+    vehicle frame for the public samples). Invalid returns are dropped. When
+    ``max_points`` is set, a deterministic uniform stride keeps the point count
+    at or below the requested budget.
+    """
+
+    sample_path = Path(path)
+    with zipfile.ZipFile(sample_path) as archive:
+        points_header, points = read_npy_array(archive, "pcloud_points.npy")
+        _valid_header, valid = read_npy_array(archive, "pcloud_attr.valid.npy")
+
+    shape = points_header.get("shape")
+    if not isinstance(shape, tuple) or len(shape) != 2 or shape[1] != 3:
+        raise ValueError("pcloud_points.npy must have shape Nx3")
+    point_count = int(shape[0])
+    if len(valid) != point_count:
+        raise ValueError("valid array must match point count")
+
+    valid_points: list[tuple[float, float, float]] = []
+    for index in range(point_count):
+        if not cast(bool, valid[index]):
+            continue
+        valid_points.append(
+            (
+                cast(float, points[index * 3]),
+                cast(float, points[index * 3 + 1]),
+                cast(float, points[index * 3 + 2]),
+            )
+        )
+    return _stride_sample(valid_points, max_points)
+
+
+def _stride_sample(
+    points: list[tuple[float, float, float]],
+    max_points: int | None,
+) -> list[tuple[float, float, float]]:
+    if max_points is None or max_points <= 0 or len(points) <= max_points:
+        return points
+    stride = (len(points) + max_points - 1) // max_points
+    return points[::stride]
+
+
 def summarize_a2d2_lidar_sample(path: str | Path) -> A2D2LidarSampleStats:
     """Summarize one A2D2 LiDAR NPZ sample."""
 

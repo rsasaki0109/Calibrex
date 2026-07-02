@@ -594,6 +594,37 @@ def _support_definition() -> str:
     )
 
 
+def build_voxel_plane_map(
+    records: list[LivoxPointRecord],
+    voxel_size_m: float,
+) -> dict[tuple[int, int, int], _VoxelPlane]:
+    """Return the voxel-plane map used for point-to-plane correspondences.
+
+    Each voxel aggregates a centroid and a plane normal (from per-point PCD
+    normal fields when present, otherwise a local geometric fallback). Voxels
+    without a resolvable normal are dropped.
+    """
+
+    return _voxel_plane_map(records, voxel_size_m)
+
+
+def nearest_voxel_plane(
+    point: Vector3,
+    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    *,
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> _VoxelPlane | None:
+    """Return the nearest voxel plane within ``correspondence_gate_m`` or ``None``."""
+
+    return _nearest_plane(
+        point,
+        plane_map=plane_map,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+    )
+
+
 def read_livox_binary_pcd(path: str | Path) -> list[LivoxPoint]:
     """Read x/y/z/intensity from a binary float32 PCD file."""
 
