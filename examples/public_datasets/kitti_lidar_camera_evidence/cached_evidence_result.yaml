@@ -1,0 +1,876 @@
+schema_version: calibrex.result/v0.1
+run:
+  id: kitti_lidar_camera_evidence_example
+  calibrex_version: 0.1.0a1
+  git_commit: 44308be
+  config_sha256: 5e70ead28058f53724aaf455e9c6fdf4332213323746ab3f5e82bf064d3934ee
+  dataset_sha256: 8c7c7ddebfa94b63b3b4382d62b07fc5ff9921e1c693c1912c805dae97a40c9d
+  status: warning
+  domain: autonomous_driving
+  created_at: '2026-07-02T22:20:11Z'
+  provenance:
+    pipeline: multi_sensor_slac
+    solver_backend: scipy
+    max_iterations: 20
+    seed: null
+    dataset_type: kitti_raw
+    dataset_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync
+    dry_run: false
+    problem_summary:
+      name: kitti_lidar_camera_evidence
+      pipeline: multi_sensor_slac
+      variables: 5
+      estimated_variables: 4
+      factors: 4
+      priors: 3
+      gauges: 1
+    problem_observability:
+      estimated_dimension: 21
+      fixed_dimension: 4
+      factor_count: 4
+      prior_count: 3
+      gauge_count: 1
+      weak_directions: []
+      grade: pass
+    dataset_inspection:
+      dataset_type: kitti_raw
+      path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync
+      exists: true
+      manifest: null
+      streams:
+      - name: camera_left_color
+        kind: image
+        message_count: 2
+        topic: null
+        sensor: camera0
+      - name: camera_right_color
+        kind: image
+        message_count: 0
+        topic: null
+        sensor: camera1
+      - name: velodyne_points
+        kind: pointcloud
+        message_count: 2
+        topic: null
+        sensor: lidar0
+      - name: oxts
+        kind: imu
+        message_count: 2
+        topic: null
+        sensor: imu0
+      - name: calibration
+        kind: metadata
+        message_count: 2
+        topic: null
+        sensor: null
+      warnings: []
+      diagnostics:
+        velodyne_points:
+          frame_count: 2
+          sampled_frame_count: 2
+          sampled_point_count: 24
+          min_points_per_frame: 12
+          max_points_per_frame: 12
+          bounds_min_m:
+          - 0.0
+          - 0.0
+          - 5.0
+          bounds_max_m:
+          - 2.0
+          - 2.0
+          - 8.0
+          intensity_min: 1.0
+          intensity_max: 1.0
+          intensity_mean: 1.0
+          voxel_size_m: 4.0
+          planarity_min_points_per_voxel: 6
+          planarity_voxel_count: 2
+          local_planarity_mean: 0.5
+          roughness_mean_m: 0.0
+          map_sharpness_score: 0.5
+          point_to_plane_rmse_train_m: 0.0
+          point_to_plane_rmse_holdout_m: 0.0
+          malformed_files: []
+        lidar_world_map_consistency:
+          status: scored
+          frame_count: 2
+          train_frame_count: 1
+          holdout_frame_count: 1
+          sampled_point_count: 24
+          train_voxel_count: 1
+          train_residual_count: 9
+          holdout_residual_count: 7
+          point_to_plane_rmse_train_m: 0.0
+          point_to_plane_rmse_holdout_m: 8.881784197001252e-16
+          point_to_plane_median_holdout_m: 8.881784197001252e-16
+          point_to_plane_p95_holdout_m: 8.881784197001252e-16
+          reason: null
+          split_policy: temporal_tail_holdout
+          train_frame_ids:
+          - '0000000000'
+          holdout_frame_ids:
+          - '0000000001'
+          dataset_slices:
+          - artifact_id: slice_train_8b4eabdf7707
+            kind: dataset_slice
+            role: train
+            frame_ids:
+            - '0000000000'
+            selection_policy: temporal_tail_holdout
+          - artifact_id: slice_holdout_97739c69d8e3
+            kind: dataset_slice
+            role: holdout
+            frame_ids:
+            - '0000000001'
+            selection_policy: temporal_tail_holdout
+          map_artifact:
+            artifact_id: map_voxel_plane_17144e120725
+            kind: map
+            map_type: voxel_plane_map
+            source_slice_id: slice_train_8b4eabdf7707
+            frame_ids:
+            - '0000000000'
+            dependency_ids:
+            - slice_train_8b4eabdf7707
+          correspondence_artifact:
+            artifact_id: corr_point_to_plane_37dd1a5f5675
+            kind: correspondence
+            correspondence_type: point_to_voxel_plane
+            source_map_id: map_voxel_plane_17144e120725
+            query_slice_id: slice_holdout_97739c69d8e3
+            query_frame_ids:
+            - '0000000001'
+            dependency_ids:
+            - map_voxel_plane_17144e120725
+            - slice_holdout_97739c69d8e3
+          leakage_validation:
+            status: pass
+            issue_count: 0
+            overlapping_frame_ids: []
+            checked_dependency_ids:
+            - slice_train_8b4eabdf7707
+            - slice_holdout_97739c69d8e3
+            - map_voxel_plane_17144e120725
+            - corr_point_to_plane_37dd1a5f5675
+            reason: map and query artifacts use disjoint frame ids
+          stability:
+            status: limited
+            window_count: 1
+            scored_window_count: 1
+            holdout_rmse_mean_m: 8.881784197001252e-16
+            holdout_rmse_min_m: 8.881784197001252e-16
+            holdout_rmse_max_m: 8.881784197001252e-16
+            holdout_rmse_spread_m: 0.0
+            reason: temporal block stability from prefix-train/single-frame-holdout
+              windows
+            windows:
+            - window_id: temporal_prefix_holdout_0001
+              train_frame_ids:
+              - '0000000000'
+              holdout_frame_ids:
+              - '0000000001'
+              train_voxel_count: 1
+              holdout_residual_count: 7
+              holdout_rmse_m: 8.881784197001252e-16
+              status: scored
+        oxts_motion:
+          packet_count: 2
+          timestamp_count: 2
+          duration_sec: 2.0
+          mean_speed_mps: 3.0615528128088303
+          max_speed_mps: 4.123105625617661
+          speed_range_mps: 2.1231056256176606
+          yaw_excitation_deg: 11.459155902616464
+          pitch_excitation_deg: 0.0
+          roll_excitation_deg: 0.0
+          mean_acceleration_norm_mps2: 0.2
+          malformed_files: []
+        timestamp_alignment:
+          camera_lidar_pair_count: 2
+          camera_lidar_mean_abs_dt_ms: 5.0
+          camera_lidar_max_abs_dt_ms: 5.0
+          lidar_oxts_pair_count: 2
+          lidar_oxts_mean_abs_dt_ms: 500.0
+          lidar_oxts_max_abs_dt_ms: 995.0
+          camera_timestamp_count: 2
+          lidar_timestamp_count: 2
+          oxts_timestamp_count: 2
+        camera_lidar_pairs:
+        - camera_index: 0
+          lidar_index: 0
+          camera_timestamp_ns: 1317042000000000000
+          lidar_timestamp_ns: 1317042000005000000
+          delta_ms: 5.0
+          camera_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000000.png
+          lidar_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000000.bin
+          lidar_point_count: 12
+        - camera_index: 1
+          lidar_index: 1
+          camera_timestamp_ns: 1317042001000000000
+          lidar_timestamp_ns: 1317042001005000000
+          delta_ms: 5.0
+          camera_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000001.png
+          lidar_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000001.bin
+          lidar_point_count: 12
+    dataset_initialization:
+      source: kitti_raw
+      status: loaded
+      transforms:
+        T_camera0_lidar0:
+          convention: T_parent_child
+          translation_m:
+          - 0.0
+          - 0.0
+          - 0.0
+          rotation_quat_xyzw:
+          - 0.0
+          - 0.0
+          - 0.0
+          - 1.0
+        T_lidar0_camera0:
+          convention: T_parent_child
+          translation_m:
+          - 0.0
+          - 0.0
+          - 0.0
+          rotation_quat_xyzw:
+          - -0.0
+          - -0.0
+          - -0.0
+          - 1.0
+      applied_to: T_base_link_lidar0
+    koide_lidar_camera_status: not_executed
+    koide_lidar_camera_factor: koide_lidar_camera
+    koide_lidar_camera_command: null
+    koide_lidar_camera_command_available: false
+    koide_lidar_camera_result_path: null
+    koide_lidar_camera_result_exists: false
+    koide_lidar_camera_execute: false
+    koide_lidar_camera_timeout_sec: 600.0
+    koide_lidar_camera_working_dir: null
+    koide_lidar_camera_execution:
+      requested: false
+      attempted: false
+      returncode: null
+      timed_out: false
+      stdout_tail: null
+      stderr_tail: null
+      error: null
+    koide_lidar_camera_camera_streams:
+    - camera_left_color
+    koide_lidar_camera_lidar_streams:
+    - velodyne_points
+    koide_lidar_camera_loaded_transforms: {}
+    license_boundary: external subprocess/precomputed-result adapter; no external
+      calibration code is copied into calibrex core
+    solver_adapter: koide_lidar_camera
+    solver_adapter_status: not_executed
+    public_dataset: kitti_lidar_camera_evidence
+    metrics_origin: cached
+    data_verified: false
+    computed_at: '2026-07-02T22:20:11Z'
+    evidence_note: Small synthetic KITTI-raw-shaped fixture bundled with this example
+      (not real recorded KITTI sensor data, since official KITTI raw data requires
+      a login-gated download); camera-LiDAR metrics are diagnostic overlay evidence
+      on the LiDAR candidate extrinsic, not a standalone camera calibration result.
+frame_graph:
+  root: base_link
+  convention: T_parent_child
+  frames:
+    base_link: null
+    camera0: base_link
+    lidar0: base_link
+candidate_extrinsics:
+  T_base_link_camera0:
+    convention: T_parent_child
+    parent: base_link
+    child: camera0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: warn
+      std_translation_m:
+      - 0.1
+      - 0.1
+      - 0.1
+      std_rotation_deg:
+      - 5.0
+      - 5.0
+      - 5.0
+    estimate_id: T_base_link_camera0
+    provenance:
+      producer: human
+      execution_mode: manual
+      role_in_comparison: candidate
+      evidence_level: imported_without_documented_derivation
+      source: config.frame_graph
+      notes: []
+  T_base_link_lidar0:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: warn
+      std_translation_m:
+      - 0.1
+      - 0.1
+      - 0.1
+      std_rotation_deg:
+      - 5.0
+      - 5.0
+      - 5.0
+    estimate_id: T_base_link_lidar0
+    provenance:
+      producer: human
+      execution_mode: manual
+      role_in_comparison: candidate
+      evidence_level: imported_without_documented_derivation
+      source: config.frame_graph
+      notes: []
+reference_extrinsics: {}
+transforms:
+  T_base_link_camera0:
+    convention: T_parent_child
+    parent: base_link
+    child: camera0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: warn
+      std_translation_m:
+      - 0.1
+      - 0.1
+      - 0.1
+      std_rotation_deg:
+      - 5.0
+      - 5.0
+      - 5.0
+    estimate_id: T_base_link_camera0
+    provenance:
+      producer: calibrex_native
+      execution_mode: offline_batch
+      role_in_comparison: output
+      evidence_level: unknown
+      source: config.frame_graph
+      notes:
+      - alpha output initialized from frame graph before native refinement
+  T_base_link_lidar0:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: warn
+      std_translation_m:
+      - 0.1
+      - 0.1
+      - 0.1
+      std_rotation_deg:
+      - 5.0
+      - 5.0
+      - 5.0
+    estimate_id: T_base_link_lidar0
+    provenance:
+      producer: dataset_provider
+      execution_mode: dataset_reference
+      role_in_comparison: output
+      evidence_level: dataset_provided
+      source: kitti_raw.calib_cam_to_cam_and_calib_velo_to_cam
+      notes:
+      - KITTI calibration composed into rig-frame output estimate
+time_offsets: {}
+metrics:
+  schema_validation:
+    value: 1.0
+    grade: pass
+    reason: schema_validation=1; pass >= 1, warn >= 0.5
+  dataset_exists:
+    value: 1.0
+    grade: pass
+    reason: dataset_exists=1; pass >= 1, warn >= 0.5
+  prototype_solver:
+    value: 0.0
+    grade: warn
+    reason: alpha pipeline emitted initial values; production solver is not yet enabled
+  autonomous_driving_dynamic_holdout:
+    grade: warn
+    reason: dynamic-object holdout and radar-camera-lidar timing checks are required
+      before deployment
+  lidar_frame_coverage:
+    value: 2.0
+    grade: fail
+    unit: frames
+    reason: lidar_frame_coverage=2 frames; pass >= 100 frames, warn >= 10 frames
+  lidar_point_coverage:
+    value: 24.0
+    grade: fail
+    unit: points
+    reason: lidar_point_coverage=24 points; pass >= 200000 points, warn >= 20000 points
+  lidar_spatial_coverage_m:
+    value: 4.123105625617661
+    grade: fail
+    unit: m
+    reason: lidar_spatial_coverage_m=4.12311 m; pass >= 40 m, warn >= 15 m
+  lidar_local_planarity:
+    value: 0.5
+    grade: pass
+    reason: lidar_local_planarity=0.5; pass >= 0.4, warn >= 0.2
+  lidar_map_roughness_m:
+    value: 0.0
+    grade: pass
+    unit: m
+    reason: lidar_map_roughness_m=0 m; pass <= 0.1 m, warn <= 0.25 m
+  lidar_point_to_plane_rmse_m:
+    train: 0.0
+    holdout: 0.0
+    grade: pass
+    unit: m
+    reason: lidar_point_to_plane_rmse_m=0 m; pass <= 0.02 m, warn <= 0.05 m
+  lidar_map_sharpness:
+    value: 0.5
+    grade: pass
+    reason: lidar_map_sharpness=0.5; pass >= 0.3, warn >= 0.1
+  lidar_world_map_train_voxel_count:
+    value: 1.0
+    grade: warn
+    unit: voxels
+    reason: lidar_world_map_train_voxel_count=1 voxels; pass >= 5 voxels, warn >=
+      1 voxels
+  lidar_world_map_holdout_residual_count:
+    value: 7.0
+    grade: warn
+    unit: points
+    reason: lidar_world_map_holdout_residual_count=7 points; pass >= 20 points, warn
+      >= 1 points
+  lidar_world_map_leakage_issue_count:
+    value: 0.0
+    grade: pass
+    unit: issues
+    reason: map and query artifacts use disjoint frame ids
+  lidar_world_map_stability_window_count:
+    value: 1.0
+    grade: warn
+    unit: windows
+    reason: temporal block stability from prefix-train/single-frame-holdout windows
+  lidar_world_map_stability_scored_window_count:
+    value: 1.0
+    grade: warn
+    unit: windows
+    reason: temporal block stability from prefix-train/single-frame-holdout windows
+  lidar_world_map_stability_holdout_rmse_spread_m:
+    value: 0.0
+    grade: warn
+    unit: m
+    reason: temporal block stability from prefix-train/single-frame-holdout windows
+  lidar_world_map_point_to_plane_rmse_m:
+    train: 0.0
+    holdout: 8.881784197001252e-16
+    grade: pass
+    unit: m
+    reason: lidar_world_map_point_to_plane_rmse_m=8.88178e-16 m; pass <= 0.1 m, warn
+      <= 0.3 m
+  lidar_world_map_point_to_plane_median_holdout_m:
+    value: 8.881784197001252e-16
+    grade: warn
+    unit: m
+    reason: median holdout point-to-plane residual against train LiDAR map
+  lidar_world_map_point_to_plane_p95_holdout_m:
+    value: 8.881784197001252e-16
+    grade: pass
+    unit: m
+    reason: lidar_world_map_point_to_plane_p95_holdout_m=8.88178e-16 m; pass <= 0.3
+      m, warn <= 1 m
+  lidar_world_map_perturbation_case_count:
+    value: 12.0
+    grade: pass
+    unit: cases
+    reason: lidar_world_map_perturbation_case_count=12 cases; pass >= 12 cases, warn
+      >= 1 cases
+  lidar_world_map_perturbation_detectable_fraction:
+    value: 0.4166666666666667
+    grade: warn
+    reason: lidar_world_map_perturbation_detectable_fraction=0.416667; pass >= 0.5,
+      warn >= 0.1
+  lidar_world_map_perturbation_train_rmse_delta_mean_m:
+    value: 0.16486743516107993
+    grade: pass
+    unit: m
+    reason: mean perturbed-minus-reference train RMSE against the OXTS-projected LiDAR
+      map
+  lidar_world_map_perturbation_holdout_rmse_delta_mean_m:
+    value: 0.15211812929130064
+    grade: pass
+    unit: m
+    reason: mean perturbed-minus-reference holdout RMSE against the OXTS-projected
+      LiDAR map
+  lidar_world_map_perturbation_holdout_rmse_delta_max_m:
+    value: 0.5634648150906739
+    grade: pass
+    unit: m
+    reason: largest holdout RMSE increase among known world-map perturbations
+  lidar_world_map_perturbation_p95_holdout_delta_mean_m:
+    value: 0.2642208631194068
+    grade: pass
+    unit: m
+    reason: mean perturbed-minus-reference P95 holdout residual
+  lidar_world_map_sensitivity_pitch_m:
+    value: 0.9930210534529142
+    grade: pass
+    unit: m
+    reason: max absolute OXTS world-map residual change for pitch_lidar0; weak if
+      < 0.001 m
+  lidar_world_map_sensitivity_roll_m:
+    value: 0.7837033713954558
+    grade: pass
+    unit: m
+    reason: max absolute OXTS world-map residual change for roll_lidar0; weak if <
+      0.001 m
+  lidar_world_map_sensitivity_x_m:
+    value: 0.0
+    grade: warn
+    unit: m
+    reason: max absolute OXTS world-map residual change for x_lidar0; weak if < 0.001
+      m
+  lidar_world_map_sensitivity_y_m:
+    value: 1.0877919644084142e-15
+    grade: warn
+    unit: m
+    reason: max absolute OXTS world-map residual change for y_lidar0; weak if < 0.001
+      m
+  lidar_world_map_sensitivity_yaw_m:
+    value: 2.6920309688594202e-15
+    grade: warn
+    unit: m
+    reason: max absolute OXTS world-map residual change for yaw_lidar0; weak if <
+      0.001 m
+  lidar_world_map_sensitivity_z_m:
+    value: 0.9914220805285454
+    grade: pass
+    unit: m
+    reason: max absolute OXTS world-map residual change for z_lidar0; weak if < 0.001
+      m
+  lidar_world_map_weak_dof_count:
+    value: 3.0
+    grade: warn
+    unit: dof
+    reason: lidar_world_map_weak_dof_count=3 dof; pass <= 0 dof, warn <= 6 dof
+  lidar_world_map_min_dof_sensitivity_m:
+    value: 0.0
+    grade: fail
+    unit: m
+    reason: lidar_world_map_min_dof_sensitivity_m=0 m; pass >= 0.001 m, warn >= 0.0001
+      m
+  lidar_perturbation_case_count:
+    value: 12.0
+    grade: pass
+    unit: cases
+    reason: lidar_perturbation_case_count=12 cases; pass >= 12 cases, warn >= 1 cases
+  lidar_perturbation_detectable_fraction:
+    value: 0.5833333333333334
+    grade: pass
+    reason: lidar_perturbation_detectable_fraction=0.583333; pass >= 0.5, warn >=
+      0.1
+  lidar_perturbation_train_rmse_delta_mean_m:
+    value: 0.1648674419907777
+    grade: pass
+    unit: m
+    reason: mean perturbed-minus-reference train point-to-plane RMSE; positive means
+      the reference calibration ranks better
+  lidar_perturbation_holdout_rmse_delta_mean_m:
+    value: 0.16486745116678272
+    grade: pass
+    unit: m
+    reason: mean perturbed-minus-reference holdout point-to-plane RMSE; positive means
+      the reference calibration ranks better
+  lidar_perturbation_holdout_rmse_delta_max_m:
+    value: 0.6594697406443172
+    grade: pass
+    unit: m
+    reason: largest holdout RMSE increase among known LiDAR perturbations
+  vehicle_motion_duration_s:
+    value: 2.0
+    grade: fail
+    unit: s
+    reason: vehicle_motion_duration_s=2 s; pass >= 30 s, warn >= 10 s
+  vehicle_mean_speed_mps:
+    value: 3.0615528128088303
+    grade: warn
+    unit: m/s
+    reason: vehicle_mean_speed_mps=3.06155 m/s; pass >= 5 m/s, warn >= 1 m/s
+  vehicle_speed_range_mps:
+    value: 2.1231056256176606
+    grade: warn
+    unit: m/s
+    reason: vehicle_speed_range_mps=2.12311 m/s; pass >= 5 m/s, warn >= 1 m/s
+  vehicle_yaw_excitation_deg:
+    value: 11.459155902616464
+    grade: warn
+    unit: deg
+    reason: vehicle_yaw_excitation_deg=11.4592 deg; pass >= 30 deg, warn >= 10 deg
+  vehicle_pitch_excitation_deg:
+    value: 0.0
+    grade: fail
+    unit: deg
+    reason: vehicle_pitch_excitation_deg=0 deg; pass >= 1 deg, warn >= 0.2 deg
+  vehicle_roll_excitation_deg:
+    value: 0.0
+    grade: fail
+    unit: deg
+    reason: vehicle_roll_excitation_deg=0 deg; pass >= 1 deg, warn >= 0.2 deg
+  vehicle_mean_acceleration_norm_mps2:
+    value: 0.2
+    grade: warn
+    unit: m/s^2
+    reason: vehicle_mean_acceleration_norm_mps2=0.2 m/s^2; pass >= 0.5 m/s^2, warn
+      >= 0.1 m/s^2
+  camera_lidar_timestamp_alignment_ms:
+    value: 5.0
+    grade: pass
+    unit: ms
+    reason: camera_lidar_timestamp_alignment_ms=5 ms; pass <= 10 ms, warn <= 50 ms
+  lidar_oxts_timestamp_alignment_ms:
+    value: 995.0
+    grade: fail
+    unit: ms
+    reason: lidar_oxts_timestamp_alignment_ms=995 ms; pass <= 10 ms, warn <= 50 ms
+  koide_lidar_camera_adapter_available:
+    value: 0.0
+    grade: warn
+    reason: koide_lidar_camera_adapter_available=0; pass >= 1, warn >= 0
+  koide_lidar_camera_input_ready:
+    value: 1.0
+    grade: pass
+    reason: koide_lidar_camera_input_ready=1; pass >= 1, warn >= 0
+  koide_lidar_camera_result_available:
+    value: 0.0
+    grade: warn
+    reason: koide_lidar_camera_result_available=0; pass >= 1, warn >= 0
+  koide_lidar_camera_execution_success:
+    grade: warn
+    reason: external execution was not requested
+  lidar_camera_transform_pairs:
+    value: 1.0
+    grade: pass
+    unit: pairs
+    reason: lidar_camera_transform_pairs=1 pairs; pass >= 1 pairs, warn >= 0 pairs
+  lidar_camera_overlay_readiness:
+    value: 1.0
+    grade: pass
+    reason: lidar_camera_overlay_readiness=1; pass >= 1, warn >= 0
+  lidar_camera_overlay_score:
+    value: 0.6854843633917154
+    grade: warn
+    reason: lidar_camera_overlay_score=0.685484; pass >= 0.75, warn >= 0.4
+  lidar_camera_projection_frame_count:
+    value: 2.0
+    grade: pass
+    unit: frames
+    reason: lidar_camera_projection_frame_count=2 frames; pass >= 2 frames, warn >=
+      0 frames
+  lidar_camera_projected_points:
+    train: 12.0
+    holdout: 12.0
+    grade: pass
+    unit: points
+    reason: lidar_camera_projected_points=12 points; pass >= 5 points, warn >= 1 points
+  lidar_camera_projection_ratio:
+    train: 1.0
+    holdout: 1.0
+    grade: pass
+    reason: lidar_camera_projection_ratio=1; pass >= 0.05, warn >= 0.01
+  lidar_camera_projection_depth_median_m:
+    train: 5.0
+    holdout: 5.0
+    grade: pass
+    unit: m
+    reason: median depth of projected KITTI Velodyne points; mean over 2 KITTI camera-LiDAR
+      frame pair(s)
+  lidar_camera_projection_depth_span_m:
+    train: 3.0
+    holdout: 3.0
+    grade: pass
+    unit: m
+    reason: depth span of projected KITTI Velodyne points; mean over 2 KITTI camera-LiDAR
+      frame pair(s)
+  lidar_camera_projection_horizontal_coverage:
+    train: 0.2
+    holdout: 0.2
+    grade: pass
+    reason: lidar_camera_projection_horizontal_coverage=0.2; pass >= 0.15, warn >=
+      0.05
+  lidar_camera_projection_vertical_coverage:
+    train: 0.2
+    holdout: 0.2
+    grade: pass
+    reason: lidar_camera_projection_vertical_coverage=0.2; pass >= 0.15, warn >= 0.05
+  lidar_camera_edge_alignment_score:
+    train: 0.5
+    holdout: 0.5
+    grade: pass
+    reason: lidar_camera_edge_alignment_score=0.5; pass >= 0.2, warn >= 0.05
+  lidar_camera_edge_gradient_mean:
+    train: 127.5
+    holdout: 127.5
+    grade: pass
+    reason: mean image gradient sampled at projected LiDAR points; mean over 2 KITTI
+      camera-LiDAR frame pair(s)
+  lidar_camera_depth_discontinuity_points:
+    train: 12.0
+    holdout: 12.0
+    grade: pass
+    unit: points
+    reason: lidar_camera_depth_discontinuity_points=12 points; pass >= 3 points, warn
+      >= 1 points
+  lidar_camera_depth_edge_alignment_score:
+    train: 0.5
+    holdout: 0.5
+    grade: pass
+    reason: lidar_camera_depth_edge_alignment_score=0.5; pass >= 0.2, warn >= 0.05
+  lidar_camera_depth_edge_gradient_mean:
+    train: 127.5
+    holdout: 127.5
+    grade: pass
+    reason: mean image gradient at projected LiDAR depth-discontinuity points; mean
+      over 2 KITTI camera-LiDAR frame pair(s)
+  lidar_camera_perturbation_case_count:
+    value: 24.0
+    grade: pass
+    unit: cases
+    reason: lidar_camera_perturbation_case_count=24 cases; pass >= 12 cases, warn
+      >= 1 cases
+  lidar_camera_perturbation_detectable_fraction:
+    value: 0.0
+    grade: fail
+    reason: lidar_camera_perturbation_detectable_fraction=0; pass >= 0.5, warn >=
+      0.1
+  lidar_camera_perturbation_edge_delta_mean:
+    value: 0.0
+    grade: warn
+    reason: known camera-frame perturbations of KITTI T_camera_lidar; positive deltas
+      mean the reference projection score is better
+  lidar_camera_perturbation_depth_edge_delta_mean:
+    value: 0.0
+    grade: warn
+    reason: known camera-frame perturbations of KITTI T_camera_lidar; positive deltas
+      mean the reference projection score is better
+  lidar_camera_perturbation_projection_ratio_delta_mean:
+    value: 0.0
+    grade: warn
+    reason: known camera-frame perturbations of KITTI T_camera_lidar; positive deltas
+      mean the reference projection score is better
+  lidar_camera_mutual_information_score:
+    grade: warn
+    reason: mutual-information image/LiDAR intensity scoring is declared but not computed
+      by the alpha backend
+observability:
+  weak_directions:
+  - uncomputed_alpha_backend
+  - yaw_lidar0
+  - x_lidar0
+  - y_lidar0
+  grade: warn
+degeneracy:
+  grade: warn
+  reason: 'too few local planar LiDAR neighborhoods; short vehicle motion duration:
+    2 s; large LiDAR-OXTS timestamp mismatch: 995 ms; configure Koide-style external
+    command or provide a precomputed result_path; weak LiDAR world-map DoF from perturbation
+    sensitivity: x_lidar0, y_lidar0, yaw_lidar0'
+quality:
+  grade: fail
+  blocking_failures:
+  - lidar_camera_perturbation_detectable_fraction=0; pass >= 0.5, warn >= 0.1
+  - lidar_frame_coverage=2 frames; pass >= 100 frames, warn >= 10 frames
+  - lidar_oxts_timestamp_alignment_ms=995 ms; pass <= 10 ms, warn <= 50 ms
+  - lidar_point_coverage=24 points; pass >= 200000 points, warn >= 20000 points
+  - lidar_spatial_coverage_m=4.12311 m; pass >= 40 m, warn >= 15 m
+  - lidar_world_map_min_dof_sensitivity_m=0 m; pass >= 0.001 m, warn >= 0.0001 m
+  - vehicle_motion_duration_s=2 s; pass >= 30 s, warn >= 10 s
+  - vehicle_pitch_excitation_deg=0 deg; pass >= 1 deg, warn >= 0.2 deg
+  - vehicle_roll_excitation_deg=0 deg; pass >= 1 deg, warn >= 0.2 deg
+  warnings:
+  - dynamic-object holdout and radar-camera-lidar timing checks are required before
+    deployment
+  - koide_lidar_camera_adapter_available=0; pass >= 1, warn >= 0
+  - external execution was not requested
+  - koide_lidar_camera_result_available=0; pass >= 1, warn >= 0
+  - mutual-information image/LiDAR intensity scoring is declared but not computed
+    by the alpha backend
+  - lidar_camera_overlay_score=0.685484; pass >= 0.75, warn >= 0.4
+  - known camera-frame perturbations of KITTI T_camera_lidar; positive deltas mean
+    the reference projection score is better
+  - lidar_world_map_holdout_residual_count=7 points; pass >= 20 points, warn >= 1
+    points
+  - lidar_world_map_perturbation_detectable_fraction=0.416667; pass >= 0.5, warn >=
+    0.1
+  - median holdout point-to-plane residual against train LiDAR map
+  - max absolute OXTS world-map residual change for x_lidar0; weak if < 0.001 m
+  - max absolute OXTS world-map residual change for y_lidar0; weak if < 0.001 m
+  - max absolute OXTS world-map residual change for yaw_lidar0; weak if < 0.001 m
+  - temporal block stability from prefix-train/single-frame-holdout windows
+  - lidar_world_map_train_voxel_count=1 voxels; pass >= 5 voxels, warn >= 1 voxels
+  - lidar_world_map_weak_dof_count=3 dof; pass <= 0 dof, warn <= 6 dof
+  - alpha pipeline emitted initial values; production solver is not yet enabled
+  - vehicle_mean_acceleration_norm_mps2=0.2 m/s^2; pass >= 0.5 m/s^2, warn >= 0.1
+    m/s^2
+  - vehicle_mean_speed_mps=3.06155 m/s; pass >= 5 m/s, warn >= 1 m/s
+  - vehicle_speed_range_mps=2.12311 m/s; pass >= 5 m/s, warn >= 1 m/s
+  - vehicle_yaw_excitation_deg=11.4592 deg; pass >= 30 deg, warn >= 10 deg
+  - 'T_base_link_camera0: transform uncertainty is provisional'
+  - 'T_base_link_lidar0: transform uncertainty is provisional'
+  - 'too few local planar LiDAR neighborhoods; short vehicle motion duration: 2 s;
+    large LiDAR-OXTS timestamp mismatch: 995 ms; configure Koide-style external command
+    or provide a precomputed result_path; weak LiDAR world-map DoF from perturbation
+    sensitivity: x_lidar0, y_lidar0, yaw_lidar0'
+  - observability is not fully established
+  recommendation:
+  - collect a longer fixed-LiDAR sequence before calibration
+  - verify the LiDAR topic, packet decoding, and data extraction before solving
+  - include vertical structure such as facades, poles, ramps, or road grade changes
+  - drive past static planar surfaces such as walls, building fronts, and curbs
+  - collect a fixed-LiDAR sequence with richer turns, grade changes, and static 3D
+    structure
+  - record a longer driving segment with enough motion before fixed-LiDAR calibration
+  - include acceleration, braking, and speed changes in the driving log
+  - include turns, lane changes, or figure-eight style motion for yaw observability
+  - verify sensor timestamp synchronization or enable time-offset estimation
+  - verify camera-LiDAR calibration files and collect logs with clear shared field
+    of view
+  - preserve image exposure and LiDAR intensity fields for mutual-information checks
+  - add cross-modal overlap and holdout sequences before trusting deployment
+  - validate camera-lidar-radar timing on driving logs with dynamic objects held out
+artifacts:
+  html_report: /tmp/kitti_cached_out/report.html
+  rig_3d_viewer: /tmp/kitti_cached_out/artifacts/rig_3d.html
+  camera_lidar_overlay: /tmp/kitti_cached_out/artifacts/camera_lidar_overlay.html
+export: {}

@@ -1,0 +1,125 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: kitti_lidar_camera_evidence
+  description: >-
+    KITTI raw camera-LiDAR diagnostic overlay evidence demo. This evaluates
+    projection/edge-alignment evidence and known-bad perturbation probes for
+    the LiDAR-camera extrinsic; it is not a standalone camera calibration.
+  output_dir: outputs/kitti_lidar_camera_evidence
+  domain: autonomous_driving
+
+dataset:
+  type: kitti_raw
+  path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync
+  time_base: sensor_time_sec
+
+sensors:
+  camera0:
+    type: camera
+    model: pinhole
+    topic: image_02
+    frame_id: camera0
+    intrinsics:
+      estimate: false
+      fx: 10.0
+      fy: 10.0
+      cx: 10.0
+      cy: 10.0
+      distortion_model: none
+      distortion: []
+  lidar0:
+    type: lidar
+    model: velodyne_hdl64e
+    topic: velodyne_points
+    frame_id: lidar0
+    fields: [x, y, z, intensity]
+
+frames:
+  base_link:
+    root: true
+  camera0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+  lidar0:
+    parent: base_link
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+
+pipeline:
+  type: multi_sensor_slac
+  frontends:
+    - lidar_surfel_map
+    - camera_features
+    - lidar_camera_alignment
+  factors:
+    lidar_point_to_surfel:
+      enabled: true
+    lidar_camera_mutual_information:
+      enabled: true
+    koide_lidar_camera:
+      enabled: true
+    fixed_lidar_mount_prior:
+      enabled: true
+      options:
+        translation_sigma_m: 0.05
+        rotation_sigma_deg: 1.0
+
+solver:
+  backend: scipy
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  kitti:
+    max_projection_pairs: 2
+    projection_sample_points: 800
+    perturbation_rotation_deg: [1.0]
+    perturbation_translation_m: [0.10]
+  metrics:
+    - camera_lidar_timestamp_alignment_ms
+    - koide_lidar_camera_adapter_available
+    - koide_lidar_camera_input_ready
+    - koide_lidar_camera_result_available
+    - koide_lidar_camera_execution_success
+    - lidar_camera_transform_pairs
+    - lidar_camera_overlay_readiness
+    - lidar_camera_overlay_score
+    - lidar_camera_projection_frame_count
+    - lidar_camera_projected_points
+    - lidar_camera_projection_ratio
+    - lidar_camera_projection_depth_median_m
+    - lidar_camera_projection_depth_span_m
+    - lidar_camera_projection_horizontal_coverage
+    - lidar_camera_projection_vertical_coverage
+    - lidar_camera_edge_alignment_score
+    - lidar_camera_edge_gradient_mean
+    - lidar_camera_depth_discontinuity_points
+    - lidar_camera_depth_edge_alignment_score
+    - lidar_camera_depth_edge_gradient_mean
+    - lidar_camera_perturbation_case_count
+    - lidar_camera_perturbation_detectable_fraction
+    - lidar_camera_perturbation_edge_delta_mean
+    - lidar_camera_perturbation_depth_edge_delta_mean
+    - lidar_camera_perturbation_projection_ratio_delta_mean
+    - lidar_camera_mutual_information_score
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

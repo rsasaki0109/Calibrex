@@ -98,6 +98,16 @@ def test_config_schema_validates_a2d2_native_point_to_plane_example() -> None:
     jsonschema.validate(config, schema)
 
 
+def test_config_schema_validates_kitti_lidar_camera_evidence_example() -> None:
+    schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
+    config = yaml.safe_load(
+        Path("examples/public_datasets/kitti_lidar_camera_evidence/config.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    jsonschema.validate(config, schema)
+
+
 def test_result_schema_validates_precomputed_example() -> None:
     schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
     result = yaml.safe_load(Path("examples/precomputed/result.yaml").read_text(encoding="utf-8"))
@@ -109,6 +119,16 @@ def test_result_schema_validates_livox_cached_evidence_example() -> None:
     result = yaml.safe_load(
         Path(
             "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    jsonschema.validate(result, schema)
+
+
+def test_result_schema_validates_kitti_lidar_camera_cached_evidence_example() -> None:
+    schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
+    result = yaml.safe_load(
+        Path(
+            "examples/public_datasets/kitti_lidar_camera_evidence/cached_evidence_result.yaml"
         ).read_text(encoding="utf-8")
     )
     jsonschema.validate(result, schema)
