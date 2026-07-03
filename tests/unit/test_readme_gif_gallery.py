@@ -109,7 +109,7 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
     assert online_asset["pipeline"] == {
         "mode": "real_online",
         "source": "calibrex calibrate --online",
-        "timeline_schema_version": "calibrex.online_timeline/v0.1",
+        "timeline_schema_version": "calibrex.online_timeline/v0.2",
     }
     assert online_asset["online_run"]["batch_count"] >= 1
     assert (

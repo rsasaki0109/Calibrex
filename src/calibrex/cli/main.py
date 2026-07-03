@@ -291,6 +291,24 @@ def _build_parser() -> argparse.ArgumentParser:
             "must be > 0.0 and <= 0.9"
         ),
     )
+    calibrate.add_argument(
+        "--accumulation-batches",
+        type=_positive_int,
+        default=1,
+        help=(
+            "online mode: number of accepted batches whose train points are retained "
+            "for observability and solve (1 preserves per-batch behavior)"
+        ),
+    )
+    calibrate.add_argument(
+        "--max-accumulated-train-points",
+        type=_positive_int,
+        default=None,
+        help=(
+            "online mode: optional cap on retained train points when accumulating "
+            "observations across batches"
+        ),
+    )
     calibrate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     calibrate.set_defaults(func=_cmd_calibrate)
 
@@ -768,6 +786,8 @@ def _cmd_calibrate_online(args: argparse.Namespace, config: CalibrationConfig) -
             batch_size=args.batch_size,
             rolling_window=args.rolling_window,
             holdout_ratio=args.holdout_ratio,
+            accumulation_batches=args.accumulation_batches,
+            max_accumulated_train_points=args.max_accumulated_train_points,
         ),
     )
     if args.dry_run:

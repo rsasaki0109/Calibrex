@@ -21,16 +21,28 @@ from calibrex.core.result import (
     TransformResult,
 )
 
-ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.1"] = (
-    "calibrex.online_timeline/v0.1"
+ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.2"] = (
+    "calibrex.online_timeline/v0.2"
 )
 
 # Mirrors the pass/fail/inconclusive semantics of `AssessmentStatus` in
-# `core/assessment.py`: pass means the batch update is adopted, fail means the
-# batch is rejected, and inconclusive means the evidence in this batch cannot
-# support or reject the update. Only pass adopts the batch: for both fail and
-# inconclusive the running estimate and rolling residual window are unchanged
-# (`estimate_accepted` is true exactly when the gate status is pass).
+# `core/assessment.py`, with an online-specific split between evidence failure
+# and observability-only inconclusive batches when multi-batch accumulation is
+# enabled (see ``calibrex.pipelines.online.OnlineCalibrationSession``):
+#
+# - ``pass``: accumulated observability and holdout evidence support adopting
+#   this batch's tentative estimate; the rolling residual window is updated.
+# - ``fail``: known-bad residual evidence (absolute holdout RMSE or rolling
+#   regression spike), or rank deficiency when ``accumulation_batches == 1``;
+#   the batch is fully excluded from the retention buffer.
+# - ``inconclusive``: either too little train/holdout evidence to score, or —
+#   when accumulating — observability alone is insufficient while holdout
+#   evidence on the observable directions is acceptable; the running estimate
+#   and rolling window stay unchanged, but observability-only inconclusive
+#   batches may still enter the retention buffer
+#   (``retained_for_accumulation``).
+#
+# ``estimate_accepted`` is true exactly when the gate status is ``pass``.
 OnlineGateStatus = Literal["pass", "fail", "inconclusive"]
 
 
@@ -50,8 +62,10 @@ class OnlineBatchSnapshot(StrictModel):
     rolling_rmse_m: float | None = None
     rolling_window_residual_count: int = Field(default=0, ge=0)
     observability: ObservabilityResult = Field(default_factory=ObservabilityResult)
+    batch_observability: ObservabilityResult | None = None
     gate_status: OnlineGateStatus
     gate_reason: str
+    retained_for_accumulation: bool = False
     metrics: dict[str, MetricResult] = Field(default_factory=dict)
     provenance: dict[str, Any] = Field(default_factory=dict)
 
@@ -59,7 +73,7 @@ class OnlineBatchSnapshot(StrictModel):
 class OnlineCalibrationTimelineArtifact(StrictModel):
     """Machine-readable per-batch timeline for one online calibration run."""
 
-    schema_version: Literal["calibrex.online_timeline/v0.1"] = (
+    schema_version: Literal["calibrex.online_timeline/v0.2"] = (
         ONLINE_TIMELINE_SCHEMA_VERSION
     )
     run: ReportRunInfo
@@ -70,6 +84,8 @@ class OnlineCalibrationTimelineArtifact(StrictModel):
     rolling_window: int = Field(ge=1)
     holdout_ratio: float = Field(ge=0.0, le=0.9)
     seed: int
+    accumulation_batches: int | None = Field(default=None, ge=1)
+    max_accumulated_train_points: int | None = Field(default=None, ge=1)
     batches: list[OnlineBatchSnapshot] = Field(default_factory=list)
     final_gate_status: OnlineGateStatus
     accepted_batch_count: int = Field(default=0, ge=0)

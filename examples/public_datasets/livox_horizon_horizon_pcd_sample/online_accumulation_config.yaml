@@ -1,0 +1,65 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: livox_horizon_horizon_online_accumulation
+  description: Online Livox Horizon pair calibration with multi-batch observation accumulation.
+  output_dir: outputs/livox_horizon_horizon_online_accumulation
+  domain: robotics
+
+dataset:
+  type: livox_pcd
+  path: data/public/livox_horizon_horizon_pair
+  time_base: frame_index
+
+sensors:
+  base_horizon:
+    type: lidar
+    model: livox_horizon
+    frame_id: base_horizon
+    fields: [x, y, z, intensity]
+  target_horizon:
+    type: lidar
+    model: livox_horizon
+    frame_id: target_horizon
+    fields: [x, y, z, intensity]
+
+frames:
+  base_horizon:
+    root: true
+  target_horizon:
+    parent: base_horizon
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, -0.13, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - livox_pcd_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 1.0
+        correspondence_gate_m: 1.5
+        max_target_points: 4000
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

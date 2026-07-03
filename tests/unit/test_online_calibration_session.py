@@ -225,3 +225,182 @@ def test_online_session_rejects_known_bad_noisy_batch() -> None:
     # the session recovers cleanly on the next good batch
     recovery = session.process_batch(_clean_batch(rng, scene, 90))
     assert recovery.gate_status == "pass"
+
+
+def _patch_points(scene: list[Vector3], patch: str) -> list[Vector3]:
+    if patch == "z":
+        return [point for point in scene if abs(point[2]) < 1.0e-9]
+    if patch == "x":
+        return [point for point in scene if abs(point[0] - 3.0) < 1.0e-9]
+    if patch == "y":
+        return [point for point in scene if abs(point[1] - (-3.0)) < 1.0e-9]
+    msg = f"unknown patch '{patch}'"
+    raise ValueError(msg)
+
+
+def _sample_patch(
+    rng: random.Random, scene: list[Vector3], patch: str, count: int
+) -> list[Vector3]:
+    points = _patch_points(scene, patch)
+    return rng.sample(points, min(count, len(points)))
+
+
+def test_online_session_default_accumulation_matches_pre_change_snapshots() -> None:
+    """Regression: accumulation_batches=1 preserves prior snapshot semantics."""
+
+    scene = _corner_scene()
+    session = _session()
+    rng = random.Random(11)
+
+    snapshots = [session.process_batch(_clean_batch(rng, scene, 90))]
+    snapshots.append(session.process_batch(_clean_batch(rng, scene, 90)))
+
+    for snapshot in snapshots:
+        assert snapshot.batch_observability is None
+        assert "accumulation_batches" not in snapshot.provenance
+        assert snapshot.observability.rank is not None
+        assert snapshot.observability.rank >= 6
+
+
+def test_online_session_degenerate_batches_fail_without_accumulation() -> None:
+    scene = _corner_scene()
+    session = _session()
+    rng = random.Random(12)
+
+    for patch in ("x", "y"):
+        snapshot = session.process_batch(_sample_patch(rng, scene, patch, 40))
+        assert snapshot.gate_status == "fail"
+        assert snapshot.estimate_accepted is False
+        assert snapshot.observability.rank is not None
+        assert snapshot.observability.rank < 6
+        assert "rank-deficient" in snapshot.gate_reason
+
+
+def test_online_session_accumulation_reaches_full_rank_and_converges() -> None:
+    scene = _corner_scene()
+    session = _session(accumulation_batches=3)
+    rng = random.Random(13)
+    true_transform = SE3.identity()
+
+    snapshots = [
+        session.process_batch(_sample_patch(rng, scene, patch, 40))
+        for patch in ("z", "x", "y")
+    ]
+
+    assert snapshots[0].gate_status == "pass"
+    assert snapshots[1].batch_observability is not None
+    assert snapshots[1].batch_observability.rank < 6
+    assert snapshots[1].observability.rank >= 6
+    assert snapshots[1].gate_status == "pass"
+    assert snapshots[2].batch_observability is not None
+    assert snapshots[2].batch_observability.rank < 6
+    assert snapshots[2].observability.rank >= 6
+    assert snapshots[2].gate_status == "pass"
+
+    assert max(abs(value) for value in session.current_estimate.translation_m) < 0.01
+    assert session.current_estimate.translation_m != true_transform.translation_m or (
+        max(abs(value) for value in true_transform.translation_m) < 0.01
+    )
+
+
+def test_online_session_rejected_batch_does_not_contaminate_accumulation() -> None:
+    scene = _corner_scene()
+    session = _session(accumulation_batches=3)
+    rng = random.Random(14)
+
+    first = session.process_batch(_sample_patch(rng, scene, "z", 40))
+    second = session.process_batch(_sample_patch(rng, scene, "x", 40))
+    assert first.gate_status == "pass"
+    assert second.gate_status == "pass"
+    retained_before_bad = second.provenance["retained_batch_count"]
+
+    noisy_batch = [
+        (
+            x + rng.uniform(-0.3, 0.3),
+            y + rng.uniform(-0.3, 0.3),
+            z + rng.uniform(-0.3, 0.3),
+        )
+        for x, y, z in _sample_patch(rng, scene, "y", 40)
+    ]
+    bad = session.process_batch(noisy_batch)
+    assert bad.gate_status == "fail"
+    assert bad.retained_for_accumulation is False
+    assert bad.provenance["retained_batch_count"] == retained_before_bad
+
+    recovery = session.process_batch(_sample_patch(rng, scene, "y", 40))
+    assert recovery.gate_status == "pass"
+    assert recovery.observability.rank >= 6
+    assert recovery.batch_observability is not None
+    assert recovery.batch_observability.rank < 6
+
+
+def test_online_session_pure_degenerate_views_bootstrap_accumulation() -> None:
+    """Purely rank-3 complementary views must bootstrap via retention, not deadlock."""
+
+    scene = _corner_scene()
+    session = _session(accumulation_batches=3)
+    rng = random.Random(11)
+    initial_estimate = session.current_estimate
+
+    z_batch = rng.sample(_patch_points(scene, "z"), 12)
+    x_batch = _sample_patch(rng, scene, "x", 40)
+    y_batch = _sample_patch(rng, scene, "y", 40)
+
+    first = session.process_batch(z_batch)
+    assert first.gate_status == "inconclusive"
+    assert first.retained_for_accumulation is True
+    assert first.estimate_accepted is False
+    assert first.batch_observability is not None
+    assert first.batch_observability.rank < 6
+    assert first.observability.rank < 6
+    assert session.current_estimate.translation_m == initial_estimate.translation_m
+
+    second = session.process_batch(x_batch)
+    assert second.gate_status == "inconclusive"
+    assert second.retained_for_accumulation is True
+    assert second.estimate_accepted is False
+    assert second.batch_observability is not None
+    assert second.batch_observability.rank < 6
+    assert second.observability.rank < 6
+    assert session.current_estimate.translation_m == initial_estimate.translation_m
+
+    third = session.process_batch(y_batch)
+    assert third.gate_status == "pass"
+    assert third.retained_for_accumulation is False
+    assert third.estimate_accepted is True
+    assert third.observability.rank >= 6
+    assert third.batch_observability is not None
+    assert third.batch_observability.rank < 6
+    assert max(abs(value) for value in session.current_estimate.translation_m) < 0.01
+
+
+def test_online_session_known_bad_degenerate_batch_not_retained() -> None:
+    """Holdout evidence failure among degenerate views must not enter the buffer."""
+
+    scene = _corner_scene()
+    session = _session(accumulation_batches=3)
+    rng = random.Random(11)
+
+    session.process_batch(rng.sample(_patch_points(scene, "z"), 12))
+    session.process_batch(_sample_patch(rng, scene, "x", 40))
+    retained_before_bad = session.history[-1].provenance["retained_batch_count"]
+    estimate_before_bad = session.current_estimate
+
+    noisy_y = [
+        (
+            x + rng.uniform(-0.3, 0.3),
+            y + rng.uniform(-0.3, 0.3),
+            z + rng.uniform(-0.3, 0.3),
+        )
+        for x, y, z in _sample_patch(rng, scene, "y", 40)
+    ]
+    bad = session.process_batch(noisy_y)
+    assert bad.gate_status == "fail"
+    assert bad.retained_for_accumulation is False
+    assert bad.provenance["retained_batch_count"] == retained_before_bad
+    assert session.current_estimate.translation_m == estimate_before_bad.translation_m
+
+    recovery = session.process_batch(_sample_patch(rng, scene, "y", 40))
+    assert recovery.gate_status == "pass"
+    assert recovery.observability.rank >= 6
+    assert max(abs(value) for value in session.current_estimate.translation_m) < 0.01
