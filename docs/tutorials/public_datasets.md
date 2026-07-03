@@ -157,9 +157,12 @@ shows slightly higher and more variable batch holdout RMSE (ring-sampled Velodyn
 planes vs non-repetitive Horizon stripes) but still passes the same gates. FOV
 overlap is sufficient in the static room sequence: the Velodyne 360° map covers
 structure that reappears in forward-facing Horizon scans. Final estimate
-`T_velodyne_vlp16_livox_horizon` (translation ~[0.12, 0.11, −0.16] m, near the
-TIERS nominal seed) is recorded in `outputs/tiers_livox_lidars_cali_online_mixed/result.yaml`
-with full rosbag replay provenance.
+`T_velodyne_vlp16_livox_horizon` (translation ~[0.12, 0.11, −0.16] m) sits about
+0.16 m from the TIERS nominal GICP seed — a shift on the order of the measured
+holdout residuals, so the two references agree only to that residual level rather
+than confirming each other tightly. It is recorded in
+`outputs/tiers_livox_lidars_cali_online_mixed/result.yaml` with full rosbag replay
+provenance.
 
 `calibrex inspect --type rosbag1` lists every `sensor_msgs/PointCloud2` topic
 with message counts, and samples a few messages per topic to report decoded
