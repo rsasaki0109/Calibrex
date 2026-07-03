@@ -46,7 +46,8 @@ class CdrWriter:
     def align(self, alignment: int) -> None:
         if alignment <= 1:
             return
-        padding = (-len(self._buf)) % alignment
+        relative_offset = len(self._buf) - 4
+        padding = (-relative_offset) % alignment
         self._buf.extend(b"\x00" * padding)
 
     def write_int32(self, value: int) -> None:
@@ -586,6 +587,59 @@ def test_cdr_reader_roundtrip_primitives() -> None:
     assert reader.read_int32() == -7
     assert reader.read_uint32() == 9
     assert reader.read_string() == "frame"
+
+
+def test_rosbag2_odometry_golden_cdr_vector() -> None:
+    """Decode a hand-assembled XCDR1 Odometry payload (no CdrWriter).
+
+    Offset arithmetic is relative to byte 4 (first byte after encapsulation):
+      rel  0- 3: stamp.sec=1, stamp.nanosec=2
+      rel  8-11: frame_id length=5
+      rel 12-16: "odom\\0"
+      rel 17-19: pad 3 bytes (17 mod 4 = 1) before child_frame_id length
+      rel 20-23: child_frame_id length=5
+      rel 24-28: "base\\0"
+      rel 29-31: pad 3 bytes (29 mod 8 = 5) before first float64
+      rel 32-39: pose.position.x = 1.0  -> absolute byte 36
+    """
+
+    payload = bytes.fromhex(
+        "01000000"  # encapsulation (LE CDR)
+        "01000000"  # rel 0: stamp.sec = 1
+        "02000000"  # rel 4: stamp.nanosec = 2
+        "05000000"  # rel 8: frame_id length = 5
+        "6f646f6d00"  # rel 12: "odom\\0"
+        "000000"  # rel 17: pad to 4-byte boundary
+        "05000000"  # rel 20: child_frame_id length = 5
+        "6261736500"  # rel 24: "base\\0"
+        "000000"  # rel 29: pad to 8-byte boundary
+        "000000000000f03f"  # rel 32: pose.position.x = 1.0
+        "0000000000000040"  # rel 40: pose.position.y = 2.0
+        "0000000000000840"  # rel 48: pose.position.z = 3.0
+        "0000000000001040"  # rel 56: pose.orientation.x = 4.0
+        "0000000000001440"  # rel 64: pose.orientation.y = 5.0
+        "0000000000001840"  # rel 72: pose.orientation.z = 6.0
+        "0000000000001c40"  # rel 80: pose.orientation.w = 7.0
+        + "00" * (8 * 78)  # rel 88: pose/twist covariances and twist velocities = 0.0
+    )
+    first_float64_abs = 36
+    assert struct.unpack_from("<d", payload, first_float64_abs)[0] == pytest.approx(1.0)
+
+    decoded = decode_ros2_odometry("/odom", 99, payload)
+    assert decoded.timestamp_ns == 1_000_000_002
+    assert decoded.frame_id == "odom"
+    assert decoded.child_frame_id == "base"
+    assert decoded.position == pytest.approx((1.0, 2.0, 3.0))
+    assert decoded.orientation_xyzw == pytest.approx((4.0, 5.0, 6.0, 7.0))
+
+    reader = CdrReader(payload)
+    reader.read_int32()
+    reader.read_uint32()
+    reader.read_string()
+    reader.read_string()
+    reader.align(8)
+    assert reader.offset == first_float64_abs
+    assert reader.read_float64() == pytest.approx(1.0)
 
 
 def test_rosbag2_odometry_covariance_decode() -> None:

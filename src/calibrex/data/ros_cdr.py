@@ -44,11 +44,16 @@ class CdrReader:
         return self._offset
 
     def align(self, alignment: int) -> None:
-        """Advance the cursor to the next ``alignment``-byte boundary."""
+        """Advance the cursor to the next ``alignment``-byte boundary.
+
+        XCDR1 alignment is relative to the first payload byte after the
+        4-byte encapsulation header (absolute offset 4).
+        """
 
         if alignment <= 1:
             return
-        padding = (-self._offset) % alignment
+        relative_offset = self._offset - 4
+        padding = (-relative_offset) % alignment
         self._offset += padding
 
     def read_bool(self) -> bool:
