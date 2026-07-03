@@ -109,6 +109,58 @@ and rolling RMSE. Gate thresholds are declared under
 recorded in `result.yaml` provenance. The example config uses a 60 s Avia replay
 slice (`max_replay_duration_s`) so a multi-gigabyte bag stays stream-bounded.
 
+On a bounded replay of the same bag (12 source messages / 8k source points, 36
+target messages / 54k target points, 60 s budget,
+`--batch-size 500 --accumulation-batches 3 --max-accumulated-train-points 8000`),
+the Horizon→Avia run produced 108 target batches (500 points each) from 36 Avia
+messages. All 108 batches passed the gates with full rank 6, per-batch holdout
+RMSE between 0.05 m and 0.23 m (mean ~0.14 m), and final rolling RMSE near
+0.14 m.
+
+### Spinning × solid-state (Velodyne VLP-16 → Livox Horizon)
+
+The same bag also carries spinning-LiDAR `sensor_msgs/PointCloud2` topics
+(`/velodyne_points`, `/os_cloud_node/points`, `/os_cloud_nodee/points`) beside
+the Livox `CustomMsg` streams. `calibrex inspect --type rosbag1` reports message
+counts and sampled decoded point counts for every LiDAR topic without loading the
+full bag.
+
+Online mixed-pair calibration uses the Velodyne as the fixed 360° source map and
+streams Livox Horizon target batches—the same source/target split recommended for
+heterogeneous pairs where the denser scanner should anchor the voxel map:
+
+```bash
+calibrex calibrate examples/public_datasets/tiers_livox_lidars_cali/online_mixed_config.yaml \
+  --online \
+  --batch-size 500 \
+  --accumulation-batches 3 \
+  --max-accumulated-train-points 8000
+```
+
+The mixed config seeds `frames.livox_horizon.transform.initial` from the TIERS
+dataset README GICP extrinsics (`velo_sensor` and `hori_frame` relative to
+`base_link` in section 5.4); it is not hand-tuned to the online estimate. The
+rig baseline is small (~0.30 m translation magnitude in that nominal seed).
+
+On the same bounded replay budgets as the Horizon→Avia run above, a Velodyne→Horizon
+replay produced 108 Horizon batches (500 points each) over ~3.6 s of bag time
+(36 target messages consumed). All 108 batches passed (`online_gate_min_rank: 6`,
+`online_gate_max_holdout_rmse_m: 0.40`, `online_gate_max_rolling_regression_m:
+0.15`). Batch-only and accumulated observability stayed at rank 6 with condition
+number ~8–14 and no weak DoF warnings. Per-batch holdout RMSE ranged 0.09–0.23 m
+(mean ~0.16 m); rolling RMSE settled near 0.16 m. Gate thresholds match the
+Horizon→Avia example because measured residuals sit in the same band—there was no
+reason to relax them for the heterogeneous pair.
+
+Compared with solid-state→solid-state (Horizon→Avia), the spinning×solid-state pair
+shows slightly higher and more variable batch holdout RMSE (ring-sampled Velodyne
+planes vs non-repetitive Horizon stripes) but still passes the same gates. FOV
+overlap is sufficient in the static room sequence: the Velodyne 360° map covers
+structure that reappears in forward-facing Horizon scans. Final estimate
+`T_velodyne_vlp16_livox_horizon` (translation ~[0.12, 0.11, −0.16] m, near the
+TIERS nominal seed) is recorded in `outputs/tiers_livox_lidars_cali_online_mixed/result.yaml`
+with full rosbag replay provenance.
+
 `calibrex inspect --type rosbag1` lists every `sensor_msgs/PointCloud2` topic
 with message counts, and samples a few messages per topic to report decoded
 point counts, intensity presence, spatial bounds, and first/last ROS
