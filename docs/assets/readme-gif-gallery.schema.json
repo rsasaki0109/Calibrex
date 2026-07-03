@@ -77,7 +77,7 @@
             "minimum": 1
           },
           "source": {
-            "enum": ["a2d2", "livox-horizon-horizon"]
+            "enum": ["a2d2", "livox-horizon-horizon", "tiers-lidars-cali"]
           },
           "visual": {
             "enum": ["evidence", "online"]
@@ -196,38 +196,116 @@
             "type": "array",
             "minItems": 1,
             "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["kind", "url"],
-              "properties": {
-                "kind": {
-                  "enum": ["npz_range_from_tar", "pcd_tar_gz", "sensor_metadata_json"]
-                },
-                "url": {
-                  "type": "string",
-                  "format": "uri"
-                },
-                "selected_member": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "byte_range": {
-                  "type": "array",
-                  "prefixItems": [
-                    {
-                      "type": "integer",
-                      "minimum": 0
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["kind", "url"],
+                  "properties": {
+                    "kind": {
+                      "enum": ["npz_range_from_tar", "pcd_tar_gz", "sensor_metadata_json"]
                     },
-                    {
-                      "type": "integer",
-                      "minimum": 0
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "selected_member": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "byte_range": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      ],
+                      "items": false,
+                      "minItems": 2,
+                      "maxItems": 2
                     }
-                  ],
-                  "items": false,
-                  "minItems": 2,
-                  "maxItems": 2
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["kind", "url", "bag_file", "replay_budgets"],
+                  "properties": {
+                    "kind": {
+                      "const": "rosbag1_local_dataset"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "bag_file": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "size_bytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "sha256_first_mib": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "replay_budgets": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "batch_size",
+                        "holdout_ratio",
+                        "max_replay_duration_s",
+                        "max_source_messages",
+                        "max_source_points",
+                        "max_target_messages",
+                        "max_target_points",
+                        "rolling_window"
+                      ],
+                      "properties": {
+                        "max_source_messages": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "max_source_points": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "max_target_messages": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "max_target_points": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "max_replay_duration_s": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "batch_size": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "holdout_ratio": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "rolling_window": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      }
+                    }
+                  }
                 }
-              }
+              ]
             }
           }
         }

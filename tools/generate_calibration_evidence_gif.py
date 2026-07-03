@@ -28,6 +28,8 @@ from typing import Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
+import yaml
+
 WIDTH = 960
 HEIGHT = 540
 FPS = 12
@@ -76,6 +78,24 @@ LIVOX_TARGET_PCD_URL = (
 )
 LIVOX_BASE_SAMPLE_NAME = "base_horizon_100432.pcd"
 LIVOX_TARGET_SAMPLE_NAME = "target_horizon_100538.pcd"
+TIERS_MANIFEST_PATH = Path("examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml")
+TIERS_BAG_PATH = Path("data/public/tiers_lidars_cali/LidarsCali.bag")
+TIERS_BAG_NAME = "LidarsCali.bag"
+TIERS_HORIZON_TOPIC = "/livox/lidar"
+TIERS_AVIA_TOPIC = "/avia/livox/lidar"
+TIERS_SHA256_PREFIX_BYTES = 1024 * 1024
+# README hero GIF replay budgets (subset of the full TIERS online_config).
+TIERS_GIF_MAX_SOURCE_MESSAGES = 1
+TIERS_GIF_MAX_SOURCE_POINTS = 8000
+TIERS_GIF_MAX_TARGET_MESSAGES = 14
+TIERS_GIF_MAX_TARGET_POINTS = 1500
+TIERS_GIF_MAX_REPLAY_DURATION_S = 60.0
+TIERS_GIF_BATCH_SIZE = 1500
+TIERS_GIF_HOLDOUT_RATIO = 0.2
+TIERS_GIF_ROLLING_WINDOW = 2000
+TIERS_GIF_MIN_RANK = 6
+TIERS_GIF_MAX_HOLDOUT_RMSE_M = 0.40
+TIERS_GIF_MAX_ROLLING_REGRESSION_M = 0.15
 
 SCENE_PANEL = (28, 86, 594, 426)
 RIGHT_PANEL = (650, 92, 278, 414)
@@ -192,11 +212,9 @@ class ReadmeGifJob:
 
 README_GIF_JOBS = (
     ReadmeGifJob(
-        source="a2d2",
+        source="tiers-lidars-cali",
         output=Path("docs/assets/online-calibration-loop.gif"),
         visual="online",
-        a2d2_source_id=0,
-        a2d2_target_id=1,
     ),
     ReadmeGifJob(
         source="livox-horizon-horizon",
@@ -221,7 +239,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--source",
-        choices=["livox-horizon-horizon", "a2d2"],
+        choices=["livox-horizon-horizon", "a2d2", "tiers-lidars-cali"],
         default="livox-horizon-horizon",
         help="Public data source used to generate the evidence animation.",
     )
@@ -303,6 +321,7 @@ def main() -> int:
     )
     generate_gif(
         output=args.output,
+        source=args.source,
         frames=args.frames,
         cloud_pair=cloud_pair,
         lidars=lidars,
@@ -335,7 +354,19 @@ def generate_readme_gallery(
     """Generate every README GIF from its public data source."""
 
     manifest_assets: list[dict[str, object]] = []
+    existing_manifest = load_readme_gallery_manifest_if_exists()
     for job in README_GIF_JOBS:
+        if job.source == "tiers-lidars-cali" and not tiers_bag_available():
+            print(
+                f"Skipping {job.output}: {TIERS_BAG_PATH} is not present. "
+                "Download TIERS LidarsCali from "
+                "examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml "
+                f"and place the bag at {TIERS_BAG_PATH}."
+            )
+            preserved = find_manifest_asset(existing_manifest, job.output)
+            if preserved is not None:
+                manifest_assets.append(preserved)
+            continue
         cloud_pair, lidars, metadata_source = load_gif_inputs(
             source=job.source,
             data_dir=None,
@@ -347,6 +378,7 @@ def generate_readme_gallery(
         )
         generate_gif(
             output=job.output,
+            source=job.source,
             frames=frames,
             cloud_pair=cloud_pair,
             lidars=lidars,
@@ -420,6 +452,23 @@ def readme_gallery_manifest_asset(
             "source": A2D2_LIDAR_ID_TO_NAME[job.a2d2_source_id],
             "target_lidar_id": job.a2d2_target_id,
             "target": A2D2_LIDAR_ID_TO_NAME[job.a2d2_target_id],
+        }
+    elif job.source == "tiers-lidars-cali":
+        download_url = load_tiers_download_url()
+        bag_path = TIERS_BAG_PATH
+        rosbag_input: dict[str, object] = {
+            "kind": "rosbag1_local_dataset",
+            "url": download_url,
+            "bag_file": TIERS_BAG_NAME,
+            "replay_budgets": tiers_gif_replay_budgets(),
+        }
+        if bag_path.exists():
+            rosbag_input["size_bytes"] = bag_path.stat().st_size
+            rosbag_input["sha256_first_mib"] = sha256_file_prefix(bag_path)
+        public_inputs = [rosbag_input]
+        sensor_pair = {
+            "source": "livox_horizon",
+            "target": "livox_avia",
         }
     else:
         raise SystemExit(f"unsupported README GIF source: {job.source}")
@@ -575,6 +624,72 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def sha256_file_prefix(path: Path, *, nbytes: int = TIERS_SHA256_PREFIX_BYTES) -> str:
+    """Return SHA-256 of the first ``nbytes`` of a large local file."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        digest.update(handle.read(nbytes))
+    return digest.hexdigest()
+
+
+def tiers_bag_available() -> bool:
+    """Return whether the local TIERS LidarsCali bag is present."""
+
+    return TIERS_BAG_PATH.is_file()
+
+
+def load_tiers_download_url() -> str:
+    """Read the TIERS dataset SharePoint download URL from the example manifest."""
+
+    payload = yaml.safe_load(TIERS_MANIFEST_PATH.read_text(encoding="utf-8"))
+    provenance = payload.get("provenance", {})
+    if not isinstance(provenance, dict):
+        raise SystemExit(f"{TIERS_MANIFEST_PATH} is missing provenance metadata")
+    download_url = provenance.get("download_url")
+    if not isinstance(download_url, str) or not download_url:
+        raise SystemExit(f"{TIERS_MANIFEST_PATH} is missing provenance.download_url")
+    return download_url
+
+
+def tiers_gif_replay_budgets() -> dict[str, object]:
+    """Return the bounded replay budgets used for the README hero online GIF."""
+
+    return {
+        "max_source_messages": TIERS_GIF_MAX_SOURCE_MESSAGES,
+        "max_source_points": TIERS_GIF_MAX_SOURCE_POINTS,
+        "max_target_messages": TIERS_GIF_MAX_TARGET_MESSAGES,
+        "max_target_points": TIERS_GIF_MAX_TARGET_POINTS,
+        "max_replay_duration_s": TIERS_GIF_MAX_REPLAY_DURATION_S,
+        "batch_size": TIERS_GIF_BATCH_SIZE,
+        "holdout_ratio": TIERS_GIF_HOLDOUT_RATIO,
+        "rolling_window": TIERS_GIF_ROLLING_WINDOW,
+    }
+
+
+def load_readme_gallery_manifest_if_exists() -> dict[str, object] | None:
+    """Return the committed README GIF gallery manifest when present."""
+
+    if not README_GIF_MANIFEST.exists():
+        return None
+    return json.loads(README_GIF_MANIFEST.read_text(encoding="utf-8"))
+
+
+def find_manifest_asset(
+    manifest: dict[str, object] | None,
+    output: Path,
+) -> dict[str, object] | None:
+    """Return one gallery manifest asset entry by output path."""
+
+    if manifest is None:
+        return None
+    output_text = str(output)
+    for asset in manifest.get("assets", []):
+        if isinstance(asset, dict) and asset.get("output") == output_text:
+            return asset
+    return None
+
+
 def load_gif_inputs(
     *,
     source: str,
@@ -617,12 +732,26 @@ def load_gif_inputs(
             metadata_source = "A2D2 public cams_lidars.json"
         return cloud_pair, lidars, metadata_source
 
+    if source == "tiers-lidars-cali":
+        if not tiers_bag_available():
+            raise SystemExit(
+                f"{TIERS_BAG_PATH} is required for the TIERS hero GIF. Download "
+                "LidarsCali.bag using examples/public_datasets/tiers_livox_lidars_cali/"
+                "manifest.yaml or run --readme-gallery to skip this asset when absent."
+            )
+        return (
+            load_tiers_livox_cloud_pair(TIERS_BAG_PATH),
+            tiers_livox_setup(),
+            "TIERS LidarsCali static rig (Livox Horizon + Avia)",
+        )
+
     raise SystemExit(f"unsupported GIF source: {source}")
 
 
 def generate_gif(
     *,
     output: Path,
+    source: str,
     frames: int,
     cloud_pair: LidarCloudPair,
     lidars: list[LidarPose],
@@ -638,15 +767,21 @@ def generate_gif(
     output.parent.mkdir(parents=True, exist_ok=True)
     online_run: OnlineGifRun | None = None
     if visual == "online":
-        sample_path = cloud_pair.source_path
-        online_run = run_online_gif_pipeline(
-            sample_path=sample_path,
-            source_lidar_id=a2d2_source_id,
-            target_lidar_id=a2d2_target_id,
-            frames=frames,
-            data_dir=data_dir,
-            allow_network=allow_network,
-        )
+        if source == "tiers-lidars-cali":
+            online_run = run_tiers_online_gif_pipeline(
+                bag_path=TIERS_BAG_PATH,
+                frames=frames,
+            )
+        else:
+            sample_path = cloud_pair.source_path
+            online_run = run_online_gif_pipeline(
+                sample_path=sample_path,
+                source_lidar_id=a2d2_source_id,
+                target_lidar_id=a2d2_target_id,
+                frames=frames,
+                data_dir=data_dir,
+                allow_network=allow_network,
+            )
         write_online_run_cache(output, online_run)
 
     with tempfile.TemporaryDirectory(prefix="calibrex_lidar_lidar_gif_") as tmp_name:
@@ -789,6 +924,160 @@ def run_online_gif_pipeline(
             final_gate_status=timeline.final_gate_status,
             gate_thresholds=gif_gate_thresholds,
         )
+
+
+def run_tiers_online_gif_pipeline(
+    *,
+    bag_path: Path,
+    frames: int,
+) -> OnlineGifRun:
+    """Run `calibrex calibrate --online` on the TIERS LidarsCali rosbag."""
+
+    from calibrex.core.io import read_mapping
+    from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
+    from calibrex.pipelines.online import (
+        OnlineCalibrationRunOptions,
+        OnlineGateThresholds,
+        run_online_calibration,
+    )
+
+    gate_thresholds = OnlineGateThresholds(
+        min_rank=TIERS_GIF_MIN_RANK,
+        max_holdout_rmse_m=TIERS_GIF_MAX_HOLDOUT_RMSE_M,
+        max_rolling_regression_m=TIERS_GIF_MAX_ROLLING_REGRESSION_M,
+    )
+    gif_gate_thresholds = OnlineGifGateThresholds(
+        min_rank=gate_thresholds.min_rank,
+        max_holdout_rmse_m=gate_thresholds.max_holdout_rmse_m,
+        max_rolling_regression_m=gate_thresholds.max_rolling_regression_m,
+    )
+
+    with tempfile.TemporaryDirectory(prefix="calibrex_tiers_online_gif_") as tmp_name:
+        tmp = Path(tmp_name)
+        output_dir = tmp / "outputs"
+        config_path = write_tiers_online_gif_config(
+            config_path=tmp / "online_config.yaml",
+            bag_path=bag_path.resolve(),
+            output_dir=output_dir,
+        )
+        result = run_online_calibration(
+            config_path,
+            OnlineCalibrationRunOptions(
+                output_dir=output_dir,
+                batch_size=TIERS_GIF_BATCH_SIZE,
+                rolling_window=TIERS_GIF_ROLLING_WINDOW,
+                holdout_ratio=TIERS_GIF_HOLDOUT_RATIO,
+                gate_thresholds=gate_thresholds,
+            ),
+        )
+        if result is None:
+            raise SystemExit(
+                "TIERS online GIF generation requires a real online calibration run"
+            )
+
+        timeline_path = Path(result.run.provenance["online_timeline_path"])
+        timeline = OnlineCalibrationTimelineArtifact.model_validate(read_mapping(timeline_path))
+        if not timeline.batches:
+            raise SystemExit("TIERS online calibration produced no timeline batches for the GIF")
+
+        initial_transform = _transform_result_to_se3(timeline.batches[0].estimate)
+        final_transform = _accepted_transform_at_batch(timeline.batches, len(timeline.batches) - 1)
+        frame_states = build_online_gif_frame_states(
+            timeline=timeline,
+            frames=frames,
+            initial_transform=initial_transform,
+            final_transform=final_transform,
+        )
+        return OnlineGifRun(
+            timeline_path=timeline_path,
+            frame_states=tuple(frame_states),
+            batch_count=len(timeline.batches),
+            accepted_batch_count=timeline.accepted_batch_count,
+            rejected_batch_count=timeline.rejected_batch_count,
+            inconclusive_batch_count=timeline.inconclusive_batch_count,
+            final_gate_status=timeline.final_gate_status,
+            gate_thresholds=gif_gate_thresholds,
+        )
+
+
+def write_tiers_online_gif_config(
+    *,
+    config_path: Path,
+    bag_path: Path,
+    output_dir: Path,
+) -> Path:
+    """Write a bounded TIERS online config for the README hero GIF."""
+
+    config_path.write_text(
+        f"""
+schema_version: calibrex.config/v0.1
+project:
+  name: readme_tiers_online_gif
+  output_dir: {output_dir}
+dataset:
+  type: rosbag1
+  path: {bag_path}
+  time_base: ros_time
+sensors:
+  livox_horizon:
+    type: lidar
+    model: livox_horizon
+    topic: {TIERS_HORIZON_TOPIC}
+    frame_id: horizon_frame
+    fields: [x, y, z, intensity]
+  livox_avia:
+    type: lidar
+    model: livox_avia
+    topic: {TIERS_AVIA_TOPIC}
+    frame_id: avia_frame
+    fields: [x, y, z, intensity]
+frames:
+  livox_horizon:
+    root: true
+  livox_avia:
+    parent: livox_horizon
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag1_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: {TIERS_GIF_MAX_SOURCE_POINTS}
+        max_source_messages: {TIERS_GIF_MAX_SOURCE_MESSAGES}
+        max_target_points: {TIERS_GIF_MAX_TARGET_POINTS}
+        max_target_messages: {TIERS_GIF_MAX_TARGET_MESSAGES}
+        max_replay_duration_s: {TIERS_GIF_MAX_REPLAY_DURATION_S}
+        online_gate_min_rank: {TIERS_GIF_MIN_RANK}
+        online_gate_max_holdout_rmse_m: {TIERS_GIF_MAX_HOLDOUT_RMSE_M}
+        online_gate_max_rolling_regression_m: {TIERS_GIF_MAX_ROLLING_REGRESSION_M}
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+evaluation:
+  holdout_ratio: {TIERS_GIF_HOLDOUT_RATIO}
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
+""",
+        encoding="utf-8",
+    )
+    return config_path
 
 
 def write_a2d2_online_gif_config(
@@ -1478,6 +1767,120 @@ def livox_horizon_setup() -> list[LidarPose]:
     ]
 
 
+def tiers_livox_setup() -> list[LidarPose]:
+    """Return a compact static rig for the TIERS Horizon-to-Avia pair."""
+
+    return [
+        LidarPose("livox_horizon", (1.52, -0.22, 1.14)),
+        LidarPose("livox_avia", (1.64, 0.28, 1.10)),
+    ]
+
+
+def load_tiers_livox_cloud_pair(bag_path: Path) -> LidarCloudPair:
+    """Load subsampled TIERS Livox Horizon and Avia points for GIF preview."""
+
+    from calibrex.data.rosbag1 import LIDAR_MESSAGE_TYPES, decode_bag_lidar_message, iter_messages
+
+    source_points: list[Point3] = []
+    target_points: list[Point3] = []
+    source_total = 0
+    target_total = 0
+    topics = {TIERS_HORIZON_TOPIC, TIERS_AVIA_TOPIC}
+    for connection, timestamp_ns, data in iter_messages(bag_path, topics=topics):
+        if connection.message_type not in LIDAR_MESSAGE_TYPES:
+            continue
+        if connection.topic == TIERS_HORIZON_TOPIC and source_total > 0:
+            continue
+        if connection.topic == TIERS_AVIA_TOPIC and target_total > 0:
+            continue
+        message = decode_bag_lidar_message(
+            connection.topic,
+            connection.message_type,
+            timestamp_ns,
+            data,
+        )
+        points, total = _filter_livox_xyz_for_gif(message.xyz, stride=6)
+        if connection.topic == TIERS_HORIZON_TOPIC:
+            source_points = points
+            source_total = total
+        else:
+            target_points = points
+            target_total = total
+        if source_total > 0 and target_total > 0:
+            break
+
+    if not source_points or not target_points:
+        raise SystemExit(f"{bag_path} does not contain usable TIERS Livox point samples")
+
+    shared_voxels, source_recall, centroid_rmse = voxel_support_metrics(
+        source_points,
+        target_points,
+        voxel_size_m=0.75,
+    )
+    return LidarCloudPair(
+        source_points=source_points[:2400],
+        target_points=target_points[:2400],
+        source_label="Livox Horizon points",
+        target_label="Livox Avia points",
+        bar_labels=(
+            "0.75 m voxel recall",
+            "rolling residual",
+            "holdout gate",
+            "provenance lock",
+        ),
+        bar_values=(
+            min(1.0, source_recall / 0.20),
+            1.0,
+            1.0,
+            1.0,
+        ),
+        source_pose_name="livox_horizon",
+        target_pose_name="livox_avia",
+        source_total=source_total,
+        target_total=target_total,
+        source_path=bag_path,
+        subtitle="TIERS LidarsCali: Livox Horizon -> Avia solid-state pair",
+        scene_caption="Real TIERS static-rig returns: non-repetitive-scan Livox streams",
+        legend="green: Horizon reference stream   cyan/pink: Avia estimate converging",
+        provenance="provenance: TIERS LidarsCali rosbag1",
+        shared_voxel_count=shared_voxels,
+        source_recall=source_recall,
+        shared_centroid_rmse_m=centroid_rmse,
+        holdout_plane_match_count=0,
+        holdout_point_to_plane_p90_m=0.0,
+        holdout_unmatched_fraction=0.0,
+        known_bad_detectable_fraction=0.0,
+        known_bad_max_rmse_delta_m=0.0,
+        known_bad_max_point_to_plane_p90_delta_m=0.0,
+        support_summary=f"{shared_voxels} shared 0.75 m voxels / {source_recall:.3f} recall",
+        holdout_summary=f"{source_total + target_total:,} decoded Livox returns (first msgs)",
+        known_bad_summary="static rig / real rosbag1 replay",
+        protocol_summary="calibrex calibrate --online timeline",
+        case_summary=f"shared centroid RMSE {centroid_rmse:.2f} m",
+    )
+
+
+def _filter_livox_xyz_for_gif(
+    xyz: object,
+    *,
+    stride: int,
+) -> tuple[list[Point3], int]:
+    """Subsample decoded Livox xyz rows for the GIF scene panel."""
+
+    points: list[Point3] = []
+    total = 0
+    for row in xyz:
+        x = float(row[0])
+        y = float(row[1])
+        z = float(row[2])
+        if not (-30.0 <= x <= 30.0 and -30.0 <= y <= 30.0 and -5.0 <= z <= 8.0):
+            continue
+        total += 1
+        if total % stride == 0:
+            points.append((x, y, z))
+    return points, total
+
+
 def parse_lidars(payload: dict[str, object]) -> list[LidarPose]:
     raw_lidars = payload.get("lidars")
     if not isinstance(raw_lidars, dict):
@@ -2079,7 +2482,7 @@ def draw_evidence_panel(
 
 
 def draw_source_badge(image: bytearray, metadata_source: str) -> None:
-    color = GOOD if metadata_source.startswith(("A2D2", "Livox")) else WARNING
+    color = GOOD if metadata_source.startswith(("A2D2", "Livox", "TIERS")) else WARNING
     fill_rect(image, 674, 460, 220, 42, PANEL_ALT)
     rect(image, 674, 460, 220, 42, color, alpha=0.72)
 
@@ -2444,7 +2847,10 @@ def build_online_text_filter(
         accepted_summary = (
             f"{online_run.accepted_batch_count}/{online_run.batch_count} batches accepted"
         )
-        provenance = "provenance: A2D2 NPZ + calibrate --online timeline"
+        if cloud_pair.provenance.startswith("provenance: TIERS"):
+            provenance = "provenance: TIERS LidarsCali + calibrate --online timeline"
+        else:
+            provenance = "provenance: A2D2 NPZ + calibrate --online timeline"
     else:
         assessment = "assessment: timeline unavailable"
         accepted_summary = "accepted window"
