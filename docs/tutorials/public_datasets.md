@@ -200,6 +200,48 @@ decoded point counts for PointCloud2 topics, and a pose sample for Odometry
 topics (position, orientation `xyzw`, and pose covariance diagonal entries from
 the first sampled message).
 
+### Online calibration with odometry motion compensation
+
+`run_online_calibration` accepts `dataset.type: rosbag2` with the same bounded
+replay budgets as rosbag1 (`max_source_messages`, `max_source_points`,
+`max_target_messages`, `max_target_points`, `max_replay_duration_s` under the
+`lidar_rig_point_to_plane` factor options). Set `dataset.odometry_topic` to a
+`nav_msgs/msg/Odometry` topic to enable motion compensation during replay.
+
+Formulation (per-message poses only; per-point deskew inside a message is out of
+scope):
+
+* `T_world_base(t)` — interpolated odometry pose (linear translation, quaternion
+  slerp on the shortest arc; out-of-range queries clamp to the nearest pose).
+* Source map points at time `t_i` are transformed to the world frame as
+  `p_world = T_world_base(t_i) * T_base_source * p_sensor` before voxel-plane
+  map construction.
+* Target messages at time `t_j` keep points in the target sensor frame and
+  record `T_world_source(t_j) = T_world_base(t_j) * T_base_source` for
+  correspondence (`T_world_source * T_hat_source_target * p` against
+  world-frame planes). The solver still estimates one constant `T_source_target`.
+* When `dataset.odometry_topic` is unset, the static-rig path is unchanged
+  (identity frame poses).
+
+Replay provenance records the odometry topic, message count, time coverage,
+interpolation method, clamp count, and a `motion_compensated` flag. The online
+timeline artifact (`calibrex.online_timeline/v0.3`) optionally includes
+`motion_compensated`.
+
+```yaml
+dataset:
+  type: rosbag2
+  path: path/to/bag_dir_or.db3
+  odometry_topic: /odom
+sensors:
+  lidar_map:
+    type: lidar
+    topic: /source/lidar
+  lidar_stream:
+    type: lidar
+    topic: /target/lidar
+```
+
 `--readme-gallery` regenerates the Livox and A2D2 README GIF assets from public
 raw samples. It downloads the small A2D2 range sample when needed and refuses to
 use built-in fallback geometry unless `--allow-metadata-fallback` is passed.

@@ -66,6 +66,13 @@ def test_readme_gallery_manifest_matches_assets() -> None:
         assert asset["public_inputs"]
 
 
+def test_readme_gif_tool_timeline_schema_version_matches_core() -> None:
+    from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
+
+    tool = load_gif_tool()
+    assert tool.ONLINE_TIMELINE_SCHEMA_VERSION == ONLINE_TIMELINE_SCHEMA_VERSION
+
+
 def test_readme_gallery_manifest_is_schema_valid() -> None:
     manifest = json.loads(
         (ROOT / "docs" / "assets" / "readme-gif-gallery.json").read_text(encoding="utf-8")

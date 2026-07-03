@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from math import isclose, sqrt
+from math import acos, isclose, sin, sqrt
 
 Vector3 = tuple[float, float, float]
 QuaternionXYZW = tuple[float, float, float, float]
@@ -186,3 +186,72 @@ class SE3:
             "translation_m": list(self.translation_m),
             "rotation_quat_xyzw": list(self.rotation_quat_xyzw),
         }
+
+
+def _quaternion_dot_xyzw(left: QuaternionXYZW, right: QuaternionXYZW) -> float:
+    return (
+        left[0] * right[0]
+        + left[1] * right[1]
+        + left[2] * right[2]
+        + left[3] * right[3]
+    )
+
+
+def slerp_quaternion_xyzw(
+    left: QuaternionXYZW,
+    right: QuaternionXYZW,
+    alpha: float,
+) -> QuaternionXYZW:
+    """Spherical linear interpolation between unit quaternions (shortest arc).
+
+    When the dot product is negative, ``right`` is negated so the interpolation
+  follows the shortest rotation path (antipodal ``q`` / ``-q`` equivalence).
+    """
+
+    clamped_alpha = min(1.0, max(0.0, float(alpha)))
+    q0 = normalize_quaternion_xyzw(left)
+    q1 = normalize_quaternion_xyzw(right)
+    if _quaternion_dot_xyzw(q0, q1) < 0.0:
+        q1 = (-q1[0], -q1[1], -q1[2], -q1[3])
+    dot = min(1.0, max(-1.0, _quaternion_dot_xyzw(q0, q1)))
+    if dot > 1.0 - 1.0e-8:
+        return normalize_quaternion_xyzw(
+            (
+                q0[0] + clamped_alpha * (q1[0] - q0[0]),
+                q0[1] + clamped_alpha * (q1[1] - q0[1]),
+                q0[2] + clamped_alpha * (q1[2] - q0[2]),
+                q0[3] + clamped_alpha * (q1[3] - q0[3]),
+            )
+        )
+    theta = acos(dot)
+    sin_theta = sin(theta)
+    weight_left = sin((1.0 - clamped_alpha) * theta) / sin_theta
+    weight_right = sin(clamped_alpha * theta) / sin_theta
+    return normalize_quaternion_xyzw(
+        (
+            weight_left * q0[0] + weight_right * q1[0],
+            weight_left * q0[1] + weight_right * q1[1],
+            weight_left * q0[2] + weight_right * q1[2],
+            weight_left * q0[3] + weight_right * q1[3],
+        )
+    )
+
+
+def lerp_vector3(left: Vector3, right: Vector3, alpha: float) -> Vector3:
+    """Linear interpolation between two 3D points."""
+
+    clamped_alpha = min(1.0, max(0.0, float(alpha)))
+    return (
+        left[0] + clamped_alpha * (right[0] - left[0]),
+        left[1] + clamped_alpha * (right[1] - left[1]),
+        left[2] + clamped_alpha * (right[2] - left[2]),
+    )
+
+
+def interpolate_se3(left: SE3, right: SE3, alpha: float) -> SE3:
+    """Interpolate transforms with linear translation and quaternion slerp."""
+
+    return SE3(
+        lerp_vector3(left.translation_m, right.translation_m, alpha),
+        slerp_quaternion_xyzw(left.rotation_quat_xyzw, right.rotation_quat_xyzw, alpha),
+    )

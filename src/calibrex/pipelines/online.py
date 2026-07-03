@@ -4,6 +4,26 @@ This module drives the same native fixed-trajectory point-to-plane primitives
 used by the offline path (`calibrex.solvers.native_lidar_point_to_plane_solver`)
 from a stream of incremental point batches instead of one offline solve.
 
+Motion compensation (optional ``dataset.odometry_topic`` on rosbag replays)
+uses per-message rig poses only; per-point deskew inside a message (for example
+Livox ``offset_time``) is out of scope.
+
+Formulation when odometry is configured:
+
+* Let ``T_world_base(t)`` be the interpolated odometry pose, ``T_base_source`` the
+  configured mount of the source (map-building) sensor, and ``T_source_target``
+  the extrinsic being estimated.
+* Source map: each source message at time ``t_i`` contributes points transformed
+  into the world frame as ``p_world = T_world_base(t_i) * T_base_source * p_sensor``.
+  The voxel plane map is built in the world frame.
+* Target batches: each target message at time ``t_j`` keeps points in the target
+  sensor frame, but records ``T_world_source(t_j) = T_world_base(t_j) * T_base_source``
+  as the per-message rig pose passed into correspondence building.
+* Correspondence applies ``T_world_source(t_j) * T_hat_source_target`` to map a
+  target point against world-frame planes while the solver still estimates a
+  single constant ``T_source_target``. When no odometry topic is configured the
+  static-rig path is unchanged (identity frame poses).
+
 Per batch, `OnlineCalibrationSession` warm-starts the native point-to-plane
 solve from the previous *accepted* estimate, splits the batch into a
 deterministic train/holdout split (reusing `calibrex.evaluation.holdout`),
@@ -71,10 +91,20 @@ from calibrex.data.livox import (
     find_livox_pcd_files,
     read_livox_binary_pcd_records,
 )
+from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
 from calibrex.data.rosbag1 import (
     LIDAR_MESSAGE_TYPES,
     decode_bag_lidar_message,
     iter_messages,
+)
+from calibrex.data.rosbag2 import (
+    ODOMETRY_TYPE,
+    POINTCLOUD2_TYPE,
+    decode_odometry,
+    decode_pointcloud2,
+)
+from calibrex.data.rosbag2 import (
+    iter_messages as iter_rosbag2_messages,
 )
 from calibrex.evaluation.holdout import split_indices
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
@@ -91,11 +121,12 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
 from calibrex.visualization.report import write_report_artifacts
 
 ONLINE_LIDAR_POINT_TO_PLANE_BACKEND = "online_lidar_point_to_plane"
-_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd", "rosbag1")
+_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd", "rosbag1", "rosbag2")
 _FACTOR_NAME = "lidar_rig_point_to_plane"
 _MIN_TRAIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
 _TIMELINE_FILENAME = "timeline.json"
+OnlineTargetEntry = tuple[int, Vector3, SE3]
 
 
 @dataclass(frozen=True)
@@ -169,14 +200,22 @@ class OnlineCalibrationSession:
         self._retained_train_batches: deque[list[Vector3]] = deque(
             maxlen=max(0, self.accumulation_batches - 1)
         )
+        self._retained_frame_pose_batches: deque[list[SE3]] = deque(
+            maxlen=max(0, self.accumulation_batches - 1)
+        )
 
     def process_batch(
         self,
         points: list[Vector3],
         *,
         frame_count: int = 1,
+        target_t_world_source: list[SE3] | None = None,
     ) -> OnlineBatchSnapshot:
         """Consume one batch of target LiDAR points and return its snapshot."""
+
+        if target_t_world_source is not None and len(target_t_world_source) != len(points):
+            msg = "target_t_world_source length must match points"
+            raise ValueError(msg)
 
         batch_seed = self.seed + self.batch_index
         train_indices, holdout_indices = split_indices(
@@ -186,17 +225,36 @@ class OnlineCalibrationSession:
         holdout_points = [points[index] for index in holdout_indices]
 
         prior_rolling_rmse = self._rolling_rmse()
-        accumulated_train_points = self._accumulated_train_points(train_points)
-        tentative_transform, train_observation_count = self._solve_batch(accumulated_train_points)
+        accumulated_train_points, accumulated_frame_poses = self._accumulated_train_batch(
+            train_points,
+            _slice_frame_poses(target_t_world_source, train_indices),
+        )
+        tentative_transform, train_observation_count = self._solve_batch(
+            accumulated_train_points,
+            target_t_world_source=accumulated_frame_poses,
+        )
         holdout_observation_count, holdout_rmse, holdout_residuals, holdout_evaluation = (
-            self._evaluate_holdout(holdout_points, tentative_transform)
+            self._evaluate_holdout(
+                holdout_points,
+                tentative_transform,
+                target_t_world_source=_slice_frame_poses(
+                    target_t_world_source, holdout_indices
+                ),
+            )
         )
         accumulated_evaluation = self._evaluate_train_observability(
             accumulated_train_points,
             tentative_transform,
+            target_t_world_source=accumulated_frame_poses,
         )
         batch_evaluation = (
-            self._evaluate_train_observability(train_points, tentative_transform)
+            self._evaluate_train_observability(
+                train_points,
+                tentative_transform,
+                target_t_world_source=_slice_frame_poses(
+                    target_t_world_source, train_indices
+                ),
+            )
             if self.accumulation_batches > 1
             else None
         )
@@ -223,6 +281,10 @@ class OnlineCalibrationSession:
             self._rolling_residuals.extend(abs(value) for value in holdout_residuals)
         if accepted or retained_for_accumulation:
             self._retained_train_batches.append(list(train_points))
+            if target_t_world_source is not None:
+                train_poses = _slice_frame_poses(target_t_world_source, train_indices)
+                assert train_poses is not None
+                self._retained_frame_pose_batches.append(train_poses)
 
         gate_observability = (
             _observability_from_evaluation(accumulated_evaluation)
@@ -280,11 +342,17 @@ class OnlineCalibrationSession:
         self.batch_index += 1
         return snapshot
 
-    def _solve_batch(self, train_points: list[Vector3]) -> tuple[SE3, int]:
+    def _solve_batch(
+        self,
+        train_points: list[Vector3],
+        *,
+        target_t_world_source: list[SE3] | None = None,
+    ) -> tuple[SE3, int]:
         observations = build_rig_point_to_plane_observations(
             source_records=self.source_records,
             target_points=train_points,
             initial_t_source_target=self.current_estimate,
+            target_t_world_source=target_t_world_source,
             voxel_size_m=self.voxel_size_m,
             correspondence_gate_m=self.correspondence_gate_m,
         )
@@ -299,24 +367,49 @@ class OnlineCalibrationSession:
         solver_result = FixedTrajectorySe3ExtrinsicSolver().solve(factor, self.solver_options)
         return solver_result.refined_transform, len(observations)
 
+    def _accumulated_train_batch(
+        self,
+        current_train_points: list[Vector3],
+        current_frame_poses: list[SE3] | None,
+    ) -> tuple[list[Vector3], list[SE3] | None]:
+        """Combine retained-batch train points (and poses) with the current batch."""
+
+        if self.accumulation_batches <= 1:
+            return current_train_points, current_frame_poses
+        retained_points = [point for batch in self._retained_train_batches for point in batch]
+        combined_points = [*retained_points, *current_train_points]
+        downsampled_points = _downsample_points(combined_points, self.max_accumulated_train_points)
+        if current_frame_poses is None:
+            return downsampled_points, None
+        retained_poses = [pose for batch in self._retained_frame_pose_batches for pose in batch]
+        combined_poses = [*retained_poses, *current_frame_poses]
+        if len(combined_poses) != len(combined_points):
+            return downsampled_points, None
+        downsampled_poses = _downsample_poses(
+            combined_poses,
+            self.max_accumulated_train_points,
+            len(combined_points),
+        )
+        return downsampled_points, downsampled_poses
+
     def _accumulated_train_points(self, current_train_points: list[Vector3]) -> list[Vector3]:
         """Combine retained-batch train points with the current batch."""
 
-        if self.accumulation_batches <= 1:
-            return current_train_points
-        retained = [point for batch in self._retained_train_batches for point in batch]
-        combined = [*retained, *current_train_points]
-        return _downsample_points(combined, self.max_accumulated_train_points)
+        points, _poses = self._accumulated_train_batch(current_train_points, None)
+        return points
 
     def _evaluate_train_observability(
         self,
         train_points: list[Vector3],
         tentative_transform: SE3,
+        *,
+        target_t_world_source: list[SE3] | None = None,
     ) -> LidarRigPointToPlaneEvaluation | None:
         observations = build_rig_point_to_plane_observations(
             source_records=self.source_records,
             target_points=train_points,
             initial_t_source_target=tentative_transform,
+            target_t_world_source=target_t_world_source,
             voxel_size_m=self.voxel_size_m,
             correspondence_gate_m=self.correspondence_gate_m,
         )
@@ -334,11 +427,14 @@ class OnlineCalibrationSession:
         self,
         holdout_points: list[Vector3],
         tentative_transform: SE3,
+        *,
+        target_t_world_source: list[SE3] | None = None,
     ) -> tuple[int, float | None, list[float], LidarRigPointToPlaneEvaluation | None]:
         observations = build_rig_point_to_plane_observations(
             source_records=self.source_records,
             target_points=holdout_points,
             initial_t_source_target=tentative_transform,
+            target_t_world_source=target_t_world_source,
             voxel_size_m=self.voxel_size_m,
             correspondence_gate_m=self.correspondence_gate_m,
         )
@@ -500,12 +596,23 @@ def run_online_calibration(
     variable = f"T_{parent}_{target_sensor}"
     inputs = _solve_inputs(config)
     replay_provenance: dict[str, Any]
+    motion_compensated = False
     if config.dataset.type == "rosbag1":
         source_records, target_stream, replay_provenance = _load_rosbag1_online_pair(
             config,
             inputs,
             source_sensor=source_sensor,
             target_sensor=target_sensor,
+        )
+    elif config.dataset.type == "rosbag2":
+        source_records, target_stream, replay_provenance, motion_compensated = (
+            _load_rosbag2_online_pair(
+                config,
+                inputs,
+                source_sensor=source_sensor,
+                target_sensor=target_sensor,
+                t_base_source=source_node.transform_to_parent,
+            )
         )
     else:
         files = _dataset_files(config)
@@ -569,9 +676,16 @@ def run_online_calibration(
     batch_size = max(1, options.batch_size)
     for start in range(0, len(target_stream), batch_size):
         chunk = target_stream[start : start + batch_size]
-        batch_points = [point for _frame_index, point in chunk]
-        frame_count = len({frame_index for frame_index, _point in chunk})
-        session.process_batch(batch_points, frame_count=frame_count)
+        batch_points = [point for _frame_index, point, _pose in chunk]
+        batch_poses = [pose for _frame_index, _point, pose in chunk]
+        frame_count = len({frame_index for frame_index, _point, _pose in chunk})
+        session.process_batch(
+            batch_points,
+            frame_count=frame_count,
+            target_t_world_source=(
+                batch_poses if motion_compensated else None
+            ),
+        )
 
     return _build_result(
         config=config,
@@ -586,6 +700,7 @@ def run_online_calibration(
         t_base_source=t_base_source,
         batch_size=batch_size,
         replay_provenance=replay_provenance,
+        motion_compensated=motion_compensated,
     )
 
 
@@ -694,17 +809,17 @@ def _load_target_stream(
     config: CalibrationConfig,
     target_files: list[Path],
     inputs: _OnlineSolveInputs,
-) -> list[tuple[int, Vector3]]:
-    """Return an ordered `(frame_index, point)` stream across target frames."""
+) -> list[OnlineTargetEntry]:
+    """Return an ordered `(frame_index, point, frame_pose)` stream across frames."""
 
-    stream: list[tuple[int, Vector3]] = []
+    stream: list[OnlineTargetEntry] = []
     for frame_index, path in enumerate(target_files):
         if config.dataset.type == "a2d2_lidar":
             points = read_a2d2_lidar_points(path, max_points=inputs.max_target_points)
         else:
             records = _stride(read_livox_binary_pcd_records(path), inputs.max_target_points)
             points = [(record.point[0], record.point[1], record.point[2]) for record in records]
-        stream.extend((frame_index, point) for point in points)
+        stream.extend((frame_index, point, SE3.identity()) for point in points)
     return stream
 
 
@@ -759,7 +874,7 @@ def _load_rosbag1_online_pair(
     *,
     source_sensor: str,
     target_sensor: str,
-) -> tuple[list[LivoxPointRecord], list[tuple[int, Vector3]], dict[str, Any]]:
+) -> tuple[list[LivoxPointRecord], list[OnlineTargetEntry], dict[str, Any]]:
     """Stream one ROS bag once, building a bounded source map and target stream."""
 
     bag_path = Path(config.dataset.path)
@@ -771,7 +886,7 @@ def _load_rosbag1_online_pair(
     topics = {source_topic, target_topic}
 
     source_records: list[LivoxPointRecord] = []
-    target_stream: list[tuple[int, Vector3]] = []
+    target_stream: list[OnlineTargetEntry] = []
     source_messages = 0
     target_messages = 0
     frame_index = 0
@@ -832,7 +947,9 @@ def _load_rosbag1_online_pair(
             data,
         )
         points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
-        target_stream.extend((frame_index, point) for point in points)
+        target_stream.extend(
+            (frame_index, point, SE3.identity()) for point in points
+        )
         frame_index += 1
         target_messages += 1
 
@@ -858,6 +975,229 @@ def _load_rosbag1_online_pair(
         "rosbag1_max_replay_duration_s": inputs.max_replay_duration_s,
     }
     return source_records, target_stream, provenance
+
+
+def _load_rosbag2_online_pair(
+    config: CalibrationConfig,
+    inputs: _OnlineSolveInputs,
+    *,
+    source_sensor: str,
+    target_sensor: str,
+    t_base_source: SE3,
+) -> tuple[list[LivoxPointRecord], list[OnlineTargetEntry], dict[str, Any], bool]:
+    """Stream one rosbag2 recording once, building a bounded source map and target stream."""
+
+    bag_path = Path(config.dataset.path)
+    if not bag_path.exists():
+        return [], [], {"rosbag2_path": str(bag_path), "rosbag2_exists": False}, False
+
+    source_topic = _lidar_topic(config, source_sensor)
+    target_topic = _lidar_topic(config, target_sensor)
+    odometry_topic = config.dataset.odometry_topic
+    topics = {source_topic, target_topic}
+    if odometry_topic:
+        topics.add(odometry_topic)
+
+    odometry_track = _load_rosbag2_odometry_track(bag_path, odometry_topic)
+    motion_compensated = odometry_track is not None
+
+    source_records: list[LivoxPointRecord] = []
+    target_stream: list[OnlineTargetEntry] = []
+    source_messages = 0
+    target_messages = 0
+    frame_index = 0
+    replay_start_ns: int | None = None
+    replay_end_ns: int | None = None
+    first_source_ns: int | None = None
+    first_target_ns: int | None = None
+
+    for connection, timestamp_ns, data in iter_rosbag2_messages(bag_path, topics=topics):
+        if odometry_topic and connection.topic == odometry_topic:
+            continue
+        if connection.message_type != POINTCLOUD2_TYPE:
+            continue
+        topic = connection.topic
+        if topic == source_topic:
+            if (
+                inputs.max_source_messages is not None
+                and source_messages >= inputs.max_source_messages
+            ):
+                continue
+            if (
+                inputs.max_source_points is not None
+                and len(source_records) >= inputs.max_source_points
+            ):
+                continue
+            message = decode_pointcloud2(topic, timestamp_ns, data)
+            first_source_ns = first_source_ns or message.timestamp_ns
+            remaining = (
+                None
+                if inputs.max_source_points is None
+                else max(0, inputs.max_source_points - len(source_records))
+            )
+            if motion_compensated and odometry_track is not None:
+                t_world_base, _clamped = odometry_track.interpolate(message.timestamp_ns)
+                t_world_source = t_world_base.compose(t_base_source)
+                source_records.extend(
+                    _transform_pointcloud_to_world_records(
+                        message.xyz,
+                        t_world_source,
+                        remaining,
+                    )
+                )
+            else:
+                source_records.extend(_pointcloud_xyz_to_records(message.xyz, remaining))
+            source_messages += 1
+            continue
+
+        if topic != target_topic:
+            continue
+
+        if replay_start_ns is None:
+            replay_start_ns = timestamp_ns
+            first_target_ns = timestamp_ns
+        replay_end_ns = timestamp_ns
+        if inputs.max_replay_duration_s is not None:
+            elapsed_ns = timestamp_ns - replay_start_ns
+            if elapsed_ns > int(inputs.max_replay_duration_s * 1_000_000_000):
+                break
+        if inputs.max_target_messages is not None and target_messages >= inputs.max_target_messages:
+            break
+
+        message = decode_pointcloud2(topic, timestamp_ns, data)
+        points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
+        if motion_compensated and odometry_track is not None:
+            t_world_base, _clamped = odometry_track.interpolate(message.timestamp_ns)
+            t_world_source = t_world_base.compose(t_base_source)
+            target_stream.extend(
+                (frame_index, point, t_world_source) for point in points
+            )
+        else:
+            target_stream.extend(
+                (frame_index, point, SE3.identity()) for point in points
+            )
+        frame_index += 1
+        target_messages += 1
+
+    replay_duration_s: float | None = None
+    if replay_start_ns is not None and replay_end_ns is not None:
+        replay_duration_s = (replay_end_ns - replay_start_ns) / 1_000_000_000
+
+    provenance: dict[str, Any] = {
+        "rosbag2_path": str(bag_path),
+        "rosbag2_source_topic": source_topic,
+        "rosbag2_target_topic": target_topic,
+        "rosbag2_source_message_count": source_messages,
+        "rosbag2_target_message_count": target_messages,
+        "rosbag2_source_point_count": len(source_records),
+        "rosbag2_target_point_count": len(target_stream),
+        "rosbag2_replay_duration_s": replay_duration_s,
+        "rosbag2_first_source_timestamp_ns": first_source_ns,
+        "rosbag2_first_target_timestamp_ns": first_target_ns,
+        "rosbag2_replay_start_timestamp_ns": replay_start_ns,
+        "rosbag2_replay_end_timestamp_ns": replay_end_ns,
+        "rosbag2_max_source_messages": inputs.max_source_messages,
+        "rosbag2_max_target_messages": inputs.max_target_messages,
+        "rosbag2_max_replay_duration_s": inputs.max_replay_duration_s,
+        "motion_compensated": motion_compensated,
+    }
+    if odometry_topic:
+        provenance.update(
+            _odometry_replay_provenance(odometry_topic, odometry_track, motion_compensated)
+        )
+    return source_records, target_stream, provenance, motion_compensated
+
+
+def _load_rosbag2_odometry_track(
+    bag_path: Path,
+    odometry_topic: str | None,
+) -> OdometryTrack | None:
+    if not odometry_topic:
+        return None
+    samples: list[OdometryPoseSample] = []
+    for connection, timestamp_ns, data in iter_rosbag2_messages(
+        bag_path,
+        topics={odometry_topic},
+    ):
+        if connection.message_type != ODOMETRY_TYPE:
+            continue
+        message = decode_odometry(connection.topic, timestamp_ns, data)
+        samples.append(
+            OdometryPoseSample(
+                timestamp_ns=message.timestamp_ns,
+                pose=SE3.from_lists(list(message.position), list(message.orientation_xyzw)),
+            )
+        )
+    return OdometryTrack(samples) if samples else None
+
+
+def _odometry_replay_provenance(
+    odometry_topic: str,
+    odometry_track: OdometryTrack | None,
+    motion_compensated: bool,
+) -> dict[str, Any]:
+    return {
+        "odometry_topic": odometry_topic,
+        "odometry_message_count": odometry_track.message_count if odometry_track else 0,
+        "odometry_first_timestamp_ns": (
+            odometry_track.first_timestamp_ns if odometry_track else None
+        ),
+        "odometry_last_timestamp_ns": (
+            odometry_track.last_timestamp_ns if odometry_track else None
+        ),
+        "odometry_interpolation_method": "linear_translation_slerp_rotation",
+        "odometry_interpolation_clamp_count": (
+            odometry_track.clamp_count if odometry_track else 0
+        ),
+        "motion_compensated": motion_compensated,
+    }
+
+
+def _transform_pointcloud_to_world_records(
+    xyz: Any,
+    t_world_source: SE3,
+    max_points: int | None,
+) -> list[LivoxPointRecord]:
+    count = int(xyz.shape[0])
+    indices = range(count)
+    if max_points is not None and max_points > 0 and count > max_points:
+        step = (count + max_points - 1) // max_points
+        indices = range(0, count, step)
+    records: list[LivoxPointRecord] = []
+    for index in indices:
+        point_sensor = (
+            float(xyz[index, 0]),
+            float(xyz[index, 1]),
+            float(xyz[index, 2]),
+        )
+        point_world = t_world_source.transform_point(point_sensor)
+        records.append(
+            LivoxPointRecord(
+                point=(point_world[0], point_world[1], point_world[2], 0.0),
+                normal_xyz=None,
+            )
+        )
+    return records
+
+
+def _slice_frame_poses(
+    poses: list[SE3] | None,
+    indices: list[int],
+) -> list[SE3] | None:
+    if poses is None:
+        return None
+    return [poses[index] for index in indices]
+
+
+def _downsample_poses(
+    poses: list[SE3],
+    max_points: int | None,
+    original_count: int,
+) -> list[SE3]:
+    if max_points is None or max_points <= 0 or original_count <= max_points:
+        return poses
+    step = (original_count + max_points - 1) // max_points
+    return poses[::step]
 
 
 def _pointcloud_xyz_to_records(
@@ -1009,6 +1349,7 @@ def _build_result(
     t_base_source: SE3,
     batch_size: int,
     replay_provenance: dict[str, Any] | None = None,
+    motion_compensated: bool = False,
 ) -> CalibrationResult:
     history = session.history
     final_snapshot = history[-1]
@@ -1122,6 +1463,7 @@ def _build_result(
         source_sensor=source_sensor,
         target_sensor=target_sensor,
         batch_size=batch_size,
+        motion_compensated=motion_compensated,
     )
     write_report_artifacts(
         result,
@@ -1245,6 +1587,7 @@ def build_online_timeline_artifact(
     source_sensor: str,
     target_sensor: str,
     batch_size: int,
+    motion_compensated: bool | None = None,
 ) -> OnlineCalibrationTimelineArtifact:
     """Build the machine-readable per-batch timeline artifact."""
 
@@ -1269,6 +1612,7 @@ def build_online_timeline_artifact(
         accepted_batch_count=sum(1 for s in history if s.gate_status == "pass"),
         rejected_batch_count=sum(1 for s in history if s.gate_status == "fail"),
         inconclusive_batch_count=sum(1 for s in history if s.gate_status == "inconclusive"),
+        motion_compensated=motion_compensated,
     )
 
 
