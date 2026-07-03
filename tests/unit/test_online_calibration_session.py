@@ -312,7 +312,7 @@ def test_online_session_rejected_batch_does_not_contaminate_accumulation() -> No
     second = session.process_batch(_sample_patch(rng, scene, "x", 40))
     assert first.gate_status == "pass"
     assert second.gate_status == "pass"
-    retained_before_bad = second.provenance["retained_accepted_batch_count"]
+    retained_before_bad = second.provenance["retained_batch_count"]
 
     noisy_batch = [
         (
@@ -324,10 +324,83 @@ def test_online_session_rejected_batch_does_not_contaminate_accumulation() -> No
     ]
     bad = session.process_batch(noisy_batch)
     assert bad.gate_status == "fail"
-    assert bad.provenance["retained_accepted_batch_count"] == retained_before_bad
+    assert bad.retained_for_accumulation is False
+    assert bad.provenance["retained_batch_count"] == retained_before_bad
 
     recovery = session.process_batch(_sample_patch(rng, scene, "y", 40))
     assert recovery.gate_status == "pass"
     assert recovery.observability.rank >= 6
     assert recovery.batch_observability is not None
     assert recovery.batch_observability.rank < 6
+
+
+def test_online_session_pure_degenerate_views_bootstrap_accumulation() -> None:
+    """Purely rank-3 complementary views must bootstrap via retention, not deadlock."""
+
+    scene = _corner_scene()
+    session = _session(accumulation_batches=3)
+    rng = random.Random(11)
+    initial_estimate = session.current_estimate
+
+    z_batch = rng.sample(_patch_points(scene, "z"), 12)
+    x_batch = _sample_patch(rng, scene, "x", 40)
+    y_batch = _sample_patch(rng, scene, "y", 40)
+
+    first = session.process_batch(z_batch)
+    assert first.gate_status == "inconclusive"
+    assert first.retained_for_accumulation is True
+    assert first.estimate_accepted is False
+    assert first.batch_observability is not None
+    assert first.batch_observability.rank < 6
+    assert first.observability.rank < 6
+    assert session.current_estimate.translation_m == initial_estimate.translation_m
+
+    second = session.process_batch(x_batch)
+    assert second.gate_status == "inconclusive"
+    assert second.retained_for_accumulation is True
+    assert second.estimate_accepted is False
+    assert second.batch_observability is not None
+    assert second.batch_observability.rank < 6
+    assert second.observability.rank < 6
+    assert session.current_estimate.translation_m == initial_estimate.translation_m
+
+    third = session.process_batch(y_batch)
+    assert third.gate_status == "pass"
+    assert third.retained_for_accumulation is False
+    assert third.estimate_accepted is True
+    assert third.observability.rank >= 6
+    assert third.batch_observability is not None
+    assert third.batch_observability.rank < 6
+    assert max(abs(value) for value in session.current_estimate.translation_m) < 0.01
+
+
+def test_online_session_known_bad_degenerate_batch_not_retained() -> None:
+    """Holdout evidence failure among degenerate views must not enter the buffer."""
+
+    scene = _corner_scene()
+    session = _session(accumulation_batches=3)
+    rng = random.Random(11)
+
+    session.process_batch(rng.sample(_patch_points(scene, "z"), 12))
+    session.process_batch(_sample_patch(rng, scene, "x", 40))
+    retained_before_bad = session.history[-1].provenance["retained_batch_count"]
+    estimate_before_bad = session.current_estimate
+
+    noisy_y = [
+        (
+            x + rng.uniform(-0.3, 0.3),
+            y + rng.uniform(-0.3, 0.3),
+            z + rng.uniform(-0.3, 0.3),
+        )
+        for x, y, z in _sample_patch(rng, scene, "y", 40)
+    ]
+    bad = session.process_batch(noisy_y)
+    assert bad.gate_status == "fail"
+    assert bad.retained_for_accumulation is False
+    assert bad.provenance["retained_batch_count"] == retained_before_bad
+    assert session.current_estimate.translation_m == estimate_before_bad.translation_m
+
+    recovery = session.process_batch(_sample_patch(rng, scene, "y", 40))
+    assert recovery.gate_status == "pass"
+    assert recovery.observability.rank >= 6
+    assert max(abs(value) for value in session.current_estimate.translation_m) < 0.01

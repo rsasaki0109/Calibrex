@@ -10,13 +10,17 @@ deterministic train/holdout split (reusing `calibrex.evaluation.holdout`),
 and evaluates a holdout gate mirroring the pass/fail/inconclusive semantics of
 `calibrex.core.assessment`. Only a batch whose gate PASSES is adopted (the
 tentative estimate becomes the running estimate and its holdout residuals feed
-the rolling window). A batch that FAILS the gate (weak observability, an
-absolute holdout RMSE spike, or a sharp regression against the rolling
-baseline) is rejected, and a batch whose evidence is INCONCLUSIVE (too few
-train or holdout correspondences to score) is likewise not adopted: in both
-cases the session keeps its previous estimate and rolling window untouched, so
-a known-bad/corrupted or unscoreable batch cannot silently drag the running
-extrinsic away from a good solution.
+the rolling window). A batch that FAILS the gate (an absolute holdout RMSE
+spike, a sharp regression against the rolling baseline, or rank deficiency when
+``accumulation_batches == 1``) is rejected and never enters the retention
+buffer. A batch whose evidence is INCONCLUSIVE because of too few train or
+holdout correspondences is likewise not adopted and not retained. When
+``accumulation_batches > 1``, a batch whose *only* deficiency is accumulated
+observability (rank below ``min_rank`` or weak DoF) but whose holdout RMSE is
+acceptable on the observable directions becomes inconclusive with retention: its
+train points enter the buffer so complementary later views can bootstrap full
+rank, while the running estimate and rolling window stay unchanged until a
+later batch passes.
 
 `run_online_calibration` is the CLI/Python entry point: it loads the same
 `CalibrationConfig` YAML used by `solver.backend: native_lidar_point_to_plane`,
@@ -106,10 +110,15 @@ class OnlineCalibrationSession:
     fixed-trajectory solve from the previously *accepted* estimate. Each
     batch is scored with a deterministic holdout split; only a batch whose
     holdout gate passes updates ``current_estimate`` and the rolling residual
-    window. Batches that fail the gate or are inconclusive (too little
-    train/holdout evidence to score) leave both untouched, but are still
-    recorded in ``history`` so operators can see what was proposed and why it
-    was not adopted.
+    window. Batches that fail the gate (bad holdout evidence, or rank
+    deficiency when ``accumulation_batches == 1``) leave both untouched and
+    are excluded from the retention buffer. Batches that are inconclusive
+    because of too little train/holdout evidence to score are likewise
+    non-destructive and not retained. When ``accumulation_batches > 1``,
+    observability-only inconclusive batches retain their train points for later
+    complementary views while leaving the estimate and rolling window
+    unchanged. All batches are recorded in ``history`` so operators can see
+    what was proposed and why it was or was not adopted.
     """
 
     def __init__(
@@ -152,7 +161,7 @@ class OnlineCalibrationSession:
         self.batch_index = 0
         self.history: list[OnlineBatchSnapshot] = []
         self._rolling_residuals: deque[float] = deque(maxlen=self.rolling_window)
-        self._accepted_train_batches: deque[list[Vector3]] = deque(
+        self._retained_train_batches: deque[list[Vector3]] = deque(
             maxlen=max(0, self.accumulation_batches - 1)
         )
 
@@ -192,7 +201,7 @@ class OnlineCalibrationSession:
             else holdout_evaluation
         )
 
-        gate_status, gate_reason = self._evaluate_gate(
+        gate_status, gate_reason, retained_for_accumulation = self._evaluate_gate(
             train_observation_count=train_observation_count,
             holdout_observation_count=holdout_observation_count,
             holdout_rmse=holdout_rmse,
@@ -200,15 +209,15 @@ class OnlineCalibrationSession:
             prior_rolling_rmse=prior_rolling_rmse,
         )
         # Only a PASS gate adopts the batch: fail and inconclusive are both
-        # fully non-destructive (estimate unchanged, rolling window unchanged).
-        # An inconclusive batch's tentative solve was never holdout-scored or
-        # rank-checked, so adopting it would let unvalidated geometry warm-start
-        # every later batch.
+        # non-destructive for the running estimate and rolling window.
+        # Observability-only inconclusive batches (when accumulating) still
+        # retain train points so complementary views can bootstrap full rank.
         accepted = gate_status == "pass"
         if accepted:
             self.current_estimate = tentative_transform
             self._rolling_residuals.extend(abs(value) for value in holdout_residuals)
-            self._accepted_train_batches.append(list(train_points))
+        if accepted or retained_for_accumulation:
+            self._retained_train_batches.append(list(train_points))
 
         gate_observability = (
             _observability_from_evaluation(accumulated_evaluation)
@@ -229,6 +238,7 @@ class OnlineCalibrationSession:
                 child=self.sensor,
                 transform=tentative_transform,
                 accepted=accepted,
+                retained_for_accumulation=retained_for_accumulation,
             ),
             estimate_accepted=accepted,
             batch_holdout_rmse_m=holdout_rmse,
@@ -242,6 +252,7 @@ class OnlineCalibrationSession:
             ),
             gate_status=gate_status,
             gate_reason=gate_reason,
+            retained_for_accumulation=retained_for_accumulation,
             provenance={
                 "batch_seed": batch_seed,
                 "warm_start_from": (
@@ -253,7 +264,7 @@ class OnlineCalibrationSession:
                     {
                         "accumulation_batches": self.accumulation_batches,
                         "accumulated_train_point_count": len(accumulated_train_points),
-                        "retained_accepted_batch_count": len(self._accepted_train_batches),
+                        "retained_batch_count": len(self._retained_train_batches),
                     }
                     if self.accumulation_batches > 1
                     else {}
@@ -284,11 +295,11 @@ class OnlineCalibrationSession:
         return solver_result.refined_transform, len(observations)
 
     def _accumulated_train_points(self, current_train_points: list[Vector3]) -> list[Vector3]:
-        """Combine retained accepted-batch train points with the current batch."""
+        """Combine retained-batch train points with the current batch."""
 
         if self.accumulation_batches <= 1:
             return current_train_points
-        retained = [point for batch in self._accepted_train_batches for point in batch]
+        retained = [point for batch in self._retained_train_batches for point in batch]
         combined = [*retained, *current_train_points]
         return _downsample_points(combined, self.max_accumulated_train_points)
 
@@ -346,37 +357,28 @@ class OnlineCalibrationSession:
         holdout_rmse: float | None,
         evaluation: LidarRigPointToPlaneEvaluation | None,
         prior_rolling_rmse: float | None,
-    ) -> tuple[OnlineGateStatus, str]:
+    ) -> tuple[OnlineGateStatus, str, bool]:
         thresholds = self.gate_thresholds
         if train_observation_count < _MIN_TRAIN_OBSERVATIONS:
             return (
                 "inconclusive",
                 "too few train point-to-plane correspondences to fit this batch "
                 f"({train_observation_count} < {_MIN_TRAIN_OBSERVATIONS})",
+                False,
             )
         if holdout_observation_count < _MIN_HOLDOUT_OBSERVATIONS or evaluation is None:
             return (
                 "inconclusive",
                 "too few holdout point-to-plane correspondences to score this batch "
                 f"({holdout_observation_count} < {_MIN_HOLDOUT_OBSERVATIONS})",
-            )
-        if evaluation.rank < thresholds.min_rank or evaluation.weak_directions:
-            rank_scope = (
-                "accumulated batch geometry"
-                if self.accumulation_batches > 1
-                else "batch geometry"
-            )
-            return (
-                "fail",
-                f"{rank_scope} is rank-deficient or has weak DoF "
-                f"(rank={evaluation.rank}, weak={list(evaluation.weak_directions)}); "
-                "rejecting this batch's update",
+                False,
             )
         if holdout_rmse is not None and holdout_rmse > thresholds.max_holdout_rmse_m:
             return (
                 "fail",
                 f"holdout RMSE {holdout_rmse:.4f} m exceeds the "
                 f"{thresholds.max_holdout_rmse_m:.4f} m gate; rejecting this batch's update",
+                False,
             )
         if (
             holdout_rmse is not None
@@ -388,8 +390,31 @@ class OnlineCalibrationSession:
                 f"holdout RMSE regressed by {holdout_rmse - prior_rolling_rmse:.4f} m "
                 f"against the rolling baseline ({prior_rolling_rmse:.4f} m); "
                 "rejecting this batch's update",
+                False,
             )
-        return "pass", "holdout evidence supports this batch's update"
+        if evaluation.rank < thresholds.min_rank or evaluation.weak_directions:
+            rank_scope = (
+                "accumulated batch geometry"
+                if self.accumulation_batches > 1
+                else "batch geometry"
+            )
+            observability_reason = (
+                f"{rank_scope} is rank-deficient or has weak DoF "
+                f"(rank={evaluation.rank}, weak={list(evaluation.weak_directions)})"
+            )
+            if self.accumulation_batches > 1:
+                return (
+                    "inconclusive",
+                    f"insufficient observability; retained for accumulation: "
+                    f"{observability_reason}",
+                    True,
+                )
+            return (
+                "fail",
+                f"{observability_reason}; rejecting this batch's update",
+                False,
+            )
+        return "pass", "holdout evidence supports this batch's update", False
 
     def _rolling_rmse(self) -> float | None:
         if not self._rolling_residuals:
@@ -639,7 +664,13 @@ def _downsample_points(points: list[Vector3], max_points: int | None) -> list[Ve
 
 
 def _transform_result(
-    *, variable: str, parent: str, child: str, transform: SE3, accepted: bool
+    *,
+    variable: str,
+    parent: str,
+    child: str,
+    transform: SE3,
+    accepted: bool,
+    retained_for_accumulation: bool = False,
 ) -> TransformResult:
     return TransformResult(
         parent=parent,
@@ -659,8 +690,17 @@ def _transform_result(
                 []
                 if accepted
                 else [
-                    "batch was not adopted by the online holdout gate "
-                    "(fail or inconclusive); the running estimate is unchanged"
+                    (
+                        "batch was not adopted by the online holdout gate "
+                        "(observability-only inconclusive); train points were "
+                        "retained for accumulation while the running estimate "
+                        "is unchanged"
+                    )
+                    if retained_for_accumulation
+                    else (
+                        "batch was not adopted by the online holdout gate "
+                        "(fail or inconclusive); the running estimate is unchanged"
+                    )
                 ]
             ),
         ),
@@ -912,7 +952,8 @@ def _summary_metrics(
             grade="pass" if inconclusive_count == 0 else "warn",
             reason=(
                 "batches with too little train/holdout evidence to accept or "
-                "reject (estimate left unchanged)"
+                "reject, or observability-only inconclusive batches retained "
+                "for accumulation (estimate left unchanged)"
             ),
         ),
         "online_calibration_gate_pass_fraction": MetricResult(
