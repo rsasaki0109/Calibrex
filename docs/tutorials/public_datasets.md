@@ -109,6 +109,13 @@ and rolling RMSE. Gate thresholds are declared under
 recorded in `result.yaml` provenance. The example config uses a 60 s Avia replay
 slice (`max_replay_duration_s`) so a multi-gigabyte bag stays stream-bounded.
 
+When `report.html` is generated for an online run, an **Online timeline**
+section visualizes the same `timeline.json` data: a per-batch gate verdict strip
+(pass / fail / inconclusive), inline SVG charts of holdout and rolling RMSE with
+threshold lines, a per-batch observability table (batch-only vs accumulated rank,
+condition number, retention), and a session summary (batch counts, final gate
+status, final estimate, thresholds). Offline runs omit this section.
+
 On a bounded replay of the same bag (12 source messages / 8k source points, 36
 target messages / 54k target points, 60 s budget,
 `--batch-size 500 --accumulation-batches 3 --max-accumulated-train-points 8000`),

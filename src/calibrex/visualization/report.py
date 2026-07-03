@@ -25,6 +25,11 @@ from calibrex.core.evidence_contract import (
 )
 from calibrex.core.geometry import normalize_quaternion_xyzw
 from calibrex.core.io import write_mapping
+from calibrex.core.online_timeline import (
+    OnlineBatchSnapshot,
+    OnlineCalibrationTimelineArtifact,
+    OnlineGateStatus,
+)
 from calibrex.core.report_artifacts import (
     REPORT_DEGENERACY_SCHEMA_VERSION,
     REPORT_EVIDENCE_SCHEMA_VERSION,
@@ -123,7 +128,11 @@ def report_artifact_paths(
     return paths
 
 
-def render_html_report(result: CalibrationResult) -> str:
+def render_html_report(
+    result: CalibrationResult,
+    *,
+    timeline: OnlineCalibrationTimelineArtifact | None = None,
+) -> str:
     """Render a portable HTML calibration report."""
 
     metric_rows = "\n".join(
@@ -161,6 +170,7 @@ def render_html_report(result: CalibrationResult) -> str:
     assessment_section = _assessment_section(result)
     lidar_world_map_section = _lidar_world_map_section(result)
     lidar_pair_section = _lidar_pair_section(result)
+    online_timeline_section = _online_timeline_section(result, timeline)
 
     return f"""<!doctype html>
 <html lang="en">
@@ -224,6 +234,49 @@ def render_html_report(result: CalibrationResult) -> str:
       font-size: 0.85rem;
     }}
     code {{ background: #eef2f4; padding: 0.1rem 0.25rem; border-radius: 3px; }}
+    .gate-strip {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin: 0.75rem 0 1.25rem;
+    }}
+    .gate-cell {{
+      width: 14px;
+      height: 28px;
+      border-radius: 2px;
+      border: 1px solid rgba(24, 32, 38, 0.12);
+      cursor: default;
+    }}
+    .gate-pass {{ background: #d9f0e3; }}
+    .gate-fail {{ background: #ffd9d9; }}
+    .gate-inconclusive {{ background: #fff0c2; }}
+    .online-chart {{
+      display: block;
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      margin: 0.75rem 0 1.5rem;
+      border: 1px solid #d6dce1;
+      border-radius: 6px;
+      background: #fcfdfe;
+    }}
+    .chart-legend {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 0.25rem 0 1rem;
+      font-size: 0.85rem;
+      color: #53616c;
+    }}
+    .legend-swatch {{
+      display: inline-block;
+      width: 1rem;
+      height: 0.2rem;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+      border-radius: 1px;
+    }}
+    .rank-lifted {{ background: #e8f4fc; }}
   </style>
 </head>
 <body>
@@ -257,6 +310,7 @@ def render_html_report(result: CalibrationResult) -> str:
     {observability_rows}
   </table>
   {assessment_section}
+  {online_timeline_section}
   {lidar_world_map_section}
   {lidar_pair_section}
   <h2>Artifacts</h2>
@@ -313,6 +367,7 @@ def write_report_artifacts(
     *,
     html_filename: str | Path = "report.html",
     include_html: bool = True,
+    timeline: OnlineCalibrationTimelineArtifact | None = None,
 ) -> dict[str, str]:
     """Write the HTML report and machine-readable report sidecars."""
 
@@ -328,7 +383,10 @@ def write_report_artifacts(
         report_path = Path(written["html_report"])
         report_path.parent.mkdir(parents=True, exist_ok=True)
         result.artifacts.html_report = str(report_path)
-        report_path.write_text(render_html_report(result), encoding="utf-8")
+        report_path.write_text(
+            render_html_report(result, timeline=timeline),
+            encoding="utf-8",
+        )
 
     evidence_payload = validate_report_sidecar_payload("report-evidence", _evidence_payload(result))
     evidence_path = output_path / "evidence.json"
@@ -1474,3 +1532,330 @@ def _artifact_row(name: str, path: str) -> str:
         f'<td><a href="{escape(path)}"><code>{escape(path)}</code></a></td>'
         "</tr>"
     )
+
+
+def _online_timeline_section(
+    result: CalibrationResult,
+    timeline: OnlineCalibrationTimelineArtifact | None,
+) -> str:
+    if timeline is None or not timeline.batches:
+        return ""
+
+    thresholds = _online_gate_thresholds(result)
+    gate_strip = _online_gate_verdict_strip(timeline.batches)
+    rmse_chart = _online_rmse_chart(timeline.batches, thresholds)
+    observability_track = _online_observability_track(timeline)
+    summary_table = _online_timeline_summary_table(result, timeline, thresholds)
+    return f"""
+  <h2>Online Timeline</h2>
+  <p>
+    Per-batch gate verdicts, holdout and rolling RMSE, and observability for
+    <code>{escape(timeline.variable)}</code>
+    ({escape(timeline.source_sensor)} → {escape(timeline.target_sensor)}).
+    Data from <code>timeline.json</code>
+    ({escape(timeline.schema_version)}).
+  </p>
+  <h3>Gate Verdicts</h3>
+  <p class="detail">Hover a cell for batch index and gate reason.</p>
+  {gate_strip}
+  <h3>Holdout and Rolling RMSE</h3>
+  {rmse_chart}
+  <h3>Observability</h3>
+  {observability_track}
+  <h3>Session Summary</h3>
+  {summary_table}
+"""
+
+
+def _online_gate_thresholds(result: CalibrationResult) -> dict[str, float | int]:
+    provenance = result.run.provenance
+    return {
+        "min_rank": int(provenance.get("online_gate_min_rank", 6)),
+        "max_holdout_rmse_m": float(provenance.get("online_gate_max_holdout_rmse_m", 0.05)),
+        "max_rolling_regression_m": float(
+            provenance.get("online_gate_max_rolling_regression_m", 0.02)
+        ),
+    }
+
+
+def _online_gate_verdict_strip(batches: list[OnlineBatchSnapshot]) -> str:
+    cells = []
+    for batch in batches:
+        css = _online_gate_css_class(batch.gate_status)
+        title = f"batch {batch.batch_index}: {batch.gate_status} — {batch.gate_reason}"
+        cells.append(
+            f'<span class="gate-cell {css}" title="{escape(title)}"></span>'
+        )
+    return f'<div class="gate-strip" aria-label="Per-batch gate verdicts">{"".join(cells)}</div>'
+
+
+def _online_gate_css_class(status: OnlineGateStatus) -> str:
+    if status == "pass":
+        return "gate-pass"
+    if status == "fail":
+        return "gate-fail"
+    return "gate-inconclusive"
+
+
+def _online_rmse_chart(
+    batches: list[OnlineBatchSnapshot],
+    thresholds: dict[str, float | int],
+) -> str:
+    width = 860
+    height = 240
+    pad_left = 56
+    pad_right = 20
+    pad_top = 20
+    pad_bottom = 44
+    plot_width = width - pad_left - pad_right
+    plot_height = height - pad_top - pad_bottom
+
+    holdout_values = [
+        batch.batch_holdout_rmse_m
+        for batch in batches
+        if batch.batch_holdout_rmse_m is not None
+    ]
+    rolling_values = [
+        batch.rolling_rmse_m for batch in batches if batch.rolling_rmse_m is not None
+    ]
+    regression_values = [
+        batch.rolling_rmse_m + float(thresholds["max_rolling_regression_m"])
+        for batch in batches
+        if batch.rolling_rmse_m is not None
+    ]
+    max_holdout = float(thresholds["max_holdout_rmse_m"])
+    y_values = [
+        *holdout_values,
+        *rolling_values,
+        *regression_values,
+        max_holdout,
+    ]
+    if not y_values:
+        return "<p>No RMSE values recorded in the timeline.</p>"
+
+    y_min = 0.0
+    y_max = max(y_values) * 1.08
+    if y_max <= y_min:
+        y_max = y_min + 0.01
+
+    def x_coord(batch_index: int) -> float:
+        if len(batches) <= 1:
+            return pad_left + plot_width / 2
+        return pad_left + (batch_index / (len(batches) - 1)) * plot_width
+
+    def y_coord(value: float) -> float:
+        ratio = (value - y_min) / (y_max - y_min)
+        return pad_top + (1.0 - ratio) * plot_height
+
+    holdout_points = " ".join(
+        f"{x_coord(batch.batch_index):.2f},{y_coord(batch.batch_holdout_rmse_m):.2f}"
+        for batch in batches
+        if batch.batch_holdout_rmse_m is not None
+    )
+    rolling_points = " ".join(
+        f"{x_coord(batch.batch_index):.2f},{y_coord(batch.rolling_rmse_m):.2f}"
+        for batch in batches
+        if batch.rolling_rmse_m is not None
+    )
+    regression_points = " ".join(
+        f"{x_coord(batch.batch_index):.2f},"
+        f"{y_coord(batch.rolling_rmse_m + float(thresholds['max_rolling_regression_m'])):.2f}"
+        for batch in batches
+        if batch.rolling_rmse_m is not None
+    )
+    threshold_y = y_coord(max_holdout)
+    y_ticks = _chart_y_ticks(y_min, y_max)
+    y_axis = "\n".join(
+        f'<text x="{pad_left - 8}" y="{y_coord(tick) + 4:.2f}" '
+        f'text-anchor="end" font-size="11" fill="#53616c">{_fmt(tick)}</text>'
+        f'<line x1="{pad_left}" y1="{y_coord(tick):.2f}" '
+        f'x2="{width - pad_right}" y2="{y_coord(tick):.2f}" '
+        f'stroke="#e5eaee" stroke-width="1"/>'
+        for tick in y_ticks
+    )
+    x_label_positions = _chart_x_label_positions(len(batches))
+    x_axis = "\n".join(
+        f'<text x="{x_coord(index):.2f}" y="{height - 12}" '
+        f'text-anchor="middle" font-size="11" fill="#53616c">{index}</text>'
+        for index in x_label_positions
+    )
+    polylines = []
+    if holdout_points:
+        polylines.append(
+            f'<polyline fill="none" stroke="#2563eb" stroke-width="2" '
+            f'points="{holdout_points}"/>'
+        )
+    if rolling_points:
+        polylines.append(
+            f'<polyline fill="none" stroke="#059669" stroke-width="2" '
+            f'points="{rolling_points}"/>'
+        )
+    if regression_points:
+        polylines.append(
+            f'<polyline fill="none" stroke="#d97706" stroke-width="1.5" '
+            f'stroke-dasharray="5 4" points="{regression_points}"/>'
+        )
+    polylines.append(
+        f'<line x1="{pad_left}" y1="{threshold_y:.2f}" '
+        f'x2="{width - pad_right}" y2="{threshold_y:.2f}" '
+        f'stroke="#dc2626" stroke-width="1.5" stroke-dasharray="6 4"/>'
+    )
+    legend = f"""
+  <div class="chart-legend" aria-hidden="true">
+    <span><span class="legend-swatch" style="background:#2563eb"></span>Holdout RMSE (m)</span>
+    <span><span class="legend-swatch" style="background:#059669"></span>Rolling RMSE (m)</span>
+    <span><span class="legend-swatch" style="background:#d97706"></span>
+      Rolling + max regression Δ ({_fmt(float(thresholds['max_rolling_regression_m']))} m)</span>
+    <span><span class="legend-swatch" style="background:#dc2626"></span>
+      Max holdout RMSE ({_fmt(max_holdout)} m)</span>
+  </div>
+"""
+    return (
+        legend
+        + f"""
+  <svg class="online-chart" viewBox="0 0 {width} {height}" role="img"
+       aria-label="Holdout and rolling RMSE per batch">
+    <rect x="{pad_left}" y="{pad_top}" width="{plot_width}" height="{plot_height}"
+          fill="#ffffff" stroke="#d6dce1"/>
+    {y_axis}
+    {x_axis}
+    <text x="{pad_left + plot_width / 2:.2f}" y="{height - 2}" text-anchor="middle"
+          font-size="12" fill="#182026">Batch index</text>
+    <text x="14" y="{pad_top + plot_height / 2:.2f}" text-anchor="middle"
+          font-size="12" fill="#182026"
+          transform="rotate(-90 14 {pad_top + plot_height / 2:.2f})">RMSE (m)</text>
+    {"".join(polylines)}
+  </svg>
+"""
+    )
+
+
+def _chart_y_ticks(y_min: float, y_max: float) -> list[float]:
+    span = y_max - y_min
+    if span <= 0:
+        return [y_min, y_max]
+    step = 10 ** math.floor(math.log10(span))
+    if span / step < 2:
+        step /= 5
+    elif span / step < 5:
+        step /= 2
+    start = math.ceil(y_min / step) * step
+    ticks = [y_min]
+    value = start
+    while value < y_max:
+        if value > y_min:
+            ticks.append(value)
+        value += step
+    if y_max not in ticks:
+        ticks.append(y_max)
+    return ticks
+
+
+def _chart_x_label_positions(batch_count: int) -> list[int]:
+    if batch_count <= 1:
+        return [0]
+    if batch_count <= 8:
+        return list(range(batch_count))
+    step = max(1, batch_count // 8)
+    positions = list(range(0, batch_count, step))
+    if positions[-1] != batch_count - 1:
+        positions.append(batch_count - 1)
+    return positions
+
+
+def _online_observability_track(timeline: OnlineCalibrationTimelineArtifact) -> str:
+    batches = timeline.batches
+    has_batch_observability = any(batch.batch_observability is not None for batch in batches)
+    rows: list[str] = []
+    for batch in batches:
+        accumulated_rank = batch.observability.rank
+        batch_rank = (
+            batch.batch_observability.rank
+            if batch.batch_observability is not None
+            else accumulated_rank
+        )
+        rank_lifted = (
+            has_batch_observability
+            and batch.batch_observability is not None
+            and accumulated_rank is not None
+            and batch_rank is not None
+            and accumulated_rank > batch_rank
+        )
+        row_class = ' class="rank-lifted"' if rank_lifted else ""
+        weak = (
+            ", ".join(batch.observability.weak_directions)
+            if batch.observability.weak_directions
+            else "None"
+        )
+        rows.append(
+            f"<tr{row_class}>"
+            f"<td>{batch.batch_index}</td>"
+            f"<td>{escape(batch.gate_status.upper())}</td>"
+            f"<td>{_fmt_int(batch_rank)}</td>"
+            f"<td>{_fmt_int(accumulated_rank)}</td>"
+            f"<td>{_fmt(batch.observability.condition_number)}</td>"
+            f"<td>{escape(weak)}</td>"
+            f"<td>{'yes' if batch.retained_for_accumulation else 'no'}</td>"
+            "</tr>"
+        )
+    batch_rank_header = (
+        "<th>Batch-only rank</th><th>Accumulated rank</th>"
+        if has_batch_observability
+        else "<th>Rank</th><th>Accumulated rank</th>"
+    )
+    return f"""
+  <table>
+    <tr>
+      <th>Batch</th><th>Gate</th>{batch_rank_header}
+      <th>Condition number</th><th>Weak DoF</th><th>Retained</th>
+    </tr>
+    {"".join(rows)}
+  </table>
+"""
+
+
+def _online_timeline_summary_table(
+    result: CalibrationResult,
+    timeline: OnlineCalibrationTimelineArtifact,
+    thresholds: dict[str, float | int],
+) -> str:
+    retained_count = sum(1 for batch in timeline.batches if batch.retained_for_accumulation)
+    final_estimate = _online_final_estimate(result, timeline)
+    translation = _fmt_vector(final_estimate.translation_m)
+    quaternion = _fmt_vector(final_estimate.rotation_quat_xyzw)
+    return f"""
+  <table>
+    <tr><th>Total batches</th><td>{len(timeline.batches)}</td></tr>
+    <tr><th>Pass / fail / inconclusive</th>
+        <td>{timeline.accepted_batch_count} / {timeline.rejected_batch_count} /
+            {timeline.inconclusive_batch_count}</td></tr>
+    <tr><th>Retained for accumulation</th><td>{retained_count}</td></tr>
+    <tr><th>Final gate status</th>
+        <td><span class="grade {_online_gate_css_class(timeline.final_gate_status)}">
+          {escape(timeline.final_gate_status.upper())}</span></td></tr>
+    <tr><th>Final estimate translation (m)</th><td>{escape(translation)}</td></tr>
+    <tr><th>Final estimate quaternion xyzw</th><td>{escape(quaternion)}</td></tr>
+    <tr><th>Gate thresholds</th>
+        <td>min_rank={thresholds['min_rank']},
+            max_holdout_rmse_m={_fmt(float(thresholds['max_holdout_rmse_m']))} m,
+            max_rolling_regression_m=
+            {_fmt(float(thresholds['max_rolling_regression_m']))} m</td></tr>
+  </table>
+"""
+
+
+def _online_final_estimate(
+    result: CalibrationResult,
+    timeline: OnlineCalibrationTimelineArtifact,
+) -> TransformResult:
+    transform = result.transforms.get(timeline.variable)
+    if transform is not None:
+        return transform
+    for batch in reversed(timeline.batches):
+        if batch.estimate_accepted:
+            return batch.estimate
+    return timeline.batches[-1].estimate
+
+
+def _fmt_vector(values: list[float]) -> str:
+    return "[" + ", ".join(_fmt(value) for value in values) + "]"
