@@ -23,6 +23,7 @@ from calibrex.data.manifest import find_manifest
 from calibrex.data.mcap import inspect_mcap
 from calibrex.data.nuscenes import NuScenesDataset, summarize_nuscenes_metadata
 from calibrex.data.rosbag1 import summarize_rosbag1
+from calibrex.data.rosbag2 import summarize_rosbag2
 from calibrex.data.tum_rgbd import TUMRGBDDataset
 
 # Default diagnostic sample/frame counts, preserved from the previously hardcoded
@@ -89,15 +90,7 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
     if dataset.type == "rosbag1":
         return _inspect_rosbag1(path, dataset.type)
     if dataset.type == "rosbag2":
-        return DatasetInspection(
-            dataset_type=dataset.type,
-            path=str(path),
-            exists=path.exists(),
-            warnings=[
-                "rosbag2 support is adapter-only in this alpha; convert to MCAP or use "
-                "an optional adapter.",
-            ],
-        )
+        return _inspect_rosbag2(path, dataset.type)
     msg = f"unsupported dataset type: {dataset.type}"
     raise DatasetError(msg)
 
@@ -324,6 +317,47 @@ def _inspect_rosbag1(path: Path, dataset_type: str) -> DatasetInspection:
         streams=streams,
         warnings=warnings,
         diagnostics={"rosbag1": stats.as_dict()},
+    )
+
+
+def _inspect_rosbag2(path: Path, dataset_type: str) -> DatasetInspection:
+    if not path.exists():
+        return DatasetInspection(
+            dataset_type=dataset_type,
+            path=str(path),
+            exists=False,
+            warnings=["dataset path does not exist"],
+        )
+    manifest = find_manifest(path)
+    stats = summarize_rosbag2(path, sample_limit=4)
+    warnings: list[str] = []
+    if stats.status == "malformed":
+        warnings.append(stats.reason or "rosbag2 bag could not be parsed")
+    if stats.topic_count == 0:
+        warnings.append("no supported PointCloud2 or Odometry topics found in rosbag2 bag")
+    for stream in stats.streams:
+        if stream.message_type == "sensor_msgs/msg/PointCloud2" and stream.sampled_point_count == 0:
+            warnings.append(f"PointCloud2 topic {stream.topic} decoded no points")
+    streams = [
+        StreamSummary(
+            name=stream.topic,
+            kind="pointcloud"
+            if stream.message_type == "sensor_msgs/msg/PointCloud2"
+            else "odometry",
+            message_count=stream.message_count,
+            topic=stream.topic,
+            sensor=stream.message_type,
+        )
+        for stream in stats.streams
+    ]
+    return DatasetInspection(
+        dataset_type=dataset_type,
+        path=str(path),
+        exists=True,
+        manifest=str(manifest) if manifest is not None else None,
+        streams=streams,
+        warnings=warnings,
+        diagnostics={"rosbag2": stats.as_dict()},
     )
 
 

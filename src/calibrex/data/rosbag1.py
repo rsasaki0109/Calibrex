@@ -25,10 +25,16 @@ import struct
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.base import StreamSummary, TimestampedRecord
+from calibrex.data.ros_messages import (
+    PointCloud2Message,
+    PointField,
+    decode_pointcloud_payload,
+    require_numpy,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     import numpy as np
@@ -49,19 +55,6 @@ LIDAR_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, LIVOX_CUSTOMMSG_TYPE})
 _LIDAR_MESSAGE_TYPES = LIDAR_MESSAGE_TYPES
 _LIVOX_CUSTOM_POINT_STEP = 19
 
-# sensor_msgs/PointField datatype enum -> numpy format string (little endian).
-_POINTFIELD_NUMPY = {
-    1: "i1",  # INT8
-    2: "u1",  # UINT8
-    3: "i2",  # INT16
-    4: "u2",  # UINT16
-    5: "i4",  # INT32
-    6: "u4",  # UINT32
-    7: "f4",  # FLOAT32
-    8: "f8",  # FLOAT64
-}
-
-
 @dataclass(frozen=True)
 class Rosbag1Connection:
     """A ROS bag connection (a topic bound to a message type)."""
@@ -70,41 +63,6 @@ class Rosbag1Connection:
     topic: str
     message_type: str
     md5sum: str | None = None
-
-
-@dataclass(frozen=True)
-class PointField:
-    """A single ``sensor_msgs/PointField`` descriptor."""
-
-    name: str
-    offset: int
-    datatype: int
-    count: int
-
-
-@dataclass(frozen=True)
-class PointCloud2Message:
-    """A decoded ``sensor_msgs/PointCloud2`` message.
-
-    ``xyz`` is an ``(N, 3)`` float64 numpy array; ``intensity`` is an ``(N,)``
-    float64 array when the cloud carries an ``intensity`` field, else ``None``.
-    """
-
-    topic: str
-    timestamp_ns: int
-    frame_id: str
-    width: int
-    height: int
-    point_step: int
-    fields: tuple[PointField, ...]
-    xyz: np.ndarray
-    intensity: np.ndarray | None
-
-    @property
-    def point_count(self) -> int:
-        """Return the number of decoded points."""
-
-        return int(self.xyz.shape[0])
 
 
 @dataclass(frozen=True)
@@ -480,7 +438,7 @@ def decode_bag_lidar_message(
 def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxCustomMessage:
     """Decode a serialized ``livox_ros_driver/CustomMsg`` into numpy arrays."""
 
-    numpy_module = _require_numpy()
+    numpy_module = require_numpy(extra_name="rosbag1")
     offset = 0
 
     _seq, offset = _read_uint32(data, offset)
@@ -565,7 +523,7 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
 def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud2Message:
     """Decode a serialized ``sensor_msgs/PointCloud2`` message into numpy arrays."""
 
-    numpy_module = _require_numpy()
+    numpy_module = require_numpy(extra_name="rosbag1")
     offset = 0
 
     _seq, offset = _read_uint32(data, offset)
@@ -595,9 +553,9 @@ def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud
     # Trailing is_dense byte is intentionally not required for decoding.
 
     point_count = height * width if height * width else (payload_len // point_step)
-    xyz, intensity = _decode_points(
+    xyz, intensity = decode_pointcloud_payload(
         numpy_module,
-        payload,
+        payload=payload,
         fields=fields,
         point_step=point_step,
         point_count=point_count,
@@ -616,58 +574,6 @@ def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud
         xyz=xyz,
         intensity=intensity,
     )
-
-
-def _decode_points(
-    np_mod: Any,
-    payload: bytes,
-    *,
-    fields: list[PointField],
-    point_step: int,
-    point_count: int,
-    is_bigendian: bool,
-) -> tuple[np.ndarray, np.ndarray | None]:
-    byteorder = ">" if is_bigendian else "<"
-    by_name = {field.name: field for field in fields}
-    required = ("x", "y", "z")
-    if not all(name in by_name for name in required):
-        msg = "PointCloud2 message does not carry x/y/z fields"
-        raise DatasetError(msg)
-
-    wanted = [*required]
-    if "intensity" in by_name:
-        wanted.append("intensity")
-
-    names: list[str] = []
-    formats: list[str] = []
-    offsets: list[int] = []
-    for name in wanted:
-        point_field = by_name[name]
-        base = _POINTFIELD_NUMPY.get(point_field.datatype)
-        if base is None:
-            msg = f"unsupported PointField datatype {point_field.datatype} for field {name!r}"
-            raise DatasetError(msg)
-        names.append(name)
-        formats.append(f"{byteorder}{base}")
-        offsets.append(point_field.offset)
-
-    dtype = np_mod.dtype(
-        {"names": names, "formats": formats, "offsets": offsets, "itemsize": point_step}
-    )
-    usable = min(point_count, len(payload) // point_step) if point_step else 0
-    structured = np_mod.frombuffer(payload, dtype=dtype, count=usable)
-    xyz = np_mod.stack(
-        [
-            structured["x"].astype(np_mod.float64),
-            structured["y"].astype(np_mod.float64),
-            structured["z"].astype(np_mod.float64),
-        ],
-        axis=1,
-    )
-    intensity = (
-        structured["intensity"].astype(np_mod.float64) if "intensity" in names else None
-    )
-    return xyz, intensity
 
 
 def summarize_rosbag1(
@@ -764,7 +670,7 @@ def _accumulate_bounds(
 ) -> None:
     if message.point_count == 0:
         return
-    np_mod = _require_numpy()
+    np_mod = require_numpy(extra_name="rosbag1")
     finite = np_mod.isfinite(message.xyz).all(axis=1)
     finite_xyz = message.xyz[finite]
     if finite_xyz.shape[0] == 0:
@@ -808,13 +714,3 @@ def _read_string(data: bytes, offset: int) -> tuple[str, int]:
     return text, offset + length
 
 
-def _require_numpy() -> Any:
-    try:
-        import numpy as numpy_module
-    except ImportError as exc:  # pragma: no cover - exercised via error path test
-        msg = (
-            "decoding ROS bag PointCloud2 messages requires numpy; install the "
-            "optional dependency calibrex[rosbag1]"
-        )
-        raise DatasetError(msg) from exc
-    return numpy_module
