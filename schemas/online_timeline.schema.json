@@ -174,6 +174,17 @@
           "title": "Batch Index",
           "type": "integer"
         },
+        "batch_observability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObservabilityResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "correspondence_count": {
           "minimum": 0,
           "title": "Correspondence Count",
@@ -636,6 +647,19 @@
       "title": "Accepted Batch Count",
       "type": "integer"
     },
+    "accumulation_batches": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Accumulation Batches"
+    },
     "batch_size": {
       "minimum": 1,
       "title": "Batch Size",
@@ -669,6 +693,19 @@
       "title": "Inconclusive Batch Count",
       "type": "integer"
     },
+    "max_accumulated_train_points": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Accumulated Train Points"
+    },
     "rejected_batch_count": {
       "default": 0,
       "minimum": 0,
@@ -684,8 +721,8 @@
       "$ref": "#/$defs/ReportRunInfo"
     },
     "schema_version": {
-      "const": "calibrex.online_timeline/v0.1",
-      "default": "calibrex.online_timeline/v0.1",
+      "const": "calibrex.online_timeline/v0.2",
+      "default": "calibrex.online_timeline/v0.2",
       "title": "Schema Version",
       "type": "string"
     },

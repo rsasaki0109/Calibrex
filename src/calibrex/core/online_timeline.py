@@ -21,8 +21,8 @@ from calibrex.core.result import (
     TransformResult,
 )
 
-ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.1"] = (
-    "calibrex.online_timeline/v0.1"
+ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.2"] = (
+    "calibrex.online_timeline/v0.2"
 )
 
 # Mirrors the pass/fail/inconclusive semantics of `AssessmentStatus` in
@@ -50,6 +50,7 @@ class OnlineBatchSnapshot(StrictModel):
     rolling_rmse_m: float | None = None
     rolling_window_residual_count: int = Field(default=0, ge=0)
     observability: ObservabilityResult = Field(default_factory=ObservabilityResult)
+    batch_observability: ObservabilityResult | None = None
     gate_status: OnlineGateStatus
     gate_reason: str
     metrics: dict[str, MetricResult] = Field(default_factory=dict)
@@ -59,7 +60,7 @@ class OnlineBatchSnapshot(StrictModel):
 class OnlineCalibrationTimelineArtifact(StrictModel):
     """Machine-readable per-batch timeline for one online calibration run."""
 
-    schema_version: Literal["calibrex.online_timeline/v0.1"] = (
+    schema_version: Literal["calibrex.online_timeline/v0.2"] = (
         ONLINE_TIMELINE_SCHEMA_VERSION
     )
     run: ReportRunInfo
@@ -70,6 +71,8 @@ class OnlineCalibrationTimelineArtifact(StrictModel):
     rolling_window: int = Field(ge=1)
     holdout_ratio: float = Field(ge=0.0, le=0.9)
     seed: int
+    accumulation_batches: int | None = Field(default=None, ge=1)
+    max_accumulated_train_points: int | None = Field(default=None, ge=1)
     batches: list[OnlineBatchSnapshot] = Field(default_factory=list)
     final_gate_status: OnlineGateStatus
     accepted_batch_count: int = Field(default=0, ge=0)
