@@ -25,5 +25,7 @@ Start with:
 - `schemas/report_evidence.schema.json`
 - `schemas/dataset_manifest.schema.json`
 - `docs/adr/0001-core-is-ros-independent.md`
+- `docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`
+- `docs/adr/0005-v0-2-motion-camera-temporal-direction.md`
 
 Regenerate committed schemas with `calibrex schema all --output-dir schemas`.
