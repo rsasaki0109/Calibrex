@@ -177,6 +177,29 @@ point counts, intensity presence, spatial bounds, and first/last ROS
 timestamps (normalized to integer nanoseconds). Other message types are
 ignored by design; the alpha reader is scoped to point clouds.
 
+## ROS 2 bag (rosbag2) reader
+
+Calibrex reads rosbag2 recordings directly with a pure-Python parser
+(`calibrex.data.rosbag2`); no ROS installation is required. Supported storage
+backends are **sqlite3** (``.db3``, the default through Humble) and **mcap**
+(``.mcap``, the default from Iron). A bag directory with `metadata.yaml` or a
+bare ``.db3`` / ``.mcap`` file path both work.
+
+Decoding ``sensor_msgs/msg/PointCloud2`` and ``nav_msgs/msg/Odometry`` payloads
+requires numpy (`pip install "calibrex[rosbag2]"`). MCAP bags with chunked
+``lz4`` or ``zstd`` compression additionally need
+`pip install "calibrex[rosbag2-compression]"` (`none` / uncompressed chunks
+work out of the box).
+
+```bash
+calibrex inspect path/to/bag --type rosbag2 --json
+```
+
+`calibrex inspect --type rosbag2` reports per-topic message counts, sampled
+decoded point counts for PointCloud2 topics, and a pose sample for Odometry
+topics (position, orientation `xyzw`, and pose covariance diagonal entries from
+the first sampled message).
+
 `--readme-gallery` regenerates the Livox and A2D2 README GIF assets from public
 raw samples. It downloads the small A2D2 range sample when needed and refuses to
 use built-in fallback geometry unless `--allow-metadata-fallback` is passed.

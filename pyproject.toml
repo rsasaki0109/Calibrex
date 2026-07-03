@@ -49,6 +49,14 @@ rosbag1-lz4 = [
   "numpy>=1.21",
   "lz4>=4.0",
 ]
+rosbag2 = [
+  "numpy>=1.21",
+]
+rosbag2-compression = [
+  "numpy>=1.21",
+  "lz4>=4.0",
+  "zstandard>=0.22",
+]
 open3d = [
   "open3d>=0.18",
 ]
@@ -108,6 +116,6 @@ module = ["yaml", "jsonschema"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["numpy", "numpy.*", "lz4", "lz4.*"]
+module = ["numpy", "numpy.*", "lz4", "lz4.*", "zstandard", "zstandard.*"]
 follow_imports = "skip"
 ignore_missing_imports = true
