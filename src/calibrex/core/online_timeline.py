@@ -21,8 +21,8 @@ from calibrex.core.result import (
     TransformResult,
 )
 
-ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.2"] = (
-    "calibrex.online_timeline/v0.2"
+ONLINE_TIMELINE_SCHEMA_VERSION: Literal["calibrex.online_timeline/v0.3"] = (
+    "calibrex.online_timeline/v0.3"
 )
 
 # Mirrors the pass/fail/inconclusive semantics of `AssessmentStatus` in
@@ -73,7 +73,7 @@ class OnlineBatchSnapshot(StrictModel):
 class OnlineCalibrationTimelineArtifact(StrictModel):
     """Machine-readable per-batch timeline for one online calibration run."""
 
-    schema_version: Literal["calibrex.online_timeline/v0.2"] = (
+    schema_version: Literal["calibrex.online_timeline/v0.3"] = (
         ONLINE_TIMELINE_SCHEMA_VERSION
     )
     run: ReportRunInfo
@@ -91,6 +91,7 @@ class OnlineCalibrationTimelineArtifact(StrictModel):
     accepted_batch_count: int = Field(default=0, ge=0)
     rejected_batch_count: int = Field(default=0, ge=0)
     inconclusive_batch_count: int = Field(default=0, ge=0)
+    motion_compensated: bool | None = None
 
 
 def online_timeline_json_schema() -> dict[str, Any]:

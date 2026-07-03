@@ -44,6 +44,13 @@ class DatasetConfig(StrictModel):
     type: DatasetType
     path: str
     time_base: str = "sensor_time_ns"
+    odometry_topic: str | None = Field(
+        default=None,
+        description=(
+            "optional nav_msgs/msg/Odometry topic for online motion compensation "
+            "from rosbag1/rosbag2 replays; unset preserves the static-rig path"
+        ),
+    )
     sample_limit: int | None = Field(
         default=None,
         ge=1,
