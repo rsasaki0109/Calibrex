@@ -90,7 +90,7 @@ def test_readme_gallery_has_multiple_public_sources() -> None:
         if job.source == "a2d2"
     }
 
-    assert sources == {"livox-horizon-horizon", "a2d2"}
+    assert sources == {"livox-horizon-horizon", "a2d2", "tiers-lidars-cali"}
     assert visuals == {"evidence", "online"}
     assert len(a2d2_pairs) >= 2
     assert all(source_id != target_id for source_id, target_id in a2d2_pairs)
@@ -106,6 +106,11 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
         if asset["output"] == "docs/assets/online-calibration-loop.gif"
     )
     assert online_asset["visual"] == "online"
+    assert online_asset["source"] == "tiers-lidars-cali"
+    assert online_asset["sensor_pair"] == {
+        "source": "livox_horizon",
+        "target": "livox_avia",
+    }
     assert online_asset["pipeline"] == {
         "mode": "real_online",
         "source": "calibrex calibrate --online",
@@ -119,6 +124,176 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
         == online_asset["online_run"]["batch_count"]
     )
     assert online_asset["online_run"]["final_gate_status"] in {"pass", "fail", "inconclusive"}
+    rosbag_input = online_asset["public_inputs"][0]
+    assert rosbag_input["kind"] == "rosbag1_local_dataset"
+    assert rosbag_input["bag_file"] == "LidarsCali.bag"
+    assert "replay_budgets" in rosbag_input
+    assert rosbag_input["replay_budgets"]["max_target_messages"] >= 12
+
+
+def test_tiers_hero_gif_skips_when_bag_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tool = load_gif_tool()
+    missing_bag = tmp_path / "missing" / "LidarsCali.bag"
+    monkeypatch.setattr(tool, "TIERS_BAG_PATH", missing_bag)
+    monkeypatch.setattr(tool, "tiers_bag_available", lambda: False)
+
+    preserved = {
+        "output": "docs/assets/online-calibration-loop.gif",
+        "source": "tiers-lidars-cali",
+        "visual": "online",
+    }
+    monkeypatch.setattr(
+        tool,
+        "load_readme_gallery_manifest_if_exists",
+        lambda: {"assets": [preserved]},
+    )
+
+    generated: list[str] = []
+
+    def _fake_generate_gif(**kwargs: object) -> None:
+        generated.append(str(kwargs.get("output")))
+
+    def _fake_load_gif_inputs(**kwargs: object) -> tuple[object, object, str]:
+        if kwargs.get("source") == "tiers-lidars-cali":
+            pytest.fail("should not load TIERS inputs when bag is absent")
+        return (
+            tool.LidarCloudPair(
+                source_points=[],
+                target_points=[],
+                source_label="src",
+                target_label="tgt",
+                bar_labels=("a", "b", "c", "d"),
+                bar_values=(1.0, 1.0, 1.0, 1.0),
+                source_pose_name="src",
+                target_pose_name="tgt",
+                source_total=1,
+                target_total=1,
+                source_path=tmp_path / "sample",
+                subtitle="test",
+                scene_caption="test",
+                legend="test",
+                provenance="test",
+                shared_voxel_count=1,
+                source_recall=1.0,
+                shared_centroid_rmse_m=0.1,
+                holdout_plane_match_count=0,
+                holdout_point_to_plane_p90_m=0.0,
+                holdout_unmatched_fraction=0.0,
+                known_bad_detectable_fraction=0.0,
+                known_bad_max_rmse_delta_m=0.0,
+                known_bad_max_point_to_plane_p90_delta_m=0.0,
+                support_summary="test",
+                holdout_summary="test",
+                known_bad_summary="test",
+                protocol_summary="test",
+                case_summary="test",
+            ),
+            [],
+            "test metadata",
+        )
+
+    monkeypatch.setattr(tool, "generate_gif", _fake_generate_gif)
+    monkeypatch.setattr(tool, "load_gif_inputs", _fake_load_gif_inputs)
+    monkeypatch.setattr(
+        tool,
+        "readme_gallery_manifest_asset",
+        lambda **_kwargs: {"output": "docs/assets/calibration-evidence-demo.gif"},
+    )
+    monkeypatch.setattr(tool, "write_readme_gallery_manifest", lambda *_args, **_kwargs: None)
+
+    tool.generate_readme_gallery(
+        frames=tool.FRAME_COUNT,
+        sensor_config=None,
+        allow_network=False,
+        allow_fallback=False,
+    )
+
+    assert "docs/assets/online-calibration-loop.gif" not in generated
+
+
+def test_tiers_gif_manifest_asset_shape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    tool = load_gif_tool()
+    bag = tmp_path / "LidarsCali.bag"
+    bag.write_bytes(b"rosbag-fixture")
+    monkeypatch.setattr(tool, "TIERS_BAG_PATH", bag)
+    monkeypatch.setattr(
+        tool,
+        "load_tiers_download_url",
+        lambda: "https://example.test/LidarsCali.bag",
+    )
+
+    cloud_pair = tool.LidarCloudPair(
+        source_points=[],
+        target_points=[],
+        source_label="Livox Horizon points",
+        target_label="Livox Avia points",
+        bar_labels=("a", "b", "c", "d"),
+        bar_values=(1.0, 1.0, 1.0, 1.0),
+        source_pose_name="livox_horizon",
+        target_pose_name="livox_avia",
+        source_total=1,
+        target_total=1,
+        source_path=bag,
+        subtitle="test",
+        scene_caption="test",
+        legend="test",
+        provenance="provenance: TIERS LidarsCali rosbag1",
+        shared_voxel_count=1,
+        source_recall=1.0,
+        shared_centroid_rmse_m=0.1,
+        holdout_plane_match_count=0,
+        holdout_point_to_plane_p90_m=0.0,
+        holdout_unmatched_fraction=0.0,
+        known_bad_detectable_fraction=0.0,
+        known_bad_max_rmse_delta_m=0.0,
+        known_bad_max_point_to_plane_p90_delta_m=0.0,
+        support_summary="test",
+        holdout_summary="test",
+        known_bad_summary="test",
+        protocol_summary="test",
+        case_summary="test",
+    )
+    job = tool.ReadmeGifJob(
+        source="tiers-lidars-cali",
+        output=Path("docs/assets/online-calibration-loop.gif"),
+        visual="online",
+    )
+    online_run = tool.OnlineGifRun(
+        timeline_path=tmp_path / "timeline.json",
+        frame_states=(),
+        batch_count=14,
+        accepted_batch_count=14,
+        rejected_batch_count=0,
+        inconclusive_batch_count=0,
+        final_gate_status="pass",
+        gate_thresholds=tool.OnlineGifGateThresholds(
+            min_rank=6,
+            max_holdout_rmse_m=0.4,
+            max_rolling_regression_m=0.15,
+        ),
+    )
+
+    asset = tool.readme_gallery_manifest_asset(
+        job=job,
+        cloud_pair=cloud_pair,
+        metadata_source="TIERS LidarsCali static rig (Livox Horizon + Avia)",
+        online_run=online_run,
+    )
+
+    assert asset["source"] == "tiers-lidars-cali"
+    assert asset["sensor_pair"] == {"source": "livox_horizon", "target": "livox_avia"}
+    rosbag_input = asset["public_inputs"][0]
+    assert rosbag_input["kind"] == "rosbag1_local_dataset"
+    assert rosbag_input["bag_file"] == "LidarsCali.bag"
+    assert rosbag_input["size_bytes"] == bag.stat().st_size
+    assert len(str(rosbag_input["sha256_first_mib"])) == 64
+    assert (
+        rosbag_input["replay_budgets"]["max_target_messages"]
+        == tool.TIERS_GIF_MAX_TARGET_MESSAGES
+    )
 
 
 def test_a2d2_metadata_fallback_is_explicit() -> None:

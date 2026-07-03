@@ -16,11 +16,11 @@ online estimates, and external tool outputs through one schema, one CLI, one
 metric suite, and one report.
 
 <p align="center">
-  <img src="docs/assets/online-calibration-loop.gif" alt="Online calibration evidence loop animation" width="100%">
+  <img src="docs/assets/online-calibration-loop.gif" alt="Online solid-state Livox LiDAR calibration evidence loop" width="100%">
 </p>
 
 <p align="center">
-  <sub>Online-style replay: live LiDAR batches, a converging extrinsic estimate, rolling residuals, holdout checks, and provenance-backed PASS gates. Generated from public A2D2 sample data.</sub>
+  <sub>Online replay on the TIERS LidarsCali static rig: Livox Horizon (non-repetitive scan) streams build a fixed source map while Livox Avia target batches converge through rolling residuals, holdout gates, and provenance-backed assessment. Generated from a real <code>calibrex calibrate --online</code> run on the public rosbag.</sub>
 </p>
 
 ```bash
