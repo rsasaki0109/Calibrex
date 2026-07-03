@@ -78,9 +78,10 @@ claims accurate, v0.1 alpha should be described as LiDAR-main:
 - **IMU**: roadmap, not evaluation. `src/calibrex/evaluation/motion.py`
   computes vehicle-motion excitation from OXTS to flag degenerate LiDAR
   segments; it does not evaluate IMU extrinsic candidates.
-- **Radar**: roadmap only. `radar_lidar_velocity_consistency` is registered
-  by name in `src/calibrex/evaluation/registry.py` and
-  `src/calibrex/evaluation/thresholds.py`, but no function computes it yet.
+- **Radar**: experimental consistency check (2026-07-03). nuScenes radar PCDs and
+  ego_pose velocity support `radar_lidar_velocity_consistency` as a static-target
+  radial Doppler residual probe on radar extrinsic candidates; this is not radar
+  calibration. Previously roadmap-only (registered by name only as of 2026-07-02).
 
 The original alpha statement in the Context section above is kept as the
 project's multi-sensor vision and is not rewritten, since this ADR is a

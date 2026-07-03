@@ -116,6 +116,38 @@ class NuScenesDataset:
 
 
 @dataclass(frozen=True)
+class NuScenesEgoPose:
+    """One nuScenes ego_pose record."""
+
+    token: str
+    timestamp_ns: int
+    translation_m: tuple[float, float, float]
+    rotation_quat_xyzw: tuple[float, float, float, float]
+
+
+def read_nuscenes_ego_poses(root: str | Path) -> dict[str, NuScenesEgoPose]:
+    """Read nuScenes ego_pose transforms indexed by token."""
+
+    version_path = find_nuscenes_version_path(root)
+    if version_path is None:
+        return {}
+    poses: dict[str, NuScenesEgoPose] = {}
+    for row in _load_table(version_path, "ego_pose"):
+        token = _string(row.get("token"))
+        translation = _numeric_list(row.get("translation"), expected=3)
+        rotation = _wxyz_to_xyzw(_numeric_list(row.get("rotation"), expected=4))
+        if token is None or translation is None or rotation is None:
+            continue
+        poses[token] = NuScenesEgoPose(
+            token=token,
+            timestamp_ns=_timestamp_us_to_ns(row.get("timestamp")),
+            translation_m=(translation[0], translation[1], translation[2]),
+            rotation_quat_xyzw=(rotation[0], rotation[1], rotation[2], rotation[3]),
+        )
+    return poses
+
+
+@dataclass(frozen=True)
 class _SampleDataRow:
     token: str
     channel: str
