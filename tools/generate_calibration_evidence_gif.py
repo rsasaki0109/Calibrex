@@ -30,6 +30,8 @@ from urllib.request import Request, urlopen
 
 import yaml
 
+from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
+
 WIDTH = 960
 HEIGHT = 540
 FPS = 12
@@ -38,7 +40,6 @@ README_GIF_MANIFEST = Path("docs/assets/readme-gif-gallery.json")
 README_GIF_MANIFEST_SCHEMA_VERSION = "calibrex.readme_gif_gallery/v0.3"
 ONLINE_PIPELINE_SOURCE = "calibrex calibrate --online"
 ONLINE_PIPELINE_MODE = "real_online"
-ONLINE_TIMELINE_SCHEMA_VERSION = "calibrex.online_timeline/v0.2"
 ONLINE_BATCH_SIZE = 400
 ONLINE_HOLDOUT_RATIO = 0.2
 ONLINE_ROLLING_WINDOW = 2000

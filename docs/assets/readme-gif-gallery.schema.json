@@ -132,7 +132,10 @@
                 "const": "calibrex calibrate --online"
               },
               "timeline_schema_version": {
-                "const": "calibrex.online_timeline/v0.2"
+                "enum": [
+                  "calibrex.online_timeline/v0.2",
+                  "calibrex.online_timeline/v0.3"
+                ]
               }
             }
           },
