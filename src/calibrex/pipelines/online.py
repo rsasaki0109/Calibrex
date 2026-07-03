@@ -1113,17 +1113,25 @@ def _build_result(
     result.artifacts.html_report = str(output_dir / config.outputs.report)
     evaluate_quality(result, strict=options.strict)
     result.save(output_dir / config.outputs.result)
-    write_report_artifacts(result, output_dir, html_filename=config.outputs.report)
 
     timeline_path = output_dir / _TIMELINE_FILENAME
-    write_online_timeline_artifact(
+    timeline_artifact = build_online_timeline_artifact(
         result=result,
         session=session,
         variable=variable,
         source_sensor=source_sensor,
         target_sensor=target_sensor,
         batch_size=batch_size,
-        output_path=timeline_path,
+    )
+    write_report_artifacts(
+        result,
+        output_dir,
+        html_filename=config.outputs.report,
+        timeline=timeline_artifact,
+    )
+    write_mapping(
+        timeline_path,
+        timeline_artifact.model_dump(mode="json", exclude_none=True),
     )
     result.run.provenance["online_timeline_path"] = str(timeline_path)
     result.save(output_dir / config.outputs.result)
@@ -1229,7 +1237,7 @@ def _run_id(project_name: str) -> str:
     return f"{timestamp}_{slug}_online"
 
 
-def write_online_timeline_artifact(
+def build_online_timeline_artifact(
     *,
     result: CalibrationResult,
     session: OnlineCalibrationSession,
@@ -1237,13 +1245,12 @@ def write_online_timeline_artifact(
     source_sensor: str,
     target_sensor: str,
     batch_size: int,
-    output_path: str | Path,
 ) -> OnlineCalibrationTimelineArtifact:
-    """Build and write the machine-readable per-batch timeline artifact."""
+    """Build the machine-readable per-batch timeline artifact."""
 
     history = session.history
     final_status: OnlineGateStatus = history[-1].gate_status if history else "inconclusive"
-    artifact = OnlineCalibrationTimelineArtifact(
+    return OnlineCalibrationTimelineArtifact(
         schema_version=ONLINE_TIMELINE_SCHEMA_VERSION,
         run=_report_run_info(result),
         variable=variable,
@@ -1262,6 +1269,28 @@ def write_online_timeline_artifact(
         accepted_batch_count=sum(1 for s in history if s.gate_status == "pass"),
         rejected_batch_count=sum(1 for s in history if s.gate_status == "fail"),
         inconclusive_batch_count=sum(1 for s in history if s.gate_status == "inconclusive"),
+    )
+
+
+def write_online_timeline_artifact(
+    *,
+    result: CalibrationResult,
+    session: OnlineCalibrationSession,
+    variable: str,
+    source_sensor: str,
+    target_sensor: str,
+    batch_size: int,
+    output_path: str | Path,
+) -> OnlineCalibrationTimelineArtifact:
+    """Build and write the machine-readable per-batch timeline artifact."""
+
+    artifact = build_online_timeline_artifact(
+        result=result,
+        session=session,
+        variable=variable,
+        source_sensor=source_sensor,
+        target_sensor=target_sensor,
+        batch_size=batch_size,
     )
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)

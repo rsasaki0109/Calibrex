@@ -388,3 +388,194 @@ def test_rig_3d_artifact_renders_reference_online_and_candidate_layers() -> None
     assert "T_ego_lidar_top_reference" in html
     assert "T_ego_lidar_top_candidate" in html
     assert "0.05" in html
+
+
+def _synthetic_online_timeline() -> tuple[CalibrationResult, object]:
+    from calibrex.core.online_timeline import (
+        OnlineBatchSnapshot,
+        OnlineCalibrationTimelineArtifact,
+    )
+    from calibrex.core.report_artifacts import ReportRunInfo
+
+    batches = [
+        OnlineBatchSnapshot(
+            batch_index=0,
+            frame_count=1,
+            point_count=500,
+            train_point_count=400,
+            holdout_point_count=100,
+            correspondence_count=120,
+            holdout_correspondence_count=30,
+            estimate=TransformResult(
+                parent="base_horizon",
+                child="livox_avia",
+                translation_m=[0.1, 0.0, 0.2],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            ),
+            estimate_accepted=True,
+            batch_holdout_rmse_m=0.08,
+            rolling_rmse_m=0.08,
+            observability=ObservabilityResult(rank=4, condition_number=12.0),
+            batch_observability=ObservabilityResult(rank=4, condition_number=10.0),
+            gate_status="inconclusive",
+            gate_reason="insufficient observability; retained for accumulation",
+            retained_for_accumulation=True,
+        ),
+        OnlineBatchSnapshot(
+            batch_index=1,
+            frame_count=1,
+            point_count=500,
+            train_point_count=400,
+            holdout_point_count=100,
+            correspondence_count=140,
+            holdout_correspondence_count=35,
+            estimate=TransformResult(
+                parent="base_horizon",
+                child="livox_avia",
+                translation_m=[0.11, 0.01, 0.21],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            ),
+            estimate_accepted=True,
+            batch_holdout_rmse_m=0.12,
+            rolling_rmse_m=0.10,
+            observability=ObservabilityResult(rank=6, condition_number=9.5),
+            batch_observability=ObservabilityResult(rank=5, condition_number=11.0),
+            gate_status="pass",
+            gate_reason="holdout evidence supports this batch's update",
+            retained_for_accumulation=False,
+        ),
+        OnlineBatchSnapshot(
+            batch_index=2,
+            frame_count=1,
+            point_count=500,
+            train_point_count=400,
+            holdout_point_count=100,
+            correspondence_count=130,
+            holdout_correspondence_count=32,
+            estimate=TransformResult(
+                parent="base_horizon",
+                child="livox_avia",
+                translation_m=[0.12, 0.02, 0.22],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            ),
+            estimate_accepted=False,
+            batch_holdout_rmse_m=0.55,
+            rolling_rmse_m=0.10,
+            observability=ObservabilityResult(rank=6, condition_number=8.0),
+            batch_observability=ObservabilityResult(rank=6, condition_number=8.0),
+            gate_status="fail",
+            gate_reason="holdout RMSE 0.5500 m exceeds the 0.4000 m gate",
+            retained_for_accumulation=False,
+        ),
+    ]
+    timeline = OnlineCalibrationTimelineArtifact(
+        run=ReportRunInfo(
+            id="online-report-unit",
+            status="warning",
+            domain="robotics",
+            calibrex_version="0.1.0",
+            created_at="2026-07-03T00:00:00Z",
+        ),
+        variable="T_base_horizon_livox_avia",
+        source_sensor="livox_horizon",
+        target_sensor="livox_avia",
+        batch_size=500,
+        rolling_window=2000,
+        holdout_ratio=0.2,
+        seed=0,
+        accumulation_batches=3,
+        batches=batches,
+        final_gate_status="fail",
+        accepted_batch_count=1,
+        rejected_batch_count=1,
+        inconclusive_batch_count=1,
+    )
+    result = CalibrationResult(
+        run=RunInfo(
+            id="online-report-unit",
+            calibrex_version="0.1.0",
+            provenance={
+                "online_gate_min_rank": 6,
+                "online_gate_max_holdout_rmse_m": 0.4,
+                "online_gate_max_rolling_regression_m": 0.15,
+            },
+        ),
+        frame_graph=FrameGraphSnapshot(root="base_horizon", frames={"base_horizon": None}),
+        transforms={
+            "T_base_horizon_livox_avia": TransformResult(
+                parent="base_horizon",
+                child="livox_avia",
+                translation_m=[0.11, 0.01, 0.21],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            )
+        },
+    )
+    return result, timeline
+
+
+def test_report_renders_online_timeline_section() -> None:
+    result, timeline = _synthetic_online_timeline()
+
+    html = render_html_report(result, timeline=timeline)
+
+    assert "Online Timeline" in html
+    assert "Gate Verdicts" in html
+    assert "Holdout and Rolling RMSE" in html
+    assert "Observability" in html
+    assert "Session Summary" in html
+    assert html.count('class="gate-cell gate-pass"') == 1
+    assert html.count('class="gate-cell gate-fail"') == 1
+    assert html.count('class="gate-cell gate-inconclusive"') == 1
+    assert html.count('class="rank-lifted"') == 1
+    assert "1 /" in html and "/ 1 /" in html
+    assert "Retained for accumulation" in html
+    assert "min_rank=6" in html
+    assert "max_holdout_rmse_m=0.4" in html
+
+
+def test_report_online_timeline_rmse_chart_has_expected_polylines() -> None:
+    result, timeline = _synthetic_online_timeline()
+
+    html = render_html_report(result, timeline=timeline)
+
+    import re
+
+    holdout_match = re.search(
+        r'<polyline[^>]*stroke="#2563eb"[^>]*points="([^"]+)"',
+        html,
+    )
+    rolling_match = re.search(
+        r'<polyline[^>]*stroke="#059669"[^>]*points="([^"]+)"',
+        html,
+    )
+    assert holdout_match is not None
+    assert rolling_match is not None
+    assert len(holdout_match.group(1).split()) == 3
+    assert len(rolling_match.group(1).split()) == 3
+    assert re.search(r'stroke="#d97706"', html) is not None
+    assert re.search(r'stroke="#dc2626"', html) is not None
+    assert "RMSE (m)" in html
+    assert "Batch index" in html
+
+
+def test_report_omits_online_timeline_section_for_offline_results() -> None:
+    result = CalibrationResult(
+        run=RunInfo(id="offline-report-unit", calibrex_version="0.1.0"),
+        frame_graph=FrameGraphSnapshot(root="ego", frames={"ego": None}),
+    )
+
+    html = render_html_report(result)
+
+    assert "Online Timeline" not in html
+    assert 'class="gate-strip"' not in html
+
+
+def test_write_report_artifacts_passes_timeline_to_html(tmp_path) -> None:
+    from calibrex.visualization.report import write_report_artifacts
+
+    result, timeline = _synthetic_online_timeline()
+
+    write_report_artifacts(result, tmp_path, timeline=timeline)
+
+    html = (tmp_path / "report.html").read_text(encoding="utf-8")
+    assert "Online Timeline" in html
