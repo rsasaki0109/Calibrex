@@ -20,6 +20,7 @@ from calibrex.data.rosbag1 import (
     BAG_MAGIC,
     Rosbag1Reader,
     _decompress_chunk,
+    decode_livox_custommsg,
     decode_pointcloud2,
     read_pointcloud2_messages,
     summarize_rosbag1,
@@ -212,6 +213,48 @@ def test_rosbag1_decodes_pointcloud2_to_numpy(tmp_path: Path) -> None:
     assert first.frame_id == "livox_lidar_frame"
 
 
+def _serialize_livox_custommsg(
+    points: list[Point],
+    *,
+    frame_id: str,
+    secs: int,
+    nsecs: int,
+) -> bytes:
+    buf = b""
+    buf += struct.pack("<I", 0)
+    buf += struct.pack("<I", secs)
+    buf += struct.pack("<I", nsecs)
+    frame = frame_id.encode("utf-8")
+    buf += struct.pack("<I", len(frame)) + frame
+    buf += struct.pack("<Q", secs * 1_000_000_000 + nsecs)
+    buf += struct.pack("<I", len(points))
+    buf += struct.pack("<B", 1)  # lidar_id
+    buf += b"\x00\x00\x00"  # rsvd
+    buf += struct.pack("<I", len(points))
+    for index, (x, y, z, intensity) in enumerate(points):
+        buf += struct.pack("<I", index * 1000)
+        buf += struct.pack("<fff", x, y, z)
+        buf += struct.pack("<BBB", int(intensity), 0, index % 4)
+    return buf
+
+
+def test_rosbag1_decodes_livox_custommsg() -> None:
+    payload = _serialize_livox_custommsg(
+        [(1.0, 2.0, 3.0, 10.0), (4.0, 5.0, 6.0, 20.0)],
+        frame_id="horizon_frame",
+        secs=100,
+        nsecs=500,
+    )
+    message = decode_livox_custommsg("/livox/lidar", 0, payload)
+    assert message.point_count == 2
+    assert message.xyz[0].tolist() == [1.0, 2.0, 3.0]
+    assert message.intensity is not None
+    assert message.intensity.tolist() == [10.0, 20.0]
+    assert message.line is not None
+    assert message.line.tolist() == [0, 1]
+    assert message.frame_id == "horizon_frame"
+
+
 def test_rosbag1_records_normalize_ros_time(tmp_path: Path) -> None:
     bag = _sample_bag(tmp_path / "sample.bag")
     records = list(Rosbag1Reader(bag).records("/livox/lidar"))
@@ -330,3 +373,105 @@ def test_rosbag1_lz4_compression_path() -> None:
         import lz4.frame
 
         assert _decompress_chunk("lz4", len(raw), lz4.frame.compress(raw)) == raw
+
+
+def _plane_points(
+    origin: tuple[float, float, float],
+    *,
+    count: int = 40,
+) -> list[Point]:
+    ox, oy, oz = origin
+    return [
+        (ox + index * 0.05, oy + (index % 5) * 0.05, oz, float(index))
+        for index in range(count)
+    ]
+
+
+def _online_calibration_bag(path: Path) -> Path:
+    horizon_messages = [
+        (_plane_points((0.0, 0.0, 0.0)), 100 + index, index * 100)
+        for index in range(4)
+    ]
+    avia_messages = [
+        (_plane_points((0.1, 0.0, 0.0)), 100 + index, 500 + index * 100)
+        for index in range(6)
+    ]
+    _write_bag(
+        path,
+        [
+            (0, "/livox/lidar", horizon_messages),
+            (1, "/avia/livox/lidar", avia_messages),
+        ],
+    )
+    return path
+
+
+def _write_online_rosbag_config(config_path: Path, bag_path: Path, output_dir: Path) -> None:
+    config_path.write_text(
+        f"""
+schema_version: calibrex.config/v0.1
+project:
+  name: rosbag1_online_fixture
+  output_dir: {output_dir}
+dataset:
+  type: rosbag1
+  path: {bag_path}
+sensors:
+  livox_horizon:
+    type: lidar
+    topic: /livox/lidar
+  livox_avia:
+    type: lidar
+    topic: /avia/livox/lidar
+frames:
+  livox_horizon:
+    root: true
+  livox_avia:
+    parent: livox_horizon
+    transform:
+      estimate: true
+pipeline:
+  type: multi_sensor_slac
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.25
+        correspondence_gate_m: 2.0
+        max_source_points: 80
+        max_source_messages: 2
+        max_target_points: 30
+        max_target_messages: 3
+        max_replay_duration_s: 5.0
+solver:
+  max_iterations: 20
+""",
+        encoding="utf-8",
+    )
+
+
+def test_rosbag1_online_calibration_streams_bounded_topics(tmp_path: Path) -> None:
+    from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+
+    bag = _online_calibration_bag(tmp_path / "online_pair.bag")
+    output_dir = tmp_path / "outputs"
+    config_path = tmp_path / "online_config.yaml"
+    _write_online_rosbag_config(config_path, bag, output_dir)
+
+    result = run_online_calibration(
+        config_path,
+        OnlineCalibrationRunOptions(batch_size=25, rolling_window=200, holdout_ratio=0.2),
+    )
+    assert result is not None
+    provenance = result.run.provenance
+    assert provenance["online_source_sensor"] == "livox_horizon"
+    assert provenance["online_target_sensor"] == "livox_avia"
+    assert provenance["rosbag1_source_topic"] == "/livox/lidar"
+    assert provenance["rosbag1_target_topic"] == "/avia/livox/lidar"
+    assert provenance["rosbag1_source_message_count"] == 2
+    assert provenance["rosbag1_target_message_count"] == 3
+    assert provenance["rosbag1_source_point_count"] <= 80
+    assert provenance["online_batch_count"] >= 1
+    timeline_path = Path(provenance["online_timeline_path"])
+    assert timeline_path.exists()
+

@@ -71,6 +71,11 @@ from calibrex.data.livox import (
     find_livox_pcd_files,
     read_livox_binary_pcd_records,
 )
+from calibrex.data.rosbag1 import (
+    LIDAR_MESSAGE_TYPES,
+    decode_bag_lidar_message,
+    iter_messages,
+)
 from calibrex.evaluation.holdout import split_indices
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
 from calibrex.evaluation.metrics import evaluate_quality
@@ -86,7 +91,7 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
 from calibrex.visualization.report import write_report_artifacts
 
 ONLINE_LIDAR_POINT_TO_PLANE_BACKEND = "online_lidar_point_to_plane"
-_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd")
+_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd", "rosbag1")
 _FACTOR_NAME = "lidar_rig_point_to_plane"
 _MIN_TRAIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
@@ -480,7 +485,7 @@ def run_online_calibration(
             f"expected one of {_SUPPORTED_DATASET_TYPES}"
         )
 
-    source_sensor, target_sensor = lidars[0], lidars[1]
+    source_sensor, target_sensor = _resolve_online_lidar_pair(config, frame_graph, lidars)
     source_node = frame_graph.nodes.get(source_sensor)
     target_node = frame_graph.nodes.get(target_sensor)
     if source_node is None or target_node is None or target_node.parent is None:
@@ -493,23 +498,39 @@ def run_online_calibration(
 
     parent = target_node.parent
     variable = f"T_{parent}_{target_sensor}"
-    files = _dataset_files(config)
-
-    if len(files) < 2:
+    inputs = _solve_inputs(config)
+    replay_provenance: dict[str, Any]
+    if config.dataset.type == "rosbag1":
+        source_records, target_stream, replay_provenance = _load_rosbag1_online_pair(
+            config,
+            inputs,
+            source_sensor=source_sensor,
+            target_sensor=target_sensor,
+        )
+    else:
+        files = _dataset_files(config)
+        if len(files) < 2:
+            return _unavailable_result(
+                config=config,
+                config_file=config_file,
+                frame_graph=frame_graph,
+                options=options,
+                reason=(
+                    "online calibration requires at least two LiDAR frames "
+                    f"(found {len(files)})"
+                ),
+            )
+        source_records = _load_source_records(config, files[0], inputs)
+        target_stream = _load_target_stream(config, files[1:], inputs)
+        replay_provenance = {}
+    if not source_records:
         return _unavailable_result(
             config=config,
             config_file=config_file,
             frame_graph=frame_graph,
             options=options,
-            reason=(
-                "online calibration requires at least two LiDAR frames "
-                f"(found {len(files)})"
-            ),
+            reason="online calibration found no source LiDAR points for the voxel map",
         )
-
-    inputs = _solve_inputs(config)
-    source_records = _load_source_records(config, files[0], inputs)
-    target_stream = _load_target_stream(config, files[1:], inputs)
     if not target_stream:
         return _unavailable_result(
             config=config,
@@ -523,6 +544,7 @@ def run_online_calibration(
     t_base_target = target_node.transform_to_parent
     t_source_target_init = t_base_source.inverse().compose(t_base_target)
 
+    gate_thresholds = options.gate_thresholds or _gate_thresholds_from_config(config)
     session = OnlineCalibrationSession(
         variable=variable,
         parent=parent,
@@ -539,7 +561,7 @@ def run_online_calibration(
             convergence_tolerance=config.solver.convergence_tolerance,
             robust_loss=_robust_loss(config.solver.robust_loss),
         ),
-        gate_thresholds=options.gate_thresholds,
+        gate_thresholds=gate_thresholds,
         accumulation_batches=options.accumulation_batches,
         max_accumulated_train_points=options.max_accumulated_train_points,
     )
@@ -563,6 +585,7 @@ def run_online_calibration(
         target_sensor=target_sensor,
         t_base_source=t_base_source,
         batch_size=batch_size,
+        replay_provenance=replay_provenance,
     )
 
 
@@ -572,6 +595,9 @@ class _OnlineSolveInputs:
     correspondence_gate_m: float
     max_source_points: int | None
     max_target_points: int | None
+    max_source_messages: int | None
+    max_target_messages: int | None
+    max_replay_duration_s: float | None
 
 
 def _solve_inputs(config: CalibrationConfig) -> _OnlineSolveInputs:
@@ -584,6 +610,11 @@ def _solve_inputs(config: CalibrationConfig) -> _OnlineSolveInputs:
         ),
         max_source_points=_int_option(options, "max_source_points", default=None),
         max_target_points=_int_option(options, "max_target_points", default=2000),
+        max_source_messages=_int_option(options, "max_source_messages", default=None),
+        max_target_messages=_int_option(options, "max_target_messages", default=None),
+        max_replay_duration_s=_optional_float_option(
+            options, "max_replay_duration_s", default=None, minimum=0.1
+        ),
     )
 
 
@@ -605,6 +636,34 @@ def _int_option(options: dict[str, Any], key: str, *, default: int | None) -> in
     except (TypeError, ValueError):
         return default
     return value if value > 0 else None
+
+
+def _optional_float_option(
+    options: dict[str, Any], key: str, *, default: float | None, minimum: float
+) -> float | None:
+    if key not in options:
+        return default
+    try:
+        value = float(options[key])
+    except (TypeError, ValueError):
+        return default
+    if value <= 0:
+        return None
+    return max(value, minimum)
+
+
+def _gate_thresholds_from_config(config: CalibrationConfig) -> OnlineGateThresholds:
+    factor = config.pipeline.factors.get(_FACTOR_NAME)
+    options: dict[str, Any] = dict(factor.options) if factor is not None else {}
+    return OnlineGateThresholds(
+        min_rank=_int_option(options, "online_gate_min_rank", default=6) or 6,
+        max_holdout_rmse_m=_float_option(
+            options, "online_gate_max_holdout_rmse_m", default=0.05, minimum=0.001
+        ),
+        max_rolling_regression_m=_float_option(
+            options, "online_gate_max_rolling_regression_m", default=0.02, minimum=0.001
+        ),
+    )
 
 
 def _robust_loss(name: str) -> RobustLoss:
@@ -654,6 +713,180 @@ def _stride(records: list[LivoxPointRecord], max_records: int | None) -> list[Li
         return records
     step = (len(records) + max_records - 1) // max_records
     return records[::step]
+
+
+def _resolve_online_lidar_pair(
+    config: CalibrationConfig,
+    frame_graph: FrameGraph,
+    lidars: list[str],
+) -> tuple[str, str]:
+    """Pick the fixed source map sensor and the streaming target sensor."""
+
+    root_lidars = [
+        name
+        for name in lidars
+        if frame_graph.nodes.get(name) is not None and frame_graph.nodes[name].root
+    ]
+    if len(root_lidars) == 1:
+        root = root_lidars[0]
+        estimating_children = [
+            name
+            for name in lidars
+            if name != root
+            and frame_graph.nodes.get(name) is not None
+            and frame_graph.nodes[name].parent == root
+            and frame_graph.nodes[name].estimate
+        ]
+        if len(estimating_children) == 1:
+            return root, estimating_children[0]
+
+    # Dual-base-link layouts (A2D2, Livox PCD pair) keep the historical sorted order.
+    return lidars[0], lidars[1]
+
+
+def _lidar_topic(config: CalibrationConfig, sensor_name: str) -> str:
+    sensor = config.sensors.get(sensor_name)
+    if sensor is None or not sensor.topic:
+        raise ConfigError(
+            f"rosbag1 online calibration requires sensors.{sensor_name}.topic"
+        )
+    return sensor.topic
+
+
+def _load_rosbag1_online_pair(
+    config: CalibrationConfig,
+    inputs: _OnlineSolveInputs,
+    *,
+    source_sensor: str,
+    target_sensor: str,
+) -> tuple[list[LivoxPointRecord], list[tuple[int, Vector3]], dict[str, Any]]:
+    """Stream one ROS bag once, building a bounded source map and target stream."""
+
+    bag_path = Path(config.dataset.path)
+    if not bag_path.exists():
+        return [], [], {"rosbag1_path": str(bag_path), "rosbag1_exists": False}
+
+    source_topic = _lidar_topic(config, source_sensor)
+    target_topic = _lidar_topic(config, target_sensor)
+    topics = {source_topic, target_topic}
+
+    source_records: list[LivoxPointRecord] = []
+    target_stream: list[tuple[int, Vector3]] = []
+    source_messages = 0
+    target_messages = 0
+    frame_index = 0
+    replay_start_ns: int | None = None
+    replay_end_ns: int | None = None
+    first_source_ns: int | None = None
+    first_target_ns: int | None = None
+
+    for connection, timestamp_ns, data in iter_messages(bag_path, topics=topics):
+        if connection.message_type not in LIDAR_MESSAGE_TYPES:
+            continue
+        topic = connection.topic
+        if topic == source_topic:
+            if (
+                inputs.max_source_messages is not None
+                and source_messages >= inputs.max_source_messages
+            ):
+                continue
+            if (
+                inputs.max_source_points is not None
+                and len(source_records) >= inputs.max_source_points
+            ):
+                continue
+            message = decode_bag_lidar_message(
+                topic,
+                connection.message_type,
+                timestamp_ns,
+                data,
+            )
+            first_source_ns = first_source_ns or message.timestamp_ns
+            remaining = (
+                None
+                if inputs.max_source_points is None
+                else max(0, inputs.max_source_points - len(source_records))
+            )
+            source_records.extend(_pointcloud_xyz_to_records(message.xyz, remaining))
+            source_messages += 1
+            continue
+
+        if topic != target_topic:
+            continue
+
+        if replay_start_ns is None:
+            replay_start_ns = timestamp_ns
+            first_target_ns = timestamp_ns
+        replay_end_ns = timestamp_ns
+        if inputs.max_replay_duration_s is not None:
+            elapsed_ns = timestamp_ns - replay_start_ns
+            if elapsed_ns > int(inputs.max_replay_duration_s * 1_000_000_000):
+                break
+        if inputs.max_target_messages is not None and target_messages >= inputs.max_target_messages:
+            break
+
+        message = decode_bag_lidar_message(
+            topic,
+            connection.message_type,
+            timestamp_ns,
+            data,
+        )
+        points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
+        target_stream.extend((frame_index, point) for point in points)
+        frame_index += 1
+        target_messages += 1
+
+    replay_duration_s: float | None = None
+    if replay_start_ns is not None and replay_end_ns is not None:
+        replay_duration_s = (replay_end_ns - replay_start_ns) / 1_000_000_000
+
+    provenance = {
+        "rosbag1_path": str(bag_path),
+        "rosbag1_source_topic": source_topic,
+        "rosbag1_target_topic": target_topic,
+        "rosbag1_source_message_count": source_messages,
+        "rosbag1_target_message_count": target_messages,
+        "rosbag1_source_point_count": len(source_records),
+        "rosbag1_target_point_count": len(target_stream),
+        "rosbag1_replay_duration_s": replay_duration_s,
+        "rosbag1_first_source_timestamp_ns": first_source_ns,
+        "rosbag1_first_target_timestamp_ns": first_target_ns,
+        "rosbag1_replay_start_timestamp_ns": replay_start_ns,
+        "rosbag1_replay_end_timestamp_ns": replay_end_ns,
+        "rosbag1_max_source_messages": inputs.max_source_messages,
+        "rosbag1_max_target_messages": inputs.max_target_messages,
+        "rosbag1_max_replay_duration_s": inputs.max_replay_duration_s,
+    }
+    return source_records, target_stream, provenance
+
+
+def _pointcloud_xyz_to_records(
+    xyz: Any,
+    max_points: int | None,
+) -> list[LivoxPointRecord]:
+    count = int(xyz.shape[0])
+    indices = range(count)
+    if max_points is not None and max_points > 0 and count > max_points:
+        step = (count + max_points - 1) // max_points
+        indices = range(0, count, step)
+    return [
+        LivoxPointRecord(
+            point=(float(xyz[index, 0]), float(xyz[index, 1]), float(xyz[index, 2]), 0.0),
+            normal_xyz=None,
+        )
+        for index in indices
+    ]
+
+
+def _pointcloud_xyz_to_vectors(xyz: Any, max_points: int | None) -> list[Vector3]:
+    count = int(xyz.shape[0])
+    indices = range(count)
+    if max_points is not None and max_points > 0 and count > max_points:
+        step = (count + max_points - 1) // max_points
+        indices = range(0, count, step)
+    return [
+        (float(xyz[index, 0]), float(xyz[index, 1]), float(xyz[index, 2])) for index in indices
+    ]
 
 
 def _downsample_points(points: list[Vector3], max_points: int | None) -> list[Vector3]:
@@ -775,6 +1008,7 @@ def _build_result(
     target_sensor: str,
     t_base_source: SE3,
     batch_size: int,
+    replay_provenance: dict[str, Any] | None = None,
 ) -> CalibrationResult:
     history = session.history
     final_snapshot = history[-1]
@@ -850,7 +1084,13 @@ def _build_result(
                 "online_inconclusive_batch_count": inconclusive_count,
                 "online_final_rolling_rmse_m": final_snapshot.rolling_rmse_m,
                 "online_final_gate_status": final_snapshot.gate_status,
+                "online_gate_min_rank": session.gate_thresholds.min_rank,
+                "online_gate_max_holdout_rmse_m": session.gate_thresholds.max_holdout_rmse_m,
+                "online_gate_max_rolling_regression_m": (
+                    session.gate_thresholds.max_rolling_regression_m
+                ),
                 "dry_run": False,
+                **(replay_provenance or {}),
             },
         ),
         frame_graph=frame_graph.snapshot(),

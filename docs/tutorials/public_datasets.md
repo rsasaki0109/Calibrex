@@ -87,6 +87,28 @@ calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag --type rosbag1 --j
 calibrex calibrate examples/public_datasets/tiers_livox_lidars_cali/config.yaml
 ```
 
+Online/streaming Horizon-to-Avia calibration replays the same bag without loading
+it into memory. Early Horizon messages build the fixed source voxel map; Avia
+messages stream in time order as target batches. The bounded replay window and
+message budgets are declared in the example config factor options and recorded in
+`result.yaml` provenance (`rosbag1_*` keys).
+
+```bash
+pip install -e ".[dev,rosbag1-lz4]"
+calibrex calibrate examples/public_datasets/tiers_livox_lidars_cali/online_config.yaml \
+  --online \
+  --batch-size 500 \
+  --accumulation-batches 3 \
+  --max-accumulated-train-points 8000
+```
+
+`outputs/tiers_livox_lidars_cali_online/result.yaml` and `timeline.json` capture
+per-batch gate status, batch-only vs accumulated observability rank, holdout RMSE,
+and rolling RMSE. Gate thresholds are declared under
+`pipeline.factors.lidar_rig_point_to_plane.options` (`online_gate_*` keys) and
+recorded in `result.yaml` provenance. The example config uses a 60 s Avia replay
+slice (`max_replay_duration_s`) so a multi-gigabyte bag stays stream-bounded.
+
 `calibrex inspect --type rosbag1` lists every `sensor_msgs/PointCloud2` topic
 with message counts, and samples a few messages per topic to report decoded
 point counts, intensity presence, spatial bounds, and first/last ROS

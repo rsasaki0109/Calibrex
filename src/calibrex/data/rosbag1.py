@@ -10,10 +10,9 @@ Scope
   records. ``none`` and ``bz2`` chunk compression are supported out of the box
   (``bz2`` via the standard library). ``lz4`` requires the optional
   ``calibrex[rosbag1-lz4]`` extra and raises a clear error when missing.
-* Deserialize only ``sensor_msgs/PointCloud2`` messages -- the wire layout of
-  that message is stable across ROS 1 distributions -- into numpy arrays
-  (``x``, ``y``, ``z`` and ``intensity`` when present) with nanosecond
-  timestamps.
+* Deserialize ``sensor_msgs/PointCloud2`` and ``livox_ros_driver/CustomMsg``
+  payloads into numpy arrays (``x``, ``y``, ``z`` and intensity or reflectivity
+  when present) with nanosecond timestamps.
 
 The reader follows the same ``streams()`` / ``records()`` surface used by the
 other dataset adapters in :mod:`calibrex.data`.
@@ -45,6 +44,10 @@ OP_CHUNK_INFO = 0x06
 OP_CONNECTION = 0x07
 
 POINTCLOUD2_TYPE = "sensor_msgs/PointCloud2"
+LIVOX_CUSTOMMSG_TYPE = "livox_ros_driver/CustomMsg"
+LIDAR_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, LIVOX_CUSTOMMSG_TYPE})
+_LIDAR_MESSAGE_TYPES = LIDAR_MESSAGE_TYPES
+_LIVOX_CUSTOM_POINT_STEP = 19
 
 # sensor_msgs/PointField datatype enum -> numpy format string (little endian).
 _POINTFIELD_NUMPY = {
@@ -102,6 +105,31 @@ class PointCloud2Message:
         """Return the number of decoded points."""
 
         return int(self.xyz.shape[0])
+
+
+@dataclass(frozen=True)
+class LivoxCustomMessage:
+    """A decoded ``livox_ros_driver/CustomMsg`` LiDAR payload."""
+
+    topic: str
+    timestamp_ns: int
+    frame_id: str
+    timebase_ns: int
+    point_num: int
+    lidar_id: int
+    xyz: np.ndarray
+    intensity: np.ndarray | None
+    offset_time_ns: np.ndarray | None
+    line: np.ndarray | None
+
+    @property
+    def point_count(self) -> int:
+        """Return the number of decoded points."""
+
+        return int(self.xyz.shape[0])
+
+
+BagLidarMessage = PointCloud2Message | LivoxCustomMessage
 
 
 @dataclass(frozen=True)
@@ -165,9 +193,9 @@ class Rosbag1Reader:
         self.path = Path(path)
 
     def streams(self) -> list[StreamSummary]:
-        """Return one stream per ``sensor_msgs/PointCloud2`` topic in the bag."""
+        """Return one stream per supported LiDAR topic in the bag."""
 
-        counts, connections = _pointcloud_topic_counts(self.path)
+        counts, connections = _lidar_topic_counts(self.path)
         summaries: list[StreamSummary] = []
         for topic in sorted(counts):
             connection = connections[topic]
@@ -403,10 +431,16 @@ def _time_field_to_ns(value: bytes | None) -> int | None:
 def _pointcloud_topic_counts(
     path: str | Path,
 ) -> tuple[dict[str, int], dict[str, Rosbag1Connection]]:
+    return _lidar_topic_counts(path)
+
+
+def _lidar_topic_counts(
+    path: str | Path,
+) -> tuple[dict[str, int], dict[str, Rosbag1Connection]]:
     counts: dict[str, int] = {}
     connections: dict[str, Rosbag1Connection] = {}
     for connection, _timestamp_ns, _data in iter_messages(path):
-        if connection.message_type != POINTCLOUD2_TYPE:
+        if connection.message_type not in _LIDAR_MESSAGE_TYPES:
             continue
         counts[connection.topic] = counts.get(connection.topic, 0) + 1
         connections.setdefault(connection.topic, connection)
@@ -425,6 +459,107 @@ def read_pointcloud2_messages(
         if connection.message_type != POINTCLOUD2_TYPE:
             continue
         yield decode_pointcloud2(connection.topic, timestamp_ns, data)
+
+
+def decode_bag_lidar_message(
+    topic: str,
+    message_type: str,
+    timestamp_ns: int,
+    data: bytes,
+) -> BagLidarMessage:
+    """Decode a supported LiDAR payload from a ROS 1 bag message record."""
+
+    if message_type == POINTCLOUD2_TYPE:
+        return decode_pointcloud2(topic, timestamp_ns, data)
+    if message_type == LIVOX_CUSTOMMSG_TYPE:
+        return decode_livox_custommsg(topic, timestamp_ns, data)
+    msg = f"unsupported ROS bag LiDAR message type: {message_type!r}"
+    raise DatasetError(msg)
+
+
+def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxCustomMessage:
+    """Decode a serialized ``livox_ros_driver/CustomMsg`` into numpy arrays."""
+
+    numpy_module = _require_numpy()
+    offset = 0
+
+    _seq, offset = _read_uint32(data, offset)
+    stamp_secs, offset = _read_uint32(data, offset)
+    stamp_nsecs, offset = _read_uint32(data, offset)
+    frame_id, offset = _read_string(data, offset)
+    if offset + 8 > len(data):
+        msg = "truncated livox_ros_driver/CustomMsg (timebase)"
+        raise DatasetError(msg)
+    (timebase_ns,) = struct.unpack_from("<Q", data, offset)
+    offset += 8
+    point_num, offset = _read_uint32(data, offset)
+    if offset + 4 > len(data):
+        msg = "truncated livox_ros_driver/CustomMsg (header)"
+        raise DatasetError(msg)
+    lidar_id = int(data[offset])
+    offset += 1
+    offset += 3  # uint8[3] reserved
+    array_len, offset = _read_uint32(data, offset)
+    count = min(int(point_num), int(array_len))
+    available = max(0, (len(data) - offset) // _LIVOX_CUSTOM_POINT_STEP)
+    count = min(count, available)
+    if count <= 0:
+        empty = numpy_module.empty((0, 3), dtype=numpy_module.float64)
+        header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+        return LivoxCustomMessage(
+            topic=topic,
+            timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+            frame_id=frame_id,
+            timebase_ns=int(timebase_ns),
+            point_num=int(point_num),
+            lidar_id=lidar_id,
+            xyz=empty,
+            intensity=None,
+            offset_time_ns=None,
+            line=None,
+        )
+
+    point_dtype = numpy_module.dtype(
+        [
+            ("offset_time", "<u4"),
+            ("x", "<f4"),
+            ("y", "<f4"),
+            ("z", "<f4"),
+            ("reflectivity", "u1"),
+            ("tag", "u1"),
+            ("line", "u1"),
+        ]
+    )
+    structured = numpy_module.frombuffer(
+        data,
+        dtype=point_dtype,
+        count=count,
+        offset=offset,
+    )
+    xyz = numpy_module.stack(
+        [
+            structured["x"].astype(numpy_module.float64),
+            structured["y"].astype(numpy_module.float64),
+            structured["z"].astype(numpy_module.float64),
+        ],
+        axis=1,
+    )
+    intensity = structured["reflectivity"].astype(numpy_module.float64)
+    offset_time_ns = structured["offset_time"].astype(numpy_module.int64)
+    line = structured["line"].astype(numpy_module.int64)
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return LivoxCustomMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        timebase_ns=int(timebase_ns),
+        point_num=int(point_num),
+        lidar_id=lidar_id,
+        xyz=xyz,
+        intensity=intensity,
+        offset_time_ns=offset_time_ns,
+        line=line,
+    )
 
 
 def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud2Message:
@@ -540,7 +675,7 @@ def summarize_rosbag1(
     *,
     sample_limit: int = 4,
 ) -> Rosbag1DatasetStats:
-    """Summarize the ``PointCloud2`` topics in a ROS 1 bag for ``calibrex inspect``.
+    """Summarize supported LiDAR topics in a ROS 1 bag for ``calibrex inspect``.
 
     Every message is counted, but at most ``sample_limit`` messages per topic are
     decoded to numpy to gather point counts and spatial bounds.
@@ -568,7 +703,7 @@ def summarize_rosbag1(
     try:
         for connection, timestamp_ns, data in iter_messages(bag_path):
             topic = connection.topic
-            if connection.message_type != POINTCLOUD2_TYPE:
+            if connection.message_type not in _LIDAR_MESSAGE_TYPES:
                 continue
             counts[topic] = counts.get(topic, 0) + 1
             connections.setdefault(topic, connection)
@@ -576,7 +711,12 @@ def summarize_rosbag1(
             last_ts[topic] = timestamp_ns
             if sampled_counts.get(topic, 0) >= sample_limit:
                 continue
-            message = decode_pointcloud2(topic, timestamp_ns, data)
+            message = decode_bag_lidar_message(
+                topic,
+                connection.message_type,
+                timestamp_ns,
+                data,
+            )
             sampled_counts[topic] = sampled_counts.get(topic, 0) + 1
             sampled_points[topic] = sampled_points.get(topic, 0) + message.point_count
             has_intensity[topic] = has_intensity.get(topic, False) or (
@@ -612,12 +752,12 @@ def summarize_rosbag1(
         connection_count=len(connections),
         pointcloud_topic_count=len(counts),
         streams=streams,
-        reason=None if streams else "no sensor_msgs/PointCloud2 topics found",
+        reason=None if streams else "no supported LiDAR topics found",
     )
 
 
 def _accumulate_bounds(
-    message: PointCloud2Message,
+    message: BagLidarMessage,
     topic: str,
     bounds_min: dict[str, tuple[float, float, float]],
     bounds_max: dict[str, tuple[float, float, float]],

@@ -1,0 +1,79 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: tiers_livox_lidars_cali_online
+  description: >
+    Online Horizon-to-Avia extrinsic calibration from the TIERS LidarsCali ROS 1 bag.
+    Horizon (/livox/lidar) early messages build the fixed source voxel map; Avia
+    (/avia/livox/lidar) messages stream as target batches. The rig baseline is
+    small and no published nominal extrinsic was found in the TIERS manifest, so
+    the initial transform is identity (see frames.livox_avia.transform.initial).
+  output_dir: outputs/tiers_livox_lidars_cali_online
+  domain: robotics
+
+dataset:
+  type: rosbag1
+  path: data/public/tiers_lidars_cali/LidarsCali.bag
+  time_base: ros_time
+
+sensors:
+  livox_horizon:
+    type: lidar
+    model: livox_horizon
+    topic: /livox/lidar
+    frame_id: horizon_frame
+    fields: [x, y, z, intensity]
+  livox_avia:
+    type: lidar
+    model: livox_avia
+    topic: /avia/livox/lidar
+    frame_id: avia_frame
+    fields: [x, y, z, intensity]
+
+frames:
+  livox_horizon:
+    root: true
+  livox_avia:
+    parent: livox_horizon
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag1_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
