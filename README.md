@@ -25,11 +25,11 @@ online estimates, and external tool outputs through one schema, one CLI, one
 metric suite, and one report.
 
 <p align="center">
-  <img src="docs/assets/online-calibration-loop.gif" alt="Online solid-state Livox LiDAR calibration evidence loop" width="100%">
+  <img src="docs/assets/slac-motion-calibration-loop.gif" alt="slac simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
 </p>
 
 <p align="center">
-  <sub>Online replay on the TIERS LidarsCali static rig: Livox Horizon (non-repetitive scan) streams build a fixed source map while Livox Avia target batches converge through rolling residuals, holdout gates, and provenance-backed assessment. Generated from a real <code>slac calibrate --online</code> run on the public rosbag.</sub>
+  <sub>Real TIERS Indoor02 run (<code>online_kissicp_config.yaml</code>): Velodyne VLP-16 builds a motion-compensated world map from KISS-ICP <code>/odom</code>; Ouster OS1 target batches converge online through holdout gates on a moving platform. Generated from a real <code>slac calibrate --online</code> replay (106/108 batches adopted).</sub>
 </p>
 
 ```bash

@@ -140,12 +140,73 @@
       "source_label": "Livox Horizon points",
       "target_label": "Livox Avia points",
       "uses_builtin_metadata_fallback": false,
-      "visual": "online"
+      "visual": "online",
+      "readme_role": "gallery"
+    },
+    {
+      "animation": {
+        "fps": 10,
+        "frames": 50,
+        "height": 540,
+        "width": 960
+      },
+      "metadata_source": "TIERS Indoor02 moving platform (Velodyne VLP-16 + Ouster OS1, KISS-ICP /odom)",
+      "online_run": {
+        "accepted_batch_count": 106,
+        "batch_count": 108,
+        "final_gate_status": "pass",
+        "gate_thresholds": {
+          "max_holdout_rmse_m": 0.4,
+          "max_rolling_regression_m": 0.15,
+          "min_rank": 6
+        },
+        "inconclusive_batch_count": 0,
+        "rejected_batch_count": 2
+      },
+      "output": "docs/assets/slac-motion-calibration-loop.gif",
+      "pipeline": {
+        "config_path": "examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_config.yaml",
+        "generation_command": "python3 tools/generate_calibration_evidence_gif.py --source tiers-indoor02-kissicp --visual motion --output docs/assets/slac-motion-calibration-loop.gif --frames 50",
+        "mode": "real_online",
+        "source": "slac calibrate --online",
+        "timeline_schema_version": "slac.online_timeline/v0.3"
+      },
+      "public_inputs": [
+        {
+          "bag_dir": "data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp",
+          "kind": "rosbag2_local_dataset",
+          "replay_budgets": {
+            "batch_size": 1500,
+            "holdout_ratio": 0.2,
+            "max_replay_duration_s": 60.0,
+            "max_source_messages": 12,
+            "max_source_points": 8000,
+            "max_target_messages": 36,
+            "max_target_points": 1500,
+            "rolling_window": 2000
+          },
+          "sha256_first_mib": "6c24c3c9f49f24ff100da27575231bae1a6de025dd50c78dababd84f729920f3",
+          "size_bytes": 2914353152,
+          "storage_file": "indoor02_rosbag2_kissicp.db3"
+        }
+      ],
+      "readme_role": "hero",
+      "sensor_pair": {
+        "source": "velodyne_vlp16",
+        "target": "ouster_os1"
+      },
+      "sha256": "fa295e5ab82d46b99ec8784ca35206982fc21c40aa3c6da280b267bfeaf72647",
+      "size_bytes": 148863,
+      "source": "tiers-indoor02-kissicp",
+      "source_label": "Velodyne VLP-16 points",
+      "target_label": "Ouster OS1 points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "motion"
     }
   ],
   "dimensions": {
-    "fps": 12,
-    "frames": 36,
+    "fps": 10,
+    "frames": 50,
     "height": 540,
     "width": 960
   },
