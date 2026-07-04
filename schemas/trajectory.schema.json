@@ -214,6 +214,19 @@
           "title": "Cross Segment Correspondence Count",
           "type": "integer"
         },
+        "cross_segment_first_half_end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cross Segment First Half End Timestamp Ns"
+        },
         "cross_segment_first_half_point_count": {
           "minimum": 0,
           "title": "Cross Segment First Half Point Count",
@@ -223,6 +236,19 @@
           "minimum": 0,
           "title": "Cross Segment First Half Scan Count",
           "type": "integer"
+        },
+        "cross_segment_first_half_start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cross Segment First Half Start Timestamp Ns"
         },
         "cross_segment_gate_reason": {
           "title": "Cross Segment Gate Reason",
@@ -240,6 +266,31 @@
         "cross_segment_rmse_m": {
           "$ref": "#/$defs/TrajectoryQualityMetric"
         },
+        "cross_segment_sampling_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cross Segment Sampling Policy"
+        },
+        "cross_segment_second_half_end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cross Segment Second Half End Timestamp Ns"
+        },
         "cross_segment_second_half_point_count": {
           "minimum": 0,
           "title": "Cross Segment Second Half Point Count",
@@ -249,6 +300,19 @@
           "minimum": 0,
           "title": "Cross Segment Second Half Scan Count",
           "type": "integer"
+        },
+        "cross_segment_second_half_start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cross Segment Second Half Start Timestamp Ns"
         },
         "interpolation_clamp_fraction": {
           "$ref": "#/$defs/TrajectoryQualityMetric"

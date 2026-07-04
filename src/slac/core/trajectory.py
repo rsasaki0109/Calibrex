@@ -94,6 +94,11 @@ class TrajectoryQualityBlock(StrictModel):
     cross_segment_second_half_scan_count: int = Field(ge=0)
     cross_segment_first_half_point_count: int = Field(ge=0)
     cross_segment_second_half_point_count: int = Field(ge=0)
+    cross_segment_first_half_start_timestamp_ns: int | None = Field(default=None, ge=0)
+    cross_segment_first_half_end_timestamp_ns: int | None = Field(default=None, ge=0)
+    cross_segment_second_half_start_timestamp_ns: int | None = Field(default=None, ge=0)
+    cross_segment_second_half_end_timestamp_ns: int | None = Field(default=None, ge=0)
+    cross_segment_sampling_policy: str | None = None
     cross_segment_correspondence_count: int = Field(ge=0)
     cross_segment_gate_status: TrajectoryGateStatus
     cross_segment_gate_reason: str

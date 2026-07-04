@@ -543,10 +543,14 @@ the three: pass &lt; inconclusive &lt; fail):
 | `trajectory_gate_max_speed_mps` | `3.0` | Kinematic: max single-step linear speed (m/s) from consecutive odometry poses |
 | `trajectory_gate_max_angular_speed_dps` | `120.0` | Kinematic: max single-step angular speed (deg/s) |
 | `trajectory_gate_max_clamp_fraction` | `0.05` | Interpolation: `clamp_count / interpolation_count` |
-| `trajectory_gate_max_cross_segment_rmse_m` | `0.30` | Cross-segment drift proxy: point-to-plane RMSE of second-half source scans against a voxel map built from first-half scans (bounded: up to 40 scans and 4000 points per half) |
+| `trajectory_gate_max_cross_segment_rmse_m` | `0.30` | Cross-segment drift proxy: evaluation-only stream of the source PointCloud2 topic over the full odometry track span (independent of calibration replay budgets). The track midpoint splits two ~21 s windows; up to 40 scans per half are chosen with `evenly_spaced_time` sampling, up to 4000 world-frame points per half after per-scan subsampling. First-half points build a voxel plane map; second-half points are scored point-to-plane with identity extrinsic. Provenance and `trajectory.json` record per-half scan/point counts, time windows, correspondence count, RMSE, and `cross_segment_sampling_policy`. |
 
 Fewer than 10 odometry samples → kinematic **INCONCLUSIVE**; fewer than 50
 cross-segment correspondences → cross-segment **INCONCLUSIVE**.
+
+The cross-segment pass is a separate bounded bag decode (~80 source messages on
+Indoor02) and does not reuse the calibration replay's `max_source_messages`
+budget.
 
 Example (same bounded KISS-ICP replay budget as run C above):
 
@@ -559,21 +563,24 @@ slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_sel
 (42.26 s span, 1 clamp / 39 interpolations, max extrapolation 0.024 s).
 Kinematic **PASS** (p95 linear 0.96 m/s, max 1.07 m/s; p95 angular 34.8 deg/s,
 max 50.9 deg/s). Interpolation **PASS** (clamp fraction 0.026). Cross-segment
-**INCONCLUSIVE** (only 2 correspondences on the 12-message source budget).
-Overall trajectory verdict **INCONCLUSIVE**. Kinematic and interpolation health
-look reasonable; the leave-segment-out drift proxy cannot falsify KISS-ICP drift
-on this bounded replay — not enough overlapping structure between halves at
-voxel size 0.5 m.
+**PASS** — 40 + 40 scans, 4000 + 4000 points (`evenly_spaced_time` over
+21.13 s halves), 3799 correspondences, RMSE **0.143 m** (gate 0.30 m). Overall
+trajectory verdict **PASS**. The proxy now spans the full KISS-ICP track and
+produces a real RMSE; at voxel size 0.5 m the first-half map and second-half
+returns are consistent within the 0.30 m gate. That does **not** contradict the
+documented KISS-ICP drift narrative for absolute extrinsic accuracy (~85 cm
+vs the TIERS seed in run C): cross-segment measures leave-segment-out map
+consistency under the estimated odometry frame, not agreement with an external
+reference.
 
-**Velodyne selftest (duplicate topic):** same odometry track — kinematic
-**PASS**, interpolation **PASS** (zero clamps), cross-segment **INCONCLUSIVE**
-(2 correspondences). Verdict **INCONCLUSIVE** for the same correspondence
-budget reason, not because kinematics failed.
+**Velodyne selftest (duplicate topic):** same odometry track and source topic
+geometry — kinematic **PASS**, interpolation **PASS** (zero clamps),
+cross-segment **PASS** (3799 correspondences, RMSE 0.143 m). Verdict **PASS**.
 
 | Run | Kinematic | Interpolation | Cross-segment | Trajectory verdict |
 |-----|-----------|---------------|---------------|-------------------|
-| KISS-ICP | PASS | PASS (clamp 0.026) | INCONCLUSIVE (2 corr.) | INCONCLUSIVE |
-| Selftest motion | PASS | PASS (clamp 0) | INCONCLUSIVE (2 corr.) | INCONCLUSIVE |
+| KISS-ICP | PASS | PASS (clamp 0.026) | PASS (0.143 m, 3799 corr.) | PASS |
+| Selftest motion | PASS | PASS (clamp 0) | PASS (0.143 m, 3799 corr.) | PASS |
 
 ### Online calibration with odometry motion compensation
 

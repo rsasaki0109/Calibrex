@@ -121,9 +121,12 @@ from slac.evaluation.temporal import (
     temporal_evidence_to_provenance,
 )
 from slac.evaluation.trajectory import (
+    CrossSegmentScanCollection,
     OdometrySourceInfo,
     OnlineSourceScan,
+    TrajectoryEvidenceOptions,
     TrajectoryEvidenceResult,
+    _select_evenly_spaced_timestamps,
     build_trajectory_artifact,
     evaluate_trajectory_evidence,
     trajectory_evidence_metrics,
@@ -697,7 +700,6 @@ def run_online_calibration(
     motion_compensated = False
     odometry_track: OdometryTrack | None = None
     odometry_source_info: OdometrySourceInfo | None = None
-    source_scans: list[OnlineSourceScan] = []
     if config.dataset.type == "rosbag1":
         source_records, target_stream, replay_provenance = _load_rosbag1_online_pair(
             config,
@@ -712,7 +714,6 @@ def run_online_calibration(
             replay_provenance,
             motion_compensated,
             odometry_track,
-            source_scans,
             odometry_source_info,
         ) = _load_rosbag2_online_pair(
             config,
@@ -819,7 +820,6 @@ def run_online_calibration(
         motion_compensated=motion_compensated,
         target_stream=target_stream,
         odometry_track=odometry_track,
-        source_scans=source_scans,
         odometry_source_info=odometry_source_info,
     )
 
@@ -1249,7 +1249,6 @@ def _load_rosbag2_online_pair(
     dict[str, Any],
     bool,
     OdometryTrack | None,
-    list[OnlineSourceScan],
     OdometrySourceInfo | None,
 ]:
     """Stream one rosbag2 recording once, building a bounded source map and target stream."""
@@ -1262,7 +1261,6 @@ def _load_rosbag2_online_pair(
             {"rosbag2_path": str(bag_path), "rosbag2_exists": False},
             False,
             None,
-            [],
             None,
         )
 
@@ -1287,7 +1285,6 @@ def _load_rosbag2_online_pair(
     deskew_span_max: float | None = None
 
     source_records: list[LivoxPointRecord] = []
-    source_scans: list[OnlineSourceScan] = []
     target_stream: list[OnlineTargetEntry] = []
     source_messages = 0
     target_messages = 0
@@ -1373,13 +1370,6 @@ def _load_rosbag2_online_pair(
             else:
                 scan_records = _pointcloud_xyz_to_records(message.xyz, remaining)
             source_records.extend(scan_records)
-            if motion_compensated and scan_records:
-                source_scans.append(
-                    OnlineSourceScan(
-                        timestamp_ns=message.timestamp_ns,
-                        records=scan_records,
-                    )
-                )
             source_messages += 1
             continue
 
@@ -1491,7 +1481,6 @@ def _load_rosbag2_online_pair(
         provenance,
         motion_compensated,
         odometry_track,
-        source_scans,
         odometry_source_info,
     )
 
@@ -1530,6 +1519,125 @@ def _load_rosbag2_odometry_track(
             world_frame_id=world_frame_id,
             child_frame_id=child_frame_id,
         ),
+    )
+
+
+def collect_rosbag2_cross_segment_scans(
+    *,
+    bag_path: Path,
+    source_topic: str,
+    odometry_track: OdometryTrack,
+    t_base_source: SE3,
+    options: TrajectoryEvidenceOptions,
+    extrapolation_tolerance_s: float | None,
+) -> CrossSegmentScanCollection | None:
+    """Stream the source topic over the full odometry span for drift evaluation."""
+
+    first_ns = odometry_track.first_timestamp_ns
+    last_ns = odometry_track.last_timestamp_ns
+    if first_ns is None or last_ns is None or last_ns <= first_ns:
+        return None
+
+    midpoint_ns = (first_ns + last_ns) // 2
+    first_window_start_ns = first_ns
+    first_window_end_ns = midpoint_ns
+    second_window_start_ns = midpoint_ns + 1
+    second_window_end_ns = last_ns
+
+    source_timestamps_ns: list[int] = []
+    for connection, timestamp_ns, _data in iter_rosbag2_messages(
+        bag_path,
+        topics={source_topic},
+    ):
+        if connection.message_type != POINTCLOUD2_TYPE or connection.topic != source_topic:
+            continue
+        if timestamp_ns < first_ns or timestamp_ns > last_ns:
+            continue
+        source_timestamps_ns.append(timestamp_ns)
+
+    if len(source_timestamps_ns) < 2:
+        return None
+
+    first_selected_ns = set(
+        _select_evenly_spaced_timestamps(
+            source_timestamps_ns,
+            window_start_ns=first_window_start_ns,
+            window_end_ns=first_window_end_ns,
+            max_samples=options.max_scans_per_half,
+        )
+    )
+    second_selected_ns = set(
+        _select_evenly_spaced_timestamps(
+            source_timestamps_ns,
+            window_start_ns=second_window_start_ns,
+            window_end_ns=second_window_end_ns,
+            max_samples=options.max_scans_per_half,
+        )
+    )
+    selected_ns = first_selected_ns | second_selected_ns
+    if not first_selected_ns or not second_selected_ns:
+        return None
+
+    pose_track = OdometryTrack(list(odometry_track.samples))
+    first_half_scans: list[OnlineSourceScan] = []
+    second_half_scans: list[OnlineSourceScan] = []
+    points_per_first_scan = max(1, options.max_points_per_half // max(len(first_selected_ns), 1))
+    points_per_second_scan = max(
+        1, options.max_points_per_half // max(len(second_selected_ns), 1)
+    )
+
+    for connection, timestamp_ns, data in iter_rosbag2_messages(
+        bag_path,
+        topics={source_topic},
+    ):
+        if connection.message_type != POINTCLOUD2_TYPE or connection.topic != source_topic:
+            continue
+        if timestamp_ns not in selected_ns:
+            continue
+        message = decode_pointcloud2(connection.topic, timestamp_ns, data)
+        t_world_base, _clamped, extrapolation_s = pose_track.interpolate(message.timestamp_ns)
+        if (
+            extrapolation_tolerance_s is not None
+            and extrapolation_s > extrapolation_tolerance_s
+        ):
+            msg = (
+                "cross-segment source LiDAR message timestamp lies "
+                f"{extrapolation_s:.4f} s outside the odometry track "
+                f"(tolerance {extrapolation_tolerance_s:.4f} s)"
+            )
+            raise DatasetError(msg)
+        t_world_source = t_world_base.compose(t_base_source)
+        if timestamp_ns in first_selected_ns:
+            scan_records = _transform_pointcloud_to_world_records(
+                message.xyz,
+                t_world_source,
+                points_per_first_scan,
+            )
+            if scan_records:
+                first_half_scans.append(
+                    OnlineSourceScan(timestamp_ns=message.timestamp_ns, records=scan_records)
+                )
+        if timestamp_ns in second_selected_ns:
+            scan_records = _transform_pointcloud_to_world_records(
+                message.xyz,
+                t_world_source,
+                points_per_second_scan,
+            )
+            if scan_records:
+                second_half_scans.append(
+                    OnlineSourceScan(timestamp_ns=message.timestamp_ns, records=scan_records)
+                )
+
+    if not first_half_scans or not second_half_scans:
+        return None
+
+    return CrossSegmentScanCollection(
+        first_half_scans=sorted(first_half_scans, key=lambda scan: scan.timestamp_ns),
+        second_half_scans=sorted(second_half_scans, key=lambda scan: scan.timestamp_ns),
+        first_half_start_timestamp_ns=first_window_start_ns,
+        first_half_end_timestamp_ns=first_window_end_ns,
+        second_half_start_timestamp_ns=second_window_start_ns,
+        second_half_end_timestamp_ns=second_window_end_ns,
     )
 
 
@@ -1762,7 +1870,6 @@ def _build_result(
     motion_compensated: bool = False,
     target_stream: list[OnlineTargetEntry] | None = None,
     odometry_track: OdometryTrack | None = None,
-    source_scans: list[OnlineSourceScan] | None = None,
     odometry_source_info: OdometrySourceInfo | None = None,
 ) -> CalibrationResult:
     history = session.history
@@ -1877,9 +1984,21 @@ def _build_result(
             run_provenance["temporal_evidence_skipped_no_odometry"] = True
 
     if motion_compensated and odometry_track is not None and odometry_source_info is not None:
+        cross_segment_scans: CrossSegmentScanCollection | None = None
+        if config.dataset.type == "rosbag2":
+            bag_path = Path(config.dataset.path)
+            if bag_path.exists():
+                cross_segment_scans = collect_rosbag2_cross_segment_scans(
+                    bag_path=bag_path,
+                    source_topic=_lidar_topic(config, source_sensor),
+                    odometry_track=odometry_track,
+                    t_base_source=t_base_source,
+                    options=trajectory_options,
+                    extrapolation_tolerance_s=session.gate_thresholds.max_odometry_extrapolation_s,
+                )
         trajectory_result = evaluate_trajectory_evidence(
             odometry_track=odometry_track,
-            source_scans=source_scans or [],
+            cross_segment_scans=cross_segment_scans,
             voxel_size_m=session.voxel_size_m,
             correspondence_gate_m=session.correspondence_gate_m,
             variable=variable,

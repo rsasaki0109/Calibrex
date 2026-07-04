@@ -39,10 +39,26 @@ class OdometrySourceInfo:
 
 @dataclass(frozen=True)
 class OnlineSourceScan:
-    """One replayed source LiDAR message expressed as world-frame point records."""
+    """One source LiDAR message expressed as world-frame point records."""
 
     timestamp_ns: int
     records: list[LivoxPointRecord]
+
+
+CROSS_SEGMENT_SAMPLING_POLICY = "evenly_spaced_time"
+
+
+@dataclass(frozen=True)
+class CrossSegmentScanCollection:
+    """Source scans for leave-segment-out drift evaluation over the full track span."""
+
+    first_half_scans: list[OnlineSourceScan]
+    second_half_scans: list[OnlineSourceScan]
+    first_half_start_timestamp_ns: int
+    first_half_end_timestamp_ns: int
+    second_half_start_timestamp_ns: int
+    second_half_end_timestamp_ns: int
+    sampling_policy: str = CROSS_SEGMENT_SAMPLING_POLICY
 
 
 @dataclass(frozen=True)
@@ -91,6 +107,11 @@ class TrajectoryCrossSegmentResult:
     second_half_scan_count: int
     first_half_point_count: int
     second_half_point_count: int
+    first_half_start_timestamp_ns: int | None
+    first_half_end_timestamp_ns: int | None
+    second_half_start_timestamp_ns: int | None
+    second_half_end_timestamp_ns: int | None
+    sampling_policy: str | None
     correspondence_count: int
     gate_status: TrajectoryGateStatus
     gate_reason: str
@@ -130,7 +151,7 @@ def trajectory_evidence_options_from_factor(options: dict[str, Any]) -> Trajecto
 def evaluate_trajectory_evidence(
     *,
     odometry_track: OdometryTrack,
-    source_scans: list[OnlineSourceScan],
+    cross_segment_scans: CrossSegmentScanCollection | None,
     voxel_size_m: float,
     correspondence_gate_m: float,
     variable: str,
@@ -147,7 +168,7 @@ def evaluate_trajectory_evidence(
         max_odometry_extrapolation_s=max_odometry_extrapolation_s,
     )
     cross_segment = _evaluate_cross_segment_gate(
-        source_scans=source_scans,
+        cross_segment_scans=cross_segment_scans,
         voxel_size_m=voxel_size_m,
         correspondence_gate_m=correspondence_gate_m,
         variable=variable,
@@ -245,6 +266,19 @@ def trajectory_evidence_to_provenance(result: TrajectoryEvidenceResult) -> dict[
         "cross_segment_second_half_scan_count": result.cross_segment.second_half_scan_count,
         "cross_segment_first_half_point_count": result.cross_segment.first_half_point_count,
         "cross_segment_second_half_point_count": result.cross_segment.second_half_point_count,
+        "cross_segment_first_half_start_timestamp_ns": (
+            result.cross_segment.first_half_start_timestamp_ns
+        ),
+        "cross_segment_first_half_end_timestamp_ns": (
+            result.cross_segment.first_half_end_timestamp_ns
+        ),
+        "cross_segment_second_half_start_timestamp_ns": (
+            result.cross_segment.second_half_start_timestamp_ns
+        ),
+        "cross_segment_second_half_end_timestamp_ns": (
+            result.cross_segment.second_half_end_timestamp_ns
+        ),
+        "cross_segment_sampling_policy": result.cross_segment.sampling_policy,
         "cross_segment_correspondence_count": result.cross_segment.correspondence_count,
         "cross_segment_gate_status": result.cross_segment.gate_status,
         "cross_segment_gate_reason": result.cross_segment.gate_reason,
@@ -370,37 +404,50 @@ def _evaluate_interpolation_gate(
 
 def _evaluate_cross_segment_gate(
     *,
-    source_scans: list[OnlineSourceScan],
+    cross_segment_scans: CrossSegmentScanCollection | None,
     voxel_size_m: float,
     correspondence_gate_m: float,
     variable: str,
     sensor: str,
     options: TrajectoryEvidenceOptions,
 ) -> TrajectoryCrossSegmentResult:
-    if len(source_scans) < 2:
+    empty = TrajectoryCrossSegmentResult(
+        rmse_m=None,
+        first_half_scan_count=0,
+        second_half_scan_count=0,
+        first_half_point_count=0,
+        second_half_point_count=0,
+        first_half_start_timestamp_ns=None,
+        first_half_end_timestamp_ns=None,
+        second_half_start_timestamp_ns=None,
+        second_half_end_timestamp_ns=None,
+        sampling_policy=None,
+        correspondence_count=0,
+        gate_status="inconclusive",
+        gate_reason="no cross-segment source scans collected",
+    )
+    if cross_segment_scans is None:
+        return empty
+
+    first_scans = cross_segment_scans.first_half_scans
+    second_scans = cross_segment_scans.second_half_scans
+    if len(first_scans) < 1 or len(second_scans) < 1:
         return TrajectoryCrossSegmentResult(
             rmse_m=None,
-            first_half_scan_count=0,
-            second_half_scan_count=0,
+            first_half_scan_count=len(first_scans),
+            second_half_scan_count=len(second_scans),
             first_half_point_count=0,
             second_half_point_count=0,
+            first_half_start_timestamp_ns=cross_segment_scans.first_half_start_timestamp_ns,
+            first_half_end_timestamp_ns=cross_segment_scans.first_half_end_timestamp_ns,
+            second_half_start_timestamp_ns=cross_segment_scans.second_half_start_timestamp_ns,
+            second_half_end_timestamp_ns=cross_segment_scans.second_half_end_timestamp_ns,
+            sampling_policy=cross_segment_scans.sampling_policy,
             correspondence_count=0,
             gate_status="inconclusive",
-            gate_reason="fewer than 2 source scans for cross-segment consistency",
+            gate_reason="fewer than 2 cross-segment source scans across both halves",
         )
 
-    ordered = sorted(source_scans, key=lambda scan: scan.timestamp_ns)
-    midpoint_ns = (
-        ordered[0].timestamp_ns + ordered[-1].timestamp_ns
-    ) // 2
-    first_scans = [scan for scan in ordered if scan.timestamp_ns <= midpoint_ns]
-    second_scans = [scan for scan in ordered if scan.timestamp_ns > midpoint_ns]
-    if not second_scans:
-        second_scans = [ordered[-1]]
-        first_scans = ordered[:-1] or [ordered[0]]
-
-    first_scans = _subsample_scans(first_scans, options.max_scans_per_half)
-    second_scans = _subsample_scans(second_scans, options.max_scans_per_half)
     first_records = _concat_scan_records(first_scans, options.max_points_per_half)
     second_records = _concat_scan_records(second_scans, options.max_points_per_half)
     second_points = [
@@ -423,6 +470,11 @@ def _evaluate_cross_segment_gate(
             second_half_scan_count=len(second_scans),
             first_half_point_count=len(first_records),
             second_half_point_count=len(second_records),
+            first_half_start_timestamp_ns=cross_segment_scans.first_half_start_timestamp_ns,
+            first_half_end_timestamp_ns=cross_segment_scans.first_half_end_timestamp_ns,
+            second_half_start_timestamp_ns=cross_segment_scans.second_half_start_timestamp_ns,
+            second_half_end_timestamp_ns=cross_segment_scans.second_half_end_timestamp_ns,
+            sampling_policy=cross_segment_scans.sampling_policy,
             correspondence_count=correspondence_count,
             gate_status="inconclusive",
             gate_reason=(
@@ -446,6 +498,11 @@ def _evaluate_cross_segment_gate(
             second_half_scan_count=len(second_scans),
             first_half_point_count=len(first_records),
             second_half_point_count=len(second_records),
+            first_half_start_timestamp_ns=cross_segment_scans.first_half_start_timestamp_ns,
+            first_half_end_timestamp_ns=cross_segment_scans.first_half_end_timestamp_ns,
+            second_half_start_timestamp_ns=cross_segment_scans.second_half_start_timestamp_ns,
+            second_half_end_timestamp_ns=cross_segment_scans.second_half_end_timestamp_ns,
+            sampling_policy=cross_segment_scans.sampling_policy,
             correspondence_count=correspondence_count,
             gate_status="inconclusive",
             gate_reason="cross-segment RMSE could not be computed",
@@ -457,6 +514,11 @@ def _evaluate_cross_segment_gate(
             second_half_scan_count=len(second_scans),
             first_half_point_count=len(first_records),
             second_half_point_count=len(second_records),
+            first_half_start_timestamp_ns=cross_segment_scans.first_half_start_timestamp_ns,
+            first_half_end_timestamp_ns=cross_segment_scans.first_half_end_timestamp_ns,
+            second_half_start_timestamp_ns=cross_segment_scans.second_half_start_timestamp_ns,
+            second_half_end_timestamp_ns=cross_segment_scans.second_half_end_timestamp_ns,
+            sampling_policy=cross_segment_scans.sampling_policy,
             correspondence_count=correspondence_count,
             gate_status="fail",
             gate_reason=(
@@ -470,6 +532,11 @@ def _evaluate_cross_segment_gate(
         second_half_scan_count=len(second_scans),
         first_half_point_count=len(first_records),
         second_half_point_count=len(second_records),
+        first_half_start_timestamp_ns=cross_segment_scans.first_half_start_timestamp_ns,
+        first_half_end_timestamp_ns=cross_segment_scans.first_half_end_timestamp_ns,
+        second_half_start_timestamp_ns=cross_segment_scans.second_half_start_timestamp_ns,
+        second_half_end_timestamp_ns=cross_segment_scans.second_half_end_timestamp_ns,
+        sampling_policy=cross_segment_scans.sampling_policy,
         correspondence_count=correspondence_count,
         gate_status="pass",
         gate_reason=(
@@ -524,6 +591,11 @@ def _quality_block_from_evidence(
         cross_segment_second_half_scan_count=cross_segment.second_half_scan_count,
         cross_segment_first_half_point_count=cross_segment.first_half_point_count,
         cross_segment_second_half_point_count=cross_segment.second_half_point_count,
+        cross_segment_first_half_start_timestamp_ns=cross_segment.first_half_start_timestamp_ns,
+        cross_segment_first_half_end_timestamp_ns=cross_segment.first_half_end_timestamp_ns,
+        cross_segment_second_half_start_timestamp_ns=cross_segment.second_half_start_timestamp_ns,
+        cross_segment_second_half_end_timestamp_ns=cross_segment.second_half_end_timestamp_ns,
+        cross_segment_sampling_policy=cross_segment.sampling_policy,
         cross_segment_correspondence_count=cross_segment.correspondence_count,
         cross_segment_gate_status=cross_segment.gate_status,
         cross_segment_gate_reason=cross_segment.gate_reason,
@@ -656,11 +728,33 @@ def _subsample_poses_evenly(
     return selected
 
 
-def _subsample_scans(scans: list[OnlineSourceScan], max_scans: int) -> list[OnlineSourceScan]:
-    if len(scans) <= max_scans:
-        return scans
-    step = max(1, (len(scans) + max_scans - 1) // max_scans)
-    return scans[::step][:max_scans]
+def _select_evenly_spaced_timestamps(
+    timestamps_ns: list[int],
+    *,
+    window_start_ns: int,
+    window_end_ns: int,
+    max_samples: int,
+) -> list[int]:
+    """Return up to ``max_samples`` bag timestamps evenly spaced in time."""
+
+    in_window = sorted(
+        timestamp_ns
+        for timestamp_ns in timestamps_ns
+        if window_start_ns <= timestamp_ns <= window_end_ns
+    )
+    if len(in_window) <= max_samples:
+        return in_window
+    if max_samples <= 1:
+        return [in_window[0]]
+    span_ns = window_end_ns - window_start_ns
+    selected: list[int] = []
+    cursor = 0
+    for sample_index in range(max_samples):
+        target_ns = window_start_ns + (span_ns * sample_index) // max(max_samples - 1, 1)
+        while cursor + 1 < len(in_window) and in_window[cursor + 1] <= target_ns:
+            cursor += 1
+        selected.append(in_window[cursor])
+    return selected
 
 
 def _concat_scan_records(

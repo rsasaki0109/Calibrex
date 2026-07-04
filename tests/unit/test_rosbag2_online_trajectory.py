@@ -332,6 +332,34 @@ def test_rosbag2_online_trajectory_smooth_passes(tmp_path: Path) -> None:
     assert result.metrics["trajectory_gate_verdict"].grade == "pass"
 
 
+def test_rosbag2_online_trajectory_cross_segment_samples_beyond_replay_budget(
+    tmp_path: Path,
+) -> None:
+    """Cross-segment streams the full track span, not the calibration replay budget."""
+    pytest.importorskip("numpy")
+    bag = _build_moving_rig_bag(tmp_path / "long_span.db3", message_count=40)
+    result = _run_trajectory_session(
+        tmp_path,
+        bag_path=bag,
+        max_source_messages=6,
+        max_source_points=500,
+        max_target_messages=6,
+    )
+    evidence = result.run.provenance["trajectory_evidence"]
+
+    first_end_ns = evidence["cross_segment_first_half_end_timestamp_ns"]
+    second_start_ns = evidence["cross_segment_second_half_start_timestamp_ns"]
+    assert first_end_ns is not None
+    assert second_start_ns is not None
+    assert second_start_ns > first_end_ns
+    assert evidence["cross_segment_sampling_policy"] == "evenly_spaced_time"
+    assert evidence["cross_segment_first_half_scan_count"] >= 2
+    assert evidence["cross_segment_second_half_scan_count"] >= 2
+    replay_source_end_ns = _BASE_NS + 5 * _STEP_NS
+    assert second_start_ns > replay_source_end_ns
+    assert evidence["cross_segment_second_half_end_timestamp_ns"] >= _BASE_NS + 35 * _STEP_NS
+
+
 def test_rosbag2_online_trajectory_skipped_without_odometry(tmp_path: Path) -> None:
     pytest.importorskip("numpy")
     bag = _build_moving_rig_bag(tmp_path / "no_odom.db3")
