@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import struct
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros_messages import (
     OdometryMessage,
     PointCloud2Message,
     PointField,
+    decode_point_time_offsets,
     decode_pointcloud_payload,
     require_numpy,
 )
@@ -162,7 +163,13 @@ class CdrReader:
         return tuple(values)
 
 
-def decode_ros2_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud2Message:
+def decode_ros2_pointcloud2(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    point_time_field: str | None = None,
+) -> PointCloud2Message:
     """Decode a CDR-encoded ``sensor_msgs/msg/PointCloud2`` message."""
 
     numpy_module = require_numpy(extra_name="rosbag2")
@@ -206,6 +213,18 @@ def decode_ros2_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> Point
         point_count=point_count,
         is_bigendian=is_bigendian,
     )
+    point_time_offsets_s: Any = None
+    if point_time_field is not None:
+        point_time_offsets_s = decode_point_time_offsets(
+            numpy_module,
+            payload=payload,
+            fields=fields,
+            point_step=point_step,
+            point_count=point_count,
+            is_bigendian=is_bigendian,
+            field_name=point_time_field,
+            topic=topic,
+        )
     header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
     return PointCloud2Message(
         topic=topic,
@@ -217,6 +236,7 @@ def decode_ros2_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> Point
         fields=tuple(fields),
         xyz=xyz,
         intensity=intensity,
+        point_time_offsets_s=point_time_offsets_s,
     )
 
 

@@ -674,10 +674,18 @@ def decode_rosbag2_message(
     raise DatasetError(msg)
 
 
-def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud2Message:
+def decode_pointcloud2(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    point_time_field: str | None = None,
+) -> PointCloud2Message:
     """Decode a CDR ``sensor_msgs/msg/PointCloud2`` payload."""
 
-    return decode_ros2_pointcloud2(topic, timestamp_ns, data)
+    return decode_ros2_pointcloud2(
+        topic, timestamp_ns, data, point_time_field=point_time_field
+    )
 
 
 def decode_odometry(topic: str, timestamp_ns: int, data: bytes) -> OdometryMessage:

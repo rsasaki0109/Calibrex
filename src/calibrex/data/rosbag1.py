@@ -32,6 +32,7 @@ from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_messages import (
     PointCloud2Message,
     PointField,
+    decode_point_time_offsets,
     decode_pointcloud_payload,
     require_numpy,
 )
@@ -520,7 +521,13 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
     )
 
 
-def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud2Message:
+def decode_pointcloud2(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    point_time_field: str | None = None,
+) -> PointCloud2Message:
     """Decode a serialized ``sensor_msgs/PointCloud2`` message into numpy arrays."""
 
     numpy_module = require_numpy(extra_name="rosbag1")
@@ -561,6 +568,18 @@ def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud
         point_count=point_count,
         is_bigendian=bool(is_bigendian),
     )
+    point_time_offsets_s = None
+    if point_time_field is not None:
+        point_time_offsets_s = decode_point_time_offsets(
+            numpy_module,
+            payload=payload,
+            fields=fields,
+            point_step=point_step,
+            point_count=point_count,
+            is_bigendian=bool(is_bigendian),
+            field_name=point_time_field,
+            topic=topic,
+        )
 
     header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
     return PointCloud2Message(
@@ -573,6 +592,7 @@ def decode_pointcloud2(topic: str, timestamp_ns: int, data: bytes) -> PointCloud
         fields=tuple(fields),
         xyz=xyz,
         intensity=intensity,
+        point_time_offsets_s=point_time_offsets_s,
     )
 
 
