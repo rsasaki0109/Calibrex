@@ -48,3 +48,16 @@ provenance:
     PoseStamped topic (/vrpn_client_node/UWBTest/pose) by
     tools/rosbag1_to_rosbag2_online_pair.py; only the nav_msgs/Odometry envelope
     is authored — the pose trajectory is real MOCAP data.
+  kiss_icp_odometry_note: >
+    Rig-frame /odom variant (indoor02_rosbag2_kissicp) from KISS-ICP on
+    /velodyne_points via tools/rosbag1_to_rosbag2_online_pair.py --odom-source
+    kiss-icp; poses are T_world_velo_sensor with T_base_source = identity.
+  kiss_icp_odometry_command: >
+    uv run tools/rosbag1_to_rosbag2_online_pair.py --src
+    data/public/tiers_lidars_dataset/indoor02.bag --dst
+    data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp --topic
+    /velodyne_points --topic /os_cloud_nodee/points --odom-source kiss-icp
+    --kiss-icp-topic /velodyne_points --kiss-icp-max-range 30.0
+    --child-frame-id base_link --storage sqlite3 --compress none
+  kiss_icp_version: "1.3.0"
+  kiss_icp_max_range_m: "30.0"
