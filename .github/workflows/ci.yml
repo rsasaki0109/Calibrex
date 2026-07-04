@@ -20,7 +20,7 @@ jobs:
       - name: Schema generation
         run: |
           slac schema all --output-dir /tmp/slac-schemas
-          test "$(find /tmp/slac-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 17
+          test "$(find /tmp/slac-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 18
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

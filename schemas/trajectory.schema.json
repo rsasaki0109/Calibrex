@@ -1,0 +1,482 @@
+{
+  "$defs": {
+    "ReportRunInfo": {
+      "additionalProperties": false,
+      "description": "Minimal run metadata repeated in report sidecars.",
+      "properties": {
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "slac_version": {
+          "title": "Slac Version",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "domain",
+        "slac_version",
+        "created_at"
+      ],
+      "title": "ReportRunInfo",
+      "type": "object"
+    },
+    "TrajectoryFrameSemantics": {
+      "additionalProperties": false,
+      "description": "Frame conventions for recorded ``T_world_base`` poses.",
+      "properties": {
+        "child_frame_id": {
+          "title": "Child Frame Id",
+          "type": "string"
+        },
+        "note": {
+          "default": "poses are T_world_base following the online motion-compensation formulation (world frame from odometry header, child/base from child_frame_id)",
+          "title": "Note",
+          "type": "string"
+        },
+        "world_frame_id": {
+          "title": "World Frame Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "world_frame_id",
+        "child_frame_id"
+      ],
+      "title": "TrajectoryFrameSemantics",
+      "type": "object"
+    },
+    "TrajectoryInterpolationHealth": {
+      "additionalProperties": false,
+      "description": "Interpolation statistics accumulated on the replayed odometry track.",
+      "properties": {
+        "clamp_count": {
+          "minimum": 0,
+          "title": "Clamp Count",
+          "type": "integer"
+        },
+        "interpolation_count": {
+          "minimum": 0,
+          "title": "Interpolation Count",
+          "type": "integer"
+        },
+        "max_extrapolation_s": {
+          "minimum": 0.0,
+          "title": "Max Extrapolation S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "interpolation_count",
+        "clamp_count",
+        "max_extrapolation_s"
+      ],
+      "title": "TrajectoryInterpolationHealth",
+      "type": "object"
+    },
+    "TrajectoryOdometrySource": {
+      "additionalProperties": false,
+      "description": "Provenance for the odometry topic that supplied the pose track.",
+      "properties": {
+        "first_timestamp_ns": {
+          "minimum": 0,
+          "title": "First Timestamp Ns",
+          "type": "integer"
+        },
+        "last_timestamp_ns": {
+          "minimum": 0,
+          "title": "Last Timestamp Ns",
+          "type": "integer"
+        },
+        "message_count": {
+          "minimum": 0,
+          "title": "Message Count",
+          "type": "integer"
+        },
+        "time_span_s": {
+          "minimum": 0.0,
+          "title": "Time Span S",
+          "type": "number"
+        },
+        "topic": {
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic",
+        "message_count",
+        "first_timestamp_ns",
+        "last_timestamp_ns",
+        "time_span_s"
+      ],
+      "title": "TrajectoryOdometrySource",
+      "type": "object"
+    },
+    "TrajectoryPoseSample": {
+      "additionalProperties": false,
+      "description": "One subsampled ``T_world_base`` pose.",
+      "properties": {
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "timestamp_ns": {
+          "minimum": 0,
+          "title": "Timestamp Ns",
+          "type": "integer"
+        },
+        "translation": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation",
+          "type": "array"
+        }
+      },
+      "required": [
+        "timestamp_ns",
+        "translation",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TrajectoryPoseSample",
+      "type": "object"
+    },
+    "TrajectoryQualityBlock": {
+      "additionalProperties": false,
+      "description": "Ground-truth-free trajectory quality metrics and gate statuses.",
+      "properties": {
+        "cross_segment_correspondence_count": {
+          "minimum": 0,
+          "title": "Cross Segment Correspondence Count",
+          "type": "integer"
+        },
+        "cross_segment_first_half_point_count": {
+          "minimum": 0,
+          "title": "Cross Segment First Half Point Count",
+          "type": "integer"
+        },
+        "cross_segment_first_half_scan_count": {
+          "minimum": 0,
+          "title": "Cross Segment First Half Scan Count",
+          "type": "integer"
+        },
+        "cross_segment_gate_reason": {
+          "title": "Cross Segment Gate Reason",
+          "type": "string"
+        },
+        "cross_segment_gate_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Cross Segment Gate Status",
+          "type": "string"
+        },
+        "cross_segment_rmse_m": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "cross_segment_second_half_point_count": {
+          "minimum": 0,
+          "title": "Cross Segment Second Half Point Count",
+          "type": "integer"
+        },
+        "cross_segment_second_half_scan_count": {
+          "minimum": 0,
+          "title": "Cross Segment Second Half Scan Count",
+          "type": "integer"
+        },
+        "interpolation_clamp_fraction": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "interpolation_gate_reason": {
+          "title": "Interpolation Gate Reason",
+          "type": "string"
+        },
+        "interpolation_gate_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Interpolation Gate Status",
+          "type": "string"
+        },
+        "interpolation_max_extrapolation_s": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "kinematic_angular_speed_max_dps": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "kinematic_angular_speed_p95_dps": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "kinematic_gate_reason": {
+          "title": "Kinematic Gate Reason",
+          "type": "string"
+        },
+        "kinematic_gate_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Kinematic Gate Status",
+          "type": "string"
+        },
+        "kinematic_linear_speed_max_mps": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "kinematic_linear_speed_p95_mps": {
+          "$ref": "#/$defs/TrajectoryQualityMetric"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "verdict_reason": {
+          "title": "Verdict Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kinematic_linear_speed_p95_mps",
+        "kinematic_linear_speed_max_mps",
+        "kinematic_angular_speed_p95_dps",
+        "kinematic_angular_speed_max_dps",
+        "kinematic_gate_status",
+        "kinematic_gate_reason",
+        "interpolation_clamp_fraction",
+        "interpolation_max_extrapolation_s",
+        "interpolation_gate_status",
+        "interpolation_gate_reason",
+        "cross_segment_rmse_m",
+        "cross_segment_first_half_scan_count",
+        "cross_segment_second_half_scan_count",
+        "cross_segment_first_half_point_count",
+        "cross_segment_second_half_point_count",
+        "cross_segment_correspondence_count",
+        "cross_segment_gate_status",
+        "cross_segment_gate_reason",
+        "verdict",
+        "verdict_reason"
+      ],
+      "title": "TrajectoryQualityBlock",
+      "type": "object"
+    },
+    "TrajectoryQualityMetric": {
+      "additionalProperties": false,
+      "description": "One graded trajectory-quality metric with its recorded gate threshold.",
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "TrajectoryQualityMetric",
+      "type": "object"
+    },
+    "TrajectorySubsampling": {
+      "additionalProperties": false,
+      "description": "How the recorded pose list was reduced from the full odometry track.",
+      "properties": {
+        "max_pose_samples": {
+          "minimum": 1,
+          "title": "Max Pose Samples",
+          "type": "integer"
+        },
+        "method": {
+          "const": "even_time_spacing",
+          "default": "even_time_spacing",
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "max_pose_samples"
+      ],
+      "title": "TrajectorySubsampling",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable odometry trajectory for one motion-compensated online run.",
+  "properties": {
+    "frame_semantics": {
+      "$ref": "#/$defs/TrajectoryFrameSemantics"
+    },
+    "interpolation_health": {
+      "$ref": "#/$defs/TrajectoryInterpolationHealth"
+    },
+    "odometry_source": {
+      "$ref": "#/$defs/TrajectoryOdometrySource"
+    },
+    "pose_count_recorded": {
+      "minimum": 0,
+      "title": "Pose Count Recorded",
+      "type": "integer"
+    },
+    "pose_count_total": {
+      "minimum": 0,
+      "title": "Pose Count Total",
+      "type": "integer"
+    },
+    "poses": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryPoseSample"
+      },
+      "title": "Poses",
+      "type": "array"
+    },
+    "quality": {
+      "$ref": "#/$defs/TrajectoryQualityBlock"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "slac.trajectory/v0.1",
+      "default": "slac.trajectory/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subsampling": {
+      "$ref": "#/$defs/TrajectorySubsampling"
+    }
+  },
+  "required": [
+    "run",
+    "odometry_source",
+    "frame_semantics",
+    "pose_count_total",
+    "pose_count_recorded",
+    "subsampling",
+    "interpolation_health",
+    "quality"
+  ],
+  "title": "TrajectoryArtifact",
+  "type": "object"
+}

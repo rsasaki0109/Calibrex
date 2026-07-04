@@ -524,6 +524,57 @@ injected offsets to ±5 ms.
 | KISS-ICP temporal | 106 / 108 | −18 ms | 0.012 | 0 / 3 | FAIL (probe) |
 | Selftest temporal | 104 / 104 | −71 ms | 0.34 | 1 / 3 | FAIL (probe) |
 
+### Trajectory evidence (motion-compensated online runs)
+
+When `dataset.odometry_topic` is set, motion-compensated online runs emit a
+schema-validated `trajectory.json` artifact (`slac.trajectory/v0.1`) beside
+`timeline.json`. The artifact records subsampled `T_world_base` poses (default
+budget 500 samples, evenly spaced in time), odometry source metadata, frame
+semantics, interpolation health (`interpolation_count`, `clamp_count`,
+`max_extrapolation_s`), and a `quality` block with graded metrics and recorded
+gate thresholds. Provenance registers `trajectory_path`; runs without odometry
+set `trajectory_evidence_skipped_no_odometry: true`.
+
+Three ground-truth-free metric families feed `trajectory_gate_verdict` (worst of
+the three: pass &lt; inconclusive &lt; fail):
+
+| Option | Default | Gate |
+|--------|---------|------|
+| `trajectory_gate_max_speed_mps` | `3.0` | Kinematic: max single-step linear speed (m/s) from consecutive odometry poses |
+| `trajectory_gate_max_angular_speed_dps` | `120.0` | Kinematic: max single-step angular speed (deg/s) |
+| `trajectory_gate_max_clamp_fraction` | `0.05` | Interpolation: `clamp_count / interpolation_count` |
+| `trajectory_gate_max_cross_segment_rmse_m` | `0.30` | Cross-segment drift proxy: point-to-plane RMSE of second-half source scans against a voxel map built from first-half scans (bounded: up to 40 scans and 4000 points per half) |
+
+Fewer than 10 odometry samples → kinematic **INCONCLUSIVE**; fewer than 50
+cross-segment correspondences → cross-segment **INCONCLUSIVE**.
+
+Example (same bounded KISS-ICP replay budget as run C above):
+
+```bash
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_config.yaml --online
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_config.yaml --online
+```
+
+**Indoor02 KISS-ICP Velodyne→Ouster:** `trajectory.json` — 420 poses recorded
+(42.26 s span, 1 clamp / 39 interpolations, max extrapolation 0.024 s).
+Kinematic **PASS** (p95 linear 0.96 m/s, max 1.07 m/s; p95 angular 34.8 deg/s,
+max 50.9 deg/s). Interpolation **PASS** (clamp fraction 0.026). Cross-segment
+**INCONCLUSIVE** (only 2 correspondences on the 12-message source budget).
+Overall trajectory verdict **INCONCLUSIVE**. Kinematic and interpolation health
+look reasonable; the leave-segment-out drift proxy cannot falsify KISS-ICP drift
+on this bounded replay — not enough overlapping structure between halves at
+voxel size 0.5 m.
+
+**Velodyne selftest (duplicate topic):** same odometry track — kinematic
+**PASS**, interpolation **PASS** (zero clamps), cross-segment **INCONCLUSIVE**
+(2 correspondences). Verdict **INCONCLUSIVE** for the same correspondence
+budget reason, not because kinematics failed.
+
+| Run | Kinematic | Interpolation | Cross-segment | Trajectory verdict |
+|-----|-----------|---------------|---------------|-------------------|
+| KISS-ICP | PASS | PASS (clamp 0.026) | INCONCLUSIVE (2 corr.) | INCONCLUSIVE |
+| Selftest motion | PASS | PASS (clamp 0) | INCONCLUSIVE (2 corr.) | INCONCLUSIVE |
+
 ### Online calibration with odometry motion compensation
 
 `run_online_calibration` accepts `dataset.type: rosbag2` with the same bounded

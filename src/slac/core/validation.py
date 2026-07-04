@@ -40,6 +40,7 @@ from slac.core.report_artifacts import (
     ReportSummaryArtifact,
 )
 from slac.core.result import RESULT_SCHEMA_VERSION, CalibrationResult, StrictModel
+from slac.core.trajectory import TRAJECTORY_SCHEMA_VERSION, TrajectoryArtifact
 from slac.core.transform_artifacts import (
     TRANSFORMS_SCHEMA_VERSION,
     TransformArtifact,
@@ -70,6 +71,7 @@ ValidationKind = Literal[
     "evidence-bundle",
     "evidence-bundle-verification",
     "online-timeline",
+    "trajectory",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -90,6 +92,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "evidence-bundle": EvidenceBundleManifest,
     "evidence-bundle-verification": EvidenceBundleVerification,
     "online-timeline": OnlineCalibrationTimelineArtifact,
+    "trajectory": TrajectoryArtifact,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -110,6 +113,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     EVIDENCE_BUNDLE_SCHEMA_VERSION: "evidence-bundle",
     EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION: "evidence-bundle-verification",
     ONLINE_TIMELINE_SCHEMA_VERSION: "online-timeline",
+    TRAJECTORY_SCHEMA_VERSION: "trajectory",
 }
 
 

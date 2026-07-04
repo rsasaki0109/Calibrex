@@ -46,6 +46,7 @@ from slac.core.report_artifacts import (
     report_artifact_schema_kinds,
 )
 from slac.core.result import CalibrationResult, load_result, result_json_schema
+from slac.core.trajectory import trajectory_json_schema
 from slac.core.transform_artifacts import transform_artifact_json_schema
 from slac.core.validation import (
     ValidationKind,
@@ -606,6 +607,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,
         "online-timeline": online_timeline_json_schema,
+        "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
         generators[kind] = _report_artifact_schema_generator(kind)
@@ -811,6 +813,7 @@ def _cmd_calibrate_online(args: argparse.Namespace, config: CalibrationConfig) -
         "report": artifacts["html_report"],
         "report_artifacts": artifacts,
         "timeline": result.run.provenance.get("online_timeline_path"),
+        "trajectory": result.run.provenance.get("trajectory_path"),
         "batch_count": result.run.provenance.get("online_batch_count"),
         "accepted_batch_count": result.run.provenance.get("online_accepted_batch_count"),
         "rejected_batch_count": result.run.provenance.get("online_rejected_batch_count"),
