@@ -38,6 +38,12 @@ a bias of that order; residual timing error is roughly latency x platform
 speed. Only list topics that need correction (for example Ouster OS1); do
 not restamp topics already on the recording epoch clock unless you intend to.
 
+``--duplicate-topic SRC:DST`` (repeatable) mirrors every PointCloud2 message
+written for ``SRC`` onto a second rosbag2 connection ``DST`` (same type, same
+bag timestamps). Use this to build identity self-consistency control bags:
+duplicate a LiDAR topic, then calibrate ``SRC`` (root) vs ``DST`` with an
+identity initial transform — ground truth is exactly identity.
+
 Install with ``uv run`` (PEP 723 deps) or ``pip install kiss-icp`` for the
 kiss-icp odometry mode.
 """
@@ -150,12 +156,58 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
             "header_stamp); repeatable"
         ),
     )
+    parser.add_argument(
+        "--duplicate-topic",
+        action="append",
+        default=[],
+        dest="duplicate_topics",
+        metavar="SRC:DST",
+        help=(
+            "Mirror PointCloud2 messages from SRC onto DST (same stamps); "
+            "repeatable; for identity self-consistency control bags"
+        ),
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.odom_source == "pose-topic" and not args.pose_topic:
         parser.error("--pose-topic is required when --odom-source pose-topic")
     if args.odom_source == "kiss-icp" and not args.kiss_icp_topic:
         parser.error("--kiss-icp-topic is required when --odom-source kiss-icp")
     return args
+
+
+def _parse_duplicate_topics(
+    entries: list[str],
+    *,
+    pointcloud_topics: set[str],
+    reserved_topics: set[str],
+) -> dict[str, str]:
+    """Parse ``SRC:DST`` pairs and validate source/destination topics."""
+
+    duplicate_by_source: dict[str, str] = {}
+    destinations: set[str] = set()
+    for entry in entries:
+        if ":" not in entry:
+            msg = f"--duplicate-topic must be SRC:DST, got {entry!r}"
+            raise SystemExit(msg)
+        src, dst = entry.split(":", 1)
+        if not src or not dst:
+            msg = f"--duplicate-topic must be SRC:DST, got {entry!r}"
+            raise SystemExit(msg)
+        if src not in pointcloud_topics:
+            msg = (
+                f"--duplicate-topic source {src!r} must be listed in --topic "
+                f"(got {sorted(pointcloud_topics)})"
+            )
+            raise SystemExit(msg)
+        if dst in reserved_topics or dst in destinations:
+            msg = f"--duplicate-topic destination {dst!r} collides with an existing topic"
+            raise SystemExit(msg)
+        if src in duplicate_by_source:
+            msg = f"duplicate --duplicate-topic source {src!r}"
+            raise SystemExit(msg)
+        duplicate_by_source[src] = dst
+        destinations.add(dst)
+    return duplicate_by_source
 
 
 def _storage_plugin(name: str) -> StoragePlugin:
@@ -456,6 +508,12 @@ def convert_bag(
     else:
         selected_topics.add(args.kiss_icp_topic)
 
+    duplicate_topics = _parse_duplicate_topics(
+        args.duplicate_topics,
+        pointcloud_topics=set(args.topics),
+        reserved_topics=selected_topics | {args.odom_topic},
+    )
+
     kiss_icp = None
     kiss_icp_version: str | None = None
     if args.odom_source == "kiss-icp":
@@ -465,6 +523,7 @@ def convert_bag(
         lambda: TopicStats(message_count=0, first_timestamp_ns=None, last_timestamp_ns=None)
     )
     pc_connections_out: dict[str, object] = {}
+    duplicate_connections_out: dict[str, object] = {}
     odom_connection = None
 
     writer = Writer(args.dst, version=9, storage_plugin=_storage_plugin(args.storage))
@@ -551,12 +610,23 @@ def convert_bag(
                     )
                     _record_stats(stats, args.odom_topic, timestamp)
 
-                writer.write(
-                    pc_connections_out[topic],
-                    timestamp,
-                    ros2_typestore.serialize_cdr(pc_msg, POINTCLOUD2_MSGTYPE),
-                )
+                serialized_pc = ros2_typestore.serialize_cdr(pc_msg, POINTCLOUD2_MSGTYPE)
+                writer.write(pc_connections_out[topic], timestamp, serialized_pc)
                 _record_stats(stats, topic, timestamp)
+                if topic in duplicate_topics:
+                    duplicate_topic = duplicate_topics[topic]
+                    if duplicate_topic not in duplicate_connections_out:
+                        duplicate_connections_out[duplicate_topic] = writer.add_connection(
+                            duplicate_topic,
+                            POINTCLOUD2_MSGTYPE,
+                            typestore=ros2_typestore,
+                        )
+                    writer.write(
+                        duplicate_connections_out[duplicate_topic],
+                        timestamp,
+                        serialized_pc,
+                    )
+                    _record_stats(stats, duplicate_topic, timestamp)
     finally:
         writer.close()
 

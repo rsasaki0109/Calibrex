@@ -358,6 +358,64 @@ with standard CDR headers and per-message decompression.
 | B static | none | 106 / 108 | 0.13 – 0.42 (mean ~0.28) | ~106 cm, ~15° |
 | C kiss-icp | KISS-ICP `/odom` | 106 / 108 | 0.17 – 0.41 (mean ~0.28) | ~85 cm, ~28° |
 
+### Identity self-consistency control
+
+Duplicate the source Velodyne on the kiss-icp rosbag2 variant so ground truth
+is exactly identity: calibrate `/velodyne_points` (root) vs
+`/velodyne_points_copy` with an identity initial transform. Same factor
+options and gates as the A/B/C runs above (voxel 0.5 m, correspondence gate
+1.5 m, 12 source messages / 8k source points, 36 target messages / 1.5k target
+points, holdout 0.2, prior_sigma 0.3 m / 15°).
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
+  --odom-source kiss-icp \
+  --kiss-icp-topic /velodyne_points \
+  --kiss-icp-max-range 30.0 \
+  --child-frame-id base_link \
+  --storage sqlite3 \
+  --compress none \
+  --duplicate-topic /velodyne_points:/velodyne_points_copy
+
+calibrex inspect data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest --type rosbag2 --json
+
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_config.yaml --online
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_static_config.yaml --online
+```
+
+On the bounded replay budget above, motion-compensated selftest (KISS-ICP
+`/odom`) adopted all 104 batches with zero odometry clamping and zero
+extrapolation. The static control (no odometry) also adopted all 104 batches
+and passed every internal gate — yet both landed far from identity truth in
+opposite ways. Motion compensation cut the extrinsic error roughly 10× versus
+the static run; the residual ~10 cm / ~1.2° is consistent with no per-point
+deskew and LiDAR-odometry drift on a moving platform.
+
+| Run | Odometry | Batches adopted | Final Δ vs identity (truth) |
+|-----|----------|-----------------|-------------------------------|
+| Selftest motion | KISS-ICP `/odom` | 104 / 104 | ~9.6 cm, ~1.2° |
+| Selftest static | none | 104 / 104 | ~98 cm, ~37° |
+| Ground truth | — | — | 0 cm, 0° |
+
+This is the first genuine absolute-accuracy validation on real moving-platform
+data with exact ground truth: motion compensation reduces extrinsic error from
+~0.98 m / ~37° to ~9.6 cm / ~1.2°. The honest negative finding is that the
+static run passed all internal gates (holdout RMSE 0.40 m, rolling regression,
+rank 6) while being ~1 m / ~37° wrong — on this scene the online gates measure
+internal consistency of a self-consistently wrong map, not absolute accuracy.
+Tighter correspondence gating and per-point deskew are candidate future work;
+they are not implemented here.
+
+Reconciling the earlier A/B/C discussion: the Velodyne→Ouster ~85 cm residual
+in run C is now attributable primarily to cross-sensor effects (Ouster stamp
+semantics and restamp bias, no per-point deskew, nominal GICP seed), not a
+failure of the motion-compensation pipeline itself.
+
 ### Online calibration with odometry motion compensation
 
 `run_online_calibration` accepts `dataset.type: rosbag2` with the same bounded
