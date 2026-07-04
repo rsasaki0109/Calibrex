@@ -388,6 +388,61 @@ slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_sel
 slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_static_config.yaml --online
 ```
 
+Two additional odometry modes improve the synthesized `/odom` track at bag
+conversion time (before calibration). Both use the Velodyne per-point `time`
+field (float32 seconds, ~99% negative offsets, span ≈ 0.10 s on Indoor02).
+
+**Native deskew** (`--kiss-icp-native-deskew` with `--odom-source kiss-icp`):
+single-pass KISS-ICP with `cfg.data.deskew = True` and per-point timestamps
+normalized to [0, 1] within each scan before `register_frame`.
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest_kissdeskew \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
+  --odom-source kiss-icp \
+  --kiss-icp-topic /velodyne_points \
+  --kiss-icp-max-range 30.0 \
+  --kiss-icp-native-deskew \
+  --kiss-icp-time-field time \
+  --child-frame-id base_link \
+  --storage sqlite3 \
+  --compress none \
+  --duplicate-topic /velodyne_points:/velodyne_points_copy
+```
+
+**Two-pass** (`--odom-source kiss-icp-two-pass`): pass 1 runs KISS-ICP on raw
+scans; each scan is rigidified to its message stamp with the pass-1 track
+(`p_rigid = T(t_msg)⁻¹ T(t_msg + dt_i) p_i`, pose interpolation with clamping
+at track ends); pass 2 runs a fresh KISS-ICP instance on the deskewed scans.
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest_twopass \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
+  --odom-source kiss-icp-two-pass \
+  --kiss-icp-topic /velodyne_points \
+  --kiss-icp-max-range 30.0 \
+  --kiss-icp-time-field time \
+  --child-frame-id base_link \
+  --storage sqlite3 \
+  --compress none \
+  --duplicate-topic /velodyne_points:/velodyne_points_copy
+```
+
+Example configs for the new bags:
+
+```bash
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_kissdeskew_config.yaml --online
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_twopass_config.yaml --online
+```
+
 On the bounded replay budget above, motion-compensated selftest (KISS-ICP
 `/odom`) adopted all 104 batches with zero odometry clamping and zero
 extrapolation and recovered identity to ~9.6 cm / ~1.2°. The static control
@@ -422,6 +477,22 @@ intra-scan timing is corrected.
 | Selftest static | none | — | 104 / 104 | ~98 cm, ~37° |
 | Ground truth | — | — | — | 0 cm, 0° |
 
+**Odometry deskew variants (bag conversion, identity selftest):** on the same
+bounded replay budget, all three motion-compensated variants adopted 104 / 104
+batches. Native-deskew KISS-ICP odometry tightened translation recovery
+meaningfully versus the v0.2 baseline (~4.3 cm vs ~9.5 cm) at the cost of a
+modest rotation increase (~2.0° vs ~1.2°). Two-pass odometry also beat the
+baseline on translation (~6.2 cm) but did not improve rotation and degraded
+cross-segment trajectory consistency (RMSE 0.366 m, trajectory verdict FAIL).
+**Native deskew wins on identity translation recovery** (~5 cm below baseline);
+two-pass is intermediate on translation but worse on trajectory evidence.
+
+| Variant | Odometry mode | Batches adopted | Final Δ vs identity | Holdout RMSE (m) | Cross-segment RMSE (m) | Trajectory verdict |
+|---------|---------------|-----------------|---------------------|------------------|------------------------|-------------------|
+| Baseline | kiss-icp raw | 104 / 104 | 9.54 cm, 1.17° | 0.059 – 0.184 | 0.143 (PASS) | PASS |
+| Native deskew | kiss-icp + `--kiss-icp-native-deskew` | 104 / 104 | 4.34 cm, 1.96° | 0.062 – 0.165 | 0.160 (PASS) | PASS |
+| Two-pass | kiss-icp-two-pass | 104 / 104 | 6.16 cm, 2.01° | 0.060 – 0.176 | 0.366 (FAIL) | FAIL |
+
 KISS-ICP rig-frame Velodyne→Ouster run C with deskew (`time` + `t`) adopted
 106 / 108 batches and landed ~76 cm / ~28° from the TIERS GICP seed versus
 ~85 cm / ~28° without deskew — a modest translation improvement with rotation
@@ -447,8 +518,10 @@ static run passed all internal gates (holdout RMSE 0.40 m, rolling regression,
 rank 6) while being ~1 m / ~37° wrong — on this scene the online gates measure
 internal consistency of a self-consistently wrong map, not absolute accuracy.
 Per-point deskew is implemented but did not materially tighten the identity
-selftest residual on this sequence; remaining error is attributed primarily to
-LiDAR-odometry drift once intra-scan timing is handled.
+selftest residual on this sequence when applied only during online replay;
+remaining error was attributed primarily to LiDAR-odometry drift once intra-scan
+timing is handled. **Native-deskew odometry at bag conversion** does materially
+reduce translation drift on the same control (~4.3 cm vs ~9.5 cm baseline).
 
 Reconciling the earlier A/B/C discussion: the Velodyne→Ouster ~85 cm residual
 in run C is now attributable primarily to cross-sensor effects (Ouster stamp
