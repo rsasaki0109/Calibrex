@@ -1099,7 +1099,7 @@
         "dominant_producer": {
           "default": "unknown",
           "enum": [
-            "calibrex_native",
+            "slac_native",
             "external_tool",
             "human",
             "dataset_provider",
@@ -1163,7 +1163,7 @@
         "producers": {
           "items": {
             "enum": [
-              "calibrex_native",
+              "slac_native",
               "external_tool",
               "human",
               "dataset_provider",
@@ -1308,7 +1308,7 @@
     },
     "ResultComparison": {
       "additionalProperties": false,
-      "description": "Machine-readable comparison between two Calibrex results.",
+      "description": "Machine-readable comparison between two slac results.",
       "properties": {
         "evidence_comparisons": {
           "items": {
@@ -1400,8 +1400,8 @@
           "title": "Right Degeneracy Reason"
         },
         "schema_version": {
-          "const": "calibrex.comparison/v0.1",
-          "default": "calibrex.comparison/v0.1",
+          "const": "slac.comparison/v0.1",
+          "default": "slac.comparison/v0.1",
           "title": "Schema Version",
           "type": "string"
         },
@@ -1589,7 +1589,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Machine-readable N-way comparison across labeled Calibrex results.",
+  "description": "Machine-readable N-way comparison across labeled slac results.",
   "properties": {
     "entries": {
       "additionalProperties": {
@@ -1613,8 +1613,8 @@
       "type": "object"
     },
     "schema_version": {
-      "const": "calibrex.report_comparison/v0.1",
-      "default": "calibrex.report_comparison/v0.1",
+      "const": "slac.report_comparison/v0.1",
+      "default": "slac.report_comparison/v0.1",
       "title": "Schema Version",
       "type": "string"
     },

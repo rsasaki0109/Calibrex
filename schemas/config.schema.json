@@ -3,6 +3,42 @@
     "CameraIntrinsicsConfig": {
       "additionalProperties": false,
       "properties": {
+        "cx": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cx"
+        },
+        "cy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cy"
+        },
+        "distortion": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Distortion",
+          "type": "array"
+        },
+        "distortion_model": {
+          "default": "none",
+          "title": "Distortion Model",
+          "type": "string"
+        },
         "estimate": {
           "default": false,
           "title": "Estimate",
@@ -31,42 +67,6 @@
           ],
           "default": null,
           "title": "Fy"
-        },
-        "cx": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Cx"
-        },
-        "cy": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Cy"
-        },
-        "distortion_model": {
-          "default": "none",
-          "title": "Distortion Model",
-          "type": "string"
-        },
-        "distortion": {
-          "items": {
-            "type": "number"
-          },
-          "title": "Distortion",
-          "type": "array"
         }
       },
       "title": "CameraIntrinsicsConfig",
@@ -75,30 +75,6 @@
     "DatasetConfig": {
       "additionalProperties": false,
       "properties": {
-        "type": {
-          "enum": [
-            "a2d2_lidar",
-            "filesystem",
-            "kitti_raw",
-            "livox_pcd",
-            "mcap",
-            "nuscenes",
-            "rosbag1",
-            "rosbag2",
-            "tum_rgbd"
-          ],
-          "title": "Type",
-          "type": "string"
-        },
-        "path": {
-          "title": "Path",
-          "type": "string"
-        },
-        "time_base": {
-          "default": "sensor_time_ns",
-          "title": "Time Base",
-          "type": "string"
-        },
         "odometry_topic": {
           "anyOf": [
             {
@@ -111,6 +87,10 @@
           "default": null,
           "description": "optional nav_msgs/msg/Odometry topic for online motion compensation from rosbag1/rosbag2 replays; unset preserves the static-rig path",
           "title": "Odometry Topic"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
         },
         "sample_limit": {
           "anyOf": [
@@ -125,6 +105,26 @@
           "default": null,
           "description": "override the number of frames/files sampled for public-dataset diagnostics (a2d2_lidar, livox_pcd, kitti_raw); unset preserves each dataset type's current default",
           "title": "Sample Limit"
+        },
+        "time_base": {
+          "default": "sensor_time_ns",
+          "title": "Time Base",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "a2d2_lidar",
+            "filesystem",
+            "kitti_raw",
+            "livox_pcd",
+            "mcap",
+            "nuscenes",
+            "rosbag1",
+            "rosbag2",
+            "tum_rgbd"
+          ],
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -144,6 +144,9 @@
           "title": "Holdout Ratio",
           "type": "number"
         },
+        "kitti": {
+          "$ref": "#/$defs/KITTIEvaluationConfig"
+        },
         "metrics": {
           "items": {
             "type": "string"
@@ -155,9 +158,6 @@
           "default": false,
           "title": "Strict",
           "type": "boolean"
-        },
-        "kitti": {
-          "$ref": "#/$defs/KITTIEvaluationConfig"
         }
       },
       "title": "EvaluationConfig",
@@ -171,6 +171,11 @@
           "title": "Enabled",
           "type": "boolean"
         },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        },
         "weight": {
           "anyOf": [
             {
@@ -182,11 +187,6 @@
           ],
           "default": null,
           "title": "Weight"
-        },
-        "options": {
-          "additionalProperties": true,
-          "title": "Options",
-          "type": "object"
         }
       },
       "title": "FactorConfig",
@@ -195,11 +195,6 @@
     "FrameConfig": {
       "additionalProperties": false,
       "properties": {
-        "root": {
-          "default": false,
-          "title": "Root",
-          "type": "boolean"
-        },
         "parent": {
           "anyOf": [
             {
@@ -211,6 +206,11 @@
           ],
           "default": null,
           "title": "Parent"
+        },
+        "root": {
+          "default": false,
+          "title": "Root",
+          "type": "boolean"
         },
         "transform": {
           "anyOf": [
@@ -230,18 +230,6 @@
     "ImuNoiseConfig": {
       "additionalProperties": false,
       "properties": {
-        "gyro_noise_density": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Gyro Noise Density"
-        },
         "accel_noise_density": {
           "anyOf": [
             {
@@ -254,18 +242,6 @@
           "default": null,
           "title": "Accel Noise Density"
         },
-        "gyro_random_walk": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Gyro Random Walk"
-        },
         "accel_random_walk": {
           "anyOf": [
             {
@@ -277,6 +253,30 @@
           ],
           "default": null,
           "title": "Accel Random Walk"
+        },
+        "gyro_noise_density": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gyro Noise Density"
+        },
+        "gyro_random_walk": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gyro Random Walk"
         }
       },
       "title": "ImuNoiseConfig",
@@ -285,18 +285,42 @@
     "KITTIEvaluationConfig": {
       "additionalProperties": false,
       "properties": {
+        "evidence_gate_min_depth_edge_alignment_holdout": {
+          "default": 0.2,
+          "description": "minimum holdout depth-edge alignment fraction for PASS evidence",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Evidence Gate Min Depth Edge Alignment Holdout",
+          "type": "number"
+        },
+        "evidence_gate_min_edge_alignment_holdout": {
+          "default": 0.2,
+          "description": "minimum holdout edge-alignment fraction for PASS evidence",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Evidence Gate Min Edge Alignment Holdout",
+          "type": "number"
+        },
+        "evidence_gate_min_mandatory_detectable_count": {
+          "default": 8,
+          "description": "minimum mandatory \u00b11 deg / \u00b10.10 m perturbation cases that must worsen projection scores",
+          "minimum": 0,
+          "title": "Evidence Gate Min Mandatory Detectable Count",
+          "type": "integer"
+        },
+        "evidence_gate_min_perturbation_detectable_fraction": {
+          "default": 0.5,
+          "description": "minimum known-bad perturbation detectable fraction for PASS evidence",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Evidence Gate Min Perturbation Detectable Fraction",
+          "type": "number"
+        },
         "max_projection_pairs": {
           "default": 3,
           "maximum": 500,
           "minimum": 0,
           "title": "Max Projection Pairs",
-          "type": "integer"
-        },
-        "projection_sample_points": {
-          "default": 800,
-          "maximum": 200000,
-          "minimum": 1,
-          "title": "Projection Sample Points",
           "type": "integer"
         },
         "perturbation_rotation_deg": {
@@ -313,42 +337,18 @@
           "title": "Perturbation Translation M",
           "type": "array"
         },
+        "projection_sample_points": {
+          "default": 800,
+          "maximum": 200000,
+          "minimum": 1,
+          "title": "Projection Sample Points",
+          "type": "integer"
+        },
         "use_frame_graph_candidate": {
           "default": false,
           "description": "evaluate camera-LiDAR projection evidence from frame-graph candidate extrinsics instead of the dataset calibration file",
           "title": "Use Frame Graph Candidate",
           "type": "boolean"
-        },
-        "evidence_gate_min_edge_alignment_holdout": {
-          "default": 0.2,
-          "description": "minimum holdout edge-alignment fraction for PASS evidence",
-          "exclusiveMinimum": 0.0,
-          "maximum": 1.0,
-          "title": "Evidence Gate Min Edge Alignment Holdout",
-          "type": "number"
-        },
-        "evidence_gate_min_depth_edge_alignment_holdout": {
-          "default": 0.2,
-          "description": "minimum holdout depth-edge alignment fraction for PASS evidence",
-          "exclusiveMinimum": 0.0,
-          "maximum": 1.0,
-          "title": "Evidence Gate Min Depth Edge Alignment Holdout",
-          "type": "number"
-        },
-        "evidence_gate_min_perturbation_detectable_fraction": {
-          "default": 0.5,
-          "description": "minimum known-bad perturbation detectable fraction for PASS evidence",
-          "exclusiveMinimum": 0.0,
-          "maximum": 1.0,
-          "title": "Evidence Gate Min Perturbation Detectable Fraction",
-          "type": "number"
-        },
-        "evidence_gate_min_mandatory_detectable_count": {
-          "default": 8,
-          "description": "minimum mandatory \u00b11 deg / \u00b10.10 m perturbation cases that must worsen projection scores",
-          "minimum": 0,
-          "title": "Evidence Gate Min Mandatory Detectable Count",
-          "type": "integer"
         }
       },
       "title": "KITTIEvaluationConfig",
@@ -357,9 +357,9 @@
     "OutputsConfig": {
       "additionalProperties": false,
       "properties": {
-        "result": {
-          "default": "result.yaml",
-          "title": "Result",
+        "artifacts_dir": {
+          "default": "artifacts",
+          "title": "Artifacts Dir",
           "type": "string"
         },
         "report": {
@@ -367,9 +367,9 @@
           "title": "Report",
           "type": "string"
         },
-        "artifacts_dir": {
-          "default": "artifacts",
-          "title": "Artifacts Dir",
+        "result": {
+          "default": "result.yaml",
+          "title": "Result",
           "type": "string"
         }
       },
@@ -379,10 +379,12 @@
     "PipelineConfig": {
       "additionalProperties": false,
       "properties": {
-        "type": {
-          "default": "multi_sensor_slac",
-          "title": "Type",
-          "type": "string"
+        "factors": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FactorConfig"
+          },
+          "title": "Factors",
+          "type": "object"
         },
         "frontends": {
           "items": {
@@ -391,12 +393,10 @@
           "title": "Frontends",
           "type": "array"
         },
-        "factors": {
-          "additionalProperties": {
-            "$ref": "#/$defs/FactorConfig"
-          },
-          "title": "Factors",
-          "type": "object"
+        "type": {
+          "default": "multi_sensor_slac",
+          "title": "Type",
+          "type": "string"
         }
       },
       "title": "PipelineConfig",
@@ -405,11 +405,6 @@
     "ProjectConfig": {
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "default": "calibrex_project",
-          "title": "Name",
-          "type": "string"
-        },
         "description": {
           "anyOf": [
             {
@@ -422,11 +417,6 @@
           "default": null,
           "title": "Description"
         },
-        "output_dir": {
-          "default": "outputs/default",
-          "title": "Output Dir",
-          "type": "string"
-        },
         "domain": {
           "default": "robotics",
           "enum": [
@@ -438,6 +428,16 @@
           ],
           "title": "Domain",
           "type": "string"
+        },
+        "name": {
+          "default": "slac_project",
+          "title": "Name",
+          "type": "string"
+        },
+        "output_dir": {
+          "default": "outputs/default",
+          "title": "Output Dir",
+          "type": "string"
         }
       },
       "title": "ProjectConfig",
@@ -446,22 +446,7 @@
     "SensorConfig": {
       "additionalProperties": false,
       "properties": {
-        "type": {
-          "enum": [
-            "camera",
-            "lidar",
-            "imu",
-            "radar"
-          ],
-          "title": "Type",
-          "type": "string"
-        },
-        "model": {
-          "default": "generic",
-          "title": "Model",
-          "type": "string"
-        },
-        "topic": {
+        "camera_info_topic": {
           "anyOf": [
             {
               "type": "string"
@@ -471,7 +456,14 @@
             }
           ],
           "default": null,
-          "title": "Topic"
+          "title": "Camera Info Topic"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
         },
         "frame_id": {
           "anyOf": [
@@ -485,18 +477,6 @@
           "default": null,
           "title": "Frame Id"
         },
-        "camera_info_topic": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Camera Info Topic"
-        },
         "intrinsics": {
           "anyOf": [
             {
@@ -508,12 +488,10 @@
           ],
           "default": null
         },
-        "fields": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Fields",
-          "type": "array"
+        "model": {
+          "default": "generic",
+          "title": "Model",
+          "type": "string"
         },
         "noise": {
           "anyOf": [
@@ -538,6 +516,28 @@
           "default": null,
           "description": "optional PointCloud2 field name for per-point capture-time offsets relative to the message stamp (seconds or integer nanoseconds); enables per-point deskew during rosbag2 online motion compensation",
           "title": "Point Time Field"
+        },
+        "topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic"
+        },
+        "type": {
+          "enum": [
+            "camera",
+            "lidar",
+            "imu",
+            "radar"
+          ],
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -554,6 +554,12 @@
           "title": "Backend",
           "type": "string"
         },
+        "convergence_tolerance": {
+          "default": 1e-06,
+          "exclusiveMinimum": 0.0,
+          "title": "Convergence Tolerance",
+          "type": "number"
+        },
         "max_iterations": {
           "default": 50,
           "minimum": 0,
@@ -564,12 +570,6 @@
           "default": "huber",
           "title": "Robust Loss",
           "type": "string"
-        },
-        "convergence_tolerance": {
-          "default": 1e-06,
-          "exclusiveMinimum": 0.0,
-          "title": "Convergence Tolerance",
-          "type": "number"
         },
         "seed": {
           "anyOf": [
@@ -645,15 +645,6 @@
     "TransformInitialConfig": {
       "additionalProperties": false,
       "properties": {
-        "translation": {
-          "items": {
-            "type": "number"
-          },
-          "maxItems": 3,
-          "minItems": 3,
-          "title": "Translation",
-          "type": "array"
-        },
         "rotation_quat_xyzw": {
           "items": {
             "type": "number"
@@ -661,6 +652,15 @@
           "maxItems": 4,
           "minItems": 4,
           "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation",
           "type": "array"
         }
       },
@@ -670,18 +670,6 @@
     "TransformPriorSigmaConfig": {
       "additionalProperties": false,
       "properties": {
-        "translation_m": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Translation M"
-        },
         "rotation_deg": {
           "anyOf": [
             {
@@ -693,6 +681,18 @@
           ],
           "default": null,
           "title": "Rotation Deg"
+        },
+        "translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation M"
         }
       },
       "title": "TransformPriorSigmaConfig",
@@ -701,24 +701,11 @@
   },
   "additionalProperties": false,
   "properties": {
-    "schema_version": {
-      "const": "calibrex.config/v0.1",
-      "default": "calibrex.config/v0.1",
-      "title": "Schema Version",
-      "type": "string"
-    },
-    "project": {
-      "$ref": "#/$defs/ProjectConfig"
-    },
     "dataset": {
       "$ref": "#/$defs/DatasetConfig"
     },
-    "sensors": {
-      "additionalProperties": {
-        "$ref": "#/$defs/SensorConfig"
-      },
-      "title": "Sensors",
-      "type": "object"
+    "evaluation": {
+      "$ref": "#/$defs/EvaluationConfig"
     },
     "frames": {
       "additionalProperties": {
@@ -727,24 +714,37 @@
       "title": "Frames",
       "type": "object"
     },
+    "outputs": {
+      "$ref": "#/$defs/OutputsConfig"
+    },
+    "pipeline": {
+      "$ref": "#/$defs/PipelineConfig"
+    },
+    "project": {
+      "$ref": "#/$defs/ProjectConfig"
+    },
+    "schema_version": {
+      "const": "slac.config/v0.1",
+      "default": "slac.config/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensors": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SensorConfig"
+      },
+      "title": "Sensors",
+      "type": "object"
+    },
+    "solver": {
+      "$ref": "#/$defs/SolverConfig"
+    },
     "time_offsets": {
       "additionalProperties": {
         "$ref": "#/$defs/TimeOffsetConfig"
       },
       "title": "Time Offsets",
       "type": "object"
-    },
-    "pipeline": {
-      "$ref": "#/$defs/PipelineConfig"
-    },
-    "solver": {
-      "$ref": "#/$defs/SolverConfig"
-    },
-    "evaluation": {
-      "$ref": "#/$defs/EvaluationConfig"
-    },
-    "outputs": {
-      "$ref": "#/$defs/OutputsConfig"
     }
   },
   "required": [

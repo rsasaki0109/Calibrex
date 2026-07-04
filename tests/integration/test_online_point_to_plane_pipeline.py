@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from calibrex.core.io import read_mapping
-from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
-from calibrex.core.result import load_result
-from calibrex.core.validation import validate_file
-from calibrex.data.downloads import LIVOX_PAIR_DIRNAME
-from calibrex.pipelines.online import (
+from slac.core.io import read_mapping
+from slac.core.online_timeline import OnlineCalibrationTimelineArtifact
+from slac.core.result import load_result
+from slac.core.validation import validate_file
+from slac.data.downloads import LIVOX_PAIR_DIRNAME
+from slac.pipelines.online import (
     ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
     OnlineCalibrationRunOptions,
     run_online_calibration,
@@ -39,7 +39,7 @@ def _write_a2d2_online_config(tmp_path: Path, output_dir: Path) -> Path:
     config_path = tmp_path / "a2d2_online_config.yaml"
     config_path.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: a2d2_online_point_to_plane
   output_dir: {output_dir}
@@ -87,7 +87,7 @@ def _write_livox_online_config(tmp_path: Path, output_dir: Path) -> Path:
     config_path = tmp_path / "livox_online_config.yaml"
     config_path.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: livox_online_point_to_plane
   output_dir: {output_dir}
@@ -152,7 +152,7 @@ def test_online_point_to_plane_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
     )
 
     transform = result.transforms["T_base_link_lidar_front_right"]
-    assert transform.provenance.producer == "calibrex_native"
+    assert transform.provenance.producer == "slac_native"
     assert transform.provenance.execution_mode == "online_stream"
     assert transform.provenance.role_in_comparison == "output"
     assert transform.provenance.evidence_level == "algorithmically_refined"
@@ -202,7 +202,7 @@ def test_online_pipeline_reports_unavailable_without_data(tmp_path: Path) -> Non
     config_path = tmp_path / "missing_data_config.yaml"
     config_path.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: a2d2_online_missing_data
   output_dir: {output_dir}

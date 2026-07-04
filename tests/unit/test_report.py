@@ -1,4 +1,4 @@
-from calibrex.core.result import (
+from slac.core.result import (
     ArtifactSet,
     CalibrationResult,
     DegeneracyResult,
@@ -9,13 +9,13 @@ from calibrex.core.result import (
     RunInfo,
     TransformResult,
 )
-from calibrex.visualization.report import render_html_report
-from calibrex.visualization.rig3d import render_rig_3d_artifact
+from slac.visualization.report import render_html_report
+from slac.visualization.rig3d import render_rig_3d_artifact
 
 
 def test_report_renders_candidate_reference_delta_table() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="report-unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="report-unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="ego",
             frames={"ego": None, "lidar_top": "ego"},
@@ -50,7 +50,7 @@ def test_report_renders_candidate_reference_delta_table() -> None:
 
 def test_report_renders_calibration_scoreboard() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="report-unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="report-unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="ego",
             frames={"ego": None, "lidar_top": "ego"},
@@ -121,7 +121,7 @@ def test_report_renders_lidar_pair_evidence_section() -> None:
     result = CalibrationResult(
         run=RunInfo(
             id="livox-report-unit",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance={
                 "livox_pair_evidence": {
                     "candidate_transform": "T_base_horizon_target_horizon",
@@ -267,7 +267,7 @@ def test_report_marks_cached_evidence_artifacts() -> None:
     result = CalibrationResult(
         run=RunInfo(
             id="cached-report-unit",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance={
                 "metrics_origin": "cached",
                 "data_verified": False,
@@ -286,7 +286,7 @@ def test_report_marks_cached_evidence_artifacts() -> None:
 
 def test_report_marks_large_candidate_reference_delta_as_warn() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="report-unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="report-unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="ego",
             frames={"ego": None, "lidar_top": "ego"},
@@ -317,7 +317,7 @@ def test_report_marks_large_candidate_reference_delta_as_warn() -> None:
 
 def test_report_explains_unmatched_candidate_reference_edges() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="report-unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="report-unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="ego",
             frames={"ego": None, "lidar_top": "ego", "camera_front": "ego"},
@@ -347,7 +347,7 @@ def test_report_explains_unmatched_candidate_reference_edges() -> None:
 
 def test_rig_3d_artifact_renders_reference_online_and_candidate_layers() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="rig-3d-unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="rig-3d-unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="ego",
             frames={"ego": None, "lidar_top": "ego"},
@@ -391,11 +391,11 @@ def test_rig_3d_artifact_renders_reference_online_and_candidate_layers() -> None
 
 
 def _synthetic_online_timeline() -> tuple[CalibrationResult, object]:
-    from calibrex.core.online_timeline import (
+    from slac.core.online_timeline import (
         OnlineBatchSnapshot,
         OnlineCalibrationTimelineArtifact,
     )
-    from calibrex.core.report_artifacts import ReportRunInfo
+    from slac.core.report_artifacts import ReportRunInfo
 
     batches = [
         OnlineBatchSnapshot(
@@ -473,7 +473,7 @@ def _synthetic_online_timeline() -> tuple[CalibrationResult, object]:
             id="online-report-unit",
             status="warning",
             domain="robotics",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             created_at="2026-07-03T00:00:00Z",
         ),
         variable="T_base_horizon_livox_avia",
@@ -493,7 +493,7 @@ def _synthetic_online_timeline() -> tuple[CalibrationResult, object]:
     result = CalibrationResult(
         run=RunInfo(
             id="online-report-unit",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance={
                 "online_gate_min_rank": 6,
                 "online_gate_max_holdout_rmse_m": 0.4,
@@ -560,7 +560,7 @@ def test_report_online_timeline_rmse_chart_has_expected_polylines() -> None:
 
 def test_report_omits_online_timeline_section_for_offline_results() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="offline-report-unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="offline-report-unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(root="ego", frames={"ego": None}),
     )
 
@@ -571,7 +571,7 @@ def test_report_omits_online_timeline_section_for_offline_results() -> None:
 
 
 def test_write_report_artifacts_passes_timeline_to_html(tmp_path) -> None:
-    from calibrex.visualization.report import write_report_artifacts
+    from slac.visualization.report import write_report_artifacts
 
     result, timeline = _synthetic_online_timeline()
 

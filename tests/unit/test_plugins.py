@@ -1,4 +1,4 @@
-from calibrex.graph.factors import (
+from slac.graph.factors import (
     FactorDescriptor,
     FactorPlugin,
     get_factor_plugin,

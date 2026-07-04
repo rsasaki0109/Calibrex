@@ -1,7 +1,7 @@
-schema_version: calibrex.result/v0.1
+schema_version: slac.result/v0.1
 run:
   id: kitti_lidar_camera_evidence_example
-  calibrex_version: 0.1.0a1
+  slac_version: 0.1.0a1
   git_commit: 44308be
   config_sha256: 5e70ead28058f53724aaf455e9c6fdf4332213323746ab3f5e82bf064d3934ee
   dataset_sha256: 8c7c7ddebfa94b63b3b4382d62b07fc5ff9921e1c693c1912c805dae97a40c9d
@@ -262,7 +262,7 @@ run:
     - velodyne_points
     koide_lidar_camera_loaded_transforms: {}
     license_boundary: external subprocess/precomputed-result adapter; no external
-      calibration code is copied into calibrex core
+      calibration code is copied into slac core
     solver_adapter: koide_lidar_camera
     solver_adapter_status: not_executed
     public_dataset: kitti_lidar_camera_evidence
@@ -370,7 +370,7 @@ transforms:
       - 5.0
     estimate_id: T_base_link_camera0
     provenance:
-      producer: calibrex_native
+      producer: slac_native
       execution_mode: offline_batch
       role_in_comparison: output
       evidence_level: unknown

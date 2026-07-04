@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from calibrex.core.result import CalibrationResult, FrameGraphSnapshot, MetricResult, RunInfo
-from calibrex.evaluation.evidence_summary import (
+from slac.core.result import CalibrationResult, FrameGraphSnapshot, MetricResult, RunInfo
+from slac.evaluation.evidence_summary import (
     _lidar_camera_evidence_items,
     evidence_decision_grade_from_result,
     evidence_summaries_from_result,
 )
-from calibrex.evaluation.metrics import evaluate_quality
+from slac.evaluation.metrics import evaluate_quality
 
 
 def _camera_lidar_result(**metric_overrides: MetricResult) -> CalibrationResult:
@@ -72,7 +72,7 @@ def _camera_lidar_result(**metric_overrides: MetricResult) -> CalibrationResult:
     return CalibrationResult(
         run=RunInfo(
             id="camera-lidar-evidence-unit",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             domain="autonomous_driving",
             provenance={
                 "lidar_camera_evidence": {

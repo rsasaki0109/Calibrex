@@ -1,6 +1,6 @@
 # Contributing
 
-Calibrex is schema-first and evaluation-first.
+slac is schema-first and evaluation-first.
 
 Every PR that changes calibration behavior must include:
 
@@ -11,7 +11,7 @@ Every PR that changes calibration behavior must include:
 
 Core rules:
 
-- Do not add ROS message types to `src/calibrex/core`.
+- Do not add ROS message types to `src/slac/core`.
 - Do not copy GPL code into the core package.
 - Keep external tools behind adapters or subprocess boundaries.
 - Preserve `T_parent_child`, meters, nanoseconds, and quaternion `xyzw`.
@@ -24,7 +24,7 @@ If a PR changes config, result, comparison, dataset manifest, or report sidecar
 shape, regenerate committed schemas:
 
 ```bash
-calibrex schema all --output-dir schemas
+slac schema all --output-dir schemas
 pytest tests/unit/test_schemas.py
 ```
 
@@ -54,7 +54,7 @@ Run the standard checks before opening a PR:
 
 ```bash
 ruff check .
-mypy src/calibrex
+mypy src/slac
 pytest
 ```
 
@@ -62,7 +62,7 @@ pytest
 
 Release tags use `v*`, for example `v0.1.0-alpha.1`. A tag or manual release
 workflow builds wheel/sdist artifacts, installs the wheel in a clean virtual
-environment, runs `calibrex doctor --json`, regenerates schemas, and creates a
+environment, runs `slac doctor --json`, regenerates schemas, and creates a
 draft prerelease on GitHub.
 
 Before tagging, run the local release smoke when GitHub Actions is unavailable

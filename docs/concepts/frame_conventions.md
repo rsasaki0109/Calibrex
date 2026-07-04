@@ -1,6 +1,6 @@
 # Frame Conventions
 
-Calibrex uses:
+slac uses:
 
 - `T_parent_child`: maps child-frame points into the parent frame.
 - meters for length.

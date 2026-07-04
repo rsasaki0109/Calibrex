@@ -1,4 +1,4 @@
-schema_version: calibrex.public_datasets/v0.1
+schema_version: slac.public_datasets/v0.1
 datasets:
   tum_rgbd_freiburg1_xyz:
     name: TUM RGB-D fr1/xyz
@@ -7,8 +7,8 @@ datasets:
     official_url: https://cvg.cit.tum.de/data/datasets/rgbd-dataset/download
     download_url: https://cvg.cit.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_xyz.tgz
     license_note: See the TUM RGB-D dataset website for current terms and citation.
-    calibrex_manifest: examples/public_datasets/tum_rgbd_freiburg1_xyz/manifest.yaml
-    calibrex_config: examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
+    slac_manifest: examples/public_datasets/tum_rgbd_freiburg1_xyz/manifest.yaml
+    slac_config: examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
     recommended_pipeline: rgbd_open3d_slac
   kitti_raw_2011_09_26_drive_0005:
     name: KITTI raw 2011_09_26_drive_0005
@@ -17,8 +17,8 @@ datasets:
     official_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
     download_url: null
     license_note: KITTI raw data requires using the official KITTI download flow and login.
-    calibrex_manifest: examples/public_datasets/kitti_raw_2011_09_26_drive_0005/manifest.yaml
-    calibrex_config: examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml
+    slac_manifest: examples/public_datasets/kitti_raw_2011_09_26_drive_0005/manifest.yaml
+    slac_config: examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml
     recommended_pipeline: multi_sensor_slac
   nuscenes_mini:
     name: nuScenes mini
@@ -27,8 +27,8 @@ datasets:
     official_url: https://www.nuscenes.org/nuscenes
     download_url: null
     license_note: nuScenes is public for non-commercial use; follow official account and download terms.
-    calibrex_manifest: examples/public_datasets/nuscenes_mini/manifest.yaml
-    calibrex_config: examples/public_datasets/nuscenes_mini/config.yaml
+    slac_manifest: examples/public_datasets/nuscenes_mini/manifest.yaml
+    slac_config: examples/public_datasets/nuscenes_mini/config.yaml
     recommended_pipeline: multi_sensor_slac
   a2d2_sensor_setup:
     name: A2D2 public multi-LiDAR sensor setup
@@ -37,8 +37,8 @@ datasets:
     official_url: https://www.a2d2.audi/en/download/
     download_url: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json
     license_note: A2D2 is distributed under CC BY-ND 4.0; follow the official terms before using or redistributing artifacts.
-    calibrex_manifest: examples/public_datasets/a2d2_sensor_setup/manifest.yaml
-    calibrex_config: null
+    slac_manifest: examples/public_datasets/a2d2_sensor_setup/manifest.yaml
+    slac_config: null
     recommended_pipeline: multi_lidar_evidence
   a2d2_lidar_pair_sample:
     name: A2D2 real LiDAR NPZ pair sample
@@ -47,8 +47,8 @@ datasets:
     official_url: https://www.a2d2.audi/en/download/
     download_url: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar
     license_note: A2D2 is distributed under CC BY-ND 4.0; this example range-fetches one real NPZ sample from the public LiDAR tar.
-    calibrex_manifest: examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml
-    calibrex_config: null
+    slac_manifest: examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml
+    slac_config: null
     recommended_pipeline: multi_lidar_evidence
   livox_horizon_horizon_pcd_sample:
     name: Livox official Horizon-Horizon solid-state LiDAR PCD sample
@@ -57,8 +57,8 @@ datasets:
     official_url: https://github.com/Livox-SDK/Livox_automatic_calibration
     download_url: https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz
     license_note: Livox automatic calibration example data is provided by Livox; follow the upstream repository license and terms.
-    calibrex_manifest: examples/public_datasets/livox_horizon_horizon_pcd_sample/manifest.yaml
-    calibrex_config: examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
+    slac_manifest: examples/public_datasets/livox_horizon_horizon_pcd_sample/manifest.yaml
+    slac_config: examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
     recommended_pipeline: solid_state_lidar_lidar_evidence
   kitti_lidar_camera_evidence:
     name: KITTI raw camera-LiDAR diagnostic overlay evidence demo
@@ -66,9 +66,9 @@ datasets:
     domain: autonomous_driving
     official_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
     download_url: null
-    license_note: KITTI raw data requires using the official KITTI download flow and login; this example bundles a small synthetic fixture with the same layout so `calibrex demo kitti-lidar-camera-evidence` is runnable without it.
-    calibrex_manifest: examples/public_datasets/kitti_lidar_camera_evidence/manifest.yaml
-    calibrex_config: examples/public_datasets/kitti_lidar_camera_evidence/config.yaml
+    license_note: KITTI raw data requires using the official KITTI download flow and login; this example bundles a small synthetic fixture with the same layout so `slac demo kitti-lidar-camera-evidence` is runnable without it.
+    slac_manifest: examples/public_datasets/kitti_lidar_camera_evidence/manifest.yaml
+    slac_config: examples/public_datasets/kitti_lidar_camera_evidence/config.yaml
     recommended_pipeline: multi_sensor_slac
   tiers_livox_lidars_cali:
     name: TIERS LidarsCali Livox solid-state multi-LiDAR sequence
@@ -77,8 +77,8 @@ datasets:
     official_url: https://github.com/TIERS/tiers-lidars-dataset
     download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT
     license_note: TIERS is MIT licensed for academic purpose; follow the dataset repository terms and upstream download flow.
-    calibrex_manifest: examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml
-    calibrex_config: examples/public_datasets/tiers_livox_lidars_cali/config.yaml
+    slac_manifest: examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml
+    slac_config: examples/public_datasets/tiers_livox_lidars_cali/config.yaml
     recommended_pipeline: solid_state_multi_lidar_evidence
   tiers_lidars_dataset_indoor02:
     name: TIERS Indoor02 moving-platform Velodyne + Ouster sequence
@@ -87,6 +87,6 @@ datasets:
     official_url: https://github.com/TIERS/tiers-lidars-dataset
     download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/EYXGcc1Z-y1FpnDwQ1geIoEBovXvLfoxZwt36J1_t2PugA?e=UwHhXd
     license_note: TIERS is MIT licensed for academic purpose; follow the dataset repository terms and upstream download flow.
-    calibrex_manifest: examples/public_datasets/tiers_lidars_dataset_indoor02/manifest.yaml
-    calibrex_config: examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml
+    slac_manifest: examples/public_datasets/tiers_lidars_dataset_indoor02/manifest.yaml
+    slac_config: examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml
     recommended_pipeline: multi_lidar_evidence

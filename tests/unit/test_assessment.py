@@ -1,10 +1,10 @@
-from calibrex.core.assessment import (
+from slac.core.assessment import (
     AssessmentArtifact,
     AssessmentPolicy,
     AssessmentRuleResult,
     assess_report_evidence,
 )
-from calibrex.core.report_artifacts import (
+from slac.core.report_artifacts import (
     EvidenceCaseItem,
     EvidenceInputFileItem,
     EvidenceMaterializationInfo,
@@ -28,7 +28,7 @@ def _raw_recomputation_status(*, data_verified: bool | None, input_files: bool) 
             id="assessment-unit",
             status="success",
             domain="robotics",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             created_at="2026-06-19T00:00:00Z",
         ),
         materialization=EvidenceMaterializationInfo(
@@ -258,7 +258,7 @@ def _known_bad_evidence(
             id="assessment-known-bad-unit",
             status="success",
             domain="robotics",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             created_at="2026-06-19T00:00:00Z",
         ),
         materialization=EvidenceMaterializationInfo(

@@ -6,29 +6,29 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from calibrex.core.config import DatasetConfig
-from calibrex.core.geometry import SE3
-from calibrex.core.time import (
+from slac.core.config import DatasetConfig
+from slac.core.geometry import SE3
+from slac.core.time import (
     TimestampNormalizer,
     apply_time_offset_ns,
     nearest_timestamp_pairs,
 )
-from calibrex.data.a2d2 import A2D2LidarDataset, summarize_a2d2_lidar_npz
-from calibrex.data.inspect import inspect_dataset
-from calibrex.data.kitti import (
+from slac.data.a2d2 import A2D2LidarDataset, summarize_a2d2_lidar_npz
+from slac.data.inspect import inspect_dataset
+from slac.data.kitti import (
     KITTIRawDataset,
     read_calibration_file,
     read_kitti_initial_transforms,
 )
-from calibrex.data.livox import (
+from slac.data.livox import (
     LivoxPCDDataset,
     read_livox_binary_pcd,
     summarize_livox_pair_point_to_plane,
     summarize_livox_pcd,
 )
-from calibrex.data.manifest import load_manifest
-from calibrex.data.nuscenes import NuScenesDataset, read_nuscenes_reference_extrinsics
-from calibrex.data.tum_rgbd import (
+from slac.data.manifest import load_manifest
+from slac.data.nuscenes import NuScenesDataset, read_nuscenes_reference_extrinsics
+from slac.data.tum_rgbd import (
     TUMRGBDDataset,
     associate_rgb_depth,
     read_image_index,
@@ -38,7 +38,7 @@ from calibrex.data.tum_rgbd import (
 
 def test_load_dataset_manifest() -> None:
     manifest = load_manifest("examples/synthetic_camera_lidar_imu")
-    assert manifest.schema_version == "calibrex.dataset_manifest/v0.1"
+    assert manifest.schema_version == "slac.dataset_manifest/v0.1"
     assert manifest.streams["lidar0"].fields == ["x", "y", "z", "intensity"]
 
 

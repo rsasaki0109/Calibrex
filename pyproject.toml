@@ -3,15 +3,15 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "calibrex"
+name = "slac"
 version = "0.1.0a1"
-description = "Calibration evidence framework for robotics and autonomous driving"
+description = "Simultaneous localization and calibration evidence framework for robotics"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-  { name = "Calibrex Contributors" }
+  { name = "slac Contributors" }
 ]
 keywords = ["robotics", "calibration", "slac", "autonomous-driving", "sensor-fusion"]
 classifiers = [
@@ -69,14 +69,14 @@ docs = [
 ]
 
 [project.scripts]
-calibrex = "calibrex.cli.main:main"
+slac = "slac.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/rsasaki0109/Calibrex"
-Repository = "https://github.com/rsasaki0109/Calibrex"
-Issues = "https://github.com/rsasaki0109/Calibrex/issues"
-Changelog = "https://github.com/rsasaki0109/Calibrex/blob/main/CHANGELOG.md"
-Documentation = "https://github.com/rsasaki0109/Calibrex/tree/main/docs"
+Homepage = "https://github.com/rsasaki0109/slac"
+Repository = "https://github.com/rsasaki0109/slac"
+Issues = "https://github.com/rsasaki0109/slac/issues"
+Changelog = "https://github.com/rsasaki0109/slac/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/rsasaki0109/slac/tree/main/docs"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -85,7 +85,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-calibrex = ["py.typed"]
+slac = ["py.typed"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
@@ -105,7 +105,7 @@ ignore = ["B008"]
 python_version = "3.10"
 strict = true
 mypy_path = "src"
-packages = ["calibrex"]
+packages = ["slac"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 disallow_any_generics = true

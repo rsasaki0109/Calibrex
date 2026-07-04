@@ -1,6 +1,6 @@
 from math import isclose, sqrt
 
-from calibrex.core.geometry import (
+from slac.core.geometry import (
     SE3,
     normalize_quaternion_xyzw,
     quaternion_xyzw_from_rotation_matrix,

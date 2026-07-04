@@ -1,4 +1,4 @@
-schema_version: calibrex.dataset_manifest/v0.1
+schema_version: slac.dataset_manifest/v0.1
 name: tiers_lidars_dataset_indoor02
 description: >
   TIERS multi-lidar dataset Indoor02 office sequence with Velodyne VLP-16,
@@ -44,7 +44,7 @@ provenance:
   size_bytes: "17974826130"
   sha256_first_mib: 164c2f8dcfd42463ad4981ba25a97668f015ced776db2781fc1e4211fd8fd574
   odometry_note: >
-    /odom in the Calibrex rosbag2 replay is synthesized from the VRPN MOCAP
+    /odom in the slac rosbag2 replay is synthesized from the VRPN MOCAP
     PoseStamped topic (/vrpn_client_node/UWBTest/pose) by
     tools/rosbag1_to_rosbag2_online_pair.py; only the nav_msgs/Odometry envelope
     is authored — the pose trajectory is real MOCAP data.

@@ -1,12 +1,12 @@
-# Calibrex Agent Notes
+# slac Agent Notes
 
-Calibrex is a long-term robotics calibration framework, not a collection of
+slac is a long-term robotics calibration framework, not a collection of
 one-off calibration scripts.
 
 Non-negotiable project rules:
 
 - Keep the core ROS-independent.
-- Keep GPL code out of `src/calibrex`.
+- Keep GPL code out of `src/slac`.
 - Public APIs require type hints.
 - Configs and results must stay schema-validatable.
 - Calibration changes must include evaluation or tests.

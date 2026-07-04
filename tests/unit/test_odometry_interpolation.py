@@ -7,8 +7,8 @@ from itertools import pairwise
 
 import pytest
 
-from calibrex.core.geometry import SE3, interpolate_se3, slerp_quaternion_xyzw
-from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
+from slac.core.geometry import SE3, interpolate_se3, slerp_quaternion_xyzw
+from slac.data.odometry_track import OdometryPoseSample, OdometryTrack
 
 
 def test_slerp_identity_endpoints() -> None:

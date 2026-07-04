@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a reproducible Calibrex bug.
+description: Report a reproducible slac bug.
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -17,7 +17,7 @@ body:
       description: Commands, config path, dataset adapter, and minimal files needed to reproduce.
       value: |
         ```bash
-        calibrex ...
+        slac ...
         ```
     validations:
       required: true
@@ -25,9 +25,9 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Calibrex version, Python version, OS, install method, and optional extras.
+      description: slac version, Python version, OS, install method, and optional extras.
       value: |
-        - Calibrex:
+        - slac:
         - Python:
         - OS:
         - Install command:
