@@ -39,8 +39,9 @@ def test_odometry_track_interpolates_between_samples() -> None:
             OdometryPoseSample(100, SE3((1.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
         ]
     )
-    pose, clamped = track.interpolate(50)
+    pose, clamped, extrapolation_s = track.interpolate(50)
     assert clamped is False
+    assert extrapolation_s == 0.0
     assert pose.translation_m == pytest.approx((0.5, 0.0, 0.0))
     assert track.clamp_count == 0
 
@@ -52,10 +53,12 @@ def test_odometry_track_clamps_out_of_range_and_counts() -> None:
             OdometryPoseSample(200, SE3((2.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
         ]
     )
-    early_pose, early_clamped = track.interpolate(0)
-    late_pose, late_clamped = track.interpolate(500)
+    early_pose, early_clamped, early_extrap = track.interpolate(0)
+    late_pose, late_clamped, late_extrap = track.interpolate(500)
     assert early_clamped is True
     assert late_clamped is True
+    assert early_extrap == pytest.approx(100 / 1_000_000_000)
+    assert late_extrap == pytest.approx(300 / 1_000_000_000)
     assert early_pose.translation_m == pytest.approx((1.0, 0.0, 0.0))
     assert late_pose.translation_m == pytest.approx((2.0, 0.0, 0.0))
     assert track.clamp_count == 2
@@ -69,5 +72,6 @@ def test_odometry_track_slerp_rotation_midpoint() -> None:
             OdometryPoseSample(100, SE3((0.0, 0.0, 0.0), yaw_90)),
         ]
     )
-    pose, _clamped = track.interpolate(50)
+    pose, _clamped, extrapolation_s = track.interpolate(50)
+    assert extrapolation_s == 0.0
     assert pose.rotation_quat_xyzw[2] == pytest.approx(math.sin(math.pi / 8.0), abs=1.0e-6)
