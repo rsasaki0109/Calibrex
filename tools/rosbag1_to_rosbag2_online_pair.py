@@ -27,6 +27,17 @@ ROS 1 ``.bag`` with ``rosbags``, writes a rosbag2 directory containing:
     needed). ``kiss-icp`` is imported lazily inside that branch; PEP 723 lists
     it so ``uv run`` installs it automatically.
 
+``--restamp-topic`` (repeatable) rewrites each listed topic's message
+``header.stamp`` by a constant per-topic offset: the median of
+``bag_receive_time - header_stamp`` over that topic's messages (two-pass:
+header-only scan, then conversion). This moves a sensor's since-boot or
+misaligned clock into the recording clock domain while preserving the
+sensor's own relative timing (receive jitter is not injected). The offset
+includes mean transport/assembly latency, so restamped absolute stamps carry
+a bias of that order; residual timing error is roughly latency x platform
+speed. Only list topics that need correction (for example Ouster OS1); do
+not restamp topics already on the recording epoch clock unless you intend to.
+
 Install with ``uv run`` (PEP 723 deps) or ``pip install kiss-icp`` for the
 kiss-icp odometry mode.
 """
@@ -128,6 +139,16 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         choices=("none", "zstd"),
         default="none",
         help="rosbag2 compression (default: none)",
+    )
+    parser.add_argument(
+        "--restamp-topic",
+        action="append",
+        default=[],
+        dest="restamp_topics",
+        help=(
+            "Rewrite header.stamp on this topic by median(bag_receive_time - "
+            "header_stamp); repeatable"
+        ),
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.odom_source == "pose-topic" and not args.pose_topic:
@@ -319,6 +340,50 @@ def _create_kiss_icp(max_range: float) -> tuple[object, str]:
     return KissICP(cfg), kiss_icp.__version__
 
 
+def _header_stamp_ns(msg: object) -> int:
+    stamp = msg.header.stamp
+    nsec = int(stamp.nanosec) if hasattr(stamp, "nanosec") else int(stamp.nsecs)
+    return int(stamp.sec) * 1_000_000_000 + nsec
+
+
+def _apply_header_stamp_offset(msg: object, offset_ns: int) -> None:
+    stamp_ns = _header_stamp_ns(msg) + offset_ns
+    msg.header.stamp.sec = stamp_ns // 1_000_000_000
+    remainder = stamp_ns % 1_000_000_000
+    if hasattr(msg.header.stamp, "nanosec"):
+        msg.header.stamp.nanosec = remainder
+    else:
+        msg.header.stamp.nsecs = remainder
+
+
+def _compute_restamp_offsets(
+    src: Path,
+    restamp_topics: set[str],
+    *,
+    ros1_typestore: object,
+) -> dict[str, int]:
+    offsets_by_topic: dict[str, list[int]] = defaultdict(list)
+    with AnyReader([src], default_typestore=ros1_typestore) as reader:
+        available = {connection.topic for connection in reader.connections}
+        missing = sorted(restamp_topics - available)
+        if missing:
+            msg = f"restamp topics missing from source bag: {', '.join(missing)}"
+            raise SystemExit(msg)
+        connections = [
+            connection
+            for connection in reader.connections
+            if connection.topic in restamp_topics
+        ]
+        for connection, timestamp_ns, rawdata in reader.messages(connections=connections):
+            msg = reader.deserialize(rawdata, connection.msgtype)
+            offsets_by_topic[connection.topic].append(timestamp_ns - _header_stamp_ns(msg))
+    return {
+        topic: int(np.median(values))
+        for topic, values in sorted(offsets_by_topic.items())
+        if values
+    }
+
+
 def _format_timestamp_ns(timestamp_ns: int | None) -> str:
     if timestamp_ns is None:
         return "n/a"
@@ -336,6 +401,7 @@ def _print_summary(
     kiss_icp_version: str | None,
     kiss_icp_max_range: float | None,
     stats: dict[str, TopicStats],
+    restamp_offsets_ns: dict[str, int] | None = None,
 ) -> None:
     print(f"source: {src}")
     print(f"destination: {dst}")
@@ -347,6 +413,10 @@ def _print_summary(
         print(f"kiss_icp_version: {kiss_icp_version}")
         print(f"kiss_icp_max_range: {kiss_icp_max_range}")
     print(f"synthesized_odometry_topic: {odom_topic} (authored by this tool)")
+    if restamp_offsets_ns:
+        print("restamp_offsets_ns (median bag_receive_time - header_stamp):")
+        for topic, offset_ns in sorted(restamp_offsets_ns.items()):
+            print(f"  {topic}: {offset_ns} ns ({offset_ns / 1e9:.6f} s)")
     print("topics:")
     for topic in sorted(stats):
         entry = stats[topic]
@@ -360,7 +430,9 @@ def _print_summary(
         )
 
 
-def convert_bag(args: argparse.Namespace) -> tuple[dict[str, TopicStats], str | None]:
+def convert_bag(
+    args: argparse.Namespace,
+) -> tuple[dict[str, TopicStats], str | None, dict[str, int]]:
     if not args.src.is_file():
         msg = f"source bag not found: {args.src}"
         raise SystemExit(msg)
@@ -370,6 +442,13 @@ def convert_bag(args: argparse.Namespace) -> tuple[dict[str, TopicStats], str | 
 
     ros1_typestore = get_typestore(Stores.ROS1_NOETIC)
     ros2_typestore = get_typestore(Stores.ROS2_HUMBLE)
+
+    restamp_topics = set(args.restamp_topics)
+    restamp_offsets_ns = (
+        _compute_restamp_offsets(args.src, restamp_topics, ros1_typestore=ros1_typestore)
+        if restamp_topics
+        else {}
+    )
 
     selected_topics = set(args.topics)
     if args.odom_source == "pose-topic":
@@ -446,6 +525,8 @@ def convert_bag(args: argparse.Namespace) -> tuple[dict[str, TopicStats], str | 
                         typestore=ros2_typestore,
                     )
                 pc_msg = reader.deserialize(rawdata, connection.msgtype)
+                if topic in restamp_offsets_ns:
+                    _apply_header_stamp_offset(pc_msg, restamp_offsets_ns[topic])
 
                 if args.odom_source == "kiss-icp" and topic == args.kiss_icp_topic:
                     points = _pointcloud2_xyz(pc_msg)
@@ -479,7 +560,7 @@ def convert_bag(args: argparse.Namespace) -> tuple[dict[str, TopicStats], str | 
     finally:
         writer.close()
 
-    return dict(stats), kiss_icp_version
+    return dict(stats), kiss_icp_version, restamp_offsets_ns
 
 
 def _record_stats(stats: dict[str, TopicStats], topic: str, timestamp_ns: int) -> None:
@@ -499,7 +580,7 @@ def _record_stats(stats: dict[str, TopicStats], topic: str, timestamp_ns: int) -
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _parse_args(argv)
-    stats, kiss_icp_version = convert_bag(args)
+    stats, kiss_icp_version, restamp_offsets_ns = convert_bag(args)
     _print_summary(
         src=args.src,
         dst=args.dst,
@@ -510,6 +591,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         kiss_icp_version=kiss_icp_version,
         kiss_icp_max_range=args.kiss_icp_max_range if args.odom_source == "kiss-icp" else None,
         stats=stats,
+        restamp_offsets_ns=restamp_offsets_ns or None,
     )
     return 0
 

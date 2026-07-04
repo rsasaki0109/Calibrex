@@ -61,7 +61,7 @@ from typing import Any
 
 from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, load_config
-from calibrex.core.exceptions import ConfigError
+from calibrex.core.exceptions import ConfigError, DatasetError
 from calibrex.core.frames import FrameGraph, FrameNode
 from calibrex.core.geometry import SE3, Vector3
 from calibrex.core.io import write_mapping
@@ -126,7 +126,7 @@ _FACTOR_NAME = "lidar_rig_point_to_plane"
 _MIN_TRAIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
 _TIMELINE_FILENAME = "timeline.json"
-OnlineTargetEntry = tuple[int, Vector3, SE3]
+OnlineTargetEntry = tuple[int, Vector3, SE3, float]
 
 
 @dataclass(frozen=True)
@@ -136,6 +136,7 @@ class OnlineGateThresholds:
     min_rank: int = 6
     max_holdout_rmse_m: float = 0.05
     max_rolling_regression_m: float = 0.02
+    max_odometry_extrapolation_s: float = 0.25
 
 
 class OnlineCalibrationSession:
@@ -210,12 +211,27 @@ class OnlineCalibrationSession:
         *,
         frame_count: int = 1,
         target_t_world_source: list[SE3] | None = None,
+        batch_max_odometry_extrapolation_s: float | None = None,
     ) -> OnlineBatchSnapshot:
         """Consume one batch of target LiDAR points and return its snapshot."""
 
         if target_t_world_source is not None and len(target_t_world_source) != len(points):
             msg = "target_t_world_source length must match points"
             raise ValueError(msg)
+
+        extrapolation_gate_reason = self._odometry_extrapolation_gate_reason(
+            batch_max_odometry_extrapolation_s
+        )
+        if extrapolation_gate_reason is not None:
+            snapshot = self._extrapolation_fail_snapshot(
+                points=points,
+                frame_count=frame_count,
+                gate_reason=extrapolation_gate_reason,
+                batch_max_odometry_extrapolation_s=batch_max_odometry_extrapolation_s,
+            )
+            self.history.append(snapshot)
+            self.batch_index += 1
+            return snapshot
 
         batch_seed = self.seed + self.batch_index
         train_indices, holdout_indices = split_indices(
@@ -517,6 +533,66 @@ class OnlineCalibrationSession:
             )
         return "pass", "holdout evidence supports this batch's update", False
 
+    def _odometry_extrapolation_gate_reason(
+        self,
+        batch_max_odometry_extrapolation_s: float | None,
+    ) -> str | None:
+        if batch_max_odometry_extrapolation_s is None:
+            return None
+        threshold = self.gate_thresholds.max_odometry_extrapolation_s
+        if batch_max_odometry_extrapolation_s <= threshold:
+            return None
+        return (
+            f"odometry_extrapolation: max extrapolation "
+            f"{batch_max_odometry_extrapolation_s:.4f} s exceeds the "
+            f"{threshold:.4f} s gate; rejecting this batch's update"
+        )
+
+    def _extrapolation_fail_snapshot(
+        self,
+        *,
+        points: list[Vector3],
+        frame_count: int,
+        gate_reason: str,
+        batch_max_odometry_extrapolation_s: float | None,
+    ) -> OnlineBatchSnapshot:
+        batch_seed = self.seed + self.batch_index
+        train_indices, holdout_indices = split_indices(
+            len(points), self.holdout_ratio, seed=batch_seed
+        )
+        return OnlineBatchSnapshot(
+            batch_index=self.batch_index,
+            frame_count=frame_count,
+            point_count=len(points),
+            train_point_count=len(train_indices),
+            holdout_point_count=len(holdout_indices),
+            correspondence_count=0,
+            holdout_correspondence_count=0,
+            estimate=_transform_result(
+                variable=self.variable,
+                parent=self.parent,
+                child=self.sensor,
+                transform=self.current_estimate,
+                accepted=False,
+            ),
+            estimate_accepted=False,
+            batch_holdout_rmse_m=None,
+            rolling_rmse_m=self._rolling_rmse(),
+            rolling_window_residual_count=len(self._rolling_residuals),
+            observability=ObservabilityResult(),
+            gate_status="fail",
+            gate_reason=gate_reason,
+            provenance={
+                "batch_seed": batch_seed,
+                "warm_start_from": (
+                    "previous_accepted_estimate"
+                    if self.batch_index > 0
+                    else "config_initial_transform"
+                ),
+                "batch_max_odometry_extrapolation_s": batch_max_odometry_extrapolation_s,
+            },
+        )
+
     def _rolling_rmse(self) -> float | None:
         if not self._rolling_residuals:
             return None
@@ -676,15 +752,20 @@ def run_online_calibration(
     batch_size = max(1, options.batch_size)
     for start in range(0, len(target_stream), batch_size):
         chunk = target_stream[start : start + batch_size]
-        batch_points = [point for _frame_index, point, _pose in chunk]
-        batch_poses = [pose for _frame_index, _point, pose in chunk]
-        frame_count = len({frame_index for frame_index, _point, _pose in chunk})
+        batch_points = [point for _frame_index, point, _pose, _extrap in chunk]
+        batch_poses = [pose for _frame_index, _point, pose, _extrap in chunk]
+        frame_extrapolations = [extrap for _frame_index, _point, _pose, extrap in chunk]
+        frame_count = len({frame_index for frame_index, _point, _pose, _extrap in chunk})
+        batch_max_extrapolation_s: float | None = None
+        if motion_compensated:
+            batch_max_extrapolation_s = max(frame_extrapolations) if frame_extrapolations else 0.0
         session.process_batch(
             batch_points,
             frame_count=frame_count,
             target_t_world_source=(
                 batch_poses if motion_compensated else None
             ),
+            batch_max_odometry_extrapolation_s=batch_max_extrapolation_s,
         )
 
     return _build_result(
@@ -778,6 +859,9 @@ def _gate_thresholds_from_config(config: CalibrationConfig) -> OnlineGateThresho
         max_rolling_regression_m=_float_option(
             options, "online_gate_max_rolling_regression_m", default=0.02, minimum=0.001
         ),
+        max_odometry_extrapolation_s=_float_option(
+            options, "online_gate_max_odometry_extrapolation_s", default=0.25, minimum=0.0
+        ),
     )
 
 
@@ -819,7 +903,7 @@ def _load_target_stream(
         else:
             records = _stride(read_livox_binary_pcd_records(path), inputs.max_target_points)
             points = [(record.point[0], record.point[1], record.point[2]) for record in records]
-        stream.extend((frame_index, point, SE3.identity()) for point in points)
+        stream.extend((frame_index, point, SE3.identity(), 0.0) for point in points)
     return stream
 
 
@@ -948,7 +1032,7 @@ def _load_rosbag1_online_pair(
         )
         points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
         target_stream.extend(
-            (frame_index, point, SE3.identity()) for point in points
+            (frame_index, point, SE3.identity(), 0.0) for point in points
         )
         frame_index += 1
         target_messages += 1
@@ -1000,6 +1084,7 @@ def _load_rosbag2_online_pair(
 
     odometry_track = _load_rosbag2_odometry_track(bag_path, odometry_topic)
     motion_compensated = odometry_track is not None
+    extrapolation_tolerance_s = _odometry_extrapolation_tolerance_s(config, motion_compensated)
 
     source_records: list[LivoxPointRecord] = []
     target_stream: list[OnlineTargetEntry] = []
@@ -1036,7 +1121,20 @@ def _load_rosbag2_online_pair(
                 else max(0, inputs.max_source_points - len(source_records))
             )
             if motion_compensated and odometry_track is not None:
-                t_world_base, _clamped = odometry_track.interpolate(message.timestamp_ns)
+                t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
+                    message.timestamp_ns
+                )
+                if (
+                    extrapolation_tolerance_s is not None
+                    and extrapolation_s > extrapolation_tolerance_s
+                ):
+                    msg = (
+                        "source LiDAR message timestamp lies "
+                        f"{extrapolation_s:.4f} s outside the odometry track "
+                        f"(tolerance {extrapolation_tolerance_s:.4f} s); "
+                        "motion-compensated map premise is broken"
+                    )
+                    raise DatasetError(msg)
                 t_world_source = t_world_base.compose(t_base_source)
                 source_records.extend(
                     _transform_pointcloud_to_world_records(
@@ -1066,15 +1164,18 @@ def _load_rosbag2_online_pair(
 
         message = decode_pointcloud2(topic, timestamp_ns, data)
         points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
+        target_extrapolation_s = 0.0
         if motion_compensated and odometry_track is not None:
-            t_world_base, _clamped = odometry_track.interpolate(message.timestamp_ns)
+            t_world_base, _clamped, target_extrapolation_s = odometry_track.interpolate(
+                message.timestamp_ns
+            )
             t_world_source = t_world_base.compose(t_base_source)
             target_stream.extend(
-                (frame_index, point, t_world_source) for point in points
+                (frame_index, point, t_world_source, target_extrapolation_s) for point in points
             )
         else:
             target_stream.extend(
-                (frame_index, point, SE3.identity()) for point in points
+                (frame_index, point, SE3.identity(), 0.0) for point in points
             )
         frame_index += 1
         target_messages += 1
@@ -1149,8 +1250,27 @@ def _odometry_replay_provenance(
         "odometry_interpolation_clamp_count": (
             odometry_track.clamp_count if odometry_track else 0
         ),
+        "odometry_interpolation_count": (
+            odometry_track.interpolation_count if odometry_track else 0
+        ),
+        "odometry_interpolation_max_extrapolation_s": (
+            odometry_track.max_extrapolation_s if odometry_track else 0.0
+        ),
         "motion_compensated": motion_compensated,
     }
+
+
+def _odometry_extrapolation_tolerance_s(
+    config: CalibrationConfig,
+    motion_compensated: bool,
+) -> float | None:
+    if not motion_compensated:
+        return None
+    factor = config.pipeline.factors.get(_FACTOR_NAME)
+    options: dict[str, Any] = dict(factor.options) if factor is not None else {}
+    return _float_option(
+        options, "online_gate_max_odometry_extrapolation_s", default=0.25, minimum=0.0
+    )
 
 
 def _transform_pointcloud_to_world_records(
@@ -1429,6 +1549,9 @@ def _build_result(
                 "online_gate_max_holdout_rmse_m": session.gate_thresholds.max_holdout_rmse_m,
                 "online_gate_max_rolling_regression_m": (
                     session.gate_thresholds.max_rolling_regression_m
+                ),
+                "online_gate_max_odometry_extrapolation_s": (
+                    session.gate_thresholds.max_odometry_extrapolation_s
                 ),
                 "dry_run": False,
                 **(replay_provenance or {}),

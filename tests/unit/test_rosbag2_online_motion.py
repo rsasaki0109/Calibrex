@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import math
 from pathlib import Path
 
 import pytest
 
+from calibrex.core.exceptions import DatasetError
 from calibrex.core.geometry import SE3
 from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 
@@ -265,5 +267,179 @@ def test_rosbag2_online_replay_provenance_includes_odometry_fields(tmp_path: Pat
     assert provenance["odometry_message_count"] >= 1
     assert provenance["odometry_interpolation_method"] == "linear_translation_slerp_rotation"
     assert "odometry_interpolation_clamp_count" in provenance
+    assert "odometry_interpolation_count" in provenance
+    assert "odometry_interpolation_max_extrapolation_s" in provenance
     timeline_path = Path(str(provenance["online_timeline_path"]))
     assert timeline_path.exists()
+
+
+def _build_moving_rig_bag_with_target_clock(
+    path: Path,
+    *,
+    message_count: int = 10,
+    target_header_timestamp_ns: int | None = None,
+    source_header_timestamp_ns: int | None = None,
+) -> Path:
+    """Like _build_moving_rig_bag but optionally decouple LiDAR header stamps from bag time."""
+
+    world_points = _corner_world_points()
+    topics = [
+        ("/livox/lidar", POINTCLOUD2_TYPE),
+        ("/avia/livox/lidar", POINTCLOUD2_TYPE),
+        ("/odom", ODOMETRY_TYPE),
+    ]
+    messages: list[tuple[str, int, bytes]] = []
+    for index in range(message_count):
+        timestamp_ns = _BASE_NS + index * _STEP_NS
+        t_world_base = _t_world_base(index)
+        t_world_horizon = t_world_base
+        t_world_avia = t_world_base.compose(_TRUE_T_BASE_AVIA)
+
+        horizon_points = [
+            _world_to_sensor(point, t_world_horizon) for point in world_points
+        ]
+        avia_points = [_world_to_sensor(point, t_world_avia) for point in world_points]
+
+        messages.append(
+            (
+                "/odom",
+                timestamp_ns,
+                _encode_odometry(
+                    frame_id="odom",
+                    child_frame_id="base_link",
+                    secs=timestamp_ns // 1_000_000_000,
+                    nsecs=timestamp_ns % 1_000_000_000,
+                    position=t_world_base.translation_m,
+                    orientation_xyzw=t_world_base.rotation_quat_xyzw,
+                ),
+            )
+        )
+        source_stamp_ns = (
+            source_header_timestamp_ns
+            if source_header_timestamp_ns is not None
+            else timestamp_ns + 10
+        )
+        messages.append(
+            (
+                "/livox/lidar",
+                timestamp_ns + 10,
+                _encode_pointcloud2(
+                    horizon_points,
+                    frame_id="livox_horizon",
+                    secs=source_stamp_ns // 1_000_000_000,
+                    nsecs=source_stamp_ns % 1_000_000_000,
+                    with_intensity=True,
+                ),
+            )
+        )
+        target_stamp_ns = (
+            target_header_timestamp_ns
+            if target_header_timestamp_ns is not None
+            else timestamp_ns + 20
+        )
+        messages.append(
+            (
+                "/avia/livox/lidar",
+                timestamp_ns + 20,
+                _encode_pointcloud2(
+                    avia_points,
+                    frame_id="livox_avia",
+                    secs=target_stamp_ns // 1_000_000_000,
+                    nsecs=target_stamp_ns % 1_000_000_000,
+                    with_intensity=True,
+                ),
+            )
+        )
+    _write_sqlite_bag(path, topics=topics, messages=messages)
+    return path
+
+
+def _run_session_on_bag(
+    tmp_path: Path,
+    bag_path: Path,
+    *,
+    odometry_topic: str | None,
+) -> tuple[SE3, dict[str, object], object]:
+    output_dir = tmp_path / "outputs"
+    config_path = tmp_path / "config.yaml"
+    _write_config(
+        config_path,
+        bag_path=bag_path,
+        output_dir=output_dir,
+        odometry_topic=odometry_topic,
+    )
+    result = run_online_calibration(
+        config_path,
+        OnlineCalibrationRunOptions(batch_size=200, rolling_window=400, holdout_ratio=0.2),
+    )
+    assert result is not None
+    return (
+        result.transforms["T_base_link_lidar_stream"].as_se3(),
+        result.run.provenance,
+        result,
+    )
+
+
+def test_rosbag2_online_odometry_extrapolation_gate_excludes_batches(tmp_path: Path) -> None:
+    pytest.importorskip("numpy")
+    wrong_clock_ns = 753_000_000_000
+    bag = _build_moving_rig_bag_with_target_clock(
+        tmp_path / "wrong_clock.db3",
+        message_count=6,
+        target_header_timestamp_ns=wrong_clock_ns,
+    )
+    _estimate, provenance, _result = _run_session_on_bag(
+        tmp_path, bag, odometry_topic="/odom"
+    )
+    assert provenance["odometry_interpolation_clamp_count"] >= 1
+    assert provenance["odometry_interpolation_max_extrapolation_s"] > 0.25
+    timeline_path = Path(str(provenance["online_timeline_path"]))
+    timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+    extrapolation_batches = [
+        batch
+        for batch in timeline["batches"]
+        if "odometry_extrapolation" in batch["gate_reason"]
+    ]
+    assert extrapolation_batches
+    assert all(batch["gate_status"] == "fail" for batch in extrapolation_batches)
+    assert provenance["online_rejected_batch_count"] == len(timeline["batches"])
+
+
+def test_rosbag2_online_odometry_extrapolation_within_tolerance_passes(tmp_path: Path) -> None:
+    pytest.importorskip("numpy")
+    estimate, provenance = _run_session(tmp_path, odometry_topic="/odom")
+    truth = _ground_truth_source_target()
+    assert provenance["odometry_interpolation_max_extrapolation_s"] <= 0.25
+    timeline_path = Path(str(provenance["online_timeline_path"]))
+    timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+    assert not any(
+        "odometry_extrapolation" in batch["gate_reason"] for batch in timeline["batches"]
+    )
+    assert _translation_error_m(estimate, truth) < 0.01
+    assert _rotation_error_deg(estimate, truth) < 0.5
+    assert provenance["online_final_gate_status"] == "pass"
+
+
+def test_rosbag2_online_source_odometry_extrapolation_raises_dataset_error(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    wrong_clock_ns = 753_000_000_000
+    bag = _build_moving_rig_bag_with_target_clock(
+        tmp_path / "wrong_source_clock.db3",
+        message_count=4,
+        source_header_timestamp_ns=wrong_clock_ns,
+    )
+    output_dir = tmp_path / "outputs"
+    config_path = tmp_path / "config.yaml"
+    _write_config(
+        config_path,
+        bag_path=bag,
+        output_dir=output_dir,
+        odometry_topic="/odom",
+    )
+    with pytest.raises(DatasetError, match="source LiDAR message timestamp"):
+        run_online_calibration(
+            config_path,
+            OnlineCalibrationRunOptions(batch_size=200, rolling_window=400, holdout_ratio=0.2),
+        )

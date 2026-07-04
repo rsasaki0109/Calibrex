@@ -216,7 +216,16 @@ manually from the upstream dataset:
 2. Save the bag as `data/public/tiers_lidars_dataset/indoor02.bag`.
 
 Convert the ROS 1 bag to rosbag2 with synthesized odometry (the pose trajectory
-is real MOCAP; only the `nav_msgs/msg/Odometry` envelope is authored):
+is real MOCAP; only the `nav_msgs/msg/Odometry` envelope is authored). The
+upstream ROS 1 bag mixes clock domains: `/velodyne_points` and the VRPN pose use
+the recording epoch, while `/os_cloud_nodee/points` stamps with the Ouster
+since-boot clock (~753 s). Add `--restamp-topic /os_cloud_nodee/points` so the
+converter shifts each Ouster header stamp by the per-topic median
+`bag_receive_time − header_stamp` (measured ≈ 1.645×10⁹ s on Indoor02), moving
+it into the recording clock domain while preserving the sensor's own relative
+timing. The constant offset includes mean transport/assembly latency, so
+restamped absolute stamps carry a bias of that order; residual error is roughly
+latency × platform speed.
 
 ```bash
 uv run tools/rosbag1_to_rosbag2_online_pair.py \
@@ -224,6 +233,7 @@ uv run tools/rosbag1_to_rosbag2_online_pair.py \
   --dst data/public/tiers_lidars_dataset/indoor02_rosbag2 \
   --topic /velodyne_points \
   --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
   --pose-topic /vrpn_client_node/UWBTest/pose \
   --odom-source pose-topic \
   --odom-topic /odom \
@@ -241,6 +251,7 @@ uv run tools/rosbag1_to_rosbag2_online_pair.py \
   --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp \
   --topic /velodyne_points \
   --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
   --odom-source kiss-icp \
   --kiss-icp-topic /velodyne_points \
   --kiss-icp-max-range 30.0 \
@@ -258,6 +269,7 @@ uv run tools/rosbag1_to_rosbag2_online_pair.py \
   --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_mcap \
   --topic /velodyne_points \
   --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
   --pose-topic /vrpn_client_node/UWBTest/pose \
   --odom-source pose-topic \
   --odom-topic /odom \
@@ -284,42 +296,54 @@ calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online
 calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_config.yaml --online
 ```
 
-On a bounded replay of the converted bag (12 Velodyne source messages / 8k source
-points, 36 Ouster target messages / 1.5k target points, 60 s budget), all three
-runs produced 108 Ouster batches (500 points each). Motion compensation with MOCAP
-odometry (A) adopted all 108 batches; the static control (B) adopted 106 and
+On a bounded replay of the restamped converted bag (12 Velodyne source messages
+/ 8k source points, 36 Ouster target messages / 1.5k target points, 60 s budget),
+all three runs produced 108 Ouster batches (500 points each). Before restamping,
+every target interpolation was clamped to the odometry track start
+(`odometry_interpolation_clamp_count: 36` / 36 target messages in run C) because
+Ouster header stamps sat in a different clock domain than `/odom`; motion
+compensation was frozen at the first pose and any compensated run was not
+measuring real accuracy. Calibrex now gates on odometry extrapolation
+(`online_gate_max_odometry_extrapolation_s`, default 0.25 s): batches whose
+target timestamps lie beyond that tolerance outside the odometry track are
+excluded with reason `odometry_extrapolation` instead of silently clamping.
+
+After restamping, motion-compensated runs A and C show near-zero extrapolation
+(clamp count 0–1, `odometry_interpolation_max_extrapolation_s` ≤ 0.025 s). Run A
+(MOCAP odometry) adopted all 108 batches. The static control (B) adopted 106 and
 rejected 2 batches whose holdout RMSE exceeded the 0.40 m gate (batches 66 and
-105); KISS-ICP rig-frame odometry (C) adopted 107 and rejected 1 batch (batch
-66). Per-batch holdout RMSE ranged 0.20–0.36 m for A (mean ~0.28 m), 0.13–0.42 m
-for B (mean ~0.28 m), and 0.19–0.42 m for C (mean ~0.27 m). Final rolling RMSE
-settled near 0.28 m (A), 0.29 m (B), and 0.28 m (C). All runs kept rank 6 with
-condition number ~5–9.
+105). KISS-ICP rig-frame odometry (C) adopted 106 and rejected 2 batches for
+holdout RMSE (batches 66 and 102) — not for extrapolation. Per-batch holdout
+RMSE ranged 0.20–0.38 m for A (mean ~0.28 m), 0.13–0.42 m for B (mean ~0.28 m),
+and 0.17–0.41 m for C (mean ~0.28 m). Final rolling RMSE settled near 0.28 m
+(A), 0.29 m (B), and 0.31 m (C). All runs kept rank 6 with condition number
+~4–9.
 
 The TIERS README GICP seed (`frames.ouster_os1.transform.initial`, inter-sensor
 distance ~0.37 m) is a nominal reference, not ground truth. Final estimates
-drifted substantially from that seed for the MOCAP odometry run (A: ~270 cm
-translation / ~39° rotation), consistent with an unknown constant offset between
+drifted substantially from that seed for the MOCAP odometry run (A: ~287 cm
+translation / ~46° rotation), consistent with an unknown constant offset between
 the MOCAP rigid-body frame and `base_link` — rotation smears the world map with
 scene distance and platform excursion. On that sequence the MOCAP motion-compensated
-final extrinsic is **not** validated against the TIERS reference: a ~2.7 m
+final extrinsic is **not** validated against the TIERS reference: a ~2.9 m
 translation drift on a physically ~0.37 m sensor pair is not agreement at any
-level. The static control (B) drifted ~106 cm / ~15° from the seed, and the
-KISS-ICP rig-frame run (C) drifted ~75 cm / ~18°.
+level. The static control (B) drifted ~106 cm / ~15° from the seed. Run C now
+measures genuinely motion-compensated accuracy (restamped timestamps, extrapolation
+gate clean) but still lands ~85 cm / ~28° from the seed — larger than the
+inter-sensor baseline (~0.37 m) and well outside the holdout residual band.
 
 Run C removes the external MOCAP body-alignment ambiguity structurally: KISS-ICP
-poses are `T_world_velo_sensor` with the Velodyne as the root frame, so odometry
-is in the source sensor frame. The KISS-ICP trajectory itself is sane on this
-sequence (~7 m office-scale excursion, unit quaternions, no consecutive-pose
-translation jumps above 0.11 m). C lands closer to the TIERS GICP seed than A
-(~75 cm vs ~270 cm translation) but still ~2× the inter-sensor baseline (~0.37
-m) and further than the static control in translation. **Absolute extrinsic
-accuracy against the TIERS reference is therefore not established** by C either:
-the residual ~75 cm / ~18° gap is larger than the measured holdout residuals
-(~0.27 m mean) and cannot be read as confirmation of the GICP seed. The online
-gates measure internal consistency of the (possibly biased) world map, not
-absolute extrinsic accuracy. The VRPN rigid-body (`UWBTest`) alignment caveat
-applies only to run A; C shows that rig-frame LiDAR odometry avoids that
-particular failure mode but does not by itself close the gap to the TIERS seed.
+poses are `T_world_velo_sensor` with the Velodyne as the root frame. The
+KISS-ICP trajectory itself is sane on this sequence (~7 m office-scale excursion,
+unit quaternions, no consecutive-pose translation jumps above 0.11 m). C is
+closer to the TIERS GICP seed than A (~85 cm vs ~287 cm translation) but still
+~2.3× the inter-sensor baseline and further from the seed than B in translation
+(85 cm vs 106 cm is better, not worse). **Absolute extrinsic accuracy against the
+TIERS reference is not established** by C: the residual ~85 cm / ~28° gap is
+larger than the measured holdout residuals (~0.28 m mean) and cannot be read as
+confirmation of the GICP seed. The online gates measure internal consistency of
+the (possibly biased) world map, not absolute extrinsic accuracy. The VRPN
+rigid-body (`UWBTest`) alignment caveat applies only to run A.
 
 This validation did establish that real rosbag2 bags from an independent encoder
 (`rosbags`) exposed two reader bugs that synthetic mirror-image tests could not:
@@ -330,9 +354,9 @@ with standard CDR headers and per-message decompression.
 
 | Run | Odometry | Batches adopted | Holdout RMSE (m) | Final Δ vs TIERS seed |
 |-----|----------|-----------------|------------------|------------------------|
-| A motion | MOCAP `/odom` | 108 / 108 | 0.20 – 0.36 (mean ~0.28) | ~270 cm, ~39° |
+| A motion | MOCAP `/odom` | 108 / 108 | 0.20 – 0.38 (mean ~0.28) | ~287 cm, ~46° |
 | B static | none | 106 / 108 | 0.13 – 0.42 (mean ~0.28) | ~106 cm, ~15° |
-| C kiss-icp | KISS-ICP `/odom` | 107 / 108 | 0.19 – 0.42 (mean ~0.27) | ~75 cm, ~18° |
+| C kiss-icp | KISS-ICP `/odom` | 106 / 108 | 0.17 – 0.41 (mean ~0.28) | ~85 cm, ~28° |
 
 ### Online calibration with odometry motion compensation
 
@@ -358,9 +382,14 @@ scope):
   (identity frame poses).
 
 Replay provenance records the odometry topic, message count, time coverage,
-interpolation method, clamp count, and a `motion_compensated` flag. The online
-timeline artifact (`calibrex.online_timeline/v0.3`) optionally includes
-`motion_compensated`.
+interpolation method, clamp count, total interpolation count,
+`odometry_interpolation_max_extrapolation_s`, and a `motion_compensated` flag.
+Batches whose target timestamps extrapolate beyond
+`online_gate_max_odometry_extrapolation_s` (default 0.25 s) outside the odometry
+track are excluded with gate reason `odometry_extrapolation`; source messages
+beyond the same tolerance raise `DatasetError` because the map premise is broken
+globally. The online timeline artifact (`calibrex.online_timeline/v0.3`) records
+gate reasons as free-form strings on each batch snapshot (no schema change).
 
 ```yaml
 dataset:
