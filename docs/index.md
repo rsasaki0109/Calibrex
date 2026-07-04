@@ -1,12 +1,11 @@
 # slac Docs
 
 slac is a universal sensor calibration framework for robotics and
-autonomous-driving systems. The v0.1 alpha is LiDAR-main: LiDAR extrinsic
-candidate evaluation (holdout point-to-plane, perturbation challenges,
-observability/degeneracy reporting) is the delivered capability, camera-LiDAR
-projection metrics are an experimental overlay, and IMU/radar candidate
-evaluation are roadmap items (see
-`docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`).
+autonomous-driving systems. v0.2 extends the v0.1 LiDAR-main evaluation protocol
+(ADR 0004) with moving-platform online calibration (rosbag2, odometry motion
+compensation, per-point deskew), camera-LiDAR evaluated evidence rows, and
+temporal time-offset probes (ADR 0005). IMU and full radar candidate evaluation
+remain roadmap items.
 
 Start with:
 

@@ -2,6 +2,15 @@
 
 Formerly Calibrex. Universal sensor calibration evidence framework for robotics.
 
+v0.2 adds moving-platform online calibration (pure-Python rosbag2/MCAP reader,
+odometry motion compensation, optional per-point deskew), camera-LiDAR evidence
+rows under the ADR-0004 protocol, and temporal time-offset probes with a 1D
+holdout-RMSE estimator. On TIERS Indoor02 real data, motion compensation cut
+identity self-consistency extrinsic error roughly 10× (~9.6 cm / ~1.2° vs ~98 cm
+/ ~37° for the static control). Gates refuse to certify what they cannot
+falsify — inconclusive or failed probe power is recorded honestly, not smoothed
+over.
+
 <p align="center">
   <a href="https://github.com/rsasaki0109/slac/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/slac/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
@@ -83,20 +92,23 @@ It records:
 - map/correspondence lineage and leakage checks
 - portable HTML and machine-readable report sidecars
 
-## Current Alpha
+## Current Alpha (v0.2)
 
 | Area | Status |
 |---|---|
 | Typed config/result schemas | Stable alpha |
 | `calibrate`, `evaluate`, `render`, `visualize`, `compare`, `inspect`, `export` CLI | Stable alpha |
+| Online/streaming LiDAR calibration (`calibrate --online`) | Stable alpha (rosbag1 + rosbag2) |
+| rosbag2/MCAP reader + odometry motion compensation + per-point deskew | Stable alpha; validated on TIERS Indoor02 |
 | KITTI raw fixed-vehicle LiDAR evaluation | Experimental end-to-end |
 | nuScenes metadata and reference extrinsic import | Experimental |
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
-| Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
+| Fixed-trajectory and motion-compensated SE(3) LiDAR extrinsic solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
-| Camera-LiDAR projection / edge-alignment evidence | Evaluated candidate overlay using holdout edge scores and known-bad probes; not standalone camera calibration |
+| Camera-LiDAR projection / edge-alignment evidence | Evaluated ADR-0004 protocol rows (holdout, known-bad probes, policy gates); not standalone camera calibration |
+| Temporal time-offset probes + 1D holdout-RMSE estimator | Evaluated on motion-compensated online runs; synthetic ±5 ms recovery; real-data probe power limited after solver adaptation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
-| Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo / TIERS LidarsCali planned |
+| Multi-LiDAR fixed-rig and online evidence | Public A2D2 VLP-16 demo; TIERS LidarsCali (static + mixed spinning×solid-state) |
 | IMU extrinsic candidate evaluation | Planned; OXTS motion excitation checks exist today but do not evaluate IMU extrinsics |
 | Radar extrinsic velocity-consistency check (nuScenes) | Experimental; `radar_lidar_velocity_consistency` scores static-target radial Doppler residuals against ego motion, not full radar calibration |
 
