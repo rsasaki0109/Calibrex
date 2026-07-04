@@ -113,6 +113,13 @@ from slac.data.rosbag2 import (
 from slac.evaluation.holdout import split_indices
 from slac.evaluation.lidar import build_rig_point_to_plane_observations
 from slac.evaluation.metrics import evaluate_quality
+from slac.evaluation.temporal import (
+    TemporalEvidenceResult,
+    evaluate_temporal_evidence,
+    temporal_evidence_options_from_factor,
+    temporal_evidence_requested,
+    temporal_evidence_to_provenance,
+)
 from slac.graph.lidar_point_to_plane import (
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
@@ -130,7 +137,7 @@ _FACTOR_NAME = "lidar_rig_point_to_plane"
 _MIN_TRAIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
 _TIMELINE_FILENAME = "timeline.json"
-OnlineTargetEntry = tuple[int, Vector3, SE3, float]
+OnlineTargetEntry = tuple[int, Vector3, SE3, float, int]
 
 
 @dataclass(frozen=True)
@@ -677,6 +684,7 @@ def run_online_calibration(
     inputs = _solve_inputs(config)
     replay_provenance: dict[str, Any]
     motion_compensated = False
+    odometry_track: OdometryTrack | None = None
     if config.dataset.type == "rosbag1":
         source_records, target_stream, replay_provenance = _load_rosbag1_online_pair(
             config,
@@ -685,7 +693,7 @@ def run_online_calibration(
             target_sensor=target_sensor,
         )
     elif config.dataset.type == "rosbag2":
-        source_records, target_stream, replay_provenance, motion_compensated = (
+        source_records, target_stream, replay_provenance, motion_compensated, odometry_track = (
             _load_rosbag2_online_pair(
                 config,
                 inputs,
@@ -756,10 +764,14 @@ def run_online_calibration(
     batch_size = max(1, options.batch_size)
     for start in range(0, len(target_stream), batch_size):
         chunk = target_stream[start : start + batch_size]
-        batch_points = [point for _frame_index, point, _pose, _extrap in chunk]
-        batch_poses = [pose for _frame_index, _point, pose, _extrap in chunk]
-        frame_extrapolations = [extrap for _frame_index, _point, _pose, extrap in chunk]
-        frame_count = len({frame_index for frame_index, _point, _pose, _extrap in chunk})
+        batch_points = [point for _frame_index, point, _pose, _extrap, _capture_ns in chunk]
+        batch_poses = [pose for _frame_index, _point, pose, _extrap, _capture_ns in chunk]
+        frame_extrapolations = [
+            extrap for _frame_index, _point, _pose, extrap, _capture_ns in chunk
+        ]
+        frame_count = len(
+            {frame_index for frame_index, _point, _pose, _extrap, _capture_ns in chunk}
+        )
         batch_max_extrapolation_s: float | None = None
         if motion_compensated:
             batch_max_extrapolation_s = max(frame_extrapolations) if frame_extrapolations else 0.0
@@ -786,6 +798,8 @@ def run_online_calibration(
         batch_size=batch_size,
         replay_provenance=replay_provenance,
         motion_compensated=motion_compensated,
+        target_stream=target_stream,
+        odometry_track=odometry_track,
     )
 
 
@@ -907,7 +921,7 @@ def _load_target_stream(
         else:
             records = _stride(read_livox_binary_pcd_records(path), inputs.max_target_points)
             points = [(record.point[0], record.point[1], record.point[2]) for record in records]
-        stream.extend((frame_index, point, SE3.identity(), 0.0) for point in points)
+        stream.extend((frame_index, point, SE3.identity(), 0.0, 0) for point in points)
     return stream
 
 
@@ -1071,7 +1085,7 @@ def _deskew_target_entries(
             float(xyz[index, 1]),
             float(xyz[index, 2]),
         )
-        entries.append((frame_index, point, t_world_source, extrapolation_s))
+        entries.append((frame_index, point, t_world_source, extrapolation_s, capture_ns))
     return entries
 
 
@@ -1164,7 +1178,7 @@ def _load_rosbag1_online_pair(
         )
         points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
         target_stream.extend(
-            (frame_index, point, SE3.identity(), 0.0) for point in points
+            (frame_index, point, SE3.identity(), 0.0, timestamp_ns) for point in points
         )
         frame_index += 1
         target_messages += 1
@@ -1208,12 +1222,18 @@ def _load_rosbag2_online_pair(
     source_sensor: str,
     target_sensor: str,
     t_base_source: SE3,
-) -> tuple[list[LivoxPointRecord], list[OnlineTargetEntry], dict[str, Any], bool]:
+) -> tuple[
+    list[LivoxPointRecord],
+    list[OnlineTargetEntry],
+    dict[str, Any],
+    bool,
+    OdometryTrack | None,
+]:
     """Stream one rosbag2 recording once, building a bounded source map and target stream."""
 
     bag_path = Path(config.dataset.path)
     if not bag_path.exists():
-        return [], [], {"rosbag2_path": str(bag_path), "rosbag2_exists": False}, False
+        return [], [], {"rosbag2_path": str(bag_path), "rosbag2_exists": False}, False, None
 
     source_topic = _lidar_topic(config, source_sensor)
     target_topic = _lidar_topic(config, target_sensor)
@@ -1377,13 +1397,16 @@ def _load_rosbag2_online_pair(
                 message.timestamp_ns
             )
             t_world_source = t_world_base.compose(t_base_source)
+            capture_ns = message.timestamp_ns
             target_stream.extend(
-                (frame_index, point, t_world_source, target_extrapolation_s) for point in points
+                (frame_index, point, t_world_source, target_extrapolation_s, capture_ns)
+                for point in points
             )
         else:
             points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
             target_stream.extend(
-                (frame_index, point, SE3.identity(), 0.0) for point in points
+                (frame_index, point, SE3.identity(), 0.0, message.timestamp_ns)
+                for point in points
             )
         frame_index += 1
         target_messages += 1
@@ -1425,7 +1448,7 @@ def _load_rosbag2_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
-    return source_records, target_stream, provenance, motion_compensated
+    return source_records, target_stream, provenance, motion_compensated, odometry_track
 
 
 def _load_rosbag2_odometry_track(
@@ -1678,6 +1701,8 @@ def _build_result(
     batch_size: int,
     replay_provenance: dict[str, Any] | None = None,
     motion_compensated: bool = False,
+    target_stream: list[OnlineTargetEntry] | None = None,
+    odometry_track: OdometryTrack | None = None,
 ) -> CalibrationResult:
     history = session.history
     final_snapshot = history[-1]
@@ -1723,6 +1748,70 @@ def _build_result(
         gate_thresholds=session.gate_thresholds,
     )
 
+    factor = config.pipeline.factors.get(_FACTOR_NAME)
+    factor_options: dict[str, Any] = dict(factor.options) if factor is not None else {}
+    temporal_options = temporal_evidence_options_from_factor(factor_options)
+    temporal_result: TemporalEvidenceResult | None = None
+    run_provenance: dict[str, Any] = {
+        "pipeline": "online_calibration",
+        "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+        "solver_adapter_status": final_snapshot.gate_status,
+        "dataset_type": config.dataset.type,
+        "dataset_path": config.dataset.path,
+        "online_variable": variable,
+        "online_source_sensor": source_sensor,
+        "online_target_sensor": target_sensor,
+        "online_batch_size": batch_size,
+        "online_rolling_window": session.rolling_window,
+        "online_holdout_ratio": session.holdout_ratio,
+        "online_seed": session.seed,
+        "online_accumulation_batches": session.accumulation_batches,
+        "online_max_accumulated_train_points": session.max_accumulated_train_points,
+        "online_batch_count": len(history),
+        "online_accepted_batch_count": accepted_count,
+        "online_rejected_batch_count": rejected_count,
+        "online_inconclusive_batch_count": inconclusive_count,
+        "online_final_rolling_rmse_m": final_snapshot.rolling_rmse_m,
+        "online_final_gate_status": final_snapshot.gate_status,
+        "online_gate_min_rank": session.gate_thresholds.min_rank,
+        "online_gate_max_holdout_rmse_m": session.gate_thresholds.max_holdout_rmse_m,
+        "online_gate_max_rolling_regression_m": (
+            session.gate_thresholds.max_rolling_regression_m
+        ),
+        "online_gate_max_odometry_extrapolation_s": (
+            session.gate_thresholds.max_odometry_extrapolation_s
+        ),
+        "dry_run": False,
+        **(replay_provenance or {}),
+    }
+    if temporal_evidence_requested(temporal_options):
+        if motion_compensated and odometry_track is not None and target_stream:
+            target_points = [point for _fi, point, _pose, _extrap, _capture in target_stream]
+            capture_timestamps_ns = [
+                capture_ns for _fi, _point, _pose, _extrap, capture_ns in target_stream
+            ]
+            temporal_result = evaluate_temporal_evidence(
+                source_records=session.source_records,
+                target_points=target_points,
+                capture_timestamps_ns=capture_timestamps_ns,
+                final_t_source_target=session.current_estimate,
+                odometry_track=odometry_track,
+                t_base_source=t_base_source,
+                variable=variable,
+                sensor=target_sensor,
+                voxel_size_m=session.voxel_size_m,
+                correspondence_gate_m=session.correspondence_gate_m,
+                holdout_ratio=session.holdout_ratio,
+                seed=session.seed,
+                options=temporal_options,
+                max_odometry_extrapolation_s=session.gate_thresholds.max_odometry_extrapolation_s,
+            )
+            run_provenance["temporal_evidence"] = temporal_evidence_to_provenance(temporal_result)
+            run_provenance["online_temporal_gate_status"] = temporal_result.verdict
+            metrics.update(_temporal_evidence_metrics(temporal_result))
+        else:
+            run_provenance["temporal_evidence_skipped_no_odometry"] = True
+
     result = CalibrationResult(
         run=RunInfo(
             id=_run_id(config.project.name),
@@ -1732,38 +1821,7 @@ def _build_result(
             dataset_sha256=sha256_path(Path(config.dataset.path)),
             status="warning",
             domain=config.project.domain,
-            provenance={
-                "pipeline": "online_calibration",
-                "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
-                "solver_adapter_status": final_snapshot.gate_status,
-                "dataset_type": config.dataset.type,
-                "dataset_path": config.dataset.path,
-                "online_variable": variable,
-                "online_source_sensor": source_sensor,
-                "online_target_sensor": target_sensor,
-                "online_batch_size": batch_size,
-                "online_rolling_window": session.rolling_window,
-                "online_holdout_ratio": session.holdout_ratio,
-                "online_seed": session.seed,
-                "online_accumulation_batches": session.accumulation_batches,
-                "online_max_accumulated_train_points": session.max_accumulated_train_points,
-                "online_batch_count": len(history),
-                "online_accepted_batch_count": accepted_count,
-                "online_rejected_batch_count": rejected_count,
-                "online_inconclusive_batch_count": inconclusive_count,
-                "online_final_rolling_rmse_m": final_snapshot.rolling_rmse_m,
-                "online_final_gate_status": final_snapshot.gate_status,
-                "online_gate_min_rank": session.gate_thresholds.min_rank,
-                "online_gate_max_holdout_rmse_m": session.gate_thresholds.max_holdout_rmse_m,
-                "online_gate_max_rolling_regression_m": (
-                    session.gate_thresholds.max_rolling_regression_m
-                ),
-                "online_gate_max_odometry_extrapolation_s": (
-                    session.gate_thresholds.max_odometry_extrapolation_s
-                ),
-                "dry_run": False,
-                **(replay_provenance or {}),
-            },
+            provenance=run_provenance,
         ),
         frame_graph=frame_graph.snapshot(),
         transforms=transforms,
@@ -1836,6 +1894,49 @@ def _initial_transform_result(name: str, parent: str, node: FrameNode) -> Transf
             source="config.frame_graph",
         ),
     )
+
+
+def _temporal_evidence_metrics(
+    temporal_result: TemporalEvidenceResult,
+) -> dict[str, MetricResult]:
+    """Surface temporal probe/estimate gates as first-class metrics."""
+
+    metrics: dict[str, MetricResult] = {}
+    if temporal_result.probe_detection_ratio is not None:
+        metrics["online_temporal_probe_detection_ratio"] = MetricResult(
+            value=temporal_result.probe_detection_ratio,
+            grade=_grade_from_gate(
+                temporal_result.probe_gate_status or "inconclusive"
+            ),
+            reason=temporal_result.probe_gate_reason
+            or "time-offset perturbation probe detection ratio",
+        )
+    if temporal_result.estimate is not None:
+        metrics["online_temporal_estimated_offset_s"] = MetricResult(
+            value=temporal_result.estimate.estimated_offset_s,
+            unit="s",
+            grade=_grade_from_gate(
+                temporal_result.estimate_gate_status or "inconclusive"
+            ),
+            reason=temporal_result.estimate_gate_reason
+            or "1D holdout-RMSE time-offset estimate",
+        )
+        metrics["online_temporal_rmse_relative_improvement"] = MetricResult(
+            value=temporal_result.estimate.relative_improvement,
+            grade="pass",
+            reason=(
+                f"holdout RMSE improved by {temporal_result.estimate.relative_improvement:.4f} "
+                f"at estimated offset {temporal_result.estimate.estimated_offset_s:.4f} s "
+                f"({temporal_result.estimate.curve_sample_count} curve samples)"
+            ),
+        )
+    if temporal_result.verdict is not None:
+        metrics["online_temporal_gate_verdict"] = MetricResult(
+            value={"pass": 1.0, "inconclusive": 0.5, "fail": 0.0}[temporal_result.verdict],
+            grade=_grade_from_gate(temporal_result.verdict),
+            reason=temporal_result.verdict_reason or "temporal evidence gate verdict",
+        )
+    return metrics
 
 
 def _summary_metrics(

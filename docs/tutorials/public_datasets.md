@@ -457,6 +457,73 @@ failure of the motion-compensation pipeline itself. Deskew narrows the C
 translation gap modestly (~9 cm) but does not establish absolute accuracy
 against the TIERS reference.
 
+### Temporal evidence (time-offset probes and estimator)
+
+After a motion-compensated rosbag2 online run completes, optional post-run
+temporal evidence re-evaluates the **final adopted estimate's** holdout
+point-to-plane RMSE while shifting target capture timestamps. This is
+evaluation-only — it never re-solves the extrinsic.
+
+**Sign convention:** positive `delta_t_s` evaluates
+`T_world_source(t_capture + delta_t_s)`; positive offset means target capture
+timestamps are treated as lagging the odometry clock.
+
+Factor options under `lidar_rig_point_to_plane`:
+
+| Option | Default | Role |
+|--------|---------|------|
+| `time_offset_probe_s` | `[]` | Declared probe offsets (empty = probes off) |
+| `time_offset_probe_min_rmse_increase` | `0.10` | Relative RMSE increase for a probe to count as detected |
+| `online_gate_min_time_offset_probe_detection_ratio` | `1.0` | Fraction of declared probes that must be detected |
+| `estimate_time_offset` | `false` | Run 1D holdout-RMSE search (±`time_offset_search_bound_s`, ~1 ms resolution) |
+| `time_offset_search_bound_s` | `0.20` | Search half-width in seconds |
+| `online_gate_max_abs_time_offset_s` | `0.05` | Pass when \|δt̂\| ≤ gate; fail when above with significant RMSE improvement |
+
+When temporal options are set but `dataset.odometry_topic` is unset, provenance
+records `temporal_evidence_skipped_no_odometry: true` and no temporal verdict is
+emitted. Results surface `run.provenance.temporal_evidence` (probe rows,
+detection ratio, estimate, curve flatness, gate verdicts) and metrics
+`online_temporal_probe_detection_ratio`, `online_temporal_estimated_offset_s`,
+`online_temporal_rmse_relative_improvement`, and `online_temporal_gate_verdict`.
+
+Example configs and commands:
+
+```bash
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_temporal_config.yaml --online
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_temporal_config.yaml --online
+```
+
+On the bounded Indoor02 replay budget (12 source messages / 8k source points, 36
+target messages / 1.5k target points, 60 s, probes `[0.05, -0.05, 0.10]`,
+`estimate_time_offset: true`, gate 0.05 s):
+
+**KISS-ICP Velodyne→Ouster (cross-sensor):** 106 / 108 batches adopted (same as
+run C without temporal). Temporal verdict **FAIL** (probe gate). Holdout baseline
+RMSE at δt=0 was 0.303 m. None of the three ±0.05–0.10 s probes exceeded the
+10 % relative-increase margin (shifts changed RMSE by only 0.2–0.6 %), so probe
+detection ratio was 0 / 3. The 1D estimator landed at δt̂ ≈ **−18 ms** with
+curve flatness 0.012 and relative improvement 0.17 % — **INCONCLUSIVE** on the
+estimate gate. This does **not** confirm the documented Ouster restamp transport
+bias at the 50–150 ms scale: once the online solver has adapted the extrinsic to
+the motion-compensated map, holdout RMSE is nearly flat across ±100 ms shifts.
+The machinery is present and records the numbers honestly; a large clock bias is
+not isolated on this sequence without holding the extrinsic fixed or tightening
+probe sensitivity for this noise floor.
+
+**Velodyne selftest (duplicate topic, shared clock):** 104 / 104 batches adopted.
+Temporal verdict **FAIL** (probe gate). Baseline holdout RMSE 0.108 m. Only the
++0.10 s probe detected (1 / 3; ratio 0.33). Estimator δt̂ ≈ **−71 ms** with
+curve flatness 0.34 but relative improvement only 2.9 % — **INCONCLUSIVE** on
+the estimate gate (below the 10 % improvement margin). This control does not
+tighten to δt̂ ≈ 0 under the current gate thresholds once the session has
+converged; synthetic moving-rig fixtures (frozen ground-truth extrinsic) recover
+injected offsets to ±5 ms.
+
+| Run | Batches adopted | δt̂ | Curve flatness | Probe detection | Temporal verdict |
+|-----|-----------------|-----|----------------|-----------------|------------------|
+| KISS-ICP temporal | 106 / 108 | −18 ms | 0.012 | 0 / 3 | FAIL (probe) |
+| Selftest temporal | 104 / 104 | −71 ms | 0.34 | 1 / 3 | FAIL (probe) |
+
 ### Online calibration with odometry motion compensation
 
 `run_online_calibration` accepts `dataset.type: rosbag2` with the same bounded
