@@ -3,13 +3,6 @@
     "CovarianceInfo": {
       "additionalProperties": false,
       "properties": {
-        "order": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Order",
-          "type": "array"
-        },
         "matrix": {
           "items": {
             "items": {
@@ -18,6 +11,13 @@
             "type": "array"
           },
           "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
           "type": "array"
         }
       },
@@ -31,17 +31,15 @@
     "MetricResult": {
       "additionalProperties": false,
       "properties": {
-        "train": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
           ],
-          "default": null,
-          "title": "Train"
+          "title": "Grade",
+          "type": "string"
         },
         "holdout": {
           "anyOf": [
@@ -55,7 +53,19 @@
           "default": null,
           "title": "Holdout"
         },
-        "value": {
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "train": {
           "anyOf": [
             {
               "type": "number"
@@ -65,17 +75,7 @@
             }
           ],
           "default": null,
-          "title": "Value"
-        },
-        "grade": {
-          "default": "warn",
-          "enum": [
-            "pass",
-            "warn",
-            "fail"
-          ],
-          "title": "Grade",
-          "type": "string"
+          "title": "Train"
         },
         "unit": {
           "anyOf": [
@@ -89,17 +89,17 @@
           "default": null,
           "title": "Unit"
         },
-        "reason": {
+        "value": {
           "anyOf": [
             {
-              "type": "string"
+              "type": "number"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "title": "Reason"
+          "title": "Value"
         }
       },
       "title": "MetricResult",
@@ -108,18 +108,6 @@
     "ObservabilityResult": {
       "additionalProperties": false,
       "properties": {
-        "rank": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Rank"
-        },
         "condition_number": {
           "anyOf": [
             {
@@ -132,13 +120,6 @@
           "default": null,
           "title": "Condition Number"
         },
-        "weak_directions": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Weak Directions",
-          "type": "array"
-        },
         "grade": {
           "default": "warn",
           "enum": [
@@ -148,6 +129,25 @@
           ],
           "title": "Grade",
           "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Weak Directions",
+          "type": "array"
         }
       },
       "title": "ObservabilityResult",
@@ -157,48 +157,6 @@
       "additionalProperties": false,
       "description": "Per-batch evidence snapshot for one online calibration session.",
       "properties": {
-        "batch_index": {
-          "minimum": 0,
-          "title": "Batch Index",
-          "type": "integer"
-        },
-        "frame_count": {
-          "minimum": 0,
-          "title": "Frame Count",
-          "type": "integer"
-        },
-        "point_count": {
-          "minimum": 0,
-          "title": "Point Count",
-          "type": "integer"
-        },
-        "train_point_count": {
-          "minimum": 0,
-          "title": "Train Point Count",
-          "type": "integer"
-        },
-        "holdout_point_count": {
-          "minimum": 0,
-          "title": "Holdout Point Count",
-          "type": "integer"
-        },
-        "correspondence_count": {
-          "minimum": 0,
-          "title": "Correspondence Count",
-          "type": "integer"
-        },
-        "holdout_correspondence_count": {
-          "minimum": 0,
-          "title": "Holdout Correspondence Count",
-          "type": "integer"
-        },
-        "estimate": {
-          "$ref": "#/$defs/TransformResult"
-        },
-        "estimate_accepted": {
-          "title": "Estimate Accepted",
-          "type": "boolean"
-        },
         "batch_holdout_rmse_m": {
           "anyOf": [
             {
@@ -210,6 +168,87 @@
           ],
           "default": null,
           "title": "Batch Holdout Rmse M"
+        },
+        "batch_index": {
+          "minimum": 0,
+          "title": "Batch Index",
+          "type": "integer"
+        },
+        "batch_observability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObservabilityResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "correspondence_count": {
+          "minimum": 0,
+          "title": "Correspondence Count",
+          "type": "integer"
+        },
+        "estimate": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "estimate_accepted": {
+          "title": "Estimate Accepted",
+          "type": "boolean"
+        },
+        "frame_count": {
+          "minimum": 0,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "gate_reason": {
+          "title": "Gate Reason",
+          "type": "string"
+        },
+        "gate_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Gate Status",
+          "type": "string"
+        },
+        "holdout_correspondence_count": {
+          "minimum": 0,
+          "title": "Holdout Correspondence Count",
+          "type": "integer"
+        },
+        "holdout_point_count": {
+          "minimum": 0,
+          "title": "Holdout Point Count",
+          "type": "integer"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MetricResult"
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "observability": {
+          "$ref": "#/$defs/ObservabilityResult"
+        },
+        "point_count": {
+          "minimum": 0,
+          "title": "Point Count",
+          "type": "integer"
+        },
+        "provenance": {
+          "additionalProperties": true,
+          "title": "Provenance",
+          "type": "object"
+        },
+        "retained_for_accumulation": {
+          "default": false,
+          "title": "Retained For Accumulation",
+          "type": "boolean"
         },
         "rolling_rmse_m": {
           "anyOf": [
@@ -229,49 +268,10 @@
           "title": "Rolling Window Residual Count",
           "type": "integer"
         },
-        "observability": {
-          "$ref": "#/$defs/ObservabilityResult"
-        },
-        "batch_observability": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ObservabilityResult"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "gate_status": {
-          "enum": [
-            "pass",
-            "fail",
-            "inconclusive"
-          ],
-          "title": "Gate Status",
-          "type": "string"
-        },
-        "gate_reason": {
-          "title": "Gate Reason",
-          "type": "string"
-        },
-        "retained_for_accumulation": {
-          "default": false,
-          "title": "Retained For Accumulation",
-          "type": "boolean"
-        },
-        "metrics": {
-          "additionalProperties": {
-            "$ref": "#/$defs/MetricResult"
-          },
-          "title": "Metrics",
-          "type": "object"
-        },
-        "provenance": {
-          "additionalProperties": true,
-          "title": "Provenance",
-          "type": "object"
+        "train_point_count": {
+          "minimum": 0,
+          "title": "Train Point Count",
+          "type": "integer"
         }
       },
       "required": [
@@ -294,26 +294,36 @@
       "additionalProperties": false,
       "description": "Minimal run metadata repeated in report sidecars.",
       "properties": {
-        "id": {
-          "title": "Id",
+        "created_at": {
+          "title": "Created At",
           "type": "string"
         },
-        "status": {
-          "enum": [
-            "success",
-            "warning",
-            "failed",
-            "dry_run"
+        "dataset_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "title": "Status",
-          "type": "string"
+          "default": null,
+          "title": "Dataset Path"
+        },
+        "dataset_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Type"
         },
         "domain": {
           "title": "Domain",
-          "type": "string"
-        },
-        "calibrex_version": {
-          "title": "Calibrex Version",
           "type": "string"
         },
         "git_commit": {
@@ -328,40 +338,30 @@
           "default": null,
           "title": "Git Commit"
         },
-        "created_at": {
-          "title": "Created At",
+        "id": {
+          "title": "Id",
           "type": "string"
         },
-        "dataset_type": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Dataset Type"
+        "slac_version": {
+          "title": "Slac Version",
+          "type": "string"
         },
-        "dataset_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+        "status": {
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
           ],
-          "default": null,
-          "title": "Dataset Path"
+          "title": "Status",
+          "type": "string"
         }
       },
       "required": [
         "id",
         "status",
         "domain",
-        "calibrex_version",
+        "slac_version",
         "created_at"
       ],
       "title": "ReportRunInfo",
@@ -370,17 +370,42 @@
     "TransformEstimateProvenance": {
       "additionalProperties": false,
       "properties": {
-        "producer": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
           "default": "unknown",
           "enum": [
-            "calibrex_native",
-            "external_tool",
-            "human",
-            "dataset_provider",
-            "factory",
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
             "unknown"
           ],
-          "title": "Producer",
+          "title": "Evidence Level",
           "type": "string"
         },
         "execution_mode": {
@@ -395,6 +420,38 @@
             "unknown"
           ],
           "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
           "type": "string"
         },
         "role_in_comparison": {
@@ -416,20 +473,6 @@
           "default": null,
           "title": "Role In Comparison"
         },
-        "evidence_level": {
-          "default": "unknown",
-          "enum": [
-            "synthetic_truth",
-            "independently_measured",
-            "dataset_provided",
-            "factory_provided",
-            "algorithmically_refined",
-            "imported_without_documented_derivation",
-            "unknown"
-          ],
-          "title": "Evidence Level",
-          "type": "string"
-        },
         "source": {
           "anyOf": [
             {
@@ -441,6 +484,18 @@
           ],
           "default": null,
           "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
         },
         "source_path": {
           "anyOf": [
@@ -477,61 +532,6 @@
           ],
           "default": null,
           "title": "Tool Version"
-        },
-        "source_commit": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Source Commit"
-        },
-        "license_spdx": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "License Spdx"
-        },
-        "adapter_version": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Adapter Version"
-        },
-        "command": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Command"
-        },
-        "notes": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Notes",
-          "type": "array"
         }
       },
       "title": "TransformEstimateProvenance",
@@ -550,18 +550,18 @@
           "title": "Grade",
           "type": "string"
         },
-        "std_translation_m": {
-          "items": {
-            "type": "number"
-          },
-          "title": "Std Translation M",
-          "type": "array"
-        },
         "std_rotation_deg": {
           "items": {
             "type": "number"
           },
           "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
           "type": "array"
         }
       },
@@ -571,37 +571,15 @@
     "TransformResult": {
       "additionalProperties": false,
       "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
         "convention": {
           "const": "T_parent_child",
           "default": "T_parent_child",
           "title": "Convention",
           "type": "string"
-        },
-        "parent": {
-          "title": "Parent",
-          "type": "string"
-        },
-        "child": {
-          "title": "Child",
-          "type": "string"
-        },
-        "translation_m": {
-          "items": {
-            "type": "number"
-          },
-          "maxItems": 3,
-          "minItems": 3,
-          "title": "Translation M",
-          "type": "array"
-        },
-        "rotation_quat_xyzw": {
-          "items": {
-            "type": "number"
-          },
-          "maxItems": 4,
-          "minItems": 4,
-          "title": "Rotation Quat Xyzw",
-          "type": "array"
         },
         "covariance": {
           "anyOf": [
@@ -613,9 +591,6 @@
             }
           ],
           "default": null
-        },
-        "quality": {
-          "$ref": "#/$defs/TransformQuality"
         },
         "estimate_id": {
           "anyOf": [
@@ -629,8 +604,33 @@
           "default": null,
           "title": "Estimate Id"
         },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
         "provenance": {
           "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
         }
       },
       "required": [
@@ -646,45 +646,10 @@
   "additionalProperties": false,
   "description": "Machine-readable per-batch timeline for one online calibration run.",
   "properties": {
-    "schema_version": {
-      "const": "calibrex.online_timeline/v0.3",
-      "default": "calibrex.online_timeline/v0.3",
-      "title": "Schema Version",
-      "type": "string"
-    },
-    "run": {
-      "$ref": "#/$defs/ReportRunInfo"
-    },
-    "variable": {
-      "title": "Variable",
-      "type": "string"
-    },
-    "source_sensor": {
-      "title": "Source Sensor",
-      "type": "string"
-    },
-    "target_sensor": {
-      "title": "Target Sensor",
-      "type": "string"
-    },
-    "batch_size": {
-      "minimum": 1,
-      "title": "Batch Size",
-      "type": "integer"
-    },
-    "rolling_window": {
-      "minimum": 1,
-      "title": "Rolling Window",
-      "type": "integer"
-    },
-    "holdout_ratio": {
-      "maximum": 0.9,
-      "minimum": 0.0,
-      "title": "Holdout Ratio",
-      "type": "number"
-    },
-    "seed": {
-      "title": "Seed",
+    "accepted_batch_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Accepted Batch Count",
       "type": "integer"
     },
     "accumulation_batches": {
@@ -700,18 +665,10 @@
       "default": null,
       "title": "Accumulation Batches"
     },
-    "max_accumulated_train_points": {
-      "anyOf": [
-        {
-          "minimum": 1,
-          "type": "integer"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Max Accumulated Train Points"
+    "batch_size": {
+      "minimum": 1,
+      "title": "Batch Size",
+      "type": "integer"
     },
     "batches": {
       "items": {
@@ -729,23 +686,30 @@
       "title": "Final Gate Status",
       "type": "string"
     },
-    "accepted_batch_count": {
-      "default": 0,
-      "minimum": 0,
-      "title": "Accepted Batch Count",
-      "type": "integer"
-    },
-    "rejected_batch_count": {
-      "default": 0,
-      "minimum": 0,
-      "title": "Rejected Batch Count",
-      "type": "integer"
+    "holdout_ratio": {
+      "maximum": 0.9,
+      "minimum": 0.0,
+      "title": "Holdout Ratio",
+      "type": "number"
     },
     "inconclusive_batch_count": {
       "default": 0,
       "minimum": 0,
       "title": "Inconclusive Batch Count",
       "type": "integer"
+    },
+    "max_accumulated_train_points": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Accumulated Train Points"
     },
     "motion_compensated": {
       "anyOf": [
@@ -758,6 +722,42 @@
       ],
       "default": null,
       "title": "Motion Compensated"
+    },
+    "rejected_batch_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Rejected Batch Count",
+      "type": "integer"
+    },
+    "rolling_window": {
+      "minimum": 1,
+      "title": "Rolling Window",
+      "type": "integer"
+    },
+    "run": {
+      "$ref": "#/$defs/ReportRunInfo"
+    },
+    "schema_version": {
+      "const": "slac.online_timeline/v0.3",
+      "default": "slac.online_timeline/v0.3",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "source_sensor": {
+      "title": "Source Sensor",
+      "type": "string"
+    },
+    "target_sensor": {
+      "title": "Target Sensor",
+      "type": "string"
+    },
+    "variable": {
+      "title": "Variable",
+      "type": "string"
     }
   },
   "required": [

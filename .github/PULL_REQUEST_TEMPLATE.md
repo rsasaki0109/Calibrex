@@ -9,16 +9,16 @@
 - [ ] Schema-visible fields changed and committed schemas were regenerated with:
 
 ```bash
-calibrex schema all --output-dir schemas
+slac schema all --output-dir schemas
 ```
 
 ## Checks
 
 - [ ] `ruff check .`
-- [ ] `mypy src/calibrex`
+- [ ] `mypy src/slac`
 - [ ] `pytest`
 
 ## Notes
 
 - Dataset-provided calibration is treated as reference evidence, not ground truth.
-- ROS and GPL integrations must stay outside Calibrex core.
+- ROS and GPL integrations must stay outside slac core.

@@ -1,7 +1,7 @@
-schema_version: calibrex.result/v0.1
+schema_version: slac.result/v0.1
 run:
   id: livox_horizon_horizon_pcd_evidence_example
-  calibrex_version: 0.1.0
+  slac_version: 0.1.0
   git_commit: 327ec22
   status: warning
   domain: robotics
@@ -232,7 +232,7 @@ transforms:
       std_rotation_deg: [5.0, 5.0, 5.0]
     estimate_id: T_base_horizon_target_horizon
     provenance:
-      producer: calibrex_native
+      producer: slac_native
       execution_mode: offline_batch
       role_in_comparison: output
       evidence_level: unknown

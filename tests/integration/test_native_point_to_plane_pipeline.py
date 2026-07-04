@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from calibrex.core.result import load_result
-from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+from slac.core.result import load_result
+from slac.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _A2D2_PAIR_DIR = _REPO_ROOT / "data" / "public" / "a2d2_lidar_pair"
@@ -23,7 +23,7 @@ def _write_native_config(tmp_path: Path, output_dir: Path) -> Path:
     config_path = tmp_path / "a2d2_native_config.yaml"
     config_path.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: a2d2_native_point_to_plane
   output_dir: {output_dir}
@@ -84,7 +84,7 @@ def test_native_point_to_plane_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
     assert solver_summary["final_rmse_m"] < solver_summary["initial_rmse_m"]
 
     transform = result.transforms["T_base_link_lidar_front_right"]
-    assert transform.provenance.producer == "calibrex_native"
+    assert transform.provenance.producer == "slac_native"
     assert transform.provenance.role_in_comparison == "output"
     assert transform.provenance.evidence_level == "algorithmically_refined"
     assert transform.provenance.tool_name == "native_lidar_point_to_plane"
@@ -128,7 +128,7 @@ def test_native_point_to_plane_backend_reports_unavailable_without_data(
     config_path = tmp_path / "missing_data_config.yaml"
     config_path.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: a2d2_native_missing_data
   output_dir: {output_dir}

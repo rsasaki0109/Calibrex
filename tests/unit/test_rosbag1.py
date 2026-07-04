@@ -13,10 +13,10 @@ from pathlib import Path
 
 import pytest
 
-from calibrex.core.config import DatasetConfig
-from calibrex.core.exceptions import DatasetError
-from calibrex.data.inspect import inspect_dataset
-from calibrex.data.rosbag1 import (
+from slac.core.config import DatasetConfig
+from slac.core.exceptions import DatasetError
+from slac.data.inspect import inspect_dataset
+from slac.data.rosbag1 import (
     BAG_MAGIC,
     Rosbag1Reader,
     _decompress_chunk,
@@ -309,7 +309,7 @@ def test_rosbag1_inspect_integration(tmp_path: Path) -> None:
 
 
 def test_rosbag1_inspection_feeds_lidar_coverage_metrics(tmp_path: Path) -> None:
-    from calibrex.evaluation.lidar import lidar_metrics_from_inspection
+    from slac.evaluation.lidar import lidar_metrics_from_inspection
 
     bag = _sample_bag(tmp_path / "sample.bag")
     inspection = inspect_dataset(DatasetConfig(type="rosbag1", path=str(bag)))
@@ -365,9 +365,9 @@ def test_rosbag1_unsupported_compression_errors() -> None:
 
 
 def test_rosbag1_lz4_compression_path() -> None:
-    raw = b"calibrex rosbag lz4 payload"
+    raw = b"slac rosbag lz4 payload"
     if importlib.util.find_spec("lz4") is None:
-        with pytest.raises(DatasetError, match=r"calibrex\[rosbag1-lz4\]"):
+        with pytest.raises(DatasetError, match=r"slac\[rosbag1-lz4\]"):
             _decompress_chunk("lz4", len(raw), b"unused")
     else:  # pragma: no cover - depends on optional extra being installed
         import lz4.frame
@@ -409,7 +409,7 @@ def _online_calibration_bag(path: Path) -> Path:
 def _write_online_rosbag_config(config_path: Path, bag_path: Path, output_dir: Path) -> None:
     config_path.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: rosbag1_online_fixture
   output_dir: {output_dir}
@@ -451,7 +451,7 @@ solver:
 
 
 def test_rosbag1_online_calibration_streams_bounded_topics(tmp_path: Path) -> None:
-    from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+    from slac.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 
     bag = _online_calibration_bag(tmp_path / "online_pair.bag")
     output_dir = tmp_path / "outputs"

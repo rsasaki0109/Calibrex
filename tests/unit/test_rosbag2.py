@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from calibrex.core.config import DatasetConfig
-from calibrex.core.exceptions import DatasetError
-from calibrex.data.inspect import inspect_dataset
-from calibrex.data.ros_cdr import CdrReader, decode_ros2_odometry, decode_ros2_pointcloud2
-from calibrex.data.rosbag2 import (
+from slac.core.config import DatasetConfig
+from slac.core.exceptions import DatasetError
+from slac.data.inspect import inspect_dataset
+from slac.data.ros_cdr import CdrReader, decode_ros2_odometry, decode_ros2_pointcloud2
+from slac.data.rosbag2 import (
     MCAP_MAGIC,
     ODOMETRY_TYPE,
     POINTCLOUD2_TYPE,
@@ -246,7 +246,7 @@ def _write_mcap_bag(
     ``(channel_id, schema_id, topic, message_type, log_time_ns, payload)``.
     """
 
-    header = _mcap_record(0x01, _mcap_string("rosbag2") + _mcap_string("calibrex-test"))
+    header = _mcap_record(0x01, _mcap_string("rosbag2") + _mcap_string("slac-test"))
     schemas: dict[int, str] = {}
     channels: dict[int, tuple[int, str]] = {}
     for channel_id, schema_id, topic, message_type, _log_time, _payload in messages:
@@ -545,14 +545,14 @@ def test_rosbag2_alignment_sensitive_pointcloud_layout() -> None:
 def test_rosbag2_missing_lz4_codec_error() -> None:
     if importlib_available("lz4"):
         pytest.skip("lz4 is installed in this environment")
-    with pytest.raises(DatasetError, match=r"calibrex\[rosbag2-compression\]"):
+    with pytest.raises(DatasetError, match=r"slac\[rosbag2-compression\]"):
         _lz4_decompress(b"\x00", 1)
 
 
 def test_rosbag2_missing_zstd_codec_error() -> None:
     if importlib_available("zstandard"):
         pytest.skip("zstandard is installed in this environment")
-    with pytest.raises(DatasetError, match=r"calibrex\[rosbag2-compression\]"):
+    with pytest.raises(DatasetError, match=r"slac\[rosbag2-compression\]"):
         _zstd_decompress(b"\x00", 1)
 
 

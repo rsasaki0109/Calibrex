@@ -380,10 +380,6 @@
     "RunInfo": {
       "additionalProperties": false,
       "properties": {
-        "calibrex_version": {
-          "title": "Calibrex Version",
-          "type": "string"
-        },
         "config_sha256": {
           "anyOf": [
             {
@@ -438,6 +434,10 @@
           "title": "Provenance",
           "type": "object"
         },
+        "slac_version": {
+          "title": "Slac Version",
+          "type": "string"
+        },
         "status": {
           "default": "success",
           "enum": [
@@ -452,7 +452,7 @@
       },
       "required": [
         "id",
-        "calibrex_version"
+        "slac_version"
       ],
       "title": "RunInfo",
       "type": "object"
@@ -580,7 +580,7 @@
         "producer": {
           "default": "unknown",
           "enum": [
-            "calibrex_native",
+            "slac_native",
             "external_tool",
             "human",
             "dataset_provider",
@@ -824,8 +824,8 @@
       "$ref": "#/$defs/RunInfo"
     },
     "schema_version": {
-      "const": "calibrex.result/v0.1",
-      "default": "calibrex.result/v0.1",
+      "const": "slac.result/v0.1",
+      "default": "slac.result/v0.1",
       "title": "Schema Version",
       "type": "string"
     },

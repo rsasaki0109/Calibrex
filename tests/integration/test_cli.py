@@ -6,23 +6,23 @@ from pathlib import Path
 
 import pytest
 
-from calibrex.cli.main import main
-from calibrex.core.assessment import AssessmentArtifact
-from calibrex.core.evidence_bundle import (
+from slac.cli.main import main
+from slac.core.assessment import AssessmentArtifact
+from slac.core.evidence_bundle import (
     EvidenceBundleManifest,
     EvidenceBundleVerification,
 )
-from calibrex.core.evidence_contract import PolicyArtifact, ProtocolArtifact
-from calibrex.core.io import read_mapping, write_mapping
-from calibrex.core.report_artifacts import (
+from slac.core.evidence_contract import PolicyArtifact, ProtocolArtifact
+from slac.core.io import read_mapping, write_mapping
+from slac.core.report_artifacts import (
     ReportDegeneracyArtifact,
     ReportEvidenceArtifact,
     ReportMetricsArtifact,
     ReportObservabilityArtifact,
     ReportSummaryArtifact,
 )
-from calibrex.core.result import load_result
-from calibrex.core.transform_artifacts import TransformArtifact
+from slac.core.result import load_result
+from slac.core.transform_artifacts import TransformArtifact
 
 
 def _write_velodyne_points(path: Path, points: list[tuple[float, float, float, float]]) -> None:
@@ -314,7 +314,7 @@ def test_validate_command_detects_schema_version(capsys: pytest.CaptureFixture[s
     assert payload == {
         "kind": "config",
         "path": "examples/configs/minimal.yaml",
-        "schema_version": "calibrex.config/v0.1",
+        "schema_version": "slac.config/v0.1",
         "valid": True,
     }
 
@@ -394,12 +394,12 @@ def test_calibrate_evaluate_visualize_export(
     assert str(tmp_path / "verification.json") in report_html
     summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
     ReportSummaryArtifact.model_validate(summary)
-    assert summary["schema_version"] == "calibrex.report.summary/v0.1"
+    assert summary["schema_version"] == "slac.report.summary/v0.1"
     assert summary["run"]["id"]
     assert summary["materialization"]["metrics_origin"] == "recomputed"
     metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
     ReportMetricsArtifact.model_validate(metrics)
-    assert metrics["schema_version"] == "calibrex.report.metrics/v0.1"
+    assert metrics["schema_version"] == "slac.report.metrics/v0.1"
     assert "schema_validation" in metrics["metrics"]
     assert "common" in metrics["metric_families"]
     assert "schema_validation" in metrics["metric_families"]["common"]["metrics"]
@@ -410,14 +410,14 @@ def test_calibrate_evaluate_visualize_export(
     ReportDegeneracyArtifact.model_validate(degeneracy)
     evidence = json.loads((tmp_path / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
-    assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert evidence["schema_version"] == "slac.report.evidence/v0.1"
     assessment = json.loads((tmp_path / "assessment.json").read_text(encoding="utf-8"))
     assessment_model = AssessmentArtifact.model_validate(assessment)
-    assert assessment_model.schema_version == "calibrex.assessment/v0.1"
+    assert assessment_model.schema_version == "slac.assessment/v0.1"
     assert assessment_model.status == "inconclusive"
     policy = json.loads((tmp_path / "policy.json").read_text(encoding="utf-8"))
     policy_model = PolicyArtifact.model_validate(policy)
-    assert policy_model.schema_version == "calibrex.policy/v0.1"
+    assert policy_model.schema_version == "slac.policy/v0.1"
     assert [gate.rule_id for gate in policy_model.gates] == [
         "raw_recomputation",
         "protocol_declared",
@@ -429,10 +429,10 @@ def test_calibrate_evaluate_visualize_export(
     assert status_on_failure["protocol_declared"] == "fail"
     protocol = json.loads((tmp_path / "protocol.json").read_text(encoding="utf-8"))
     protocol_model = ProtocolArtifact.model_validate(protocol)
-    assert protocol_model.schema_version == "calibrex.protocol/v0.1"
+    assert protocol_model.schema_version == "slac.protocol/v0.1"
     transforms = json.loads((tmp_path / "transforms.json").read_text(encoding="utf-8"))
     transforms_model = TransformArtifact.model_validate(transforms)
-    assert transforms_model.schema_version == "calibrex.transforms/v0.1"
+    assert transforms_model.schema_version == "slac.transforms/v0.1"
     bundle = json.loads((tmp_path / "bundle.json").read_text(encoding="utf-8"))
     bundle_model = EvidenceBundleManifest.model_validate(bundle)
     assert bundle_model.primary_evidence_path == "evidence.json"
@@ -528,14 +528,14 @@ def test_calibrate_evaluate_visualize_export(
         == 0
     )
     verify_payload = json.loads(capsys.readouterr().out)
-    assert verify_payload["schema_version"] == "calibrex.evidence_bundle.verification/v0.1"
+    assert verify_payload["schema_version"] == "slac.evidence_bundle.verification/v0.1"
     assert verify_payload["path"] == "verification.json"
     bundle_sha256, bundle_size = _sha256_file_for_test(tmp_path / "bundle.json")
     assert verify_payload["source_bundle"] == {
         "path": "bundle.json",
         "sha256": bundle_sha256,
         "size_bytes": bundle_size,
-        "schema_version": "calibrex.evidence_bundle/v0.1",
+        "schema_version": "slac.evidence_bundle/v0.1",
         "run_id": evidence["run"]["id"],
     }
     assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == (
@@ -993,7 +993,7 @@ def test_compare_command_writes_machine_readable_summary(
     payload = json.loads(capsys.readouterr().out)
     written = json.loads(output.read_text(encoding="utf-8"))
     assert payload == written
-    assert payload["schema_version"] == "calibrex.comparison/v0.1"
+    assert payload["schema_version"] == "slac.comparison/v0.1"
     assert payload["left"]["run_id"] == "precomputed_example"
     assert payload["left"]["metrics_origin"] == "recomputed"
     assert payload["right"]["run_id"] == "candidate_variant"
@@ -1060,7 +1060,7 @@ def test_report_compare_command_assembles_nway_artifact(
     payload = json.loads(capsys.readouterr().out)
     written = json.loads(output.read_text(encoding="utf-8"))
     assert payload == written
-    assert payload["schema_version"] == "calibrex.report_comparison/v0.1"
+    assert payload["schema_version"] == "slac.report_comparison/v0.1"
     assert payload["summary"]["entry_count"] == 3
     assert payload["summary"]["comparison_mode"] == "reference_vs_each"
     assert payload["summary"]["reference_label"] == "reference"
@@ -1071,7 +1071,7 @@ def test_report_compare_command_assembles_nway_artifact(
     assert payload["entries"]["reference"]["side"]["run_id"] == "precomputed_example"
     assert payload["entries"]["perturbed"]["side"]["run_id"] == "perturbed_candidate"
     assert payload["entries"]["native"]["provenance"]["dominant_producer"] == (
-        "calibrex_native"
+        "slac_native"
     )
     assert payload["entries"]["native"]["provenance"]["dominant_role"] == "output"
     pairwise = payload["pairwise"]["reference__perturbed"]["comparison"]
@@ -1284,34 +1284,34 @@ def test_schema_commands(tmp_path: Path) -> None:
         evidence_bundle_verification_schema.read_text(encoding="utf-8")
     )
     assert summary_schema["properties"]["schema_version"]["const"] == (
-        "calibrex.report.summary/v0.1"
+        "slac.report.summary/v0.1"
     )
     assert comparison_schema_payload["properties"]["schema_version"]["const"] == (
-        "calibrex.comparison/v0.1"
+        "slac.comparison/v0.1"
     )
     assert assessment_schema_payload["properties"]["schema_version"]["const"] == (
-        "calibrex.assessment/v0.1"
+        "slac.assessment/v0.1"
     )
     assert policy_schema_payload["properties"]["schema_version"]["const"] == (
-        "calibrex.policy/v0.1"
+        "slac.policy/v0.1"
     )
     assert protocol_schema_payload["properties"]["schema_version"]["const"] == (
-        "calibrex.protocol/v0.1"
+        "slac.protocol/v0.1"
     )
     assert transforms_schema_payload["properties"]["schema_version"]["const"] == (
-        "calibrex.transforms/v0.1"
+        "slac.transforms/v0.1"
     )
     assert metrics_schema["properties"]["schema_version"]["const"] == (
-        "calibrex.report.metrics/v0.1"
+        "slac.report.metrics/v0.1"
     )
     assert evidence_schema["properties"]["schema_version"]["const"] == (
-        "calibrex.report.evidence/v0.1"
+        "slac.report.evidence/v0.1"
     )
     assert bundle_schema["properties"]["schema_version"]["const"] == (
-        "calibrex.evidence_bundle/v0.1"
+        "slac.evidence_bundle/v0.1"
     )
     assert bundle_verification_schema["properties"]["schema_version"]["const"] == (
-        "calibrex.evidence_bundle.verification/v0.1"
+        "slac.evidence_bundle.verification/v0.1"
     )
     assert json.loads((all_schema_dir / "comparison.schema.json").read_text(encoding="utf-8")) == (
         comparison_schema_payload
@@ -1385,7 +1385,7 @@ def test_nuscenes_calibrate_imports_reference_extrinsics(tmp_path: Path) -> None
     config = tmp_path / "nuscenes_config.yaml"
     config.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: nuscenes_reference_fixture
   output_dir: {output_dir}
@@ -1668,7 +1668,7 @@ transforms:
     output_dir = tmp_path / "outputs"
     config.write_text(
         f"""
-schema_version: calibrex.config/v0.1
+schema_version: slac.config/v0.1
 project:
   name: kitti_fixed_lidar_fixture
   output_dir: {output_dir}
@@ -2055,7 +2055,7 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert evidence_summaries[3]["interpretation"].startswith("Supported by this evidence protocol")
     evidence = json.loads((reported_dir / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
-    assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert evidence["schema_version"] == "slac.report.evidence/v0.1"
     assert evidence["materialization"]["metrics_origin"] == "cached"
     assert evidence["materialization"]["data_verified"] is False
     assert evidence["materialization"]["computed_at"] == "2026-06-18T10:53:34Z"
@@ -2177,7 +2177,7 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     output_dir = tmp_path / "outputs"
     evidence = json.loads((output_dir / "evidence.json").read_text(encoding="utf-8"))
     ReportEvidenceArtifact.model_validate(evidence)
-    assert evidence["schema_version"] == "calibrex.report.evidence/v0.1"
+    assert evidence["schema_version"] == "slac.report.evidence/v0.1"
     assert evidence["materialization"]["metrics_origin"] == "recomputed"
     assert evidence["materialization"]["data_verified"] is True
     assert len(evidence["input_files"]) == 2

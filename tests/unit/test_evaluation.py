@@ -1,6 +1,6 @@
-from calibrex.core.config import CalibrationConfig
-from calibrex.core.evidence import stable_artifact_id, validate_no_frame_overlap
-from calibrex.core.result import (
+from slac.core.config import CalibrationConfig
+from slac.core.evidence import stable_artifact_id, validate_no_frame_overlap
+from slac.core.result import (
     CalibrationResult,
     DegeneracyResult,
     FrameGraphSnapshot,
@@ -9,18 +9,18 @@ from calibrex.core.result import (
     RunInfo,
     TransformResult,
 )
-from calibrex.data.base import StreamSummary
-from calibrex.data.inspect import DatasetInspection
-from calibrex.evaluation.compare import compare_results
-from calibrex.evaluation.degeneracy import degeneracy_from_inspection
-from calibrex.evaluation.holdout import split_indices
-from calibrex.evaluation.lidar import lidar_metrics_from_inspection
-from calibrex.evaluation.lidar_camera import lidar_camera_metrics_from_result
-from calibrex.evaluation.metrics import evaluate_quality
-from calibrex.evaluation.motion import motion_metrics_from_inspection
-from calibrex.evaluation.registry import get_metric_definition, list_metric_definitions
-from calibrex.evaluation.thresholds import apply_metric_thresholds
-from calibrex.evaluation.timing import timing_metrics_from_inspection
+from slac.data.base import StreamSummary
+from slac.data.inspect import DatasetInspection
+from slac.evaluation.compare import compare_results
+from slac.evaluation.degeneracy import degeneracy_from_inspection
+from slac.evaluation.holdout import split_indices
+from slac.evaluation.lidar import lidar_metrics_from_inspection
+from slac.evaluation.lidar_camera import lidar_camera_metrics_from_result
+from slac.evaluation.metrics import evaluate_quality
+from slac.evaluation.motion import motion_metrics_from_inspection
+from slac.evaluation.registry import get_metric_definition, list_metric_definitions
+from slac.evaluation.thresholds import apply_metric_thresholds
+from slac.evaluation.timing import timing_metrics_from_inspection
 
 
 def test_metric_thresholds_grade_holdout_values() -> None:
@@ -65,7 +65,7 @@ def test_autonomous_driving_threshold_profile_is_stricter() -> None:
 
 def test_evaluate_quality_recomputes_metric_grades() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
         metrics={"lidar_point_to_plane_rmse_m": MetricResult(value=0.2, grade="pass")},
     )
@@ -76,7 +76,7 @@ def test_evaluate_quality_recomputes_metric_grades() -> None:
 
 def test_compare_results_reports_metric_and_transform_deltas() -> None:
     left = CalibrationResult(
-        run=RunInfo(id="left", calibrex_version="0.1.0"),
+        run=RunInfo(id="left", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None, "lidar0": "base"}),
         transforms={
             "T_base_lidar0": TransformResult(
@@ -115,7 +115,7 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
         degeneracy=DegeneracyResult(grade="warn", reason="limited yaw excitation"),
     )
     right = CalibrationResult(
-        run=RunInfo(id="right", calibrex_version="0.1.0"),
+        run=RunInfo(id="right", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None, "lidar0": "base"}),
         transforms={
             "T_base_lidar0": TransformResult(
@@ -189,7 +189,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     left = CalibrationResult(
         run=RunInfo(
             id="left",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
@@ -203,7 +203,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     right = CalibrationResult(
         run=RunInfo(
             id="right",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
@@ -246,7 +246,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     support_changed = CalibrationResult(
         run=RunInfo(
             id="support-changed",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
@@ -293,7 +293,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     challenge_changed = CalibrationResult(
         run=RunInfo(
             id="challenge-changed",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
@@ -324,7 +324,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     dof_changed = CalibrationResult(
         run=RunInfo(
             id="dof-changed",
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance=_livox_pair_provenance(metrics_origin="cached"),
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
@@ -676,7 +676,7 @@ def test_timing_metrics_from_kitti_timestamp_alignment_diagnostics() -> None:
 def test_lidar_camera_metrics_from_result_scores_overlay_readiness() -> None:
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "kitti_raw", "path": "/tmp/kitti"},
             "sensors": {
                 "camera0": {"type": "camera"},
@@ -695,7 +695,7 @@ def test_lidar_camera_metrics_from_result_scores_overlay_readiness() -> None:
         }
     )
     result = CalibrationResult(
-        run=RunInfo(id="unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="base",
             frames={"base": None, "camera0": "base", "lidar0": "base"},
@@ -745,7 +745,7 @@ def test_lidar_camera_metrics_from_result_scores_overlay_readiness() -> None:
 def test_lidar_camera_metrics_fail_without_temporal_pairs() -> None:
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "kitti_raw", "path": "/tmp/kitti"},
             "sensors": {
                 "camera0": {"type": "camera"},
@@ -760,7 +760,7 @@ def test_lidar_camera_metrics_fail_without_temporal_pairs() -> None:
         }
     )
     result = CalibrationResult(
-        run=RunInfo(id="unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(
             root="base",
             frames={"base": None, "camera0": "base", "lidar0": "base"},
@@ -895,7 +895,7 @@ def test_lidar_degeneracy_warns_for_weak_geometry_and_holdout_gap() -> None:
 
 def test_evaluate_quality_generates_lidar_collection_recommendations() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="unit", calibrex_version="0.1.0", domain="autonomous_driving"),
+        run=RunInfo(id="unit", slac_version="0.1.0", domain="autonomous_driving"),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
         metrics={
             "lidar_frame_coverage": MetricResult(value=5.0),
@@ -938,7 +938,7 @@ def test_evaluate_quality_generates_lidar_collection_recommendations() -> None:
 
 def test_evaluate_quality_keeps_archive_recommendation_for_clean_result() -> None:
     result = CalibrationResult(
-        run=RunInfo(id="unit", calibrex_version="0.1.0"),
+        run=RunInfo(id="unit", slac_version="0.1.0"),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
         observability=ObservabilityResult(grade="pass"),
         degeneracy=DegeneracyResult(grade="pass"),

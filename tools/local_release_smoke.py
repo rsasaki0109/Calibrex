@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 
 EXPECTED_SCHEMA_COUNT = 17
-DEFAULT_VENV = Path("/tmp/calibrex-release-smoke")
-DEFAULT_BUILD_ENV = Path("/tmp/calibrex-release-build")
-DEFAULT_SCHEMA_DIR = Path("/tmp/calibrex-release-schemas")
-DEFAULT_REPORT_DIR = Path("/tmp/calibrex-release-report")
+DEFAULT_VENV = Path("/tmp/slac-release-smoke")
+DEFAULT_BUILD_ENV = Path("/tmp/slac-release-build")
+DEFAULT_SCHEMA_DIR = Path("/tmp/slac-release-schemas")
+DEFAULT_REPORT_DIR = Path("/tmp/slac-release-report")
 CACHED_EVIDENCE_RESULT = Path(
     "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
 )
@@ -32,7 +32,7 @@ def main() -> int:
     _require_repo_root()
     _remove(Path("dist"))
     _remove(Path("build"))
-    _remove(Path("src/calibrex.egg-info"))
+    _remove(Path("src/slac.egg-info"))
     _remove(args.build_env)
     _remove(args.venv)
     _remove(args.schema_dir)
@@ -44,14 +44,14 @@ def main() -> int:
 
     wheel = _built_wheel()
     smoke_python = _venv_executable(args.venv, "python")
-    smoke_calibrex = _venv_executable(args.venv, "calibrex")
+    smoke_slac = _venv_executable(args.venv, "slac")
     _run([str(smoke_python), "-m", "pip", "install", str(wheel)])
-    _run([str(smoke_calibrex), "doctor", "--json"])
-    _run([str(smoke_calibrex), "schema", "all", "--output-dir", str(args.schema_dir)])
+    _run([str(smoke_slac), "doctor", "--json"])
+    _run([str(smoke_slac), "schema", "all", "--output-dir", str(args.schema_dir)])
     _assert_schema_count(args.schema_dir)
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(CACHED_EVIDENCE_RESULT),
             "--kind",
@@ -62,7 +62,7 @@ def main() -> int:
     standalone_evidence_path = args.report_dir / "standalone_evidence.json"
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "evidence",
             str(CACHED_EVIDENCE_RESULT),
             "--output",
@@ -72,7 +72,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(standalone_evidence_path),
             "--kind",
@@ -82,7 +82,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "render",
             str(CACHED_EVIDENCE_RESULT),
             "--output-dir",
@@ -92,7 +92,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "summary.json"),
             "--kind",
@@ -102,7 +102,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "assessment.json"),
             "--kind",
@@ -112,7 +112,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "policy.json"),
             "--kind",
@@ -123,7 +123,7 @@ def main() -> int:
     reassessment_path = args.report_dir / "reassessment.json"
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "assess",
             str(args.report_dir / "evidence.json"),
             "--policy",
@@ -135,7 +135,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "assess",
             str(args.report_dir / "evidence.json"),
             "--policy",
@@ -147,7 +147,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(reassessment_path),
             "--kind",
@@ -157,7 +157,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "protocol.json"),
             "--kind",
@@ -167,7 +167,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "transforms.json"),
             "--kind",
@@ -177,7 +177,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "bundle.json"),
             "--kind",
@@ -188,7 +188,7 @@ def main() -> int:
     verification_path = args.report_dir / "verification.json"
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "verify",
             str(args.report_dir / "bundle.json"),
             "--output",
@@ -198,7 +198,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(verification_path),
             "--kind",
@@ -206,10 +206,10 @@ def main() -> int:
             "--json",
         ]
     )
-    _run([str(smoke_calibrex), "verify", str(verification_path), "--json"])
+    _run([str(smoke_slac), "verify", str(verification_path), "--json"])
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(args.report_dir / "evidence.json"),
             "--kind",
@@ -220,7 +220,7 @@ def main() -> int:
     comparison_path = args.report_dir / "comparison.json"
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "compare",
             str(CACHED_EVIDENCE_RESULT),
             str(CACHED_EVIDENCE_RESULT),
@@ -230,7 +230,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "compare",
             str(CACHED_EVIDENCE_RESULT),
             str(CACHED_EVIDENCE_RESULT),
@@ -240,7 +240,7 @@ def main() -> int:
     )
     _run(
         [
-            str(smoke_calibrex),
+            str(smoke_slac),
             "validate",
             str(comparison_path),
             "--kind",
@@ -253,8 +253,8 @@ def main() -> int:
 
 
 def _require_repo_root() -> None:
-    if not Path("pyproject.toml").exists() or not Path("src/calibrex").is_dir():
-        raise SystemExit("run this script from the Calibrex repository root")
+    if not Path("pyproject.toml").exists() or not Path("src/slac").is_dir():
+        raise SystemExit("run this script from the slac repository root")
 
 
 def _remove(path: Path) -> None:

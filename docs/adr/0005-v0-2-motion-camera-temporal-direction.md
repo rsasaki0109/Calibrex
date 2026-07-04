@@ -20,7 +20,7 @@ roadmap item. Everything in v0.1 assumes a static rig and fixed trajectory.
 
 ## Decision
 
-v0.2 extends Calibrex along three pillars, in priority order.
+v0.2 extends slac along three pillars, in priority order.
 
 ### Pillar 1: Moving-platform support
 

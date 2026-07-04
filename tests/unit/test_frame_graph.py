@@ -1,14 +1,14 @@
 import pytest
 
-from calibrex.core.config import CalibrationConfig
-from calibrex.core.exceptions import FrameGraphError
-from calibrex.core.frames import FrameGraph
+from slac.core.config import CalibrationConfig
+from slac.core.exceptions import FrameGraphError
+from slac.core.frames import FrameGraph
 
 
 def test_frame_graph_from_minimal_config() -> None:
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "filesystem", "path": "examples/synthetic_camera_lidar_imu"},
             "sensors": {"camera0": {"type": "camera"}},
             "frames": {
@@ -25,7 +25,7 @@ def test_frame_graph_from_minimal_config() -> None:
 def test_frame_graph_rejects_cycle() -> None:
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "filesystem", "path": "examples/synthetic_camera_lidar_imu"},
             "sensors": {"camera0": {"type": "camera"}},
             "frames": {

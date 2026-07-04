@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from calibrex.core.geometry import SE3
-from calibrex.data.nuscenes_radar import read_nuscenes_radar_pcd, write_nuscenes_radar_pcd
-from calibrex.evaluation.radar import (
+from slac.core.geometry import SE3
+from slac.data.nuscenes_radar import read_nuscenes_radar_pcd, write_nuscenes_radar_pcd
+from slac.evaluation.radar import (
     RadarVelocityConsistencyStats,
     score_radar_velocity_frame,
     summarize_nuscenes_radar_velocity_consistency,
@@ -30,7 +30,7 @@ def _synthetic_static_radar_fields(
 ) -> dict[str, list[float]]:
     extrinsic = t_ego_radar or SE3.identity()
     inv_rotation = extrinsic.rotation_quat_xyzw
-    from calibrex.core.geometry import quaternion_conjugate_xyzw, rotate_vector_xyzw
+    from slac.core.geometry import quaternion_conjugate_xyzw, rotate_vector_xyzw
 
     v_radar = rotate_vector_xyzw(
         quaternion_conjugate_xyzw(inv_rotation),

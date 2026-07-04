@@ -6,13 +6,13 @@ Accepted for v0.1 alpha planning.
 
 ## Context
 
-Calibrex should not compete with targetless LiDAR-camera SOTA methods first.
+slac should not compete with targetless LiDAR-camera SOTA methods first.
 For v0.1, the stronger OSS value is a reproducible evaluation and failure
 diagnosis layer for fixed-mounted vehicle LiDAR calibration candidates.
 
 The alpha statement is:
 
-> On public driving datasets, Calibrex compares LiDAR, camera, IMU, and radar
+> On public driving datasets, slac compares LiDAR, camera, IMU, and radar
 > extrinsic candidates through one CLI, one schema, one holdout protocol, and
 > one report, while explaining which DoF are reliable and which are degenerate.
 
@@ -39,14 +39,14 @@ P1 work:
 - Solid-state multi-LiDAR evidence on public Livox data, starting with the
   TIERS `LidarsCali` sequence containing Livox Horizon and Livox Avia streams.
 - Common report comparison for dataset calibration, perturbed candidates,
-  Koide-style adapter output, and native Calibrex output.
+  Koide-style adapter output, and native slac output.
 
 A2D2 remains useful as a public multi-LiDAR smoke test, but it uses Velodyne
 VLP-16 spinning LiDARs and must not be presented as a solid-state dataset.
 
 ## Consequences
 
-Calibrex v0.1 will not claim SOTA absolute calibration accuracy. It will claim
+slac v0.1 will not claim SOTA absolute calibration accuracy. It will claim
 repeatable calibration evaluation, candidate ranking, holdout consistency, and
 failure diagnosis on public driving datasets.
 
@@ -71,11 +71,11 @@ claims accurate, v0.1 alpha should be described as LiDAR-main:
 - **LiDAR**: delivered. Holdout point-to-plane consistency, per-DoF
   known-bad perturbation challenges, and observability/degeneracy sidecars
   are implemented and exercised on public KITTI/A2D2/Livox data.
-- **Camera**: partial. `src/calibrex/evaluation/lidar_camera.py` computes
+- **Camera**: partial. `src/slac/evaluation/lidar_camera.py` computes
   KITTI camera-LiDAR projection and edge-alignment metrics as a diagnostic
   overlay on the LiDAR candidate. There is no standalone camera-only
   candidate evaluation path.
-- **IMU**: roadmap, not evaluation. `src/calibrex/evaluation/motion.py`
+- **IMU**: roadmap, not evaluation. `src/slac/evaluation/motion.py`
   computes vehicle-motion excitation from OXTS to flag degenerate LiDAR
   segments; it does not evaluate IMU extrinsic candidates.
 - **Radar**: experimental consistency check (2026-07-03). nuScenes radar PCDs and

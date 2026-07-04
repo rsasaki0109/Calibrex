@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "calibrex.readme_gif_gallery/v0.3",
-  "title": "Calibrex README GIF gallery manifest",
+  "$id": "slac.readme_gif_gallery/v0.3",
+  "title": "slac README GIF gallery manifest",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "calibrex.readme_gif_gallery/v0.3"
+      "const": "slac.readme_gif_gallery/v0.3"
     },
     "generator": {
       "const": "tools/generate_calibration_evidence_gif.py"
@@ -129,12 +129,12 @@
                 "const": "real_online"
               },
               "source": {
-                "const": "calibrex calibrate --online"
+                "const": "slac calibrate --online"
               },
               "timeline_schema_version": {
                 "enum": [
-                  "calibrex.online_timeline/v0.2",
-                  "calibrex.online_timeline/v0.3"
+                  "slac.online_timeline/v0.2",
+                  "slac.online_timeline/v0.3"
                 ]
               }
             }

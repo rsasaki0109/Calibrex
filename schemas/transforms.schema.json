@@ -32,10 +32,6 @@
       "additionalProperties": false,
       "description": "Minimal run metadata repeated in report sidecars.",
       "properties": {
-        "calibrex_version": {
-          "title": "Calibrex Version",
-          "type": "string"
-        },
         "created_at": {
           "title": "Created At",
           "type": "string"
@@ -84,6 +80,10 @@
           "title": "Id",
           "type": "string"
         },
+        "slac_version": {
+          "title": "Slac Version",
+          "type": "string"
+        },
         "status": {
           "enum": [
             "success",
@@ -99,7 +99,7 @@
         "id",
         "status",
         "domain",
-        "calibrex_version",
+        "slac_version",
         "created_at"
       ],
       "title": "ReportRunInfo",
@@ -182,7 +182,7 @@
         "producer": {
           "default": "unknown",
           "enum": [
-            "calibrex_native",
+            "slac_native",
             "external_tool",
             "human",
             "dataset_provider",
@@ -430,8 +430,8 @@
       "$ref": "#/$defs/ReportRunInfo"
     },
     "schema_version": {
-      "const": "calibrex.transforms/v0.1",
-      "default": "calibrex.transforms/v0.1",
+      "const": "slac.transforms/v0.1",
+      "default": "slac.transforms/v0.1",
       "title": "Schema Version",
       "type": "string"
     }

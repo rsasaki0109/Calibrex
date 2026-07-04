@@ -36,5 +36,5 @@ locations, faces, plates, credentials, and internal paths are removed.
 
 ## Supported Versions
 
-Calibrex is currently an alpha project. Security fixes target the default branch
+slac is currently an alpha project. Security fixes target the default branch
 until release branches are created.

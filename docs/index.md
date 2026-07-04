@@ -1,6 +1,6 @@
-# Calibrex Docs
+# slac Docs
 
-Calibrex is a universal sensor calibration framework for robotics and
+slac is a universal sensor calibration framework for robotics and
 autonomous-driving systems. The v0.1 alpha is LiDAR-main: LiDAR extrinsic
 candidate evaluation (holdout point-to-plane, perturbation challenges,
 observability/degeneracy reporting) is the delivered capability, camera-LiDAR
@@ -27,5 +27,6 @@ Start with:
 - `docs/adr/0001-core-is-ros-independent.md`
 - `docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`
 - `docs/adr/0005-v0-2-motion-camera-temporal-direction.md`
+- `docs/adr/0006-rename-to-slac.md`
 
-Regenerate committed schemas with `calibrex schema all --output-dir schemas`.
+Regenerate committed schemas with `slac schema all --output-dir schemas`.

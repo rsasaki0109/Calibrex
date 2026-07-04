@@ -67,7 +67,7 @@ def test_readme_gallery_manifest_matches_assets() -> None:
 
 
 def test_readme_gif_tool_timeline_schema_version_matches_core() -> None:
-    from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
+    from slac.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
 
     tool = load_gif_tool()
     assert tool.ONLINE_TIMELINE_SCHEMA_VERSION == ONLINE_TIMELINE_SCHEMA_VERSION
@@ -120,8 +120,8 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
     }
     assert online_asset["pipeline"] == {
         "mode": "real_online",
-        "source": "calibrex calibrate --online",
-        "timeline_schema_version": "calibrex.online_timeline/v0.2",
+        "source": "slac calibrate --online",
+        "timeline_schema_version": "slac.online_timeline/v0.2",
     }
     assert online_asset["online_run"]["batch_count"] >= 1
     assert (

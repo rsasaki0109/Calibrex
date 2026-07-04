@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from calibrex.core.result import (
+from slac.core.result import (
     CalibrationResult,
     FrameGraphSnapshot,
     MetricResult,
@@ -10,7 +10,7 @@ from calibrex.core.result import (
     TransformEstimateProvenance,
     TransformResult,
 )
-from calibrex.evaluation.report_compare import (
+from slac.evaluation.report_compare import (
     REPORT_COMPARISON_SCHEMA_VERSION,
     compare_reports,
     report_comparison_json_schema,
@@ -68,7 +68,7 @@ def _result(
     return CalibrationResult(
         run=RunInfo(
             id=run_id,
-            calibrex_version="0.1.0",
+            slac_version="0.1.0",
             provenance=provenance or {},
         ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None, "lidar0": "base"}),
@@ -241,10 +241,10 @@ def test_compare_reports_distinguishes_entry_provenance_roles() -> None:
         ),
     )
     native = _result(
-        "calibrex_output",
+        "slac_output",
         rmse_holdout=0.02,
         transform_provenance=TransformEstimateProvenance(
-            producer="calibrex_native",
+            producer="slac_native",
             execution_mode="offline_batch",
             role_in_comparison="output",
             evidence_level="algorithmically_refined",
@@ -268,7 +268,7 @@ def test_compare_reports_distinguishes_entry_provenance_roles() -> None:
     )
     assert report.entries["external"].provenance.dominant_producer == "external_tool"
     assert report.entries["external"].provenance.dominant_role == "comparison_baseline"
-    assert report.entries["native"].provenance.dominant_producer == "calibrex_native"
+    assert report.entries["native"].provenance.dominant_producer == "slac_native"
     assert report.entries["native"].provenance.dominant_role == "output"
     assert report.entries["native"].provenance.provenance_group == "transforms"
 
@@ -311,5 +311,5 @@ def test_compare_reports_rejects_invalid_inputs() -> None:
 def test_report_comparison_json_schema_names_versioned_artifact() -> None:
     schema = report_comparison_json_schema()
     assert schema["properties"]["schema_version"]["const"] == (
-        "calibrex.report_comparison/v0.1"
+        "slac.report_comparison/v0.1"
     )

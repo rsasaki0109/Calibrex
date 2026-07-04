@@ -1,11 +1,11 @@
 import sys
 from pathlib import Path
 
-from calibrex.core.config import CalibrationConfig
-from calibrex.core.frames import FrameGraph
-from calibrex.data.base import StreamSummary
-from calibrex.data.inspect import DatasetInspection
-from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from slac.core.config import CalibrationConfig
+from slac.core.frames import FrameGraph
+from slac.data.base import StreamSummary
+from slac.data.inspect import DatasetInspection
+from slac.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 
 
 def test_koide_lidar_camera_adapter_loads_precomputed_transform(tmp_path: Path) -> None:
@@ -24,7 +24,7 @@ transforms:
     )
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "filesystem", "path": str(tmp_path)},
             "sensors": {
                 "camera0": {"type": "camera"},
@@ -72,7 +72,7 @@ transforms:
 def test_koide_lidar_camera_adapter_reports_missing_boundary(tmp_path: Path) -> None:
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "filesystem", "path": str(tmp_path)},
             "sensors": {
                 "camera0": {"type": "camera"},
@@ -128,7 +128,7 @@ print("wrote", sys.argv[1])
     )
     config = CalibrationConfig.model_validate(
         {
-            "schema_version": "calibrex.config/v0.1",
+            "schema_version": "slac.config/v0.1",
             "dataset": {"type": "filesystem", "path": str(tmp_path)},
             "sensors": {
                 "camera0": {"type": "camera"},
