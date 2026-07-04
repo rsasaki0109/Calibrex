@@ -172,7 +172,14 @@ def test_motion_hero_gif_manifest_declares_real_pipeline_provenance() -> None:
     rosbag_input = hero_asset["public_inputs"][0]
     assert rosbag_input["kind"] == "rosbag2_local_dataset"
     assert rosbag_input["storage_file"] == "indoor02_rosbag2_kissicp.db3"
-    assert rosbag_input["replay_budgets"]["max_target_messages"] == 36
+    replay_budgets = rosbag_input["replay_budgets"]
+    assert replay_budgets["calibration_run"]["max_target_messages"] == 36
+    assert replay_budgets["map_view"]["max_source_points"] == 8400
+    assert replay_budgets["map_view"]["max_source_messages"] == 420
+    assert hero_asset["animation"]["map_view"]["scan_count"] == 420
+    assert hero_asset["animation"]["map_view"]["scans_per_animation_frame"] == pytest.approx(
+        9.55, abs=0.1
+    )
 
 
 def test_tiers_hero_gif_skips_when_bag_absent(

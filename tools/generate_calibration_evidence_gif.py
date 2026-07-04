@@ -537,7 +537,9 @@ def readme_gallery_manifest_asset(
             "kind": "rosbag2_local_dataset",
             "bag_dir": str(INDOOR02_KISSICP_BAG_DIR),
             "storage_file": INDOOR02_KISSICP_STORAGE.name,
-            "replay_budgets": indoor02_gif_replay_budgets(),
+            "replay_budgets": indoor02_gif_replay_budgets(
+                scan_count=motion_scene.scan_count if motion_scene is not None else None
+            ),
         }
         if bag_path.exists():
             rosbag2_input["size_bytes"] = bag_path.stat().st_size
@@ -588,6 +590,14 @@ def readme_gallery_manifest_asset(
             "fps": MOTION_HERO_FPS,
             "width": WIDTH,
             "height": HEIGHT,
+            "map_view": {
+                "scan_count": motion_scene.scan_count,
+                "trajectory_bbox_m": motion_scene.trajectory_bbox_m,
+                "view_window_m": motion_scene.view_window_m,
+                "scans_per_animation_frame": round(
+                    motion_scene.scans_per_animation_frame, 2
+                ),
+            },
         }
     elif job.visual == "online":
         if online_run is None:
@@ -724,6 +734,10 @@ def load_motion_scene_for_manifest(job: ReadmeGifJob) -> MotionHeroScene | None:
         final_gate_status=str(payload["final_gate_status"]),
         rejected_batch_count=int(payload["rejected_batch_count"]),
         inconclusive_batch_count=int(payload["inconclusive_batch_count"]),
+        trajectory_bbox_m=dict(payload["trajectory_bbox_m"]),
+        view_window_m=dict(payload["view_window_m"]),
+        scan_count=int(payload["scan_count"]),
+        scans_per_animation_frame=float(payload["scans_per_animation_frame"]),
     )
 
 
@@ -1050,6 +1064,10 @@ def write_motion_run_cache(output: Path, motion_scene: MotionHeroScene) -> None:
         "inconclusive_batch_count": motion_scene.inconclusive_batch_count,
         "final_gate_status": motion_scene.final_gate_status,
         "gate_thresholds": motion_scene.gate_thresholds,
+        "scan_count": motion_scene.scan_count,
+        "trajectory_bbox_m": motion_scene.trajectory_bbox_m,
+        "view_window_m": motion_scene.view_window_m,
+        "scans_per_animation_frame": motion_scene.scans_per_animation_frame,
     }
     cache_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

@@ -45,7 +45,7 @@ MOTION_HERO_GATE_M = 0.40
 MOTION_HERO_MIN_GAP_PX = 8
 MOTION_HERO_WIDTH = 960
 MOTION_HERO_HEIGHT = 540
-MOTION_BOUNDS_MARGIN_M = 8.0
+MOTION_BOUNDS_MARGIN_M = 4.0
 MOTION_RANGE_CROP_M = 20.0
 MOTION_GATE_CELL_PX = 8
 MOTION_GATE_GAP_PX = 2
@@ -56,8 +56,9 @@ MOTION_REVIEW_FRAME_DIR = Path(
     "a7615978-7430-47f7-be9c-dee6615fc440/scratchpad/herogif-review"
 )
 
-INDOOR02_GIF_MAX_SOURCE_MESSAGES = 12
-INDOOR02_GIF_MAX_SOURCE_POINTS = 8000
+INDOOR02_MAP_MAX_SOURCE_POINTS = 8400
+INDOOR02_MAP_MAX_REPLAY_DURATION_S = 60.0
+INDOOR02_MAP_SUBSAMPLE_SEED = "scan_index"
 INDOOR02_GIF_MAX_TARGET_MESSAGES = 36
 INDOOR02_GIF_MAX_TARGET_POINTS = 1500
 INDOOR02_GIF_MAX_REPLAY_DURATION_S = 60.0
@@ -161,22 +162,42 @@ class MotionHeroScene:
     final_gate_status: str
     rejected_batch_count: int
     inconclusive_batch_count: int
+    trajectory_bbox_m: dict[str, float]
+    view_window_m: dict[str, float]
+    scan_count: int
+    scans_per_animation_frame: float
 
 
 def indoor02_kissicp_bag_available() -> bool:
     return INDOOR02_KISSICP_STORAGE.is_file()
 
 
-def indoor02_gif_replay_budgets() -> dict[str, object]:
+def indoor02_map_replay_budgets(*, scan_count: int | None = None) -> dict[str, object]:
+    budgets: dict[str, object] = {
+        "max_source_points": INDOOR02_MAP_MAX_SOURCE_POINTS,
+        "max_replay_duration_s": INDOOR02_MAP_MAX_REPLAY_DURATION_S,
+        "subsample_seed": INDOOR02_MAP_SUBSAMPLE_SEED,
+    }
+    if scan_count is not None:
+        budgets["max_source_messages"] = scan_count
+    return budgets
+
+
+def indoor02_calibration_replay_budgets() -> dict[str, object]:
     return {
-        "max_source_messages": INDOOR02_GIF_MAX_SOURCE_MESSAGES,
-        "max_source_points": INDOOR02_GIF_MAX_SOURCE_POINTS,
         "max_target_messages": INDOOR02_GIF_MAX_TARGET_MESSAGES,
         "max_target_points": INDOOR02_GIF_MAX_TARGET_POINTS,
         "max_replay_duration_s": INDOOR02_GIF_MAX_REPLAY_DURATION_S,
         "batch_size": INDOOR02_GIF_BATCH_SIZE,
         "holdout_ratio": INDOOR02_GIF_HOLDOUT_RATIO,
         "rolling_window": INDOOR02_GIF_ROLLING_WINDOW,
+    }
+
+
+def indoor02_gif_replay_budgets(*, scan_count: int | None = None) -> dict[str, object]:
+    return {
+        "map_view": indoor02_map_replay_budgets(scan_count=scan_count),
+        "calibration_run": indoor02_calibration_replay_budgets(),
     }
 
 
@@ -229,19 +250,29 @@ def run_indoor02_motion_hero_pipeline(
         raise SystemExit("online calibration produced no timeline batches for the motion hero")
 
     scans, target_batches, trajectory, odom_track = load_indoor02_motion_bag_data()
+    trajectory_bbox_m = trajectory_bbox(trajectory)
     bounds = compute_motion_bounds(trajectory)
+    view_window_m = {
+        "x_min": bounds.x_min,
+        "x_max": bounds.x_max,
+        "y_min": bounds.y_min,
+        "y_max": bounds.y_max,
+    }
     initial_batch_transform = _load_initial_extrinsic_from_config(INDOOR02_KISSICP_CONFIG)
     scans = _crop_motion_scans(scans, bounds, odom_track)
     batch_transforms = tuple(_transform_result_to_se3(batch.estimate) for batch in timeline.batches)
     holdout_rmses = tuple(batch.batch_holdout_rmse_m for batch in timeline.batches)
     gate_statuses = tuple(batch.gate_status for batch in timeline.batches)
+    scan_count = len(scans)
+    anim_frames = max(1, frames - MOTION_HERO_HOLD_FRAMES)
+    scans_per_animation_frame = scan_count / max(1, anim_frames)
     frame_states = build_motion_hero_frame_states(
         batch_count=len(timeline.batches),
         accepted_batch_count=timeline.accepted_batch_count,
         holdout_rmses=holdout_rmses,
         gate_statuses=gate_statuses,
         batch_transforms=batch_transforms,
-        scan_count=len(scans),
+        scan_count=scan_count,
         frames=frames,
     )
     return MotionHeroScene(
@@ -267,6 +298,10 @@ def run_indoor02_motion_hero_pipeline(
         final_gate_status=timeline.final_gate_status,
         rejected_batch_count=timeline.rejected_batch_count,
         inconclusive_batch_count=timeline.inconclusive_batch_count,
+        trajectory_bbox_m=trajectory_bbox_m,
+        view_window_m=view_window_m,
+        scan_count=scan_count,
+        scans_per_animation_frame=scans_per_animation_frame,
     )
 
 
@@ -293,8 +328,12 @@ def load_indoor02_motion_bag_data() -> tuple[
         if connection.message_type != POINTCLOUD2_TYPE:
             continue
         if connection.topic == INDOOR02_VELO_TOPIC:
-            if len(velo_messages) >= INDOOR02_GIF_MAX_SOURCE_MESSAGES:
-                continue
+            if replay_start_ns is None:
+                replay_start_ns = timestamp_ns
+            if INDOOR02_MAP_MAX_REPLAY_DURATION_S is not None:
+                elapsed_ns = timestamp_ns - replay_start_ns
+                if elapsed_ns > int(INDOOR02_MAP_MAX_REPLAY_DURATION_S * 1_000_000_000):
+                    continue
             message = decode_pointcloud2(connection.topic, timestamp_ns, data)
             velo_messages.append((timestamp_ns, message))
             continue
@@ -305,9 +344,9 @@ def load_indoor02_motion_bag_data() -> tuple[
         if INDOOR02_GIF_MAX_REPLAY_DURATION_S is not None:
             elapsed_ns = timestamp_ns - replay_start_ns
             if elapsed_ns > int(INDOOR02_GIF_MAX_REPLAY_DURATION_S * 1_000_000_000):
-                break
+                continue
         if target_messages >= INDOOR02_GIF_MAX_TARGET_MESSAGES:
-            break
+            continue
         message = decode_pointcloud2(connection.topic, timestamp_ns, data)
         ouster_messages.append((timestamp_ns, message))
         target_messages += 1
@@ -317,7 +356,7 @@ def load_indoor02_motion_bag_data() -> tuple[
 
     odom_track = OdometryTrack(odom_samples)
     scans: list[MotionHeroScan] = []
-    points_budget = INDOOR02_GIF_MAX_SOURCE_POINTS
+    points_budget = INDOOR02_MAP_MAX_SOURCE_POINTS
     for scan_index, (timestamp_ns, message) in enumerate(velo_messages):
         pose, _, _ = odom_track.interpolate(timestamp_ns)
         remaining = max(1, points_budget // max(1, len(velo_messages) - scan_index))
@@ -353,6 +392,8 @@ def build_motion_hero_frame_states(
             else frame_index / max(1, anim_frames - 1)
         )
         batch_index = min(batch_count - 1, round(progress * max(1, batch_count - 1)))
+        # Map view replays the full-sequence odometry path; HUD batches stay on the
+        # bounded online-calibration timeline. Both advance on the same animation clock.
         scan_index = min(scan_count - 1, round(progress * max(1, scan_count - 1)))
         visible = batch_index + 1
         visible_gate_statuses = gate_statuses[:visible]
@@ -370,6 +411,21 @@ def build_motion_hero_frame_states(
             )
         )
     return tuple(states)
+
+
+def trajectory_bbox(
+    trajectory: tuple[tuple[float, float, float], ...],
+) -> dict[str, float]:
+    if not trajectory:
+        raise RuntimeError("motion hero requires a non-empty trajectory for bbox")
+    xs = [x for x, _y, _yaw in trajectory]
+    ys = [y for _x, y, _yaw in trajectory]
+    return {
+        "x_min": min(xs),
+        "x_max": max(xs),
+        "y_min": min(ys),
+        "y_max": max(ys),
+    }
 
 
 def compute_motion_bounds(
@@ -538,7 +594,7 @@ def motion_hero_layout(width: int) -> dict[str, LayoutRect]:
     )
     title1 = LayoutRect(MOTION_MARGIN, 14, 920, 22)
     title2 = LayoutRect(MOTION_MARGIN, 44, 920, 18)
-    footnote = LayoutRect(width - 430, MOTION_HUD_BOTTOM - 8, 414, 14)
+    footnote = LayoutRect(width - 620, MOTION_HUD_BOTTOM - 8, 604, 14)
     rmse_label = LayoutRect(spark.x + spark.width - 92, spark.y + 4, 84, 16)
     counter = LayoutRect(gate.x, gate.bottom - 14, gate.width, 14)
     spark_label = LayoutRect(spark.x, spark.y - 2, 180, 16)
@@ -617,7 +673,10 @@ def build_motion_frame_text_filter(
             "CBD5E1",
         ),
         (
-            "generated from a real slac calibrate --online run",
+            (
+                "map: full-sequence odometry replay; "
+                "gates/RMSE: real bounded slac calibrate --online run"
+            ),
             layout["footnote"].x,
             layout["footnote"].y,
             11,

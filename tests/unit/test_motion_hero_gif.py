@@ -18,11 +18,30 @@ import motion_hero_gif  # noqa: E402
 
 def test_compute_motion_bounds_uses_trajectory_margin_only() -> None:
     trajectory = ((0.0, 0.0, 0.0), (2.0, 1.0, 0.5))
-    bounds = motion_hero_gif.compute_motion_bounds(trajectory, margin_m=8.0)
-    assert bounds.x_min == pytest.approx(-8.0)
-    assert bounds.x_max == pytest.approx(10.0)
-    assert bounds.y_min == pytest.approx(-8.0)
-    assert bounds.y_max == pytest.approx(9.0)
+    bounds = motion_hero_gif.compute_motion_bounds(trajectory, margin_m=4.0)
+    assert bounds.x_min == pytest.approx(-4.0)
+    assert bounds.x_max == pytest.approx(6.0)
+    assert bounds.y_min == pytest.approx(-4.0)
+    assert bounds.y_max == pytest.approx(5.0)
+
+
+def test_build_motion_hero_frame_states_decouples_map_and_hud_progress() -> None:
+    states = motion_hero_gif.build_motion_hero_frame_states(
+        batch_count=108,
+        accepted_batch_count=0,
+        holdout_rmses=(0.3,) * 108,
+        gate_statuses=("pass",) * 108,
+        batch_transforms=(motion_hero_gif.SE3.identity(),) * 108,
+        scan_count=420,
+        frames=50,
+    )
+    assert states[0].scan_index == 0
+    assert states[0].batch_index == 0
+    assert states[-1].scan_index == 419
+    assert states[-1].batch_index == 107
+    mid = states[28]
+    assert mid.scan_index > 200
+    assert mid.batch_index > 50
 
 
 def test_verify_motion_text_rendered_rejects_blank_title_band() -> None:

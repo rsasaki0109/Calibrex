@@ -170,6 +170,48 @@
               "width": {
                 "type": "integer",
                 "minimum": 1
+              },
+              "map_view": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "scan_count",
+                  "scans_per_animation_frame",
+                  "trajectory_bbox_m",
+                  "view_window_m"
+                ],
+                "properties": {
+                  "scan_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "scans_per_animation_frame": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "trajectory_bbox_m": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x_max", "x_min", "y_max", "y_min"],
+                    "properties": {
+                      "x_min": { "type": "number" },
+                      "x_max": { "type": "number" },
+                      "y_min": { "type": "number" },
+                      "y_max": { "type": "number" }
+                    }
+                  },
+                  "view_window_m": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x_max", "x_min", "y_max", "y_min"],
+                    "properties": {
+                      "x_min": { "type": "number" },
+                      "x_max": { "type": "number" },
+                      "y_min": { "type": "number" },
+                      "y_max": { "type": "number" }
+                    }
+                  }
+                }
               }
             }
           },
@@ -369,48 +411,73 @@
                     "replay_budgets": {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": [
-                        "batch_size",
-                        "holdout_ratio",
-                        "max_replay_duration_s",
-                        "max_source_messages",
-                        "max_source_points",
-                        "max_target_messages",
-                        "max_target_points",
-                        "rolling_window"
-                      ],
+                      "required": ["calibration_run", "map_view"],
                       "properties": {
-                        "max_source_messages": {
-                          "type": "integer",
-                          "minimum": 1
+                        "map_view": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "max_replay_duration_s",
+                            "max_source_messages",
+                            "max_source_points",
+                            "subsample_seed"
+                          ],
+                          "properties": {
+                            "max_source_messages": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_source_points": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_replay_duration_s": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "subsample_seed": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
                         },
-                        "max_source_points": {
-                          "type": "integer",
-                          "minimum": 1
-                        },
-                        "max_target_messages": {
-                          "type": "integer",
-                          "minimum": 1
-                        },
-                        "max_target_points": {
-                          "type": "integer",
-                          "minimum": 1
-                        },
-                        "max_replay_duration_s": {
-                          "type": "number",
-                          "exclusiveMinimum": 0
-                        },
-                        "batch_size": {
-                          "type": "integer",
-                          "minimum": 1
-                        },
-                        "holdout_ratio": {
-                          "type": "number",
-                          "exclusiveMinimum": 0
-                        },
-                        "rolling_window": {
-                          "type": "integer",
-                          "minimum": 1
+                        "calibration_run": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "batch_size",
+                            "holdout_ratio",
+                            "max_replay_duration_s",
+                            "max_target_messages",
+                            "max_target_points",
+                            "rolling_window"
+                          ],
+                          "properties": {
+                            "max_target_messages": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_target_points": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_replay_duration_s": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "batch_size": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "holdout_ratio": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "rolling_window": {
+                              "type": "integer",
+                              "minimum": 1
+                            }
+                          }
                         }
                       }
                     }
