@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import cast
 
 from calibrex.core.result import CalibrationResult, Grade, MetricResult, QualitySummary
+from calibrex.evaluation.evidence_summary import evidence_decision_grade_from_result
 from calibrex.evaluation.recommendations import build_recommendations
 from calibrex.evaluation.thresholds import (
     ThresholdProfile,
@@ -38,6 +39,9 @@ def evaluate_quality(
     grades.extend(offset.quality.grade for offset in result.time_offsets.values())
     grades.append(result.observability.grade)
     grades.append(result.degeneracy.grade)
+    evidence_grade = evidence_decision_grade_from_result(result)
+    if evidence_grade is not None:
+        grades.append(evidence_grade)
 
     warnings: list[str] = []
     failures: list[str] = []
@@ -62,6 +66,10 @@ def evaluate_quality(
         warnings.append("observability is not fully established")
     elif result.observability.grade == "fail":
         failures.append("observability check failed")
+    if evidence_grade == "warn":
+        warnings.append("evidence decision boundary is inconclusive under declared protocols")
+    elif evidence_grade == "fail":
+        failures.append("evidence decision boundary rejected the candidate")
 
     grade = worst_grade(grades)
     if strict and grade == "warn":

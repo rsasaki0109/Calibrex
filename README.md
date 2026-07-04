@@ -94,7 +94,7 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory SE(3) LiDAR extrinsic correction solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
-| Camera-LiDAR projection / edge-alignment metrics | Experimental diagnostic overlay on the LiDAR candidate, not standalone camera evaluation |
+| Camera-LiDAR projection / edge-alignment evidence | Evaluated candidate overlay using holdout edge scores and known-bad probes; not standalone camera calibration |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
 | Multi-LiDAR fixed-rig evidence visualization | Public A2D2 VLP-16 demo / TIERS LidarsCali planned |
 | IMU extrinsic candidate evaluation | Planned; OXTS motion excitation checks exist today but do not evaluate IMU extrinsics |

@@ -1,4 +1,4 @@
-"""Camera-LiDAR cross-modal metric scaffolding."""
+"""Camera-LiDAR cross-modal candidate evaluation metrics."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ from typing import cast
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3, QuaternionXYZW
-from calibrex.core.result import CalibrationResult, Grade, MetricResult
+from calibrex.core.report_artifacts import EvidenceCaseItem
+from calibrex.core.result import CalibrationResult, Grade, MetricResult, TransformResult
 from calibrex.data.base import StreamSummary
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.kitti import (
@@ -31,6 +32,11 @@ LIDAR_CAMERA_METRIC_PREFIXES = (
     "lidar_camera_",
     "koide_lidar_camera_",
 )
+_LIDAR_CAMERA_MANDATORY_ROTATION_DEG = 1.0
+_LIDAR_CAMERA_MANDATORY_TRANSLATION_M = 0.10
+_LIDAR_CAMERA_MANDATORY_CASE_COUNT = 12.0
+_LIDAR_CAMERA_MANDATORY_DETECTABLE_TARGET = 8
+_DELTA_EPSILON = 1.0e-9
 
 
 @dataclass(frozen=True)
@@ -56,12 +62,22 @@ class _PerturbationCase:
     sample: _ProjectionMetricSample
 
 
+@dataclass(frozen=True)
+class LidarCameraEvidencePayload:
+    """Projection evidence metrics, cases, and protocol metadata."""
+
+    metrics: dict[str, MetricResult]
+    cases: list[EvidenceCaseItem]
+    protocol: dict[str, object]
+    evidence_gates: dict[str, float | int]
+
+
 def lidar_camera_metrics_from_result(
     config: CalibrationConfig,
     result: CalibrationResult,
     inspection: DatasetInspection,
 ) -> dict[str, MetricResult]:
-    """Build camera-LiDAR overlay and targetless-alignment readiness metrics."""
+    """Build camera-LiDAR overlay and projection evidence metrics."""
 
     if not _uses_lidar_camera_evaluation(config):
         return {}
@@ -91,7 +107,13 @@ def lidar_camera_metrics_from_result(
         inspection,
         metrics["lidar_camera_overlay_readiness"],
     )
-    metrics.update(_projection_metrics(config, inspection))
+    projection_payload = _projection_metrics(config, result, inspection)
+    metrics.update(projection_payload.metrics)
+    _store_lidar_camera_evidence_provenance(
+        result,
+        projection_payload,
+        transform_pairs=transform_pairs,
+    )
     if _uses_mutual_information(config):
         metrics["lidar_camera_mutual_information_score"] = MetricResult(
             value=None,
@@ -106,17 +128,30 @@ def lidar_camera_metrics_from_result(
 
 def _projection_metrics(
     config: CalibrationConfig,
+    result: CalibrationResult,
     inspection: DatasetInspection,
-) -> dict[str, MetricResult]:
+) -> LidarCameraEvidencePayload:
+    gates = _evidence_gate_options(config)
     if inspection.dataset_type != "kitti_raw":
-        return {}
+        return LidarCameraEvidencePayload({}, [], {}, gates)
     max_pairs = config.evaluation.kitti.max_projection_pairs
     if max_pairs <= 0:
-        return _unavailable_projection_metrics("KITTI projection evaluation is disabled")
+        return LidarCameraEvidencePayload(
+            _unavailable_projection_metrics("KITTI projection evaluation is disabled"),
+            [],
+            {},
+            gates,
+        )
     frame_pairs = _configured_camera_lidar_frame_pairs(config, inspection, max_pairs=max_pairs)
     if not frame_pairs:
-        return _unavailable_projection_metrics("no concrete camera-LiDAR frame pairs")
+        return LidarCameraEvidencePayload(
+            _unavailable_projection_metrics("no concrete camera-LiDAR frame pairs"),
+            [],
+            {},
+            gates,
+        )
 
+    baseline_transform = _evaluation_camera_lidar_transform(config, result, inspection)
     samples: list[_ProjectionMetricSample] = []
     skipped_reasons: list[str] = []
     for pair in frame_pairs:
@@ -124,6 +159,7 @@ def _projection_metrics(
             inspection,
             pair,
             max_points=config.evaluation.kitti.projection_sample_points,
+            t_camera_lidar_override=baseline_transform,
         )
         if isinstance(sample, _ProjectionMetricSample):
             samples.append(sample)
@@ -136,7 +172,12 @@ def _projection_metrics(
             if skipped_reasons
             else "camera-LiDAR projection could not be computed"
         )
-        return _unavailable_projection_metrics(reason)
+        return LidarCameraEvidencePayload(
+            _unavailable_projection_metrics(reason),
+            [],
+            {},
+            gates,
+        )
 
     reason_suffix = (
         f"mean over {len(samples)} KITTI camera-LiDAR frame pair(s)"
@@ -240,8 +281,28 @@ def _projection_metrics(
             ),
         ),
     }
-    metrics.update(_perturbation_metrics(config, inspection, frame_pairs, samples))
-    return metrics
+    perturbation_metrics, cases = _perturbation_metrics(
+        config,
+        inspection,
+        frame_pairs,
+        samples,
+        baseline_transform=baseline_transform,
+    )
+    metrics.update(perturbation_metrics)
+    case_count_metric = perturbation_metrics.get("lidar_camera_perturbation_case_count")
+    case_count = (
+        int(case_count_metric.value)
+        if case_count_metric and case_count_metric.value is not None
+        else 0
+    )
+    protocol = _lidar_camera_protocol_payload(
+        config,
+        frame_count=len(samples),
+        case_count=case_count,
+        gates=gates,
+        use_frame_graph_candidate=config.evaluation.kitti.use_frame_graph_candidate,
+    )
+    return LidarCameraEvidencePayload(metrics, cases, protocol, gates)
 
 
 def _unavailable_projection_metrics(reason: str) -> dict[str, MetricResult]:
@@ -335,6 +396,16 @@ def _unavailable_projection_metrics(reason: str) -> dict[str, MetricResult]:
             grade="warn",
             reason=reason,
         ),
+        "lidar_camera_perturbation_mandatory_case_count": MetricResult(
+            value=0.0,
+            unit="cases",
+            reason=reason,
+        ),
+        "lidar_camera_perturbation_mandatory_detectable_count": MetricResult(
+            value=None,
+            grade="warn",
+            reason=reason,
+        ),
     }
 
 
@@ -404,11 +475,12 @@ def _perturbation_metrics(
     inspection: DatasetInspection,
     frame_pairs: list[Mapping[object, object]],
     baseline_samples: list[_ProjectionMetricSample],
-) -> dict[str, MetricResult]:
-    base_transform = read_velodyne_to_camera_transform(inspection.path)
-    if base_transform is None:
+    *,
+    baseline_transform: SE3 | None,
+) -> tuple[dict[str, MetricResult], list[EvidenceCaseItem]]:
+    if baseline_transform is None:
         reason = "KITTI Velodyne-camera transform is missing"
-        return _unavailable_perturbation_metrics(reason)
+        return _unavailable_perturbation_metrics(reason), []
 
     cases: list[_PerturbationCase] = []
     skipped_reasons: list[str] = []
@@ -418,7 +490,7 @@ def _perturbation_metrics(
                 inspection,
                 pair,
                 max_points=config.evaluation.kitti.projection_sample_points,
-                t_camera_lidar_override=delta.compose(base_transform),
+                t_camera_lidar_override=delta.compose(baseline_transform),
             )
             if isinstance(sample, _ProjectionMetricSample):
                 cases.append(
@@ -434,18 +506,35 @@ def _perturbation_metrics(
 
     if not cases:
         reason = skipped_reasons[0] if skipped_reasons else "no perturbation cases were scored"
-        return _unavailable_perturbation_metrics(reason)
+        return _unavailable_perturbation_metrics(reason), []
 
     case_deltas = _perturbation_case_deltas(baseline_samples, cases)
     edge_deltas = [edge for edge, _, _ in case_deltas if edge is not None]
     depth_edge_deltas = [depth for _, depth, _ in case_deltas if depth is not None]
     projection_ratio_deltas = [ratio for _, _, ratio in case_deltas if ratio is not None]
     detectable = _detectable_fraction(case_deltas)
+    mandatory_cases = [
+        (case, deltas)
+        for case, deltas in zip(cases, case_deltas, strict=True)
+        if _is_mandatory_perturbation_case(case)
+    ]
+    mandatory_detectable_count = sum(
+        1
+        for _, deltas in mandatory_cases
+        if any(delta is not None and delta > _DELTA_EPSILON for delta in deltas)
+    )
+    mandatory_grade: Grade = (
+        "pass"
+        if mandatory_detectable_count
+        >= config.evaluation.kitti.evidence_gate_min_mandatory_detectable_count
+        else "warn"
+    )
     grade: Grade = "pass" if detectable and detectable > 0.0 else "warn"
     reason = (
-        "known camera-frame perturbations of KITTI T_camera_lidar; "
+        "known camera-frame perturbations of T_camera_lidar; "
         "positive deltas mean the reference projection score is better"
     )
+    evidence_cases = _perturbation_evidence_cases(cases, case_deltas)
     return {
         "lidar_camera_perturbation_case_count": MetricResult(
             value=float(len(cases)),
@@ -479,7 +568,30 @@ def _perturbation_metrics(
             grade=grade,
             reason=reason,
         ),
-    }
+        "lidar_camera_perturbation_mandatory_case_count": MetricResult(
+            value=float(len(mandatory_cases)),
+            unit="cases",
+            grade=(
+                "pass"
+                if len(mandatory_cases) >= int(_LIDAR_CAMERA_MANDATORY_CASE_COUNT)
+                else "warn"
+            ),
+            reason=(
+                "predeclared large ±1 deg and ±0.10 m perturbation cases "
+                "materialized for roll/pitch/yaw/x/y/z"
+            ),
+        ),
+        "lidar_camera_perturbation_mandatory_detectable_count": MetricResult(
+            value=float(mandatory_detectable_count),
+            unit="cases",
+            grade=mandatory_grade,
+            reason=(
+                "mandatory perturbation cases detected under projection scoring; "
+                "target >= "
+                f"{config.evaluation.kitti.evidence_gate_min_mandatory_detectable_count} cases"
+            ),
+        ),
+    }, evidence_cases
 
 
 def _unavailable_perturbation_metrics(reason: str) -> dict[str, MetricResult]:
@@ -505,6 +617,16 @@ def _unavailable_perturbation_metrics(reason: str) -> dict[str, MetricResult]:
             reason=reason,
         ),
         "lidar_camera_perturbation_projection_ratio_delta_mean": MetricResult(
+            value=None,
+            grade="warn",
+            reason=reason,
+        ),
+        "lidar_camera_perturbation_mandatory_case_count": MetricResult(
+            value=0.0,
+            unit="cases",
+            reason=reason,
+        ),
+        "lidar_camera_perturbation_mandatory_detectable_count": MetricResult(
             value=None,
             grade="warn",
             reason=reason,
@@ -1006,3 +1128,157 @@ def _float_or_none(value: object) -> float | None:
     if isinstance(value, int | float):
         return float(value)
     return None
+
+
+def _evidence_gate_options(config: CalibrationConfig) -> dict[str, float | int]:
+    kitti = config.evaluation.kitti
+    return {
+        "evidence_gate_min_edge_alignment_holdout": (
+            kitti.evidence_gate_min_edge_alignment_holdout
+        ),
+        "evidence_gate_min_depth_edge_alignment_holdout": (
+            kitti.evidence_gate_min_depth_edge_alignment_holdout
+        ),
+        "evidence_gate_min_perturbation_detectable_fraction": (
+            kitti.evidence_gate_min_perturbation_detectable_fraction
+        ),
+        "evidence_gate_min_mandatory_detectable_count": (
+            kitti.evidence_gate_min_mandatory_detectable_count
+        ),
+    }
+
+
+def _evaluation_camera_lidar_transform(
+    config: CalibrationConfig,
+    result: CalibrationResult,
+    inspection: DatasetInspection,
+) -> SE3 | None:
+    if config.evaluation.kitti.use_frame_graph_candidate:
+        derived = _camera_lidar_from_rig_candidates(result.candidate_extrinsics)
+        if derived is not None:
+            return derived
+    return read_velodyne_to_camera_transform(inspection.path)
+
+
+def _camera_lidar_from_rig_candidates(
+    candidates: dict[str, TransformResult],
+) -> SE3 | None:
+    camera = candidates.get("T_base_link_camera0")
+    lidar = candidates.get("T_base_link_lidar0")
+    if camera is None or lidar is None:
+        return None
+    return camera.as_se3().inverse().compose(lidar.as_se3())
+
+
+def _store_lidar_camera_evidence_provenance(
+    result: CalibrationResult,
+    payload: LidarCameraEvidencePayload,
+    *,
+    transform_pairs: tuple[tuple[str, str], ...],
+) -> None:
+    if "lidar_camera_projection_frame_count" not in payload.metrics:
+        return
+    frame_count = payload.metrics["lidar_camera_projection_frame_count"].value
+    if frame_count is None or frame_count <= 0.0:
+        return
+    candidate_transform = "T_base_link_lidar0"
+    if transform_pairs:
+        camera_name, lidar_name = transform_pairs[0]
+        candidate_transform = f"T_{camera_name}_{lidar_name}"
+    result.run.provenance["lidar_camera_evidence"] = {
+        **payload.protocol,
+        "candidate_transform": candidate_transform,
+        "evidence_gates": payload.evidence_gates,
+    }
+    if payload.cases:
+        existing_cases = result.run.provenance.get("evidence_cases")
+        cases = existing_cases if isinstance(existing_cases, list) else []
+        result.run.provenance["evidence_cases"] = [
+            *cases,
+            *(case.model_dump(mode="json") for case in payload.cases),
+        ]
+
+
+def _lidar_camera_protocol_payload(
+    config: CalibrationConfig,
+    *,
+    frame_count: int,
+    case_count: int,
+    gates: dict[str, float | int],
+    use_frame_graph_candidate: bool,
+) -> dict[str, object]:
+    split_policy = "temporal_tail_holdout" if frame_count > 1 else "single_frame"
+    return {
+        "protocol_id": "kitti_lidar_camera_projection_edge_holdout/v0.1",
+        "split_policy": split_policy,
+        "independent_holdout": frame_count > 1,
+        "transform_convention": "T_camera_lidar maps Velodyne points into camera frame",
+        "known_bad_perturbation": "right-composed camera-frame SE(3) controls",
+        "known_bad_case_count": case_count,
+        "known_bad_challenge": {
+            "challenge_id": "kitti_lidar_camera_mandatory_6dof_large_controls/v0.1",
+            "mandatory_rotation_deg": _LIDAR_CAMERA_MANDATORY_ROTATION_DEG,
+            "mandatory_translation_m": _LIDAR_CAMERA_MANDATORY_TRANSLATION_M,
+            "mandatory_case_count": int(_LIDAR_CAMERA_MANDATORY_CASE_COUNT),
+            "target_mandatory_detectable_count": gates[
+                "evidence_gate_min_mandatory_detectable_count"
+            ],
+        },
+        "parameters": {
+            "projection_frame_count": frame_count,
+            "use_frame_graph_candidate": use_frame_graph_candidate,
+            **gates,
+        },
+        "limitations": [
+            "projection evidence observes image-plane alignment only; depth along "
+            "the optical axis and baselines are coverage-limited",
+            "depth-edge scores require projected LiDAR depth discontinuities",
+        ],
+    }
+
+
+def _is_mandatory_perturbation_case(case: _PerturbationCase) -> bool:
+    if case.dof.endswith("_deg"):
+        return abs(case.amount) >= _LIDAR_CAMERA_MANDATORY_ROTATION_DEG
+    if case.dof.endswith("_m"):
+        return abs(case.amount) >= _LIDAR_CAMERA_MANDATORY_TRANSLATION_M
+    return False
+
+
+def _perturbation_evidence_cases(
+    cases: list[_PerturbationCase],
+    case_deltas: list[tuple[float | None, float | None, float | None]],
+) -> list[EvidenceCaseItem]:
+    evidence_cases: list[EvidenceCaseItem] = []
+    for case, deltas in zip(cases, case_deltas, strict=True):
+        edge_delta, depth_edge_delta, projection_ratio_delta = deltas
+        detectable = any(
+            delta is not None and delta > _DELTA_EPSILON for delta in deltas
+        )
+        unit = "deg" if case.dof.endswith("_deg") else "m"
+        dof = case.dof.removesuffix("_deg").removesuffix("_m")
+        evidence_cases.append(
+            EvidenceCaseItem(
+                family="lidar_camera",
+                case_id=f"{case.dof}:{case.amount:+g}{unit}",
+                check="Known-Bad Controls",
+                status="pass" if detectable else "warn",
+                dof=dof,
+                amount=case.amount,
+                unit=unit,
+                convention="right-composed camera-frame SE(3) perturbation of T_camera_lidar",
+                metric_values={
+                    "lidar_camera_edge_alignment_score": case.sample.edge_alignment_score,
+                    "lidar_camera_depth_edge_alignment_score": (
+                        case.sample.depth_edge_alignment_score
+                    ),
+                    "lidar_camera_projection_ratio": case.sample.projection_ratio,
+                },
+                delta_values={
+                    "edge_alignment_delta": edge_delta,
+                    "depth_edge_alignment_delta": depth_edge_delta,
+                    "projection_ratio_delta": projection_ratio_delta,
+                },
+            )
+        )
+    return evidence_cases

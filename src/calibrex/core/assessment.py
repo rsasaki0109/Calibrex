@@ -164,14 +164,36 @@ def assess_report_evidence(
     """Apply the built-in falsification policy to report evidence."""
 
     active_policy = policy or AssessmentPolicy()
-    rules = [
-        _materialization_rule(evidence),
-        _protocol_declaration_rule(evidence, active_policy),
-        _holdout_support_rule(evidence, active_policy),
-        _holdout_independence_rule(evidence),
-        _known_bad_rule(evidence, active_policy),
-        _summary_decision_rule(evidence),
-    ]
+    rules = [_materialization_rule(evidence)]
+    if _lidar_pair_protocol(evidence) is not None:
+        rules.extend(
+            [
+                _protocol_declaration_rule(evidence, active_policy),
+                _holdout_support_rule(evidence, active_policy),
+                _holdout_independence_rule(evidence),
+                _known_bad_rule(evidence, active_policy),
+                _summary_decision_rule(evidence, family="lidar_pair"),
+            ]
+        )
+    elif _lidar_camera_protocol(evidence) is not None:
+        rules.extend(
+            [
+                _lidar_camera_protocol_declaration_rule(evidence, active_policy),
+                _lidar_camera_holdout_rule(evidence),
+                _lidar_camera_holdout_independence_rule(evidence),
+                _lidar_camera_known_bad_rule(evidence, active_policy),
+                _summary_decision_rule(evidence, family="lidar_camera"),
+            ]
+        )
+    else:
+        rules.append(
+            AssessmentRuleResult(
+                rule_id="protocol_declared",
+                status="inconclusive",
+                reason="no supported evidence protocol is declared",
+                evidence_refs=["protocols"],
+            )
+        )
     status = _overall_status(rules)
     reason = _overall_reason(status, rules)
     return AssessmentArtifact(
@@ -689,13 +711,17 @@ def _known_bad_rule(
     )
 
 
-def _summary_decision_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
-    summary = _summary(evidence, family="lidar_pair", check="Decision Boundary")
+def _summary_decision_rule(
+    evidence: ReportEvidenceArtifact,
+    *,
+    family: str,
+) -> AssessmentRuleResult:
+    summary = _summary(evidence, family=family, check="Decision Boundary")
     if summary is None:
         return AssessmentRuleResult(
             rule_id="decision_boundary_summary",
             status="inconclusive",
-            reason="no lidar_pair decision boundary summary is available",
+            reason=f"no {family} decision boundary summary is available",
             evidence_refs=["summaries"],
         )
     if summary.status == "fail":
@@ -722,6 +748,247 @@ def _lidar_pair_protocol(evidence: ReportEvidenceArtifact) -> EvidenceProtocolIt
         if protocol.family == "lidar_pair":
             return protocol
     return None
+
+
+def _lidar_camera_protocol(evidence: ReportEvidenceArtifact) -> EvidenceProtocolItem | None:
+    for protocol in evidence.protocols:
+        if protocol.family == "lidar_camera":
+            return protocol
+    return None
+
+
+def _lidar_camera_protocol_declaration_rule(
+    evidence: ReportEvidenceArtifact,
+    policy: AssessmentPolicy,
+) -> AssessmentRuleResult:
+    protocol = _lidar_camera_protocol(evidence)
+    if protocol is None:
+        return AssessmentRuleResult(
+            rule_id="protocol_declared",
+            status="inconclusive",
+            reason="no lidar_camera evidence protocol is declared",
+            evidence_refs=["protocols"],
+        )
+    observed: dict[str, AssessmentScalar] = {
+        "protocol_id": protocol.protocol_id,
+        "candidate_transform": protocol.candidate_transform,
+        "transform_convention": protocol.transform_convention,
+        "known_bad_case_count": protocol.known_bad_case_count,
+    }
+    min_known_bad_case_count = _policy_number(
+        policy,
+        "min_known_bad_case_count",
+        _MIN_KNOWN_BAD_CASE_COUNT,
+    )
+    case_count = protocol.known_bad_case_count
+    if not protocol.candidate_transform or not protocol.transform_convention:
+        return AssessmentRuleResult(
+            rule_id="protocol_declared",
+            status="inconclusive",
+            reason="candidate transform or transform convention is missing",
+            observed=observed,
+            evidence_refs=[protocol.protocol_id],
+        )
+    if case_count is None or case_count < min_known_bad_case_count:
+        return AssessmentRuleResult(
+            rule_id="protocol_declared",
+            status="fail",
+            reason="declared known-bad perturbation case count is below policy minimum",
+            observed=observed,
+            thresholds={"min_known_bad_case_count": min_known_bad_case_count},
+            evidence_refs=[protocol.protocol_id],
+        )
+    return AssessmentRuleResult(
+        rule_id="protocol_declared",
+        status="pass",
+        reason="lidar_camera evidence protocol declares transform convention and controls",
+        observed=observed,
+        thresholds={"min_known_bad_case_count": min_known_bad_case_count},
+        evidence_refs=[protocol.protocol_id],
+    )
+
+
+def _lidar_camera_holdout_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:
+    summary = _summary(evidence, family="lidar_camera", check="Holdout Edge Alignment")
+    if summary is None:
+        return AssessmentRuleResult(
+            rule_id="holdout_support_gate",
+            status="inconclusive",
+            reason="holdout edge-alignment summary is unavailable",
+            evidence_refs=["summaries"],
+        )
+    status = _summary_status(summary.status)
+    return AssessmentRuleResult(
+        rule_id="holdout_support_gate",
+        status=status,
+        reason=(
+            "holdout edge-alignment passed recorded thresholds"
+            if status == "pass"
+            else "holdout edge-alignment is weak or unavailable"
+        ),
+        metric_ids=summary.metric_ids,
+        observed={"summary_status": summary.status},
+        evidence_refs=["Holdout Edge Alignment"],
+    )
+
+
+def _lidar_camera_holdout_independence_rule(
+    evidence: ReportEvidenceArtifact,
+) -> AssessmentRuleResult:
+    protocol = _lidar_camera_protocol(evidence)
+    if protocol is None:
+        return AssessmentRuleResult(
+            rule_id="holdout_independence",
+            status="inconclusive",
+            reason="holdout independence cannot be assessed without a lidar_camera protocol",
+            evidence_refs=["protocols"],
+        )
+    if protocol.independent_holdout is True:
+        return AssessmentRuleResult(
+            rule_id="holdout_independence",
+            status="pass",
+            reason="protocol declares an independent holdout split",
+            observed={"independent_holdout": True, "split_policy": protocol.split_policy},
+            evidence_refs=[protocol.protocol_id],
+        )
+    return AssessmentRuleResult(
+        rule_id="holdout_independence",
+        status="inconclusive",
+        reason="protocol does not provide an independent holdout split",
+        observed={
+            "independent_holdout": protocol.independent_holdout,
+            "split_policy": protocol.split_policy,
+        },
+        evidence_refs=[protocol.protocol_id],
+    )
+
+
+def _lidar_camera_known_bad_rule(
+    evidence: ReportEvidenceArtifact,
+    policy: AssessmentPolicy,
+) -> AssessmentRuleResult:
+    protocol = _lidar_camera_protocol(evidence)
+    cases = _lidar_camera_known_bad_cases(evidence)
+    summary = _summary(evidence, family="lidar_camera", check="Known-Bad Controls")
+    case_count = protocol.known_bad_case_count if protocol else None
+    pass_count = sum(1 for case in cases if case.status == "pass")
+    pass_fraction = pass_count / len(cases) if cases else None
+    mandatory_cases = _mandatory_known_bad_cases(cases, protocol)
+    mandatory_detection_count = sum(1 for case in mandatory_cases if case.status == "pass")
+    min_known_bad_case_count = _policy_number(
+        policy,
+        "min_known_bad_case_count",
+        _MIN_KNOWN_BAD_CASE_COUNT,
+    )
+    min_known_bad_pass_fraction = _policy_number(
+        policy,
+        "min_known_bad_pass_fraction",
+        _MIN_KNOWN_BAD_PASS_FRACTION,
+    )
+    min_mandatory_supported_detection_count = _policy_number(
+        policy,
+        "min_mandatory_supported_detection_count",
+        _MIN_MANDATORY_SUPPORTED_DETECTION_COUNT,
+    )
+    observed: dict[str, AssessmentScalar] = {
+        "declared_known_bad_case_count": case_count,
+        "materialized_case_count": len(cases),
+        "materialized_pass_fraction": pass_fraction,
+        "materialized_mandatory_case_count": len(mandatory_cases),
+        "materialized_mandatory_supported_detection_count": mandatory_detection_count,
+        "summary_status": summary.status if summary else None,
+    }
+    thresholds: dict[str, AssessmentScalar] = {
+        "min_known_bad_case_count": min_known_bad_case_count,
+        "min_materialized_pass_fraction": min_known_bad_pass_fraction,
+        "min_mandatory_supported_detection_count": min_mandatory_supported_detection_count,
+    }
+    if protocol is None or case_count is None or case_count < min_known_bad_case_count:
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="inconclusive",
+            reason="known-bad controls are not declared with enough detail",
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=["protocols", "cases"],
+        )
+    if not cases:
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="inconclusive",
+            reason="known-bad controls are declared but no case evidence is materialized",
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=[protocol.protocol_id, "cases"],
+        )
+    if summary is not None and summary.status == "fail":
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="fail",
+            reason="known-bad summary explicitly failed",
+            metric_ids=summary.metric_ids,
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=[protocol.protocol_id, "Known-Bad Controls"],
+        )
+    if pass_fraction is not None and pass_fraction < min_known_bad_pass_fraction:
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="fail",
+            reason="too few materialized known-bad controls were detected",
+            metric_ids=summary.metric_ids if summary else [],
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=[protocol.protocol_id, "cases"],
+        )
+    if mandatory_detection_count < min_mandatory_supported_detection_count:
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="fail",
+            reason=(
+                "mandatory known-bad controls were not rejected under enough "
+                "supported projection geometry"
+            ),
+            metric_ids=summary.metric_ids if summary else [],
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=[protocol.protocol_id, "cases"],
+        )
+    if summary is not None and summary.status == "warn":
+        return AssessmentRuleResult(
+            rule_id="known_bad_controls",
+            status="inconclusive",
+            reason="known-bad controls are only weakly separated from the candidate",
+            metric_ids=summary.metric_ids,
+            observed=observed,
+            thresholds=thresholds,
+            evidence_refs=[protocol.protocol_id, "Known-Bad Controls"],
+        )
+    return AssessmentRuleResult(
+        rule_id="known_bad_controls",
+        status="pass",
+        reason="predeclared known-bad controls are distinguishable from the candidate",
+        metric_ids=summary.metric_ids if summary else [],
+        observed=observed,
+        thresholds=thresholds,
+        evidence_refs=[protocol.protocol_id, "Known-Bad Controls"],
+    )
+
+
+def _summary_status(status: str) -> AssessmentStatus:
+    if status == "fail":
+        return "fail"
+    if status == "pass":
+        return "pass"
+    return "inconclusive"
+
+
+def _lidar_camera_known_bad_cases(evidence: ReportEvidenceArtifact) -> list[EvidenceCaseItem]:
+    return [
+        case
+        for case in evidence.cases
+        if case.family == "lidar_camera" and case.check == "Known-Bad Controls"
+    ]
 
 
 def _summary(

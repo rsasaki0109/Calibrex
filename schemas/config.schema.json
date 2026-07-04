@@ -312,6 +312,43 @@
           },
           "title": "Perturbation Translation M",
           "type": "array"
+        },
+        "use_frame_graph_candidate": {
+          "default": false,
+          "description": "evaluate camera-LiDAR projection evidence from frame-graph candidate extrinsics instead of the dataset calibration file",
+          "title": "Use Frame Graph Candidate",
+          "type": "boolean"
+        },
+        "evidence_gate_min_edge_alignment_holdout": {
+          "default": 0.2,
+          "description": "minimum holdout edge-alignment fraction for PASS evidence",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Evidence Gate Min Edge Alignment Holdout",
+          "type": "number"
+        },
+        "evidence_gate_min_depth_edge_alignment_holdout": {
+          "default": 0.2,
+          "description": "minimum holdout depth-edge alignment fraction for PASS evidence",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Evidence Gate Min Depth Edge Alignment Holdout",
+          "type": "number"
+        },
+        "evidence_gate_min_perturbation_detectable_fraction": {
+          "default": 0.5,
+          "description": "minimum known-bad perturbation detectable fraction for PASS evidence",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Evidence Gate Min Perturbation Detectable Fraction",
+          "type": "number"
+        },
+        "evidence_gate_min_mandatory_detectable_count": {
+          "default": 8,
+          "description": "minimum mandatory \u00b11 deg / \u00b10.10 m perturbation cases that must worsen projection scores",
+          "minimum": 0,
+          "title": "Evidence Gate Min Mandatory Detectable Count",
+          "type": "integer"
         }
       },
       "title": "KITTIEvaluationConfig",

@@ -2,14 +2,38 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import cast
+
 from calibrex.core.report_artifacts import EvidenceCaseItem, EvidenceSummaryItem
-from calibrex.core.result import CalibrationResult, Grade
+from calibrex.core.result import CalibrationResult, Grade, MetricResult
+from calibrex.evaluation.thresholds import (
+    ThresholdProfile,
+    primary_metric_value,
+    profile_from_domain,
+    thresholds_for_profile,
+)
 
 
 def evidence_summaries_from_result(result: CalibrationResult) -> list[EvidenceSummaryItem]:
     """Return machine-readable evidence summary rows for a calibration result."""
 
-    return _lidar_pair_evidence_items(result)
+    items = _lidar_pair_evidence_items(result)
+    items.extend(_lidar_camera_evidence_items(result))
+    return items
+
+
+def evidence_decision_grade_from_result(result: CalibrationResult) -> Grade | None:
+    """Return the worst decision-boundary grade across materialized evidence families."""
+
+    decision_items = [
+        item
+        for item in evidence_summaries_from_result(result)
+        if item.check == "Decision Boundary"
+    ]
+    if not decision_items:
+        return None
+    return _worst_grade(item.status for item in decision_items)
 
 
 def evidence_cases_from_result(result: CalibrationResult) -> list[EvidenceCaseItem]:
@@ -174,6 +198,391 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
         ]
     )
     return items
+
+
+def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSummaryItem]:
+    frame_metric = result.metrics.get("lidar_camera_projection_frame_count")
+    projected_metric = result.metrics.get("lidar_camera_projected_points")
+    ratio_metric = result.metrics.get("lidar_camera_projection_ratio")
+    horizontal_metric = result.metrics.get("lidar_camera_projection_horizontal_coverage")
+    vertical_metric = result.metrics.get("lidar_camera_projection_vertical_coverage")
+    edge_metric = result.metrics.get("lidar_camera_edge_alignment_score")
+    depth_edge_metric = result.metrics.get("lidar_camera_depth_edge_alignment_score")
+    depth_points_metric = result.metrics.get("lidar_camera_depth_discontinuity_points")
+    known_bad_metric = result.metrics.get("lidar_camera_perturbation_detectable_fraction")
+    edge_delta_metric = result.metrics.get("lidar_camera_perturbation_edge_delta_mean")
+    depth_edge_delta_metric = result.metrics.get(
+        "lidar_camera_perturbation_depth_edge_delta_mean"
+    )
+    ratio_delta_metric = result.metrics.get(
+        "lidar_camera_perturbation_projection_ratio_delta_mean"
+    )
+    mandatory_detection_metric = result.metrics.get(
+        "lidar_camera_perturbation_mandatory_detectable_count"
+    )
+    mandatory_case_metric = result.metrics.get("lidar_camera_perturbation_mandatory_case_count")
+    if (
+        frame_metric is None
+        and projected_metric is None
+        and edge_metric is None
+        and known_bad_metric is None
+    ):
+        return []
+
+    gates = _lidar_camera_evidence_gates(result)
+    profile = profile_from_domain(result.run.domain)
+    support_grade = _lidar_camera_support_grade(
+        projected_metric,
+        ratio_metric,
+        horizontal_metric,
+        vertical_metric,
+        profile=profile,
+    )
+    holdout_grade, holdout_evidence, depth_edge_available = _lidar_camera_holdout_grade(
+        edge_metric,
+        depth_edge_metric,
+        depth_points_metric,
+        gates=gates,
+        profile=profile,
+    )
+    known_bad_grade = _lidar_camera_known_bad_grade(
+        known_bad_metric,
+        mandatory_detection_metric,
+        mandatory_case_metric,
+        gates=gates,
+    )
+    observability_text = _lidar_camera_observability_statement(
+        result,
+        horizontal_metric=horizontal_metric,
+        vertical_metric=vertical_metric,
+        depth_points_metric=depth_points_metric,
+        depth_edge_available=depth_edge_available,
+        mandatory_detection_metric=mandatory_detection_metric,
+        mandatory_case_metric=mandatory_case_metric,
+    )
+    decision_grade: Grade = (
+        "pass"
+        if support_grade == "pass" and holdout_grade == "pass" and known_bad_grade == "pass"
+        else "warn"
+    )
+
+    items = [
+        EvidenceSummaryItem(
+            family="lidar_camera",
+            check="Candidate Support",
+            status=support_grade,
+            evidence=(
+                "projected points train "
+                f"{_fmt(projected_metric.train if projected_metric else None)} "
+                f"holdout {_fmt(projected_metric.holdout if projected_metric else None)}, "
+                "projection ratio train "
+                f"{_fmt(ratio_metric.train if ratio_metric else None)} "
+                f"holdout {_fmt(ratio_metric.holdout if ratio_metric else None)}, "
+                f"h-coverage {_fmt(horizontal_metric.holdout if horizontal_metric else None)}, "
+                f"v-coverage {_fmt(vertical_metric.holdout if vertical_metric else None)}"
+            ),
+            interpretation=(
+                "Projected LiDAR points cover enough of the camera image for overlay evidence."
+                if support_grade == "pass"
+                else "Projection coverage is weak or points fall outside the image."
+            ),
+            metric_ids=[
+                "lidar_camera_projected_points",
+                "lidar_camera_projection_ratio",
+                "lidar_camera_projection_horizontal_coverage",
+                "lidar_camera_projection_vertical_coverage",
+            ],
+        ),
+        EvidenceSummaryItem(
+            family="lidar_camera",
+            check="Holdout Edge Alignment",
+            status=holdout_grade,
+            evidence=holdout_evidence,
+            interpretation=(
+                "Holdout edge-alignment scores clear the recorded thresholds."
+                if holdout_grade == "pass"
+                else (
+                    "Holdout edge-alignment is below threshold or unavailable for this sample."
+                    if holdout_grade == "warn"
+                    else "Holdout edge-alignment failed the recorded thresholds."
+                )
+            ),
+            metric_ids=[
+                "lidar_camera_edge_alignment_score",
+                "lidar_camera_depth_edge_alignment_score",
+                "lidar_camera_depth_discontinuity_points",
+            ],
+        ),
+        EvidenceSummaryItem(
+            family="lidar_camera",
+            check="Known-Bad Controls",
+            status=known_bad_grade,
+            evidence=(
+                "detectable fraction "
+                f"{_fmt(known_bad_metric.value if known_bad_metric else None)} "
+                f"(threshold >= "
+                f"{_fmt(gates['evidence_gate_min_perturbation_detectable_fraction'])}), "
+                "mandatory detections "
+                f"{_fmt(mandatory_detection_metric.value if mandatory_detection_metric else None)}/"
+                f"{_fmt(mandatory_case_metric.value if mandatory_case_metric else None)} "
+                f"(threshold >= {_fmt(gates['evidence_gate_min_mandatory_detectable_count'])}), "
+                f"mean edge delta {_fmt(edge_delta_metric.value if edge_delta_metric else None)}, "
+                "mean depth-edge delta "
+                f"{_fmt(depth_edge_delta_metric.value if depth_edge_delta_metric else None)}, "
+                "mean projection-ratio delta "
+                f"{_fmt(ratio_delta_metric.value if ratio_delta_metric else None)}"
+            ),
+            interpretation=(
+                "Declared camera-frame perturbations are distinguishable from the candidate."
+                if known_bad_grade == "pass"
+                else "Controls did not clearly separate from the candidate; evidence is weak."
+            ),
+            metric_ids=[
+                "lidar_camera_perturbation_detectable_fraction",
+                "lidar_camera_perturbation_mandatory_detectable_count",
+                "lidar_camera_perturbation_mandatory_case_count",
+                "lidar_camera_perturbation_edge_delta_mean",
+                "lidar_camera_perturbation_depth_edge_delta_mean",
+                "lidar_camera_perturbation_projection_ratio_delta_mean",
+            ],
+        ),
+        EvidenceSummaryItem(
+            family="lidar_camera",
+            check="Observability Statement",
+            status="pass",
+            evidence=observability_text,
+            interpretation=(
+                "What projection evidence can and cannot observe for this candidate."
+            ),
+            metric_ids=[
+                "lidar_camera_projection_horizontal_coverage",
+                "lidar_camera_projection_vertical_coverage",
+                "lidar_camera_depth_discontinuity_points",
+                "lidar_camera_perturbation_mandatory_detectable_count",
+            ],
+        ),
+        EvidenceSummaryItem(
+            family="lidar_camera",
+            check="Decision Boundary",
+            status=decision_grade,
+            evidence=(
+                "candidate vs configured camera-frame known-bad controls; edge holdout "
+                f"threshold >= {_fmt(gates['evidence_gate_min_edge_alignment_holdout'])}"
+            ),
+            interpretation=(
+                "Supported by this projection evidence protocol, but not metrology ground truth."
+                if decision_grade == "pass"
+                else "Inconclusive under this evidence protocol; inspect coverage and controls."
+            ),
+            metric_ids=[
+                "lidar_camera_edge_alignment_score",
+                "lidar_camera_perturbation_detectable_fraction",
+                "lidar_camera_projection_ratio",
+            ],
+        ),
+    ]
+    return items
+
+
+def _lidar_camera_evidence_gates(result: CalibrationResult) -> dict[str, float]:
+    provenance = result.run.provenance.get("lidar_camera_evidence")
+    if isinstance(provenance, dict):
+        raw_gates = provenance.get("evidence_gates")
+        if isinstance(raw_gates, dict):
+            gates: dict[str, float] = {}
+            for key in (
+                "evidence_gate_min_edge_alignment_holdout",
+                "evidence_gate_min_depth_edge_alignment_holdout",
+                "evidence_gate_min_perturbation_detectable_fraction",
+                "evidence_gate_min_mandatory_detectable_count",
+            ):
+                value = raw_gates.get(key)
+                if isinstance(value, bool):
+                    continue
+                if isinstance(value, int | float):
+                    gates[key] = float(value)
+            if len(gates) == 4:
+                return gates
+    profile = profile_from_domain(result.run.domain)
+    thresholds = thresholds_for_profile(profile)
+    return {
+        "evidence_gate_min_edge_alignment_holdout": thresholds[
+            "lidar_camera_edge_alignment_score"
+        ].pass_value,
+        "evidence_gate_min_depth_edge_alignment_holdout": thresholds[
+            "lidar_camera_depth_edge_alignment_score"
+        ].pass_value,
+        "evidence_gate_min_perturbation_detectable_fraction": thresholds[
+            "lidar_camera_perturbation_detectable_fraction"
+        ].pass_value,
+        "evidence_gate_min_mandatory_detectable_count": 8.0,
+    }
+
+
+def _lidar_camera_support_grade(
+    projected_metric: MetricResult | None,
+    ratio_metric: MetricResult | None,
+    horizontal_metric: MetricResult | None,
+    vertical_metric: MetricResult | None,
+    *,
+    profile: ThresholdProfile,
+) -> Grade:
+    grades: list[Grade] = []
+    for metric_id, metric in (
+        ("lidar_camera_projected_points", projected_metric),
+        ("lidar_camera_projection_ratio", ratio_metric),
+        ("lidar_camera_projection_horizontal_coverage", horizontal_metric),
+        ("lidar_camera_projection_vertical_coverage", vertical_metric),
+    ):
+        if metric is None:
+            continue
+        value = primary_metric_value(metric)
+        if value is None:
+            grades.append("warn")
+            continue
+        threshold = thresholds_for_profile(profile).get(metric_id)
+        if threshold is None:
+            grades.append(metric.grade)
+            continue
+        grades.append(threshold.grade(value))
+    if not grades:
+        return "warn"
+    return _worst_grade(grades)
+
+
+def _lidar_camera_holdout_grade(
+    edge_metric: MetricResult | None,
+    depth_edge_metric: MetricResult | None,
+    depth_points_metric: MetricResult | None,
+    *,
+    gates: dict[str, float],
+    profile: ThresholdProfile,
+) -> tuple[Grade, str, bool]:
+    if edge_metric is None or edge_metric.holdout is None:
+        return (
+            "warn",
+            "holdout edge-alignment unavailable (insufficient projection frame pairs)",
+            False,
+        )
+    edge_holdout = edge_metric.holdout
+    edge_train = edge_metric.train
+    edge_threshold = gates["evidence_gate_min_edge_alignment_holdout"]
+    edge_grade: Grade = (
+        "pass"
+        if edge_holdout >= edge_threshold
+        else (
+            "warn"
+            if edge_holdout
+            >= thresholds_for_profile(profile)["lidar_camera_edge_alignment_score"].warn_value
+            else "fail"
+        )
+    )
+    depth_edge_available = (
+        depth_points_metric is not None
+        and (depth_points_metric.holdout or depth_points_metric.value or 0.0) > 0.0
+        and depth_edge_metric is not None
+        and depth_edge_metric.holdout is not None
+    )
+    evidence = (
+        f"edge train {_fmt(edge_train)} holdout {_fmt(edge_holdout)} "
+        f"(threshold >= {_fmt(edge_threshold)})"
+    )
+    if depth_edge_available:
+        depth_holdout = depth_edge_metric.holdout if depth_edge_metric else None
+        depth_threshold = gates["evidence_gate_min_depth_edge_alignment_holdout"]
+        depth_grade = (
+            "pass"
+            if depth_holdout is not None and depth_holdout >= depth_threshold
+            else "warn"
+        )
+        evidence += (
+            f"; depth-edge holdout {_fmt(depth_holdout)} "
+            f"(threshold >= {_fmt(depth_threshold)})"
+        )
+        holdout_grade = _worst_grade([edge_grade, depth_grade])
+    else:
+        evidence += "; depth-edge holdout unavailable (no depth discontinuities scored)"
+        holdout_grade = edge_grade
+    return holdout_grade, evidence, depth_edge_available
+
+
+def _lidar_camera_known_bad_grade(
+    known_bad_metric: MetricResult | None,
+    mandatory_detection_metric: MetricResult | None,
+    mandatory_case_metric: MetricResult | None,
+    *,
+    gates: dict[str, float],
+) -> Grade:
+    if known_bad_metric is None or known_bad_metric.value is None:
+        return "warn"
+    detectable_fraction = known_bad_metric.value
+    if detectable_fraction < gates["evidence_gate_min_perturbation_detectable_fraction"]:
+        return "warn" if detectable_fraction > 0.0 else "fail"
+    mandatory_count = mandatory_detection_metric.value if mandatory_detection_metric else None
+    mandatory_cases = mandatory_case_metric.value if mandatory_case_metric else None
+    if mandatory_cases is not None and mandatory_cases < 12.0:
+        return "warn"
+    if mandatory_count is None:
+        return "warn"
+    if mandatory_count < gates["evidence_gate_min_mandatory_detectable_count"]:
+        return "warn"
+    return "pass"
+
+
+def _lidar_camera_observability_statement(
+    result: CalibrationResult,
+    *,
+    horizontal_metric: MetricResult | None,
+    vertical_metric: MetricResult | None,
+    depth_points_metric: MetricResult | None,
+    depth_edge_available: bool,
+    mandatory_detection_metric: MetricResult | None,
+    mandatory_case_metric: MetricResult | None,
+) -> str:
+    horizontal = horizontal_metric.holdout if horizontal_metric else None
+    vertical = vertical_metric.holdout if vertical_metric else None
+    depth_points = depth_points_metric.holdout if depth_points_metric else None
+    statements: list[str] = [
+        "Observes image-plane alignment of projected LiDAR points against intensity edges",
+    ]
+    if horizontal is not None and vertical is not None:
+        statements.append(
+            f"horizontal coverage {_fmt(horizontal)} and vertical coverage {_fmt(vertical)} "
+            "limit sensitivity to in-image motion and baselines"
+        )
+    if depth_edge_available:
+        statements.append(
+            f"depth-edge channel scored with {_fmt(depth_points)} discontinuity points"
+        )
+    else:
+        statements.append(
+            "depth-edge channel not scored because projected points lack nearby depth jumps"
+        )
+    mandatory_count = mandatory_detection_metric.value if mandatory_detection_metric else None
+    mandatory_cases = mandatory_case_metric.value if mandatory_case_metric else None
+    if mandatory_count is not None:
+        case_total = int(mandatory_cases) if mandatory_cases is not None else 12
+        statements.append(
+            f"mandatory rotation/translation probes detected {int(mandatory_count)} of "
+            f"{case_total} cases; coverage-limited DOFs may remain unobserved on sparse samples"
+        )
+    limitations = result.run.provenance.get("lidar_camera_evidence")
+    if isinstance(limitations, dict):
+        raw_limitations = limitations.get("limitations")
+        if isinstance(raw_limitations, list):
+            for item in raw_limitations:
+                if isinstance(item, str):
+                    statements.append(item)
+    return "; ".join(statements)
+
+
+def _worst_grade(grades: Iterable[str]) -> Grade:
+    order = {"pass": 0, "warn": 1, "fail": 2}
+    selected = "pass"
+    for grade in grades:
+        if order.get(grade, 1) > order.get(selected, 1):
+            selected = grade
+    return cast(Grade, selected)
 
 
 def _fmt(value: float | None) -> str:

@@ -174,6 +174,39 @@ class KITTIEvaluationConfig(StrictModel):
     projection_sample_points: int = Field(default=800, ge=1, le=200_000)
     perturbation_rotation_deg: list[float] = Field(default_factory=lambda: [0.5, 1.0])
     perturbation_translation_m: list[float] = Field(default_factory=lambda: [0.05, 0.10])
+    use_frame_graph_candidate: bool = Field(
+        default=False,
+        description=(
+            "evaluate camera-LiDAR projection evidence from frame-graph candidate "
+            "extrinsics instead of the dataset calibration file"
+        ),
+    )
+    evidence_gate_min_edge_alignment_holdout: float = Field(
+        default=0.20,
+        gt=0.0,
+        le=1.0,
+        description="minimum holdout edge-alignment fraction for PASS evidence",
+    )
+    evidence_gate_min_depth_edge_alignment_holdout: float = Field(
+        default=0.20,
+        gt=0.0,
+        le=1.0,
+        description="minimum holdout depth-edge alignment fraction for PASS evidence",
+    )
+    evidence_gate_min_perturbation_detectable_fraction: float = Field(
+        default=0.50,
+        gt=0.0,
+        le=1.0,
+        description="minimum known-bad perturbation detectable fraction for PASS evidence",
+    )
+    evidence_gate_min_mandatory_detectable_count: int = Field(
+        default=8,
+        ge=0,
+        description=(
+            "minimum mandatory ±1 deg / ±0.10 m perturbation cases that must "
+            "worsen projection scores"
+        ),
+    )
 
     @field_validator("perturbation_rotation_deg", "perturbation_translation_m")
     @classmethod
