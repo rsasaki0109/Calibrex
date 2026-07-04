@@ -26,6 +26,14 @@ ROS 1 ``.bag`` with ``rosbags``, writes a rosbag2 directory containing:
     source sensor frame (rig-frame odometry; no external body alignment
     needed). ``kiss-icp`` is imported lazily inside that branch; PEP 723 lists
     it so ``uv run`` installs it automatically.
+  * ``--odom-source kiss-icp-two-pass``: pass 1 runs KISS-ICP on raw scans;
+    each scan is rigidified to its message stamp with the pass-1 track and
+    per-point ``--kiss-icp-time-field`` offsets; pass 2 runs a fresh KISS-ICP
+    instance on the deskewed scans. Mutually exclusive with
+    ``--kiss-icp-native-deskew``.
+  * ``--kiss-icp-native-deskew``: single-pass KISS-ICP with upstream-native
+    deskew (``cfg.data.deskew = True`` and normalized per-point timestamps).
+    Only valid with ``--odom-source kiss-icp``.
 
 ``--restamp-topic`` (repeatable) rewrites each listed topic's message
 ``header.stamp`` by a constant per-topic offset: the median of
@@ -59,6 +67,11 @@ from math import sqrt
 from pathlib import Path
 
 import numpy as np
+from lidar_scan_deskew import (
+    PoseTrackSample,
+    normalize_scan_timestamps,
+    rigidify_scan_to_timestamp,
+)
 from rosbags.highlevel import AnyReader
 from rosbags.rosbag2 import (
     CompressionFormat,
@@ -106,7 +119,7 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--odom-source",
-        choices=("pose-topic", "kiss-icp"),
+        choices=("pose-topic", "kiss-icp", "kiss-icp-two-pass"),
         default="pose-topic",
         help="Odometry synthesis mode (default: pose-topic)",
     )
@@ -123,6 +136,19 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         type=float,
         default=30.0,
         help="KISS-ICP cfg.data.max_range in meters (default: 30.0)",
+    )
+    parser.add_argument(
+        "--kiss-icp-time-field",
+        default="time",
+        help="PointCloud2 per-point time field for two-pass deskew (default: time)",
+    )
+    parser.add_argument(
+        "--kiss-icp-native-deskew",
+        action="store_true",
+        help=(
+            "Single-pass KISS-ICP with cfg.data.deskew=True and normalized "
+            "per-point timestamps (mutually exclusive with kiss-icp-two-pass)"
+        ),
     )
     parser.add_argument(
         "--odom-topic",
@@ -170,8 +196,13 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.odom_source == "pose-topic" and not args.pose_topic:
         parser.error("--pose-topic is required when --odom-source pose-topic")
-    if args.odom_source == "kiss-icp" and not args.kiss_icp_topic:
-        parser.error("--kiss-icp-topic is required when --odom-source kiss-icp")
+    kiss_modes = {"kiss-icp", "kiss-icp-two-pass"}
+    if args.odom_source in kiss_modes and not args.kiss_icp_topic:
+        parser.error(f"--kiss-icp-topic is required when --odom-source {args.odom_source}")
+    if args.odom_source == "kiss-icp-two-pass" and args.kiss_icp_native_deskew:
+        parser.error("--kiss-icp-native-deskew is mutually exclusive with kiss-icp-two-pass")
+    if args.kiss_icp_native_deskew and args.odom_source != "kiss-icp":
+        parser.error("--kiss-icp-native-deskew requires --odom-source kiss-icp")
     return args
 
 
@@ -306,6 +337,43 @@ def _pointcloud2_xyz(pc_msg: object) -> np.ndarray:
     return np.ascontiguousarray(xyz, dtype=np.float64)
 
 
+def _pointcloud2_field(pc_msg: object, field_name: str) -> np.ndarray:
+    """Decode one named PointCloud2 field as float64 (N,)."""
+
+    fields = [
+        (field.name, int(field.offset), int(field.datatype), int(field.count))
+        for field in pc_msg.fields
+    ]
+    by_name = {name: (offset, datatype, count) for name, offset, datatype, count in fields}
+    if field_name not in by_name:
+        available = sorted(by_name)
+        msg = f"PointCloud2 missing field {field_name!r}; available: {available}"
+        raise ValueError(msg)
+
+    byteorder = ">" if bool(pc_msg.is_bigendian) else "<"
+    point_step = int(pc_msg.point_step)
+    height = int(pc_msg.height)
+    width = int(pc_msg.width)
+    payload = bytes(pc_msg.data)
+    point_count = height * width if height * width else (len(payload) // point_step)
+
+    offset, datatype, _count = by_name[field_name]
+    base = POINTFIELD_NUMPY.get(datatype)
+    if base is None:
+        msg = f"unsupported PointField datatype {datatype} for {field_name}"
+        raise ValueError(msg)
+    dtype = np.dtype(
+        {
+            "names": [field_name],
+            "formats": [byteorder + base],
+            "offsets": [offset],
+            "itemsize": point_step,
+        }
+    )
+    structured = np.frombuffer(payload, dtype=dtype, count=point_count)
+    return structured[field_name].astype(np.float64, copy=False).reshape(-1)
+
+
 def _pose_to_odometry(
     pose_msg: object,
     *,
@@ -380,16 +448,49 @@ def _kiss_icp_pose_to_odometry(
     )
 
 
-def _create_kiss_icp(max_range: float) -> tuple[object, str]:
+def _create_kiss_icp(max_range: float, *, native_deskew: bool) -> tuple[object, str]:
     import kiss_icp
     from kiss_icp.config import load_config
     from kiss_icp.kiss_icp import KissICP
 
     cfg = load_config(None)
     cfg.data.max_range = float(max_range)
-    cfg.data.deskew = False
-    cfg.mapping.voxel_size = cfg.data.max_range / 100.0
+    cfg.data.deskew = bool(native_deskew)
+    if cfg.mapping.voxel_size is None:
+        cfg.mapping.voxel_size = cfg.data.max_range / 100.0
     return KissICP(cfg), kiss_icp.__version__
+
+
+def _collect_pass1_track(
+    src: Path,
+    *,
+    kiss_icp_topic: str,
+    max_range: float,
+    restamp_offsets_ns: dict[str, int],
+    ros1_typestore: object,
+) -> tuple[tuple[PoseTrackSample, ...], str]:
+    kiss_icp, version = _create_kiss_icp(max_range, native_deskew=False)
+    track: list[PoseTrackSample] = []
+    with AnyReader([src], default_typestore=ros1_typestore) as reader:
+        connections = [
+            connection for connection in reader.connections if connection.topic == kiss_icp_topic
+        ]
+        if not connections:
+            msg = f"kiss-icp topic missing from source bag: {kiss_icp_topic}"
+            raise SystemExit(msg)
+        for _connection, _timestamp, rawdata in reader.messages(connections=connections):
+            pc_msg = reader.deserialize(rawdata, _connection.msgtype)
+            if kiss_icp_topic in restamp_offsets_ns:
+                _apply_header_stamp_offset(pc_msg, restamp_offsets_ns[kiss_icp_topic])
+            points = _pointcloud2_xyz(pc_msg)
+            kiss_icp.register_frame(points, np.array([]))
+            track.append(
+                PoseTrackSample(
+                    timestamp_ns=_header_stamp_ns(pc_msg),
+                    pose=np.array(kiss_icp.last_pose, dtype=np.float64, copy=True),
+                )
+            )
+    return tuple(track), version
 
 
 def _header_stamp_ns(msg: object) -> int:
@@ -451,7 +552,12 @@ def _print_summary(
     pose_topic: str | None,
     kiss_icp_topic: str | None,
     kiss_icp_version: str | None,
+    kiss_icp_pass1_version: str | None,
+    kiss_icp_pass2_version: str | None,
     kiss_icp_max_range: float | None,
+    kiss_icp_time_field: str | None,
+    kiss_icp_native_deskew: bool,
+    kiss_icp_passes: int | None,
     stats: dict[str, TopicStats],
     restamp_offsets_ns: dict[str, int] | None = None,
 ) -> None:
@@ -462,7 +568,17 @@ def _print_summary(
         print(f"pose_topic: {pose_topic}")
     if kiss_icp_topic is not None:
         print(f"kiss_icp_topic: {kiss_icp_topic}")
-        print(f"kiss_icp_version: {kiss_icp_version}")
+        if kiss_icp_passes is not None:
+            print(f"kiss_icp_passes: {kiss_icp_passes}")
+        if kiss_icp_time_field is not None:
+            print(f"kiss_icp_time_field: {kiss_icp_time_field}")
+        print(f"kiss_icp_native_deskew: {kiss_icp_native_deskew}")
+        if kiss_icp_pass1_version is not None:
+            print(f"kiss_icp_pass1_version: {kiss_icp_pass1_version}")
+        if kiss_icp_pass2_version is not None:
+            print(f"kiss_icp_pass2_version: {kiss_icp_pass2_version}")
+        if kiss_icp_version is not None:
+            print(f"kiss_icp_version: {kiss_icp_version}")
         print(f"kiss_icp_max_range: {kiss_icp_max_range}")
     print(f"synthesized_odometry_topic: {odom_topic} (authored by this tool)")
     if restamp_offsets_ns:
@@ -482,9 +598,19 @@ def _print_summary(
         )
 
 
+@dataclass(frozen=True)
+class KissIcpProvenance:
+    """KISS-ICP metadata emitted by ``convert_bag``."""
+
+    version: str | None = None
+    pass1_version: str | None = None
+    pass2_version: str | None = None
+    passes: int | None = None
+
+
 def convert_bag(
     args: argparse.Namespace,
-) -> tuple[dict[str, TopicStats], str | None, dict[str, int]]:
+) -> tuple[dict[str, TopicStats], KissIcpProvenance, dict[str, int]]:
     if not args.src.is_file():
         msg = f"source bag not found: {args.src}"
         raise SystemExit(msg)
@@ -514,10 +640,30 @@ def convert_bag(
         reserved_topics=selected_topics | {args.odom_topic},
     )
 
+    kiss_modes = {"kiss-icp", "kiss-icp-two-pass"}
     kiss_icp = None
-    kiss_icp_version: str | None = None
+    kiss_provenance = KissIcpProvenance()
+    pass1_track: tuple[PoseTrackSample, ...] = ()
     if args.odom_source == "kiss-icp":
-        kiss_icp, kiss_icp_version = _create_kiss_icp(args.kiss_icp_max_range)
+        kiss_icp, version = _create_kiss_icp(
+            args.kiss_icp_max_range,
+            native_deskew=args.kiss_icp_native_deskew,
+        )
+        kiss_provenance = KissIcpProvenance(version=version, passes=1)
+    elif args.odom_source == "kiss-icp-two-pass":
+        pass1_track, pass1_version = _collect_pass1_track(
+            args.src,
+            kiss_icp_topic=args.kiss_icp_topic,
+            max_range=args.kiss_icp_max_range,
+            restamp_offsets_ns=restamp_offsets_ns,
+            ros1_typestore=ros1_typestore,
+        )
+        kiss_icp, pass2_version = _create_kiss_icp(args.kiss_icp_max_range, native_deskew=False)
+        kiss_provenance = KissIcpProvenance(
+            pass1_version=pass1_version,
+            pass2_version=pass2_version,
+            passes=2,
+        )
 
     stats: dict[str, TopicStats] = defaultdict(
         lambda: TopicStats(message_count=0, first_timestamp_ns=None, last_timestamp_ns=None)
@@ -587,9 +733,23 @@ def convert_bag(
                 if topic in restamp_offsets_ns:
                     _apply_header_stamp_offset(pc_msg, restamp_offsets_ns[topic])
 
-                if args.odom_source == "kiss-icp" and topic == args.kiss_icp_topic:
+                if args.odom_source in kiss_modes and topic == args.kiss_icp_topic:
                     points = _pointcloud2_xyz(pc_msg)
-                    kiss_icp.register_frame(points, np.array([]))
+                    if args.odom_source == "kiss-icp-two-pass":
+                        time_offsets = _pointcloud2_field(pc_msg, args.kiss_icp_time_field)
+                        points = rigidify_scan_to_timestamp(
+                            points,
+                            time_offsets,
+                            _header_stamp_ns(pc_msg),
+                            pass1_track,
+                        )
+                        kiss_icp.register_frame(points, np.array([]))
+                    elif args.kiss_icp_native_deskew:
+                        time_offsets = _pointcloud2_field(pc_msg, args.kiss_icp_time_field)
+                        timestamps = normalize_scan_timestamps(time_offsets)
+                        kiss_icp.register_frame(points, timestamps)
+                    else:
+                        kiss_icp.register_frame(points, np.array([]))
                     odom_msg = _kiss_icp_pose_to_odometry(
                         pc_msg,
                         pose_matrix=kiss_icp.last_pose,
@@ -630,7 +790,7 @@ def convert_bag(
     finally:
         writer.close()
 
-    return dict(stats), kiss_icp_version, restamp_offsets_ns
+    return dict(stats), kiss_provenance, restamp_offsets_ns
 
 
 def _record_stats(stats: dict[str, TopicStats], topic: str, timestamp_ns: int) -> None:
@@ -650,16 +810,22 @@ def _record_stats(stats: dict[str, TopicStats], topic: str, timestamp_ns: int) -
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _parse_args(argv)
-    stats, kiss_icp_version, restamp_offsets_ns = convert_bag(args)
+    stats, kiss_provenance, restamp_offsets_ns = convert_bag(args)
+    kiss_modes = {"kiss-icp", "kiss-icp-two-pass"}
     _print_summary(
         src=args.src,
         dst=args.dst,
         odom_topic=args.odom_topic,
         odom_source=args.odom_source,
         pose_topic=args.pose_topic if args.odom_source == "pose-topic" else None,
-        kiss_icp_topic=args.kiss_icp_topic if args.odom_source == "kiss-icp" else None,
-        kiss_icp_version=kiss_icp_version,
-        kiss_icp_max_range=args.kiss_icp_max_range if args.odom_source == "kiss-icp" else None,
+        kiss_icp_topic=args.kiss_icp_topic if args.odom_source in kiss_modes else None,
+        kiss_icp_version=kiss_provenance.version,
+        kiss_icp_pass1_version=kiss_provenance.pass1_version,
+        kiss_icp_pass2_version=kiss_provenance.pass2_version,
+        kiss_icp_max_range=args.kiss_icp_max_range if args.odom_source in kiss_modes else None,
+        kiss_icp_time_field=args.kiss_icp_time_field if args.odom_source in kiss_modes else None,
+        kiss_icp_native_deskew=args.kiss_icp_native_deskew,
+        kiss_icp_passes=kiss_provenance.passes,
         stats=stats,
         restamp_offsets_ns=restamp_offsets_ns or None,
     )

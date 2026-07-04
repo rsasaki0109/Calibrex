@@ -76,6 +76,32 @@ provenance:
     /velodyne_points --kiss-icp-max-range 30.0 --child-frame-id base_link
     --storage sqlite3 --compress none --duplicate-topic
     /velodyne_points:/velodyne_points_copy
+  selftest_kissdeskew_note: >
+    Identity selftest with KISS-ICP native deskew odometry
+    (indoor02_rosbag2_selftest_kissdeskew): same duplicate-topic layout as the
+    baseline selftest but --kiss-icp-native-deskew on the kiss-icp conversion.
+  selftest_kissdeskew_command: >
+    uv run tools/rosbag1_to_rosbag2_online_pair.py --src
+    data/public/tiers_lidars_dataset/indoor02.bag --dst
+    data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest_kissdeskew --topic
+    /velodyne_points --topic /os_cloud_nodee/points --restamp-topic
+    /os_cloud_nodee/points --odom-source kiss-icp --kiss-icp-topic
+    /velodyne_points --kiss-icp-max-range 30.0 --kiss-icp-native-deskew
+    --kiss-icp-time-field time --child-frame-id base_link --storage sqlite3
+    --compress none --duplicate-topic /velodyne_points:/velodyne_points_copy
+  selftest_twopass_note: >
+    Identity selftest with two-pass KISS-ICP odometry
+    (indoor02_rosbag2_selftest_twopass): pass 1 raw kiss-icp deskews each scan
+    to its message stamp; pass 2 re-runs kiss-icp on deskewed scans.
+  selftest_twopass_command: >
+    uv run tools/rosbag1_to_rosbag2_online_pair.py --src
+    data/public/tiers_lidars_dataset/indoor02.bag --dst
+    data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest_twopass --topic
+    /velodyne_points --topic /os_cloud_nodee/points --restamp-topic
+    /os_cloud_nodee/points --odom-source kiss-icp-two-pass --kiss-icp-topic
+    /velodyne_points --kiss-icp-max-range 30.0 --kiss-icp-time-field time
+    --child-frame-id base_link --storage sqlite3 --compress none
+    --duplicate-topic /velodyne_points:/velodyne_points_copy
   restamp_note: >
     Ouster OS1 (/os_cloud_nodee/points) stamps with since-boot clock in the
     upstream ROS 1 bag. Regenerated rosbag2 variants apply
