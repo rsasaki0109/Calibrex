@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_SCHEMA_COUNT = 17
+EXPECTED_SCHEMA_COUNT = 18
 DEFAULT_VENV = Path("/tmp/slac-release-smoke")
 DEFAULT_BUILD_ENV = Path("/tmp/slac-release-build")
 DEFAULT_SCHEMA_DIR = Path("/tmp/slac-release-schemas")

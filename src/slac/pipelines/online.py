@@ -120,6 +120,19 @@ from slac.evaluation.temporal import (
     temporal_evidence_requested,
     temporal_evidence_to_provenance,
 )
+from slac.evaluation.trajectory import (
+    CrossSegmentScanCollection,
+    OdometrySourceInfo,
+    OnlineSourceScan,
+    TrajectoryEvidenceOptions,
+    TrajectoryEvidenceResult,
+    _select_evenly_spaced_timestamps,
+    build_trajectory_artifact,
+    evaluate_trajectory_evidence,
+    trajectory_evidence_metrics,
+    trajectory_evidence_options_from_factor,
+    trajectory_evidence_to_provenance,
+)
 from slac.graph.lidar_point_to_plane import (
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
@@ -137,6 +150,7 @@ _FACTOR_NAME = "lidar_rig_point_to_plane"
 _MIN_TRAIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
 _TIMELINE_FILENAME = "timeline.json"
+_TRAJECTORY_FILENAME = "trajectory.json"
 OnlineTargetEntry = tuple[int, Vector3, SE3, float, int]
 
 
@@ -685,6 +699,7 @@ def run_online_calibration(
     replay_provenance: dict[str, Any]
     motion_compensated = False
     odometry_track: OdometryTrack | None = None
+    odometry_source_info: OdometrySourceInfo | None = None
     if config.dataset.type == "rosbag1":
         source_records, target_stream, replay_provenance = _load_rosbag1_online_pair(
             config,
@@ -693,14 +708,19 @@ def run_online_calibration(
             target_sensor=target_sensor,
         )
     elif config.dataset.type == "rosbag2":
-        source_records, target_stream, replay_provenance, motion_compensated, odometry_track = (
-            _load_rosbag2_online_pair(
-                config,
-                inputs,
-                source_sensor=source_sensor,
-                target_sensor=target_sensor,
-                t_base_source=source_node.transform_to_parent,
-            )
+        (
+            source_records,
+            target_stream,
+            replay_provenance,
+            motion_compensated,
+            odometry_track,
+            odometry_source_info,
+        ) = _load_rosbag2_online_pair(
+            config,
+            inputs,
+            source_sensor=source_sensor,
+            target_sensor=target_sensor,
+            t_base_source=source_node.transform_to_parent,
         )
     else:
         files = _dataset_files(config)
@@ -800,6 +820,7 @@ def run_online_calibration(
         motion_compensated=motion_compensated,
         target_stream=target_stream,
         odometry_track=odometry_track,
+        odometry_source_info=odometry_source_info,
     )
 
 
@@ -1228,12 +1249,20 @@ def _load_rosbag2_online_pair(
     dict[str, Any],
     bool,
     OdometryTrack | None,
+    OdometrySourceInfo | None,
 ]:
     """Stream one rosbag2 recording once, building a bounded source map and target stream."""
 
     bag_path = Path(config.dataset.path)
     if not bag_path.exists():
-        return [], [], {"rosbag2_path": str(bag_path), "rosbag2_exists": False}, False, None
+        return (
+            [],
+            [],
+            {"rosbag2_path": str(bag_path), "rosbag2_exists": False},
+            False,
+            None,
+            None,
+        )
 
     source_topic = _lidar_topic(config, source_sensor)
     target_topic = _lidar_topic(config, target_sensor)
@@ -1242,7 +1271,7 @@ def _load_rosbag2_online_pair(
     if odometry_topic:
         topics.add(odometry_topic)
 
-    odometry_track = _load_rosbag2_odometry_track(bag_path, odometry_topic)
+    odometry_track, odometry_source_info = _load_rosbag2_odometry_track(bag_path, odometry_topic)
     motion_compensated = odometry_track is not None
     extrapolation_tolerance_s = _odometry_extrapolation_tolerance_s(config, motion_compensated)
 
@@ -1294,6 +1323,7 @@ def _load_rosbag2_online_pair(
                 if inputs.max_source_points is None
                 else max(0, inputs.max_source_points - len(source_records))
             )
+            scan_records: list[LivoxPointRecord]
             if source_deskew and odometry_track is not None:
                 offsets_s = message.point_time_offsets_s
                 if offsets_s is None:
@@ -1307,16 +1337,14 @@ def _load_rosbag2_online_pair(
                     span_min=deskew_span_min,
                     span_max=deskew_span_max,
                 )
-                source_records.extend(
-                    _deskew_pointcloud_to_world_records(
-                        message.xyz,
-                        offsets_s,
-                        message.timestamp_ns,
-                        t_base_source,
-                        odometry_track,
-                        remaining,
-                        extrapolation_tolerance_s,
-                    )
+                scan_records = _deskew_pointcloud_to_world_records(
+                    message.xyz,
+                    offsets_s,
+                    message.timestamp_ns,
+                    t_base_source,
+                    odometry_track,
+                    remaining,
+                    extrapolation_tolerance_s,
                 )
             elif motion_compensated and odometry_track is not None:
                 t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
@@ -1334,15 +1362,14 @@ def _load_rosbag2_online_pair(
                     )
                     raise DatasetError(msg)
                 t_world_source = t_world_base.compose(t_base_source)
-                source_records.extend(
-                    _transform_pointcloud_to_world_records(
-                        message.xyz,
-                        t_world_source,
-                        remaining,
-                    )
+                scan_records = _transform_pointcloud_to_world_records(
+                    message.xyz,
+                    t_world_source,
+                    remaining,
                 )
             else:
-                source_records.extend(_pointcloud_xyz_to_records(message.xyz, remaining))
+                scan_records = _pointcloud_xyz_to_records(message.xyz, remaining)
+            source_records.extend(scan_records)
             source_messages += 1
             continue
 
@@ -1448,16 +1475,25 @@ def _load_rosbag2_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
-    return source_records, target_stream, provenance, motion_compensated, odometry_track
+    return (
+        source_records,
+        target_stream,
+        provenance,
+        motion_compensated,
+        odometry_track,
+        odometry_source_info,
+    )
 
 
 def _load_rosbag2_odometry_track(
     bag_path: Path,
     odometry_topic: str | None,
-) -> OdometryTrack | None:
+) -> tuple[OdometryTrack | None, OdometrySourceInfo | None]:
     if not odometry_topic:
-        return None
+        return None, None
     samples: list[OdometryPoseSample] = []
+    world_frame_id = ""
+    child_frame_id = ""
     for connection, timestamp_ns, data in iter_rosbag2_messages(
         bag_path,
         topics={odometry_topic},
@@ -1465,13 +1501,144 @@ def _load_rosbag2_odometry_track(
         if connection.message_type != ODOMETRY_TYPE:
             continue
         message = decode_odometry(connection.topic, timestamp_ns, data)
+        if not world_frame_id:
+            world_frame_id = message.frame_id
+            child_frame_id = message.child_frame_id
         samples.append(
             OdometryPoseSample(
                 timestamp_ns=message.timestamp_ns,
                 pose=SE3.from_lists(list(message.position), list(message.orientation_xyzw)),
             )
         )
-    return OdometryTrack(samples) if samples else None
+    if not samples:
+        return None, None
+    return (
+        OdometryTrack(samples),
+        OdometrySourceInfo(
+            topic=odometry_topic,
+            world_frame_id=world_frame_id,
+            child_frame_id=child_frame_id,
+        ),
+    )
+
+
+def collect_rosbag2_cross_segment_scans(
+    *,
+    bag_path: Path,
+    source_topic: str,
+    odometry_track: OdometryTrack,
+    t_base_source: SE3,
+    options: TrajectoryEvidenceOptions,
+    extrapolation_tolerance_s: float | None,
+) -> CrossSegmentScanCollection | None:
+    """Stream the source topic over the full odometry span for drift evaluation."""
+
+    first_ns = odometry_track.first_timestamp_ns
+    last_ns = odometry_track.last_timestamp_ns
+    if first_ns is None or last_ns is None or last_ns <= first_ns:
+        return None
+
+    midpoint_ns = (first_ns + last_ns) // 2
+    first_window_start_ns = first_ns
+    first_window_end_ns = midpoint_ns
+    second_window_start_ns = midpoint_ns + 1
+    second_window_end_ns = last_ns
+
+    source_timestamps_ns: list[int] = []
+    for connection, timestamp_ns, _data in iter_rosbag2_messages(
+        bag_path,
+        topics={source_topic},
+    ):
+        if connection.message_type != POINTCLOUD2_TYPE or connection.topic != source_topic:
+            continue
+        if timestamp_ns < first_ns or timestamp_ns > last_ns:
+            continue
+        source_timestamps_ns.append(timestamp_ns)
+
+    if len(source_timestamps_ns) < 2:
+        return None
+
+    first_selected_ns = set(
+        _select_evenly_spaced_timestamps(
+            source_timestamps_ns,
+            window_start_ns=first_window_start_ns,
+            window_end_ns=first_window_end_ns,
+            max_samples=options.max_scans_per_half,
+        )
+    )
+    second_selected_ns = set(
+        _select_evenly_spaced_timestamps(
+            source_timestamps_ns,
+            window_start_ns=second_window_start_ns,
+            window_end_ns=second_window_end_ns,
+            max_samples=options.max_scans_per_half,
+        )
+    )
+    selected_ns = first_selected_ns | second_selected_ns
+    if not first_selected_ns or not second_selected_ns:
+        return None
+
+    pose_track = OdometryTrack(list(odometry_track.samples))
+    first_half_scans: list[OnlineSourceScan] = []
+    second_half_scans: list[OnlineSourceScan] = []
+    points_per_first_scan = max(1, options.max_points_per_half // max(len(first_selected_ns), 1))
+    points_per_second_scan = max(
+        1, options.max_points_per_half // max(len(second_selected_ns), 1)
+    )
+
+    for connection, timestamp_ns, data in iter_rosbag2_messages(
+        bag_path,
+        topics={source_topic},
+    ):
+        if connection.message_type != POINTCLOUD2_TYPE or connection.topic != source_topic:
+            continue
+        if timestamp_ns not in selected_ns:
+            continue
+        message = decode_pointcloud2(connection.topic, timestamp_ns, data)
+        t_world_base, _clamped, extrapolation_s = pose_track.interpolate(message.timestamp_ns)
+        if (
+            extrapolation_tolerance_s is not None
+            and extrapolation_s > extrapolation_tolerance_s
+        ):
+            msg = (
+                "cross-segment source LiDAR message timestamp lies "
+                f"{extrapolation_s:.4f} s outside the odometry track "
+                f"(tolerance {extrapolation_tolerance_s:.4f} s)"
+            )
+            raise DatasetError(msg)
+        t_world_source = t_world_base.compose(t_base_source)
+        if timestamp_ns in first_selected_ns:
+            scan_records = _transform_pointcloud_to_world_records(
+                message.xyz,
+                t_world_source,
+                points_per_first_scan,
+            )
+            if scan_records:
+                first_half_scans.append(
+                    OnlineSourceScan(timestamp_ns=message.timestamp_ns, records=scan_records)
+                )
+        if timestamp_ns in second_selected_ns:
+            scan_records = _transform_pointcloud_to_world_records(
+                message.xyz,
+                t_world_source,
+                points_per_second_scan,
+            )
+            if scan_records:
+                second_half_scans.append(
+                    OnlineSourceScan(timestamp_ns=message.timestamp_ns, records=scan_records)
+                )
+
+    if not first_half_scans or not second_half_scans:
+        return None
+
+    return CrossSegmentScanCollection(
+        first_half_scans=sorted(first_half_scans, key=lambda scan: scan.timestamp_ns),
+        second_half_scans=sorted(second_half_scans, key=lambda scan: scan.timestamp_ns),
+        first_half_start_timestamp_ns=first_window_start_ns,
+        first_half_end_timestamp_ns=first_window_end_ns,
+        second_half_start_timestamp_ns=second_window_start_ns,
+        second_half_end_timestamp_ns=second_window_end_ns,
+    )
 
 
 def _odometry_replay_provenance(
@@ -1703,6 +1870,7 @@ def _build_result(
     motion_compensated: bool = False,
     target_stream: list[OnlineTargetEntry] | None = None,
     odometry_track: OdometryTrack | None = None,
+    odometry_source_info: OdometrySourceInfo | None = None,
 ) -> CalibrationResult:
     history = session.history
     final_snapshot = history[-1]
@@ -1751,7 +1919,10 @@ def _build_result(
     factor = config.pipeline.factors.get(_FACTOR_NAME)
     factor_options: dict[str, Any] = dict(factor.options) if factor is not None else {}
     temporal_options = temporal_evidence_options_from_factor(factor_options)
+    trajectory_options = trajectory_evidence_options_from_factor(factor_options)
     temporal_result: TemporalEvidenceResult | None = None
+    trajectory_result: TrajectoryEvidenceResult | None = None
+    trajectory_metrics: dict[str, MetricResult] = {}
     run_provenance: dict[str, Any] = {
         "pipeline": "online_calibration",
         "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
@@ -1812,6 +1983,38 @@ def _build_result(
         else:
             run_provenance["temporal_evidence_skipped_no_odometry"] = True
 
+    if motion_compensated and odometry_track is not None and odometry_source_info is not None:
+        cross_segment_scans: CrossSegmentScanCollection | None = None
+        if config.dataset.type == "rosbag2":
+            bag_path = Path(config.dataset.path)
+            if bag_path.exists():
+                cross_segment_scans = collect_rosbag2_cross_segment_scans(
+                    bag_path=bag_path,
+                    source_topic=_lidar_topic(config, source_sensor),
+                    odometry_track=odometry_track,
+                    t_base_source=t_base_source,
+                    options=trajectory_options,
+                    extrapolation_tolerance_s=session.gate_thresholds.max_odometry_extrapolation_s,
+                )
+        trajectory_result = evaluate_trajectory_evidence(
+            odometry_track=odometry_track,
+            cross_segment_scans=cross_segment_scans,
+            voxel_size_m=session.voxel_size_m,
+            correspondence_gate_m=session.correspondence_gate_m,
+            variable=variable,
+            sensor=target_sensor,
+            options=trajectory_options,
+            max_odometry_extrapolation_s=session.gate_thresholds.max_odometry_extrapolation_s,
+        )
+        run_provenance["trajectory_evidence"] = trajectory_evidence_to_provenance(
+            trajectory_result
+        )
+        run_provenance["online_trajectory_gate_status"] = trajectory_result.verdict
+        trajectory_metrics = trajectory_evidence_metrics(trajectory_result)
+        metrics.update(trajectory_metrics)
+    else:
+        run_provenance["trajectory_evidence_skipped_no_odometry"] = True
+
     result = CalibrationResult(
         run=RunInfo(
             id=_run_id(config.project.name),
@@ -1866,6 +2069,28 @@ def _build_result(
     )
     result.run.provenance["online_timeline_path"] = str(timeline_path)
     result.save(output_dir / config.outputs.result)
+
+    if (
+        motion_compensated
+        and odometry_track is not None
+        and odometry_source_info is not None
+        and trajectory_result is not None
+    ):
+        trajectory_path = output_dir / _TRAJECTORY_FILENAME
+        trajectory_artifact = build_trajectory_artifact(
+            run=_report_run_info(result),
+            odometry_track=odometry_track,
+            odometry_source=odometry_source_info,
+            evidence=trajectory_result,
+            metrics=trajectory_metrics,
+        )
+        write_mapping(
+            trajectory_path,
+            trajectory_artifact.model_dump(mode="json", exclude_none=True),
+        )
+        result.run.provenance["trajectory_path"] = str(trajectory_path)
+        result.save(output_dir / config.outputs.result)
+
     return result
 
 
