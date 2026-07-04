@@ -48,20 +48,6 @@ ODOMETRY_MSGTYPE = "nav_msgs/msg/Odometry"
 POSE_STAMPED_MSGTYPE = "geometry_msgs/msg/PoseStamped"
 
 
-def _normalize_cdr_for_calibrex(data: bytes) -> bytes:
-    """Rewrite rosbags' standard CDR encapsulation header for Calibrex's reader.
-
-    rosbags emits ``[0x00, 0x01, 0x00, 0x00]`` (CDR + little-endian option byte).
-    Calibrex's ``CdrReader`` currently keys endianness off byte 0 only and expects
-    ``[0x01, 0x00, 0x00, 0x00]``. Normalize on write so converted bags decode with
-    ``calibrex inspect`` without mutating ``src/calibrex``.
-    """
-
-    if len(data) >= 4 and data[0] == 0 and data[1] == 1 and data[2:4] == b"\x00\x00":
-        return bytes([1, 0, 0, 0]) + data[4:]
-    return data
-
-
 @dataclass(frozen=True)
 class TopicStats:
     """Per-topic message count and timestamp span."""
@@ -237,9 +223,7 @@ def convert_bag(args: argparse.Namespace) -> dict[str, TopicStats]:
                     writer.write(
                         odom_connection,
                         timestamp,
-                        _normalize_cdr_for_calibrex(
-                            ros2_typestore.serialize_cdr(odom_msg, ODOMETRY_MSGTYPE)
-                        ),
+                        ros2_typestore.serialize_cdr(odom_msg, ODOMETRY_MSGTYPE),
                     )
                     _record_stats(stats, args.odom_topic, timestamp)
                     continue
@@ -257,9 +241,7 @@ def convert_bag(args: argparse.Namespace) -> dict[str, TopicStats]:
                 writer.write(
                     pc_connections_out[topic],
                     timestamp,
-                    _normalize_cdr_for_calibrex(
-                        ros2_typestore.serialize_cdr(pc_msg, POINTCLOUD2_MSGTYPE)
-                    ),
+                    ros2_typestore.serialize_cdr(pc_msg, POINTCLOUD2_MSGTYPE),
                 )
                 _record_stats(stats, topic, timestamp)
     finally:

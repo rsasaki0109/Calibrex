@@ -231,10 +231,27 @@ uv run tools/rosbag1_to_rosbag2_online_pair.py \
   --compress none
 ```
 
-Inspect the converted bag (topics, counts, odometry pose sanity):
+An MCAP variant with per-message zstd compression exercises the message-mode
+decompression path on real independently-encoded CDR:
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_mcap \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --pose-topic /vrpn_client_node/UWBTest/pose \
+  --odom-topic /odom \
+  --child-frame-id base_link \
+  --storage mcap \
+  --compress zstd
+```
+
+Inspect the converted bags (topics, counts, odometry pose sanity):
 
 ```bash
 calibrex inspect data/public/tiers_lidars_dataset/indoor02_rosbag2 --type rosbag2 --json
+calibrex inspect data/public/tiers_lidars_dataset/indoor02_rosbag2_mcap --type rosbag2 --json
 ```
 
 Online motion-compensated calibration (A) and the static-rig control (B):
@@ -259,8 +276,21 @@ distance ~0.37 m) is a nominal reference, not ground truth. Final estimates
 drifted substantially from that seed (A: ~270 cm translation / ~39° rotation;
 B: ~106 cm / ~15°), consistent with an unknown constant offset between the
 MOCAP rigid-body frame and `base_link` — rotation smears the world map with scene
-distance and platform excursion. Agreement with the TIERS reference is therefore
-only at the residual level (holdout RMSE band), not a tight extrinsic match.
+distance and platform excursion. On this sequence the final extrinsic is **not**
+validated against the TIERS reference: a ~2.7 m translation drift on a
+physically ~0.37 m sensor pair is not agreement at any level. The online gates
+measure internal consistency of the (possibly smeared) world map, not absolute
+extrinsic accuracy. The VRPN rigid-body (`UWBTest`) alignment to the rig is
+unknown and unverified, so the motion-compensated run's absolute accuracy remains
+an open question pending a rig-frame odometry source (e.g. LiDAR odometry) —
+planned follow-up.
+
+This validation did establish that real rosbag2 bags from an independent encoder
+(`rosbags`) exposed two reader bugs that synthetic mirror-image tests could not:
+CDR encapsulation endianness was keyed off the wrong header byte, and
+message-mode zstd compression declared in `metadata.yaml` was ignored. With both
+fixed, `calibrex inspect` decodes the regenerated sqlite3 and MCAP+zstd bags
+with standard CDR headers and per-message decompression.
 
 | Run | Odometry | Batches adopted | Holdout RMSE (m) | Final Δ vs TIERS seed |
 |-----|----------|-----------------|------------------|------------------------|

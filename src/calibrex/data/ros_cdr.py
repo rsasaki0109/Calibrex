@@ -19,14 +19,33 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 
 
 class CdrReader:
-    """Cursor over a CDR-encoded ROS 2 message payload."""
+    """Cursor over a CDR-encoded ROS 2 message payload.
+
+    XCDR1 uses a 4-byte encapsulation header: byte 0 is the encapsulation
+    identifier (``0x00`` for CDR / PL_CDR), byte 1 selects endianness
+    (``0``/``2`` big-endian, ``1``/``3`` little-endian), and bytes 2-3 are
+    options. ROS 2 middleware typically emits ``00 01 00 00`` for
+    little-endian CDR.
+    """
 
     def __init__(self, data: bytes) -> None:
         if len(data) < 4:
             msg = "truncated CDR payload (missing encapsulation header)"
             raise DatasetError(msg)
-        encapsulation = data[0]
-        self._little_endian = encapsulation in (1, 3)
+        header = data[:4]
+        if header[0] != 0:
+            hex_header = " ".join(f"{byte:02x}" for byte in header)
+            msg = f"unsupported CDR encapsulation header {hex_header}"
+            raise DatasetError(msg)
+        endian_byte = header[1]
+        if endian_byte in (1, 3):
+            self._little_endian = True
+        elif endian_byte in (0, 2):
+            self._little_endian = False
+        else:
+            hex_header = " ".join(f"{byte:02x}" for byte in header)
+            msg = f"unsupported CDR encapsulation header {hex_header}"
+            raise DatasetError(msg)
         self._endian = "<" if self._little_endian else ">"
         self._data = data
         self._offset = 4
