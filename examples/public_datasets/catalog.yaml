@@ -80,3 +80,13 @@ datasets:
     calibrex_manifest: examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml
     calibrex_config: examples/public_datasets/tiers_livox_lidars_cali/config.yaml
     recommended_pipeline: solid_state_multi_lidar_evidence
+  tiers_lidars_dataset_indoor02:
+    name: TIERS Indoor02 moving-platform Velodyne + Ouster sequence
+    family: tiers_lidars
+    domain: robotics
+    official_url: https://github.com/TIERS/tiers-lidars-dataset
+    download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/EYXGcc1Z-y1FpnDwQ1geIoEBovXvLfoxZwt36J1_t2PugA?e=UwHhXd
+    license_note: TIERS is MIT licensed for academic purpose; follow the dataset repository terms and upstream download flow.
+    calibrex_manifest: examples/public_datasets/tiers_lidars_dataset_indoor02/manifest.yaml
+    calibrex_config: examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml
+    recommended_pipeline: multi_lidar_evidence
