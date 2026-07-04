@@ -219,7 +219,7 @@ def _resolve_storage(
 
 
 def resolve_storage(path: str | Path) -> tuple[Path, str]:
-    """Resolve a bag directory, metadata file, or bare storage file."""
+    """Resolve a bag directory (with optional metadata.yaml) or bare storage file."""
 
     bag_path = Path(path)
     if not bag_path.exists():
