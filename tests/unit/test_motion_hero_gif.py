@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+requires_text_bake_tools = pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("fc-match") is None,
+    reason="text baking requires ffmpeg and fontconfig",
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = ROOT / "tools"
@@ -62,6 +68,7 @@ def test_verify_motion_text_rendered_rejects_blank_title_band() -> None:
         motion_hero_gif.verify_motion_text_rendered(pixels, width, height, frame_state)
 
 
+@requires_text_bake_tools
 def test_bake_motion_frame_text_renders_title_band(tmp_path: Path) -> None:
     width = motion_hero_gif.MOTION_HERO_WIDTH
     height = motion_hero_gif.MOTION_HERO_HEIGHT
