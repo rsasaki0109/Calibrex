@@ -336,9 +336,9 @@ Run C removes the external MOCAP body-alignment ambiguity structurally: KISS-ICP
 poses are `T_world_velo_sensor` with the Velodyne as the root frame. The
 KISS-ICP trajectory itself is sane on this sequence (~7 m office-scale excursion,
 unit quaternions, no consecutive-pose translation jumps above 0.11 m). C is
-closer to the TIERS GICP seed than A (~85 cm vs ~287 cm translation) but still
-~2.3× the inter-sensor baseline and further from the seed than B in translation
-(85 cm vs 106 cm is better, not worse). **Absolute extrinsic accuracy against the
+closer to the TIERS GICP seed than A (~85 cm vs ~287 cm translation) and
+slightly closer than B in translation (85 cm vs 106 cm), but still
+~2.3× the inter-sensor baseline. **Absolute extrinsic accuracy against the
 TIERS reference is not established** by C: the residual ~85 cm / ~28° gap is
 larger than the measured holdout residuals (~0.28 m mean) and cannot be read as
 confirmation of the GICP seed. The online gates measure internal consistency of
@@ -390,11 +390,12 @@ calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online
 
 On the bounded replay budget above, motion-compensated selftest (KISS-ICP
 `/odom`) adopted all 104 batches with zero odometry clamping and zero
-extrapolation. The static control (no odometry) also adopted all 104 batches
-and passed every internal gate — yet both landed far from identity truth in
-opposite ways. Motion compensation cut the extrinsic error roughly 10× versus
-the static run; the residual ~10 cm / ~1.2° is consistent with no per-point
-deskew and LiDAR-odometry drift on a moving platform.
+extrapolation and recovered identity to ~9.6 cm / ~1.2°. The static control
+(no odometry) also adopted all 104 batches and passed every internal gate —
+yet its final estimate landed ~98 cm / ~37° from the known identity truth.
+Motion compensation cut the extrinsic error roughly 10× versus the static
+run; the residual ~10 cm / ~1.2° is consistent with no per-point deskew and
+LiDAR-odometry drift on a moving platform.
 
 | Run | Odometry | Batches adopted | Final Δ vs identity (truth) |
 |-----|----------|-----------------|-------------------------------|
