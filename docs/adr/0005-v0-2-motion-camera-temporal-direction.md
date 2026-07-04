@@ -57,6 +57,13 @@ replay provenance. Work proceeds in two steps:
    metric catches them.
 2. An estimated-offset report field with its own gate.
 
+Initial implementation (post-run holdout-RMSE probes and 1D estimator on
+motion-compensated rosbag2 replays) is in tree; synthetic fixtures recover
+injected offsets to ±5 ms when the extrinsic is held at ground truth. Real
+Indoor02 cross-sensor runs record honestly that holdout RMSE can be flat once
+the online solver has adapted, so large restamp biases are not isolated without
+tighter probe margins or extrinsic anchoring — see the tutorial temporal table.
+
 ## Consequences
 
 Each pillar lands as small PRs with the established discipline: schema-validatable

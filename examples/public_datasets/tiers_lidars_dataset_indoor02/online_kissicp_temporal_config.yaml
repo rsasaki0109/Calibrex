@@ -1,0 +1,84 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: tiers_lidars_dataset_indoor02_online_kissicp_temporal
+  description: >
+    Online Velodyne-VLP-16-to-Ouster-OS1 extrinsic calibration from the TIERS
+    Indoor02 moving-platform sequence with temporal evidence (time-offset
+    perturbation probes and 1D holdout-RMSE estimator). Same replay budget as
+    online_kissicp_config.yaml; adds post-run temporal gates on the final
+    adopted estimate.
+  output_dir: outputs/tiers_lidars_dataset_indoor02_kissicp_temporal
+  domain: robotics
+
+dataset:
+  type: rosbag2
+  path: data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp
+  odometry_topic: /odom
+  time_base: ros_time
+
+sensors:
+  velodyne_vlp16:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points
+    frame_id: velo_sensor
+    fields: [x, y, z, intensity]
+  ouster_os1:
+    type: lidar
+    model: ouster_os1
+    topic: /os_cloud_nodee/points
+    frame_id: os1_sensor
+    fields: [x, y, z, intensity]
+
+frames:
+  velodyne_vlp16:
+    root: true
+  ouster_os1:
+    parent: velodyne_vlp16
+    transform:
+      estimate: true
+      initial:
+        translation: [0.216341, -0.266250, 0.134715]
+        rotation_quat_xyzw: [-0.003933, 0.020803, 0.357098, 0.933827]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+        time_offset_probe_s: [0.05, -0.05, 0.10]
+        estimate_time_offset: true
+        time_offset_search_bound_s: 0.20
+        online_gate_max_abs_time_offset_s: 0.05
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
