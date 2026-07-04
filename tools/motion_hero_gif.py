@@ -43,6 +43,18 @@ MOTION_HERO_FPS = 10
 MOTION_HERO_HOLD_FRAMES = 6
 MOTION_HERO_GATE_M = 0.40
 MOTION_HERO_MIN_GAP_PX = 8
+MOTION_HERO_WIDTH = 960
+MOTION_HERO_HEIGHT = 540
+MOTION_BOUNDS_MARGIN_M = 8.0
+MOTION_RANGE_CROP_M = 20.0
+MOTION_GATE_CELL_PX = 8
+MOTION_GATE_GAP_PX = 2
+MOTION_TEXT_MIN_FOREGROUND_PIXELS = 48
+MOTION_FONT_FAMILY = "Noto Sans"
+MOTION_REVIEW_FRAME_DIR = Path(
+    "/tmp/claude-1000/-home-sasaki-workspace-Calibrex/"
+    "a7615978-7430-47f7-be9c-dee6615fc440/scratchpad/herogif-review"
+)
 
 INDOOR02_GIF_MAX_SOURCE_MESSAGES = 12
 INDOOR02_GIF_MAX_SOURCE_POINTS = 8000
@@ -66,8 +78,9 @@ Point2 = tuple[int, int]
 Point3 = tuple[float, float, float]
 Color = tuple[int, int, int]
 
-MAP_GREY: Color = (90, 106, 128)
-MAP_BRIGHT: Color = (148, 163, 184)
+MAP_GREY: Color = (120, 138, 162)
+MAP_BRIGHT: Color = (190, 205, 224)
+CORRECTION_VECTOR: Color = (251, 191, 36)
 CURRENT_SCAN: Color = (34, 211, 238)
 TRAJECTORY: Color = (34, 211, 238)
 TARGET_ORANGE: Color = (245, 158, 11)
@@ -143,6 +156,7 @@ class MotionHeroScene:
     accepted_batch_count: int
     batch_count: int
     frame_states: tuple[MotionHeroFrameState, ...]
+    initial_batch_transform: SE3
     gate_thresholds: dict[str, float | int]
     final_gate_status: str
     rejected_batch_count: int
@@ -215,7 +229,9 @@ def run_indoor02_motion_hero_pipeline(
         raise SystemExit("online calibration produced no timeline batches for the motion hero")
 
     scans, target_batches, trajectory, odom_track = load_indoor02_motion_bag_data()
-    bounds = compute_motion_bounds(scans, target_batches, trajectory, timeline)
+    bounds = compute_motion_bounds(trajectory)
+    initial_batch_transform = _load_initial_extrinsic_from_config(INDOOR02_KISSICP_CONFIG)
+    scans = _crop_motion_scans(scans, bounds, odom_track)
     batch_transforms = tuple(_transform_result_to_se3(batch.estimate) for batch in timeline.batches)
     holdout_rmses = tuple(batch.batch_holdout_rmse_m for batch in timeline.batches)
     gate_statuses = tuple(batch.gate_status for batch in timeline.batches)
@@ -242,6 +258,7 @@ def run_indoor02_motion_hero_pipeline(
         accepted_batch_count=timeline.accepted_batch_count,
         batch_count=len(timeline.batches),
         frame_states=frame_states,
+        initial_batch_transform=initial_batch_transform,
         gate_thresholds={
             "min_rank": gate_thresholds.min_rank,
             "max_holdout_rmse_m": gate_thresholds.max_holdout_rmse_m,
@@ -338,13 +355,15 @@ def build_motion_hero_frame_states(
         batch_index = min(batch_count - 1, round(progress * max(1, batch_count - 1)))
         scan_index = min(scan_count - 1, round(progress * max(1, scan_count - 1)))
         visible = batch_index + 1
+        visible_gate_statuses = gate_statuses[:visible]
+        accepted_so_far = sum(1 for status in visible_gate_statuses if status == "pass")
         states.append(
             MotionHeroFrameState(
                 scan_index=scan_index,
                 batch_index=batch_index,
                 holdout_rmse_history=holdout_rmses[:visible],
-                gate_statuses=gate_statuses[:visible],
-                accepted_batch_count=accepted_batch_count,
+                gate_statuses=visible_gate_statuses,
+                accepted_batch_count=accepted_so_far,
                 batch_count=batch_count,
                 current_holdout_rmse_m=holdout_rmses[batch_index],
                 batch_transform=batch_transforms[batch_index],
@@ -354,33 +373,52 @@ def build_motion_hero_frame_states(
 
 
 def compute_motion_bounds(
-    scans: tuple[MotionHeroScan, ...],
-    target_batches: tuple[MotionHeroTargetBatch, ...],
     trajectory: tuple[tuple[float, float, float], ...],
-    timeline: object,
+    *,
+    margin_m: float = MOTION_BOUNDS_MARGIN_M,
 ) -> MotionHeroBounds:
-    xs: list[float] = []
-    ys: list[float] = []
-    for x, y, _yaw in trajectory:
-        xs.append(x)
-        ys.append(y)
-    for scan in scans:
-        for x, y, _z in scan.points_world:
-            xs.append(x)
-            ys.append(y)
-    final_transform = _transform_result_to_se3(timeline.batches[-1].estimate)
-    for batch in target_batches:
-        for point in batch.points_sensor:
-            wx, wy, _wz = final_transform.transform_point(point)
-            xs.append(wx)
-            ys.append(wy)
-    margin = 2.0
+    if not trajectory:
+        raise RuntimeError("motion hero requires a non-empty trajectory for bounds")
+    xs = [x for x, _y, _yaw in trajectory]
+    ys = [y for _x, y, _yaw in trajectory]
     return MotionHeroBounds(
-        x_min=min(xs) - margin,
-        x_max=max(xs) + margin,
-        y_min=min(ys) - margin,
-        y_max=max(ys) + margin,
+        x_min=min(xs) - margin_m,
+        x_max=max(xs) + margin_m,
+        y_min=min(ys) - margin_m,
+        y_max=max(ys) + margin_m,
     )
+
+
+def _point_in_bounds(x: float, y: float, bounds: MotionHeroBounds) -> bool:
+    return bounds.x_min <= x <= bounds.x_max and bounds.y_min <= y <= bounds.y_max
+
+
+def _crop_motion_scans(
+    scans: tuple[MotionHeroScan, ...],
+    bounds: MotionHeroBounds,
+    odom_track: OdometryTrack,
+) -> tuple[MotionHeroScan, ...]:
+    cropped: list[MotionHeroScan] = []
+    for scan in scans:
+        pose, _, _ = odom_track.interpolate(scan.timestamp_ns)
+        rig_x, rig_y = pose.translation_m[0], pose.translation_m[1]
+        kept: list[Point3] = []
+        for x, y, z in scan.points_world:
+            if not _point_in_bounds(x, y, bounds):
+                continue
+            if math.hypot(x - rig_x, y - rig_y) > MOTION_RANGE_CROP_M:
+                continue
+            kept.append((x, y, z))
+        cropped.append(MotionHeroScan(scan.timestamp_ns, tuple(kept)))
+    return tuple(cropped)
+
+
+def _load_initial_extrinsic_from_config(config_path: Path) -> SE3:
+    import yaml
+
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    initial = config["frames"]["ouster_os1"]["transform"]["initial"]
+    return SE3.from_lists(initial["translation"], initial["rotation_quat_xyzw"])
 
 
 def draw_motion_hero_frame(
@@ -415,16 +453,15 @@ def draw_motion_hero_frame(
         is_current = scan_index == frame_state.scan_index
         if is_current:
             color = CURRENT_SCAN
-            alpha = 0.95
-            radius = 2
+            alpha = 1.0
+            radius = 3
         else:
-            fade = max(0.25, 1.0 - age / max(1, frame_state.scan_index))
+            fade = max(0.45, 1.0 - age / max(1, frame_state.scan_index))
             color = mix(MAP_GREY, MAP_BRIGHT, fade)
-            alpha = 0.35 + 0.35 * fade
-            radius = 1
-        step = 1 if is_current else 2
+            alpha = 0.55 + 0.35 * fade
+            radius = 2
         for point_index, point in enumerate(scan.points_world):
-            if point_index % step:
+            if not is_current and point_index % 2:
                 continue
             px, py = project(point[0], point[1])
             circle(image, px, py, radius, color, alpha=alpha)
@@ -438,24 +475,51 @@ def draw_motion_hero_frame(
             *project(x0, y0),
             *project(x1, y1),
             TRAJECTORY,
-            thickness=2,
-            alpha=0.88,
+            thickness=3,
+            alpha=1.0,
         )
     if traj:
         x, y, yaw = traj[-1]
         px, py = project(x, y)
-        _draw_pose_arrow(image, px, py, yaw, project, thick_line, fill_rect)
+        _draw_heading_triangle(image, px, py, yaw, draw_pixel)
 
     if frame_state.batch_index < len(scene.target_batches):
         batch = scene.target_batches[frame_state.batch_index]
         pose, _, _ = scene.odom_track.interpolate(batch.timestamp_ns)
-        t_world_batch = pose.compose(frame_state.batch_transform)
+        t_world_current = pose.compose(frame_state.batch_transform)
+        t_world_initial = pose.compose(scene.initial_batch_transform)
+        centroid = _batch_centroid_sensor(batch.points_sensor)
+        initial_world = t_world_initial.transform_point(centroid)
+        current_world = t_world_current.transform_point(centroid)
+        if (
+            _point_in_bounds(*initial_world[:2], scene.bounds)
+            and _point_in_bounds(*current_world[:2], scene.bounds)
+        ):
+            p0 = project(initial_world[0], initial_world[1])
+            p1 = project(current_world[0], current_world[1])
+            if math.hypot(p1[0] - p0[0], p1[1] - p0[1]) >= 3:
+                thick_line(
+                    image,
+                    p0[0],
+                    p0[1],
+                    p1[0],
+                    p1[1],
+                    CORRECTION_VECTOR,
+                    thickness=2,
+                    alpha=0.95,
+                )
+                circle(image, p0[0], p0[1], 3, CORRECTION_VECTOR, alpha=0.9)
+        rig_x, rig_y = pose.translation_m[0], pose.translation_m[1]
         for point_index, point in enumerate(batch.points_sensor):
             if point_index % 2:
                 continue
-            wx, wy, _wz = t_world_batch.transform_point(point)
+            wx, wy, _wz = t_world_current.transform_point(point)
+            if not _point_in_bounds(wx, wy, scene.bounds):
+                continue
+            if math.hypot(wx - rig_x, wy - rig_y) > MOTION_RANGE_CROP_M:
+                continue
             px, py = project(wx, wy)
-            circle(image, px, py, 2, TARGET_ORANGE, alpha=0.82)
+            circle(image, px, py, 3, TARGET_ORANGE, alpha=0.95)
 
     _draw_scale_bar(image, main, scene.bounds, project, line, fill_rect)
     _draw_motion_hud(image, frame_state, width, draw_helpers)
@@ -477,6 +541,8 @@ def motion_hero_layout(width: int) -> dict[str, LayoutRect]:
     footnote = LayoutRect(width - 430, MOTION_HUD_BOTTOM - 8, 414, 14)
     rmse_label = LayoutRect(spark.x + spark.width - 92, spark.y + 4, 84, 16)
     counter = LayoutRect(gate.x, gate.bottom - 14, gate.width, 14)
+    spark_label = LayoutRect(spark.x, spark.y - 2, 180, 16)
+    gate_label = LayoutRect(gate.x, gate.y - 2, 180, 16)
     _verify_layout_gaps(title1, title2, spark, gate, footnote)
     return {
         "title1": title1,
@@ -486,6 +552,8 @@ def motion_hero_layout(width: int) -> dict[str, LayoutRect]:
         "rmse_label": rmse_label,
         "counter": counter,
         "footnote": footnote,
+        "spark_label": spark_label,
+        "gate_label": gate_label,
     }
 
 
@@ -510,13 +578,65 @@ def _verify_layout_gaps(*rects: LayoutRect) -> None:
                     )
 
 
-def build_motion_frame_overlay_filter(frame_state: MotionHeroFrameState) -> str:
+def resolve_motion_font() -> str:
     font_file = subprocess.check_output(
-        ["fc-match", "-f", "%{file}", "Noto Sans"],
+        ["fc-match", "-f", "%{file}", MOTION_FONT_FAMILY],
         text=True,
     ).strip()
-    layout = motion_hero_layout(960)
+    if not font_file:
+        raise RuntimeError(f"motion hero font resolution failed for {MOTION_FONT_FAMILY!r}")
+    path = Path(font_file)
+    if not path.is_file():
+        raise FileNotFoundError(f"motion hero font file missing: {font_file}")
+    return str(path)
+
+
+def build_motion_frame_text_filter(
+    frame_state: MotionHeroFrameState,
+    *,
+    width: int = MOTION_HERO_WIDTH,
+) -> str:
+    font_file = resolve_motion_font()
+    layout = motion_hero_layout(width)
     labels: list[tuple[str, int, int, int, str]] = [
+        (
+            "slac — simultaneous localization and calibration",
+            layout["title1"].x,
+            layout["title1"].y,
+            20,
+            "E5E7EB",
+        ),
+        (
+            (
+                "TIERS Indoor02 (real data): Velodyne world map + KISS-ICP odometry; "
+                "Ouster extrinsic converges online"
+            ),
+            layout["title2"].x,
+            layout["title2"].y,
+            13,
+            "CBD5E1",
+        ),
+        (
+            "generated from a real slac calibrate --online run",
+            layout["footnote"].x,
+            layout["footnote"].y,
+            11,
+            "94A3B8",
+        ),
+        (
+            "holdout RMSE / batch",
+            layout["spark_label"].x,
+            layout["spark_label"].y,
+            13,
+            "CBD5E1",
+        ),
+        (
+            "gate verdict / batch",
+            layout["gate_label"].x,
+            layout["gate_label"].y,
+            13,
+            "CBD5E1",
+        ),
         (
             f"{frame_state.accepted_batch_count}/{frame_state.batch_count} batches adopted",
             layout["counter"].x,
@@ -538,10 +658,22 @@ def build_motion_frame_overlay_filter(frame_state: MotionHeroFrameState) -> str:
     return ",".join(_drawtext(font_file, *label) for label in labels)
 
 
-def bake_motion_frame_text(ppm_path: Path, frame_state: MotionHeroFrameState) -> None:
-    overlay = build_motion_frame_overlay_filter(frame_state)
+def build_motion_text_filter(*, frame_state: object | None = None) -> str:
+    if frame_state is None:
+        raise RuntimeError("motion hero text filter requires a frame state")
+    return build_motion_frame_text_filter(frame_state)
+
+
+def bake_motion_frame_text(
+    ppm_path: Path,
+    frame_state: MotionHeroFrameState,
+    *,
+    width: int = MOTION_HERO_WIDTH,
+    height: int = MOTION_HERO_HEIGHT,
+) -> None:
+    overlay = build_motion_frame_text_filter(frame_state, width=width)
     tmp_path = ppm_path.with_name(ppm_path.stem + "_text.ppm")
-    subprocess.run(
+    result = subprocess.run(
         [
             "ffmpeg",
             "-y",
@@ -557,47 +689,117 @@ def bake_motion_frame_text(ppm_path: Path, frame_state: MotionHeroFrameState) ->
             str(tmp_path),
         ],
         check=True,
-    )
-    tmp_path.replace(ppm_path)
-
-
-def build_motion_text_filter(*, frame_state: object | None = None) -> str:
-    font_file = subprocess.check_output(
-        ["fc-match", "-f", "%{file}", "Noto Sans"],
+        capture_output=True,
         text=True,
-    ).strip()
-    layout = motion_hero_layout(960)
-    title1 = layout["title1"]
-    title2 = layout["title2"]
-    labels = [
-        (
-            "slac — simultaneous localization and calibration",
-            title1.x,
-            title1.y,
-            20,
-            "E5E7EB",
-        ),
-        (
-            (
-                "TIERS Indoor02 (real data): Velodyne world map + KISS-ICP odometry; "
-                "Ouster extrinsic converges online"
-            ),
-            title2.x,
-            title2.y,
-            13,
-            "CBD5E1",
-        ),
-        (
-            "generated from a real `slac calibrate --online` run",
-            layout["footnote"].x,
-            layout["footnote"].y,
-            11,
-            "94A3B8",
-        ),
-        ("holdout RMSE / batch", layout["spark"].x, layout["spark"].y - 2, 13, "CBD5E1"),
-        ("gate verdict / batch", layout["gate"].x, layout["gate"].y - 2, 13, "CBD5E1"),
-    ]
-    return ",".join(_drawtext(font_file, *label) for label in labels)
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"motion hero ffmpeg drawtext failed for {ppm_path.name}: {result.stderr.strip()}"
+        )
+    if not tmp_path.is_file() or tmp_path.stat().st_size == 0:
+        raise RuntimeError(f"motion hero text bake produced no output for {ppm_path.name}")
+    tmp_path.replace(ppm_path)
+    pixels, read_width, read_height = read_ppm_pixels(ppm_path)
+    if read_width != width or read_height != height:
+        raise RuntimeError(
+            f"motion hero text bake size mismatch for {ppm_path.name}: "
+            f"{read_width}x{read_height} != {width}x{height}"
+        )
+    verify_motion_text_rendered(pixels, read_width, read_height, frame_state)
+
+
+def read_ppm_pixels(path: Path) -> tuple[bytearray, int, int]:
+    header = path.read_bytes()[:64]
+    if not header.startswith(b"P6"):
+        raise RuntimeError(f"unsupported ppm format in {path}")
+    first_newline = header.find(b"\n")
+    second_newline = header.find(b"\n", first_newline + 1)
+    if min(first_newline, second_newline) < 0:
+        raise RuntimeError(f"invalid ppm header in {path}")
+    width_str, height_str = header[first_newline + 1 : second_newline].decode("ascii").split()
+    width = int(width_str)
+    height = int(height_str)
+    expected = width * height * 3
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            str(path),
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    pixels = bytearray(result.stdout)
+    if len(pixels) != expected:
+        raise RuntimeError(
+            f"ppm pixel payload size mismatch in {path}: {len(pixels)} != {expected}"
+        )
+    return pixels, width, height
+
+
+def _is_background_pixel(red: int, green: int, blue: int) -> bool:
+    background_colors = (BG, PANEL, (13, 20, 34))
+    return any(
+        abs(red - color[0]) + abs(green - color[1]) + abs(blue - color[2]) <= 18
+        for color in background_colors
+    )
+
+
+def _pixel_differs_from_background(red: int, green: int, blue: int) -> bool:
+    return not _is_background_pixel(red, green, blue)
+
+
+def count_foreground_pixels_in_rect(
+    pixels: bytearray,
+    width: int,
+    *,
+    rect: LayoutRect,
+) -> int:
+    count = 0
+    x_end = min(width, rect.right)
+    y_end = rect.bottom
+    for y in range(rect.y, y_end):
+        row = y * width * 3
+        for x in range(rect.x, x_end):
+            index = row + x * 3
+            if _pixel_differs_from_background(pixels[index], pixels[index + 1], pixels[index + 2]):
+                count += 1
+    return count
+
+
+def verify_motion_text_rendered(
+    pixels: bytearray,
+    width: int,
+    height: int,
+    frame_state: MotionHeroFrameState,
+) -> None:
+    layout = motion_hero_layout(width)
+    required = {
+        "title1": layout["title1"],
+        "title2": layout["title2"],
+        "footnote": layout["footnote"],
+        "spark_label": layout["spark_label"],
+        "gate_label": layout["gate_label"],
+        "counter": layout["counter"],
+    }
+    if frame_state.current_holdout_rmse_m is not None:
+        required["rmse_label"] = layout["rmse_label"]
+    for name, rect in required.items():
+        if rect.right > width or rect.bottom > height:
+            raise RuntimeError(f"motion hero text rect {name} exceeds frame bounds")
+        foreground = count_foreground_pixels_in_rect(pixels, width, rect=rect)
+        if foreground < MOTION_TEXT_MIN_FOREGROUND_PIXELS:
+            raise RuntimeError(
+                f"motion hero text not rendered in {name}: "
+                f"{foreground} foreground pixels < {MOTION_TEXT_MIN_FOREGROUND_PIXELS}"
+            )
 
 
 def write_motion_review_frames(
@@ -605,6 +807,7 @@ def write_motion_review_frames(
     *,
     output_dir: Path,
     draw_frame_fn,
+    bake_text_fn,
 ) -> list[Path]:
     indices = [0, 12, 28, MOTION_HERO_FRAME_COUNT - 1]
     names = ["first", "early-convergence", "mid", "final"]
@@ -613,6 +816,8 @@ def write_motion_review_frames(
     for index, name in zip(indices, names, strict=True):
         ppm_path = output_dir / f"{name}.ppm"
         draw_frame_fn(scene, index, ppm_path)
+        frame_state = scene.frame_states[index]
+        bake_text_fn(ppm_path, frame_state)
         png_path = output_dir / f"{name}.png"
         subprocess.run(
             [
@@ -623,6 +828,10 @@ def write_motion_review_frames(
                 "warning",
                 "-i",
                 str(ppm_path),
+                "-frames:v",
+                "1",
+                "-update",
+                "1",
                 str(png_path),
             ],
             check=True,
@@ -684,22 +893,32 @@ def _draw_motion_hud(
             )
             circle(image, prev[0], prev[1], 4, CURRENT_SCAN, alpha=1.0)
 
-    fill_rect(image, gate.x, gate.y, gate.width, gate.height - 18, (13, 20, 34))
-    rect(image, gate.x, gate.y, gate.width, gate.height - 18, GRID, alpha=0.9)
-    cell = 2
-    gap = 1
-    total_width = len(frame_state.gate_statuses) * (cell + gap) - gap
-    start_x = gate.x + max(0, (gate.width - total_width) // 2)
+    strip_height = gate.height - 18
+    fill_rect(image, gate.x, gate.y, gate.width, strip_height, (13, 20, 34))
+    rect(image, gate.x, gate.y, gate.width, strip_height, GRID, alpha=0.9)
+    cell = MOTION_GATE_CELL_PX
+    gap = MOTION_GATE_GAP_PX
+    cols = max(1, (gate.width + gap) // (cell + gap))
+    rows = max(1, math.ceil(len(frame_state.gate_statuses) / cols))
+    if len(frame_state.gate_statuses) > cols and rows < 2:
+        rows = 2
+        cols = max(1, math.ceil(len(frame_state.gate_statuses) / rows))
+    grid_width = cols * cell + max(0, cols - 1) * gap
+    grid_height = rows * cell + max(0, rows - 1) * gap
+    start_x = gate.x + max(0, (gate.width - grid_width) // 2)
+    start_y = gate.y + max(0, (strip_height - grid_height) // 2)
     for index, status in enumerate(frame_state.gate_statuses):
-        cx = start_x + index * (cell + gap)
-        cy = gate.y + 8
+        row = index // cols
+        col = index % cols
+        cx = start_x + col * (cell + gap)
+        cy = start_y + row * (cell + gap)
         if status == "pass":
             color = GOOD
         elif status == "fail":
             color = FAIL
         else:
             color = WARNING
-        fill_rect(image, cx, cy, cell, cell, color, alpha=0.92)
+        fill_rect(image, cx, cy, cell, cell, color, alpha=0.98)
 
 
 def _draw_equal_grid(image, main, bounds, project, line, fill_rect) -> None:
@@ -734,14 +953,44 @@ def _draw_scale_bar(image, main, bounds, project, line, fill_rect) -> None:
     line(image, p0[0], p0[1], p1[0], p1[1], TEXT_DIM, alpha=0.95)
 
 
-def _draw_pose_arrow(image, px, py, yaw, project, thick_line, fill_rect) -> None:
+def _draw_heading_triangle(image: bytearray, px: int, py: int, yaw: float, draw_pixel) -> None:
     tip_x = px + round(math.cos(yaw) * 14)
     tip_y = py - round(math.sin(yaw) * 14)
-    thick_line(image, px, py, tip_x, tip_y, TRAJECTORY, thickness=2, alpha=1.0)
-    left = (tip_x - round(math.cos(yaw + 2.4) * 6), tip_y + round(math.sin(yaw + 2.4) * 6))
-    right = (tip_x - round(math.cos(yaw - 2.4) * 6), tip_y + round(math.sin(yaw - 2.4) * 6))
-    thick_line(image, tip_x, tip_y, left[0], left[1], TRAJECTORY, thickness=2, alpha=1.0)
-    thick_line(image, tip_x, tip_y, right[0], right[1], TRAJECTORY, thickness=2, alpha=1.0)
+    base_center_x = px - round(math.cos(yaw) * 4)
+    base_center_y = py + round(math.sin(yaw) * 4)
+    left_x = base_center_x + round(math.cos(yaw + math.pi / 2) * 7)
+    left_y = base_center_y - round(math.sin(yaw + math.pi / 2) * 7)
+    right_x = base_center_x + round(math.cos(yaw - math.pi / 2) * 7)
+    right_y = base_center_y - round(math.sin(yaw - math.pi / 2) * 7)
+    triangle = ((tip_x, tip_y), (left_x, left_y), (right_x, right_y))
+    min_y = min(point[1] for point in triangle)
+    max_y = max(point[1] for point in triangle)
+    for y in range(min_y, max_y + 1):
+        intersections: list[float] = []
+        for index in range(3):
+            x0, y0 = triangle[index]
+            x1, y1 = triangle[(index + 1) % 3]
+            if y0 == y1:
+                continue
+            if (y >= min(y0, y1)) and (y < max(y0, y1)):
+                intersections.append(x0 + (y - y0) * (x1 - x0) / (y1 - y0))
+        if len(intersections) < 2:
+            continue
+        intersections.sort()
+        x_start = round(intersections[0])
+        x_end = round(intersections[-1])
+        for x in range(x_start, x_end + 1):
+            draw_pixel(image, x, y, TRAJECTORY, alpha=1.0)
+
+
+def _batch_centroid_sensor(points: tuple[Point3, ...]) -> Point3:
+    if not points:
+        return (0.0, 0.0, 0.0)
+    sx = sum(point[0] for point in points)
+    sy = sum(point[1] for point in points)
+    sz = sum(point[2] for point in points)
+    count = float(len(points))
+    return (sx / count, sy / count, sz / count)
 
 
 def _make_projector(main: LayoutRect, bounds: MotionHeroBounds):
@@ -808,6 +1057,7 @@ def _drawtext(font_file: str, text: str, x: int, y: int, size: int, color: str) 
         .replace("'", "\\'")
         .replace(":", "\\:")
         .replace(",", "\\,")
+        .replace(";", "\\;")
         .replace("%", "\\%")
     )
     escaped_font = font_file.replace("\\", "\\\\").replace(":", "\\:")

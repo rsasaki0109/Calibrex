@@ -45,16 +45,17 @@ from motion_hero_gif import (  # noqa: E402
     INDOOR02_KISSICP_STORAGE,
     MOTION_HERO_FPS,
     MOTION_HERO_FRAME_COUNT,
+    MOTION_REVIEW_FRAME_DIR,
     MotionHeroBounds,
     MotionHeroScene,
     bake_motion_frame_text,
-    build_motion_text_filter,
     draw_motion_hero_frame,
     indoor02_gif_replay_budgets,
     indoor02_kissicp_bag_available,
     motion_hero_generation_command,
     motion_hero_layout,
     run_indoor02_motion_hero_pipeline,
+    write_motion_review_frames,
 )
 
 WIDTH = 960
@@ -702,6 +703,8 @@ def load_motion_scene_for_manifest(job: ReadmeGifJob) -> MotionHeroScene | None:
     if not cache_path.exists():
         return None
     payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    from slac.core.geometry import SE3
+
     return MotionHeroScene(
         bag_dir=Path(payload["bag_dir"]),
         timeline_path=Path(payload["timeline_path"]),
@@ -716,6 +719,7 @@ def load_motion_scene_for_manifest(job: ReadmeGifJob) -> MotionHeroScene | None:
         accepted_batch_count=int(payload["accepted_batch_count"]),
         batch_count=int(payload["batch_count"]),
         frame_states=(),
+        initial_batch_transform=SE3.identity(),
         gate_thresholds=payload["gate_thresholds"],
         final_gate_status=str(payload["final_gate_status"]),
         rejected_batch_count=int(payload["rejected_batch_count"]),
@@ -1007,6 +1011,30 @@ def generate_gif(
                 else None
             ),
         )
+        if visual == "motion" and motion_scene is not None:
+            def _draw_motion_review_frame(
+                scene: MotionHeroScene,
+                frame_index: int,
+                ppm_path: Path,
+            ) -> None:
+                image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
+                draw_motion_hero_frame(
+                    image,
+                    scene=scene,
+                    frame_state=scene.frame_states[frame_index],
+                    width=WIDTH,
+                    height=HEIGHT,
+                    draw_pixel=pixel,
+                    draw_helpers=draw_helpers,
+                )
+                write_ppm(ppm_path, image)
+
+            write_motion_review_frames(
+                motion_scene,
+                output_dir=MOTION_REVIEW_FRAME_DIR,
+                draw_frame_fn=_draw_motion_review_frame,
+                bake_text_fn=bake_motion_frame_text,
+            )
 
 
 def write_motion_run_cache(output: Path, motion_scene: MotionHeroScene) -> None:
@@ -2984,11 +3012,20 @@ def encode_gif(
     palette = frame_dir / "palette.png"
     fps = _fps_for_visual(visual)
     if visual == "motion":
-        text_filter = build_motion_text_filter()
+        palette_filter = "palettegen=max_colors=96"
+        paletteuse_filter = "[0:v][1:v]paletteuse=dither=bayer:bayer_scale=3"
     elif visual == "online":
         text_filter = build_online_text_filter(cloud_pair, online_run=online_run)
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
     else:
         text_filter = build_text_filter(cloud_pair)
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
     subprocess.run(
         [
             "ffmpeg",
@@ -3003,7 +3040,7 @@ def encode_gif(
             "-i",
             str(frame_dir / "frame_%03d.ppm"),
             "-vf",
-            f"{text_filter},palettegen=max_colors=96",
+            palette_filter,
             "-frames:v",
             "1",
             "-update",
@@ -3028,7 +3065,7 @@ def encode_gif(
             "-i",
             str(palette),
             "-lavfi",
-            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3",
+            paletteuse_filter,
             "-loop",
             "0",
             str(output),
