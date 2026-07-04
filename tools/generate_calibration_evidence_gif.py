@@ -19,11 +19,13 @@ import math
 import shutil
 import struct
 import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -31,11 +33,37 @@ from urllib.request import Request, urlopen
 import yaml
 
 from slac.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
+from slac.data.odometry_track import OdometryTrack
+
+_TOOLS_DIR = Path(__file__).resolve().parent
+if str(_TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(_TOOLS_DIR))
+
+from motion_hero_gif import (  # noqa: E402
+    INDOOR02_KISSICP_BAG_DIR,
+    INDOOR02_KISSICP_CONFIG,
+    INDOOR02_KISSICP_STORAGE,
+    MOTION_HERO_FPS,
+    MOTION_HERO_FRAME_COUNT,
+    MOTION_REVIEW_FRAME_DIR,
+    MotionHeroBounds,
+    MotionHeroScene,
+    bake_motion_frame_text,
+    draw_motion_hero_frame,
+    indoor02_gif_replay_budgets,
+    indoor02_kissicp_bag_available,
+    motion_hero_generation_command,
+    motion_hero_layout,
+    run_indoor02_motion_hero_pipeline,
+    write_motion_review_frames,
+)
 
 WIDTH = 960
 HEIGHT = 540
 FPS = 12
 FRAME_COUNT = 36
+README_HERO_FPS = MOTION_HERO_FPS
+README_HERO_FRAME_COUNT = MOTION_HERO_FRAME_COUNT
 README_GIF_MANIFEST = Path("docs/assets/readme-gif-gallery.json")
 README_GIF_MANIFEST_SCHEMA_VERSION = "slac.readme_gif_gallery/v0.3"
 ONLINE_PIPELINE_SOURCE = "slac calibrate --online"
@@ -105,7 +133,8 @@ CHART = (676, 294, 216, 48)
 Color = tuple[int, int, int]
 Point3 = tuple[float, float, float]
 Point2 = tuple[int, int]
-VisualMode = Literal["evidence", "online"]
+VisualMode = Literal["evidence", "online", "motion"]
+ReadmeRole = Literal["hero", "gallery"]
 
 BG = (10, 15, 27)
 PANEL = (18, 27, 43)
@@ -207,15 +236,23 @@ class ReadmeGifJob:
     source: str
     output: Path
     visual: VisualMode = "evidence"
+    readme_role: ReadmeRole | None = None
     a2d2_source_id: int = 0
     a2d2_target_id: int = 1
 
 
 README_GIF_JOBS = (
     ReadmeGifJob(
+        source="tiers-indoor02-kissicp",
+        output=Path("docs/assets/slac-motion-calibration-loop.gif"),
+        visual="motion",
+        readme_role="hero",
+    ),
+    ReadmeGifJob(
         source="tiers-lidars-cali",
         output=Path("docs/assets/online-calibration-loop.gif"),
         visual="online",
+        readme_role="gallery",
     ),
     ReadmeGifJob(
         source="livox-horizon-horizon",
@@ -240,7 +277,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--source",
-        choices=["livox-horizon-horizon", "a2d2", "tiers-lidars-cali"],
+        choices=["livox-horizon-horizon", "a2d2", "tiers-lidars-cali", "tiers-indoor02-kissicp"],
         default="livox-horizon-horizon",
         help="Public data source used to generate the evidence animation.",
     )
@@ -261,7 +298,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--visual",
-        choices=["evidence", "online"],
+        choices=["evidence", "online", "motion"],
         default="evidence",
         help="Animation layout to render for a single-source GIF.",
     )
@@ -368,6 +405,15 @@ def generate_readme_gallery(
             if preserved is not None:
                 manifest_assets.append(preserved)
             continue
+        if job.source == "tiers-indoor02-kissicp" and not indoor02_kissicp_bag_available():
+            print(
+                f"Skipping {job.output}: {INDOOR02_KISSICP_STORAGE} is not present. "
+                f"Place the kissicp rosbag2 dataset at {INDOOR02_KISSICP_BAG_DIR}."
+            )
+            preserved = find_manifest_asset(existing_manifest, job.output)
+            if preserved is not None:
+                manifest_assets.append(preserved)
+            continue
         cloud_pair, lidars, metadata_source = load_gif_inputs(
             source=job.source,
             data_dir=None,
@@ -380,7 +426,7 @@ def generate_readme_gallery(
         generate_gif(
             output=job.output,
             source=job.source,
-            frames=frames,
+            frames=_frames_for_job(job, frames),
             cloud_pair=cloud_pair,
             lidars=lidars,
             metadata_source=metadata_source,
@@ -396,6 +442,7 @@ def generate_readme_gallery(
                 cloud_pair=cloud_pair,
                 metadata_source=metadata_source,
                 online_run=load_online_run_for_manifest(job),
+                motion_scene=load_motion_scene_for_manifest(job),
             )
         )
     write_readme_gallery_manifest(
@@ -406,12 +453,25 @@ def generate_readme_gallery(
     )
 
 
+def _frames_for_job(job: ReadmeGifJob, default_frames: int) -> int:
+    if job.visual == "motion":
+        return MOTION_HERO_FRAME_COUNT
+    return default_frames
+
+
+def _fps_for_visual(visual: VisualMode) -> int:
+    if visual == "motion":
+        return MOTION_HERO_FPS
+    return FPS
+
+
 def readme_gallery_manifest_asset(
     *,
     job: ReadmeGifJob,
     cloud_pair: LidarCloudPair,
     metadata_source: str,
     online_run: OnlineGifRun | None = None,
+    motion_scene: MotionHeroScene | None = None,
 ) -> dict[str, object]:
     """Return a stable provenance manifest entry for one README GIF."""
 
@@ -471,6 +531,24 @@ def readme_gallery_manifest_asset(
             "source": "livox_horizon",
             "target": "livox_avia",
         }
+    elif job.source == "tiers-indoor02-kissicp":
+        bag_path = INDOOR02_KISSICP_STORAGE
+        rosbag2_input: dict[str, object] = {
+            "kind": "rosbag2_local_dataset",
+            "bag_dir": str(INDOOR02_KISSICP_BAG_DIR),
+            "storage_file": INDOOR02_KISSICP_STORAGE.name,
+            "replay_budgets": indoor02_gif_replay_budgets(
+                scan_count=motion_scene.scan_count if motion_scene is not None else None
+            ),
+        }
+        if bag_path.exists():
+            rosbag2_input["size_bytes"] = bag_path.stat().st_size
+            rosbag2_input["sha256_first_mib"] = sha256_file_prefix(bag_path)
+        public_inputs = [rosbag2_input]
+        sensor_pair = {
+            "source": "velodyne_vlp16",
+            "target": "ouster_os1",
+        }
     else:
         raise SystemExit(f"unsupported README GIF source: {job.source}")
 
@@ -487,7 +565,41 @@ def readme_gallery_manifest_asset(
         "metadata_source": metadata_source,
         "uses_builtin_metadata_fallback": metadata_source == "fixed multi-LiDAR fallback",
     }
-    if job.visual == "online":
+    if job.readme_role is not None:
+        asset["readme_role"] = job.readme_role
+    if job.visual == "motion":
+        if motion_scene is None:
+            raise SystemExit("motion README GIF manifest requires a real online pipeline run")
+        asset["pipeline"] = {
+            "mode": ONLINE_PIPELINE_MODE,
+            "source": ONLINE_PIPELINE_SOURCE,
+            "timeline_schema_version": ONLINE_TIMELINE_SCHEMA_VERSION,
+            "config_path": str(INDOOR02_KISSICP_CONFIG),
+            "generation_command": motion_hero_generation_command(job.output),
+        }
+        asset["online_run"] = {
+            "batch_count": motion_scene.batch_count,
+            "accepted_batch_count": motion_scene.accepted_batch_count,
+            "rejected_batch_count": motion_scene.rejected_batch_count,
+            "inconclusive_batch_count": motion_scene.inconclusive_batch_count,
+            "final_gate_status": motion_scene.final_gate_status,
+            "gate_thresholds": motion_scene.gate_thresholds,
+        }
+        asset["animation"] = {
+            "frames": MOTION_HERO_FRAME_COUNT,
+            "fps": MOTION_HERO_FPS,
+            "width": WIDTH,
+            "height": HEIGHT,
+            "map_view": {
+                "scan_count": motion_scene.scan_count,
+                "trajectory_bbox_m": motion_scene.trajectory_bbox_m,
+                "view_window_m": motion_scene.view_window_m,
+                "scans_per_animation_frame": round(
+                    motion_scene.scans_per_animation_frame, 2
+                ),
+            },
+        }
+    elif job.visual == "online":
         if online_run is None:
             raise SystemExit("online README GIF manifest requires a real online pipeline run")
         asset["pipeline"] = {
@@ -538,11 +650,13 @@ def patch_readme_gallery_manifest(
         }
 
     online_run = load_online_run_for_manifest(job) if job.visual == "online" else None
+    motion_scene = load_motion_scene_for_manifest(job) if job.visual == "motion" else None
     updated_asset = readme_gallery_manifest_asset(
         job=job,
         cloud_pair=cloud_pair,
         metadata_source=metadata_source,
         online_run=online_run,
+        motion_scene=motion_scene,
     )
     assets = [asset for asset in manifest.get("assets", []) if asset["output"] != str(job.output)]
     assets.append(updated_asset)
@@ -552,8 +666,8 @@ def patch_readme_gallery_manifest(
     manifest["dimensions"] = {
         "width": WIDTH,
         "height": HEIGHT,
-        "fps": FPS,
-        "frames": frames,
+        "fps": README_HERO_FPS,
+        "frames": README_HERO_FRAME_COUNT,
     }
     manifest["fallback_metadata_allowed"] = allow_fallback
     manifest["assets"] = assets
@@ -590,6 +704,43 @@ def load_online_run_for_manifest(job: ReadmeGifJob) -> OnlineGifRun | None:
     )
 
 
+def load_motion_scene_for_manifest(job: ReadmeGifJob) -> MotionHeroScene | None:
+    """Return cached motion-hero metadata written during GIF generation."""
+
+    if job.visual != "motion":
+        return None
+    cache_path = job.output.with_suffix(".motion-run.json")
+    if not cache_path.exists():
+        return None
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    from slac.core.geometry import SE3
+
+    return MotionHeroScene(
+        bag_dir=Path(payload["bag_dir"]),
+        timeline_path=Path(payload["timeline_path"]),
+        odom_track=OdometryTrack([]),
+        scans=(),
+        target_batches=(),
+        trajectory_xy_yaw=(),
+        bounds=MotionHeroBounds(0.0, 1.0, 0.0, 1.0),
+        batch_transforms=(),
+        holdout_rmses=(),
+        gate_statuses=(),
+        accepted_batch_count=int(payload["accepted_batch_count"]),
+        batch_count=int(payload["batch_count"]),
+        frame_states=(),
+        initial_batch_transform=SE3.identity(),
+        gate_thresholds=payload["gate_thresholds"],
+        final_gate_status=str(payload["final_gate_status"]),
+        rejected_batch_count=int(payload["rejected_batch_count"]),
+        inconclusive_batch_count=int(payload["inconclusive_batch_count"]),
+        trajectory_bbox_m=dict(payload["trajectory_bbox_m"]),
+        view_window_m=dict(payload["view_window_m"]),
+        scan_count=int(payload["scan_count"]),
+        scans_per_animation_frame=float(payload["scans_per_animation_frame"]),
+    )
+
+
 def write_readme_gallery_manifest(
     path: Path,
     *,
@@ -605,8 +756,8 @@ def write_readme_gallery_manifest(
         "dimensions": {
             "width": WIDTH,
             "height": HEIGHT,
-            "fps": FPS,
-            "frames": frames,
+            "fps": README_HERO_FPS,
+            "frames": README_HERO_FRAME_COUNT,
         },
         "fallback_metadata_allowed": allow_fallback,
         "assets": assets,
@@ -746,6 +897,18 @@ def load_gif_inputs(
             "TIERS LidarsCali static rig (Livox Horizon + Avia)",
         )
 
+    if source == "tiers-indoor02-kissicp":
+        if not indoor02_kissicp_bag_available():
+            raise SystemExit(
+                f"{INDOOR02_KISSICP_STORAGE} is required for the motion hero GIF. "
+                f"Place the kissicp rosbag2 dataset at {INDOOR02_KISSICP_BAG_DIR}."
+            )
+        return (
+            load_indoor02_motion_cloud_pair(),
+            [],
+            "TIERS Indoor02 moving platform (Velodyne VLP-16 + Ouster OS1, KISS-ICP /odom)",
+        )
+
     raise SystemExit(f"unsupported GIF source: {source}")
 
 
@@ -767,7 +930,19 @@ def generate_gif(
 
     output.parent.mkdir(parents=True, exist_ok=True)
     online_run: OnlineGifRun | None = None
-    if visual == "online":
+    motion_scene: MotionHeroScene | None = None
+    if visual == "motion":
+        timeline_path = Path(
+            "outputs/tiers_lidars_dataset_indoor02_online_kissicp/timeline.json"
+        )
+        resolved_timeline = timeline_path if timeline_path.is_file() else None
+        motion_scene = run_indoor02_motion_hero_pipeline(
+            frames=frames,
+            timeline_path=resolved_timeline,
+        )
+        write_motion_run_cache(output, motion_scene)
+        motion_hero_layout(WIDTH)
+    elif visual == "online":
         if source == "tiers-lidars-cali":
             online_run = run_tiers_online_gif_pipeline(
                 bag_path=TIERS_BAG_PATH,
@@ -785,12 +960,31 @@ def generate_gif(
             )
         write_online_run_cache(output, online_run)
 
+    draw_helpers = SimpleNamespace(
+        fill_rect=fill_rect,
+        line=line,
+        circle=circle,
+        thick_line=thick_line,
+        rect=rect,
+    )
     with tempfile.TemporaryDirectory(prefix="slac_lidar_lidar_gif_") as tmp_name:
         tmp = Path(tmp_name)
         residual_history: list[float] = []
         for index in range(frames):
             image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
-            if visual == "online":
+            if visual == "motion":
+                assert motion_scene is not None
+                frame_state = motion_scene.frame_states[index]
+                draw_motion_hero_frame(
+                    image,
+                    scene=motion_scene,
+                    frame_state=frame_state,
+                    width=WIDTH,
+                    height=HEIGHT,
+                    draw_pixel=pixel,
+                    draw_helpers=draw_helpers,
+                )
+            elif visual == "online":
                 assert online_run is not None
                 frame_state = online_run.frame_states[index]
                 draw_online_calibration_frame(
@@ -812,13 +1006,106 @@ def generate_gif(
                     metadata_source=metadata_source,
                 )
             write_ppm(tmp / f"frame_{index:03d}.ppm", image)
+            if visual == "motion":
+                assert motion_scene is not None
+                bake_motion_frame_text(
+                    tmp / f"frame_{index:03d}.ppm",
+                    motion_scene.frame_states[index],
+                )
         encode_gif(
             tmp,
             output,
             cloud_pair,
             visual=visual,
             online_run=online_run,
+            motion_scene=motion_scene,
+            frame_state=(
+                motion_scene.frame_states[-1]
+                if motion_scene is not None
+                else None
+            ),
         )
+        if visual == "motion" and motion_scene is not None:
+            def _draw_motion_review_frame(
+                scene: MotionHeroScene,
+                frame_index: int,
+                ppm_path: Path,
+            ) -> None:
+                image = bytearray(bytes(BG) * (WIDTH * HEIGHT))
+                draw_motion_hero_frame(
+                    image,
+                    scene=scene,
+                    frame_state=scene.frame_states[frame_index],
+                    width=WIDTH,
+                    height=HEIGHT,
+                    draw_pixel=pixel,
+                    draw_helpers=draw_helpers,
+                )
+                write_ppm(ppm_path, image)
+
+            write_motion_review_frames(
+                motion_scene,
+                output_dir=MOTION_REVIEW_FRAME_DIR,
+                draw_frame_fn=_draw_motion_review_frame,
+                bake_text_fn=bake_motion_frame_text,
+            )
+
+
+def write_motion_run_cache(output: Path, motion_scene: MotionHeroScene) -> None:
+    """Persist motion-hero summary for manifest provenance."""
+
+    cache_path = output.with_suffix(".motion-run.json")
+    payload = {
+        "bag_dir": str(motion_scene.bag_dir),
+        "timeline_path": str(motion_scene.timeline_path),
+        "batch_count": motion_scene.batch_count,
+        "accepted_batch_count": motion_scene.accepted_batch_count,
+        "rejected_batch_count": motion_scene.rejected_batch_count,
+        "inconclusive_batch_count": motion_scene.inconclusive_batch_count,
+        "final_gate_status": motion_scene.final_gate_status,
+        "gate_thresholds": motion_scene.gate_thresholds,
+        "scan_count": motion_scene.scan_count,
+        "trajectory_bbox_m": motion_scene.trajectory_bbox_m,
+        "view_window_m": motion_scene.view_window_m,
+        "scans_per_animation_frame": motion_scene.scans_per_animation_frame,
+    }
+    cache_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def load_indoor02_motion_cloud_pair() -> LidarCloudPair:
+    """Return placeholder evidence metadata for the Indoor02 motion hero."""
+
+    return LidarCloudPair(
+        source_points=[],
+        target_points=[],
+        source_label="Velodyne VLP-16 points",
+        target_label="Ouster OS1 points",
+        bar_labels=("map", "odom", "holdout", "gate"),
+        bar_values=(1.0, 1.0, 1.0, 1.0),
+        source_pose_name="velodyne_vlp16",
+        target_pose_name="ouster_os1",
+        source_total=1,
+        target_total=1,
+        source_path=INDOOR02_KISSICP_STORAGE,
+        subtitle="TIERS Indoor02: Velodyne map + KISS-ICP odometry; Ouster extrinsic online",
+        scene_caption="Bird's-eye world map grows along the trajectory",
+        legend="cyan: Velodyne map/trajectory   orange: Ouster batch estimate",
+        provenance="provenance: TIERS Indoor02 rosbag2_kissicp + calibrate --online timeline",
+        shared_voxel_count=1,
+        source_recall=1.0,
+        shared_centroid_rmse_m=0.1,
+        holdout_plane_match_count=0,
+        holdout_point_to_plane_p90_m=0.0,
+        holdout_unmatched_fraction=0.0,
+        known_bad_detectable_fraction=0.0,
+        known_bad_max_rmse_delta_m=0.0,
+        known_bad_max_point_to_plane_p90_delta_m=0.0,
+        support_summary="108 target batches from /os_cloud_nodee/points",
+        holdout_summary="holdout RMSE gate 0.40 m",
+        known_bad_summary="106/108 batches adopted",
+        protocol_summary="slac calibrate --online kissicp config",
+        case_summary="motion-compensated Velodyne world map",
+    )
 
 
 def write_online_run_cache(output: Path, online_run: OnlineGifRun) -> None:
@@ -2737,13 +3024,26 @@ def encode_gif(
     *,
     visual: VisualMode,
     online_run: OnlineGifRun | None = None,
+    motion_scene: MotionHeroScene | None = None,
+    frame_state: object | None = None,
 ) -> None:
     palette = frame_dir / "palette.png"
-    text_filter = (
-        build_online_text_filter(cloud_pair, online_run=online_run)
-        if visual == "online"
-        else build_text_filter(cloud_pair)
-    )
+    fps = _fps_for_visual(visual)
+    if visual == "motion":
+        palette_filter = "palettegen=max_colors=96"
+        paletteuse_filter = "[0:v][1:v]paletteuse=dither=bayer:bayer_scale=3"
+    elif visual == "online":
+        text_filter = build_online_text_filter(cloud_pair, online_run=online_run)
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
+    else:
+        text_filter = build_text_filter(cloud_pair)
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
     subprocess.run(
         [
             "ffmpeg",
@@ -2752,13 +3052,13 @@ def encode_gif(
             "-loglevel",
             "warning",
             "-framerate",
-            str(FPS),
+            str(fps),
             "-thread_queue_size",
             "64",
             "-i",
             str(frame_dir / "frame_%03d.ppm"),
             "-vf",
-            f"{text_filter},palettegen=max_colors=96",
+            palette_filter,
             "-frames:v",
             "1",
             "-update",
@@ -2775,7 +3075,7 @@ def encode_gif(
             "-loglevel",
             "warning",
             "-framerate",
-            str(FPS),
+            str(fps),
             "-thread_queue_size",
             "64",
             "-i",
@@ -2783,7 +3083,7 @@ def encode_gif(
             "-i",
             str(palette),
             "-lavfi",
-            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3",
+            paletteuse_filter,
             "-loop",
             "0",
             str(output),

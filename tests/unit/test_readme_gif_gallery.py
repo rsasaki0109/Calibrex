@@ -20,6 +20,7 @@ def load_gif_tool() -> ModuleType:
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(ROOT / "tools"))
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
@@ -32,7 +33,11 @@ def test_readme_gallery_jobs_match_readme_gifs() -> None:
     readme_gifs = set(re.findall(r'docs/assets/[^"]+\.gif', readme))
     gallery_gifs = {str(job.output) for job in tool.README_GIF_JOBS}
 
-    assert gallery_gifs == readme_gifs
+    assert readme_gifs <= gallery_gifs
+    assert "docs/assets/slac-motion-calibration-loop.gif" in readme_gifs
+    hero_jobs = [job for job in tool.README_GIF_JOBS if job.readme_role == "hero"]
+    assert len(hero_jobs) == 1
+    assert str(hero_jobs[0].output) in readme_gifs
 
 
 def test_readme_gallery_manifest_matches_assets() -> None:
@@ -46,8 +51,8 @@ def test_readme_gallery_manifest_matches_assets() -> None:
     assert manifest["dimensions"] == {
         "width": tool.WIDTH,
         "height": tool.HEIGHT,
-        "fps": tool.FPS,
-        "frames": tool.FRAME_COUNT,
+        "fps": tool.README_HERO_FPS,
+        "frames": tool.README_HERO_FRAME_COUNT,
     }
 
     job_outputs = {str(job.output) for job in tool.README_GIF_JOBS}
@@ -61,9 +66,11 @@ def test_readme_gallery_manifest_matches_assets() -> None:
         assert asset["sha256"] == hashlib.sha256(asset_path.read_bytes()).hexdigest()
         assert asset["size_bytes"] == asset_path.stat().st_size
         assert asset["visual"] == job.visual
-        assert asset["visual"] in {"evidence", "online"}
+        assert asset["visual"] in {"evidence", "online", "motion"}
         assert asset["uses_builtin_metadata_fallback"] is False
         assert asset["public_inputs"]
+        if job.readme_role is not None:
+            assert asset.get("readme_role") == job.readme_role
 
 
 def test_readme_gif_tool_timeline_schema_version_matches_core() -> None:
@@ -97,8 +104,13 @@ def test_readme_gallery_has_multiple_public_sources() -> None:
         if job.source == "a2d2"
     }
 
-    assert sources == {"livox-horizon-horizon", "a2d2", "tiers-lidars-cali"}
-    assert visuals == {"evidence", "online"}
+    assert sources == {
+        "livox-horizon-horizon",
+        "a2d2",
+        "tiers-lidars-cali",
+        "tiers-indoor02-kissicp",
+    }
+    assert visuals == {"evidence", "online", "motion"}
     assert len(a2d2_pairs) >= 2
     assert all(source_id != target_id for source_id, target_id in a2d2_pairs)
 
@@ -113,6 +125,7 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
         if asset["output"] == "docs/assets/online-calibration-loop.gif"
     )
     assert online_asset["visual"] == "online"
+    assert online_asset["readme_role"] == "gallery"
     assert online_asset["source"] == "tiers-lidars-cali"
     assert online_asset["sensor_pair"] == {
         "source": "livox_horizon",
@@ -136,6 +149,37 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
     assert rosbag_input["bag_file"] == "LidarsCali.bag"
     assert "replay_budgets" in rosbag_input
     assert rosbag_input["replay_budgets"]["max_target_messages"] >= 12
+
+
+def test_motion_hero_gif_manifest_declares_real_pipeline_provenance() -> None:
+    manifest = json.loads(
+        (ROOT / "docs" / "assets" / "readme-gif-gallery.json").read_text(encoding="utf-8")
+    )
+    hero_asset = next(
+        asset
+        for asset in manifest["assets"]
+        if asset["output"] == "docs/assets/slac-motion-calibration-loop.gif"
+    )
+    assert hero_asset["visual"] == "motion"
+    assert hero_asset["readme_role"] == "hero"
+    assert hero_asset["source"] == "tiers-indoor02-kissicp"
+    assert hero_asset["online_run"]["accepted_batch_count"] == 106
+    assert hero_asset["online_run"]["batch_count"] == 108
+    assert hero_asset["pipeline"]["config_path"].endswith("online_kissicp_config.yaml")
+    assert hero_asset["pipeline"]["timeline_schema_version"] == "slac.online_timeline/v0.3"
+    assert hero_asset["animation"]["frames"] == 50
+    assert hero_asset["animation"]["fps"] == 10
+    rosbag_input = hero_asset["public_inputs"][0]
+    assert rosbag_input["kind"] == "rosbag2_local_dataset"
+    assert rosbag_input["storage_file"] == "indoor02_rosbag2_kissicp.db3"
+    replay_budgets = rosbag_input["replay_budgets"]
+    assert replay_budgets["calibration_run"]["max_target_messages"] == 36
+    assert replay_budgets["map_view"]["max_source_points"] == 8400
+    assert replay_budgets["map_view"]["max_source_messages"] == 420
+    assert hero_asset["animation"]["map_view"]["scan_count"] == 420
+    assert hero_asset["animation"]["map_view"]["scans_per_animation_frame"] == pytest.approx(
+        9.55, abs=0.1
+    )
 
 
 def test_tiers_hero_gif_skips_when_bag_absent(
@@ -219,6 +263,87 @@ def test_tiers_hero_gif_skips_when_bag_absent(
     )
 
     assert "docs/assets/online-calibration-loop.gif" not in generated
+
+
+def test_indoor02_motion_hero_gif_skips_when_bag_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tool = load_gif_tool()
+    monkeypatch.setattr(tool, "indoor02_kissicp_bag_available", lambda: False)
+
+    preserved = {
+        "output": "docs/assets/slac-motion-calibration-loop.gif",
+        "source": "tiers-indoor02-kissicp",
+        "visual": "motion",
+    }
+    monkeypatch.setattr(
+        tool,
+        "load_readme_gallery_manifest_if_exists",
+        lambda: {"assets": [preserved]},
+    )
+
+    generated: list[str] = []
+
+    def _fake_generate_gif(**kwargs: object) -> None:
+        generated.append(str(kwargs.get("output")))
+
+    def _fake_load_gif_inputs(**kwargs: object) -> tuple[object, object, str]:
+        if kwargs.get("source") == "tiers-indoor02-kissicp":
+            pytest.fail("should not load Indoor02 inputs when bag is absent")
+        return (
+            tool.LidarCloudPair(
+                source_points=[],
+                target_points=[],
+                source_label="src",
+                target_label="tgt",
+                bar_labels=("a", "b", "c", "d"),
+                bar_values=(1.0, 1.0, 1.0, 1.0),
+                source_pose_name="src",
+                target_pose_name="tgt",
+                source_total=1,
+                target_total=1,
+                source_path=tmp_path / "sample",
+                subtitle="test",
+                scene_caption="test",
+                legend="test",
+                provenance="test",
+                shared_voxel_count=1,
+                source_recall=1.0,
+                shared_centroid_rmse_m=0.1,
+                holdout_plane_match_count=0,
+                holdout_point_to_plane_p90_m=0.0,
+                holdout_unmatched_fraction=0.0,
+                known_bad_detectable_fraction=0.0,
+                known_bad_max_rmse_delta_m=0.0,
+                known_bad_max_point_to_plane_p90_delta_m=0.0,
+                support_summary="test",
+                holdout_summary="test",
+                known_bad_summary="test",
+                protocol_summary="test",
+                case_summary="test",
+            ),
+            [],
+            "test metadata",
+        )
+
+    monkeypatch.setattr(tool, "generate_gif", _fake_generate_gif)
+    monkeypatch.setattr(tool, "load_gif_inputs", _fake_load_gif_inputs)
+    monkeypatch.setattr(
+        tool,
+        "readme_gallery_manifest_asset",
+        lambda **_kwargs: {"output": "docs/assets/calibration-evidence-demo.gif"},
+    )
+    monkeypatch.setattr(tool, "write_readme_gallery_manifest", lambda *_args, **_kwargs: None)
+
+    tool.generate_readme_gallery(
+        frames=tool.FRAME_COUNT,
+        sensor_config=None,
+        allow_network=False,
+        allow_fallback=False,
+    )
+
+    assert "docs/assets/slac-motion-calibration-loop.gif" not in generated
 
 
 def test_tiers_gif_manifest_asset_shape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

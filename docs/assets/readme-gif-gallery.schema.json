@@ -77,10 +77,13 @@
             "minimum": 1
           },
           "source": {
-            "enum": ["a2d2", "livox-horizon-horizon", "tiers-lidars-cali"]
+            "enum": ["a2d2", "livox-horizon-horizon", "tiers-lidars-cali", "tiers-indoor02-kissicp"]
           },
           "visual": {
-            "enum": ["evidence", "online"]
+            "enum": ["evidence", "online", "motion"]
+          },
+          "readme_role": {
+            "enum": ["hero", "gallery"]
           },
           "sensor_pair": {
             "type": "object",
@@ -136,6 +139,79 @@
                   "slac.online_timeline/v0.2",
                   "slac.online_timeline/v0.3"
                 ]
+              },
+              "config_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "generation_command": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "animation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fps", "frames", "height", "width"],
+            "properties": {
+              "fps": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "frames": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "map_view": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "scan_count",
+                  "scans_per_animation_frame",
+                  "trajectory_bbox_m",
+                  "view_window_m"
+                ],
+                "properties": {
+                  "scan_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "scans_per_animation_frame": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "trajectory_bbox_m": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x_max", "x_min", "y_max", "y_min"],
+                    "properties": {
+                      "x_min": { "type": "number" },
+                      "x_max": { "type": "number" },
+                      "y_min": { "type": "number" },
+                      "y_max": { "type": "number" }
+                    }
+                  },
+                  "view_window_m": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x_max", "x_min", "y_max", "y_min"],
+                    "properties": {
+                      "x_min": { "type": "number" },
+                      "x_max": { "type": "number" },
+                      "y_min": { "type": "number" },
+                      "y_max": { "type": "number" }
+                    }
+                  }
+                }
               }
             }
           },
@@ -303,6 +379,105 @@
                         "rolling_window": {
                           "type": "integer",
                           "minimum": 1
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["kind", "bag_dir", "storage_file", "replay_budgets"],
+                  "properties": {
+                    "kind": {
+                      "const": "rosbag2_local_dataset"
+                    },
+                    "bag_dir": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "storage_file": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "size_bytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "sha256_first_mib": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "replay_budgets": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["calibration_run", "map_view"],
+                      "properties": {
+                        "map_view": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "max_replay_duration_s",
+                            "max_source_messages",
+                            "max_source_points",
+                            "subsample_seed"
+                          ],
+                          "properties": {
+                            "max_source_messages": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_source_points": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_replay_duration_s": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "subsample_seed": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "calibration_run": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "batch_size",
+                            "holdout_ratio",
+                            "max_replay_duration_s",
+                            "max_target_messages",
+                            "max_target_points",
+                            "rolling_window"
+                          ],
+                          "properties": {
+                            "max_target_messages": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_target_points": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "max_replay_duration_s": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "batch_size": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "holdout_ratio": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "rolling_window": {
+                              "type": "integer",
+                              "minimum": 1
+                            }
+                          }
                         }
                       }
                     }

@@ -130,6 +130,7 @@
           "url": "https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT"
         }
       ],
+      "readme_role": "gallery",
       "sensor_pair": {
         "source": "livox_horizon",
         "target": "livox_avia"
@@ -141,11 +142,93 @@
       "target_label": "Livox Avia points",
       "uses_builtin_metadata_fallback": false,
       "visual": "online"
+    },
+    {
+      "animation": {
+        "fps": 10,
+        "frames": 50,
+        "height": 540,
+        "map_view": {
+          "scan_count": 420,
+          "scans_per_animation_frame": 9.55,
+          "trajectory_bbox_m": {
+            "x_max": 1.4224837891036126,
+            "x_min": -2.410526461832183,
+            "y_max": 7.288937911607884,
+            "y_min": -0.0016581474456281416
+          },
+          "view_window_m": {
+            "x_max": 5.422483789103612,
+            "x_min": -6.410526461832183,
+            "y_max": 11.288937911607885,
+            "y_min": -4.001658147445628
+          }
+        },
+        "width": 960
+      },
+      "metadata_source": "TIERS Indoor02 moving platform (Velodyne VLP-16 + Ouster OS1, KISS-ICP /odom)",
+      "online_run": {
+        "accepted_batch_count": 106,
+        "batch_count": 108,
+        "final_gate_status": "pass",
+        "gate_thresholds": {
+          "max_holdout_rmse_m": 0.4,
+          "max_rolling_regression_m": 0.15,
+          "min_rank": 6
+        },
+        "inconclusive_batch_count": 0,
+        "rejected_batch_count": 2
+      },
+      "output": "docs/assets/slac-motion-calibration-loop.gif",
+      "pipeline": {
+        "config_path": "examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_config.yaml",
+        "generation_command": "python3 tools/generate_calibration_evidence_gif.py --source tiers-indoor02-kissicp --visual motion --output docs/assets/slac-motion-calibration-loop.gif --frames 50",
+        "mode": "real_online",
+        "source": "slac calibrate --online",
+        "timeline_schema_version": "slac.online_timeline/v0.3"
+      },
+      "public_inputs": [
+        {
+          "bag_dir": "data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp",
+          "kind": "rosbag2_local_dataset",
+          "replay_budgets": {
+            "calibration_run": {
+              "batch_size": 1500,
+              "holdout_ratio": 0.2,
+              "max_replay_duration_s": 60.0,
+              "max_target_messages": 36,
+              "max_target_points": 1500,
+              "rolling_window": 2000
+            },
+            "map_view": {
+              "max_replay_duration_s": 60.0,
+              "max_source_messages": 420,
+              "max_source_points": 8400,
+              "subsample_seed": "scan_index"
+            }
+          },
+          "sha256_first_mib": "6c24c3c9f49f24ff100da27575231bae1a6de025dd50c78dababd84f729920f3",
+          "size_bytes": 2914353152,
+          "storage_file": "indoor02_rosbag2_kissicp.db3"
+        }
+      ],
+      "readme_role": "hero",
+      "sensor_pair": {
+        "source": "velodyne_vlp16",
+        "target": "ouster_os1"
+      },
+      "sha256": "1472416f3ac4c44e24fc95472cf43c6cb208df6da466a7769b850da709171732",
+      "size_bytes": 705170,
+      "source": "tiers-indoor02-kissicp",
+      "source_label": "Velodyne VLP-16 points",
+      "target_label": "Ouster OS1 points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "motion"
     }
   ],
   "dimensions": {
-    "fps": 12,
-    "frames": 36,
+    "fps": 10,
+    "frames": 50,
     "height": 540,
     "width": 960
   },
