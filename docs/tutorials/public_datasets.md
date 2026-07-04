@@ -661,6 +661,13 @@ detections `>= 8` of the declared ±1 deg / ±0.10 m cases). On the committed
 | Decision Boundary | support + holdout pass, controls fail | WARN (INCONCLUSIVE) |
 | Overall quality | evidence decision boundary inconclusive | FAIL |
 
+The baseline FAIL on this fixture is the discipline working, not a defect: with
+zero detectable perturbations the protocol has no falsification power, and the
+framework refuses to certify a candidate it could not have caught being wrong
+(the same `>= 0.50 / >= 0.10` detectable-fraction grading the LiDAR-pair family
+uses). On full-scale KITTI frames the perturbation probes are expected to be
+detectable, making PASS reachable.
+
 Known-bad candidate probe: set `evaluation.kitti.use_frame_graph_candidate:
 true` and perturb the frame-graph candidate (example: `+2.0 m` x translation on
 `lidar0.initial`). A `+2 deg` yaw rotation does not move holdout scores on
