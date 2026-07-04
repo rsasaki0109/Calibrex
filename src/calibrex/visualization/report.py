@@ -80,6 +80,21 @@ _LIDAR_PAIR_SUMMARY_METRICS = (
     "lidar_pair_known_bad_point_to_plane_p90_delta_max_m",
 )
 
+_LIDAR_CAMERA_SUMMARY_METRICS = (
+    "lidar_camera_projected_points",
+    "lidar_camera_projection_ratio",
+    "lidar_camera_projection_horizontal_coverage",
+    "lidar_camera_projection_vertical_coverage",
+    "lidar_camera_edge_alignment_score",
+    "lidar_camera_depth_discontinuity_points",
+    "lidar_camera_depth_edge_alignment_score",
+    "lidar_camera_perturbation_detectable_fraction",
+    "lidar_camera_perturbation_mandatory_detectable_count",
+    "lidar_camera_perturbation_edge_delta_mean",
+    "lidar_camera_perturbation_depth_edge_delta_mean",
+    "lidar_camera_perturbation_projection_ratio_delta_mean",
+)
+
 _WORLD_MAP_DOF_METRICS = (
     ("roll_lidar0", "lidar_world_map_sensitivity_roll_m"),
     ("pitch_lidar0", "lidar_world_map_sensitivity_pitch_m"),
@@ -170,6 +185,7 @@ def render_html_report(
     assessment_section = _assessment_section(result)
     lidar_world_map_section = _lidar_world_map_section(result)
     lidar_pair_section = _lidar_pair_section(result)
+    lidar_camera_section = _lidar_camera_section(result)
     online_timeline_section = _online_timeline_section(result, timeline)
 
     return f"""<!doctype html>
@@ -313,6 +329,7 @@ def render_html_report(
   {online_timeline_section}
   {lidar_world_map_section}
   {lidar_pair_section}
+  {lidar_camera_section}
   <h2>Artifacts</h2>
   <table>
     <tr><th>Name</th><th>Path</th></tr>
@@ -744,6 +761,9 @@ def _evidence_protocol_payloads(result: CalibrationResult) -> list[dict[str, Any
     livox_pair = result.run.provenance.get("livox_pair_evidence")
     if isinstance(livox_pair, dict):
         protocols.append(_livox_pair_protocol_payload(result, livox_pair))
+    lidar_camera = result.run.provenance.get("lidar_camera_evidence")
+    if isinstance(lidar_camera, dict):
+        protocols.append(_lidar_camera_protocol_payload(result, lidar_camera))
     return protocols
 
 
@@ -821,6 +841,64 @@ def _livox_pair_protocol_payload(
         "known_bad_perturbation": _str_or_none(livox_pair.get("known_bad_perturbation")),
         "known_bad_case_count": _int_or_none(livox_pair.get("known_bad_case_count")),
         "metric_ids": _evidence_metric_ids(result, family="lidar_pair"),
+        "parameters": parameters,
+        "limitations": limitations,
+    }
+
+
+def _lidar_camera_protocol_payload(
+    result: CalibrationResult,
+    lidar_camera: dict[str, Any],
+) -> dict[str, Any]:
+    parameters = {
+        key: value
+        for key, value in lidar_camera.items()
+        if key
+        in {
+            "protocol_id",
+            "split_policy",
+            "projection_frame_count",
+            "use_frame_graph_candidate",
+            "evidence_gate_min_edge_alignment_holdout",
+            "evidence_gate_min_depth_edge_alignment_holdout",
+            "evidence_gate_min_perturbation_detectable_fraction",
+            "evidence_gate_min_mandatory_detectable_count",
+        }
+        or key.startswith("evidence_gate_")
+    }
+    challenge = lidar_camera.get("known_bad_challenge")
+    if isinstance(challenge, dict):
+        parameters.update(
+            {
+                key: value
+                for key, value in challenge.items()
+                if key
+                in {
+                    "challenge_id",
+                    "mandatory_rotation_deg",
+                    "mandatory_translation_m",
+                    "mandatory_case_count",
+                    "target_mandatory_detectable_count",
+                }
+            }
+        )
+    limitations = [
+        str(item)
+        for item in lidar_camera.get("limitations", [])
+        if isinstance(item, str)
+    ]
+    return {
+        "family": "lidar_camera",
+        "protocol_id": _str_or_none(lidar_camera.get("protocol_id"))
+        or "kitti_lidar_camera_projection_edge_holdout/v0.1",
+        "status": "scored",
+        "split_policy": _str_or_none(lidar_camera.get("split_policy")),
+        "independent_holdout": _bool_or_none(lidar_camera.get("independent_holdout")),
+        "candidate_transform": _str_or_none(lidar_camera.get("candidate_transform")),
+        "transform_convention": _str_or_none(lidar_camera.get("transform_convention")),
+        "known_bad_perturbation": _str_or_none(lidar_camera.get("known_bad_perturbation")),
+        "known_bad_case_count": _int_or_none(lidar_camera.get("known_bad_case_count")),
+        "metric_ids": _evidence_metric_ids(result, family="lidar_camera"),
         "parameters": parameters,
         "limitations": limitations,
     }
@@ -1252,6 +1330,105 @@ def _lidar_pair_section(result: CalibrationResult) -> str:
     {summary_rows}
   </table>
 """
+
+
+def _lidar_camera_section(result: CalibrationResult) -> str:
+    summary_rows = _selected_metric_rows(result, _LIDAR_CAMERA_SUMMARY_METRICS)
+    if not summary_rows:
+        return ""
+    protocol_rows = _evidence_protocol_rows(
+        [
+            protocol
+            for protocol in _evidence_protocol_payloads(result)
+            if protocol.get("family") == "lidar_camera"
+        ]
+    )
+    protocol_section = (
+        f"""
+  <h3>Evidence Protocol</h3>
+  <table>
+    <tr>
+      <th>Protocol</th><th>Status</th><th>Split</th><th>Independent Holdout</th>
+      <th>Known-Bad Cases</th><th>Parameters</th><th>Limitations</th>
+    </tr>
+    {protocol_rows}
+  </table>
+"""
+        if protocol_rows
+        else ""
+    )
+    evidence_rows = _evidence_summary_rows(
+        [
+            item
+            for item in evidence_summaries_from_result(result)
+            if item.family == "lidar_camera"
+        ]
+    )
+    evidence_case_rows = _lidar_camera_evidence_case_rows(
+        [
+            item
+            for item in evidence_cases_from_result(result)
+            if item.family == "lidar_camera"
+        ]
+    )
+    evidence_case_section = (
+        f"""
+  <h3>Known-Bad Case Details</h3>
+  <table>
+    <tr>
+      <th>Case</th><th>Status</th><th>DoF</th><th>Amount</th>
+      <th>Edge Delta</th><th>Depth-Edge Delta</th><th>Projection-Ratio Delta</th>
+      <th>Edge Score</th><th>Depth-Edge Score</th><th>Projection Ratio</th>
+    </tr>
+    {evidence_case_rows}
+  </table>
+"""
+        if evidence_case_rows
+        else ""
+    )
+    return f"""
+  <h2>Camera-LiDAR Evidence</h2>
+  <p>
+    KITTI projection and edge-alignment evidence for evaluating camera-LiDAR
+    extrinsic candidates. This is an evaluation layer, not a standalone camera
+    calibration algorithm.
+  </p>
+  {protocol_section}
+  <h3>Evidence Summary</h3>
+  <table>
+    <tr><th>Check</th><th>Status</th><th>Evidence</th><th>Interpretation</th></tr>
+    {evidence_rows}
+  </table>
+  {evidence_case_section}
+  <h3>Metric Details</h3>
+  <table>
+    <tr><th>Metric</th><th>Grade</th><th>Train</th><th>Holdout</th><th>Value</th><th>Unit</th><th>Reason</th></tr>
+    {summary_rows}
+  </table>
+"""
+
+
+def _lidar_camera_evidence_case_rows(items: list[EvidenceCaseItem]) -> str:
+    return "\n".join(_lidar_camera_evidence_case_row(item) for item in items)
+
+
+def _lidar_camera_evidence_case_row(item: EvidenceCaseItem) -> str:
+    status = item.status
+    amount = _case_amount(item)
+    return (
+        f'<tr class="{escape(_grade_css_class(status))}">'
+        f"<td>{escape(item.case_id)}</td>"
+        f"<td>{escape(status.upper())}</td>"
+        f"<td>{escape(item.dof or '')}</td>"
+        f"<td>{escape(amount)}</td>"
+        f"<td>{_fmt(_case_delta(item, 'edge_alignment_delta'))}</td>"
+        f"<td>{_fmt(_case_delta(item, 'depth_edge_alignment_delta'))}</td>"
+        f"<td>{_fmt(_case_delta(item, 'projection_ratio_delta'))}</td>"
+        f"<td>{_fmt(_case_metric(item, 'lidar_camera_edge_alignment_score'))}</td>"
+        f"<td>{_fmt(_case_metric(item, 'lidar_camera_depth_edge_alignment_score'))}</td>"
+        f"<td>{_fmt(_case_metric(item, 'lidar_camera_projection_ratio'))}</td>"
+        "</tr>"
+    )
 
 
 def _evidence_summary_rows(items: list[EvidenceSummaryItem]) -> str:

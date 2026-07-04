@@ -578,6 +578,20 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.10,
         direction="higher_is_better",
     ),
+    "lidar_camera_perturbation_mandatory_case_count": MetricThreshold(
+        metric="lidar_camera_perturbation_mandatory_case_count",
+        pass_value=12.0,
+        warn_value=1.0,
+        direction="higher_is_better",
+        unit="cases",
+    ),
+    "lidar_camera_perturbation_mandatory_detectable_count": MetricThreshold(
+        metric="lidar_camera_perturbation_mandatory_detectable_count",
+        pass_value=8.0,
+        warn_value=1.0,
+        direction="higher_is_better",
+        unit="cases",
+    ),
     "lidar_camera_mutual_information_score": MetricThreshold(
         metric="lidar_camera_mutual_information_score",
         pass_value=0.50,

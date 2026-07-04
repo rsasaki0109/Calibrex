@@ -421,17 +421,12 @@ def test_calibrate_evaluate_visualize_export(
     assert [gate.rule_id for gate in policy_model.gates] == [
         "raw_recomputation",
         "protocol_declared",
-        "holdout_support_gate",
-        "holdout_independence",
-        "known_bad_controls",
-        "decision_boundary_summary",
     ]
     status_on_failure = {
         gate.rule_id: gate.status_on_failure for gate in policy_model.gates
     }
     assert status_on_failure["raw_recomputation"] == "inconclusive"
-    assert status_on_failure["holdout_support_gate"] == "fail"
-    assert status_on_failure["known_bad_controls"] == "fail"
+    assert status_on_failure["protocol_declared"] == "fail"
     protocol = json.loads((tmp_path / "protocol.json").read_text(encoding="utf-8"))
     protocol_model = ProtocolArtifact.model_validate(protocol)
     assert protocol_model.schema_version == "calibrex.protocol/v0.1"

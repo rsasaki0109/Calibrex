@@ -694,6 +694,18 @@ def _register_builtin_metrics() -> None:
             family="lidar_camera",
         ),
         MetricDefinition(
+            "lidar_camera_perturbation_mandatory_case_count",
+            "Number of mandatory ±1 deg / ±0.10 m camera-LiDAR perturbation cases",
+            "cases",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "lidar_camera_perturbation_mandatory_detectable_count",
+            "Mandatory camera-LiDAR perturbations detected under projection scoring",
+            "cases",
+            "lidar_camera",
+        ),
+        MetricDefinition(
             "lidar_camera_mutual_information_score",
             "Image-LiDAR mutual-information alignment score",
             family="lidar_camera",

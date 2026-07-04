@@ -619,9 +619,10 @@ KITTI raw data and nuScenes require their official download flows and terms.
 After downloading, point the dataset manifest paths at the local extracted
 dataset.
 
-KITTI raw camera-LiDAR diagnostic overlay evidence demo:
+KITTI raw camera-LiDAR evaluated projection evidence demo:
 
 ```bash
+calibrex calibrate examples/public_datasets/kitti_lidar_camera_evidence/config.yaml
 calibrex demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
 ```
 
@@ -634,16 +635,40 @@ setup. Point it at a real, locally downloaded KITTI raw sequence with
 `--dataset-path /path/to/2011_09_26/2011_09_26_drive_0005_sync` to evaluate
 real data instead. The demo writes a materialized `demo_config.yaml`,
 recomputes `result.yaml` using the dataset's `calib_velo_to_cam.txt` extrinsic
-as the reference/output transform, renders `evidence.json`, `assessment.json`,
-`protocol.json`, `policy.json`, and `transforms.json`, and verifies
-`bundle.json`. It reports the `lidar_camera_projection_*`,
+as the reference/output transform (unless
+`evaluation.kitti.use_frame_graph_candidate: true`), renders `evidence.json`,
+`assessment.json`, `protocol.json`, `policy.json`, and `transforms.json`, and
+verifies `bundle.json`. It reports the `lidar_camera_projection_*`,
 `lidar_camera_edge_alignment_score`, and `lidar_camera_perturbation_*`
-diagnostic overlay metrics described below, plus `koide_lidar_camera_*`
+projection evidence metrics described below, plus `koide_lidar_camera_*`
 adapter readiness metrics — the demo does not execute the external Koide-style
-adapter, so those metrics reflect availability, not a computed result. As with
-the rest of this document, treat these camera-LiDAR numbers as diagnostic
-overlay evidence on the LiDAR candidate extrinsic, not a standalone camera
-calibration.
+adapter, so those metrics reflect availability, not a computed result. This
+is an evaluation layer for externally produced camera-LiDAR candidates, not a
+standalone camera calibration algorithm.
+
+Evidence rows (protocol `kitti_lidar_camera_projection_edge_holdout/v0.1`) use
+recorded thresholds from `evaluation.kitti.evidence_gate_*` (defaults mirror
+metric grading: holdout edge-alignment `>= 0.20`, depth-edge holdout
+`>= 0.20`, perturbation detectable fraction `>= 0.50`, mandatory probe
+detections `>= 8` of the declared ±1 deg / ±0.10 m cases). On the committed
+76 KB synthetic fixture with the dataset reference extrinsic (baseline run):
+
+| Check | Measured (holdout where applicable) | Verdict |
+| --- | --- | --- |
+| Candidate Support | 12 projected points, ratio 1.0, h/v coverage 0.2 | PASS |
+| Holdout Edge Alignment | edge 0.5, depth-edge 0.5 (threshold >= 0.2) | PASS |
+| Known-Bad Controls | detectable fraction 0.0, mandatory 0/24 (threshold >= 0.5 / >= 8) | FAIL |
+| Decision Boundary | support + holdout pass, controls fail | WARN (INCONCLUSIVE) |
+| Overall quality | evidence decision boundary inconclusive | FAIL |
+
+Known-bad candidate probe: set `evaluation.kitti.use_frame_graph_candidate:
+true` and perturb the frame-graph candidate (example: `+2.0 m` x translation on
+`lidar0.initial`). A `+2 deg` yaw rotation does not move holdout scores on
+this tiny synthetic fixture; `+2.0 m` x translation drives holdout edge-alignment
+to `0.0` and flips that row to FAIL while overall quality remains FAIL. Set
+`evaluation.kitti.use_frame_graph_candidate: true` whenever the candidate
+under test comes from the config rather than `calib_velo_to_cam.txt`.
+
 A cached example result is available for report rendering without rerunning
 the pipeline:
 
