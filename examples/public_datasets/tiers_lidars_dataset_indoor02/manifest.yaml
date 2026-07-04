@@ -1,0 +1,50 @@
+schema_version: calibrex.dataset_manifest/v0.1
+name: tiers_lidars_dataset_indoor02
+description: >
+  TIERS multi-lidar dataset Indoor02 office sequence with Velodyne VLP-16,
+  Ouster OS1, and VRPN MOCAP pose on a moving platform (~42 s).
+time_base: ros_time
+streams:
+  velodyne_points:
+    kind: pointcloud
+    path: indoor02.bag
+    topic: /velodyne_points
+    sensor: velodyne_vlp16
+    frame_id: velo_sensor
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+  ouster_os1_points:
+    kind: pointcloud
+    path: indoor02.bag
+    topic: /os_cloud_nodee/points
+    sensor: ouster_os1
+    frame_id: os1_sensor
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+  mocap_pose:
+    kind: pose_graph
+    path: indoor02.bag
+    topic: /vrpn_client_node/UWBTest/pose
+    sensor: mocap_rig
+    frame_id: world
+    fields:
+      - position
+      - orientation
+provenance:
+  source: TIERS multi-modal lidars dataset Indoor02 sequence
+  official_url: https://github.com/TIERS/tiers-lidars-dataset
+  download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/EYXGcc1Z-y1FpnDwQ1geIoEBovXvLfoxZwt36J1_t2PugA?e=UwHhXd
+  license: MIT
+  size_bytes: "17974826130"
+  sha256_first_mib: 164c2f8dcfd42463ad4981ba25a97668f015ced776db2781fc1e4211fd8fd574
+  odometry_note: >
+    /odom in the Calibrex rosbag2 replay is synthesized from the VRPN MOCAP
+    PoseStamped topic (/vrpn_client_node/UWBTest/pose) by
+    tools/rosbag1_to_rosbag2_online_pair.py; only the nav_msgs/Odometry envelope
+    is authored — the pose trajectory is real MOCAP data.

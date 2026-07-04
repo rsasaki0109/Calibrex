@@ -13,6 +13,11 @@ Supported storage backends:
   compression ``none`` works out of the box; ``lz4`` and ``zstd`` require the
   optional ``calibrex[rosbag2-compression]`` extra.
 
+When ``metadata.yaml`` declares ``compression_mode: message``, each stored
+message payload is decompressed individually (``zstd`` or ``lz4``) before CDR
+decode. ``compression_mode: file`` is rejected — decompress the bag first.
+Bare storage files without ``metadata.yaml`` are read as stored.
+
 CDR decoding supports ``sensor_msgs/msg/PointCloud2`` and ``nav_msgs/msg/Odometry``.
 """
 
@@ -20,7 +25,7 @@ from __future__ import annotations
 
 import sqlite3
 import struct
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -184,19 +189,37 @@ def iter_messages(
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     """Yield ``(connection, timestamp_ns, cdr_payload)`` in timestamp order."""
 
-    storage_path, storage_id = resolve_storage(path)
+    storage_path, storage_id, decompress_message = _resolve_storage(path)
     if storage_id == "sqlite3":
-        yield from _iter_sqlite_messages(storage_path, topics=topics)
+        yield from _iter_sqlite_messages(
+            storage_path,
+            topics=topics,
+            decompress_message=decompress_message,
+        )
         return
     if storage_id == "mcap":
-        yield from _iter_mcap_messages(storage_path, topics=topics)
+        yield from _iter_mcap_messages(
+            storage_path,
+            topics=topics,
+            decompress_message=decompress_message,
+        )
         return
     msg = f"unsupported rosbag2 storage identifier: {storage_id!r}"
     raise DatasetError(msg)
 
 
+def _resolve_storage(
+    path: str | Path,
+) -> tuple[Path, str, Callable[[bytes], bytes] | None]:
+    """Resolve storage and optional per-message decompression."""
+
+    storage_path, storage_id = resolve_storage(path)
+    decompress_message = _message_decompressor_from_path(path)
+    return storage_path, storage_id, decompress_message
+
+
 def resolve_storage(path: str | Path) -> tuple[Path, str]:
-    """Resolve a bag directory, metadata file, or bare storage file."""
+    """Resolve a bag directory (with optional metadata.yaml) or bare storage file."""
 
     bag_path = Path(path)
     if not bag_path.exists():
@@ -262,13 +285,70 @@ def _load_metadata(metadata_path: Path) -> dict[str, Any]:
         "storage_identifier": str(storage_id) if storage_id is not None else None,
         "relative_file_paths": [str(item) for item in relative_paths or []],
         "topics_with_message_count": info.get("topics_with_message_count", []),
+        "compression_format": _normalize_metadata_token(info.get("compression_format")),
+        "compression_mode": _normalize_metadata_token(info.get("compression_mode")),
     }
+
+
+def _normalize_metadata_token(value: object) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    return text.lower()
+
+
+def _message_decompressor_from_path(path: str | Path) -> Callable[[bytes], bytes] | None:
+    bag_path = Path(path)
+    if not bag_path.is_dir():
+        return None
+    metadata_path = bag_path / "metadata.yaml"
+    if not metadata_path.is_file():
+        return None
+    metadata = _load_metadata(metadata_path)
+    return _message_decompressor(
+        compression_format=metadata["compression_format"],
+        compression_mode=metadata["compression_mode"],
+    )
+
+
+def _message_decompressor(
+    *,
+    compression_format: str,
+    compression_mode: str,
+) -> Callable[[bytes], bytes] | None:
+    if not compression_format or not compression_mode:
+        return None
+    if compression_mode == "file":
+        msg = (
+            "rosbag2 file-mode compression is not supported; "
+            "decompress the bag before reading"
+        )
+        raise DatasetError(msg)
+    if compression_mode != "message":
+        msg = f"unsupported rosbag2 compression_mode: {compression_mode!r}"
+        raise DatasetError(msg)
+    if compression_format == "zstd":
+        return _zstd_decompress_message
+    if compression_format == "lz4":
+        return _lz4_decompress_message
+    msg = f"unsupported rosbag2 message compression format: {compression_format!r}"
+    raise DatasetError(msg)
+
+
+def _maybe_decompress_message(
+    data: bytes,
+    decompress_message: Callable[[bytes], bytes] | None,
+) -> bytes:
+    if decompress_message is None:
+        return data
+    return decompress_message(data)
 
 
 def _iter_sqlite_messages(
     db_path: Path,
     *,
     topics: set[str] | None,
+    decompress_message: Callable[[bytes], bytes] | None = None,
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
@@ -301,7 +381,8 @@ def _iter_sqlite_messages(
                 continue
             if allowed_topic_ids is not None and int(topic_id) not in allowed_topic_ids:
                 continue
-            yield resolved, int(timestamp), bytes(data)
+            payload = _maybe_decompress_message(bytes(data), decompress_message)
+            yield resolved, int(timestamp), payload
     finally:
         conn.close()
 
@@ -310,6 +391,7 @@ def _iter_mcap_messages(
     mcap_path: Path,
     *,
     topics: set[str] | None,
+    decompress_message: Callable[[bytes], bytes] | None = None,
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     channels: dict[int, Rosbag2Connection] = {}
     schemas: dict[int, str] = {}
@@ -339,9 +421,15 @@ def _iter_mcap_messages(
                             inner_content,
                             channels=channels,
                             topics=topics,
+                            decompress_message=decompress_message,
                         )
             elif opcode == OP_MESSAGE:
-                yield from _yield_mcap_message(content, channels=channels, topics=topics)
+                yield from _yield_mcap_message(
+                    content,
+                    channels=channels,
+                    topics=topics,
+                    decompress_message=decompress_message,
+                )
             elif opcode in {OP_FOOTER, OP_DATA_END}:
                 break
 
@@ -351,6 +439,7 @@ def _yield_mcap_message(
     *,
     channels: dict[int, Rosbag2Connection],
     topics: set[str] | None,
+    decompress_message: Callable[[bytes], bytes] | None = None,
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     channel_id, log_time, payload = _parse_mcap_message(content)
     connection = channels.get(channel_id)
@@ -358,6 +447,7 @@ def _yield_mcap_message(
         return
     if topics is not None and connection.topic not in topics:
         return
+    payload = _maybe_decompress_message(payload, decompress_message)
     yield connection, log_time, payload
 
 
@@ -486,6 +576,37 @@ def _zstd_decompress(data: bytes, size: int) -> bytes:
     if size and len(decompressed) != size:
         msg = "zstd chunk decompressed to an unexpected size"
         raise DatasetError(msg)
+    return decompressed
+
+
+def _zstd_decompress_message(data: bytes) -> bytes:
+    try:
+        import zstandard
+    except ImportError as exc:  # pragma: no cover - exercised via error path test
+        msg = (
+            "zstd-compressed rosbag2 messages require the optional dependency "
+            "calibrex[rosbag2-compression]"
+        )
+        raise DatasetError(msg) from exc
+    decompressor = zstandard.ZstdDecompressor()
+    try:
+        decompressed: bytes = decompressor.decompress(data)
+        return decompressed
+    except zstandard.ZstdError:
+        streamed: bytes = decompressor.decompressobj().decompress(data)
+        return streamed
+
+
+def _lz4_decompress_message(data: bytes) -> bytes:
+    try:
+        import lz4.frame
+    except ImportError as exc:  # pragma: no cover - exercised via error path test
+        msg = (
+            "lz4-compressed rosbag2 messages require the optional dependency "
+            "calibrex[rosbag2-compression]"
+        )
+        raise DatasetError(msg) from exc
+    decompressed: bytes = lz4.frame.decompress(data)
     return decompressed
 
 

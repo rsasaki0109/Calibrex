@@ -1,0 +1,86 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: tiers_lidars_dataset_indoor02_online_motion
+  description: >
+    Online Velodyne-VLP-16-to-Ouster-OS1 extrinsic calibration from the TIERS
+    Indoor02 moving-platform sequence (rosbag2 + synthesized /odom). Early
+    Velodyne (/velodyne_points) PointCloud2 messages build the motion-compensated
+    source voxel map; Ouster OS1 (/os_cloud_nodee/points) messages stream as
+    target batches. The initial transform is derived from the TIERS dataset README
+    GICP extrinsics (velo_sensor and os1_sensor relative to base_link):
+    T_velo_os1 = T_velo_base * inv(T_os1_base) with static_transform_publisher
+    convention R = Rz(yaw)Ry(pitch)Rx(roll), parent=sensor, child=base_link.
+    velo: -0.164831 0.173188 0.117624 3.07795 3.09161 3.12807;
+    os1: 0.0100882 0.581502 -0.0210581 2.34826 3.12619 -3.13066.
+    Inter-sensor distance sanity check: 0.37 m (< 1.0 m).
+  output_dir: outputs/tiers_lidars_dataset_indoor02_online_motion
+  domain: robotics
+
+dataset:
+  type: rosbag2
+  path: data/public/tiers_lidars_dataset/indoor02_rosbag2
+  odometry_topic: /odom
+  time_base: ros_time
+
+sensors:
+  velodyne_vlp16:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points
+    frame_id: velo_sensor
+    fields: [x, y, z, intensity]
+  ouster_os1:
+    type: lidar
+    model: ouster_os1
+    topic: /os_cloud_nodee/points
+    frame_id: os1_sensor
+    fields: [x, y, z, intensity]
+
+frames:
+  velodyne_vlp16:
+    root: true
+  ouster_os1:
+    parent: velodyne_vlp16
+    transform:
+      estimate: true
+      initial:
+        translation: [0.216341, -0.266250, 0.134715]
+        rotation_quat_xyzw: [-0.003933, 0.020803, 0.357098, 0.933827]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

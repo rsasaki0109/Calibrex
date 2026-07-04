@@ -38,8 +38,8 @@ class CdrWriter:
     """Minimal ROS 2 CDR (XCDR1) encoder for test fixtures."""
 
     def __init__(self, *, little_endian: bool = True) -> None:
-        encapsulation = 1 if little_endian else 0
-        self._buf = bytearray([encapsulation, 0, 0, 0])
+        endian_byte = 1 if little_endian else 0
+        self._buf = bytearray([0, endian_byte, 0, 0])
         self._little = little_endian
         self._endian = "<" if little_endian else ">"
 
@@ -362,6 +362,37 @@ def _sample_messages() -> tuple[list[tuple[str, str]], list[tuple[str, int, byte
     return topics, messages
 
 
+def _write_sqlite_message_mode_zstd_fixture(path: Path) -> Path:
+    topics, messages = _sample_messages()
+    compressed_messages = [
+        (topic, timestamp_ns, _zstd_compress_message(payload))
+        for topic, timestamp_ns, payload in messages
+    ]
+    _write_sqlite_bag(path, topics=topics, messages=compressed_messages)
+    return path
+
+
+def _write_mcap_message_mode_zstd_fixture(path: Path) -> Path:
+    topics, messages = _sample_messages()
+    mcap_messages: list[tuple[int, int, str, str, int, bytes]] = []
+    schema_ids = {message_type: index + 1 for index, (_topic, message_type) in enumerate(topics)}
+    channel_ids = {topic: index + 1 for index, (topic, _message_type) in enumerate(topics)}
+    for topic, timestamp_ns, payload in messages:
+        message_type = next(item[1] for item in topics if item[0] == topic)
+        mcap_messages.append(
+            (
+                channel_ids[topic],
+                schema_ids[message_type],
+                topic,
+                message_type,
+                timestamp_ns,
+                _zstd_compress_message(payload),
+            )
+        )
+    _write_mcap_bag(path, messages=mcap_messages)
+    return path
+
+
 def _write_sqlite_fixture(path: Path) -> Path:
     topics, messages = _sample_messages()
     _write_sqlite_bag(path, topics=topics, messages=messages)
@@ -389,19 +420,31 @@ def _write_mcap_fixture(path: Path, *, chunked: bool = False, compression: str =
     return path
 
 
-def _write_metadata_directory(base: Path, storage_name: str, storage_id: str) -> Path:
+def _write_metadata_directory(
+    base: Path,
+    storage_name: str,
+    storage_id: str,
+    *,
+    compression_format: str = "",
+    compression_mode: str = "",
+) -> Path:
     bag_dir = base / "bag_dir"
     bag_dir.mkdir()
     if storage_id == "sqlite3":
         _write_sqlite_fixture(bag_dir / storage_name)
     else:
         _write_mcap_fixture(bag_dir / storage_name)
+    compression_lines = ""
+    if compression_format:
+        compression_lines += f"  compression_format: {compression_format}\n"
+    if compression_mode:
+        compression_lines += f"  compression_mode: {compression_mode}\n"
     metadata = f"""rosbag2_bagfile_information:
   version: 5
   storage_identifier: {storage_id}
   relative_file_paths:
     - {storage_name}
-  topics_with_message_count:
+{compression_lines}  topics_with_message_count:
     - topic_metadata:
         name: /livox/lidar
         type: sensor_msgs/msg/PointCloud2
@@ -410,6 +453,11 @@ def _write_metadata_directory(base: Path, storage_name: str, storage_id: str) ->
 """
     (bag_dir / "metadata.yaml").write_text(metadata, encoding="utf-8")
     return bag_dir
+
+
+def _zstd_compress_message(payload: bytes) -> bytes:
+    zstandard = pytest.importorskip("zstandard")
+    return zstandard.ZstdCompressor().compress(payload)
 
 
 def test_rosbag2_sqlite_roundtrip_pointcloud_and_odometry(tmp_path: Path) -> None:
@@ -476,7 +524,7 @@ def test_rosbag2_cdr_endianness_flag() -> None:
         with_intensity=True,
         little_endian=False,
     )
-    assert payload[0] == 0
+    assert payload[:4] == b"\x00\x00\x00\x00"
     decoded = decode_pointcloud2("/cloud", 0, payload)
     assert decoded.xyz[0].tolist() == [9.0, 8.0, 7.0]
 
@@ -543,6 +591,61 @@ def test_rosbag2_directory_with_metadata_mcap(tmp_path: Path) -> None:
     assert storage_path.name == "bag_0.mcap"
 
 
+def test_rosbag2_sqlite_message_mode_zstd_roundtrip(tmp_path: Path) -> None:
+    pytest.importorskip("zstandard")
+    bag_dir = tmp_path / "sqlite_message_zstd"
+    bag_dir.mkdir()
+    _write_sqlite_message_mode_zstd_fixture(bag_dir / "bag_0.db3")
+    metadata = """rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: sqlite3
+  relative_file_paths:
+    - bag_0.db3
+  compression_format: zstd
+  compression_mode: message
+"""
+    (bag_dir / "metadata.yaml").write_text(metadata, encoding="utf-8")
+    decoded_clouds = list(read_pointcloud2_messages(bag_dir))
+    assert len(decoded_clouds) == 2
+    assert decoded_clouds[0].xyz[0].tolist() == [1.0, 2.0, 3.0]
+
+
+def test_rosbag2_mcap_message_mode_zstd_roundtrip(tmp_path: Path) -> None:
+    pytest.importorskip("zstandard")
+    bag_dir = tmp_path / "mcap_message_zstd"
+    bag_dir.mkdir()
+    _write_mcap_message_mode_zstd_fixture(bag_dir / "bag_0.mcap")
+    metadata = """rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: mcap
+  relative_file_paths:
+    - bag_0.mcap
+  compression_format: ZSTD
+  compression_mode: MESSAGE
+"""
+    (bag_dir / "metadata.yaml").write_text(metadata, encoding="utf-8")
+    messages = list(iter_messages(bag_dir))
+    assert len(messages) == 3
+    odom_messages = [
+        decode_odometry(connection.topic, timestamp_ns, data)
+        for connection, timestamp_ns, data in messages
+        if connection.message_type == ODOMETRY_TYPE
+    ]
+    assert odom_messages[0].position == (1.5, 2.5, 3.5)
+
+
+def test_rosbag2_file_mode_compression_rejected(tmp_path: Path) -> None:
+    bag_dir = _write_metadata_directory(
+        tmp_path,
+        "bag_0.db3",
+        "sqlite3",
+        compression_format="zstd",
+        compression_mode="file",
+    )
+    with pytest.raises(DatasetError, match="file-mode compression"):
+        list(iter_messages(bag_dir))
+
+
 def test_rosbag2_reader_streams(tmp_path: Path) -> None:
     bag = _write_sqlite_fixture(tmp_path / "sample.db3")
     reader = Rosbag2Reader(bag)
@@ -589,6 +692,59 @@ def test_cdr_reader_roundtrip_primitives() -> None:
     assert reader.read_string() == "frame"
 
 
+def test_cdr_writer_standard_encapsulation_header() -> None:
+    payload = CdrWriter().finish()
+    assert payload[:4] == b"\x00\x01\x00\x00"
+
+
+def test_cdr_reader_rejects_legacy_encapsulation_header() -> None:
+    with pytest.raises(DatasetError, match=r"unsupported CDR encapsulation header 01 00 00 00"):
+        CdrReader(b"\x01\x00\x00\x00" + b"\x00" * 8)
+
+
+def test_cdr_reader_big_endian_odometry_golden_vector() -> None:
+    """Decode a hand-assembled big-endian XCDR1 Odometry payload."""
+
+    payload = bytes.fromhex(
+        "00000000"  # encapsulation (BE CDR)
+        "00000001"  # rel 0: stamp.sec = 1
+        "00000002"  # rel 4: stamp.nanosec = 2
+        "00000005"  # rel 8: frame_id length = 5
+        "6f646f6d00"  # rel 12: "odom\\0"
+        "000000"  # rel 17: pad to 4-byte boundary
+        "00000005"  # rel 20: child_frame_id length = 5
+        "6261736500"  # rel 24: "base\\0"
+        "000000"  # rel 29: pad to 8-byte boundary
+        "3ff0000000000000"  # rel 32: pose.position.x = 1.0
+        "4000000000000000"  # rel 40: pose.position.y = 2.0
+        "4008000000000000"  # rel 48: pose.position.z = 3.0
+        "4010000000000000"  # rel 56: pose.orientation.x = 4.0
+        "4014000000000000"  # rel 64: pose.orientation.y = 5.0
+        "4018000000000000"  # rel 72: pose.orientation.z = 6.0
+        "401c000000000000"  # rel 80: pose.orientation.w = 7.0
+        + "00" * (8 * 78)  # rel 88: pose/twist covariances and twist velocities = 0.0
+    )
+    first_float64_abs = 36
+    assert struct.unpack_from(">d", payload, first_float64_abs)[0] == pytest.approx(1.0)
+
+    decoded = decode_ros2_odometry("/odom", 99, payload)
+    assert decoded.timestamp_ns == 1_000_000_002
+    assert decoded.frame_id == "odom"
+    assert decoded.child_frame_id == "base"
+    assert decoded.position == pytest.approx((1.0, 2.0, 3.0))
+    assert decoded.orientation_xyzw == pytest.approx((4.0, 5.0, 6.0, 7.0))
+
+    reader = CdrReader(payload)
+    assert reader.little_endian is False
+    reader.read_int32()
+    reader.read_uint32()
+    reader.read_string()
+    reader.read_string()
+    reader.align(8)
+    assert reader.offset == first_float64_abs
+    assert reader.read_float64() == pytest.approx(1.0)
+
+
 def test_rosbag2_odometry_golden_cdr_vector() -> None:
     """Decode a hand-assembled XCDR1 Odometry payload (no CdrWriter).
 
@@ -604,7 +760,7 @@ def test_rosbag2_odometry_golden_cdr_vector() -> None:
     """
 
     payload = bytes.fromhex(
-        "01000000"  # encapsulation (LE CDR)
+        "00010000"  # encapsulation (LE CDR)
         "01000000"  # rel 0: stamp.sec = 1
         "02000000"  # rel 4: stamp.nanosec = 2
         "05000000"  # rel 8: frame_id length = 5

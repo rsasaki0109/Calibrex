@@ -200,6 +200,103 @@ decoded point counts for PointCloud2 topics, and a pose sample for Odometry
 topics (position, orientation `xyzw`, and pose covariance diagonal entries from
 the first sampled message).
 
+### Moving platform (TIERS Indoor02, rosbag2 + odometry)
+
+The TIERS `Indoor02` sequence records a Velodyne VLP-16 (`/velodyne_points`),
+an Ouster OS1 (`/os_cloud_nodee/points`, note the upstream typo), and a VRPN
+MOCAP `geometry_msgs/PoseStamped` stream (`/vrpn_client_node/UWBTest/pose`) on
+a moving office platform (~42 s). The ROS 1 bag is multiple gigabytes; fetch it
+manually from the upstream dataset:
+
+1. Open the TIERS dataset repository:
+   <https://github.com/TIERS/tiers-lidars-dataset> and follow its download table
+   to the `Indoor02` sequence (direct link recorded in
+   `examples/public_datasets/tiers_lidars_dataset_indoor02/manifest.yaml` under
+   `provenance.download_url`).
+2. Save the bag as `data/public/tiers_lidars_dataset/indoor02.bag`.
+
+Convert the ROS 1 bag to rosbag2 with synthesized odometry (the pose trajectory
+is real MOCAP; only the `nav_msgs/msg/Odometry` envelope is authored):
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2 \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --pose-topic /vrpn_client_node/UWBTest/pose \
+  --odom-topic /odom \
+  --child-frame-id base_link \
+  --storage sqlite3 \
+  --compress none
+```
+
+An MCAP variant with per-message zstd compression exercises the message-mode
+decompression path on real independently-encoded CDR:
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_mcap \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --pose-topic /vrpn_client_node/UWBTest/pose \
+  --odom-topic /odom \
+  --child-frame-id base_link \
+  --storage mcap \
+  --compress zstd
+```
+
+Inspect the converted bags (topics, counts, odometry pose sanity):
+
+```bash
+calibrex inspect data/public/tiers_lidars_dataset/indoor02_rosbag2 --type rosbag2 --json
+calibrex inspect data/public/tiers_lidars_dataset/indoor02_rosbag2_mcap --type rosbag2 --json
+```
+
+Online motion-compensated calibration (A) and the static-rig control (B):
+
+```bash
+pip install -e ".[dev,rosbag1-lz4,rosbag2,rosbag2-compression]"
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml --online
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_static_config.yaml --online
+```
+
+On a bounded replay of the converted bag (12 Velodyne source messages / 8k source
+points, 36 Ouster target messages / 1.5k target points, 60 s budget), both runs
+produced 108 Ouster batches (500 points each). Motion compensation (A) adopted
+all 108 batches; the static control (B) adopted 106 and rejected 2 batches whose
+holdout RMSE exceeded the 0.40 m gate (batches 66 and 105). Per-batch holdout
+RMSE ranged 0.20–0.36 m for A (mean ~0.28 m) and 0.13–0.42 m for B (mean
+~0.28 m). Final rolling RMSE settled near 0.28 m (A) and 0.29 m (B). Both runs
+kept rank 6 with condition number ~6–9.
+
+The TIERS README GICP seed (`frames.ouster_os1.transform.initial`, inter-sensor
+distance ~0.37 m) is a nominal reference, not ground truth. Final estimates
+drifted substantially from that seed (A: ~270 cm translation / ~39° rotation;
+B: ~106 cm / ~15°), consistent with an unknown constant offset between the
+MOCAP rigid-body frame and `base_link` — rotation smears the world map with scene
+distance and platform excursion. On this sequence the final extrinsic is **not**
+validated against the TIERS reference: a ~2.7 m translation drift on a
+physically ~0.37 m sensor pair is not agreement at any level. The online gates
+measure internal consistency of the (possibly smeared) world map, not absolute
+extrinsic accuracy. The VRPN rigid-body (`UWBTest`) alignment to the rig is
+unknown and unverified, so the motion-compensated run's absolute accuracy remains
+an open question pending a rig-frame odometry source (e.g. LiDAR odometry) —
+planned follow-up.
+
+This validation did establish that real rosbag2 bags from an independent encoder
+(`rosbags`) exposed two reader bugs that synthetic mirror-image tests could not:
+CDR encapsulation endianness was keyed off the wrong header byte, and
+message-mode zstd compression declared in `metadata.yaml` was ignored. With both
+fixed, `calibrex inspect` decodes the regenerated sqlite3 and MCAP+zstd bags
+with standard CDR headers and per-message decompression.
+
+| Run | Odometry | Batches adopted | Holdout RMSE (m) | Final Δ vs TIERS seed |
+|-----|----------|-----------------|------------------|------------------------|
+| A motion | `/odom` | 108 / 108 | 0.20 – 0.36 (mean ~0.28) | ~270 cm, ~39° |
+| B static | none | 106 / 108 | 0.13 – 0.42 (mean ~0.28) | ~106 cm, ~15° |
+
 ### Online calibration with odometry motion compensation
 
 `run_online_calibration` accepts `dataset.type: rosbag2` with the same bounded
