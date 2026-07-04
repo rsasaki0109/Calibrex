@@ -74,10 +74,12 @@ candidates — not IMU calibration itself:
 - Gravity-direction consistency as a second, weaker channel (accelerometer
   low-pass vs world gravity under the odometry trajectory), gated as
   supporting-only evidence.
-- Real-data validation on the TIERS Indoor02 bag (Velodyne VLP-16 and Ouster
-  OS1 on a moving platform; the committed manifest documents VRPN MOCAP pose
-  but not yet an IMU stream), with the same honest-reporting discipline as
-  every v0.2 validation.
+- Real-data validation on the TIERS Indoor02 bag: the already-downloaded
+  source ROS 1 recording carries four IMU streams alongside the LiDARs
+  (`/avia/livox/imu` and `/livox/imu` at ~200 Hz, `/os_cloud_node/imu` and
+  `/os_cloud_nodee/imu` at ~100 Hz). The current converted rosbag2 subsets do
+  not include them, so Pillar 3 extends the conversion tool to carry an IMU
+  topic. Same honest-reporting discipline as every v0.2 validation.
 
 ## Consequences
 
