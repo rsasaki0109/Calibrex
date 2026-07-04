@@ -488,6 +488,19 @@
             }
           ],
           "default": null
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "optional PointCloud2 field name for per-point capture-time offsets relative to the message stamp (seconds or integer nanoseconds); enables per-point deskew during rosbag2 online motion compensation",
+          "title": "Point Time Field"
         }
       },
       "required": [

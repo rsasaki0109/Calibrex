@@ -88,6 +88,14 @@ class SensorConfig(StrictModel):
     intrinsics: CameraIntrinsicsConfig | None = None
     fields: list[str] = Field(default_factory=list)
     noise: ImuNoiseConfig | None = None
+    point_time_field: str | None = Field(
+        default=None,
+        description=(
+            "optional PointCloud2 field name for per-point capture-time offsets "
+            "relative to the message stamp (seconds or integer nanoseconds); "
+            "enables per-point deskew during rosbag2 online motion compensation"
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_sensor_specifics(self) -> SensorConfig:

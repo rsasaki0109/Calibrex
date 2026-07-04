@@ -394,14 +394,51 @@ extrapolation and recovered identity to ~9.6 cm / ~1.2°. The static control
 (no odometry) also adopted all 104 batches and passed every internal gate —
 yet its final estimate landed ~98 cm / ~37° from the known identity truth.
 Motion compensation cut the extrinsic error roughly 10× versus the static
-run; the residual ~10 cm / ~1.2° is consistent with no per-point deskew and
+run; the residual ~10 cm / ~1.2° was attributed to no per-point deskew and
 LiDAR-odometry drift on a moving platform.
 
-| Run | Odometry | Batches adopted | Final Δ vs identity (truth) |
-|-----|----------|-----------------|-------------------------------|
-| Selftest motion | KISS-ICP `/odom` | 104 / 104 | ~9.6 cm, ~1.2° |
-| Selftest static | none | 104 / 104 | ~98 cm, ~37° |
-| Ground truth | — | — | 0 cm, 0° |
+Per-point deskew is now available for rosbag2 online runs via
+`sensors.<name>.point_time_field` (for example `time` on Velodyne VLP-16,
+`t` on Ouster OS1). When `dataset.odometry_topic` is set, capture time is
+`header_stamp + offset` with offsets decoded as float seconds or integer
+nanoseconds from the named PointCloud2 field. Replay provenance records
+`deskew_applied`, `deskew_time_field`, and `deskew_span_s` (max − min offset
+seen). Without odometry, `point_time_field` is ignored
+(`deskew_ignored_no_odometry: true`).
+
+On the Velodyne selftest bag, per-point `time` offsets are ~99% negative
+(span ≈ 0.10 s, consistent with a VLP-16 sweep where the header stamp sits
+near the end of rotation). A deskew replay with `point_time_field: time` on
+both Velodyne sensors adopted 104 / 104 batches and landed ~10.5 cm / ~1.5°
+from identity — not a meaningful improvement over the ~9.5 cm / ~1.2°
+per-message motion-compensated baseline on this control. The modest regression
+is consistent with KISS-ICP odometry drift dominating the residual once
+intra-scan timing is corrected.
+
+| Run | Odometry | Deskew | Batches adopted | Final Δ vs identity (truth) |
+|-----|----------|--------|-----------------|-------------------------------|
+| Selftest motion | KISS-ICP `/odom` | no | 104 / 104 | ~9.5 cm, ~1.2° |
+| Selftest deskew | KISS-ICP `/odom` | velodyne `time` | 104 / 104 | ~10.5 cm, ~1.5° |
+| Selftest static | none | — | 104 / 104 | ~98 cm, ~37° |
+| Ground truth | — | — | — | 0 cm, 0° |
+
+KISS-ICP rig-frame Velodyne→Ouster run C with deskew (`time` + `t`) adopted
+106 / 108 batches and landed ~76 cm / ~28° from the TIERS GICP seed versus
+~85 cm / ~28° without deskew — a modest translation improvement with rotation
+unchanged, still well above the holdout residual band and not confirmation of
+the nominal seed.
+
+| Run | Odometry | Deskew | Batches adopted | Final Δ vs TIERS seed |
+|-----|----------|--------|-----------------|------------------------|
+| C kiss-icp | KISS-ICP `/odom` | no | 106 / 108 | ~85 cm, ~28° |
+| C kiss-icp deskew | KISS-ICP `/odom` | `time` + `t` | 106 / 108 | ~76 cm, ~28° |
+
+Example configs:
+
+```bash
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_deskew_config.yaml --online
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_deskew_config.yaml --online
+```
 
 This is the first genuine absolute-accuracy validation on real moving-platform
 data with exact ground truth: motion compensation reduces extrinsic error from
@@ -409,13 +446,16 @@ data with exact ground truth: motion compensation reduces extrinsic error from
 static run passed all internal gates (holdout RMSE 0.40 m, rolling regression,
 rank 6) while being ~1 m / ~37° wrong — on this scene the online gates measure
 internal consistency of a self-consistently wrong map, not absolute accuracy.
-Tighter correspondence gating and per-point deskew are candidate future work;
-they are not implemented here.
+Per-point deskew is implemented but did not materially tighten the identity
+selftest residual on this sequence; remaining error is attributed primarily to
+LiDAR-odometry drift once intra-scan timing is handled.
 
 Reconciling the earlier A/B/C discussion: the Velodyne→Ouster ~85 cm residual
 in run C is now attributable primarily to cross-sensor effects (Ouster stamp
-semantics and restamp bias, no per-point deskew, nominal GICP seed), not a
-failure of the motion-compensation pipeline itself.
+semantics and restamp bias, LiDAR-odometry drift, nominal GICP seed), not a
+failure of the motion-compensation pipeline itself. Deskew narrows the C
+translation gap modestly (~9 cm) but does not establish absolute accuracy
+against the TIERS reference.
 
 ### Online calibration with odometry motion compensation
 
@@ -425,24 +465,29 @@ replay budgets as rosbag1 (`max_source_messages`, `max_source_points`,
 `lidar_rig_point_to_plane` factor options). Set `dataset.odometry_topic` to a
 `nav_msgs/msg/Odometry` topic to enable motion compensation during replay.
 
-Formulation (per-message poses only; per-point deskew inside a message is out of
-scope):
+Formulation with optional per-point deskew (rosbag2, when
+`sensors.<name>.point_time_field` is set and `dataset.odometry_topic` is
+configured):
 
 * `T_world_base(t)` — interpolated odometry pose (linear translation, quaternion
   slerp on the shortest arc; out-of-range queries clamp to the nearest pose).
-* Source map points at time `t_i` are transformed to the world frame as
-  `p_world = T_world_base(t_i) * T_base_source * p_sensor` before voxel-plane
-  map construction.
-* Target messages at time `t_j` keep points in the target sensor frame and
-  record `T_world_source(t_j) = T_world_base(t_j) * T_base_source` for
-  correspondence (`T_world_source * T_hat_source_target * p` against
-  world-frame planes). The solver still estimates one constant `T_source_target`.
+* Source map points use capture time `t_i = message_stamp + offset_i` when
+  deskew is active; otherwise the message stamp. Points transform to the world
+  frame as `p_world = T_world_base(t_i) * T_base_source * p_sensor` before
+  voxel-plane map construction.
+* Target points keep sensor-frame coordinates and record per-point
+  `T_world_source(t_j_point)` when deskew is active, else per-message
+  `T_world_source(t_msg)` for correspondence (`T_world_source *
+  T_hat_source_target * p` against world-frame planes). The solver still
+  estimates one constant `T_source_target`.
 * When `dataset.odometry_topic` is unset, the static-rig path is unchanged
-  (identity frame poses).
+  (identity frame poses) and `point_time_field` is ignored.
 
 Replay provenance records the odometry topic, message count, time coverage,
 interpolation method, clamp count, total interpolation count,
-`odometry_interpolation_max_extrapolation_s`, and a `motion_compensated` flag.
+`odometry_interpolation_max_extrapolation_s`, a `motion_compensated` flag, and
+when configured `deskew_applied`, `deskew_time_field`, `deskew_span_s`, or
+`deskew_ignored_no_odometry`.
 Batches whose target timestamps extrapolate beyond
 `online_gate_max_odometry_extrapolation_s` (default 0.25 s) outside the odometry
 track are excluded with gate reason `odometry_extrapolation`; source messages

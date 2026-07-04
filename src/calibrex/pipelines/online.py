@@ -5,20 +5,24 @@ used by the offline path (`calibrex.solvers.native_lidar_point_to_plane_solver`)
 from a stream of incremental point batches instead of one offline solve.
 
 Motion compensation (optional ``dataset.odometry_topic`` on rosbag replays)
-uses per-message rig poses only; per-point deskew inside a message (for example
-Livox ``offset_time``) is out of scope.
+uses per-message rig poses by default. When a participating LiDAR sensor sets
+``point_time_field`` and odometry is configured, per-point deskew applies capture
+times ``t_i = message_timestamp + offset_i`` (offsets in seconds relative to
+the header stamp) for rosbag2 replay.
 
 Formulation when odometry is configured:
 
 * Let ``T_world_base(t)`` be the interpolated odometry pose, ``T_base_source`` the
   configured mount of the source (map-building) sensor, and ``T_source_target``
   the extrinsic being estimated.
-* Source map: each source message at time ``t_i`` contributes points transformed
-  into the world frame as ``p_world = T_world_base(t_i) * T_base_source * p_sensor``.
-  The voxel plane map is built in the world frame.
-* Target batches: each target message at time ``t_j`` keeps points in the target
-  sensor frame, but records ``T_world_source(t_j) = T_world_base(t_j) * T_base_source``
-  as the per-message rig pose passed into correspondence building.
+* Source map: each source message contributes points transformed into the world
+  frame. Without deskew, ``p_world = T_world_base(t_msg) * T_base_source * p_sensor``.
+  With deskew, each point uses its capture time:
+  ``p_world = T_world_base(t_i) * T_base_source * p_sensor`` where
+  ``t_i = message_timestamp + offset_i``.
+* Target batches: each target point keeps its sensor-frame coordinates. Without
+  deskew the per-message pose ``T_world_source(t_msg)`` is recorded; with deskew
+  each point carries ``T_world_source(t_j_point)`` at its capture time.
 * Correspondence applies ``T_world_source(t_j) * T_hat_source_target`` to map a
   target point against world-frame planes while the solver still estimates a
   single constant ``T_source_target``. When no odometry topic is configured the
@@ -943,6 +947,134 @@ def _resolve_online_lidar_pair(
     return lidars[0], lidars[1]
 
 
+def _sensor_point_time_field(config: CalibrationConfig, sensor_name: str) -> str | None:
+    sensor = config.sensors.get(sensor_name)
+    if sensor is None:
+        return None
+    return sensor.point_time_field
+
+
+def _deskew_time_field_map(
+    config: CalibrationConfig,
+    source_sensor: str,
+    target_sensor: str,
+) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for sensor_name in (source_sensor, target_sensor):
+        field_name = _sensor_point_time_field(config, sensor_name)
+        if field_name:
+            mapping[sensor_name] = field_name
+    return mapping
+
+
+def _deskew_replay_provenance(
+    *,
+    deskew_time_field: dict[str, str],
+    motion_compensated: bool,
+    deskew_applied: bool,
+    deskew_span_s: float | None,
+) -> dict[str, Any]:
+    provenance: dict[str, Any] = {"deskew_applied": deskew_applied}
+    if deskew_time_field:
+        provenance["deskew_time_field"] = deskew_time_field
+        if not motion_compensated:
+            provenance["deskew_ignored_no_odometry"] = True
+    if deskew_span_s is not None:
+        provenance["deskew_span_s"] = deskew_span_s
+    return provenance
+
+
+def _subsample_indices(count: int, max_points: int | None) -> range:
+    if max_points is not None and max_points > 0 and count > max_points:
+        step = (count + max_points - 1) // max_points
+        return range(0, count, step)
+    return range(count)
+
+
+def _capture_timestamp_ns(message_timestamp_ns: int, offset_s: float) -> int:
+    return message_timestamp_ns + round(offset_s * 1_000_000_000)
+
+
+def _update_deskew_span(
+    offsets: Any,
+    *,
+    span_min: float | None,
+    span_max: float | None,
+) -> tuple[float | None, float | None]:
+    if offsets is None or int(offsets.shape[0]) == 0:
+        return span_min, span_max
+    lo = float(offsets.min())
+    hi = float(offsets.max())
+    span_min = lo if span_min is None else min(span_min, lo)
+    span_max = hi if span_max is None else max(span_max, hi)
+    return span_min, span_max
+
+
+def _deskew_pointcloud_to_world_records(
+    xyz: Any,
+    offsets_s: Any,
+    message_timestamp_ns: int,
+    t_base_source: SE3,
+    odometry_track: OdometryTrack,
+    max_points: int | None,
+    extrapolation_tolerance_s: float | None,
+) -> list[LivoxPointRecord]:
+    count = int(xyz.shape[0])
+    records: list[LivoxPointRecord] = []
+    for index in _subsample_indices(count, max_points):
+        capture_ns = _capture_timestamp_ns(message_timestamp_ns, float(offsets_s[index]))
+        t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(capture_ns)
+        if (
+            extrapolation_tolerance_s is not None
+            and extrapolation_s > extrapolation_tolerance_s
+        ):
+            msg = (
+                "source LiDAR point capture time lies "
+                f"{extrapolation_s:.4f} s outside the odometry track "
+                f"(tolerance {extrapolation_tolerance_s:.4f} s); "
+                "motion-compensated map premise is broken"
+            )
+            raise DatasetError(msg)
+        t_world_source = t_world_base.compose(t_base_source)
+        point_sensor = (
+            float(xyz[index, 0]),
+            float(xyz[index, 1]),
+            float(xyz[index, 2]),
+        )
+        point_world = t_world_source.transform_point(point_sensor)
+        records.append(
+            LivoxPointRecord(
+                point=(point_world[0], point_world[1], point_world[2], 0.0),
+                normal_xyz=None,
+            )
+        )
+    return records
+
+
+def _deskew_target_entries(
+    frame_index: int,
+    xyz: Any,
+    offsets_s: Any,
+    message_timestamp_ns: int,
+    t_base_source: SE3,
+    odometry_track: OdometryTrack,
+    max_points: int | None,
+) -> list[OnlineTargetEntry]:
+    count = int(xyz.shape[0])
+    entries: list[OnlineTargetEntry] = []
+    for index in _subsample_indices(count, max_points):
+        capture_ns = _capture_timestamp_ns(message_timestamp_ns, float(offsets_s[index]))
+        t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(capture_ns)
+        t_world_source = t_world_base.compose(t_base_source)
+        point = (
+            float(xyz[index, 0]),
+            float(xyz[index, 1]),
+            float(xyz[index, 2]),
+        )
+        entries.append((frame_index, point, t_world_source, extrapolation_s))
+    return entries
+
+
 def _lidar_topic(config: CalibrationConfig, sensor_name: str) -> str:
     sensor = config.sensors.get(sensor_name)
     if sensor is None or not sensor.topic:
@@ -1058,6 +1190,14 @@ def _load_rosbag1_online_pair(
         "rosbag1_max_target_messages": inputs.max_target_messages,
         "rosbag1_max_replay_duration_s": inputs.max_replay_duration_s,
     }
+    provenance.update(
+        _deskew_replay_provenance(
+            deskew_time_field=_deskew_time_field_map(config, source_sensor, target_sensor),
+            motion_compensated=False,
+            deskew_applied=False,
+            deskew_span_s=None,
+        )
+    )
     return source_records, target_stream, provenance
 
 
@@ -1086,6 +1226,15 @@ def _load_rosbag2_online_pair(
     motion_compensated = odometry_track is not None
     extrapolation_tolerance_s = _odometry_extrapolation_tolerance_s(config, motion_compensated)
 
+    deskew_time_field = _deskew_time_field_map(config, source_sensor, target_sensor)
+    source_time_field = deskew_time_field.get(source_sensor)
+    target_time_field = deskew_time_field.get(target_sensor)
+    source_deskew = motion_compensated and source_time_field is not None
+    target_deskew = motion_compensated and target_time_field is not None
+    deskew_applied = source_deskew or target_deskew
+    deskew_span_min: float | None = None
+    deskew_span_max: float | None = None
+
     source_records: list[LivoxPointRecord] = []
     target_stream: list[OnlineTargetEntry] = []
     source_messages = 0
@@ -1113,14 +1262,43 @@ def _load_rosbag2_online_pair(
                 and len(source_records) >= inputs.max_source_points
             ):
                 continue
-            message = decode_pointcloud2(topic, timestamp_ns, data)
+            message = decode_pointcloud2(
+                topic,
+                timestamp_ns,
+                data,
+                point_time_field=source_time_field if source_deskew else None,
+            )
             first_source_ns = first_source_ns or message.timestamp_ns
             remaining = (
                 None
                 if inputs.max_source_points is None
                 else max(0, inputs.max_source_points - len(source_records))
             )
-            if motion_compensated and odometry_track is not None:
+            if source_deskew and odometry_track is not None:
+                offsets_s = message.point_time_offsets_s
+                if offsets_s is None:
+                    msg = (
+                        f"deskew requested for source sensor {source_sensor!r} but "
+                        "per-point time offsets were not decoded"
+                    )
+                    raise DatasetError(msg)
+                deskew_span_min, deskew_span_max = _update_deskew_span(
+                    offsets_s,
+                    span_min=deskew_span_min,
+                    span_max=deskew_span_max,
+                )
+                source_records.extend(
+                    _deskew_pointcloud_to_world_records(
+                        message.xyz,
+                        offsets_s,
+                        message.timestamp_ns,
+                        t_base_source,
+                        odometry_track,
+                        remaining,
+                        extrapolation_tolerance_s,
+                    )
+                )
+            elif motion_compensated and odometry_track is not None:
                 t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
                     message.timestamp_ns
                 )
@@ -1162,10 +1340,39 @@ def _load_rosbag2_online_pair(
         if inputs.max_target_messages is not None and target_messages >= inputs.max_target_messages:
             break
 
-        message = decode_pointcloud2(topic, timestamp_ns, data)
-        points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
-        target_extrapolation_s = 0.0
-        if motion_compensated and odometry_track is not None:
+        message = decode_pointcloud2(
+            topic,
+            timestamp_ns,
+            data,
+            point_time_field=target_time_field if target_deskew else None,
+        )
+        if target_deskew and odometry_track is not None:
+            offsets_s = message.point_time_offsets_s
+            if offsets_s is None:
+                msg = (
+                    f"deskew requested for target sensor {target_sensor!r} but "
+                    "per-point time offsets were not decoded"
+                )
+                raise DatasetError(msg)
+            deskew_span_min, deskew_span_max = _update_deskew_span(
+                offsets_s,
+                span_min=deskew_span_min,
+                span_max=deskew_span_max,
+            )
+            target_stream.extend(
+                _deskew_target_entries(
+                    frame_index,
+                    message.xyz,
+                    offsets_s,
+                    message.timestamp_ns,
+                    t_base_source,
+                    odometry_track,
+                    inputs.max_target_points,
+                )
+            )
+        elif motion_compensated and odometry_track is not None:
+            points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
+            target_extrapolation_s = 0.0
             t_world_base, _clamped, target_extrapolation_s = odometry_track.interpolate(
                 message.timestamp_ns
             )
@@ -1174,6 +1381,7 @@ def _load_rosbag2_online_pair(
                 (frame_index, point, t_world_source, target_extrapolation_s) for point in points
             )
         else:
+            points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
             target_stream.extend(
                 (frame_index, point, SE3.identity(), 0.0) for point in points
             )
@@ -1206,6 +1414,17 @@ def _load_rosbag2_online_pair(
         provenance.update(
             _odometry_replay_provenance(odometry_topic, odometry_track, motion_compensated)
         )
+    deskew_span_s: float | None = None
+    if deskew_span_min is not None and deskew_span_max is not None:
+        deskew_span_s = deskew_span_max - deskew_span_min
+    provenance.update(
+        _deskew_replay_provenance(
+            deskew_time_field=deskew_time_field,
+            motion_compensated=motion_compensated,
+            deskew_applied=deskew_applied,
+            deskew_span_s=deskew_span_s,
+        )
+    )
     return source_records, target_stream, provenance, motion_compensated
 
 
@@ -1279,12 +1498,8 @@ def _transform_pointcloud_to_world_records(
     max_points: int | None,
 ) -> list[LivoxPointRecord]:
     count = int(xyz.shape[0])
-    indices = range(count)
-    if max_points is not None and max_points > 0 and count > max_points:
-        step = (count + max_points - 1) // max_points
-        indices = range(0, count, step)
     records: list[LivoxPointRecord] = []
-    for index in indices:
+    for index in _subsample_indices(count, max_points):
         point_sensor = (
             float(xyz[index, 0]),
             float(xyz[index, 1]),
@@ -1325,27 +1540,20 @@ def _pointcloud_xyz_to_records(
     max_points: int | None,
 ) -> list[LivoxPointRecord]:
     count = int(xyz.shape[0])
-    indices = range(count)
-    if max_points is not None and max_points > 0 and count > max_points:
-        step = (count + max_points - 1) // max_points
-        indices = range(0, count, step)
     return [
         LivoxPointRecord(
             point=(float(xyz[index, 0]), float(xyz[index, 1]), float(xyz[index, 2]), 0.0),
             normal_xyz=None,
         )
-        for index in indices
+        for index in _subsample_indices(count, max_points)
     ]
 
 
 def _pointcloud_xyz_to_vectors(xyz: Any, max_points: int | None) -> list[Vector3]:
     count = int(xyz.shape[0])
-    indices = range(count)
-    if max_points is not None and max_points > 0 and count > max_points:
-        step = (count + max_points - 1) // max_points
-        indices = range(0, count, step)
     return [
-        (float(xyz[index, 0]), float(xyz[index, 1]), float(xyz[index, 2])) for index in indices
+        (float(xyz[index, 0]), float(xyz[index, 1]), float(xyz[index, 2]))
+        for index in _subsample_indices(count, max_points)
     ]
 
 

@@ -1,0 +1,82 @@
+schema_version: calibrex.config/v0.1
+
+project:
+  name: tiers_lidars_dataset_indoor02_online_selftest_deskew
+  description: >
+    Identity self-consistency control with per-point deskew: Velodyne VLP-16
+    (/velodyne_points) vs its duplicate (/velodyne_points_copy) on the TIERS
+    Indoor02 kiss-icp rosbag2 variant with motion compensation from KISS-ICP
+    /odom and per-point deskew from the velodyne ``time`` field. Ground truth
+    is exactly identity; initial transform is identity.
+  output_dir: outputs/tiers_lidars_dataset_indoor02_selftest_deskew
+  domain: robotics
+
+dataset:
+  type: rosbag2
+  path: data/public/tiers_lidars_dataset/indoor02_rosbag2_selftest
+  odometry_topic: /odom
+  time_base: ros_time
+
+sensors:
+  velodyne_vlp16:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points
+    frame_id: velo_sensor
+    fields: [x, y, z, intensity]
+    point_time_field: time
+  velodyne_copy:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points_copy
+    frame_id: velo_sensor_copy
+    fields: [x, y, z, intensity]
+    point_time_field: time
+
+frames:
+  velodyne_vlp16:
+    root: true
+  velodyne_copy:
+    parent: velodyne_vlp16
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

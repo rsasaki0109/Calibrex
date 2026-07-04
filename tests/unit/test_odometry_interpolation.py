@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from itertools import pairwise
 
 import pytest
 
@@ -75,3 +76,53 @@ def test_odometry_track_slerp_rotation_midpoint() -> None:
     pose, _clamped, extrapolation_s = track.interpolate(50)
     assert extrapolation_s == 0.0
     assert pose.rotation_quat_xyzw[2] == pytest.approx(math.sin(math.pi / 8.0), abs=1.0e-6)
+
+
+def _reference_linear_scan_interpolate(
+    samples: tuple[OdometryPoseSample, ...],
+    timestamp_ns: int,
+) -> tuple[SE3, bool, float]:
+    if not samples:
+        return SE3.identity(), False, 0.0
+    first_ns = samples[0].timestamp_ns
+    last_ns = samples[-1].timestamp_ns
+    if timestamp_ns <= first_ns:
+        extrapolation_s = max(0.0, (first_ns - timestamp_ns) / 1_000_000_000)
+        return samples[0].pose, timestamp_ns < first_ns, extrapolation_s
+    if timestamp_ns >= last_ns:
+        extrapolation_s = max(0.0, (timestamp_ns - last_ns) / 1_000_000_000)
+        return samples[-1].pose, timestamp_ns > last_ns, extrapolation_s
+    for left, right in pairwise(samples):
+        if left.timestamp_ns <= timestamp_ns <= right.timestamp_ns:
+            span_ns = right.timestamp_ns - left.timestamp_ns
+            if span_ns <= 0:
+                return left.pose, False, 0.0
+            alpha = (timestamp_ns - left.timestamp_ns) / span_ns
+            return interpolate_se3(left.pose, right.pose, alpha), False, 0.0
+    return samples[-1].pose, True, 0.0
+
+
+def test_odometry_track_bisect_matches_linear_scan() -> None:
+    samples = [
+        OdometryPoseSample(100, SE3((1.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
+        OdometryPoseSample(200, SE3((2.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
+        OdometryPoseSample(350, SE3((3.5, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
+        OdometryPoseSample(500, SE3((5.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))),
+    ]
+    track = OdometryTrack(samples)
+    query_times = [0, 50, 100, 150, 200, 275, 350, 450, 500, 600]
+    expected_clamp_count = 0
+    for timestamp_ns in query_times:
+        pose_b, clamped_b, extrap_b = track.interpolate(timestamp_ns)
+        pose_r, clamped_r, extrap_r = _reference_linear_scan_interpolate(
+            track.samples,
+            timestamp_ns,
+        )
+        assert pose_b.translation_m == pytest.approx(pose_r.translation_m)
+        assert pose_b.rotation_quat_xyzw == pytest.approx(pose_r.rotation_quat_xyzw)
+        assert clamped_b == clamped_r
+        assert extrap_b == pytest.approx(extrap_r)
+        if clamped_r:
+            expected_clamp_count += 1
+    assert track.clamp_count == expected_clamp_count
+    assert track.interpolation_count == len(query_times)
