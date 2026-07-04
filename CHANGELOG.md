@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0
+
+- Pure-Python rosbag2/MCAP reader (sqlite3 + MCAP, CDR PointCloud2 and Odometry).
+- Odometry-aware online motion compensation for rosbag2 replays with world-frame
+  source maps, odometry-extrapolation gate, and clock-domain restamping.
+- KISS-ICP rig-frame odometry path and TIERS Indoor02 real-data validation
+  (identity self-consistency control: ~10× extrinsic error reduction with motion
+  compensation vs static control).
+- Per-point deskew via `sensors.<name>.point_time_field` on rosbag2 online runs.
+- Camera-LiDAR projection promoted to ADR-0004-protocol evidence rows with
+  family-aware assessment policy gates and KITTI committed-sample demonstration.
+- Temporal time-offset perturbation probes and 1D holdout-RMSE estimator on
+  motion-compensated online runs (synthetic ±5 ms recovery; honest real-data
+  degeneracy reporting).
+- Project rename Calibrex → slac (ADR 0006).
+
 ## 0.1.0-alpha.1
 
 - Project bootstrap.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Accepted (implemented in v0.2; see Acceptance evidence).
 
 ## Context
 
@@ -84,3 +84,79 @@ evaluation of it.
   experimental).
 - Package releases to PyPI and version tags (maintainer decision to skip).
 - GitHub Pages deployment (manual, plan-dependent step).
+
+## Acceptance evidence
+
+All three pillars landed on `main` as small PRs with schema-validatable artifacts,
+provenance, tests, and honest public-data reporting (including negative results).
+
+### Pillar 1: Moving-platform support
+
+**PRs:** #26 (pure-Python rosbag2/MCAP reader), #27 (odometry-aware motion
+compensation), #28 (TIERS Indoor02 real-data validation), #29 (KISS-ICP rig-frame
+odometry, odometry-extrapolation gate, clock-domain restamping), #30 (per-point
+deskew via `point_time_field`).
+
+**Acceptance measurements:**
+
+- Synthetic moving-rig fixture (`tests/unit/test_rosbag2_online_motion.py`):
+  motion compensation recovers injected ground truth to ~0 cm / ~0°; the static
+  control lands ~5.72 cm / ~6.12° and fails the online gate.
+- TIERS Indoor02 real-data validation (#28) caught two rosbag2 reader bugs that
+  synthetic mirror-image tests could not: CDR encapsulation endianness keyed off
+  the wrong header byte, and message-mode zstd/lz4 compression declared in
+  `metadata.yaml` ignored.
+- Identity self-consistency control on Indoor02 (duplicate Velodyne topic,
+  KISS-ICP odometry, bounded replay budget in
+  `docs/tutorials/public_datasets.md`): motion compensation recovered known
+  identity to ~9.6 cm / ~1.2° versus ~98 cm / ~37° for the static control
+  (~10× extrinsic error reduction) — the headline acceptance evidence for this
+  pillar.
+- Per-point deskew (#30): synthetic proof in tree; on the Velodyne selftest
+  real sequence deskew did not materially tighten the identity residual (~10.5 cm
+  / ~1.5° vs ~9.5 cm / ~1.2° per-message baseline) — residual dominated by
+  LiDAR-odometry drift once intra-scan timing is corrected.
+
+**Honest open items:** LiDAR-odometry drift dominates the residual after deskew on
+real moving-platform data. Absolute Velodyne→Ouster extrinsic accuracy against the
+TIERS GICP seed is not established (~85 cm / ~28° vs ~0.37 m inter-sensor
+baseline on run C). MOCAP odometry runs carry an unknown rigid-body alignment
+caveat.
+
+### Pillar 2: Camera-LiDAR as an evaluated modality
+
+**PR:** #31.
+
+**Acceptance measurements:**
+
+- Projection/edge-alignment overlay promoted to ADR-0004-protocol evidence rows
+  (Candidate Support / Holdout Edge Alignment / Known-Bad Controls /
+  Observability Statement / Decision Boundary) with recorded thresholds and
+  family-aware assessment policy gates.
+- KITTI committed-sample demonstration on the bundled synthetic fixture
+  (`examples/public_datasets/kitti_lidar_camera_evidence/`): baseline reference
+  extrinsic passes holdout rows but FAILs Known-Bad Controls (0/24 mandatory
+  detections on the tiny fixture — discipline working); `+2.0 m` x translation
+  with `use_frame_graph_candidate: true` flips Holdout Edge Alignment to FAIL.
+
+**Honest open items:** Camera-LiDAR PASS on the full protocol requires
+probe-capable full-scale KITTI frames; the committed 76 KB synthetic fixture
+cannot reach falsification power on perturbation probes by design.
+
+### Pillar 3: Temporal calibration evidence
+
+**PR:** #33.
+
+**Acceptance measurements:**
+
+- Post-run time-offset perturbation probes and 1D holdout-RMSE estimator on
+  motion-compensated rosbag2 replays; synthetic moving-rig fixtures (frozen
+  ground-truth extrinsic) recover injected offsets to ±5 ms.
+- Real Indoor02 runs (KISS-ICP Velodyne→Ouster and Velodyne selftest temporal
+  configs) record honestly that holdout RMSE is nearly flat once the online
+  solver has adapted: probe detection 0/3 and 1/3 respectively, temporal verdict
+  **FAIL** (probe gate) — strict no-falsification-power discipline.
+
+**Honest open items:** Temporal probes lack power after solver adaptation without
+extrinsic anchoring or tighter probe margins for the measured noise floor; large
+restamp biases are not isolated on converged real-data sessions.
