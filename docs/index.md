@@ -30,5 +30,6 @@ Start with:
 - `docs/adr/0005-v0-2-motion-camera-temporal-direction.md`
 - `docs/adr/0006-rename-to-slac.md`
 - `docs/adr/0007-v0-3-slac-direction.md`
+- `docs/adr/0008-v0-4-scale-and-absolute-time.md`
 
 Regenerate committed schemas with `slac schema all --output-dir schemas`.
