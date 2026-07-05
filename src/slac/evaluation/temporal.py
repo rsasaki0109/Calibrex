@@ -22,6 +22,9 @@ from slac.evaluation.holdout import split_indices
 from slac.evaluation.lidar import build_rig_point_to_plane_observations
 from slac.graph.lidar_point_to_plane import LidarRigPointToPlaneFactor
 
+TimeOffsetAnchor = Literal["final", "initial"]
+TemporalSeparabilityVerdict = Literal["separable", "degenerate", "consistent"]
+
 TemporalGateStatus = Literal["pass", "fail", "inconclusive"]
 _SEARCH_RESOLUTION_S = 0.001
 _GOLDEN_RATIO = 0.6180339887498949
@@ -38,6 +41,8 @@ class TemporalEvidenceOptions:
     search_bound_s: float = 0.20
     max_abs_time_offset_s: float = 0.05
     min_significant_relative_improvement: float = 0.10
+    time_offset_anchor: TimeOffsetAnchor = "final"
+    inject_time_offset_s: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -82,6 +87,30 @@ class TemporalEvidenceResult:
     verdict_reason: str | None
 
 
+@dataclass(frozen=True)
+class TemporalSeparabilityResult:
+    """Joint observability verdict comparing anchored vs adapted holdout-RMSE curves."""
+
+    verdict: TemporalSeparabilityVerdict
+    reason: str
+    anchored_curve_flatness: float
+    adapted_curve_flatness: float
+    flatness_margin: float
+
+
+@dataclass(frozen=True)
+class DualTemporalEvidenceResult:
+    """Temporal evidence evaluated at both the adapted and anchored extrinsics."""
+
+    time_offset_anchor: TimeOffsetAnchor
+    anchored_transform: SE3
+    time_offset_injected_s: float
+    selected: TemporalEvidenceResult
+    adapted: TemporalEvidenceResult
+    anchored: TemporalEvidenceResult
+    separability: TemporalSeparabilityResult | None
+
+
 def temporal_evidence_options_from_factor(options: dict[str, Any]) -> TemporalEvidenceOptions:
     """Parse temporal-evidence options from ``lidar_rig_point_to_plane`` factor options."""
 
@@ -89,6 +118,9 @@ def temporal_evidence_options_from_factor(options: dict[str, Any]) -> TemporalEv
     probe_offsets: tuple[float, ...] = ()
     if isinstance(raw_probes, list):
         probe_offsets = tuple(float(value) for value in raw_probes)
+
+    anchor_raw = options.get("time_offset_anchor", "final")
+    anchor: TimeOffsetAnchor = "initial" if anchor_raw == "initial" else "final"
 
     return TemporalEvidenceOptions(
         probe_offsets_s=probe_offsets,
@@ -110,6 +142,10 @@ def temporal_evidence_options_from_factor(options: dict[str, Any]) -> TemporalEv
         ),
         min_significant_relative_improvement=_float_option(
             options, "time_offset_probe_min_rmse_increase", default=0.10, minimum=0.0
+        ),
+        time_offset_anchor=anchor,
+        inject_time_offset_s=_float_option(
+            options, "inject_time_offset_s", default=0.0, minimum=0.0
         ),
     )
 
@@ -238,6 +274,126 @@ def evaluate_temporal_evidence(
     )
 
 
+def evaluate_dual_temporal_evidence(
+    *,
+    source_records: list[LivoxPointRecord],
+    target_points: list[Vector3],
+    capture_timestamps_ns: list[int],
+    adapted_t_source_target: SE3,
+    anchored_t_source_target: SE3,
+    odometry_track: OdometryTrack,
+    t_base_source: SE3,
+    variable: str,
+    sensor: str,
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+    holdout_ratio: float,
+    seed: int,
+    options: TemporalEvidenceOptions,
+    max_odometry_extrapolation_s: float | None = None,
+) -> DualTemporalEvidenceResult:
+    """Evaluate temporal evidence at adapted and anchored extrinsics."""
+
+    adapted = evaluate_temporal_evidence(
+        source_records=source_records,
+        target_points=target_points,
+        capture_timestamps_ns=capture_timestamps_ns,
+        final_t_source_target=adapted_t_source_target,
+        odometry_track=odometry_track,
+        t_base_source=t_base_source,
+        variable=variable,
+        sensor=sensor,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+        holdout_ratio=holdout_ratio,
+        seed=seed,
+        options=options,
+        max_odometry_extrapolation_s=max_odometry_extrapolation_s,
+    )
+    anchored = evaluate_temporal_evidence(
+        source_records=source_records,
+        target_points=target_points,
+        capture_timestamps_ns=capture_timestamps_ns,
+        final_t_source_target=anchored_t_source_target,
+        odometry_track=odometry_track,
+        t_base_source=t_base_source,
+        variable=variable,
+        sensor=sensor,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+        holdout_ratio=holdout_ratio,
+        seed=seed,
+        options=options,
+        max_odometry_extrapolation_s=max_odometry_extrapolation_s,
+    )
+    selected = adapted if options.time_offset_anchor == "final" else anchored
+    separability: TemporalSeparabilityResult | None = None
+    if options.estimate_time_offset:
+        separability = derive_temporal_separability(
+            anchored=anchored,
+            adapted=adapted,
+            margin=options.min_significant_relative_improvement,
+        )
+    return DualTemporalEvidenceResult(
+        time_offset_anchor=options.time_offset_anchor,
+        anchored_transform=anchored_t_source_target,
+        time_offset_injected_s=options.inject_time_offset_s,
+        selected=selected,
+        adapted=adapted,
+        anchored=anchored,
+        separability=separability,
+    )
+
+
+def derive_temporal_separability(
+    *,
+    anchored: TemporalEvidenceResult,
+    adapted: TemporalEvidenceResult,
+    margin: float,
+) -> TemporalSeparabilityResult:
+    """Classify extrinsic/temporal joint observability from both holdout-RMSE curves."""
+
+    anchored_flatness = _curve_flatness(anchored)
+    adapted_flatness = _curve_flatness(adapted)
+    anchored_localizes = _estimate_localizes(anchored, margin)
+    adapted_localizes = _estimate_localizes(adapted, margin)
+    adapted_absorbed = _adapted_extrinsic_absorbed(anchored, adapted, margin)
+
+    if anchored_localizes and (not adapted_localizes or adapted_absorbed):
+        verdict: TemporalSeparabilityVerdict = "separable"
+        if adapted_absorbed:
+            reason = (
+                f"anchored curve localizes δt̂={_estimate_offset_s(anchored):.4f} s while "
+                f"adapted δt̂≈{_estimate_offset_s(adapted):.4f} s after extrinsic absorption "
+                f"(anchored flatness {anchored_flatness:.4f}, adapted {adapted_flatness:.4f})"
+            )
+        else:
+            reason = (
+                f"anchored curve localizes (flatness {anchored_flatness:.4f} >= {margin:.4f}) "
+                f"while adapted curve is flat ({adapted_flatness:.4f} < {margin:.4f})"
+            )
+    elif not anchored_localizes and not adapted_localizes:
+        verdict = "degenerate"
+        reason = (
+            f"both holdout-RMSE curves are flat (anchored {anchored_flatness:.4f}, "
+            f"adapted {adapted_flatness:.4f}; margin {margin:.4f})"
+        )
+    else:
+        verdict = "consistent"
+        reason = (
+            f"both curves localize a minimum (anchored flatness {anchored_flatness:.4f}, "
+            f"adapted {adapted_flatness:.4f}; margin {margin:.4f})"
+        )
+
+    return TemporalSeparabilityResult(
+        verdict=verdict,
+        reason=reason,
+        anchored_curve_flatness=anchored_flatness,
+        adapted_curve_flatness=adapted_flatness,
+        flatness_margin=margin,
+    )
+
+
 def temporal_evidence_to_provenance(result: TemporalEvidenceResult) -> dict[str, Any]:
     """Serialize a :class:`TemporalEvidenceResult` for run provenance."""
 
@@ -281,6 +437,32 @@ def temporal_evidence_to_provenance(result: TemporalEvidenceResult) -> dict[str,
         block["estimate_gate_reason"] = result.estimate_gate_reason
     block["verdict"] = result.verdict
     block["verdict_reason"] = result.verdict_reason
+    return block
+
+
+def dual_temporal_evidence_to_provenance(result: DualTemporalEvidenceResult) -> dict[str, Any]:
+    """Serialize dual-mode temporal evidence for run provenance."""
+
+    block = temporal_evidence_to_provenance(result.selected)
+    block["time_offset_anchor"] = result.time_offset_anchor
+    block["anchored_transform"] = _se3_to_provenance(result.anchored_transform)
+    block["adapted"] = temporal_evidence_to_provenance(result.adapted)
+    block["anchored"] = temporal_evidence_to_provenance(result.anchored)
+    if result.separability is not None:
+        block["separability"] = {
+            "verdict": result.separability.verdict,
+            "reason": result.separability.reason,
+            "anchored_curve_flatness": result.separability.anchored_curve_flatness,
+            "adapted_curve_flatness": result.separability.adapted_curve_flatness,
+            "flatness_margin": result.separability.flatness_margin,
+        }
+    injected_s = result.time_offset_injected_s
+    block["time_offset_injected_s"] = injected_s
+    if abs(injected_s) > 1.0e-12:
+        block["time_offset_injection_warning"] = (
+            "VALIDATION-ONLY: target capture timestamps were shifted at load time; "
+            "this run is not clean-field data"
+        )
     return block
 
 
@@ -646,3 +828,47 @@ def _float_option(
     except (KeyError, TypeError, ValueError):
         return default
     return max(value, minimum)
+
+
+def _curve_flatness(result: TemporalEvidenceResult) -> float:
+    if result.estimate is not None:
+        return result.estimate.curve_flatness
+    return 0.0
+
+
+def _estimate_offset_s(result: TemporalEvidenceResult) -> float:
+    if result.estimate is not None:
+        return result.estimate.estimated_offset_s
+    return 0.0
+
+
+def _estimate_localizes(result: TemporalEvidenceResult, margin: float) -> bool:
+    if result.estimate is None:
+        return False
+    if result.estimate_gate_status == "inconclusive":
+        reason = (result.estimate_gate_reason or "").lower()
+        if "flat" in reason:
+            return False
+    return _curve_flatness(result) >= margin
+
+
+def _adapted_extrinsic_absorbed(
+    anchored: TemporalEvidenceResult,
+    adapted: TemporalEvidenceResult,
+    margin: float,
+) -> bool:
+    """True when anchored finds a δt offset but adapted δt̂≈0 (v0.2 absorption)."""
+
+    if anchored.estimate is None or adapted.estimate is None:
+        return False
+    anchored_magnitude = abs(anchored.estimate.estimated_offset_s)
+    adapted_magnitude = abs(adapted.estimate.estimated_offset_s)
+    absorption_margin_s = max(0.01, margin * 0.1)
+    return anchored_magnitude >= absorption_margin_s and adapted_magnitude < absorption_margin_s
+
+
+def _se3_to_provenance(transform: SE3) -> dict[str, Any]:
+    return {
+        "translation_m": list(transform.translation_m),
+        "rotation_quat_xyzw": list(transform.rotation_quat_xyzw),
+    }

@@ -27,6 +27,7 @@ _write_sqlite_bag = _rosbag2._write_sqlite_bag
 _BASE_NS = 1_000_000_000
 _STEP_NS = 100_000_000
 _OFFSET_TOLERANCE_S = 0.005
+_INJECTION_TOLERANCE_S = 0.010
 
 
 def _corner_world_points(
@@ -139,18 +140,18 @@ def _write_config(
     odometry_topic: str | None,
     temporal_options: str = "",
     freeze_estimate: bool = False,
+    truth_initial: bool = False,
 ) -> None:
     from slac.core.geometry import SE3
 
     true_t_base_avia = SE3((0.12, -0.05, 0.03), (0.0, 0.0, 0.0871557, 0.9961947))
-    if freeze_estimate:
+    if freeze_estimate or truth_initial:
         initial_translation = true_t_base_avia.translation_m
         initial_rotation = true_t_base_avia.rotation_quat_xyzw
-        gate_line = "        online_gate_max_holdout_rmse_m: 0.01"
     else:
         initial_translation = (0.20, 0.08, 0.06)
         initial_rotation = (0.0, 0.0, 0.0, 1.0)
-        gate_line = ""
+    gate_line = "        online_gate_max_holdout_rmse_m: 0.01" if freeze_estimate else ""
     odometry_line = f"  odometry_topic: {odometry_topic}" if odometry_topic else ""
     config_path.write_text(
         f"""
@@ -235,6 +236,7 @@ def _run_temporal_session(
     odometry_topic: str | None = "/odom",
     temporal_options: str = _TEMPORAL_OPTIONS,
     freeze_estimate: bool = False,
+    truth_initial: bool = False,
 ) -> object:
     output_dir = tmp_path / "outputs"
     config_path = tmp_path / "config.yaml"
@@ -245,6 +247,7 @@ def _run_temporal_session(
         odometry_topic=odometry_topic,
         temporal_options=temporal_options,
         freeze_estimate=freeze_estimate,
+        truth_initial=truth_initial,
     )
     result = run_online_calibration(
         config_path,
@@ -324,3 +327,101 @@ def test_rosbag2_online_temporal_flat_curve_inconclusive(tmp_path: Path) -> None
     assert "flat" in temporal["estimate_gate_reason"].lower()
     assert float(temporal["estimate"]["curve_flatness"]) < 0.10
     assert result.metrics["online_temporal_gate_verdict"].grade == "warn"
+    assert temporal["separability"]["verdict"] == "degenerate"
+    assert result.metrics["online_temporal_separability"].grade == "warn"
+
+
+def test_rosbag2_online_temporal_anchored_recovers_bias_with_free_solver(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    bag = _build_moving_rig_bag(tmp_path / "anchored_offset.db3", target_stamp_offset_s=0.05)
+    anchored_options = _TEMPORAL_OPTIONS + """
+        time_offset_anchor: initial
+"""
+    result = _run_temporal_session(
+        tmp_path,
+        bag_path=bag,
+        temporal_options=anchored_options,
+        freeze_estimate=False,
+        truth_initial=True,
+    )
+    temporal = result.run.provenance["temporal_evidence"]
+    anchored = temporal["anchored"]
+    adapted = temporal["adapted"]
+
+    anchored_offset_s = float(anchored["estimate"]["estimated_offset_s"])
+    assert abs(anchored_offset_s - (-0.05)) <= _OFFSET_TOLERANCE_S
+    probes_by_offset = {float(row["offset_s"]): row for row in anchored["probes"]}
+    assert probes_by_offset[0.05]["detected"] is True
+    assert temporal["separability"]["verdict"] == "separable"
+    assert result.metrics["online_temporal_separability"].grade == "pass"
+    assert abs(float(adapted["estimate"]["estimated_offset_s"])) < 0.01
+
+    from slac.evaluation.evidence_summary import evidence_summaries_from_result
+
+    temporal_rows = [
+        item for item in evidence_summaries_from_result(result) if item.family == "temporal"
+    ]
+    assert len(temporal_rows) == 1
+    assert temporal_rows[0].check == "Extrinsic/Temporal Separability"
+
+
+def test_rosbag2_online_temporal_zero_offset_anchored_consistent(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    bag = _build_moving_rig_bag(tmp_path / "zero_anchored.db3", target_stamp_offset_s=0.0)
+    anchored_options = _TEMPORAL_OPTIONS + """
+        time_offset_anchor: initial
+"""
+    result = _run_temporal_session(
+        tmp_path,
+        bag_path=bag,
+        temporal_options=anchored_options,
+        freeze_estimate=True,
+    )
+    temporal = result.run.provenance["temporal_evidence"]
+    anchored_offset_s = float(temporal["anchored"]["estimate"]["estimated_offset_s"])
+
+    assert abs(anchored_offset_s) <= _OFFSET_TOLERANCE_S
+    assert temporal["anchored"]["verdict"] == "pass"
+    assert temporal["separability"]["verdict"] == "consistent"
+    assert result.metrics["online_temporal_separability"].grade == "pass"
+
+
+def test_rosbag2_online_temporal_injection_provenance_and_odometry_guard(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    from slac.core.exceptions import ConfigError
+
+    bag = _build_moving_rig_bag(tmp_path / "inject.db3", target_stamp_offset_s=0.0)
+    inject_options = _TEMPORAL_OPTIONS + """
+        inject_time_offset_s: 0.05
+        time_offset_anchor: initial
+"""
+    with pytest.raises(ConfigError, match="inject_time_offset_s requires"):
+        sub = tmp_path / "no_odom"
+        sub.mkdir()
+        _run_temporal_session(
+            sub,
+            bag_path=bag,
+            odometry_topic=None,
+            temporal_options=inject_options,
+        )
+
+    sub_odom = tmp_path / "with_odom"
+    sub_odom.mkdir()
+    result = _run_temporal_session(
+        sub_odom,
+        bag_path=bag,
+        temporal_options=inject_options,
+        freeze_estimate=True,
+    )
+    temporal = result.run.provenance["temporal_evidence"]
+    assert temporal["time_offset_injected_s"] == 0.05
+    assert "VALIDATION-ONLY" in temporal["time_offset_injection_warning"]
+    anchored_offset_s = float(temporal["anchored"]["estimate"]["estimated_offset_s"])
+    assert abs(anchored_offset_s - (-0.05)) <= _INJECTION_TOLERANCE_S
+    assert temporal["anchored"]["estimate_gate_status"] == "pass"

@@ -533,9 +533,8 @@ against the TIERS reference.
 ### Temporal evidence (time-offset probes and estimator)
 
 After a motion-compensated rosbag2 online run completes, optional post-run
-temporal evidence re-evaluates the **final adopted estimate's** holdout
-point-to-plane RMSE while shifting target capture timestamps. This is
-evaluation-only — it never re-solves the extrinsic.
+temporal evidence re-evaluates holdout point-to-plane RMSE while shifting target
+capture timestamps. This is evaluation-only — it never re-solves the extrinsic.
 
 **Sign convention:** positive `delta_t_s` evaluates
 `T_world_source(t_capture + delta_t_s)`; positive offset means target capture
@@ -551,51 +550,72 @@ Factor options under `lidar_rig_point_to_plane`:
 | `estimate_time_offset` | `false` | Run 1D holdout-RMSE search (±`time_offset_search_bound_s`, ~1 ms resolution) |
 | `time_offset_search_bound_s` | `0.20` | Search half-width in seconds |
 | `online_gate_max_abs_time_offset_s` | `0.05` | Pass when \|δt̂\| ≤ gate; fail when above with significant RMSE improvement |
+| `time_offset_anchor` | `final` | `final` = evaluate at the adopted online estimate (v0.2); `initial` = hold extrinsic at the configured initial transform (Pillar 2 anchored mode) |
+| `inject_time_offset_s` | `0.0` | **Validation-only:** shift target capture timestamps at load time (requires `dataset.odometry_topic`; recorded loudly in provenance) |
+
+When temporal options are set, evidence is computed in **both** modes every run:
+`adapted` (final adopted extrinsic) and `anchored` (configured initial). Top-level
+metrics and gate verdicts follow `time_offset_anchor` (`final` by default).
+`run.provenance.temporal_evidence` always records `adapted` and `anchored`
+sub-blocks, `time_offset_anchor`, `anchored_transform`, optional
+`time_offset_injected_s`, and a `separability` joint-observability verdict.
+
+**Separability verdict** (`online_temporal_separability`, pass for
+`separable`/`consistent`, warn for `degenerate`):
+
+| Verdict | Condition |
+|---------|-----------|
+| `separable` | Anchored curve localizes δt while adapted curve is flat or has absorbed the offset (anchored \|δt̂\| ≫ adapted \|δt̂\| ≈ 0) — v0.2 degeneracy signature reversed |
+| `degenerate` | Both holdout-RMSE curves are flat (motion cannot excite δt) |
+| `consistent` | Both curves localize a minimum |
+
+Reports also emit a `temporal` evidence-summary row:
+**Extrinsic/Temporal Separability** (metric ids include
+`online_temporal_separability`).
 
 When temporal options are set but `dataset.odometry_topic` is unset, provenance
 records `temporal_evidence_skipped_no_odometry: true` and no temporal verdict is
-emitted. Results surface `run.provenance.temporal_evidence` (probe rows,
-detection ratio, estimate, curve flatness, gate verdicts) and metrics
-`online_temporal_probe_detection_ratio`, `online_temporal_estimated_offset_s`,
-`online_temporal_rmse_relative_improvement`, and `online_temporal_gate_verdict`.
+emitted. Non-zero `inject_time_offset_s` without odometry raises `ConfigError`.
 
 Example configs and commands:
 
 ```bash
-slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_temporal_config.yaml --online
-slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_temporal_config.yaml --online
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_temporal_anchored_config.yaml --online
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_temporal_anchored_config.yaml --online
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_temporal_anchored_injected_config.yaml --online
 ```
 
 On the bounded Indoor02 replay budget (12 source messages / 8k source points, 36
 target messages / 1.5k target points, 60 s, probes `[0.05, -0.05, 0.10]`,
-`estimate_time_offset: true`, gate 0.05 s):
+`estimate_time_offset: true`, gate 0.05 s, **`time_offset_anchor: initial`**):
 
-**KISS-ICP Velodyne→Ouster (cross-sensor):** 106 / 108 batches adopted (same as
-run C without temporal). Temporal verdict **FAIL** (probe gate). Holdout baseline
-RMSE at δt=0 was 0.303 m. None of the three ±0.05–0.10 s probes exceeded the
-10 % relative-increase margin (shifts changed RMSE by only 0.2–0.6 %), so probe
-detection ratio was 0 / 3. The 1D estimator landed at δt̂ ≈ **−18 ms** with
-curve flatness 0.012 and relative improvement 0.17 % — **INCONCLUSIVE** on the
-estimate gate. This does **not** confirm the documented Ouster restamp transport
-bias at the 50–150 ms scale: once the online solver has adapted the extrinsic to
-the motion-compensated map, holdout RMSE is nearly flat across ±100 ms shifts.
-The machinery is present and records the numbers honestly; a large clock bias is
-not isolated on this sequence without holding the extrinsic fixed or tightening
-probe sensitivity for this noise floor.
+**Pillar 2 acceptance read (honest):** Anchored mode restores more probe power
+than v0.2 adapted-only runs on the injected selftest (+0.10 s probe detects;
+δt̂ moves toward the injected bias), but ±0.05 s probes still miss on real
+Indoor02 and the anchored estimator does not yet meet the ±10 ms recovery target
+on injection. Cross-sensor KISS-ICP anchored curves remain below the 10 %
+flatness margin (separability **degenerate**); δt̂ ≈ −140 ms is in the Ouster
+restamp bias order of magnitude but estimate gate stays **INCONCLUSIVE**. The
+machinery, dual-mode provenance, and separability row are in place; full Pillar 2
+acceptance on real Indoor02 is **not yet met**.
 
-**Velodyne selftest (duplicate topic, shared clock):** 104 / 104 batches adopted.
-Temporal verdict **FAIL** (probe gate). Baseline holdout RMSE 0.108 m. Only the
-+0.10 s probe detected (1 / 3; ratio 0.33). Estimator δt̂ ≈ **−71 ms** with
-curve flatness 0.34 but relative improvement only 2.9 % — **INCONCLUSIVE** on
-the estimate gate (below the 10 % improvement margin). This control does not
-tighten to δt̂ ≈ 0 under the current gate thresholds once the session has
-converged; synthetic moving-rig fixtures (frozen ground-truth extrinsic) recover
-injected offsets to ±5 ms.
+| Run | Anchor δt̂ | Anchor flatness | Anchor probes | Adapted δt̂ | Adapted flatness | Adapted probes | Separability |
+|-----|-----------|-----------------|---------------|------------|------------------|----------------|--------------|
+| Selftest clean (anchored) | −25 ms | 0.31 | 0 / 3 | −71 ms | 0.34 | 1 / 3 | consistent |
+| Selftest injected +50 ms | −75 ms | 0.44 | 1 / 3 | −44 ms | 0.32 | 1 / 3 | consistent |
+| KISS-ICP cross-sensor (anchored) | −140 ms | 0.032 | 0 / 3 | −18 ms | 0.012 | 0 / 3 | degenerate |
 
-| Run | Batches adopted | δt̂ | Curve flatness | Probe detection | Temporal verdict |
-|-----|-----------------|-----|----------------|-----------------|------------------|
-| KISS-ICP temporal | 106 / 108 | −18 ms | 0.012 | 0 / 3 | FAIL (probe) |
-| Selftest temporal | 104 / 104 | −71 ms | 0.34 | 1 / 3 | FAIL (probe) |
+v0.2 adapted-only reference (same replay budget, `time_offset_anchor: final`):
+
+| Run | δt̂ (adapted) | Curve flatness | Probe detection | Temporal verdict |
+|-----|---------------|----------------|-----------------|------------------|
+| KISS-ICP temporal | −18 ms | 0.012 | 0 / 3 | FAIL (probe) |
+| Selftest temporal | −71 ms | 0.34 | 1 / 3 | FAIL (probe) |
+
+Synthetic moving-rig fixtures (unit tests) recover injected biases to ±5 ms in
+anchored mode with FREE solver while adapted δt̂ ≈ 0 (separability
+**separable**); zero-offset and static-odometry controls assert
+**consistent** and **degenerate** respectively.
 
 ### Trajectory evidence (motion-compensated online runs)
 

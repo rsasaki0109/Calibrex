@@ -20,6 +20,7 @@ def evidence_summaries_from_result(result: CalibrationResult) -> list[EvidenceSu
 
     items = _lidar_pair_evidence_items(result)
     items.extend(_lidar_camera_evidence_items(result))
+    items.extend(_temporal_evidence_items(result))
     return items
 
 
@@ -198,6 +199,78 @@ def _lidar_pair_evidence_items(result: CalibrationResult) -> list[EvidenceSummar
         ]
     )
     return items
+
+
+def _temporal_evidence_items(result: CalibrationResult) -> list[EvidenceSummaryItem]:
+    separability_metric = result.metrics.get("online_temporal_separability")
+    gate_metric = result.metrics.get("online_temporal_gate_verdict")
+    offset_metric = result.metrics.get("online_temporal_estimated_offset_s")
+    probe_metric = result.metrics.get("online_temporal_probe_detection_ratio")
+    if separability_metric is None and gate_metric is None:
+        return []
+
+    temporal = result.run.provenance.get("temporal_evidence")
+    adapted_flatness: float | None = None
+    anchored_flatness: float | None = None
+    separability_verdict: str | None = None
+    anchor_mode: str | None = None
+    injected_s: float | None = None
+    if isinstance(temporal, dict):
+        anchor_mode = temporal.get("time_offset_anchor") if isinstance(
+            temporal.get("time_offset_anchor"), str
+        ) else None
+        injected_raw = temporal.get("time_offset_injected_s")
+        injected_s = float(injected_raw) if isinstance(injected_raw, int | float) else None
+        separability = temporal.get("separability")
+        if isinstance(separability, dict):
+            verdict_raw = separability.get("verdict")
+            if isinstance(verdict_raw, str):
+                separability_verdict = verdict_raw
+            anchored_raw = separability.get("anchored_curve_flatness")
+            adapted_raw = separability.get("adapted_curve_flatness")
+            anchored_flatness = (
+                float(anchored_raw) if isinstance(anchored_raw, int | float) else None
+            )
+            adapted_flatness = (
+                float(adapted_raw) if isinstance(adapted_raw, int | float) else None
+            )
+
+    separability_grade: Grade = (
+        separability_metric.grade if separability_metric is not None else "warn"
+    )
+    evidence_parts = [
+        f"separability {separability_verdict or 'unavailable'}",
+        f"anchored flatness {_fmt(anchored_flatness)}",
+        f"adapted flatness {_fmt(adapted_flatness)}",
+        f"anchor mode {anchor_mode or 'unknown'}",
+    ]
+    if injected_s is not None and abs(injected_s) > 1.0e-12:
+        evidence_parts.append(f"injected offset {_fmt(injected_s)} s (validation-only)")
+
+    metric_ids = ["online_temporal_separability"]
+    if offset_metric is not None:
+        metric_ids.append("online_temporal_estimated_offset_s")
+    if probe_metric is not None:
+        metric_ids.append("online_temporal_probe_detection_ratio")
+    if gate_metric is not None:
+        metric_ids.append("online_temporal_gate_verdict")
+
+    return [
+        EvidenceSummaryItem(
+            family="temporal",
+            check="Extrinsic/Temporal Separability",
+            status=separability_grade,
+            evidence=", ".join(evidence_parts),
+            interpretation=(
+                "Anchored holdout-RMSE curves separate extrinsic and temporal offsets under "
+                "this motion profile."
+                if separability_grade == "pass"
+                else "Motion cannot excite δt or both curves remain flat; temporal verdict "
+                "may be degenerate."
+            ),
+            metric_ids=metric_ids,
+        ),
+    ]
 
 
 def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSummaryItem]:
