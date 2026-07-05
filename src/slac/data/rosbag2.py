@@ -18,7 +18,8 @@ message payload is decompressed individually (``zstd`` or ``lz4``) before CDR
 decode. ``compression_mode: file`` is rejected — decompress the bag first.
 Bare storage files without ``metadata.yaml`` are read as stored.
 
-CDR decoding supports ``sensor_msgs/msg/PointCloud2`` and ``nav_msgs/msg/Odometry``.
+CDR decoding supports ``sensor_msgs/msg/PointCloud2``, ``nav_msgs/msg/Odometry``,
+and ``sensor_msgs/msg/Imu``.
 """
 
 from __future__ import annotations
@@ -34,8 +35,9 @@ import yaml
 
 from slac.core.exceptions import DatasetError
 from slac.data.base import StreamSummary, TimestampedRecord
-from slac.data.ros_cdr import decode_ros2_odometry, decode_ros2_pointcloud2
+from slac.data.ros_cdr import decode_ros2_imu, decode_ros2_odometry, decode_ros2_pointcloud2
 from slac.data.ros_messages import (
+    ImuMessage,
     OdometryMessage,
     PointCloud2Message,
     require_numpy,
@@ -53,8 +55,9 @@ OP_DATA_END = 0x0F
 
 POINTCLOUD2_TYPE = "sensor_msgs/msg/PointCloud2"
 ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
-DECODED_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, ODOMETRY_TYPE})
-_INSPECT_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, ODOMETRY_TYPE})
+IMU_TYPE = "sensor_msgs/msg/Imu"
+DECODED_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, ODOMETRY_TYPE, IMU_TYPE})
+_INSPECT_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, ODOMETRY_TYPE, IMU_TYPE})
 
 
 @dataclass(frozen=True)
@@ -67,7 +70,7 @@ class Rosbag2Connection:
     serialization_format: str = "cdr"
 
 
-Rosbag2DecodedMessage = PointCloud2Message | OdometryMessage
+Rosbag2DecodedMessage = PointCloud2Message | OdometryMessage | ImuMessage
 
 
 @dataclass(frozen=True)
@@ -149,7 +152,13 @@ class Rosbag2Reader:
         summaries: list[StreamSummary] = []
         for topic in sorted(counts):
             connection = connections[topic]
-            kind = "pointcloud" if connection.message_type == POINTCLOUD2_TYPE else "odometry"
+            kind = (
+                "pointcloud"
+                if connection.message_type == POINTCLOUD2_TYPE
+                else "imu"
+                if connection.message_type == IMU_TYPE
+                else "odometry"
+            )
             summaries.append(
                 StreamSummary(
                     name=topic,
@@ -670,6 +679,8 @@ def decode_rosbag2_message(
         return decode_pointcloud2(topic, timestamp_ns, data)
     if message_type == ODOMETRY_TYPE:
         return decode_odometry(topic, timestamp_ns, data)
+    if message_type == IMU_TYPE:
+        return decode_imu(topic, timestamp_ns, data)
     msg = f"unsupported rosbag2 message type: {message_type!r}"
     raise DatasetError(msg)
 
@@ -692,6 +703,26 @@ def decode_odometry(topic: str, timestamp_ns: int, data: bytes) -> OdometryMessa
     """Decode a CDR ``nav_msgs/msg/Odometry`` payload."""
 
     return decode_ros2_odometry(topic, timestamp_ns, data)
+
+
+def decode_imu(topic: str, timestamp_ns: int, data: bytes) -> ImuMessage:
+    """Decode a CDR ``sensor_msgs/msg/Imu`` payload."""
+
+    return decode_ros2_imu(topic, timestamp_ns, data)
+
+
+def read_imu_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[ImuMessage]:
+    """Yield decoded ``Imu`` messages, optionally filtered by ``topic``."""
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != IMU_TYPE:
+            continue
+        yield decode_imu(connection.topic, timestamp_ns, data)
 
 
 def summarize_rosbag2(

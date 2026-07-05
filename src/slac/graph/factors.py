@@ -227,3 +227,23 @@ class DirectVisualLidarCalibrationFactor(KoideLidarCameraFactor):
 @register_factor("lidar_camera_targetless_baseline")
 class LidarCameraTargetlessBaselineFactor(KoideLidarCameraFactor):
     """Generic alias for targetless LiDAR-camera baseline adapters."""
+
+
+@register_factor("lidar_imu_rotation_consistency")
+class LidarImuRotationConsistencyFactor(FactorPlugin):
+    """Descriptor for LiDAR-IMU rotation candidate evaluation evidence."""
+
+    required_streams: ClassVar[list[str]] = ["imu.measurements", "ego.pose"]
+
+    def build(self, context: dict[str, Any]) -> list[FactorDescriptor]:
+        imu_sensor = str(context.get("sensor", "imu0"))
+        root = str(context.get("root", "base"))
+        return [
+            FactorDescriptor(
+                name="lidar_imu_rotation_consistency",
+                variables=[f"T_{root}_{imu_sensor}"],
+                residual="lidar_imu_rotation_rate_consistency",
+                sensor_streams=self.required_streams,
+                options=dict(context.get("options", {})),
+            )
+        ]

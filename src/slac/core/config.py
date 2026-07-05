@@ -103,6 +103,9 @@ class SensorConfig(StrictModel):
             self.intrinsics = CameraIntrinsicsConfig()
         if self.type == "lidar" and not self.fields:
             self.fields = ["x", "y", "z"]
+        if self.type == "imu" and not self.topic:
+            msg = "imu sensors require topic"
+            raise ValueError(msg)
         return self
 
 

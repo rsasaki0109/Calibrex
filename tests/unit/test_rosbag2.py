@@ -15,14 +15,21 @@ import pytest
 from slac.core.config import DatasetConfig
 from slac.core.exceptions import DatasetError
 from slac.data.inspect import inspect_dataset
-from slac.data.ros_cdr import CdrReader, decode_ros2_odometry, decode_ros2_pointcloud2
+from slac.data.ros_cdr import (
+    CdrReader,
+    decode_ros2_imu,
+    decode_ros2_odometry,
+    decode_ros2_pointcloud2,
+)
 from slac.data.rosbag2 import (
+    IMU_TYPE,
     MCAP_MAGIC,
     ODOMETRY_TYPE,
     POINTCLOUD2_TYPE,
     Rosbag2Reader,
     _lz4_decompress,
     _zstd_decompress,
+    decode_imu,
     decode_odometry,
     decode_pointcloud2,
     iter_messages,
@@ -812,3 +819,60 @@ def test_rosbag2_odometry_covariance_decode() -> None:
     assert decoded.pose_covariance[0] == pytest.approx(1.1)
     assert decoded.pose_covariance[7] == pytest.approx(2.2)
     assert decoded.pose_covariance[14] == pytest.approx(3.3)
+
+
+def test_rosbag2_imu_golden_cdr_vector() -> None:
+    """Decode a hand-assembled XCDR1 Imu payload (no CdrWriter).
+
+    Offset arithmetic is relative to byte 4 (first byte after encapsulation):
+      rel  0- 3: stamp.sec=1, stamp.nanosec=2
+      rel  8-11: frame_id length=4
+      rel 12-15: "imu\\0"
+      rel 16-23: orientation.x = 1.0  -> absolute byte 20 (hand-verified)
+      rel 120-127: angular_velocity.x = 5.0 -> absolute byte 124 (hand-verified)
+    Mis-aligning float64 fields after the header string must fail this test.
+    """
+
+    payload = bytes.fromhex(
+        "00010000"  # encapsulation (LE CDR)
+        "01000000"  # rel 0: stamp.sec = 1
+        "02000000"  # rel 4: stamp.nanosec = 2
+        "04000000"  # rel 8: frame_id length = 4
+        "696d7500"  # rel 12: "imu\\0"
+        "000000000000f03f"  # rel 16: orientation.x = 1.0
+        "0000000000000040"  # rel 24: orientation.y = 2.0
+        "0000000000000840"  # rel 32: orientation.z = 3.0
+        "0000000000001040"  # rel 40: orientation.w = 4.0
+        + "00" * (8 * 9)  # rel 48: orientation_covariance = 0
+        + "0000000000001440"  # rel 120: angular_velocity.x = 5.0
+        + "0000000000001840"  # rel 128: angular_velocity.y = 6.0
+        + "0000000000001c40"  # rel 136: angular_velocity.z = 7.0
+        + "00" * (8 * 9)  # rel 144: angular_velocity_covariance = 0
+        + "0000000000002040"  # rel 216: linear_acceleration.x = 8.0
+        + "0000000000002240"  # rel 224: linear_acceleration.y = 9.0
+        + "0000000000002440"  # rel 232: linear_acceleration.z = 10.0
+        + "00" * (8 * 9)  # rel 240: linear_acceleration_covariance = 0
+    )
+    orientation_x_abs = 20
+    angular_velocity_x_abs = 124
+    assert struct.unpack_from("<d", payload, orientation_x_abs)[0] == pytest.approx(1.0)
+    assert struct.unpack_from("<d", payload, angular_velocity_x_abs)[0] == pytest.approx(5.0)
+
+    decoded = decode_ros2_imu("/imu", 99, payload)
+    assert decoded.timestamp_ns == 1_000_000_002
+    assert decoded.frame_id == "imu"
+    assert decoded.orientation_xyzw == pytest.approx((1.0, 2.0, 3.0, 4.0))
+    assert decoded.angular_velocity == pytest.approx((5.0, 6.0, 7.0))
+    assert decoded.linear_acceleration == pytest.approx((8.0, 9.0, 10.0))
+
+    reader = CdrReader(payload)
+    reader.read_int32()
+    reader.read_uint32()
+    reader.read_string()
+    reader.align(8)
+    assert reader.offset == orientation_x_abs
+    assert reader.read_float64() == pytest.approx(1.0)
+
+    decoded_bag = decode_imu("/imu", 99, payload)
+    assert decoded_bag.orientation_covariance[0] == pytest.approx(0.0)
+    assert IMU_TYPE == "sensor_msgs/msg/Imu"

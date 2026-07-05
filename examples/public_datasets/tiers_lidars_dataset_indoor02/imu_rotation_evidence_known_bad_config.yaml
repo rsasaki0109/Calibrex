@@ -1,0 +1,81 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: tiers_lidars_dataset_indoor02_imu_rotation_evidence_known_bad
+  description: >
+    Known-bad control for LiDAR-IMU rotation evidence: same as
+    imu_rotation_evidence_config.yaml but the IMU candidate rotation is
+    perturbed by +10° yaw relative to the documented GICP seed.
+  output_dir: outputs/tiers_lidars_dataset_indoor02_imu_rotation_evidence_known_bad
+  domain: robotics
+
+dataset:
+  type: rosbag2
+  path: data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp_imu
+  odometry_topic: /odom
+  time_base: ros_time
+
+sensors:
+  velodyne_vlp16:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points
+    frame_id: velo_sensor
+    fields: [x, y, z, intensity]
+  ouster_os1:
+    type: lidar
+    model: ouster_os1
+    topic: /os_cloud_nodee/points
+    frame_id: os1_sensor
+    fields: [x, y, z, intensity]
+  os1_imu:
+    type: imu
+    model: ouster_os1_imu
+    topic: /os_cloud_nodee/imu
+    frame_id: os1_imu
+
+frames:
+  velodyne_vlp16:
+    root: true
+  ouster_os1:
+    parent: velodyne_vlp16
+    transform:
+      estimate: false
+      initial:
+        translation: [0.216341, -0.266250, 0.134715]
+        rotation_quat_xyzw: [-0.003933, 0.020803, 0.357098, 0.933827]
+  os1_imu:
+    parent: velodyne_vlp16
+    transform:
+      estimate: false
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [-0.005731, 0.020381, 0.437128, 0.899150]
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_pointcloud2_reader
+  factors:
+    lidar_imu_rotation_consistency:
+      enabled: true
+      options:
+        holdout_block_stride: 5
+        min_excitation_p95_dps: 5.0
+        imu_gate_max_holdout_rotation_rate_rmse_dps: 5.0
+        imu_gate_max_gravity_alignment_deg: 10.0
+        known_bad_detect_margin: 0.20
+        gravity_lowpass_window_s: 0.5
+        imu_rotation_rate_smoothing_intervals: 2
+
+solver:
+  backend: scipy
+  max_iterations: 0
+
+evaluation:
+  holdout_ratio: 0.2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

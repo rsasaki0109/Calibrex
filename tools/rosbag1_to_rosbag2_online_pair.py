@@ -84,6 +84,7 @@ from rosbags.typesys import Stores, get_typestore
 POINTCLOUD2_MSGTYPE = "sensor_msgs/msg/PointCloud2"
 ODOMETRY_MSGTYPE = "nav_msgs/msg/Odometry"
 POSE_STAMPED_MSGTYPE = "geometry_msgs/msg/PoseStamped"
+IMU_MSGTYPE = "sensor_msgs/msg/Imu"
 
 POINTFIELD_NUMPY = {
     1: "i1",
@@ -192,6 +193,13 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
             "Mirror PointCloud2 messages from SRC onto DST (same stamps); "
             "repeatable; for identity self-consistency control bags"
         ),
+    )
+    parser.add_argument(
+        "--imu-topic",
+        action="append",
+        default=[],
+        dest="imu_topics",
+        help="sensor_msgs/Imu topic to pass through (repeatable)",
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.odom_source == "pose-topic" and not args.pose_topic:
@@ -628,7 +636,7 @@ def convert_bag(
         else {}
     )
 
-    selected_topics = set(args.topics)
+    selected_topics = set(args.topics) | set(args.imu_topics)
     if args.odom_source == "pose-topic":
         selected_topics.add(args.pose_topic)
     else:
@@ -669,6 +677,7 @@ def convert_bag(
         lambda: TopicStats(message_count=0, first_timestamp_ns=None, last_timestamp_ns=None)
     )
     pc_connections_out: dict[str, object] = {}
+    imu_connections_out: dict[str, object] = {}
     duplicate_connections_out: dict[str, object] = {}
     odom_connection = None
 
@@ -718,6 +727,27 @@ def convert_bag(
                         ros2_typestore.serialize_cdr(odom_msg, ODOMETRY_MSGTYPE),
                     )
                     _record_stats(stats, args.odom_topic, timestamp)
+                    continue
+
+                if topic in args.imu_topics:
+                    if connection.msgtype not in {IMU_MSGTYPE, "sensor_msgs/Imu"}:
+                        msg = f"{topic} has type {connection.msgtype}; expected Imu"
+                        raise SystemExit(msg)
+                    if topic not in imu_connections_out:
+                        imu_connections_out[topic] = writer.add_connection(
+                            topic,
+                            IMU_MSGTYPE,
+                            typestore=ros2_typestore,
+                        )
+                    imu_msg = reader.deserialize(rawdata, connection.msgtype)
+                    if topic in restamp_offsets_ns:
+                        _apply_header_stamp_offset(imu_msg, restamp_offsets_ns[topic])
+                    writer.write(
+                        imu_connections_out[topic],
+                        timestamp,
+                        ros2_typestore.serialize_cdr(imu_msg, IMU_MSGTYPE),
+                    )
+                    _record_stats(stats, topic, timestamp)
                     continue
 
                 if topic not in pc_connections_out:
