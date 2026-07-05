@@ -671,6 +671,8 @@ def _lidar_imu_evidence_items(result: CalibrationResult) -> list[EvidenceSummary
         return []
 
     gates = _lidar_imu_evidence_gates(result)
+    axis_excitation = _lidar_imu_axis_excitation(result)
+    observability_note = _lidar_imu_axis_observability_note(axis_excitation, _gates=gates)
     support_grade = _lidar_imu_support_grade(excitation_metric, interval_metric, gates=gates)
     holdout_grade = _lidar_imu_holdout_grade(holdout_rmse_metric, gates=gates)
     known_bad_grade = _lidar_imu_known_bad_grade(
@@ -696,10 +698,15 @@ def _lidar_imu_evidence_items(result: CalibrationResult) -> list[EvidenceSummary
                 f"pose intervals {_fmt(interval_metric.value if interval_metric else None)}, "
                 f"odometry excitation p95 "
                 f"{_fmt(excitation_metric.value if excitation_metric else None)} deg/s "
-                f"(floor {_fmt(gates['min_excitation_p95_dps'])} deg/s)"
+                f"(floor {_fmt(gates['min_excitation_p95_dps'])} deg/s); "
+                f"per-axis p95 |ω| "
+                f"x {_fmt(axis_excitation.get('x'))} "
+                f"y {_fmt(axis_excitation.get('y'))} "
+                f"z {_fmt(axis_excitation.get('z'))} deg/s"
             ),
             interpretation=(
-                "Sufficient angular excitation and IMU samples for rotation-rate evidence."
+                "Sufficient angular excitation and IMU samples for rotation-rate evidence. "
+                f"{observability_note}"
                 if support_grade == "pass"
                 else (
                     "INCONCLUSIVE: angular excitation below the declared floor; rotation "
@@ -829,6 +836,66 @@ def _lidar_imu_evidence_gates(result: CalibrationResult) -> dict[str, float]:
         "known_bad_detect_margin": 0.20,
         "min_excitation_p95_dps": 5.0,
     }
+
+
+def _lidar_imu_axis_excitation(result: CalibrationResult) -> dict[str, float | None]:
+    provenance = result.run.provenance.get("lidar_imu_evidence")
+    if not isinstance(provenance, dict):
+        return {}
+    raw = provenance.get("odometry_angular_excitation_p95_dps_per_axis")
+    if not isinstance(raw, dict):
+        return {}
+    axis_excitation: dict[str, float | None] = {}
+    for axis in ("x", "y", "z"):
+        value = raw.get(axis)
+        if isinstance(value, bool):
+            axis_excitation[axis] = None
+        elif isinstance(value, int | float):
+            axis_excitation[axis] = float(value)
+        else:
+            axis_excitation[axis] = None
+    return axis_excitation
+
+
+def _lidar_imu_axis_observability_note(
+    axis_excitation: dict[str, float | None],
+    *,
+    _gates: dict[str, float],
+) -> str:
+    if not axis_excitation:
+        return (
+            "Axis-observability: per-axis excitation split unavailable; known-bad probes "
+            "about the dominant rotation axis may be weakly detectable."
+        )
+    axis_to_probe = {"x": "roll", "y": "pitch", "z": "yaw"}
+    measured: dict[str, float] = {
+        axis: value
+        for axis in ("x", "y", "z")
+        if (value := axis_excitation.get(axis)) is not None
+    }
+    if not measured:
+        return (
+            "Axis-observability: per-axis excitation split unavailable; known-bad probes "
+            "about the dominant rotation axis may be weakly detectable."
+        )
+    dominant_axis = max(measured, key=lambda axis: measured[axis])
+    weak_probe = axis_to_probe[dominant_axis]
+    falsifiable = [
+        probe_axis
+        for probe_axis in ("roll", "pitch", "yaw")
+        if probe_axis != weak_probe
+    ]
+    parts = [
+        "Axis-observability: rotation probes about the dominant excitation axis are "
+        "inherently weak (a misalignment about that axis leaves the dominant body-rate "
+        "component unchanged).",
+        f"Dominant excitation axis: {dominant_axis} "
+        f"(p95 {measured[dominant_axis]:.1f} deg/s).",
+    ]
+    if falsifiable:
+        parts.append(f"Falsifiable probe axes: {', '.join(falsifiable)}.")
+    parts.append(f"Weakly detectable probe axis: {weak_probe}.")
+    return " ".join(parts)
 
 
 def _lidar_imu_support_grade(

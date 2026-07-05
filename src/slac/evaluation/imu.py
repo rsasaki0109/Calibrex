@@ -49,7 +49,10 @@ class ImuEvidenceOptions:
     imu_gate_max_gravity_alignment_deg: float = 10.0
     known_bad_detect_margin: float = 0.20
     gravity_lowpass_window_s: float = 0.5
-    comparison_method: str = "pose_interval_mean_imu_vs_odometry_log"
+    imu_rotation_rate_smoothing_intervals: int = 2
+    comparison_method: str = (
+        "pose_interval_mean_imu_vs_odometry_log_symmetric_ma"
+    )
 
 
 @dataclass(frozen=True)
@@ -102,6 +105,9 @@ def imu_evidence_options_from_factor(options: Mapping[str, Any]) -> ImuEvidenceO
         ),
         gravity_lowpass_window_s=_float_option(
             options, "gravity_lowpass_window_s", default=0.5, minimum=0.01
+        ),
+        imu_rotation_rate_smoothing_intervals=_int_option(
+            options, "imu_rotation_rate_smoothing_intervals", default=2, minimum=0
         ),
     )
 
@@ -183,6 +189,12 @@ def _evaluate_imu_evidence(
             _gate_dict(options),
         )
 
+    raw_intervals = intervals
+    intervals = _smooth_rotation_intervals(
+        intervals,
+        half_window=options.imu_rotation_rate_smoothing_intervals,
+    )
+
     train_intervals, holdout_intervals = _split_train_holdout(
         intervals,
         block_stride=options.holdout_block_stride,
@@ -193,10 +205,20 @@ def _evaluate_imu_evidence(
     train_mean = _rotation_rate_mean_abs_dps(train_intervals)
 
     excitation_values = [
-        _vector_norm_dps(interval.omega_odometry_rad_s) for interval in intervals
+        _vector_norm_dps(interval.omega_odometry_rad_s) for interval in raw_intervals
     ]
     excitation_p95 = _percentile(excitation_values, 95.0)
     excitation_max = max(excitation_values) if excitation_values else 0.0
+    excitation_p95_per_axis = {
+        axis: _percentile(
+            [
+                math.degrees(abs(interval.omega_odometry_rad_s[index]))
+                for interval in raw_intervals
+            ],
+            95.0,
+        )
+        for index, axis in enumerate(("x", "y", "z"))
+    }
 
     holdout_grade: Grade = (
         "pass"
@@ -205,7 +227,7 @@ def _evaluate_imu_evidence(
         else "warn"
     )
 
-    cases, probe_metrics = _known_bad_probes(
+    cases, probe_metrics, probe_table = _known_bad_probes(
         odometry_track=odometry_track,
         imu_samples=imu_samples,
         baseline_r_root_imu=r_root_imu,
@@ -284,10 +306,16 @@ def _evaluate_imu_evidence(
     }
     metrics.update(probe_metrics)
 
+    comparison_method = (
+        f"{options.comparison_method}{options.imu_rotation_rate_smoothing_intervals}"
+        if options.imu_rotation_rate_smoothing_intervals > 0
+        else "pose_interval_mean_imu_vs_odometry_log"
+    )
     protocol = {
         "protocol_id": "lidar_imu_rotation_gravity_holdout/v0.1",
-        "comparison_method": options.comparison_method,
+        "comparison_method": comparison_method,
         "holdout_split": f"contiguous_blocks_stride_{options.holdout_block_stride}",
+        "imu_rotation_rate_smoothing_intervals": options.imu_rotation_rate_smoothing_intervals,
         "imu_sensor": imu_sensor_name,
         "root_frame": root_name,
         "imu_topic": imu_topic,
@@ -298,8 +326,10 @@ def _evaluate_imu_evidence(
         ),
         "gravity_channel": "supporting_only",
         "gravity_lowpass_window_s": options.gravity_lowpass_window_s,
+        "odometry_angular_excitation_p95_dps_per_axis": excitation_p95_per_axis,
         "known_bad_probe_axes_deg": list(_MANDATORY_ROTATION_DEG),
         "known_bad_probe_margin_relative": options.known_bad_detect_margin,
+        "known_bad_probe_table": probe_table,
     }
 
     return ImuEvidencePayload(
@@ -318,17 +348,19 @@ def _known_bad_probes(
     holdout_intervals: list[_RotationInterval],
     baseline_holdout_rmse: float | None,
     options: ImuEvidenceOptions,
-) -> tuple[list[EvidenceCaseItem], dict[str, MetricResult]]:
+) -> tuple[list[EvidenceCaseItem], dict[str, MetricResult], list[dict[str, object]]]:
     if not holdout_intervals:
         return [], _unavailable_probe_metrics(
             "no holdout pose intervals for known-bad rotation probes"
-        )
+        ), []
+
     if baseline_holdout_rmse is None:
         return [], _unavailable_probe_metrics(
             "holdout rotation-rate RMSE unavailable for known-bad probes"
-        )
+        ), []
 
     cases: list[EvidenceCaseItem] = []
+    probe_table: list[dict[str, object]] = []
     detectable = 0
     mandatory_detectable = 0
     for axis in ("roll", "pitch", "yaw"):
@@ -358,6 +390,21 @@ def _known_bad_probes(
                 if detected:
                     detectable += 1
                     mandatory_detectable += 1
+                probe_table.append(
+                    {
+                        "axis": axis,
+                        "angle_deg": signed_amount,
+                        "baseline_holdout_rmse_dps": baseline_holdout_rmse,
+                        "perturbed_holdout_rmse_dps": perturbed_rmse,
+                        "holdout_rmse_relative_delta": relative_increase,
+                        "holdout_rmse_delta_dps": (
+                            perturbed_rmse - baseline_holdout_rmse
+                            if perturbed_rmse is not None
+                            else None
+                        ),
+                        "detected": detected,
+                    }
+                )
                 cases.append(
                     EvidenceCaseItem(
                         family="lidar_imu",
@@ -410,7 +457,7 @@ def _known_bad_probes(
             reason="mandatory rotation probes detected under holdout RMSE margin",
         ),
     }
-    return cases, metrics
+    return cases, metrics, probe_table
 
 
 def _gravity_support(
@@ -488,6 +535,33 @@ def _build_rotation_intervals(
         )
         block_index += 1
     return intervals
+
+
+def _smooth_rotation_intervals(
+    intervals: list[_RotationInterval],
+    *,
+    half_window: int,
+) -> list[_RotationInterval]:
+    if half_window <= 0 or not intervals:
+        return intervals
+    smoothed: list[_RotationInterval] = []
+    for index, interval in enumerate(intervals):
+        start = max(0, index - half_window)
+        end = min(len(intervals), index + half_window + 1)
+        window = intervals[start:end]
+        smoothed.append(
+            _RotationInterval(
+                timestamp_ns=interval.timestamp_ns,
+                block_index=interval.block_index,
+                omega_odometry_rad_s=_mean_vector(
+                    candidate.omega_odometry_rad_s for candidate in window
+                ),
+                omega_imu_rad_s=_mean_vector(
+                    candidate.omega_imu_rad_s for candidate in window
+                ),
+            )
+        )
+    return smoothed
 
 
 def _recompute_imu_omega_for_probe(
@@ -728,6 +802,7 @@ def _gate_dict(options: ImuEvidenceOptions) -> dict[str, float | int]:
         "known_bad_detect_margin": options.known_bad_detect_margin,
         "min_excitation_p95_dps": options.min_excitation_p95_dps,
         "holdout_block_stride": options.holdout_block_stride,
+        "imu_rotation_rate_smoothing_intervals": options.imu_rotation_rate_smoothing_intervals,
     }
 
 

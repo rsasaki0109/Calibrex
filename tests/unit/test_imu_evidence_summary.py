@@ -78,6 +78,24 @@ def test_lidar_imu_evidence_pass_records_thresholds() -> None:
     assert all(item.family == "lidar_imu" for item in items)
 
 
+def test_lidar_imu_support_includes_axis_observability_for_z_dominant() -> None:
+    result = _lidar_imu_result()
+    result.run.provenance["lidar_imu_evidence"] = {
+        **result.run.provenance["lidar_imu_evidence"],
+        "odometry_angular_excitation_p95_dps_per_axis": {
+            "x": 1.0,
+            "y": 2.0,
+            "z": 35.0,
+        },
+    }
+    items = _lidar_imu_evidence_items(result)
+    by_check = {item.check: item for item in items}
+    assert "per-axis p95" in by_check["Candidate Support"].evidence
+    assert "Axis-observability" in by_check["Candidate Support"].interpretation
+    assert "Weakly detectable probe axis: yaw" in by_check["Candidate Support"].interpretation
+    assert "Falsifiable probe axes: roll, pitch" in by_check["Candidate Support"].interpretation
+
+
 def test_lidar_imu_support_inconclusive_low_excitation() -> None:
     items = _lidar_imu_evidence_items(
         _lidar_imu_result(

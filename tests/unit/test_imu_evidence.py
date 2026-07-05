@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import math
+import random
 
 import pytest
 
-from slac.core.geometry import SE3
+from slac.core.geometry import SE3, normalize_quaternion_xyzw, quaternion_multiply_xyzw
 from slac.data.odometry_track import OdometryPoseSample, OdometryTrack
 from slac.evaluation.imu import (
     ImuEvidenceOptions,
@@ -16,6 +17,7 @@ from slac.evaluation.imu import (
     _ImuSample,
     _known_bad_fraction_grade,
     _rotation_rate_rad_s,
+    _smooth_rotation_intervals,
     _split_train_holdout,
 )
 
@@ -70,10 +72,11 @@ def test_rotation_rate_analytic_zero_residual() -> None:
         SE3.identity(),
         options=ImuEvidenceOptions(),
     )
-    train, holdout = _split_train_holdout(intervals, block_stride=5)
+    smoothed = _smooth_rotation_intervals(intervals, half_window=2)
+    train, holdout = _split_train_holdout(smoothed, block_stride=5)
     assert train
     assert holdout
-    for interval in intervals:
+    for interval in smoothed:
         residual = (
             interval.omega_odometry_rad_s[0] - interval.omega_imu_rad_s[0],
             interval.omega_odometry_rad_s[1] - interval.omega_imu_rad_s[1],
@@ -202,3 +205,106 @@ def test_rotation_rate_rad_s_matches_scalar_yaw_rate() -> None:
     right = _yaw_pose(0.5, 1).pose
     omega = _rotation_rate_rad_s(left, right, 1.0)
     assert omega[2] == pytest.approx(0.5, abs=1.0e-6)
+
+
+def _noisy_yaw_track(
+    *,
+    yaw_rate_rad_s: float,
+    pose_count: int = 25,
+    dt_ns: int = 100_000_000,
+    noise_deg: float = 0.5,
+    seed: int = 42,
+) -> OdometryTrack:
+    rng = random.Random(seed)
+    samples: list[OdometryPoseSample] = []
+    for index in range(pose_count):
+        yaw = yaw_rate_rad_s * (index * dt_ns / 1_000_000_000)
+        base = _yaw_pose(yaw, index * dt_ns)
+        noise_rad = math.radians(noise_deg)
+        axis = (
+            rng.uniform(-1.0, 1.0),
+            rng.uniform(-1.0, 1.0),
+            rng.uniform(-1.0, 1.0),
+        )
+        norm = math.sqrt(axis[0] ** 2 + axis[1] ** 2 + axis[2] ** 2)
+        axis = (axis[0] / norm, axis[1] / norm, axis[2] / norm)
+        half = noise_rad / 2.0
+        sin_half = math.sin(half)
+        noise_q = normalize_quaternion_xyzw(
+            (axis[0] * sin_half, axis[1] * sin_half, axis[2] * sin_half, math.cos(half))
+        )
+        perturbed_q = quaternion_multiply_xyzw(noise_q, base.pose.rotation_quat_xyzw)
+        samples.append(
+            OdometryPoseSample(
+                timestamp_ns=base.timestamp_ns,
+                pose=SE3(base.pose.translation_m, perturbed_q),
+            )
+        )
+    return OdometryTrack(samples)
+
+
+def test_smoothing_lowers_noisy_pose_holdout_rmse() -> None:
+    track = _noisy_yaw_track(yaw_rate_rad_s=0.6, pose_count=30, noise_deg=0.5)
+    omega_body = (0.0, 0.0, 0.6)
+    imu_samples = _synthetic_imu_samples(track, omega_body=omega_body)
+    unsmoothed = _evaluate_imu_evidence(
+        odometry_track=track,
+        imu_samples=imu_samples,
+        r_root_imu=SE3.identity(),
+        options=ImuEvidenceOptions(
+            holdout_block_stride=5,
+            imu_rotation_rate_smoothing_intervals=0,
+        ),
+        imu_sensor_name="os1_imu",
+        root_name="velodyne_vlp16",
+        imu_topic="/imu",
+        odometry_topic="/odom",
+    )
+    smoothed = _evaluate_imu_evidence(
+        odometry_track=track,
+        imu_samples=imu_samples,
+        r_root_imu=SE3.identity(),
+        options=ImuEvidenceOptions(
+            holdout_block_stride=5,
+            imu_rotation_rate_smoothing_intervals=2,
+        ),
+        imu_sensor_name="os1_imu",
+        root_name="velodyne_vlp16",
+        imu_topic="/imu",
+        odometry_topic="/odom",
+    )
+    unsmoothed_rmse = unsmoothed.metrics["lidar_imu_holdout_rotation_rate_rmse_dps"].holdout
+    smoothed_rmse = smoothed.metrics["lidar_imu_holdout_rotation_rate_rmse_dps"].holdout
+    assert unsmoothed_rmse is not None
+    assert smoothed_rmse is not None
+    assert smoothed_rmse < unsmoothed_rmse
+
+
+def test_smoothing_detects_roll_perturbation_on_noisy_poses() -> None:
+    track = _noisy_yaw_track(yaw_rate_rad_s=0.6, pose_count=30, noise_deg=0.5)
+    omega_body = (0.0, 0.0, 0.6)
+    imu_samples = _synthetic_imu_samples(track, omega_body=omega_body)
+    wrong = SE3(
+        (0.0, 0.0, 0.0),
+        (math.sin(math.radians(10.0)), 0.0, 0.0, math.cos(math.radians(10.0))),
+    )
+    payload = _evaluate_imu_evidence(
+        odometry_track=track,
+        imu_samples=imu_samples,
+        r_root_imu=wrong,
+        options=ImuEvidenceOptions(
+            holdout_block_stride=5,
+            imu_rotation_rate_smoothing_intervals=2,
+        ),
+        imu_sensor_name="os1_imu",
+        root_name="velodyne_vlp16",
+        imu_topic="/imu",
+        odometry_topic="/odom",
+    )
+    roll_cases = [
+        case
+        for case in payload.cases
+        if case.dof == "roll" and case.amount is not None and abs(case.amount) == 10.0
+    ]
+    assert roll_cases
+    assert any(case.status == "pass" for case in roll_cases)

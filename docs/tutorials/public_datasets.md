@@ -727,7 +727,7 @@ slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/imu_rotati
 
 | Channel | Role | Gate |
 |---------|------|------|
-| Rotation-rate consistency (primary) | `ω_odo = log(R_i⁻¹ R_{i+1})/Δt` at pose midpoints vs `R_velo_imu · ω_imu` (IMU samples averaged per pose interval) | `imu_gate_max_holdout_rotation_rate_rmse_dps` (default 5.0 deg/s) on contiguous-block holdout (every 5th block) |
+| Rotation-rate consistency (primary) | `ω_odo = log(R_i⁻¹ R_{i+1})/Δt` and interval-mean `ω_imu`, each symmetrically low-pass filtered with the same ±N pose-interval centered moving average (`imu_rotation_rate_smoothing_intervals`, default 2 ≈ 0.5 s at 10 Hz) before holdout RMSE | `imu_gate_max_holdout_rotation_rate_rmse_dps` (default 5.0 deg/s) on contiguous-block holdout (every 5th block) |
 | Known-bad rotation probes | ±5° / ±10° about roll, pitch, yaw (12 cases); detectable when holdout RMSE increases ≥ 20% relative | fraction ≥ 0.5 pass, ≥ 0.1 warn |
 | Gravity support (supporting-only) | 0.5 s low-pass linear acceleration rotated to world vs upward gravity; **never fails** the decision boundary | warn if angle > 10° |
 
@@ -737,31 +737,43 @@ arm; the OS1 internal IMU is approximately rotation-aligned with the os1 sensor
 frame. This is an honest engineering approximation, not metrology ground truth.
 
 **Measured clean run** (`imu_rotation_evidence_config.yaml`, seed quat
-`[-0.004, 0.021, 0.357, 0.934]`):
+`[-0.004, 0.021, 0.357, 0.934]`, symmetric MA ±2 intervals,
+method `pose_interval_mean_imu_vs_odometry_log_symmetric_ma2`):
 
 | Evidence row | Status | Values (threshold) |
 |--------------|--------|-------------------|
-| Candidate Support | pass | 4231 IMU samples, 419 pose intervals, excitation p95 **36.8 deg/s** (floor 5) |
-| Holdout Rotation Consistency | warn | holdout RMSE **8.02 deg/s** (gate ≤ 5), mean \|Δω\| **6.07 deg/s** |
-| Known-Bad Controls | fail | detectable fraction **0 / 12** (margin 0.20 relative; baseline RMSE already high) |
+| Candidate Support | pass | 4231 IMU samples, 419 pose intervals, excitation p95 **36.8 deg/s** (floor 5); per-axis p95 \|ω\| x **12.3** y **11.6** z **35.9 deg/s** — dominant **z** (yaw probes weak) |
+| Holdout Rotation Consistency | pass | holdout RMSE **3.56 deg/s** (gate ≤ 5), mean \|Δω\| **2.64 deg/s** |
+| Known-Bad Controls | warn | detectable fraction **2 / 12** (margin 0.20 relative); roll −10° **+34%**, pitch +10° **+40%** detected; all yaw probes **≈ 0%** (z-dominated excitation) |
 | Gravity Support | pass | angle **4.42 deg** (warn > 10) |
-| Decision Boundary | warn | support pass; holdout + known-bad did not pass |
+| Decision Boundary | warn | holdout pass; known-bad fraction below 0.5 pass threshold |
+
+**10° probe table (clean baseline RMSE 3.56 deg/s):**
+
+| Axis | Angle | Perturbed RMSE | Relative Δ |
+|------|-------|----------------|------------|
+| roll | −10° | 4.77 deg/s | +34% |
+| roll | +10° | 4.25 deg/s | +19% |
+| pitch | −10° | 3.98 deg/s | +12% |
+| pitch | +10° | 5.00 deg/s | +40% |
+| yaw | −10° | 3.56 deg/s | ≈ 0% |
+| yaw | +10° | 3.56 deg/s | ≈ 0% |
 
 **Known-bad control** (`imu_rotation_evidence_known_bad_config.yaml`, seed +10°
 yaw → quat `[-0.006, 0.020, 0.437, 0.899]`):
 
 | Evidence row | Status | Values |
 |--------------|--------|--------|
-| Holdout Rotation Consistency | warn | holdout RMSE **7.97 deg/s** (Δ ≈ −0.05 vs clean — already above gate) |
-| Decision Boundary | warn | same as clean (seed was already inconsistent with odometry ω) |
+| Holdout Rotation Consistency | pass | holdout RMSE **3.56 deg/s** (Δ ≈ 0 vs clean — seed yaw error is weakly observable under z-dominated motion) |
+| Decision Boundary | warn | same as clean (known-bad seed not separated by holdout RMSE) |
 
-**Honest read:** Indoor02 kiss-icp odometry vs the GICP seed `R_velo_os1 ≈
-R_velo_imu` does **not** currently pass rotation-rate holdout at the default
-5 deg/s gate. Gravity support is reasonable (~4.4°). Known-bad probes do not
-gain falsification power when the baseline holdout RMSE is already ~8 deg/s
-(relative 20% margin not met). The machinery, provenance, and evidence rows are
-in place; tighter extrinsic seeds or lower-drift odometry would be needed for a
-PASS demonstration without gate tuning.
+**Honest read:** Symmetric low-pass filtering of both rate series drops the
+differentiation noise floor from ~8 deg/s to **~3.6 deg/s**, confirming the
+pose-differentiation theory. The GICP seed `R_velo_os1 ≈ R_velo_imu` now passes
+the 5 deg/s holdout gate. Roll/pitch probes regain falsification power; yaw
+probes remain uninformative because excitation is z-dominated (p95 \|ω_z\| ≈ 36
+deg/s vs \|ω_x\|, \|ω_y\| ≈ 12 deg/s). The +10° yaw known-bad seed is not
+detectable — consistent with axis observability, not a metric-power failure.
 
 ### Online calibration with odometry motion compensation
 
