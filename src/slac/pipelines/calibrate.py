@@ -43,6 +43,7 @@ from slac.data.kitti import read_kitti_initial_transforms
 from slac.data.livox import find_livox_pcd_files
 from slac.data.nuscenes import read_nuscenes_reference_extrinsics
 from slac.evaluation.degeneracy import degeneracy_from_inspection
+from slac.evaluation.imu import imu_metrics_from_result
 from slac.evaluation.lidar import (
     lidar_metrics_from_inspection,
     livox_pair_evidence_from_dataset,
@@ -114,6 +115,7 @@ def run_calibration(
     _apply_extrinsic_reference_comparisons(result)
     _apply_pipeline_adapter(config, frame_graph, inspection, result)
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
+    result.metrics.update(imu_metrics_from_result(config, result, inspection))
     result.metrics.update(radar_velocity_metrics_from_result(config, result, inspection))
     _apply_world_map_dof_diagnostics(result)
     result.artifacts.html_report = str(report_path)

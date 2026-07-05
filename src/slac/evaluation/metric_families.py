@@ -19,6 +19,8 @@ def metric_family(name: str) -> str:
         return "extrinsic"
     if name.startswith("lidar_camera_") or name.startswith("koide_lidar_camera_"):
         return "lidar_camera"
+    if name.startswith("lidar_imu_"):
+        return "lidar_imu"
     if name.startswith("lidar_"):
         return "lidar"
     if "timestamp" in name or "time_offset" in name:

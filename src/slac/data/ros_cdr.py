@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from slac.core.exceptions import DatasetError
 from slac.data.ros_messages import (
+    ImuMessage,
     OdometryMessage,
     PointCloud2Message,
     PointField,
@@ -237,6 +238,44 @@ def decode_ros2_pointcloud2(
         xyz=xyz,
         intensity=intensity,
         point_time_offsets_s=point_time_offsets_s,
+    )
+
+
+def decode_ros2_imu(topic: str, timestamp_ns: int, data: bytes) -> ImuMessage:
+    """Decode a CDR-encoded ``sensor_msgs/msg/Imu`` message."""
+
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    frame_id = reader.read_string()
+
+    ori_x = reader.read_float64()
+    ori_y = reader.read_float64()
+    ori_z = reader.read_float64()
+    ori_w = reader.read_float64()
+    orientation_covariance = reader.read_float64_array(9)
+
+    ang_x = reader.read_float64()
+    ang_y = reader.read_float64()
+    ang_z = reader.read_float64()
+    angular_velocity_covariance = reader.read_float64_array(9)
+
+    acc_x = reader.read_float64()
+    acc_y = reader.read_float64()
+    acc_z = reader.read_float64()
+    linear_acceleration_covariance = reader.read_float64_array(9)
+
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return ImuMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        orientation_xyzw=(ori_x, ori_y, ori_z, ori_w),
+        orientation_covariance=orientation_covariance,
+        angular_velocity=(ang_x, ang_y, ang_z),
+        angular_velocity_covariance=angular_velocity_covariance,
+        linear_acceleration=(acc_x, acc_y, acc_z),
+        linear_acceleration_covariance=linear_acceleration_covariance,
     )
 
 

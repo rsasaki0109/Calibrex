@@ -688,6 +688,81 @@ cross-segment **PASS** (3799 correspondences, RMSE 0.143 m). Verdict **PASS**.
 | KISS-ICP | PASS | PASS (clamp 0.026) | PASS (0.143 m, 3799 corr.) | PASS |
 | Selftest motion | PASS | PASS (clamp 0) | PASS (0.143 m, 3799 corr.) | PASS |
 
+### LiDAR-IMU rotation evidence (ADR 0007 Pillar 3)
+
+The Indoor02 source ROS 1 bag carries `/os_cloud_nodee/imu` (OS1 internal IMU,
+~100 Hz, 4231 messages). Convert a kiss-icp replay subset with IMU passthrough
+and restamp both Ouster points and IMU (they share the Ouster since-boot clock):
+
+```bash
+uv run tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/tiers_lidars_dataset/indoor02.bag \
+  --dst data/public/tiers_lidars_dataset/indoor02_rosbag2_kissicp_imu \
+  --topic /velodyne_points \
+  --topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/points \
+  --restamp-topic /os_cloud_nodee/imu \
+  --imu-topic /os_cloud_nodee/imu \
+  --odom-source kiss-icp \
+  --kiss-icp-topic /velodyne_points \
+  --kiss-icp-max-range 30.0 \
+  --child-frame-id base_link \
+  --storage sqlite3 \
+  --compress none
+```
+
+**Clock-domain check (measured on the source bag):** median
+`bag_receive_time − header.stamp` for `/os_cloud_nodee/imu` is
+**1645462364.473 s** (p05–p95 span 0.015 s, σ ≈ 0.004 s) — the same
+since-boot epoch as `/os_cloud_nodee/points` (~753 s offset from the recording
+clock). **Decision: restamp** `/os_cloud_nodee/imu` alongside the points topic.
+
+Evaluate an externally supplied `R_velo_imu` candidate (not IMU calibration):
+
+```bash
+slac calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/imu_rotation_evidence_config.yaml
+```
+
+**Channel semantics**
+
+| Channel | Role | Gate |
+|---------|------|------|
+| Rotation-rate consistency (primary) | `ω_odo = log(R_i⁻¹ R_{i+1})/Δt` at pose midpoints vs `R_velo_imu · ω_imu` (IMU samples averaged per pose interval) | `imu_gate_max_holdout_rotation_rate_rmse_dps` (default 5.0 deg/s) on contiguous-block holdout (every 5th block) |
+| Known-bad rotation probes | ±5° / ±10° about roll, pitch, yaw (12 cases); detectable when holdout RMSE increases ≥ 20% relative | fraction ≥ 0.5 pass, ≥ 0.1 warn |
+| Gravity support (supporting-only) | 0.5 s low-pass linear acceleration rotated to world vs upward gravity; **never fails** the decision boundary | warn if angle > 10° |
+
+**Approximation (provenance):** the evaluated candidate is the documented TIERS
+GICP seed `R_velo_os1` applied as `R_velo_imu`. Ouster documents a small lever
+arm; the OS1 internal IMU is approximately rotation-aligned with the os1 sensor
+frame. This is an honest engineering approximation, not metrology ground truth.
+
+**Measured clean run** (`imu_rotation_evidence_config.yaml`, seed quat
+`[-0.004, 0.021, 0.357, 0.934]`):
+
+| Evidence row | Status | Values (threshold) |
+|--------------|--------|-------------------|
+| Candidate Support | pass | 4231 IMU samples, 419 pose intervals, excitation p95 **36.8 deg/s** (floor 5) |
+| Holdout Rotation Consistency | warn | holdout RMSE **8.02 deg/s** (gate ≤ 5), mean \|Δω\| **6.07 deg/s** |
+| Known-Bad Controls | fail | detectable fraction **0 / 12** (margin 0.20 relative; baseline RMSE already high) |
+| Gravity Support | pass | angle **4.42 deg** (warn > 10) |
+| Decision Boundary | warn | support pass; holdout + known-bad did not pass |
+
+**Known-bad control** (`imu_rotation_evidence_known_bad_config.yaml`, seed +10°
+yaw → quat `[-0.006, 0.020, 0.437, 0.899]`):
+
+| Evidence row | Status | Values |
+|--------------|--------|--------|
+| Holdout Rotation Consistency | warn | holdout RMSE **7.97 deg/s** (Δ ≈ −0.05 vs clean — already above gate) |
+| Decision Boundary | warn | same as clean (seed was already inconsistent with odometry ω) |
+
+**Honest read:** Indoor02 kiss-icp odometry vs the GICP seed `R_velo_os1 ≈
+R_velo_imu` does **not** currently pass rotation-rate holdout at the default
+5 deg/s gate. Gravity support is reasonable (~4.4°). Known-bad probes do not
+gain falsification power when the baseline holdout RMSE is already ~8 deg/s
+(relative 20% margin not met). The machinery, provenance, and evidence rows are
+in place; tighter extrinsic seeds or lower-drift odometry would be needed for a
+PASS demonstration without gate tuning.
+
 ### Online calibration with odometry motion compensation
 
 `run_online_calibration` accepts `dataset.type: rosbag2` with the same bounded

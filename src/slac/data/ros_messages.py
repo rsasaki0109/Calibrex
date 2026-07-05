@@ -82,6 +82,26 @@ class OdometryMessage:
     twist_covariance: tuple[float, ...]
 
 
+@dataclass(frozen=True)
+class ImuMessage:
+    """A decoded ``sensor_msgs/msg/Imu`` message.
+
+    Covariance arrays are stored in full row-major 3x3 layout (9 float64 values
+    each) as emitted by ROS 2 CDR; index ``0``, ``4``, and ``8`` are the
+  diagonal entries for orientation, angular velocity, and linear acceleration.
+    """
+
+    topic: str
+    timestamp_ns: int
+    frame_id: str
+    orientation_xyzw: tuple[float, float, float, float]
+    orientation_covariance: tuple[float, ...]
+    angular_velocity: tuple[float, float, float]
+    angular_velocity_covariance: tuple[float, ...]
+    linear_acceleration: tuple[float, float, float]
+    linear_acceleration_covariance: tuple[float, ...]
+
+
 def require_numpy(*, extra_name: str) -> Any:
     """Return the numpy module or raise a clear ``DatasetError``."""
 

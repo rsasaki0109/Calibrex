@@ -710,6 +710,23 @@ def _register_builtin_metrics() -> None:
             "Image-LiDAR mutual-information alignment score",
             family="lidar_camera",
         ),
+        MetricDefinition(
+            "lidar_imu_holdout_rotation_rate_rmse_dps",
+            "Holdout rotation-rate RMSE between odometry and candidate-rotated IMU",
+            "deg/s",
+            "lidar_imu",
+        ),
+        MetricDefinition(
+            "lidar_imu_known_bad_detectable_fraction",
+            "Fraction of known-bad LiDAR-IMU rotation probes detected",
+            family="lidar_imu",
+        ),
+        MetricDefinition(
+            "lidar_imu_gravity_alignment_deg",
+            "Angle between low-pass IMU acceleration and world gravity",
+            "deg",
+            "lidar_imu",
+        ),
         MetricDefinition("observability_rank", "Estimated observability rank"),
         MetricDefinition(
             "radar_lidar_velocity_consistency",
