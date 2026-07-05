@@ -605,6 +605,19 @@ acceptance on real Indoor02 is **not yet met**.
 | Selftest injected +50 ms | −75 ms | 0.44 | 1 / 3 | −44 ms | 0.32 | 1 / 3 | consistent |
 | KISS-ICP cross-sensor (anchored) | −140 ms | 0.032 | 0 / 3 | −18 ms | 0.012 | 0 / 3 | degenerate |
 
+The differential response is the strongest signal in this table: injecting
++50 ms moved the anchored estimate from −25 ms to −75 ms — a shift of exactly
+−50 ms. The anchored estimator therefore tracks injected offsets precisely on
+real data; it is the absolute baseline (−25 ms on a shared-clock selftest)
+that stays offset. Interpretation (not a measurement): VLP-16 per-point
+`time` offsets on this bag span ≈ [−0.10, 0] s with the header stamp at sweep
+end, so the effective mean capture time sits ≈ 50 ms before the stamp; a
+residual-minimizing δt̂ between 0 and −50 ms is consistent with that scan-time
+semantics rather than with estimator error. By contrast the adapted-mode
+estimate did not track the injection (−71 ms → −44 ms, a +27 ms shift against
+a −50 ms truth change) — the adapted extrinsic partially absorbs the offset,
+which is exactly the degeneracy the anchor mode was built to expose.
+
 v0.2 adapted-only reference (same replay budget, `time_offset_anchor: final`):
 
 | Run | δt̂ (adapted) | Curve flatness | Probe detection | Temporal verdict |
