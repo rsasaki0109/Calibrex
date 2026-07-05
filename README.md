@@ -2,14 +2,16 @@
 
 Formerly Calibrex. Universal sensor calibration evidence framework for robotics.
 
-v0.2 adds moving-platform online calibration (pure-Python rosbag2/MCAP reader,
-odometry motion compensation, optional per-point deskew), camera-LiDAR evidence
-rows under the ADR-0004 protocol, and temporal time-offset probes with a 1D
-holdout-RMSE estimator. On TIERS Indoor02 real data, motion compensation cut
-identity self-consistency extrinsic error roughly 10× (~9.6 cm / ~1.2° vs ~98 cm
-/ ~37° for the static control). Gates refuse to certify what they cannot
-falsify — inconclusive or failed probe power is recorded honestly, not smoothed
-over.
+v0.3 adds trajectory evidence (`slac.trajectory/v0.1`) with ground-truth-free
+gates, native-deskew KISS-ICP odometry at bag conversion, anchored temporal
+time-offset estimation with joint separability reporting, and LiDAR-IMU rotation
+evidence. On TIERS Indoor02 real data, native deskew cut identity selftest
+translation error from ~9.5 cm to ~4.3 cm (~55%) at the cost of modest rotation
+regression (~1.2° → ~2.0°); trajectory cross-segment drift proxy PASS at
+0.143 m over the full 42 s track. Gates refuse to certify what they cannot
+falsify — two-pass odometry FAILs its own trajectory gate (0.366 m); adapted
+temporal mode absorbs injected offsets while anchored mode tracks them exactly;
+yaw IMU probes stay uninformative under z-dominated excitation.
 
 <p align="center">
   <a href="https://github.com/rsasaki0109/slac/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/slac/actions/workflows/ci.yml/badge.svg"></a>
@@ -92,7 +94,7 @@ It records:
 - map/correspondence lineage and leakage checks
 - portable HTML and machine-readable report sidecars
 
-## Current Alpha (v0.2)
+## Current Alpha (v0.3)
 
 | Area | Status |
 |---|---|
@@ -100,16 +102,18 @@ It records:
 | `calibrate`, `evaluate`, `render`, `visualize`, `compare`, `inspect`, `export` CLI | Stable alpha |
 | Online/streaming LiDAR calibration (`calibrate --online`) | Stable alpha (rosbag1 + rosbag2) |
 | rosbag2/MCAP reader + odometry motion compensation + per-point deskew | Stable alpha; validated on TIERS Indoor02 |
+| Trajectory evidence (`trajectory.json`, ground-truth-free gates) | Stable alpha; Indoor02 cross-segment PASS at 0.143 m over 42 s |
+| Native-deskew KISS-ICP odometry at bag conversion | Stable alpha; identity selftest ~4.3 cm / ~2.0° (vs ~9.5 cm / ~1.2° baseline) |
 | KITTI raw fixed-vehicle LiDAR evaluation | Experimental end-to-end |
 | nuScenes metadata and reference extrinsic import | Experimental |
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory and motion-compensated SE(3) LiDAR extrinsic solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
 | Camera-LiDAR projection / edge-alignment evidence | Evaluated ADR-0004 protocol rows (holdout, known-bad probes, policy gates); not standalone camera calibration |
-| Temporal time-offset probes + 1D holdout-RMSE estimator | Evaluated on motion-compensated online runs; synthetic ±5 ms recovery; real-data probe power limited after solver adaptation |
+| Temporal time-offset probes + 1D holdout-RMSE estimator | Anchored (`time_offset_anchor: initial`) and adapted dual-mode evaluation; selftest injection tracked exactly in anchored mode; cross-sensor separability degenerate on Indoor02 |
+| LiDAR-IMU rotation evidence | Evaluated `lidar_imu` family (holdout rotation-rate RMSE 3.56 deg/s, gravity support 4.42°); yaw probes weak under z-dominated excitation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
 | Multi-LiDAR fixed-rig and online evidence | Public A2D2 VLP-16 demo; TIERS LidarsCali (static + mixed spinning×solid-state) |
-| IMU extrinsic candidate evaluation | Planned; OXTS motion excitation checks exist today but do not evaluate IMU extrinsics |
 | Radar extrinsic velocity-consistency check (nuScenes) | Experimental; `radar_lidar_velocity_consistency` scores static-target radial Doppler residuals against ego motion, not full radar calibration |
 
 <p align="center">

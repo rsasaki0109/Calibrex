@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Accepted (implemented in v0.3; see Acceptance evidence).
 
 ## Context
 
@@ -101,3 +101,93 @@ evaluation of the trajectory-calibration loop that the slac name promises.
   not a PASS).
 - Package releases to PyPI and version tags (maintainer decision to skip).
 - GitHub Pages deployment (manual, plan-dependent step).
+
+## Acceptance evidence
+
+All three pillars landed on `main` as small PRs with schema-validatable artifacts,
+provenance, tests, and honest public-data reporting (including negative results).
+
+### Pillar 1: Trajectory as evaluated evidence
+
+**PRs:** #38 (trajectory artifact `slac.trajectory/v0.1`, schema #18,
+ground-truth-free quality gates), #39 (two-pass and native-deskew KISS-ICP
+odometry modes at bag conversion).
+
+**Acceptance measurements:**
+
+- Schema-validated `trajectory.json` beside `timeline.json` on motion-compensated
+  online runs; provenance registers `trajectory_path` and graded kinematic,
+  interpolation-health, and cross-segment drift-proxy metrics with recorded
+  thresholds feeding `trajectory_gate_verdict`.
+- Indoor02 KISS-ICP Velodyne→Ouster and Velodyne selftest: 420 poses over
+  42.26 s; kinematic and interpolation **PASS**; cross-segment drift proxy
+  **PASS** at RMSE **0.143 m** (3799 correspondences, gate 0.30 m) over the
+  full odometry track span — independent of the bounded calibration replay budget.
+- Native-deskew KISS-ICP odometry at bag conversion (#39) on the identity
+  selftest: translation recovery **9.54 cm → 4.34 cm** (~55% reduction) with
+  modest rotation regression (**1.17° → 1.96°**); trajectory verdict **PASS**
+  (cross-segment RMSE 0.160 m).
+
+**Honest open items:** The ADR-prescribed two-pass odometry mode improved
+translation versus the v0.2 baseline (~6.16 cm) but **FAIL**ed its own
+trajectory gate (cross-segment RMSE **0.366 m**) — the framework falsified its
+own planned approach. **Native deskew is the production choice** for bag
+conversion. Rotation recovery did not improve under either deskew variant;
+LiDAR-odometry drift still bounds absolute extrinsic accuracy on cross-sensor
+runs (~85 cm vs the TIERS GICP seed in run C).
+
+### Pillar 2: Anchored temporal estimation
+
+**PR:** #40 (`time_offset_anchor` dual-mode evaluation, `temporal` evidence
+family separability row, validation-only `inject_time_offset_s`).
+
+**Acceptance measurements:**
+
+- Every temporal run records adapted (final extrinsic) and anchored (configured
+  initial) sub-blocks, `time_offset_anchor`, and a joint `separability` verdict
+  in provenance; reports emit an **Extrinsic/Temporal Separability** evidence
+  row.
+- Indoor02 selftest with anchored mode and +50 ms validation injection: anchored
+  δt̂ moved **−25 ms → −75 ms** — a differential shift of exactly **−50 ms**;
+  adapted mode did not track the injection (**−71 ms → −44 ms**, +27 ms shift
+  against a −50 ms truth change) — the v0.2 degeneracy directly observed.
+- Synthetic moving-rig fixtures recover injected offsets to ±5 ms in anchored
+  mode with separability **separable**.
+
+**Honest open items:** The absolute anchored baseline on the shared-clock
+selftest stays at **−25 ms**; interpretation (not a measurement): VLP-16
+sweep-end header stamp semantics place the effective mean capture ≈50 ms before
+the stamp, so a residual-minimizing δt̂ in [0, −50 ms] is consistent with scan-time
+semantics rather than estimator error — absolute Ouster restamp bias isolation
+remains blocked without tighter stamp modeling. Cross-sensor KISS-ICP anchored
+curves stay below the 10 % flatness margin (flatness **0.032 / 0.012**,
+separability **degenerate**); ±0.05 s probes still miss on real Indoor02.
+Full Pillar 2 acceptance on cross-sensor real data is **not yet met**; differential
+injection tracking on selftest is the strongest landed signal.
+
+### Pillar 3: IMU candidate evaluation
+
+**PR:** #41 (`sensor_msgs/Imu` CDR decoding with hand-computed golden vector,
+`--imu-topic` bag conversion with OS1 IMU restamp, `lidar_imu` evidence family
+in the grade rollup).
+
+**Acceptance measurements:**
+
+- Clock-domain check on the source bag: median `bag_receive_time − header.stamp`
+  for `/os_cloud_nodee/imu` is **1645462364.473 s** (same since-boot epoch as
+  Ouster points); conversion restamps IMU alongside points.
+- Rotation-rate consistency with symmetric smoothing
+  (`pose_interval_mean_imu_vs_odometry_log_symmetric_ma2`): holdout RMSE
+  **3.56 deg/s** (gate ≤ 5 deg/s), down from ~8 deg/s before the noise-floor fix;
+  mean |Δω| **2.64 deg/s**.
+- Per-axis observability recorded: z-dominant excitation (p95 |ω_z| ≈ 36 deg/s
+  vs |ω_x|, |ω_y| ≈ 12 deg/s); roll −10° and pitch +10° probes detected
+  **+34%** and **+40%** RMSE increases; all yaw probes **≈ 0%**.
+- Gravity support (supporting-only): angle **4.42°** (warn > 10°).
+
+**Honest open items:** Yaw rotation probes are unfalsifiable under z-dominated
+excitation; the +10° yaw known-bad seed is not separated by holdout RMSE
+(consistent with axis observability, not metric-power failure). Known-bad
+fraction **2 / 12** yields decision boundary **WARN**. The evaluated candidate
+uses the documented TIERS GICP seed `R_velo_os1 ≈ R_velo_imu` — an engineering
+approximation, not metrology ground truth.
