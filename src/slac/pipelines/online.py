@@ -89,6 +89,7 @@ from slac.core.result import (
     TransformQuality,
     TransformResult,
 )
+from slac.core.time import apply_time_offset_ns
 from slac.data.a2d2 import find_a2d2_lidar_npz_files, read_a2d2_lidar_points
 from slac.data.livox import (
     LivoxPointRecord,
@@ -114,11 +115,12 @@ from slac.evaluation.holdout import split_indices
 from slac.evaluation.lidar import build_rig_point_to_plane_observations
 from slac.evaluation.metrics import evaluate_quality
 from slac.evaluation.temporal import (
-    TemporalEvidenceResult,
-    evaluate_temporal_evidence,
+    DualTemporalEvidenceResult,
+    TemporalSeparabilityVerdict,
+    dual_temporal_evidence_to_provenance,
+    evaluate_dual_temporal_evidence,
     temporal_evidence_options_from_factor,
     temporal_evidence_requested,
-    temporal_evidence_to_provenance,
 )
 from slac.evaluation.trajectory import (
     CrossSegmentScanCollection,
@@ -682,6 +684,15 @@ def run_online_calibration(
             f"expected one of {_SUPPORTED_DATASET_TYPES}"
         )
 
+    inputs = _solve_inputs(config)
+    factor = config.pipeline.factors.get(_FACTOR_NAME)
+    factor_options: dict[str, Any] = dict(factor.options) if factor is not None else {}
+    temporal_options = temporal_evidence_options_from_factor(factor_options)
+    if abs(temporal_options.inject_time_offset_s) > 1.0e-12 and not config.dataset.odometry_topic:
+        raise ConfigError(
+            "inject_time_offset_s requires dataset.odometry_topic for motion-compensated replay"
+        )
+
     source_sensor, target_sensor = _resolve_online_lidar_pair(config, frame_graph, lidars)
     source_node = frame_graph.nodes.get(source_sensor)
     target_node = frame_graph.nodes.get(target_sensor)
@@ -695,7 +706,6 @@ def run_online_calibration(
 
     parent = target_node.parent
     variable = f"T_{parent}_{target_sensor}"
-    inputs = _solve_inputs(config)
     replay_provenance: dict[str, Any]
     motion_compensated = False
     odometry_track: OdometryTrack | None = None
@@ -815,6 +825,7 @@ def run_online_calibration(
         source_sensor=source_sensor,
         target_sensor=target_sensor,
         t_base_source=t_base_source,
+        t_source_target_init=t_source_target_init,
         batch_size=batch_size,
         replay_provenance=replay_provenance,
         motion_compensated=motion_compensated,
@@ -833,6 +844,7 @@ class _OnlineSolveInputs:
     max_source_messages: int | None
     max_target_messages: int | None
     max_replay_duration_s: float | None
+    inject_time_offset_s: float = 0.0
 
 
 def _solve_inputs(config: CalibrationConfig) -> _OnlineSolveInputs:
@@ -849,6 +861,9 @@ def _solve_inputs(config: CalibrationConfig) -> _OnlineSolveInputs:
         max_target_messages=_int_option(options, "max_target_messages", default=None),
         max_replay_duration_s=_optional_float_option(
             options, "max_replay_duration_s", default=None, minimum=0.1
+        ),
+        inject_time_offset_s=_float_option(
+            options, "inject_time_offset_s", default=0.0, minimum=0.0
         ),
     )
 
@@ -1030,6 +1045,12 @@ def _capture_timestamp_ns(message_timestamp_ns: int, offset_s: float) -> int:
     return message_timestamp_ns + round(offset_s * 1_000_000_000)
 
 
+def _target_capture_ns(capture_ns: int, *, inject_time_offset_s: float) -> int:
+    if abs(inject_time_offset_s) < 1.0e-12:
+        return capture_ns
+    return apply_time_offset_ns(capture_ns, inject_time_offset_s)
+
+
 def _update_deskew_span(
     offsets: Any,
     *,
@@ -1094,11 +1115,13 @@ def _deskew_target_entries(
     t_base_source: SE3,
     odometry_track: OdometryTrack,
     max_points: int | None,
+    inject_time_offset_s: float = 0.0,
 ) -> list[OnlineTargetEntry]:
     count = int(xyz.shape[0])
     entries: list[OnlineTargetEntry] = []
     for index in _subsample_indices(count, max_points):
         capture_ns = _capture_timestamp_ns(message_timestamp_ns, float(offsets_s[index]))
+        capture_ns = _target_capture_ns(capture_ns, inject_time_offset_s=inject_time_offset_s)
         t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(capture_ns)
         t_world_source = t_world_base.compose(t_base_source)
         point = (
@@ -1198,8 +1221,12 @@ def _load_rosbag1_online_pair(
             data,
         )
         points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
+        capture_ns = _target_capture_ns(
+            message.timestamp_ns,
+            inject_time_offset_s=inputs.inject_time_offset_s,
+        )
         target_stream.extend(
-            (frame_index, point, SE3.identity(), 0.0, timestamp_ns) for point in points
+            (frame_index, point, SE3.identity(), 0.0, capture_ns) for point in points
         )
         frame_index += 1
         target_messages += 1
@@ -1415,16 +1442,20 @@ def _load_rosbag2_online_pair(
                     t_base_source,
                     odometry_track,
                     inputs.max_target_points,
+                    inject_time_offset_s=inputs.inject_time_offset_s,
                 )
             )
         elif motion_compensated and odometry_track is not None:
             points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
+            capture_ns = _target_capture_ns(
+                message.timestamp_ns,
+                inject_time_offset_s=inputs.inject_time_offset_s,
+            )
             target_extrapolation_s = 0.0
             t_world_base, _clamped, target_extrapolation_s = odometry_track.interpolate(
-                message.timestamp_ns
+                capture_ns
             )
             t_world_source = t_world_base.compose(t_base_source)
-            capture_ns = message.timestamp_ns
             target_stream.extend(
                 (frame_index, point, t_world_source, target_extrapolation_s, capture_ns)
                 for point in points
@@ -1475,6 +1506,11 @@ def _load_rosbag2_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
+    if abs(inputs.inject_time_offset_s) > 1.0e-12:
+        provenance["time_offset_injected_s"] = inputs.inject_time_offset_s
+        provenance["time_offset_injection_warning"] = (
+            "VALIDATION-ONLY: target capture timestamps were shifted at load time"
+        )
     return (
         source_records,
         target_stream,
@@ -1865,6 +1901,7 @@ def _build_result(
     source_sensor: str,
     target_sensor: str,
     t_base_source: SE3,
+    t_source_target_init: SE3,
     batch_size: int,
     replay_provenance: dict[str, Any] | None = None,
     motion_compensated: bool = False,
@@ -1920,7 +1957,7 @@ def _build_result(
     factor_options: dict[str, Any] = dict(factor.options) if factor is not None else {}
     temporal_options = temporal_evidence_options_from_factor(factor_options)
     trajectory_options = trajectory_evidence_options_from_factor(factor_options)
-    temporal_result: TemporalEvidenceResult | None = None
+    dual_temporal_result: DualTemporalEvidenceResult | None = None
     trajectory_result: TrajectoryEvidenceResult | None = None
     trajectory_metrics: dict[str, MetricResult] = {}
     run_provenance: dict[str, Any] = {
@@ -1961,11 +1998,12 @@ def _build_result(
             capture_timestamps_ns = [
                 capture_ns for _fi, _point, _pose, _extrap, capture_ns in target_stream
             ]
-            temporal_result = evaluate_temporal_evidence(
+            dual_temporal_result = evaluate_dual_temporal_evidence(
                 source_records=session.source_records,
                 target_points=target_points,
                 capture_timestamps_ns=capture_timestamps_ns,
-                final_t_source_target=session.current_estimate,
+                adapted_t_source_target=session.current_estimate,
+                anchored_t_source_target=t_source_target_init,
                 odometry_track=odometry_track,
                 t_base_source=t_base_source,
                 variable=variable,
@@ -1977,9 +2015,11 @@ def _build_result(
                 options=temporal_options,
                 max_odometry_extrapolation_s=session.gate_thresholds.max_odometry_extrapolation_s,
             )
-            run_provenance["temporal_evidence"] = temporal_evidence_to_provenance(temporal_result)
-            run_provenance["online_temporal_gate_status"] = temporal_result.verdict
-            metrics.update(_temporal_evidence_metrics(temporal_result))
+            run_provenance["temporal_evidence"] = dual_temporal_evidence_to_provenance(
+                dual_temporal_result
+            )
+            run_provenance["online_temporal_gate_status"] = dual_temporal_result.selected.verdict
+            metrics.update(_temporal_evidence_metrics(dual_temporal_result))
         else:
             run_provenance["temporal_evidence_skipped_no_odometry"] = True
 
@@ -2122,10 +2162,11 @@ def _initial_transform_result(name: str, parent: str, node: FrameNode) -> Transf
 
 
 def _temporal_evidence_metrics(
-    temporal_result: TemporalEvidenceResult,
+    dual_result: DualTemporalEvidenceResult,
 ) -> dict[str, MetricResult]:
     """Surface temporal probe/estimate gates as first-class metrics."""
 
+    temporal_result = dual_result.selected
     metrics: dict[str, MetricResult] = {}
     if temporal_result.probe_detection_ratio is not None:
         metrics["online_temporal_probe_detection_ratio"] = MetricResult(
@@ -2161,7 +2202,28 @@ def _temporal_evidence_metrics(
             grade=_grade_from_gate(temporal_result.verdict),
             reason=temporal_result.verdict_reason or "temporal evidence gate verdict",
         )
+    if dual_result.separability is not None:
+        separability = dual_result.separability
+        metrics["online_temporal_separability"] = MetricResult(
+            value=_separability_metric_value(separability.verdict),
+            grade=_separability_grade(separability.verdict),
+            reason=separability.reason,
+        )
     return metrics
+
+
+def _separability_metric_value(verdict: TemporalSeparabilityVerdict) -> float:
+    if verdict == "degenerate":
+        return 0.0
+    if verdict == "separable":
+        return 1.0
+    return 0.5
+
+
+def _separability_grade(verdict: TemporalSeparabilityVerdict) -> Grade:
+    if verdict == "degenerate":
+        return "warn"
+    return "pass"
 
 
 def _summary_metrics(
