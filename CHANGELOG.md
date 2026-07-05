@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0
+
+- Trajectory artifact (`slac.trajectory/v0.1`, schema #18) with ground-truth-free
+  quality gates (kinematic health, interpolation clamp fraction, cross-segment
+  drift proxy) on motion-compensated online runs.
+- Two-pass and native-deskew KISS-ICP odometry modes at rosbag conversion;
+  native deskew cut Indoor02 identity selftest translation error ~9.5 cm → ~4.3 cm
+  (~55%) with modest rotation regression (~1.2° → ~2.0°); two-pass odometry
+  FAILed its own trajectory gate (cross-segment RMSE 0.366 m).
+- Anchored temporal time-offset estimation (`time_offset_anchor: initial`),
+  dual-mode adapted/anchored provenance, joint extrinsic/temporal separability
+  evidence row, and validation-only `inject_time_offset_s` (anchored mode
+  tracked +50 ms injection exactly on selftest; adapted mode absorbed it).
+- LiDAR-IMU rotation evidence (`lidar_imu` family): `sensor_msgs/Imu` CDR
+  decoding, `--imu-topic` bag conversion with OS1 IMU restamp, symmetric
+  rotation-rate smoothing (holdout RMSE ~8 deg/s → ~3.6 deg/s, passing 5 deg/s
+  gate), per-axis observability, known-bad rotation probes, and supporting-only
+  gravity consistency (4.42° on Indoor02).
+
 ## 0.2.0
 
 - Pure-Python rosbag2/MCAP reader (sqlite3 + MCAP, CDR PointCloud2 and Odometry).
