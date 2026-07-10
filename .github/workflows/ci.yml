@@ -30,6 +30,7 @@ jobs:
             --report-dir /tmp/calibrex-wheel-report
       - name: Upload package artifacts
         if: matrix.python-version == '3.12'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: calibrex-dist
