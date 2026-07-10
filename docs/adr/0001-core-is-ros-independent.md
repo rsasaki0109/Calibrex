@@ -6,7 +6,7 @@ Accepted.
 
 ## Decision
 
-`src/slac/core` must not import ROS message packages or Autoware runtime
+`src/calibrex/core` must not import ROS message packages or Autoware runtime
 packages. ROS1, ROS2, MCAP, and Autoware integrations are adapters.
 
 ## Consequence

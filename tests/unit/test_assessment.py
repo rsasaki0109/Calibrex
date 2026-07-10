@@ -1,10 +1,12 @@
-from slac.core.assessment import (
+import pytest
+
+from calibrex.core.assessment import (
     AssessmentArtifact,
     AssessmentPolicy,
     AssessmentRuleResult,
     assess_report_evidence,
 )
-from slac.core.report_artifacts import (
+from calibrex.core.report_artifacts import (
     EvidenceCaseItem,
     EvidenceInputFileItem,
     EvidenceMaterializationInfo,
@@ -13,6 +15,63 @@ from slac.core.report_artifacts import (
     ReportEvidenceArtifact,
     ReportRunInfo,
 )
+
+
+def _radar_evidence(status: str) -> ReportEvidenceArtifact:
+    return ReportEvidenceArtifact(
+        run=ReportRunInfo(
+            id="radar-assessment-unit",
+            status="success",
+            domain="robotics",
+            slac_version="0.3.0",
+            created_at="2026-07-10T00:00:00Z",
+        ),
+        materialization=EvidenceMaterializationInfo(
+            metrics_origin="recomputed",
+            data_verified=True,
+        ),
+        input_files=[
+            EvidenceInputFileItem(path="radar.pcd", sha256="0" * 64, size_bytes=128)
+        ],
+        protocols=[
+            EvidenceProtocolItem(
+                family="radar_lidar",
+                protocol_id="radar_lidar_seeded_holdout_doppler_yaw/v0.1",
+                status=status,
+                split_policy="seeded_frame_holdout/v0.1",
+                independent_holdout=True,
+                candidate_transform="configured T_ego_radar transforms",
+                transform_convention="T_ego_radar maps radar-frame LOS into ego frame",
+                known_bad_perturbation="yaw controls about ego +Z",
+                known_bad_case_count=4,
+                parameters={
+                    "policy": {
+                        "policy_id": "slac.falsification.radar_lidar_yaw/v0.1",
+                        "min_holdout_frames": 5,
+                    }
+                },
+            )
+        ],
+        summaries=[
+            EvidenceSummaryItem(
+                family="radar_lidar",
+                check="Decision Boundary",
+                status={"pass": "pass", "fail": "fail"}.get(status, "warn"),
+                evidence="holdout Doppler residual",
+                interpretation=status,
+            )
+        ],
+    )
+
+
+@pytest.mark.parametrize("status", ["pass", "fail", "inconclusive"])
+def test_radar_assessment_preserves_materialized_three_value_status(status: str) -> None:
+    assessment = assess_report_evidence(_radar_evidence(status))
+
+    assert assessment.status == status
+    assert assessment.policy.policy_id == "slac.falsification.radar_lidar_yaw/v0.1"
+    assert assessment.rules[-1].rule_id == "radar_policy_decision"
+    assert assessment.rules[-1].status == status
 
 
 def test_raw_recomputation_requires_verified_raw_inputs() -> None:

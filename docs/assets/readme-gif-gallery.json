@@ -108,7 +108,7 @@
       "output": "docs/assets/online-calibration-loop.gif",
       "pipeline": {
         "mode": "real_online",
-        "source": "slac calibrate --online",
+        "source": "calibrex calibrate --online",
         "timeline_schema_version": "slac.online_timeline/v0.2"
       },
       "public_inputs": [
@@ -179,12 +179,12 @@
         "inconclusive_batch_count": 0,
         "rejected_batch_count": 2
       },
-      "output": "docs/assets/slac-motion-calibration-loop.gif",
+      "output": "docs/assets/calibrex-motion-calibration-loop.gif",
       "pipeline": {
         "config_path": "examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_config.yaml",
-        "generation_command": "python3 tools/generate_calibration_evidence_gif.py --source tiers-indoor02-kissicp --visual motion --output docs/assets/slac-motion-calibration-loop.gif --frames 50",
+        "generation_command": "python3 tools/generate_calibration_evidence_gif.py --source tiers-indoor02-kissicp --visual motion --output docs/assets/calibrex-motion-calibration-loop.gif --frames 50",
         "mode": "real_online",
-        "source": "slac calibrate --online",
+        "source": "calibrex calibrate --online",
         "timeline_schema_version": "slac.online_timeline/v0.3"
       },
       "public_inputs": [

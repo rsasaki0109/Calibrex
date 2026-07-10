@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from slac.core.result import (
+from calibrex.core.result import (
     CalibrationResult,
     FrameGraphSnapshot,
     MetricResult,
@@ -10,7 +10,7 @@ from slac.core.result import (
     TransformEstimateProvenance,
     TransformResult,
 )
-from slac.evaluation.report_compare import (
+from calibrex.evaluation.report_compare import (
     REPORT_COMPARISON_SCHEMA_VERSION,
     compare_reports,
     report_comparison_json_schema,

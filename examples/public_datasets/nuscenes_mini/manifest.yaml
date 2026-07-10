@@ -28,6 +28,43 @@ streams:
     sensor: radar_front
     frame_id: radar_front
     timestamp_field: timestamp_ns
+    fields: [x, y, z, dyn_prop, vx, vy, vx_comp, vy_comp, invalid_state, ambig_state]
+  RADAR_FRONT_LEFT:
+    kind: radar
+    count: null
+    path: samples/RADAR_FRONT_LEFT/*
+    topic: RADAR_FRONT_LEFT
+    sensor: radar_front_left
+    frame_id: radar_front_left
+    timestamp_field: timestamp_ns
+    fields: [x, y, z, dyn_prop, vx, vy, vx_comp, vy_comp, invalid_state, ambig_state]
+  RADAR_FRONT_RIGHT:
+    kind: radar
+    count: null
+    path: samples/RADAR_FRONT_RIGHT/*
+    topic: RADAR_FRONT_RIGHT
+    sensor: radar_front_right
+    frame_id: radar_front_right
+    timestamp_field: timestamp_ns
+    fields: [x, y, z, dyn_prop, vx, vy, vx_comp, vy_comp, invalid_state, ambig_state]
+  RADAR_BACK_LEFT:
+    kind: radar
+    count: null
+    path: samples/RADAR_BACK_LEFT/*
+    topic: RADAR_BACK_LEFT
+    sensor: radar_back_left
+    frame_id: radar_back_left
+    timestamp_field: timestamp_ns
+    fields: [x, y, z, dyn_prop, vx, vy, vx_comp, vy_comp, invalid_state, ambig_state]
+  RADAR_BACK_RIGHT:
+    kind: radar
+    count: null
+    path: samples/RADAR_BACK_RIGHT/*
+    topic: RADAR_BACK_RIGHT
+    sensor: radar_back_right
+    frame_id: radar_back_right
+    timestamp_field: timestamp_ns
+    fields: [x, y, z, dyn_prop, vx, vy, vx_comp, vy_comp, invalid_state, ambig_state]
 provenance:
   public_dataset: nuscenes_mini
   official_url: https://www.nuscenes.org/nuscenes

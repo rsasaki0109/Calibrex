@@ -1,6 +1,6 @@
-# slac — simultaneous localization and calibration
+# Calibrex — simultaneous localization and calibration
 
-Formerly Calibrex. Universal sensor calibration evidence framework for robotics.
+Universal sensor calibration evidence framework for robotics.
 
 v0.3 adds trajectory evidence (`slac.trajectory/v0.1`) with ground-truth-free
 gates, native-deskew KISS-ICP odometry at bag conversion, anchored temporal
@@ -20,24 +20,24 @@ yaw IMU probes stay uninformative under z-dominated excitation.
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
 </p>
 
-slac compares calibration estimates as evidence, not just matrices.
+Calibrex compares calibration estimates as evidence, not just matrices.
 
 It lets you evaluate dataset references, manual candidates, native estimates,
 online estimates, and external tool outputs through one schema, one CLI, one
 metric suite, and one report.
 
 <p align="center">
-  <img src="docs/assets/slac-motion-calibration-loop.gif" alt="slac simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
+  <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
 </p>
 
 <p align="center">
-  <sub>Real TIERS Indoor02 run (<code>online_kissicp_config.yaml</code>): Velodyne VLP-16 builds a motion-compensated world map from KISS-ICP <code>/odom</code>; Ouster OS1 target batches converge online through holdout gates on a moving platform. Generated from a real <code>slac calibrate --online</code> replay (106/108 batches adopted).</sub>
+  <sub>Real TIERS Indoor02 run (<code>online_kissicp_config.yaml</code>): Velodyne VLP-16 builds a motion-compensated world map from KISS-ICP <code>/odom</code>; Ouster OS1 target batches converge online through holdout gates on a moving platform. Generated from a real <code>calibrex calibrate --online</code> replay (106/108 batches adopted).</sub>
 </p>
 
 ```bash
-slac calibrate config.yaml
-slac evaluate outputs/result.yaml
-slac render outputs/result.yaml --format html
+calibrex calibrate config.yaml
+calibrex evaluate outputs/result.yaml
+calibrex render outputs/result.yaml --format html
 ```
 
 <table>
@@ -66,7 +66,7 @@ slac render outputs/result.yaml --format html
 </table>
 
 <p align="center">
-  <sub>README visuals are generated from public raw samples. slac records protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates in <code>evidence.json</code> and <code>assessment.json</code>. The GIF source manifest is <code>docs/assets/readme-gif-gallery.json</code>.</sub>
+  <sub>README visuals are generated from public raw samples. Calibrex records protocol metadata, known-bad probes, and PASS / FAIL / INCONCLUSIVE policy gates in <code>evidence.json</code> and <code>assessment.json</code>. The GIF source manifest is <code>docs/assets/readme-gif-gallery.json</code>.</sub>
 </p>
 
 | View | Public input | Calibration view | What to inspect |
@@ -77,12 +77,12 @@ slac render outputs/result.yaml --format html
 | A2D2 front-rear pair | A2D2 NPZ range sample | Longer fixed-rig LiDAR baseline | Different overlap and support behavior |
 
 <p align="center">
-  <img src="docs/assets/readme-calibration-report.svg" alt="slac calibration report overview" width="100%">
+  <img src="docs/assets/readme-calibration-report.svg" alt="Calibrex calibration report overview" width="100%">
 </p>
 
-## Why slac
+## Why Calibrex
 
-Most calibration tools output a transform. slac tries to answer the next
+Most calibration tools output a transform. Calibrex tries to answer the next
 question: **should this transform be trusted?**
 
 It records:
@@ -117,12 +117,12 @@ It records:
 | Radar extrinsic velocity-consistency check (nuScenes) | Experimental; `radar_lidar_velocity_consistency` scores static-target radial Doppler residuals against ego motion, not full radar calibration |
 
 <p align="center">
-  <img src="docs/assets/lidar-calibration-coverage.svg" alt="slac LiDAR calibration coverage map" width="100%">
+  <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
 </p>
 
 ## Outputs
 
-slac writes schema-valid artifacts instead of one-off notebook state:
+Calibrex writes schema-valid artifacts instead of one-off notebook state:
 
 ```text
 result.yaml
@@ -151,19 +151,19 @@ Report sidecars record evidence materialization:
 - `protocol.json`: declared evidence protocols, transform conventions, support parameters, and known-bad controls
 - `policy.json`: falsification gates and thresholds applied to the evidence
 
-`slac render` renders an existing result and does not recompute metrics.
-`slac report` remains a deprecated alias for HTML rendering. `slac
+`calibrex render` renders an existing result and does not recompute metrics.
+`calibrex report` remains a deprecated alias for HTML rendering. `Calibrex
 evaluate` reapplies quality gates to a result. Cached inputs emit CLI and HTML
-warnings, and `slac assess evidence.json` applies the falsification policy
+warnings, and `calibrex assess evidence.json` applies the falsification policy
 without treating a scientific `FAIL` or `INCONCLUSIVE` verdict as a software
-execution error. Use `slac assess --enforce evidence.json` when a non-pass
+execution error. Use `calibrex assess --enforce evidence.json` when a non-pass
 assessment should return a non-zero exit code.
-`slac evidence result.yaml --output evidence.json` materializes the
+`calibrex evidence result.yaml --output evidence.json` materializes the
 evidence sidecar from an existing result without recomputing metrics.
-`slac compare` shows materialization for both sides. `bundle.json` records
-artifact SHA-256 digests and can be checked with `slac verify bundle.json`;
+`calibrex compare` shows materialization for both sides. `bundle.json` records
+artifact SHA-256 digests and can be checked with `calibrex verify bundle.json`;
 report outputs also include `verification.json` with that check materialized.
-`slac verify verification.json` recomputes the source bundle check and
+`calibrex verify verification.json` recomputes the source bundle check and
 detects stale or edited verification records. Saved verification artifacts use
 relative paths to colocated bundles where possible. When
 `evidence.json.input_files` is present, `verify` also checks those raw input
@@ -172,7 +172,7 @@ file sizes and digests.
 Committed JSON schemas are regenerated with:
 
 ```bash
-slac schema all --output-dir schemas
+calibrex schema all --output-dir schemas
 ```
 
 ## Install
@@ -190,33 +190,33 @@ pip install -e ".[dev,open3d]"
 ## Quickstart
 
 ```bash
-slac doctor
-slac init camera-lidar-imu --output config.yaml
-slac calibrate config.yaml --output-dir outputs/example
-slac validate outputs/example/result.yaml --json
-slac evidence outputs/example/result.yaml --output outputs/example/evidence.json
-slac evaluate outputs/example/result.yaml --export-html
-slac render outputs/example/result.yaml --output-dir outputs/example/rendered
-slac visualize outputs/example/result.yaml --export-html
+calibrex doctor
+calibrex init camera-lidar-imu --output config.yaml
+calibrex calibrate config.yaml --output-dir outputs/example
+calibrex validate outputs/example/result.yaml --json
+calibrex evidence outputs/example/result.yaml --output outputs/example/evidence.json
+calibrex evaluate outputs/example/result.yaml --export-html
+calibrex render outputs/example/result.yaml --output-dir outputs/example/rendered
+calibrex visualize outputs/example/result.yaml --export-html
 ```
 
 Public dataset examples:
 
 ```bash
-slac public-datasets list
-slac demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_sample
+calibrex public-datasets list
+calibrex demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_sample
 python3 tools/download_public_dataset.py livox_horizon_horizon_pcd_sample --output-dir data/public
 python3 tools/generate_calibration_evidence_gif.py --readme-gallery
-slac public-datasets show livox_horizon_horizon_pcd_sample --json
-slac inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
-slac calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
-slac evidence outputs/livox_horizon_horizon_pcd_sample/result.yaml \
+calibrex public-datasets show livox_horizon_horizon_pcd_sample --json
+calibrex inspect data/public/livox_horizon_horizon_pair --type livox-pcd --json
+calibrex calibrate examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
+calibrex evidence outputs/livox_horizon_horizon_pcd_sample/result.yaml \
   --output outputs/livox_horizon_horizon_pcd_sample/evidence.json
-slac render examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
-slac public-datasets show tiers_livox_lidars_cali --json
-slac inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
-slac demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
-slac calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
+calibrex render examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
+calibrex public-datasets show tiers_livox_lidars_cali --json
+calibrex inspect examples/public_datasets/kitti_raw_2011_09_26_drive_0005 --type kitti-raw
+calibrex demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
+calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```
 
 `--readme-gallery` regenerates every README GIF from public raw samples and
@@ -225,9 +225,9 @@ fetches the small A2D2 range sample when it is not already present locally.
 Compare two calibration runs:
 
 ```bash
-slac compare outputs/reference/result.yaml outputs/candidate/result.yaml \
+calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml \
   --output outputs/comparison.json
-slac compare outputs/reference/result.yaml outputs/candidate/result.yaml \
+calibrex compare outputs/reference/result.yaml outputs/candidate/result.yaml \
   --enforce-compatible
 ```
 
@@ -239,11 +239,11 @@ should fail a shell pipeline.
 Compare more than two labeled runs in one report artifact:
 
 ```bash
-slac report-compare \
+calibrex report-compare \
   reference=outputs/dataset/result.yaml \
   perturbed=outputs/perturbed/result.yaml \
   koide=outputs/koide_adapter/result.yaml \
-  native=outputs/slac/result.yaml \
+  native=outputs/Calibrex/result.yaml \
   --reference reference \
   --output outputs/report_comparison.json
 ```

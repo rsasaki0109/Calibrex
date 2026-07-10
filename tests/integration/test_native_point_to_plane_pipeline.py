@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from slac.core.result import load_result
-from slac.pipelines.calibrate import CalibrationRunOptions, run_calibration
+from calibrex.core.result import load_result
+from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _A2D2_PAIR_DIR = _REPO_ROOT / "data" / "public" / "a2d2_lidar_pair"

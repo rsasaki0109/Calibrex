@@ -10,17 +10,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from slac.core.geometry import SE3
-from slac.core.io import read_mapping
-from slac.data.odometry_track import OdometryPoseSample, OdometryTrack
-from slac.data.rosbag2 import (
+from calibrex.core.geometry import SE3
+from calibrex.core.io import read_mapping
+from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
+from calibrex.data.rosbag2 import (
     ODOMETRY_TYPE,
     POINTCLOUD2_TYPE,
     decode_odometry,
     decode_pointcloud2,
     iter_messages,
 )
-from slac.pipelines.online import (
+from calibrex.pipelines.online import (
     OnlineCalibrationRunOptions,
     OnlineGateThresholds,
     run_online_calibration,
@@ -214,7 +214,7 @@ def run_indoor02_motion_hero_pipeline(
     frames: int,
     timeline_path: Path | None = None,
 ) -> MotionHeroScene:
-    from slac.core.online_timeline import OnlineCalibrationTimelineArtifact
+    from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
 
     if not indoor02_kissicp_bag_available():
         raise SystemExit(
@@ -656,7 +656,7 @@ def build_motion_frame_text_filter(
     layout = motion_hero_layout(width)
     labels: list[tuple[str, int, int, int, str]] = [
         (
-            "slac — simultaneous localization and calibration",
+            "Calibrex — simultaneous localization and calibration",
             layout["title1"].x,
             layout["title1"].y,
             20,
@@ -675,7 +675,7 @@ def build_motion_frame_text_filter(
         (
             (
                 "map: full-sequence odometry replay; "
-                "gates/RMSE: real bounded slac calibrate --online run"
+                "gates/RMSE: real bounded calibrex calibrate --online run"
             ),
             layout["footnote"].x,
             layout["footnote"].y,

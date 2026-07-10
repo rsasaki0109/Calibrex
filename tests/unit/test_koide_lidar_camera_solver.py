@@ -1,11 +1,11 @@
 import sys
 from pathlib import Path
 
-from slac.core.config import CalibrationConfig
-from slac.core.frames import FrameGraph
-from slac.data.base import StreamSummary
-from slac.data.inspect import DatasetInspection
-from slac.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.core.config import CalibrationConfig
+from calibrex.core.frames import FrameGraph
+from calibrex.data.base import StreamSummary
+from calibrex.data.inspect import DatasetInspection
+from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 
 
 def test_koide_lidar_camera_adapter_loads_precomputed_transform(tmp_path: Path) -> None:

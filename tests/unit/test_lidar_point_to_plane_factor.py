@@ -1,6 +1,6 @@
-from slac.core.geometry import SE3
-from slac.evaluation.lidar import lidar_rig_point_to_plane_metrics_from_evaluation
-from slac.graph.lidar_point_to_plane import (
+from calibrex.core.geometry import SE3
+from calibrex.evaluation.lidar import lidar_rig_point_to_plane_metrics_from_evaluation
+from calibrex.graph.lidar_point_to_plane import (
     LidarPointToPlaneObservation,
     LidarRigPointToPlaneFactor,
 )

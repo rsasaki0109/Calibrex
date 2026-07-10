@@ -9,7 +9,7 @@
 # ///
 """Convert a ROS 1 bag into a rosbag2 online-calibration pair.
 
-This standalone data-prep tool is **not** part of the slac package. It reads a
+This standalone data-prep tool is **not** part of the Calibrex package. It reads a
 ROS 1 ``.bag`` with ``rosbags``, writes a rosbag2 directory containing:
 
 * ``sensor_msgs/msg/PointCloud2`` topics passed through unchanged in content
@@ -19,7 +19,7 @@ ROS 1 ``.bag`` with ``rosbags``, writes a rosbag2 directory containing:
   * ``--odom-source pose-topic`` (default): built 1:1 from each
     ``geometry_msgs/PoseStamped`` on ``--pose-topic``. The pose trajectory is
     real upstream data (for TIERS Indoor02, VRPN MOCAP). **Only the Odometry
-    message envelope is synthesized here**; slac never authors ``/odom``
+    message envelope is synthesized here**; Calibrex never authors ``/odom``
     during calibration.
   * ``--odom-source kiss-icp``: estimated from the source LiDAR itself via
     KISS-ICP on ``--kiss-icp-topic``. Poses are ``T_world_sensor`` in the

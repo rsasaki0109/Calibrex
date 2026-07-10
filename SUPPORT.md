@@ -1,6 +1,6 @@
 # Support
 
-slac is an alpha project. The most useful support requests include commands,
+Calibrex is an alpha project. The most useful support requests include commands,
 schemas, evidence artifacts, and the limits of the dataset or reference estimate.
 
 ## Where To Ask
@@ -26,14 +26,14 @@ For calibration or evidence issues, include as much of this as possible:
 - dataset name, sequence, local manifest, and whether raw data can be shared
 - whether the reference is synthetic truth, dataset-provided, factory-provided,
   manually measured, or independently measured
-- slac version, Python version, OS, and install command
+- Calibrex version, Python version, OS, and install command
 
 Do not upload private logs or sensor data unless redistribution is allowed and
 sensitive content has been removed.
 
 ## Scope
 
-slac can help evaluate whether a calibration estimate is supported by the
+Calibrex can help evaluate whether a calibration estimate is supported by the
 declared evidence protocol. It does not certify robot safety or metrology-grade
 truth. Public dataset calibration should be treated as reference evidence unless
 the dataset documents independent metrology or synthetic truth.

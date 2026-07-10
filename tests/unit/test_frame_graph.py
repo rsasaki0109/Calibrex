@@ -1,8 +1,8 @@
 import pytest
 
-from slac.core.config import CalibrationConfig
-from slac.core.exceptions import FrameGraphError
-from slac.core.frames import FrameGraph
+from calibrex.core.config import CalibrationConfig
+from calibrex.core.exceptions import FrameGraphError
+from calibrex.core.frames import FrameGraph
 
 
 def test_frame_graph_from_minimal_config() -> None:

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from slac.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",
@@ -49,7 +49,7 @@ def _yaw_quaternion(yaw_rad: float) -> tuple[float, float, float, float]:
 
 
 def _t_world_base(index: int) -> object:
-    from slac.core.geometry import SE3
+    from calibrex.core.geometry import SE3
 
     yaw = 0.12 * index
     return SE3((0.5 * index, 0.0, 0.0), _yaw_quaternion(yaw))
@@ -67,7 +67,7 @@ def _build_moving_rig_bag(
     target_stamp_offset_s: float = 0.0,
     constant_odometry: bool = False,
 ) -> Path:
-    from slac.core.geometry import SE3
+    from calibrex.core.geometry import SE3
 
     world_points = _corner_world_points()
     true_t_base_avia = SE3((0.12, -0.05, 0.03), (0.0, 0.0, 0.0871557, 0.9961947))
@@ -142,7 +142,7 @@ def _write_config(
     freeze_estimate: bool = False,
     truth_initial: bool = False,
 ) -> None:
-    from slac.core.geometry import SE3
+    from calibrex.core.geometry import SE3
 
     true_t_base_avia = SE3((0.12, -0.05, 0.03), (0.0, 0.0, 0.0871557, 0.9961947))
     if freeze_estimate or truth_initial:
@@ -358,7 +358,7 @@ def test_rosbag2_online_temporal_anchored_recovers_bias_with_free_solver(
     assert result.metrics["online_temporal_separability"].grade == "pass"
     assert abs(float(adapted["estimate"]["estimated_offset_s"])) < 0.01
 
-    from slac.evaluation.evidence_summary import evidence_summaries_from_result
+    from calibrex.evaluation.evidence_summary import evidence_summaries_from_result
 
     temporal_rows = [
         item for item in evidence_summaries_from_result(result) if item.family == "temporal"
@@ -394,7 +394,7 @@ def test_rosbag2_online_temporal_injection_provenance_and_odometry_guard(
     tmp_path: Path,
 ) -> None:
     pytest.importorskip("numpy")
-    from slac.core.exceptions import ConfigError
+    from calibrex.core.exceptions import ConfigError
 
     bag = _build_moving_rig_bag(tmp_path / "inject.db3", target_stamp_offset_s=0.0)
     inject_options = _TEMPORAL_OPTIONS + """

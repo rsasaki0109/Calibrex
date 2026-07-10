@@ -6,26 +6,26 @@ from typing import Any
 import jsonschema
 import yaml
 
-from slac.core.assessment import assessment_json_schema
-from slac.core.config import config_json_schema
-from slac.core.evidence_bundle import (
+from calibrex.core.assessment import assessment_json_schema
+from calibrex.core.config import config_json_schema
+from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
     verify_evidence_bundle,
 )
-from slac.core.evidence_contract import policy_json_schema, protocol_json_schema
-from slac.core.online_timeline import online_timeline_json_schema
-from slac.core.report_artifacts import report_artifact_json_schema
-from slac.core.result import load_result, result_json_schema
-from slac.core.trajectory import trajectory_json_schema
-from slac.core.transform_artifacts import transform_artifact_json_schema
-from slac.data.manifest import manifest_json_schema
-from slac.evaluation.compare import compare_results, comparison_json_schema
-from slac.evaluation.report_compare import (
+from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
+from calibrex.core.online_timeline import online_timeline_json_schema
+from calibrex.core.report_artifacts import report_artifact_json_schema
+from calibrex.core.result import load_result, result_json_schema
+from calibrex.core.trajectory import trajectory_json_schema
+from calibrex.core.transform_artifacts import transform_artifact_json_schema
+from calibrex.data.manifest import manifest_json_schema
+from calibrex.evaluation.compare import compare_results, comparison_json_schema
+from calibrex.evaluation.report_compare import (
     compare_reports,
     report_comparison_json_schema,
 )
-from slac.visualization.report import write_report_artifacts
+from calibrex.visualization.report import write_report_artifacts
 
 
 def test_static_schema_files_match_generated_schemas() -> None:

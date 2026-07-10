@@ -1,6 +1,6 @@
 # Problem Builder
 
-slac compiles configs into a backend-neutral graph problem before any
+Calibrex compiles configs into a backend-neutral graph problem before any
 solver-specific adapter runs.
 
 The compiled problem contains:
@@ -15,7 +15,7 @@ The compiled problem contains:
 Inspect a compiled problem:
 
 ```bash
-slac compile examples/configs/minimal.yaml --json
+Calibrex compile examples/configs/minimal.yaml --json
 ```
 
 Solver adapters translate this representation into backend-native structures

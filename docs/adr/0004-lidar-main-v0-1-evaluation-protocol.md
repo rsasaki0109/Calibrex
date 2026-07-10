@@ -71,11 +71,11 @@ claims accurate, v0.1 alpha should be described as LiDAR-main:
 - **LiDAR**: delivered. Holdout point-to-plane consistency, per-DoF
   known-bad perturbation challenges, and observability/degeneracy sidecars
   are implemented and exercised on public KITTI/A2D2/Livox data.
-- **Camera**: partial. `src/slac/evaluation/lidar_camera.py` computes
+- **Camera**: partial. `src/calibrex/evaluation/lidar_camera.py` computes
   KITTI camera-LiDAR projection and edge-alignment metrics as a diagnostic
   overlay on the LiDAR candidate. There is no standalone camera-only
   candidate evaluation path.
-- **IMU**: roadmap, not evaluation. `src/slac/evaluation/motion.py`
+- **IMU**: roadmap, not evaluation. `src/calibrex/evaluation/motion.py`
   computes vehicle-motion excitation from OXTS to flag degenerate LiDAR
   segments; it does not evaluate IMU extrinsic candidates.
 - **Radar**: experimental consistency check (2026-07-03). nuScenes radar PCDs and

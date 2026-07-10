@@ -2,11 +2,11 @@ import struct
 import zlib
 from pathlib import Path
 
-from slac.core.config import DatasetConfig, load_config
-from slac.core.frames import FrameGraph
-from slac.core.geometry import SE3
-from slac.data.inspect import inspect_dataset
-from slac.data.kitti import (
+from calibrex.core.config import DatasetConfig, load_config
+from calibrex.core.frames import FrameGraph
+from calibrex.core.geometry import SE3
+from calibrex.data.inspect import inspect_dataset
+from calibrex.data.kitti import (
     find_camera_lidar_pairs,
     project_velodyne_to_camera,
     read_oxts_packet,
@@ -18,8 +18,8 @@ from slac.data.kitti import (
     summarize_timestamp_alignment,
     summarize_velodyne_points,
 )
-from slac.data.public_datasets import load_public_dataset_catalog
-from slac.graph.problem import build_problem
+from calibrex.data.public_datasets import load_public_dataset_catalog
+from calibrex.graph.problem import build_problem
 
 
 def _write_velodyne_points(path: Path, points: list[tuple[float, float, float, float]]) -> None:
@@ -126,7 +126,15 @@ def test_nuscenes_public_config_compiles_sensor_graph() -> None:
     assert config.dataset.type == "nuscenes"
     assert inspection.dataset_type == "nuscenes"
     assert "lidar_top" in config.sensors
-    assert "radar_front" in config.sensors
+    assert {
+        "radar_front",
+        "radar_front_left",
+        "radar_front_right",
+        "radar_back_left",
+        "radar_back_right",
+    }.issubset(config.sensors)
+    assert config.evaluation.radar.use_dataset_reference is True
+    assert config.evaluation.radar.max_frames_per_sensor == 64
     assert "fixed_lidar_mount_prior" in {factor.name for factor in problem.factors}
 
 

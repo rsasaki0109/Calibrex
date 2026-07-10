@@ -1,7 +1,7 @@
-from slac.core.config import load_config
-from slac.core.frames import FrameGraph
-from slac.data.inspect import inspect_dataset
-from slac.solvers.open3d_slac_solver import Open3DSLACSolver
+from calibrex.core.config import load_config
+from calibrex.core.frames import FrameGraph
+from calibrex.data.inspect import inspect_dataset
+from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 
 
 def test_open3d_slac_adapter_summarizes_manifest_inputs() -> None:
