@@ -1,6 +1,6 @@
-from slac.core.config import CalibrationConfig
-from slac.core.evidence import stable_artifact_id, validate_no_frame_overlap
-from slac.core.result import (
+from calibrex.core.config import CalibrationConfig
+from calibrex.core.evidence import stable_artifact_id, validate_no_frame_overlap
+from calibrex.core.result import (
     CalibrationResult,
     DegeneracyResult,
     FrameGraphSnapshot,
@@ -9,18 +9,18 @@ from slac.core.result import (
     RunInfo,
     TransformResult,
 )
-from slac.data.base import StreamSummary
-from slac.data.inspect import DatasetInspection
-from slac.evaluation.compare import compare_results
-from slac.evaluation.degeneracy import degeneracy_from_inspection
-from slac.evaluation.holdout import split_indices
-from slac.evaluation.lidar import lidar_metrics_from_inspection
-from slac.evaluation.lidar_camera import lidar_camera_metrics_from_result
-from slac.evaluation.metrics import evaluate_quality
-from slac.evaluation.motion import motion_metrics_from_inspection
-from slac.evaluation.registry import get_metric_definition, list_metric_definitions
-from slac.evaluation.thresholds import apply_metric_thresholds
-from slac.evaluation.timing import timing_metrics_from_inspection
+from calibrex.data.base import StreamSummary
+from calibrex.data.inspect import DatasetInspection
+from calibrex.evaluation.compare import compare_results
+from calibrex.evaluation.degeneracy import degeneracy_from_inspection
+from calibrex.evaluation.holdout import split_indices
+from calibrex.evaluation.lidar import lidar_metrics_from_inspection
+from calibrex.evaluation.lidar_camera import lidar_camera_metrics_from_result
+from calibrex.evaluation.metrics import evaluate_quality
+from calibrex.evaluation.motion import motion_metrics_from_inspection
+from calibrex.evaluation.registry import get_metric_definition, list_metric_definitions
+from calibrex.evaluation.thresholds import apply_metric_thresholds
+from calibrex.evaluation.timing import timing_metrics_from_inspection
 
 
 def test_metric_thresholds_grade_holdout_values() -> None:

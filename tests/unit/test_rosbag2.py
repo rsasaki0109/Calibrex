@@ -12,16 +12,16 @@ from pathlib import Path
 
 import pytest
 
-from slac.core.config import DatasetConfig
-from slac.core.exceptions import DatasetError
-from slac.data.inspect import inspect_dataset
-from slac.data.ros_cdr import (
+from calibrex.core.config import DatasetConfig
+from calibrex.core.exceptions import DatasetError
+from calibrex.data.inspect import inspect_dataset
+from calibrex.data.ros_cdr import (
     CdrReader,
     decode_ros2_imu,
     decode_ros2_odometry,
     decode_ros2_pointcloud2,
 )
-from slac.data.rosbag2 import (
+from calibrex.data.rosbag2 import (
     IMU_TYPE,
     MCAP_MAGIC,
     ODOMETRY_TYPE,
@@ -552,14 +552,14 @@ def test_rosbag2_alignment_sensitive_pointcloud_layout() -> None:
 def test_rosbag2_missing_lz4_codec_error() -> None:
     if importlib_available("lz4"):
         pytest.skip("lz4 is installed in this environment")
-    with pytest.raises(DatasetError, match=r"slac\[rosbag2-compression\]"):
+    with pytest.raises(DatasetError, match=r"calibrex\[rosbag2-compression\]"):
         _lz4_decompress(b"\x00", 1)
 
 
 def test_rosbag2_missing_zstd_codec_error() -> None:
     if importlib_available("zstandard"):
         pytest.skip("zstandard is installed in this environment")
-    with pytest.raises(DatasetError, match=r"slac\[rosbag2-compression\]"):
+    with pytest.raises(DatasetError, match=r"calibrex\[rosbag2-compression\]"):
         _zstd_decompress(b"\x00", 1)
 
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Restored the Calibrex product, Python distribution/package, CLI, and source
+  path. Existing `slac.*` schema IDs, `slac_version`, `slac_native`, and
+  versioned protocol/policy IDs remain the stable legacy wire namespace.
+
 ## 0.3.0
 
 - Trajectory artifact (`slac.trajectory/v0.1`, schema #18) with ground-truth-free

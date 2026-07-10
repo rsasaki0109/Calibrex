@@ -6,7 +6,7 @@ one-off calibration scripts.
 Non-negotiable project rules:
 
 - Keep the core ROS-independent.
-- Keep GPL code out of `src/slac`.
+- Keep GPL code out of `src/calibrex`.
 - Public APIs require type hints.
 - Configs and results must stay schema-validatable.
 - Calibration changes must include evaluation or tests.

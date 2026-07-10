@@ -4,7 +4,7 @@
 The default visual uses real public Livox Horizon-Horizon PCD frames from the
 official Livox automatic calibration example. It does not redistribute the
 upstream archives and does not claim benchmark accuracy. The animation is an
-evidence-viewer proxy for how slac compares a fixed 3D LiDAR-to-LiDAR
+evidence-viewer proxy for how Calibrex compares a fixed 3D LiDAR-to-LiDAR
 candidate against a selected reference. Alternate sources also use public raw
 data; README-facing assets must not use deterministic fallback geometry.
 """
@@ -32,8 +32,8 @@ from urllib.request import Request, urlopen
 
 import yaml
 
-from slac.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
-from slac.data.odometry_track import OdometryTrack
+from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
+from calibrex.data.odometry_track import OdometryTrack
 
 _TOOLS_DIR = Path(__file__).resolve().parent
 if str(_TOOLS_DIR) not in sys.path:
@@ -66,7 +66,7 @@ README_HERO_FPS = MOTION_HERO_FPS
 README_HERO_FRAME_COUNT = MOTION_HERO_FRAME_COUNT
 README_GIF_MANIFEST = Path("docs/assets/readme-gif-gallery.json")
 README_GIF_MANIFEST_SCHEMA_VERSION = "slac.readme_gif_gallery/v0.3"
-ONLINE_PIPELINE_SOURCE = "slac calibrate --online"
+ONLINE_PIPELINE_SOURCE = "calibrex calibrate --online"
 ONLINE_PIPELINE_MODE = "real_online"
 ONLINE_BATCH_SIZE = 400
 ONLINE_HOLDOUT_RATIO = 0.2
@@ -244,7 +244,7 @@ class ReadmeGifJob:
 README_GIF_JOBS = (
     ReadmeGifJob(
         source="tiers-indoor02-kissicp",
-        output=Path("docs/assets/slac-motion-calibration-loop.gif"),
+        output=Path("docs/assets/calibrex-motion-calibration-loop.gif"),
         visual="motion",
         readme_role="hero",
     ),
@@ -713,7 +713,7 @@ def load_motion_scene_for_manifest(job: ReadmeGifJob) -> MotionHeroScene | None:
     if not cache_path.exists():
         return None
     payload = json.loads(cache_path.read_text(encoding="utf-8"))
-    from slac.core.geometry import SE3
+    from calibrex.core.geometry import SE3
 
     return MotionHeroScene(
         bag_dir=Path(payload["bag_dir"]),
@@ -1103,7 +1103,7 @@ def load_indoor02_motion_cloud_pair() -> LidarCloudPair:
         support_summary="108 target batches from /os_cloud_nodee/points",
         holdout_summary="holdout RMSE gate 0.40 m",
         known_bad_summary="106/108 batches adopted",
-        protocol_summary="slac calibrate --online kissicp config",
+        protocol_summary="calibrex calibrate --online kissicp config",
         case_summary="motion-compensated Velodyne world map",
     )
 
@@ -1137,11 +1137,11 @@ def run_online_gif_pipeline(
     data_dir: Path | None,
     allow_network: bool,
 ) -> OnlineGifRun:
-    """Run `slac calibrate --online` and build per-frame GIF states."""
+    """Run `calibrex calibrate --online` and build per-frame GIF states."""
 
-    from slac.core.io import read_mapping
-    from slac.core.online_timeline import OnlineCalibrationTimelineArtifact
-    from slac.pipelines.online import (
+    from calibrex.core.io import read_mapping
+    from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
+    from calibrex.pipelines.online import (
         OnlineCalibrationRunOptions,
         OnlineGateThresholds,
         run_online_calibration,
@@ -1219,11 +1219,11 @@ def run_tiers_online_gif_pipeline(
     bag_path: Path,
     frames: int,
 ) -> OnlineGifRun:
-    """Run `slac calibrate --online` on the TIERS LidarsCali rosbag."""
+    """Run `calibrex calibrate --online` on the TIERS LidarsCali rosbag."""
 
-    from slac.core.io import read_mapping
-    from slac.core.online_timeline import OnlineCalibrationTimelineArtifact
-    from slac.pipelines.online import (
+    from calibrex.core.io import read_mapping
+    from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
+    from calibrex.pipelines.online import (
         OnlineCalibrationRunOptions,
         OnlineGateThresholds,
         run_online_calibration,
@@ -1598,7 +1598,7 @@ def _timeline_residual_value(batch: object) -> float | None:
 
 
 def _transform_result_to_se3(transform_result: object) -> object:
-    from slac.core.geometry import SE3
+    from calibrex.core.geometry import SE3
 
     return SE3.from_lists(
         transform_result.translation_m,
@@ -1607,7 +1607,7 @@ def _transform_result_to_se3(transform_result: object) -> object:
 
 
 def _accepted_transform_at_batch(batches: list[object], batch_index: int) -> object:
-    from slac.core.geometry import SE3
+    from calibrex.core.geometry import SE3
 
     accepted = SE3.identity()
     found = False
@@ -2067,7 +2067,7 @@ def tiers_livox_setup() -> list[LidarPose]:
 def load_tiers_livox_cloud_pair(bag_path: Path) -> LidarCloudPair:
     """Load subsampled TIERS Livox Horizon and Avia points for GIF preview."""
 
-    from slac.data.rosbag1 import LIDAR_MESSAGE_TYPES, decode_bag_lidar_message, iter_messages
+    from calibrex.data.rosbag1 import LIDAR_MESSAGE_TYPES, decode_bag_lidar_message, iter_messages
 
     source_points: list[Point3] = []
     target_points: list[Point3] = []
@@ -2143,7 +2143,7 @@ def load_tiers_livox_cloud_pair(bag_path: Path) -> LidarCloudPair:
         support_summary=f"{shared_voxels} shared 0.75 m voxels / {source_recall:.3f} recall",
         holdout_summary=f"{source_total + target_total:,} decoded Livox returns (first msgs)",
         known_bad_summary="static rig / real rosbag1 replay",
-        protocol_summary="slac calibrate --online timeline",
+        protocol_summary="calibrex calibrate --online timeline",
         case_summary=f"shared centroid RMSE {centroid_rmse:.2f} m",
     )
 

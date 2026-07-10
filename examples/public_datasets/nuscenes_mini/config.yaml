@@ -2,13 +2,13 @@ schema_version: slac.config/v0.1
 
 project:
   name: nuscenes_mini_sensor_graph
-  description: nuScenes mini metadata inspection for multi-sensor calibration.
+  description: nuScenes mini Radar-LiDAR yaw evidence using dataset reference extrinsics.
   output_dir: outputs/nuscenes_mini
   domain: autonomous_driving
 
 dataset:
   type: nuscenes
-  path: examples/public_datasets/nuscenes_mini
+  path: data/public/nuscenes
   time_base: sensor_time_ns
 
 sensors:
@@ -25,6 +25,22 @@ sensors:
     type: radar
     model: automotive
     topic: RADAR_FRONT
+  radar_front_left:
+    type: radar
+    model: automotive
+    topic: RADAR_FRONT_LEFT
+  radar_front_right:
+    type: radar
+    model: automotive
+    topic: RADAR_FRONT_RIGHT
+  radar_back_left:
+    type: radar
+    model: automotive
+    topic: RADAR_BACK_LEFT
+  radar_back_right:
+    type: radar
+    model: automotive
+    topic: RADAR_BACK_RIGHT
 
 frames:
   ego:
@@ -50,6 +66,34 @@ frames:
       prior_sigma:
         translation_m: 0.20
         rotation_deg: 5.0
+  radar_front_left:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.20
+        rotation_deg: 5.0
+  radar_front_right:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.20
+        rotation_deg: 5.0
+  radar_back_left:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.20
+        rotation_deg: 5.0
+  radar_back_right:
+    parent: ego
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.20
+        rotation_deg: 5.0
 
 pipeline:
   type: multi_sensor_slac
@@ -63,16 +107,29 @@ pipeline:
     camera_reprojection:
       enabled: false
     radar_lidar_velocity_consistency:
-      enabled: false
+      enabled: true
 
 solver:
   backend: scipy
   max_iterations: 50
   robust_loss: huber
   convergence_tolerance: 1.0e-6
+  seed: 0
 
 evaluation:
   holdout_ratio: 0.2
+  radar:
+    max_frames_per_sensor: 64
+    use_dataset_reference: true
+    min_holdout_frames: 5
+    min_holdout_static_returns: 50
+    min_static_fraction: 0.20
+    min_yaw_sensitivity_rms_mps_per_rad: 0.57
+    min_mandatory_detectable_fraction: 1.0
+    # Deliberately unset until frozen on development scenes and checked once
+    # against untouched validation scenes.
+    max_holdout_median_abs_residual_mps: null
+    max_holdout_rmse_mps: null
   metrics:
     - lidar_frame_coverage
     - lidar_world_map_point_to_plane_rmse_m

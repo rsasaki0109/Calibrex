@@ -1,6 +1,6 @@
 # LiDAR SLAC
 
-slac now treats fixed-mounted LiDAR calibration as the primary autonomous
+Calibrex now treats fixed-mounted LiDAR calibration as the primary autonomous
 driving path. Public driving logs such as KITTI and nuScenes are preferred over
 synthetic-only examples for this path.
 
@@ -21,13 +21,13 @@ quality gates.
 
 ## Paper-to-Design Mapping
 
-| Paper | What slac Should Learn |
+| Paper | What Calibrex Should Learn |
 | --- | --- |
 | [SceneCalib](https://arxiv.org/abs/2304.05530) | Targetless multi-camera + LiDAR calibration needs joint camera intrinsics, camera-camera constraints, and camera-LiDAR consistency in one graph. |
 | [SST-Calib](https://arxiv.org/abs/2207.03704) | `dt_camera` and `dt_lidar` must be optimized and reported with uncertainty, not treated as fixed preprocessing assumptions. |
 | [Decentralized multi-LiDAR SLAC](https://arxiv.org/abs/2007.01483) | LiDAR calibration should estimate pose, velocity, mapping state, and LiDAR extrinsics together when enough motion exists. |
-| [M-LOAM](https://arxiv.org/abs/2010.14294) | Online extrinsic refinement and convergence detection belong in a future `slac online` mode. |
-| [Koide et al. ICRA 2023](https://arxiv.org/abs/2302.05094) | Single-shot targetless LiDAR-camera calibration should be wrapped as an adapter/baseline and evaluated through slac result schemas. |
+| [M-LOAM](https://arxiv.org/abs/2010.14294) | Online extrinsic refinement and convergence detection belong in a future `Calibrex online` mode. |
+| [Koide et al. ICRA 2023](https://arxiv.org/abs/2302.05094) | Single-shot targetless LiDAR-camera calibration should be wrapped as an adapter/baseline and evaluated through Calibrex result schemas. |
 
 ## Required Variables
 
@@ -61,13 +61,13 @@ and evaluation reports already name the intended factor family.
 
 ## Adapter Boundary
 
-slac core should not copy external calibration implementations. Strong
+Calibrex core should not copy external calibration implementations. Strong
 methods such as Koide's LiDAR-camera toolbox should enter through an optional
-adapter or subprocess wrapper that converts inputs and outputs into slac
+adapter or subprocess wrapper that converts inputs and outputs into Calibrex
 schemas.
 
 This keeps the core small, ROS-independent, and license-safe while still making
-slac useful on real data early.
+Calibrex useful on real data early.
 
 The first adapter boundary is `koide_lidar_camera`. It records external command
 availability, camera/LiDAR input readiness, optional precomputed transform

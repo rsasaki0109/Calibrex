@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from slac.core.exceptions import DatasetError
-from slac.data.ros_cdr import decode_ros2_pointcloud2
+from calibrex.core.exceptions import DatasetError
+from calibrex.data.ros_cdr import decode_ros2_pointcloud2
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",

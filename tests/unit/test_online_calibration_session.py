@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import random
 
-from slac.core.geometry import SE3, Vector3
-from slac.data.livox import LivoxPointRecord
-from slac.pipelines.online import OnlineCalibrationSession
+from calibrex.core.geometry import SE3, Vector3
+from calibrex.data.livox import LivoxPointRecord
+from calibrex.pipelines.online import OnlineCalibrationSession
 
 _VARIABLE = "T_base_link_lidar_front_right"
 _PARENT = "base_link"

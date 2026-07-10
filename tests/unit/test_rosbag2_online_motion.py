@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from slac.core.exceptions import DatasetError
-from slac.core.geometry import SE3
-from slac.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.core.exceptions import DatasetError
+from calibrex.core.geometry import SE3
+from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",

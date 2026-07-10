@@ -154,6 +154,9 @@
           "title": "Metrics",
           "type": "array"
         },
+        "radar": {
+          "$ref": "#/$defs/RadarEvaluationConfig"
+        },
         "strict": {
           "default": false,
           "title": "Strict",
@@ -441,6 +444,84 @@
         }
       },
       "title": "ProjectConfig",
+      "type": "object"
+    },
+    "RadarEvaluationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_frames_per_sensor": {
+          "default": 30,
+          "maximum": 10000,
+          "minimum": 2,
+          "title": "Max Frames Per Sensor",
+          "type": "integer"
+        },
+        "max_holdout_median_abs_residual_mps": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Holdout Median Abs Residual Mps"
+        },
+        "max_holdout_rmse_mps": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Holdout Rmse Mps"
+        },
+        "min_holdout_frames": {
+          "default": 5,
+          "minimum": 1,
+          "title": "Min Holdout Frames",
+          "type": "integer"
+        },
+        "min_holdout_static_returns": {
+          "default": 50,
+          "minimum": 1,
+          "title": "Min Holdout Static Returns",
+          "type": "integer"
+        },
+        "min_mandatory_detectable_fraction": {
+          "default": 1.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Mandatory Detectable Fraction",
+          "type": "number"
+        },
+        "min_static_fraction": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Static Fraction",
+          "type": "number"
+        },
+        "min_yaw_sensitivity_rms_mps_per_rad": {
+          "default": 0.57,
+          "minimum": 0.0,
+          "title": "Min Yaw Sensitivity Rms Mps Per Rad",
+          "type": "number"
+        },
+        "use_dataset_reference": {
+          "default": false,
+          "description": "evaluate dataset reference Radar extrinsics instead of configured candidates",
+          "title": "Use Dataset Reference",
+          "type": "boolean"
+        }
+      },
+      "title": "RadarEvaluationConfig",
       "type": "object"
     },
     "SensorConfig": {

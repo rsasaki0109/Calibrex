@@ -1,6 +1,6 @@
 # License Boundaries
 
-slac core is Apache-2.0. The core package should remain usable without ROS,
+Calibrex core is Apache-2.0. The core package should remain usable without ROS,
 Autoware, GPL tools, proprietary SDKs, or large public datasets.
 
 This document is project policy, not legal advice. Check upstream licenses and
@@ -9,18 +9,18 @@ tools.
 
 ## Core Package
 
-Code under `src/slac` may depend on permissive Python packages when they are
+Code under `src/calibrex` may depend on permissive Python packages when they are
 needed for the core user experience. Prefer Apache-2.0, MIT, BSD, ISC, or similarly
 permissive dependencies.
 
-Do not copy GPL or incompatible source code into `src/slac`. Do not make GPL
+Do not copy GPL or incompatible source code into `src/calibrex`. Do not make GPL
 tools required imports for the default package.
 
 ## External Tools
 
 External calibration tools are welcome as adapters or baselines when they improve
-comparison quality. They should cross the slac boundary through files,
-subprocess calls, or containers, not by making slac internal types depend on
+comparison quality. They should cross the Calibrex boundary through files,
+subprocess calls, or containers, not by making Calibrex internal types depend on
 their runtime.
 
 For every external baseline, record provenance when available:
@@ -37,11 +37,11 @@ For every external baseline, record provenance when available:
 
 Subprocess or container execution is a practical engineering boundary, but it is
 not a blanket legal guarantee. The external tool should remain independently
-usable, and slac core should remain fully functional without it.
+usable, and Calibrex core should remain fully functional without it.
 
 ## Public Datasets
 
-Large public datasets are not committed to this repository. slac keeps
+Large public datasets are not committed to this repository. Calibrex keeps
 manifests, configs, source URLs, license notes, hashes, and small metadata
 fixtures where allowed.
 
@@ -65,5 +65,5 @@ pip install -e ".[dev,open3d]"
 ```
 
 Default installation should remain small and portable. ROS, Autoware, proprietary
-SDKs, GPU models, and GPL tools should not be required for `slac doctor`,
+SDKs, GPU models, and GPL tools should not be required for `calibrex doctor`,
 schema validation, basic reports, or evidence comparison.

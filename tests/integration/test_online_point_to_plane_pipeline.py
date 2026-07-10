@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from slac.core.io import read_mapping
-from slac.core.online_timeline import OnlineCalibrationTimelineArtifact
-from slac.core.result import load_result
-from slac.core.validation import validate_file
-from slac.data.downloads import LIVOX_PAIR_DIRNAME
-from slac.pipelines.online import (
+from calibrex.core.io import read_mapping
+from calibrex.core.online_timeline import OnlineCalibrationTimelineArtifact
+from calibrex.core.result import load_result
+from calibrex.core.validation import validate_file
+from calibrex.data.downloads import LIVOX_PAIR_DIRNAME
+from calibrex.pipelines.online import (
     ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
     OnlineCalibrationRunOptions,
     run_online_calibration,

@@ -1,12 +1,12 @@
 from math import sqrt
 
-from slac.core.geometry import SE3
-from slac.graph.lidar_point_to_plane import (
+from calibrex.core.geometry import SE3
+from calibrex.graph.lidar_point_to_plane import (
     LidarPointToPlaneObservation,
     LidarRigPointToPlaneFactor,
 )
-from slac.solvers import FixedTrajectorySe3ExtrinsicSolver as PublicSolver
-from slac.solvers.fixed_trajectory_se3_solver import (
+from calibrex.solvers import FixedTrajectorySe3ExtrinsicSolver as PublicSolver
+from calibrex.solvers.fixed_trajectory_se3_solver import (
     FixedTrajectorySe3ExtrinsicSolver,
     FixedTrajectorySe3SolverOptions,
 )

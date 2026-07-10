@@ -7,9 +7,9 @@ import random
 
 import pytest
 
-from slac.core.geometry import SE3, normalize_quaternion_xyzw, quaternion_multiply_xyzw
-from slac.data.odometry_track import OdometryPoseSample, OdometryTrack
-from slac.evaluation.imu import (
+from calibrex.core.geometry import SE3, normalize_quaternion_xyzw, quaternion_multiply_xyzw
+from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
+from calibrex.evaluation.imu import (
     ImuEvidenceOptions,
     _build_rotation_intervals,
     _evaluate_imu_evidence,

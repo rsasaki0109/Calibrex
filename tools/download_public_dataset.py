@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download small public datasets used by slac examples.
+"""Download small public datasets used by Calibrex examples.
 
 This helper intentionally supports only datasets with direct public download
 URLs. Datasets that require login, click-through terms, or API credentials must
@@ -16,7 +16,7 @@ from urllib.request import Request, urlopen, urlretrieve
 
 import yaml
 
-from slac.data.downloads import download_livox_horizon_horizon_pcd_sample
+from calibrex.data.downloads import download_livox_horizon_horizon_pcd_sample
 
 A2D2_LIDAR_SAMPLE_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"

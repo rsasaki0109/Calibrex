@@ -1,4 +1,4 @@
-from slac.core.result import (
+from calibrex.core.result import (
     ArtifactSet,
     CalibrationResult,
     DegeneracyResult,
@@ -9,8 +9,91 @@ from slac.core.result import (
     RunInfo,
     TransformResult,
 )
-from slac.visualization.report import render_html_report
-from slac.visualization.rig3d import render_rig_3d_artifact
+from calibrex.visualization.report import evidence_artifact_from_result, render_html_report
+from calibrex.visualization.rig3d import render_rig_3d_artifact
+
+
+def test_radar_evidence_materializes_protocol_summaries_and_cases() -> None:
+    probes = [
+        {
+            "amount_deg": amount,
+            "supported": True,
+            "detectable": True,
+            "comparison_baseline_median_abs_residual_mps": 0.1,
+            "perturbed_median_abs_residual_mps": 0.3,
+        }
+        for amount in (-10.0, -5.0, 5.0, 10.0)
+    ]
+    result = CalibrationResult(
+        run=RunInfo(
+            id="radar-report-unit",
+            slac_version="0.3.0",
+            provenance={
+                "radar_velocity_consistency": {
+                    "split": {
+                        "policy": "seeded_frame_holdout/v0.1",
+                        "holdout_ratio": 0.2,
+                        "seed": 7,
+                        "train_frame_ids": ["frame-0"],
+                        "holdout_frame_ids": ["frame-1"],
+                    },
+                    "residual_summary": {
+                        "train": {"median_abs_residual_mps": 0.1, "rmse_mps": 0.1},
+                        "holdout": {"median_abs_residual_mps": 0.1, "rmse_mps": 0.1},
+                    },
+                    "static_return_summary": {
+                        "holdout": {
+                            "status": "supported",
+                            "static_return_count": 60,
+                            "static_fraction": 0.75,
+                        }
+                    },
+                    "holdout_yaw_observability": {
+                        "radar_front": {"status": "supported"}
+                    },
+                    "known_bad_rotation_probes": {
+                        "required_count": 4,
+                        "supported_count": 4,
+                        "detectable_fraction": 1.0,
+                        "probes": probes,
+                    },
+                    "policy": {
+                        "policy_id": "slac.falsification.radar_lidar_yaw/v0.1"
+                    },
+                    "assessment": {
+                        "status": "pass",
+                        "reason": "candidate satisfies declared yaw policy",
+                    },
+                }
+            },
+        ),
+        metrics={
+            "radar_lidar_velocity_consistency": MetricResult(
+                train=0.1,
+                holdout=0.1,
+                grade="pass",
+                unit="m/s",
+            )
+        },
+        frame_graph=FrameGraphSnapshot(root="ego", frames={"ego": None}),
+    )
+
+    evidence = evidence_artifact_from_result(result)
+
+    radar_protocol = next(item for item in evidence.protocols if item.family == "radar_lidar")
+    assert radar_protocol.protocol_id == "radar_lidar_seeded_holdout_doppler_yaw/v0.1"
+    assert radar_protocol.independent_holdout is True
+    assert radar_protocol.known_bad_case_count == 4
+    radar_summaries = [item for item in evidence.summaries if item.family == "radar_lidar"]
+    assert [item.check for item in radar_summaries] == [
+        "Candidate Support",
+        "Known-Bad Controls",
+        "Decision Boundary",
+    ]
+    assert all(item.status == "pass" for item in radar_summaries)
+    radar_cases = [item for item in evidence.cases if item.family == "radar_lidar"]
+    assert len(radar_cases) == 4
+    assert all(item.status == "pass" for item in radar_cases)
 
 
 def test_report_renders_candidate_reference_delta_table() -> None:
@@ -391,11 +474,11 @@ def test_rig_3d_artifact_renders_reference_online_and_candidate_layers() -> None
 
 
 def _synthetic_online_timeline() -> tuple[CalibrationResult, object]:
-    from slac.core.online_timeline import (
+    from calibrex.core.online_timeline import (
         OnlineBatchSnapshot,
         OnlineCalibrationTimelineArtifact,
     )
-    from slac.core.report_artifacts import ReportRunInfo
+    from calibrex.core.report_artifacts import ReportRunInfo
 
     batches = [
         OnlineBatchSnapshot(
@@ -571,7 +654,7 @@ def test_report_omits_online_timeline_section_for_offline_results() -> None:
 
 
 def test_write_report_artifacts_passes_timeline_to_html(tmp_path) -> None:
-    from slac.visualization.report import write_report_artifacts
+    from calibrex.visualization.report import write_report_artifacts
 
     result, timeline = _synthetic_online_timeline()
 

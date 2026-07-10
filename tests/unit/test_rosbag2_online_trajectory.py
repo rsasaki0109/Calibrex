@@ -10,9 +10,9 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-from slac.core.geometry import SE3
-from slac.core.trajectory import trajectory_json_schema
-from slac.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.core.geometry import SE3
+from calibrex.core.trajectory import trajectory_json_schema
+from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",

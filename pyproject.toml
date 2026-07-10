@@ -3,7 +3,7 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "slac"
+name = "calibrex"
 version = "0.3.0"
 description = "Simultaneous localization and calibration evidence framework for robotics"
 readme = "README.md"
@@ -11,9 +11,9 @@ requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-  { name = "slac Contributors" }
+  { name = "Calibrex Contributors" }
 ]
-keywords = ["robotics", "calibration", "slac", "autonomous-driving", "sensor-fusion"]
+keywords = ["robotics", "calibration", "calibrex", "autonomous-driving", "sensor-fusion"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -27,6 +27,7 @@ classifiers = [
 ]
 dependencies = [
   "jsonschema>=4.18",
+  "numpy>=1.21",
   "pydantic>=2.6",
   "PyYAML>=6.0",
 ]
@@ -69,7 +70,7 @@ docs = [
 ]
 
 [project.scripts]
-slac = "slac.cli.main:main"
+calibrex = "calibrex.cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/rsasaki0109/slac"
@@ -85,7 +86,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-slac = ["py.typed"]
+calibrex = ["py.typed"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
@@ -105,7 +106,7 @@ ignore = ["B008"]
 python_version = "3.10"
 strict = true
 mypy_path = "src"
-packages = ["slac"]
+packages = ["calibrex"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 disallow_any_generics = true

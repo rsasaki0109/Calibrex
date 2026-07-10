@@ -1,28 +1,30 @@
 import hashlib
 import json
+import math
 import struct
 import zlib
 from pathlib import Path
 
 import pytest
 
-from slac.cli.main import main
-from slac.core.assessment import AssessmentArtifact
-from slac.core.evidence_bundle import (
+from calibrex.cli.main import main
+from calibrex.core.assessment import AssessmentArtifact
+from calibrex.core.evidence_bundle import (
     EvidenceBundleManifest,
     EvidenceBundleVerification,
 )
-from slac.core.evidence_contract import PolicyArtifact, ProtocolArtifact
-from slac.core.io import read_mapping, write_mapping
-from slac.core.report_artifacts import (
+from calibrex.core.evidence_contract import PolicyArtifact, ProtocolArtifact
+from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.report_artifacts import (
     ReportDegeneracyArtifact,
     ReportEvidenceArtifact,
     ReportMetricsArtifact,
     ReportObservabilityArtifact,
     ReportSummaryArtifact,
 )
-from slac.core.result import load_result
-from slac.core.transform_artifacts import TransformArtifact
+from calibrex.core.result import load_result
+from calibrex.core.transform_artifacts import TransformArtifact
+from calibrex.data.nuscenes_radar import write_nuscenes_radar_pcd
 
 
 def _write_velodyne_points(path: Path, points: list[tuple[float, float, float, float]]) -> None:
@@ -268,6 +270,69 @@ def _write_minimal_nuscenes_fixture(root: Path) -> None:
             },
         ],
     )
+
+
+def _write_nuscenes_radar_evidence_fixture(root: Path) -> None:
+    version = root / "v1.0-mini"
+    radar_dir = root / "samples" / "RADAR_FRONT"
+    version.mkdir(parents=True)
+    radar_dir.mkdir(parents=True)
+    azimuths = (0.0, 15.0, -20.0, 30.0, -35.0, 10.0)
+    fields: dict[str, list[float]] = {
+        "x": [20.0 * math.cos(math.radians(value)) for value in azimuths],
+        "y": [20.0 * math.sin(math.radians(value)) for value in azimuths],
+        "z": [0.5] * len(azimuths),
+        "vx": [-12.0] * len(azimuths),
+        "vy": [0.0] * len(azimuths),
+        "dyn_prop": [1] * len(azimuths),
+        "vx_comp": [0.0] * len(azimuths),
+        "vy_comp": [0.0] * len(azimuths),
+        "invalid_state": [0] * len(azimuths),
+        "ambig_state": [3] * len(azimuths),
+    }
+    write_nuscenes_radar_pcd(radar_dir / "000.pcd", fields)
+    _write_json(
+        version / "sensor.json",
+        [{"token": "sensor_radar", "channel": "RADAR_FRONT", "modality": "radar"}],
+    )
+    _write_json(
+        version / "calibrated_sensor.json",
+        [
+            {
+                "token": "cal_radar",
+                "sensor_token": "sensor_radar",
+                "translation": [0.0, 0.0, 0.0],
+                "rotation": [1.0, 0.0, 0.0, 0.0],
+            }
+        ],
+    )
+    _write_json(version / "scene.json", [{"token": "scene0", "name": "scene-0001"}])
+    _write_json(version / "sample.json", [{"token": "sample0", "scene_token": "scene0"}])
+    ego_poses = []
+    sample_data = []
+    for index in range(11):
+        timestamp = 1_000_000 + 100_000 * index
+        ego_poses.append(
+            {
+                "token": f"ego{index}",
+                "translation": [1.2 * index, 0.0, 0.0],
+                "rotation": [1.0, 0.0, 0.0, 0.0],
+                "timestamp": timestamp,
+            }
+        )
+        sample_data.append(
+            {
+                "token": f"sd_radar{index}",
+                "sample_token": "sample0",
+                "ego_pose_token": f"ego{index}",
+                "calibrated_sensor_token": "cal_radar",
+                "filename": "samples/RADAR_FRONT/000.pcd",
+                "timestamp": timestamp,
+                "is_key_frame": True,
+            }
+        )
+    _write_json(version / "ego_pose.json", ego_poses)
+    _write_json(version / "sample_data.json", sample_data)
 
 
 def test_calibrate_dry_run() -> None:
@@ -1484,35 +1549,27 @@ candidate_extrinsics:
         encoding="utf-8",
     )
     candidate_output_dir = tmp_path / "candidate_outputs"
-
-    assert (
-        main(
-            [
-                "calibrate",
-                str(config),
-                "--dry-run",
-                "--candidate-extrinsics",
-                str(candidate_path),
-                "--json",
-            ]
-        )
-        == 0
-    )
-    assert (
-        main(
-            [
-                "calibrate",
-                str(config),
-                "--output-dir",
-                str(candidate_output_dir),
-                "--candidate-extrinsics",
-                str(candidate_path),
-                "--json",
-            ]
-        )
-        == 0
-    )
-
+    assert main(
+        [
+            "calibrate",
+            str(config),
+            "--dry-run",
+            "--candidate-extrinsics",
+            str(candidate_path),
+            "--json",
+        ]
+    ) == 0
+    assert main(
+        [
+            "calibrate",
+            str(config),
+            "--output-dir",
+            str(candidate_output_dir),
+            "--candidate-extrinsics",
+            str(candidate_path),
+            "--json",
+        ]
+    ) == 0
     candidate_result = load_result(candidate_output_dir / "result.yaml")
     assert candidate_result.metrics["candidate_extrinsic_import_count"].value == 3.0
     assert candidate_result.metrics["extrinsic_reference_translation_delta_max_m"].value == 0.0
@@ -1534,6 +1591,87 @@ candidate_extrinsics:
     )
     assert imported_candidate_provenance.source_path == str(candidate_path)
 
+
+def test_nuscenes_radar_cli_materializes_inconclusive_evidence(tmp_path: Path) -> None:
+    dataset = tmp_path / "nuscenes_radar"
+    _write_nuscenes_radar_evidence_fixture(dataset)
+    output_dir = tmp_path / "outputs_radar"
+    config = tmp_path / "nuscenes_radar_config.yaml"
+    config.write_text(
+        f"""
+schema_version: slac.config/v0.1
+project:
+  name: nuscenes_radar_evidence_fixture
+  output_dir: {output_dir}
+  domain: autonomous_driving
+dataset:
+  type: nuscenes
+  path: {dataset}
+sensors:
+  radar_front:
+    type: radar
+    model: nuscenes-front-radar
+    topic: RADAR_FRONT
+frames:
+  ego:
+    root: true
+  radar_front:
+    parent: ego
+    transform:
+      estimate: false
+pipeline:
+  type: multi_sensor_slac
+solver:
+  backend: scipy
+  seed: 3
+evaluation:
+  holdout_ratio: 0.3
+  metrics: [radar_lidar_velocity_consistency]
+  radar:
+    use_dataset_reference: true
+    max_frames_per_sensor: 30
+    min_holdout_frames: 3
+    min_holdout_static_returns: 15
+    min_static_fraction: 0.5
+    min_yaw_sensitivity_rms_mps_per_rad: 0.57
+    min_mandatory_detectable_fraction: 1.0
+    max_holdout_median_abs_residual_mps: null
+    max_holdout_rmse_mps: null
+outputs:
+  result: result.yaml
+  report: report.html
+""".strip(),
+        encoding="utf-8",
+    )
+
+    assert main(["calibrate", str(config), "--seed", "7", "--json"]) == 0
+
+    result = load_result(output_dir / "result.yaml")
+    radar = result.run.provenance["radar_velocity_consistency"]
+    assert radar["candidate_source"] == "dataset_reference"
+    assert radar["split"]["holdout_ratio"] == 0.3
+    assert radar["split"]["seed"] == 7
+    assert len(radar["split"]["train_frame_ids"]) == 7
+    assert len(radar["split"]["holdout_frame_ids"]) == 3
+    assert radar["known_bad_rotation_probes"]["supported_count"] == 4
+    assert radar["known_bad_rotation_probes"]["detectable_fraction"] == 1.0
+    assert radar["assessment"]["status"] == "inconclusive"
+    metric = result.metrics["radar_lidar_velocity_consistency"]
+    assert metric.holdout is not None and metric.holdout < 0.05
+    assert metric.grade == "warn"
+
+    evidence = ReportEvidenceArtifact.model_validate(
+        read_mapping(output_dir / "evidence.json")
+    )
+    protocol = next(item for item in evidence.protocols if item.family == "radar_lidar")
+    assert protocol.protocol_id == "radar_lidar_seeded_holdout_doppler_yaw/v0.1"
+    assert protocol.known_bad_case_count == 4
+    assert len([item for item in evidence.cases if item.family == "radar_lidar"]) == 4
+    assessment = AssessmentArtifact.model_validate(
+        read_mapping(output_dir / "assessment.json")
+    )
+    assert assessment.status == "inconclusive"
+    assert assessment.policy.policy_id == "slac.falsification.radar_lidar_yaw/v0.1"
 
 def test_kitti_inspect_human_output_includes_lidar_diagnostics(
     tmp_path: Path,

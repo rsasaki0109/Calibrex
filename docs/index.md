@@ -1,6 +1,6 @@
-# slac Docs
+# Calibrex Docs
 
-slac is a universal sensor calibration framework for robotics and
+Calibrex is a universal sensor calibration framework for robotics and
 autonomous-driving systems. v0.3 extends the v0.2 moving-platform stack (ADR
 0005) with trajectory evidence, anchored temporal estimation, and LiDAR-IMU
 rotation evidence (ADR 0007): schema-validated `trajectory.json` with
@@ -29,7 +29,7 @@ Start with:
 - `docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`
 - `docs/adr/0005-v0-2-motion-camera-temporal-direction.md`
 - `docs/adr/0006-rename-to-slac.md`
-- `docs/adr/0007-v0-3-slac-direction.md`
+- `docs/adr/0007-v0-3-Calibrex-direction.md`
 - `docs/adr/0008-v0-4-scale-and-absolute-time.md`
 
-Regenerate committed schemas with `slac schema all --output-dir schemas`.
+Regenerate committed schemas with `calibrex schema all --output-dir schemas`.

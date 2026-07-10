@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from slac.core.result import CalibrationResult, FrameGraphSnapshot, MetricResult, RunInfo
-from slac.evaluation.evidence_summary import (
+from calibrex.core.result import CalibrationResult, FrameGraphSnapshot, MetricResult, RunInfo
+from calibrex.evaluation.evidence_summary import (
     _lidar_imu_evidence_items,
     evidence_decision_grade_from_result,
     evidence_summaries_from_result,
 )
-from slac.evaluation.metrics import evaluate_quality
+from calibrex.evaluation.metrics import evaluate_quality
 
 
 def _lidar_imu_result(**metric_overrides: MetricResult) -> CalibrationResult:

@@ -34,7 +34,7 @@ def test_readme_gallery_jobs_match_readme_gifs() -> None:
     gallery_gifs = {str(job.output) for job in tool.README_GIF_JOBS}
 
     assert readme_gifs <= gallery_gifs
-    assert "docs/assets/slac-motion-calibration-loop.gif" in readme_gifs
+    assert "docs/assets/calibrex-motion-calibration-loop.gif" in readme_gifs
     hero_jobs = [job for job in tool.README_GIF_JOBS if job.readme_role == "hero"]
     assert len(hero_jobs) == 1
     assert str(hero_jobs[0].output) in readme_gifs
@@ -74,7 +74,7 @@ def test_readme_gallery_manifest_matches_assets() -> None:
 
 
 def test_readme_gif_tool_timeline_schema_version_matches_core() -> None:
-    from slac.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
+    from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
 
     tool = load_gif_tool()
     assert tool.ONLINE_TIMELINE_SCHEMA_VERSION == ONLINE_TIMELINE_SCHEMA_VERSION
@@ -133,7 +133,7 @@ def test_online_gif_manifest_declares_real_pipeline_provenance() -> None:
     }
     assert online_asset["pipeline"] == {
         "mode": "real_online",
-        "source": "slac calibrate --online",
+        "source": "calibrex calibrate --online",
         "timeline_schema_version": "slac.online_timeline/v0.2",
     }
     assert online_asset["online_run"]["batch_count"] >= 1
@@ -158,7 +158,7 @@ def test_motion_hero_gif_manifest_declares_real_pipeline_provenance() -> None:
     hero_asset = next(
         asset
         for asset in manifest["assets"]
-        if asset["output"] == "docs/assets/slac-motion-calibration-loop.gif"
+        if asset["output"] == "docs/assets/calibrex-motion-calibration-loop.gif"
     )
     assert hero_asset["visual"] == "motion"
     assert hero_asset["readme_role"] == "hero"
@@ -273,7 +273,7 @@ def test_indoor02_motion_hero_gif_skips_when_bag_absent(
     monkeypatch.setattr(tool, "indoor02_kissicp_bag_available", lambda: False)
 
     preserved = {
-        "output": "docs/assets/slac-motion-calibration-loop.gif",
+        "output": "docs/assets/calibrex-motion-calibration-loop.gif",
         "source": "tiers-indoor02-kissicp",
         "visual": "motion",
     }
@@ -343,7 +343,7 @@ def test_indoor02_motion_hero_gif_skips_when_bag_absent(
         allow_fallback=False,
     )
 
-    assert "docs/assets/slac-motion-calibration-loop.gif" not in generated
+    assert "docs/assets/calibrex-motion-calibration-loop.gif" not in generated
 
 
 def test_tiers_gif_manifest_asset_shape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

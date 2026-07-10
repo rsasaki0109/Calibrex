@@ -17,7 +17,7 @@ and focused on building reliable robotics calibration infrastructure.
 - Pressuring contributors to share private datasets, credentials, vehicle logs,
   or proprietary calibration data.
 - Misrepresenting solver accuracy, benchmark status, or safety certification.
-- Copying GPL or incompatible code into slac core without review.
+- Copying GPL or incompatible code into Calibrex core without review.
 
 ## Enforcement
 

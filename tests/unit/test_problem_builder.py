@@ -1,7 +1,7 @@
-from slac.core.config import load_config
-from slac.core.frames import FrameGraph
-from slac.data.inspect import inspect_dataset
-from slac.graph.problem import build_problem
+from calibrex.core.config import load_config
+from calibrex.core.frames import FrameGraph
+from calibrex.data.inspect import inspect_dataset
+from calibrex.graph.problem import build_problem
 
 
 def test_problem_builder_compiles_minimal_config() -> None:
