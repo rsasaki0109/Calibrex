@@ -14,7 +14,7 @@ temporal mode absorbs injected offsets while anchored mode tracks them exactly;
 yaw IMU probes stay uninformative under z-dominated excitation.
 
 <p align="center">
-  <a href="https://github.com/rsasaki0109/slac/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/slac/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">

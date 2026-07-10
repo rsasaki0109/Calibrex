@@ -44,5 +44,5 @@ renamed.
   invalidation.
 - Documentation must distinguish Calibrex branding from SLAC algorithms and
   from the legacy wire namespace.
-- External repository URLs change only after the GitHub repository itself is
-  renamed; until then the current canonical URLs remain valid.
+- The GitHub repository is restored to `rsasaki0109/Calibrex`; local remotes
+  and canonical project URLs must use that name.

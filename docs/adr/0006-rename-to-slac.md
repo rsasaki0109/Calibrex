@@ -12,8 +12,8 @@ ingestion, motion compensation, and KISS-ICP rig-frame odometry. The scope
 shifted from pure calibration evidence to simultaneous localization and
 calibration (SLAC).
 
-The GitHub repository was renamed from `rsasaki0109/Calibrex` to
-`rsasaki0109/slac`. Old URLs redirect.
+At that time, the GitHub repository was renamed from `rsasaki0109/Calibrex` to
+`rsasaki0109/slac`. ADR 0009 later reversed this repository rename.
 
 The name **slac** (lowercase) is deliberate. We are aware of the collision with
 SLAC National Accelerator Laboratory; this project is unrelated robotics
