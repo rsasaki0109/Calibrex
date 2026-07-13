@@ -593,6 +593,48 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.5,
         direction="higher_is_better",
     ),
+    "tum_joint_spatial_ablation_converged_fraction": MetricThreshold(
+        metric="tum_joint_spatial_ablation_converged_fraction",
+        pass_value=1.0,
+        warn_value=0.67,
+        direction="higher_is_better",
+    ),
+    "tum_joint_spatial_ablation_holdout_improved_fraction": MetricThreshold(
+        metric="tum_joint_spatial_ablation_holdout_improved_fraction",
+        pass_value=1.0,
+        warn_value=0.67,
+        direction="higher_is_better",
+    ),
+    "tum_joint_spatial_ablation_worst_holdout_delta_rmse_m": MetricThreshold(
+        metric="tum_joint_spatial_ablation_worst_holdout_delta_rmse_m",
+        pass_value=0.0,
+        warn_value=0.005,
+        unit="m",
+    ),
+    "tum_joint_spatial_lattice_max_abs_offset_m": MetricThreshold(
+        metric="tum_joint_spatial_lattice_max_abs_offset_m",
+        pass_value=0.03,
+        warn_value=0.06,
+        unit="m",
+    ),
+    "tum_joint_spatial_known_bad_detectable_fraction_min": MetricThreshold(
+        metric="tum_joint_spatial_known_bad_detectable_fraction_min",
+        pass_value=1.0,
+        warn_value=0.5,
+        direction="higher_is_better",
+    ),
+    "tum_joint_spatial_cross_window_max_holdout_delta_rmse_m": MetricThreshold(
+        metric="tum_joint_spatial_cross_window_max_holdout_delta_rmse_m",
+        pass_value=0.005,
+        warn_value=0.015,
+        unit="m",
+    ),
+    "tum_joint_spatial_cross_window_nondegrading_fraction": MetricThreshold(
+        metric="tum_joint_spatial_cross_window_nondegrading_fraction",
+        pass_value=1.0,
+        warn_value=0.5,
+        direction="higher_is_better",
+    ),
     "joint_slac_augmented_information_rank": MetricThreshold(
         metric="joint_slac_augmented_information_rank",
         pass_value=12.0,

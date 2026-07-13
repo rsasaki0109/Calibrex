@@ -29,9 +29,13 @@ from calibrex.data.tum_rgbd import (
 )
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
+    JointTrilinearDepthPointToPlaneMeasurement,
     make_joint_depth_point_to_plane_factor,
+    make_joint_lattice_smoothness_factor,
     make_joint_prior_factor,
+    make_joint_trilinear_depth_point_to_plane_factor,
     se3_from_tangent,
+    trilinear_lattice_weights,
 )
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
@@ -48,6 +52,10 @@ NATIVE_TUM_JOINT_SLAC_BACKEND = "native_tum_joint_slac"
 _FACTOR_NAME = "tum_rgbd_joint_point_to_plane"
 _EXTRINSIC_BLOCK = "T_trajectory_camera_correction"
 _DEPTH_BLOCK = "depth_log_scale_bias_m"
+_SPATIAL_DEPTH_BLOCK = "depth_trilinear_ray_offsets_m"
+_SPATIAL_LATTICE_SHAPE = (2, 2, 2)
+_SPATIAL_LATTICE_MINIMUM_M = (-3.1, -2.4, 0.2)
+_SPATIAL_LATTICE_MAXIMUM_M = (3.1, 2.4, 5.0)
 _MIN_QUERY_FRAMES = 4
 _MIN_TOTAL_CORRESPONDENCES = 100
 
@@ -81,6 +89,7 @@ class TUMJointSlacOptions:
     reference_depth_bias_gate_m: float = 0.03
     replication_start_indices: tuple[int, ...] = (60, 180, 300)
     cross_window_nondegradation_margin_m: float = 0.005
+    spatial_lattice_smoothness_sigma_m: float = 0.05
 
     def as_dict(self) -> dict[str, float | int | list[int]]:
         values: dict[str, float | int | list[int]] = {}
@@ -108,6 +117,14 @@ class _TUMJointProblem:
 class _TUMWindowRun:
     start_index: int
     problem: _TUMJointProblem
+    result: JointOptimizerResult
+
+
+@dataclass(frozen=True)
+class _TUMSpatialWindowRun:
+    start_index: int
+    source_problem: _TUMJointProblem
+    data_factors: tuple[JointResidualBlock, ...]
     result: JointOptimizerResult
 
 
@@ -168,6 +185,8 @@ class NativeTUMJointSlacSolver(SolverAdapter):
             root, paired, intrinsics, config, options, primary_run
         )
         transfers = _cross_window_transfers(replication_runs)
+        spatial_runs = _spatial_ablation_runs(config, replication_runs, options)
+        spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
         extrinsic = se3_from_tangent(result.optimized_values[_EXTRINSIC_BLOCK])
         variable = f"T_{camera_node.parent}_{camera}"
         extrinsic_observability = _data_only_shared_observability(
@@ -185,6 +204,9 @@ class NativeTUMJointSlacSolver(SolverAdapter):
             options,
         )
         metrics.update(_replication_metrics(replication_runs, transfers, options))
+        metrics.update(
+            _spatial_ablation_metrics(replication_runs, spatial_runs, spatial_transfers, options)
+        )
         warnings = _warnings(
             result,
             extrinsic_observability.information_rank,
@@ -210,6 +232,8 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 shared_observability=shared_observability,
                 replication_runs=replication_runs,
                 transfers=transfers,
+                spatial_runs=spatial_runs,
+                spatial_transfers=spatial_transfers,
             ),
             warnings=warnings,
             observability=ObservabilityResult(
@@ -236,9 +260,18 @@ def _optimize_problem(
     problem: _TUMJointProblem,
     options: TUMJointSlacOptions,
 ) -> JointOptimizerResult:
+    return _optimize_joint(config, problem.parameter_blocks, problem.all_factors, options)
+
+
+def _optimize_joint(
+    config: CalibrationConfig,
+    parameter_blocks: tuple[JointParameterBlock, ...],
+    factors: tuple[JointResidualBlock, ...],
+    options: TUMJointSlacOptions,
+) -> JointOptimizerResult:
     return BackendNeutralJointOptimizer().solve(
-        problem.parameter_blocks,
-        problem.all_factors,
+        parameter_blocks,
+        factors,
         JointOptimizerOptions(
             max_iterations=max(1, config.solver.max_iterations),
             convergence_tolerance=config.solver.convergence_tolerance,
@@ -320,6 +353,109 @@ def _cross_window_transfers(
                 }
             )
     return tuple(transfers)
+
+
+def _spatial_ablation_runs(
+    config: CalibrationConfig,
+    baseline_runs: tuple[_TUMWindowRun, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[_TUMSpatialWindowRun, ...]:
+    runs: list[_TUMSpatialWindowRun] = []
+    lattice_size = math.prod(_SPATIAL_LATTICE_SHAPE)
+    for baseline in baseline_runs:
+        factors = tuple(
+            make_joint_trilinear_depth_point_to_plane_factor(
+                JointTrilinearDepthPointToPlaneMeasurement(
+                    measurement.measurement_id,
+                    measurement.observation_group,
+                    measurement.normalized_ray_sensor,
+                    measurement.nominal_depth_m,
+                    trilinear_lattice_weights(
+                        _scale_ray(
+                            measurement.normalized_ray_sensor,
+                            measurement.nominal_depth_m,
+                        ),
+                        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                        shape=_SPATIAL_LATTICE_SHAPE,
+                    ),
+                    measurement.plane_point_world_m,
+                    measurement.plane_normal_world,
+                    measurement.transform_world_body_initial,
+                    measurement.transform_body_sensor_initial,
+                    measurement.weight,
+                ),
+                pose_block=_pose_block(index, frame),
+                extrinsic_block=_EXTRINSIC_BLOCK,
+                depth_lattice_block=_SPATIAL_DEPTH_BLOCK,
+            )
+            for index, frame in enumerate(baseline.problem.query_frames)
+            for measurement in baseline.problem.measurements
+            if measurement.observation_group == f"tum-frame-{index:03d}"
+        )
+        priors = tuple(
+            factor for factor in baseline.problem.all_factors if factor.family == "diagonal_prior"
+        )
+        smoothness = make_joint_lattice_smoothness_factor(
+            factor_id="depth-lattice-smoothness",
+            observation_group="depth-lattice-regularization",
+            block=_SPATIAL_DEPTH_BLOCK,
+            shape=_SPATIAL_LATTICE_SHAPE,
+            sigma_m=options.spatial_lattice_smoothness_sigma_m,
+        )
+        blocks = (
+            *(block for block in baseline.problem.parameter_blocks if block.name != _DEPTH_BLOCK),
+            JointParameterBlock(
+                _SPATIAL_DEPTH_BLOCK,
+                (0.0,) * lattice_size,
+                finite_difference_steps=(1.0e-5,) * lattice_size,
+                known_bad_steps=(options.known_bad_depth_bias_m,) * lattice_size,
+            ),
+        )
+        runs.append(
+            _TUMSpatialWindowRun(
+                baseline.start_index,
+                baseline.problem,
+                factors,
+                _optimize_joint(config, blocks, (*factors, *priors, smoothness), options),
+            )
+        )
+    return tuple(runs)
+
+
+def _spatial_cross_window_transfers(
+    runs: tuple[_TUMSpatialWindowRun, ...],
+) -> tuple[dict[str, float | int | None], ...]:
+    transfers: list[dict[str, float | int | None]] = []
+    for source in runs:
+        for target in runs:
+            if source.start_index == target.start_index:
+                continue
+            holdout_ids = set(target.result.holdout_factor_ids)
+            factors = [factor for factor in target.data_factors if factor.factor_id in holdout_ids]
+            values = dict(target.result.optimized_values)
+            values[_EXTRINSIC_BLOCK] = source.result.optimized_values[_EXTRINSIC_BLOCK]
+            values[_SPATIAL_DEPTH_BLOCK] = source.result.optimized_values[_SPATIAL_DEPTH_BLOCK]
+            transferred_rmse = _factor_rmse(factors, values)
+            baseline_rmse = target.result.holdout_rmse
+            transfers.append(
+                {
+                    "source_start_index": source.start_index,
+                    "target_start_index": target.start_index,
+                    "target_spatial_holdout_rmse_m": baseline_rmse,
+                    "transferred_spatial_holdout_rmse_m": transferred_rmse,
+                    "delta_rmse_m": (
+                        transferred_rmse - baseline_rmse
+                        if transferred_rmse is not None and baseline_rmse is not None
+                        else None
+                    ),
+                }
+            )
+    return tuple(transfers)
+
+
+def _scale_ray(ray: tuple[float, float, float], depth_m: float) -> tuple[float, float, float]:
+    return (ray[0] * depth_m, ray[1] * depth_m, ray[2] * depth_m)
 
 
 def _build_problem(
@@ -727,6 +863,93 @@ def _replication_metrics(
     }
 
 
+def _spatial_ablation_metrics(
+    baseline_runs: tuple[_TUMWindowRun, ...],
+    spatial_runs: tuple[_TUMSpatialWindowRun, ...],
+    transfers: tuple[dict[str, float | int | None], ...],
+    options: TUMJointSlacOptions,
+) -> dict[str, MetricResult]:
+    baselines = {run.start_index: run for run in baseline_runs}
+    holdout_deltas: list[float] = []
+    for run in spatial_runs:
+        spatial_rmse = run.result.holdout_rmse
+        scalar_rmse = baselines[run.start_index].result.holdout_rmse
+        if spatial_rmse is not None and scalar_rmse is not None:
+            holdout_deltas.append(spatial_rmse - scalar_rmse)
+    improved = sum(delta < 0.0 for delta in holdout_deltas)
+    transfer_deltas = [
+        float(transfer["delta_rmse_m"])
+        for transfer in transfers
+        if transfer["delta_rmse_m"] is not None
+    ]
+    nondegrading = sum(
+        delta <= options.cross_window_nondegradation_margin_m for delta in transfer_deltas
+    )
+    probe_fractions = []
+    for run in spatial_runs:
+        probes = [probe for probe in run.result.probes if probe.detectable is not None]
+        if probes:
+            probe_fractions.append(sum(probe.detectable is True for probe in probes) / len(probes))
+    max_offset = max(
+        (
+            abs(offset)
+            for run in spatial_runs
+            for offset in run.result.optimized_values[_SPATIAL_DEPTH_BLOCK]
+        ),
+        default=None,
+    )
+    return {
+        "tum_joint_spatial_ablation_converged_fraction": MetricResult(
+            value=(
+                sum(run.result.status == "converged" for run in spatial_runs) / len(baseline_runs)
+                if baseline_runs
+                else None
+            ),
+            grade=(
+                "pass"
+                if baseline_runs
+                and all(run.result.status == "converged" for run in spatial_runs)
+                and len(spatial_runs) == len(baseline_runs)
+                else "fail"
+            ),
+        ),
+        "tum_joint_spatial_ablation_holdout_improved_fraction": MetricResult(
+            value=improved / len(holdout_deltas) if holdout_deltas else None,
+            grade="pass" if holdout_deltas and improved == len(holdout_deltas) else "fail",
+            reason="same-window spatial-lattice holdout RMSE compared with scalar scale/bias",
+        ),
+        "tum_joint_spatial_ablation_worst_holdout_delta_rmse_m": MetricResult(
+            value=max(holdout_deltas) if holdout_deltas else None,
+            unit="m",
+            grade=("pass" if holdout_deltas and max(holdout_deltas) <= 0.0 else "fail"),
+        ),
+        "tum_joint_spatial_lattice_max_abs_offset_m": MetricResult(
+            value=max_offset,
+            unit="m",
+            grade="warn",
+            reason="largest fitted ray-depth control displacement over all windows",
+        ),
+        "tum_joint_spatial_known_bad_detectable_fraction_min": MetricResult(
+            value=min(probe_fractions) if probe_fractions else None,
+            grade=("pass" if probe_fractions and min(probe_fractions) == 1.0 else "warn"),
+        ),
+        "tum_joint_spatial_cross_window_max_holdout_delta_rmse_m": MetricResult(
+            value=max(transfer_deltas) if transfer_deltas else None,
+            unit="m",
+            grade=(
+                "pass"
+                if transfer_deltas
+                and max(transfer_deltas) <= options.cross_window_nondegradation_margin_m
+                else "fail"
+            ),
+        ),
+        "tum_joint_spatial_cross_window_nondegrading_fraction": MetricResult(
+            value=nondegrading / len(transfer_deltas) if transfer_deltas else None,
+            grade=("pass" if transfer_deltas and nondegrading == len(transfer_deltas) else "fail"),
+        ),
+    }
+
+
 def _rotation_angle_deg(transform: SE3) -> float:
     return math.degrees(2.0 * math.acos(min(1.0, abs(transform.rotation_quat_xyzw[3]))))
 
@@ -760,10 +983,12 @@ def _provenance(
     shared_observability: JointObservabilityEvaluation,
     replication_runs: tuple[_TUMWindowRun, ...],
     transfers: tuple[dict[str, float | int | None], ...],
+    spatial_runs: tuple[_TUMSpatialWindowRun, ...],
+    spatial_transfers: tuple[dict[str, float | int | None], ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.3",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.4",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -821,6 +1046,23 @@ def _provenance(
             "this tests shared-parameter transfer, not independent pose transfer"
         ),
         "native_tum_joint_slac_cross_window_transfers": list(transfers),
+        "native_tum_joint_slac_spatial_ablation_model": {
+            "kind": "constrained_trilinear_ray_depth_displacement",
+            "paper_full_xyz_displacement_field": False,
+            "lattice_shape": list(_SPATIAL_LATTICE_SHAPE),
+            "minimum_sensor_m": list(_SPATIAL_LATTICE_MINIMUM_M),
+            "maximum_sensor_m": list(_SPATIAL_LATTICE_MAXIMUM_M),
+            "smoothness": "first_order_scalar_neighbor_differences",
+            "smoothness_sigma_m": options.spatial_lattice_smoothness_sigma_m,
+        },
+        "native_tum_joint_slac_spatial_ablation_windows": [
+            _spatial_window_provenance(run) for run in spatial_runs
+        ],
+        "native_tum_joint_slac_spatial_cross_window_policy": (
+            "source spatial lattice and extrinsic are evaluated with target optimized "
+            "poses and target spatial holdout factors"
+        ),
+        "native_tum_joint_slac_spatial_cross_window_transfers": list(spatial_transfers),
     }
 
 
@@ -852,6 +1094,15 @@ def _window_provenance(root: Path, run: _TUMWindowRun) -> dict[str, Any]:
             (0.0, 0.0, 0.0), extrinsic.translation_m
         ),
         "identity_reference_rotation_error_deg": _rotation_angle_deg(extrinsic),
+        "solver": run.result.as_dict(),
+    }
+
+
+def _spatial_window_provenance(run: _TUMSpatialWindowRun) -> dict[str, Any]:
+    return {
+        "start_index": run.start_index,
+        "status": run.result.status,
+        "lattice_offsets_m": list(run.result.optimized_values[_SPATIAL_DEPTH_BLOCK]),
         "solver": run.result.as_dict(),
     }
 
@@ -955,6 +1206,11 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             values,
             "cross_window_nondegradation_margin_m",
             defaults.cross_window_nondegradation_margin_m,
+        ),
+        spatial_lattice_smoothness_sigma_m=_positive(
+            values,
+            "spatial_lattice_smoothness_sigma_m",
+            defaults.spatial_lattice_smoothness_sigma_m,
         ),
     )
 

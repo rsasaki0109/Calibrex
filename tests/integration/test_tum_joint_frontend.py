@@ -107,6 +107,29 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert all(window["selected_depth_files"] for window in windows)
     transfers = result.run.provenance["native_tum_joint_slac_cross_window_transfers"]
     assert len(transfers) == 6
+    assert result.metrics["tum_joint_spatial_ablation_converged_fraction"].value == 1.0
+    spatial_improved = result.metrics["tum_joint_spatial_ablation_holdout_improved_fraction"]
+    assert spatial_improved.value == pytest.approx(1.0 / 3.0)
+    assert spatial_improved.grade == "fail"
+    spatial_delta = result.metrics["tum_joint_spatial_ablation_worst_holdout_delta_rmse_m"]
+    assert spatial_delta.value is not None and 0.0004 < spatial_delta.value < 0.0006
+    assert spatial_delta.grade == "warn"
+    spatial_offset = result.metrics["tum_joint_spatial_lattice_max_abs_offset_m"]
+    assert spatial_offset.value is not None and 0.07 < spatial_offset.value < 0.08
+    assert spatial_offset.grade == "fail"
+    spatial_detection = result.metrics["tum_joint_spatial_known_bad_detectable_fraction_min"]
+    assert spatial_detection.value == pytest.approx(13.0 / 28.0)
+    assert spatial_detection.grade == "fail"
+    spatial_transfer = result.metrics["tum_joint_spatial_cross_window_max_holdout_delta_rmse_m"]
+    assert spatial_transfer.value is not None and 0.015 < spatial_transfer.value < 0.016
+    assert spatial_transfer.grade == "fail"
+    assert result.metrics[
+        "tum_joint_spatial_cross_window_nondegrading_fraction"
+    ].value == pytest.approx(1.0 / 6.0)
+    spatial_windows = result.run.provenance["native_tum_joint_slac_spatial_ablation_windows"]
+    assert [window["start_index"] for window in spatial_windows] == [60, 180, 300]
+    assert all(len(window["lattice_offsets_m"]) == 8 for window in spatial_windows)
+    assert len(result.run.provenance["native_tum_joint_slac_spatial_cross_window_transfers"]) == 6
     translation = result.metrics["tum_joint_identity_reference_translation_error_m"]
     rotation = result.metrics["tum_joint_identity_reference_rotation_error_deg"]
     assert translation.value is not None and translation.value > 0.10
@@ -120,7 +143,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v0.3"
+        "tum_multicapture_pose_extrinsic_depth/v0.4"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

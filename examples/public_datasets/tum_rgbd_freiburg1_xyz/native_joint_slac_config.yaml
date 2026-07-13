@@ -72,6 +72,7 @@ pipeline:
         reference_depth_bias_gate_m: 0.03
         replication_start_indices: [60, 180, 300]
         cross_window_nondegradation_margin_m: 0.005
+        spatial_lattice_smoothness_sigma_m: 0.05
 
 solver:
   backend: native_tum_joint_slac
@@ -101,6 +102,13 @@ evaluation:
     - tum_joint_replication_depth_bias_range_m
     - tum_joint_cross_window_max_holdout_delta_rmse_m
     - tum_joint_cross_window_nondegrading_fraction
+    - tum_joint_spatial_ablation_converged_fraction
+    - tum_joint_spatial_ablation_holdout_improved_fraction
+    - tum_joint_spatial_ablation_worst_holdout_delta_rmse_m
+    - tum_joint_spatial_lattice_max_abs_offset_m
+    - tum_joint_spatial_known_bad_detectable_fraction_min
+    - tum_joint_spatial_cross_window_max_holdout_delta_rmse_m
+    - tum_joint_spatial_cross_window_nondegrading_fraction
 
 outputs:
   result: result.yaml

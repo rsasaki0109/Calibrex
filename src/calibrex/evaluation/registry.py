@@ -703,6 +703,44 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_spatial_ablation_converged_fraction",
+            "Fraction of TUM spatial-lattice ablation windows converged",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_spatial_ablation_holdout_improved_fraction",
+            "Fraction of windows where spatial lattice improves scalar holdout RMSE",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_spatial_ablation_worst_holdout_delta_rmse_m",
+            "Worst spatial-minus-scalar same-window holdout RMSE change",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_spatial_lattice_max_abs_offset_m",
+            "Largest absolute fitted trilinear ray-depth control offset",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_spatial_known_bad_detectable_fraction_min",
+            "Minimum spatial-lattice known-bad detection fraction over windows",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_spatial_cross_window_max_holdout_delta_rmse_m",
+            "Worst cross-window spatial shared-parameter transfer RMSE change",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_spatial_cross_window_nondegrading_fraction",
+            "Fraction of spatial cross-window transfers within the RMSE margin",
+            family="joint_slac",
+        ),
+        MetricDefinition(
             "joint_slac_point_to_plane_rmse_m",
             "Joint pose-extrinsic point-to-plane RMSE excluding priors",
             "m",
