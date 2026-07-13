@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, load_config
@@ -407,6 +407,7 @@ def _apply_adapter_transforms(
             result.transforms[name].provenance = _adapter_output_provenance(
                 adapter_result.backend,
                 note="adapter output applied to Calibrex output estimate",
+                adapter_provenance=adapter_result.provenance,
             )
             if (
                 adapter_result.backend
@@ -426,6 +427,7 @@ def _apply_adapter_transforms(
                 result.transforms[applied_name].provenance = _adapter_output_provenance(
                     adapter_result.backend,
                     note="relative adapter output composed into rig-frame estimate",
+                    adapter_provenance=adapter_result.provenance,
                 )
                 if (
                     adapter_result.backend
@@ -442,7 +444,12 @@ def _apply_adapter_transforms(
         result.run.provenance["solver_adapter_applied_transforms"] = applied
 
 
-def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateProvenance:
+def _adapter_output_provenance(
+    backend: str,
+    *,
+    note: str,
+    adapter_provenance: dict[str, Any] | None = None,
+) -> TransformEstimateProvenance:
     if backend in {
         NATIVE_JOINT_SLAC_BACKEND,
         NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
@@ -471,15 +478,41 @@ def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateP
             }[backend],
             notes=[note],
         )
+    identity = (
+        adapter_provenance.get("koide_lidar_camera_tool_identity")
+        if adapter_provenance is not None
+        else None
+    )
+    identity = identity if isinstance(identity, dict) else {}
+    execution = (
+        adapter_provenance.get("koide_lidar_camera_execution")
+        if adapter_provenance is not None
+        else None
+    )
+    executed = isinstance(execution, dict) and execution.get("attempted") is True
+    notes = [note]
+    result_sha256 = _optional_text(identity.get("result_sha256"))
+    if result_sha256 is not None:
+        notes.append(f"result_sha256={result_sha256}")
     return TransformEstimateProvenance(
         producer="external_tool",
-        execution_mode="imported",
+        execution_mode="offline_batch" if executed else "imported",
         role_in_comparison="output",
         evidence_level="algorithmically_refined",
-        tool_name=backend,
-        source="solver_adapter",
-        notes=[note],
+        source=_optional_text(identity.get("source_repository")) or "solver_adapter",
+        source_path=_optional_text(identity.get("result_path")),
+        tool_name=_optional_text(identity.get("tool_name")) or backend,
+        tool_version=_optional_text(identity.get("tool_version")),
+        source_commit=_optional_text(identity.get("source_commit")),
+        license_spdx=_optional_text(identity.get("license_spdx")),
+        adapter_version=_optional_text(identity.get("adapter_version")),
+        command=_optional_text(identity.get("command")),
+        notes=notes,
     )
+
+
+def _optional_text(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
 
 
 def _apply_dataset_initialization(

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
+from calibrex.core.provenance import sha256_path
 from calibrex.data.base import StreamSummary
 from calibrex.data.inspect import DatasetInspection
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
@@ -39,7 +40,16 @@ transforms:
                 "factors": {
                     "koide_lidar_camera": {
                         "enabled": True,
-                        "options": {"result_path": str(external_result)},
+                        "options": {
+                            "result_path": str(external_result),
+                            "tool_name": "direct_visual_lidar_calibration",
+                            "tool_version": "test-1.0",
+                            "source_repository": "https://example.test/koide-toolbox",
+                            "source_commit": "0123456789abcdef",
+                            "license_spdx": "BSD-3-Clause",
+                            "training_isolation_declared": True,
+                            "training_isolation_evidence": "fixture output fitted elsewhere",
+                        },
                     }
                 }
             },
@@ -66,6 +76,12 @@ transforms:
     assert result.transforms["T_camera0_lidar0"].translation_m == (1.0, 2.0, 3.0)
     assert result.metrics["koide_lidar_camera_input_ready"].grade == "pass"
     assert result.metrics["koide_lidar_camera_result_available"].grade == "pass"
+    assert result.metrics["koide_lidar_camera_provenance_complete"].grade == "pass"
+    identity = result.provenance["koide_lidar_camera_tool_identity"]
+    assert identity["result_sha256"] == sha256_path(external_result)
+    assert identity["result_size_bytes"] == external_result.stat().st_size
+    assert identity["missing_required_fields"] == []
+    assert identity["complete"] is True
     assert result.provenance["license_boundary"].startswith("external subprocess")
 
 
@@ -102,6 +118,11 @@ def test_koide_lidar_camera_adapter_reports_missing_boundary(tmp_path: Path) -> 
     assert result.status == "not_executed"
     assert result.metrics["koide_lidar_camera_adapter_available"].grade == "warn"
     assert result.metrics["koide_lidar_camera_input_ready"].grade == "fail"
+    assert result.metrics["koide_lidar_camera_provenance_complete"].grade == "warn"
+    assert (
+        "result_sha256"
+        in result.provenance["koide_lidar_camera_tool_identity"]["missing_required_fields"]
+    )
     assert result.warnings
 
 
@@ -173,5 +194,10 @@ print("wrote", sys.argv[1])
     assert result.status == "result_loaded"
     assert result.transforms["T_camera0_lidar0"].translation_m == (7.0, 8.0, 9.0)
     assert result.metrics["koide_lidar_camera_execution_success"].grade == "pass"
+    assert result.metrics["koide_lidar_camera_provenance_complete"].grade == "warn"
     assert result.provenance["koide_lidar_camera_execution"]["attempted"] is True
     assert result.provenance["koide_lidar_camera_execution"]["returncode"] == 0
+    identity = result.provenance["koide_lidar_camera_tool_identity"]
+    assert identity["result_sha256"] == sha256_path(external_result)
+    assert "result_sha256" not in identity["missing_required_fields"]
+    assert "tool_version" in identity["missing_required_fields"]

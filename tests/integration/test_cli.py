@@ -1860,6 +1860,13 @@ pipeline:
       enabled: true
       options:
         result_path: {external_result}
+        tool_name: direct_visual_lidar_calibration
+        tool_version: test-1.0
+        source_repository: https://example.test/koide-toolbox
+        source_commit: 0123456789abcdef
+        license_spdx: BSD-3-Clause
+        training_isolation_declared: true
+        training_isolation_evidence: fixture output fitted elsewhere
     lidar_camera_baseline_comparison:
       enabled: true
       options:
@@ -1901,7 +1908,16 @@ outputs:
     assert output_provenance.execution_mode == "imported"
     assert output_provenance.role_in_comparison == "output"
     assert output_provenance.evidence_level == "algorithmically_refined"
-    assert output_provenance.tool_name == "koide_lidar_camera"
+    assert output_provenance.tool_name == "direct_visual_lidar_calibration"
+    assert output_provenance.tool_version == "test-1.0"
+    assert output_provenance.source == "https://example.test/koide-toolbox"
+    assert output_provenance.source_commit == "0123456789abcdef"
+    assert output_provenance.license_spdx == "BSD-3-Clause"
+    assert output_provenance.adapter_version == "calibrex.koide_lidar_camera_adapter/v0.2"
+    assert output_provenance.source_path == str(external_result)
+    result_digest, _result_size = _sha256_file_for_test(external_result)
+    assert f"result_sha256={result_digest}" in output_provenance.notes
+    assert result.metrics["koide_lidar_camera_provenance_complete"].grade == "pass"
     assert "lidar_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_p95_holdout_m" in result.metrics
@@ -1977,7 +1993,7 @@ outputs:
     external_delta = comparison["pairwise_deltas"]["koide_external"]
     assert external_delta["translation_delta_m"] == pytest.approx(math.sqrt(77.0))
     assert external_delta["rotation_delta_deg"] == 0.0
-    assert external_delta["both_training_isolated"] is False
+    assert external_delta["both_training_isolated"] is True
     assert result.run.provenance["dataset_initialization"]["applied_to"] == "T_base_link_lidar0"
     assert result.run.provenance["solver_adapter"] == "koide_lidar_camera"
     assert result.run.provenance["solver_adapter_applied_transforms"] == ["T_base_link_lidar0"]

@@ -18,6 +18,7 @@ from calibrex.core.config import CalibrationConfig, FactorConfig
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
 from calibrex.core.io import read_mapping
+from calibrex.core.provenance import sha256_path
 from calibrex.core.result import MetricResult
 from calibrex.data.base import StreamSummary
 from calibrex.data.inspect import DatasetInspection
@@ -88,6 +89,58 @@ class AdapterExecutionResult:
         }
 
 
+@dataclass(frozen=True)
+class KoideExternalToolIdentity:
+    """Reproducible identity and output lineage for the external baseline."""
+
+    tool_name: str
+    tool_version: str | None
+    source_repository: str | None
+    source_commit: str | None
+    license_spdx: str | None
+    adapter_version: str
+    command: str | None
+    result_path: str | None
+    result_sha256: str | None
+    result_size_bytes: int | None
+    training_isolation_declared: bool
+    training_isolation_evidence: str | None
+
+    @property
+    def missing_required_fields(self) -> tuple[str, ...]:
+        fields = {
+            "tool_version": self.tool_version,
+            "source_repository": self.source_repository,
+            "source_commit": self.source_commit,
+            "license_spdx": self.license_spdx,
+            "result_sha256": self.result_sha256,
+        }
+        return tuple(name for name, value in fields.items() if value is None)
+
+    @property
+    def complete(self) -> bool:
+        return not self.missing_required_fields
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "tool_name": self.tool_name,
+            "tool_version": self.tool_version,
+            "source_repository": self.source_repository,
+            "source_commit": self.source_commit,
+            "license_spdx": self.license_spdx,
+            "adapter_version": self.adapter_version,
+            "command": self.command,
+            "result_path": self.result_path,
+            "result_sha256": self.result_sha256,
+            "result_size_bytes": self.result_size_bytes,
+            "training_isolation_declared": self.training_isolation_declared,
+            "training_isolation_evidence": self.training_isolation_evidence,
+            "identity_declaration_source": "factor.options plus hashed result payload",
+            "missing_required_fields": list(self.missing_required_fields),
+            "complete": self.complete,
+        }
+
+
 class KoideLidarCameraSolver(SolverAdapter):
     """Optional boundary for Koide-style targetless LiDAR-camera calibration."""
 
@@ -106,6 +159,7 @@ class KoideLidarCameraSolver(SolverAdapter):
         execution = _execute_command(config, inputs) if inputs.execute else AdapterExecutionResult()
         transforms = _load_transforms(inputs.result_path)
         result_exists = _path_exists(inputs.result_path)
+        identity = _external_tool_identity(config, inputs)
         metrics = {
             "koide_lidar_camera_adapter_available": MetricResult(
                 value=1.0 if inputs.command_available or result_exists else 0.0,
@@ -135,6 +189,16 @@ class KoideLidarCameraSolver(SolverAdapter):
                 ),
             ),
             "koide_lidar_camera_execution_success": _execution_metric(execution),
+            "koide_lidar_camera_provenance_complete": MetricResult(
+                value=1.0 if identity.complete else 0.0,
+                grade="pass" if identity.complete else "warn",
+                reason=(
+                    "external tool identity and result digest are complete"
+                    if identity.complete
+                    else "missing external provenance: "
+                    + ", ".join(identity.missing_required_fields)
+                ),
+            ),
         }
         warnings = _warnings(inputs, transforms, execution, result_exists)
         status = _status(inputs, transforms, execution)
@@ -164,6 +228,7 @@ class KoideLidarCameraSolver(SolverAdapter):
                     name: {"convention": "T_parent_child", **transform.as_dict()}
                     for name, transform in sorted(transforms.items())
                 },
+                "koide_lidar_camera_tool_identity": identity.as_dict(),
                 "license_boundary": (
                     "external subprocess/precomputed-result adapter; no external "
                     "calibration code is copied into Calibrex core"
@@ -207,6 +272,39 @@ def _adapter_factor(config: CalibrationConfig) -> tuple[str | None, FactorConfig
 def _adapter_options(config: CalibrationConfig) -> dict[str, Any]:
     _name, factor = _adapter_factor(config)
     return factor.options if factor is not None else {}
+
+
+def _external_tool_identity(
+    config: CalibrationConfig,
+    inputs: KoideLidarCameraInputs,
+) -> KoideExternalToolIdentity:
+    options = _adapter_options(config)
+    result_path = Path(inputs.result_path) if inputs.result_path is not None else None
+    result_exists = result_path is not None and result_path.is_file()
+    return KoideExternalToolIdentity(
+        tool_name=_text_option(options, "tool_name") or "koide_lidar_camera",
+        tool_version=_text_option(options, "tool_version"),
+        source_repository=_text_option(options, "source_repository"),
+        source_commit=_text_option(options, "source_commit"),
+        license_spdx=_text_option(options, "license_spdx"),
+        adapter_version="calibrex.koide_lidar_camera_adapter/v0.2",
+        command=inputs.command,
+        result_path=inputs.result_path,
+        result_sha256=sha256_path(result_path) if result_exists and result_path else None,
+        result_size_bytes=result_path.stat().st_size if result_exists and result_path else None,
+        training_isolation_declared=_bool_option(
+            options, "training_isolation_declared", default=False
+        ),
+        training_isolation_evidence=_text_option(options, "training_isolation_evidence"),
+    )
+
+
+def _text_option(options: dict[str, Any], key: str) -> str | None:
+    value = options.get(key)
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _stream_names(streams: list[StreamSummary], *, kind: str) -> tuple[str, ...]:

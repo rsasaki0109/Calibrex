@@ -166,6 +166,16 @@ threshold is declared. The provenance records each transform, split IDs,
 pairwise deltas, structured capture-time evidence, and training-isolation
 declaration.
 
+The Koide-style adapter additionally materializes a typed external-tool
+identity containing the tool name/version, source repository and commit,
+SPDX license identifier, adapter version, command, result path, result size,
+and result SHA-256. `koide_lidar_camera_provenance_complete` passes only when
+the version, repository, commit, license, and output digest are all present.
+An incomplete identity does not erase a readable transform, but it remains a
+WARN provenance boundary. When an external transform is applied, the same
+tool identity is copied into the schema-valid per-transform provenance instead
+of being reduced to a generic adapter label.
+
 KITTI Velodyne `.bin` payloads contain `(x, y, z, intensity)` but no per-point
 capture offset. The configured policy is therefore validated and serialized,
 while `per_point_times_available=false` and `deskew_applied=false` are explicit.

@@ -1186,6 +1186,11 @@ def _register_builtin_metrics() -> None:
             family="backend",
         ),
         MetricDefinition(
+            "koide_lidar_camera_provenance_complete",
+            "External LiDAR-camera tool identity and result-digest completeness",
+            family="provenance",
+        ),
+        MetricDefinition(
             "lidar_camera_transform_pairs",
             "Number of camera-LiDAR transform pairs available for overlay evaluation",
             "pairs",
