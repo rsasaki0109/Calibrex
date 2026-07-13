@@ -30,6 +30,11 @@ from calibrex.core.result import (
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.nuscenes import NuScenesDataset, read_nuscenes_ego_poses
 from calibrex.data.nuscenes_radar import NuScenesRadarPCD, read_nuscenes_radar_pcd
+from calibrex.solvers.radar_joint_spatiotemporal_solver import (
+    RadarJointSpatiotemporalOptions,
+    RadarJointSpatiotemporalResult,
+    RadarJointSpatiotemporalSolver,
+)
 from calibrex.solvers.radar_spatiotemporal_lever_arm_solver import (
     RadarSpatiotemporalLeverArmOptions,
     RadarSpatiotemporalLeverArmResult,
@@ -58,8 +63,10 @@ class NuScenesRadarSpatiotemporalEvidence:
     reason: str
     result: RadarSpatiotemporalLeverArmResult | None
     rotation_result: RadarTrajectoryRotationResult | None
+    joint_result: RadarJointSpatiotemporalResult | None
     channel: str
     rotation_ego_radar_xyzw: QuaternionXYZW
+    translation_ego_radar_m: Vector3
     measurement_count: int
     reference_sample_count: int
     rejected_scan_count: int
@@ -71,6 +78,7 @@ class NuScenesRadarSpatiotemporalEvidence:
             "reason": self.reason,
             "channel": self.channel,
             "rotation_ego_radar_xyzw": list(self.rotation_ego_radar_xyzw),
+            "translation_ego_radar_m": list(self.translation_ego_radar_m),
             "measurement_count": self.measurement_count,
             "reference_sample_count": self.reference_sample_count,
             "rejected_scan_count": self.rejected_scan_count,
@@ -78,6 +86,7 @@ class NuScenesRadarSpatiotemporalEvidence:
             "rotation_result": (
                 self.rotation_result.as_dict() if self.rotation_result is not None else None
             ),
+            "joint_result": self.joint_result.as_dict() if self.joint_result is not None else None,
             "raw_input_files": list(self.raw_input_files),
             "metrics_origin": "recomputed",
             "dataset_license": "nuScenes terms of use; user-supplied local download",
@@ -112,11 +121,15 @@ def radar_spatiotemporal_metrics_from_result(
             )
         }
     t_ego_radar = SE3.from_lists(transform.translation_m, transform.rotation_quat_xyzw)
+    time_config = config.time_offsets.get(sensor_name)
     evidence = summarize_nuscenes_radar_spatiotemporal(
         dataset_path=config.dataset.path,
         channel=channel,
         rotation_ego_radar_xyzw=t_ego_radar.rotation_quat_xyzw,
         translation_ego_radar_m=t_ego_radar.translation_m,
+        initial_time_offset_sec=time_config.initial_sec if time_config is not None else 0.0,
+        joint_known_bad_rotation_deg=float(options.get("joint_known_bad_rotation_deg", 5.0)),
+        joint_max_initial_residual_mps=float(options.get("joint_max_initial_residual_mps", 3.0)),
         options=RadarSpatiotemporalLeverArmOptions(
             max_abs_time_offset_sec=float(options.get("max_abs_time_offset_sec", 0.1)),
             time_offset_step_sec=float(options.get("time_offset_step_sec", 0.002)),
@@ -168,6 +181,9 @@ def summarize_nuscenes_radar_spatiotemporal(
     channel: str,
     rotation_ego_radar_xyzw: QuaternionXYZW,
     translation_ego_radar_m: Vector3 = (0.0, 0.0, 0.0),
+    initial_time_offset_sec: float = 0.0,
+    joint_known_bad_rotation_deg: float = 5.0,
+    joint_max_initial_residual_mps: float = 3.0,
     options: RadarSpatiotemporalLeverArmOptions,
     max_frames: int = 64,
 ) -> NuScenesRadarSpatiotemporalEvidence:
@@ -183,8 +199,10 @@ def summarize_nuscenes_radar_spatiotemporal(
             "nuScenes metadata, ego poses, or Radar records are unavailable",
             None,
             None,
+            None,
             channel,
             rotation_ego_radar_xyzw,
+            translation_ego_radar_m,
             0,
             0,
             0,
@@ -224,7 +242,30 @@ def summarize_nuscenes_radar_spatiotemporal(
             RadarVelocityMeasurement(f"{channel}:{record.timestamp_ns}", timestamp, velocity)
         )
         manifests.append(_manifest(payload, "nuscenes_radar_pcd"))
-    rotation_pairs = _rotation_pairs(measurements, reference, translation_ego_radar_m)
+    joint_solved = RadarJointSpatiotemporalSolver().solve(
+        measurements,
+        reference,
+        SE3(translation_ego_radar_m, rotation_ego_radar_xyzw),
+        RadarJointSpatiotemporalOptions(
+            holdout_ratio=options.holdout_ratio,
+            split_seed=options.split_seed,
+            min_train_measurements=options.min_train_measurements,
+            max_initial_residual_mps=joint_max_initial_residual_mps,
+            max_abs_time_offset_sec=options.max_abs_time_offset_sec,
+            initial_time_offset_sec=initial_time_offset_sec,
+            rank_tolerance=options.joint_rank_tolerance,
+            max_condition_number=options.max_joint_condition_number,
+            known_bad_translation_m=options.known_bad_translation_m,
+            known_bad_rotation_deg=joint_known_bad_rotation_deg,
+            known_bad_time_offset_sec=options.known_bad_time_offset_sec,
+            known_bad_margin_mps=options.known_bad_margin_mps,
+        ),
+    )
+    joint_rejected = set(joint_solved.rejected_initial_residual_ids)
+    comparison_measurements = [
+        item for item in measurements if item.measurement_id not in joint_rejected
+    ]
+    rotation_pairs = _rotation_pairs(comparison_measurements, reference, translation_ego_radar_m)
     rotation_solved = RadarTrajectoryRotationSolver().solve(
         rotation_pairs,
         RadarTrajectoryRotationOptions(
@@ -233,7 +274,7 @@ def summarize_nuscenes_radar_spatiotemporal(
         ),
     )
     solved = RadarSpatiotemporalLeverArmSolver().solve(
-        measurements, reference, rotation_ego_radar_xyzw, options
+        comparison_measurements, reference, rotation_ego_radar_xyzw, options
     )
     status = "scored" if solved.status == "converged" else "inconclusive"
     return NuScenesRadarSpatiotemporalEvidence(
@@ -241,8 +282,10 @@ def summarize_nuscenes_radar_spatiotemporal(
         solved.reason,
         solved,
         rotation_solved,
+        joint_solved,
         channel,
         rotation_ego_radar_xyzw,
+        translation_ego_radar_m,
         len(measurements),
         len(reference),
         rejected,
@@ -480,6 +523,51 @@ def _evidence_metrics(evidence: NuScenesRadarSpatiotemporalEvidence) -> dict[str
                     value=rotation_fraction,
                     unit="fraction",
                     grade="pass" if rotation_fraction == 1.0 else "warn",
+                ),
+            }
+        )
+    joint = evidence.joint_result
+    if joint is not None:
+        joint_detectable = [probe.detectable for probe in joint.probes]
+        joint_fraction = (
+            sum(value is True for value in joint_detectable) / len(joint_detectable)
+            if joint_detectable
+            else None
+        )
+        joint_converged = joint.status == "converged"
+        common_split = set(joint.train_measurement_ids) == set(
+            solved.train_measurement_ids
+        ) and set(joint.holdout_measurement_ids) == set(solved.holdout_measurement_ids)
+        metrics.update(
+            {
+                "radar_joint_spatiotemporal_holdout_rmse_mps": MetricResult(
+                    value=joint.holdout_rmse_mps,
+                    unit="m/s",
+                    grade="pass" if joint_converged else "warn",
+                    reason=joint.reason,
+                ),
+                "radar_joint_spatiotemporal_information_rank": MetricResult(
+                    value=float(joint.information_rank),
+                    unit="rank",
+                    grade="pass" if joint.information_rank == 7 else "warn",
+                    reason=joint.reason,
+                ),
+                "radar_joint_spatiotemporal_condition_number": MetricResult(
+                    value=joint.information_condition_number,
+                    unit="ratio",
+                    grade="pass" if joint_converged else "warn",
+                    reason="unit-dependent local train Jacobian diagnostic; not covariance",
+                ),
+                "radar_joint_spatiotemporal_known_bad_detectable_fraction": MetricResult(
+                    value=joint_fraction,
+                    unit="fraction",
+                    grade="pass" if joint_fraction == 1.0 else "warn",
+                ),
+                "radar_joint_spatiotemporal_common_split_consistent": MetricResult(
+                    value=1.0 if common_split else 0.0,
+                    unit="bool",
+                    grade="pass" if common_split else "warn",
+                    reason="joint and staged estimators must use the same eligible IDs and split",
                 ),
             }
         )

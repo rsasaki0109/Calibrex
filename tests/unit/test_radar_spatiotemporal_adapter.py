@@ -73,3 +73,4 @@ def test_nuscenes_adapter_reports_missing_public_download(tmp_path: Path) -> Non
     assert evidence.result is None
     assert evidence.raw_input_files == ()
     assert evidence.as_dict()["rotation_ego_radar_xyzw"] == list(rotation)
+    assert evidence.as_dict()["translation_ego_radar_m"] == [0.0, 0.0, 0.0]

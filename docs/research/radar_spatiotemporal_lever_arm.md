@@ -4,10 +4,12 @@
 
 Calibrex estimates Radar rotation, translation (lever arm), and a constant
 Radar clock offset from timestamped scan-wise Radar ego velocities and a
-reference-body kinematic trajectory. These are staged estimators: the 3D
-rotation stage requires a supplied lever arm and clock offset, while the
-translation/time stage requires a supplied rotation. This avoids disguising a
-non-convex joint problem as a closed-form all-at-once solution.
+reference-body kinematic trajectory. Two closed-form/profiled stages remain
+available: the 3D rotation stage requires a supplied lever arm and clock
+offset, while the translation/time stage requires a supplied rotation. A
+separate seven-DoF nonlinear solver jointly refines rotation, lever arm, and
+time, and is explicitly reported as a local LM result rather than a
+closed-form or globally optimal estimate.
 
 The measurement contract follows the velocity formulations used by:
 
@@ -48,6 +50,37 @@ collinear velocity excitation is rejected because rotation about that line is
 unobservable. Holdout falsification rotates the estimate by both signs of five
 degrees around roll, pitch, and yaw. All six probes and the full solver options
 are serialized together with the ICRA 2021 primary-paper identity.
+
+## Joint seven-DoF specialization
+
+`RadarJointSpatiotemporalSolver` implements a fixed-reference-trajectory
+specialization of Wise, Cheng, and Kelly (T-RO 2023, DOI
+`10.1109/TRO.2023.3311680`). It jointly optimizes the six components of
+`T_body_radar` and `dt_radar` against the same vector velocity equation. The
+paper's camera trajectory, monocular scale, and image factors are not claimed
+or reproduced; the reference trajectory is supplied and linearly
+interpolated.
+
+The implementation uses the backend-neutral robust LM optimizer. Time is
+parameterized as `dt_max tanh(s)` so every numerical perturbation retains
+declared interpolation support. Input measurements that lack support over the
+entire `[-dt_max, +dt_max]` interval are excluded before the deterministic
+train/holdout split. The local seven-column train Jacobian reports its full
+spectrum, relative rank threshold, rank, condition number, and weak parameter
+blocks. Condition remains unit-dependent and is not covariance.
+
+Following the paper's real-vehicle preprocessing requirement, scans whose
+vector residual at the declared initial calibration exceeds 3 m/s are rejected
+before splitting. This gate is fixed in the public config, uses no fitted
+parameters or holdout outcome, and serializes every rejected measurement ID.
+It catches gross velocity failures while leaving ordinary calibration error to
+the robust optimizer.
+
+After fitting, unchanged holdout data receive both signs of 10 cm x/y/z,
+5 degree roll/pitch/yaw, and 20 ms clock perturbations: fourteen probes in
+total. Synthetic tests jointly recover all seven truth parameters, reject
+constant-velocity zero-angular-rate motion, verify duplicate-ID rejection,
+and preserve primary-paper and specialization provenance.
 
 ## Measurement and time conventions
 
@@ -114,6 +147,15 @@ translation as its lever arm. It publishes rotation holdout RMSE, information
 rank and condition, and the six-probe detectable fraction. This estimate is not
 fed back into the translation/time stage in the same run, preventing
 train-data self-confirmation.
+
+It also runs the seven-DoF joint solver from the configured extrinsic without
+feeding that result into either staged estimator. Joint and staged evidence
+share the joint solver's declared initial-residual integrity filter and must
+contain identical train and holdout IDs; this is a published metric, not an
+assumption. Public scoring reports joint holdout RMSE, rank 7/7,
+unit-dependent condition, and fourteen-probe detection. Planar road motion is
+expected to be weak and remains an honest `INCONCLUSIVE` when the joint
+Jacobian is deficient.
 
 nuScenes automotive Radar has essentially planar LOS support, while ordinary
 road motion is dominated by yaw. Consequently, full three-axis lever-arm rank

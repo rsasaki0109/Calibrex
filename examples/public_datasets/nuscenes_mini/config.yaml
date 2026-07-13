@@ -126,6 +126,8 @@ pipeline:
         joint_rank_tolerance: 1.0e-8
         max_joint_condition_number: 1.0e6
         known_bad_translation_m: 0.10
+        joint_known_bad_rotation_deg: 5.0
+        joint_max_initial_residual_mps: 3.0
         known_bad_time_offset_sec: 0.020
         known_bad_margin_mps: 0.020
 
@@ -166,6 +168,11 @@ evaluation:
     - radar_rotation_information_rank
     - radar_rotation_condition_number
     - radar_rotation_known_bad_detectable_fraction
+    - radar_joint_spatiotemporal_holdout_rmse_mps
+    - radar_joint_spatiotemporal_information_rank
+    - radar_joint_spatiotemporal_condition_number
+    - radar_joint_spatiotemporal_known_bad_detectable_fraction
+    - radar_joint_spatiotemporal_common_split_consistent
 
 outputs:
   result: result.yaml

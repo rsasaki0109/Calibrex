@@ -1127,6 +1127,14 @@ fed into the lever-arm/clock stage in that run. Ordinary road motion can still
 be poorly conditioned; such data remain `INCONCLUSIVE` with the weak spectrum
 preserved instead of being reduced to a yaw-only success.
 
+A third, independent path jointly refines all six Radar extrinsic components
+and the bounded clock offset with the backend-neutral LM optimizer. It uses
+the same eligible scan IDs and train/holdout split as the staged solver, which
+is checked by `radar_joint_spatiotemporal_common_split_consistent`. Rank must
+be 7/7 and all fourteen signed spatial/temporal controls remain visible; the
+joint estimate is diagnostic and is not automatically applied on weak road
+motion.
+
 `input_diagnostics` records missing extrinsics, insufficient records, missing
 ego poses, low-motion exclusions, missing or malformed PCD payloads, and frames
 without eligible static returns. Counts are complete, while example events are

@@ -103,6 +103,13 @@ from calibrex.solvers.radar_ego_velocity_solver import (
     RadarEgoVelocitySolver,
     RadarEgoVelocitySolverOptions,
 )
+from calibrex.solvers.radar_joint_spatiotemporal_solver import (
+    RadarJointSpatiotemporalOptions,
+    RadarJointSpatiotemporalProbe,
+    RadarJointSpatiotemporalResult,
+    RadarJointSpatiotemporalSolver,
+    radar_joint_spatiotemporal_rmse,
+)
 from calibrex.solvers.radar_spatiotemporal_lever_arm_solver import (
     RadarSpatiotemporalLeverArmOptions,
     RadarSpatiotemporalLeverArmResult,
@@ -227,6 +234,10 @@ __all__ = [
     "RadarEgoVelocityResult",
     "RadarEgoVelocitySolver",
     "RadarEgoVelocitySolverOptions",
+    "RadarJointSpatiotemporalOptions",
+    "RadarJointSpatiotemporalProbe",
+    "RadarJointSpatiotemporalResult",
+    "RadarJointSpatiotemporalSolver",
     "RadarRotationProbe",
     "RadarSpatiotemporalLeverArmOptions",
     "RadarSpatiotemporalLeverArmResult",
@@ -262,6 +273,7 @@ __all__ = [
     "lidar_pair_dataset_files",
     "lidar_pair_solve_inputs",
     "load_lidar_pair",
+    "radar_joint_spatiotemporal_rmse",
     "radar_spatiotemporal_rmse",
     "radar_trajectory_rotation_rmse",
     "radar_trajectory_yaw_rmse",

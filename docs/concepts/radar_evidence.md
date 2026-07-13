@@ -67,8 +67,8 @@ learning-style train/holdout protocol.
 
 | Paper | Design consequence for Calibrex |
 | --- | --- |
-| [Wise et al., continuous-time radar-camera calibration](https://arxiv.org/abs/2103.07505) | Use signed line-of-sight Doppler residuals, evaluate motion excitation, and eventually sample trajectory velocity at each radar measurement time. |
-| [Wise, Cheng, and Kelly, spatiotemporal calibration](https://arxiv.org/abs/2211.01871) | Keep temporal convention and spatial extrinsic evidence connected through one trajectory; diagnose time/extrinsic compensation instead of accepting a low residual alone. |
+| [Wise et al., continuous-time radar-camera calibration](https://arxiv.org/abs/2103.07505) | Use signed line-of-sight Doppler residuals, evaluate motion excitation, and sample trajectory velocity at each Radar measurement time. |
+| [Wise, Cheng, and Kelly, spatiotemporal calibration](https://arxiv.org/abs/2211.01871) | Jointly refine the six-DoF extrinsic and bounded clock offset against one fixed reference trajectory; retain staged comparisons, rank, holdout, and compensation probes instead of accepting a low residual alone. |
 | [Cheng, Wise, and Kelly, radar-pair calibration](https://arxiv.org/abs/2302.00660) | Report identifiable components and motion requirements. Yaw probes are justified; unconditional translation probes are not. |
 | [RAVE radar ego-velocity estimation](https://arxiv.org/abs/2406.18850) | Add robust static-return selection, inlier ratio, direction coverage, and uncertainty before promoting the metric to a policy gate. |
 | [Joint radar-camera-LiDAR calibration](https://doi.org/10.1109/TIV.2021.3065208) | Keep target-based tools behind adapters and use loop-closure residuals as independent validation evidence. |
