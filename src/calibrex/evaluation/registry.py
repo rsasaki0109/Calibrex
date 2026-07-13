@@ -725,6 +725,12 @@ def _register_builtin_metrics() -> None:
             "joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_spatial_constant_bias_range_m",
+            "Range of separated constant depth bias over TUM temporal windows",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_spatial_known_bad_detectable_fraction_min",
             "Minimum spatial-lattice known-bad detection fraction over windows",
             family="joint_slac",

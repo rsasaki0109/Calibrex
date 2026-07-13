@@ -9,8 +9,10 @@ from calibrex.graph.joint_factors import (
     JointPointToPlaneMeasurement,
     JointRadarDopplerMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
+    make_joint_centered_trilinear_depth_point_to_plane_factor,
     make_joint_depth_point_to_plane_factor,
     make_joint_lattice_smoothness_factor,
+    make_joint_lattice_zero_mean_factor,
     make_joint_point_to_plane_factor,
     make_joint_prior_factor,
     make_joint_radar_doppler_factor,
@@ -191,6 +193,20 @@ def test_lattice_smoothness_uses_each_axis_neighbor_once() -> None:
     assert factor.split_policy == "train_only"
 
 
+def test_lattice_zero_mean_factor_is_train_only() -> None:
+    factor = make_joint_lattice_zero_mean_factor(
+        factor_id="center",
+        observation_group="regularization",
+        block="lattice",
+        size=4,
+        sigma_m=0.01,
+    )
+
+    assert factor.residuals({"lattice": (0.01, -0.02, 0.03, -0.02)}) == pytest.approx((0.0,))
+    assert factor.residuals({"lattice": (0.01,) * 4}) == pytest.approx((1.0,))
+    assert factor.split_policy == "train_only"
+
+
 def test_se3_tangent_requires_six_values() -> None:
     with pytest.raises(ValueError, match="six"):
         se3_from_tangent((0.0, 0.0))
@@ -289,10 +305,13 @@ def test_trilinear_depth_lattice_recovers_synthetic_control_truth() -> None:
     shape = (2, 2, 2)
     minimum = (-0.5, -0.4, 1.0)
     maximum = (0.5, 0.4, 2.0)
-    truth = (-0.03, 0.01, 0.025, -0.015, 0.02, -0.01, 0.035, -0.02)
+    bias_truth = 0.04
+    truth = (-0.03, 0.01, 0.02, -0.01, 0.025, -0.015, 0.03, -0.03)
+    assert sum(truth) == pytest.approx(0.0)
     blocks = [
         JointParameterBlock("pose", (0.0,) * 6, fixed=True),
         JointParameterBlock("extrinsic", (0.0,) * 6, fixed=True),
+        JointParameterBlock("bias", (0.0,), known_bad_steps=(0.02,)),
         JointParameterBlock("lattice", (0.0,) * 8, known_bad_steps=(0.02,) * 8),
     ]
     factors = []
@@ -308,13 +327,13 @@ def test_trilinear_depth_lattice_recovers_synthetic_control_truth() -> None:
                 weights = trilinear_lattice_weights(
                     point, minimum=minimum, maximum=maximum, shape=shape
                 )
-                displacement = sum(
+                displacement = bias_truth + sum(
                     weight * offset for weight, offset in zip(weights, truth, strict=True)
                 )
                 ray = (point[0] / point[2], point[1] / point[2], 1.0)
                 corrected = tuple(value * (point[2] + displacement) for value in ray)
                 factors.append(
-                    make_joint_trilinear_depth_point_to_plane_factor(
+                    make_joint_centered_trilinear_depth_point_to_plane_factor(
                         JointTrilinearDepthPointToPlaneMeasurement(
                             f"lattice-{sample_index:03d}",
                             f"capture-{sample_index % 5}",
@@ -328,10 +347,20 @@ def test_trilinear_depth_lattice_recovers_synthetic_control_truth() -> None:
                         ),
                         pose_block="pose",
                         extrinsic_block="extrinsic",
-                        depth_lattice_block="lattice",
+                        depth_bias_block="bias",
+                        centered_lattice_block="lattice",
                     )
                 )
                 sample_index += 1
+    factors.append(
+        make_joint_lattice_zero_mean_factor(
+            factor_id="lattice-center",
+            observation_group="regularization",
+            block="lattice",
+            size=8,
+            sigma_m=1.0e-4,
+        )
+    )
 
     result = BackendNeutralJointOptimizer().solve(
         blocks,
@@ -340,8 +369,9 @@ def test_trilinear_depth_lattice_recovers_synthetic_control_truth() -> None:
     )
 
     assert result.status == "converged"
+    assert result.optimized_values["bias"] == pytest.approx((bias_truth,), abs=1e-7)
     assert result.optimized_values["lattice"] == pytest.approx(truth, abs=1e-7)
-    assert result.information_rank == 8
+    assert result.information_rank == 9
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
-    assert len(result.probes) == 16
+    assert len(result.probes) == 18
     assert all(probe.detectable is True for probe in result.probes)

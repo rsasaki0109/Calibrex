@@ -617,6 +617,12 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.06,
         unit="m",
     ),
+    "tum_joint_spatial_constant_bias_range_m": MetricThreshold(
+        metric="tum_joint_spatial_constant_bias_range_m",
+        pass_value=0.03,
+        warn_value=0.06,
+        unit="m",
+    ),
     "tum_joint_spatial_known_bad_detectable_fraction_min": MetricThreshold(
         metric="tum_joint_spatial_known_bad_detectable_fraction_min",
         pass_value=1.0,

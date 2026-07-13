@@ -30,10 +30,11 @@ from calibrex.data.tum_rgbd import (
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
+    make_joint_centered_trilinear_depth_point_to_plane_factor,
     make_joint_depth_point_to_plane_factor,
     make_joint_lattice_smoothness_factor,
+    make_joint_lattice_zero_mean_factor,
     make_joint_prior_factor,
-    make_joint_trilinear_depth_point_to_plane_factor,
     se3_from_tangent,
     trilinear_lattice_weights,
 )
@@ -52,7 +53,8 @@ NATIVE_TUM_JOINT_SLAC_BACKEND = "native_tum_joint_slac"
 _FACTOR_NAME = "tum_rgbd_joint_point_to_plane"
 _EXTRINSIC_BLOCK = "T_trajectory_camera_correction"
 _DEPTH_BLOCK = "depth_log_scale_bias_m"
-_SPATIAL_DEPTH_BLOCK = "depth_trilinear_ray_offsets_m"
+_SPATIAL_BIAS_BLOCK = "depth_spatial_constant_bias_m"
+_SPATIAL_DEPTH_BLOCK = "depth_zero_mean_trilinear_ray_offsets_m"
 _SPATIAL_LATTICE_SHAPE = (2, 2, 2)
 _SPATIAL_LATTICE_MINIMUM_M = (-3.1, -2.4, 0.2)
 _SPATIAL_LATTICE_MAXIMUM_M = (3.1, 2.4, 5.0)
@@ -90,6 +92,7 @@ class TUMJointSlacOptions:
     replication_start_indices: tuple[int, ...] = (60, 180, 300)
     cross_window_nondegradation_margin_m: float = 0.005
     spatial_lattice_smoothness_sigma_m: float = 0.05
+    spatial_lattice_zero_mean_sigma_m: float = 1.0e-4
 
     def as_dict(self) -> dict[str, float | int | list[int]]:
         values: dict[str, float | int | list[int]] = {}
@@ -364,7 +367,7 @@ def _spatial_ablation_runs(
     lattice_size = math.prod(_SPATIAL_LATTICE_SHAPE)
     for baseline in baseline_runs:
         factors = tuple(
-            make_joint_trilinear_depth_point_to_plane_factor(
+            make_joint_centered_trilinear_depth_point_to_plane_factor(
                 JointTrilinearDepthPointToPlaneMeasurement(
                     measurement.measurement_id,
                     measurement.observation_group,
@@ -387,7 +390,8 @@ def _spatial_ablation_runs(
                 ),
                 pose_block=_pose_block(index, frame),
                 extrinsic_block=_EXTRINSIC_BLOCK,
-                depth_lattice_block=_SPATIAL_DEPTH_BLOCK,
+                depth_bias_block=_SPATIAL_BIAS_BLOCK,
+                centered_lattice_block=_SPATIAL_DEPTH_BLOCK,
             )
             for index, frame in enumerate(baseline.problem.query_frames)
             for measurement in baseline.problem.measurements
@@ -403,8 +407,21 @@ def _spatial_ablation_runs(
             shape=_SPATIAL_LATTICE_SHAPE,
             sigma_m=options.spatial_lattice_smoothness_sigma_m,
         )
+        zero_mean = make_joint_lattice_zero_mean_factor(
+            factor_id="depth-lattice-zero-mean",
+            observation_group="depth-lattice-regularization",
+            block=_SPATIAL_DEPTH_BLOCK,
+            size=lattice_size,
+            sigma_m=options.spatial_lattice_zero_mean_sigma_m,
+        )
         blocks = (
             *(block for block in baseline.problem.parameter_blocks if block.name != _DEPTH_BLOCK),
+            JointParameterBlock(
+                _SPATIAL_BIAS_BLOCK,
+                (0.0,),
+                finite_difference_steps=(1.0e-5,),
+                known_bad_steps=(options.known_bad_depth_bias_m,),
+            ),
             JointParameterBlock(
                 _SPATIAL_DEPTH_BLOCK,
                 (0.0,) * lattice_size,
@@ -417,7 +434,12 @@ def _spatial_ablation_runs(
                 baseline.start_index,
                 baseline.problem,
                 factors,
-                _optimize_joint(config, blocks, (*factors, *priors, smoothness), options),
+                _optimize_joint(
+                    config,
+                    blocks,
+                    (*factors, *priors, smoothness, zero_mean),
+                    options,
+                ),
             )
         )
     return tuple(runs)
@@ -435,6 +457,7 @@ def _spatial_cross_window_transfers(
             factors = [factor for factor in target.data_factors if factor.factor_id in holdout_ids]
             values = dict(target.result.optimized_values)
             values[_EXTRINSIC_BLOCK] = source.result.optimized_values[_EXTRINSIC_BLOCK]
+            values[_SPATIAL_BIAS_BLOCK] = source.result.optimized_values[_SPATIAL_BIAS_BLOCK]
             values[_SPATIAL_DEPTH_BLOCK] = source.result.optimized_values[_SPATIAL_DEPTH_BLOCK]
             transferred_rmse = _factor_rmse(factors, values)
             baseline_rmse = target.result.holdout_rmse
@@ -898,6 +921,7 @@ def _spatial_ablation_metrics(
         ),
         default=None,
     )
+    spatial_biases = [run.result.optimized_values[_SPATIAL_BIAS_BLOCK][0] for run in spatial_runs]
     return {
         "tum_joint_spatial_ablation_converged_fraction": MetricResult(
             value=(
@@ -927,7 +951,13 @@ def _spatial_ablation_metrics(
             value=max_offset,
             unit="m",
             grade="warn",
-            reason="largest fitted ray-depth control displacement over all windows",
+            reason="largest fitted zero-mean ray-depth contrast over all windows",
+        ),
+        "tum_joint_spatial_constant_bias_range_m": MetricResult(
+            value=(max(spatial_biases) - min(spatial_biases) if spatial_biases else None),
+            unit="m",
+            grade="warn",
+            reason="window spread of the constant mode separated from spatial contrasts",
         ),
         "tum_joint_spatial_known_bad_detectable_fraction_min": MetricResult(
             value=min(probe_fractions) if probe_fractions else None,
@@ -988,7 +1018,7 @@ def _provenance(
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.4",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.5",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -1047,13 +1077,15 @@ def _provenance(
         ),
         "native_tum_joint_slac_cross_window_transfers": list(transfers),
         "native_tum_joint_slac_spatial_ablation_model": {
-            "kind": "constrained_trilinear_ray_depth_displacement",
+            "kind": "constant_plus_zero_mean_trilinear_ray_depth_displacement",
             "paper_full_xyz_displacement_field": False,
             "lattice_shape": list(_SPATIAL_LATTICE_SHAPE),
             "minimum_sensor_m": list(_SPATIAL_LATTICE_MINIMUM_M),
             "maximum_sensor_m": list(_SPATIAL_LATTICE_MAXIMUM_M),
             "smoothness": "first_order_scalar_neighbor_differences",
             "smoothness_sigma_m": options.spatial_lattice_smoothness_sigma_m,
+            "zero_mean": "soft mean-offset equality residual",
+            "zero_mean_sigma_m": options.spatial_lattice_zero_mean_sigma_m,
         },
         "native_tum_joint_slac_spatial_ablation_windows": [
             _spatial_window_provenance(run) for run in spatial_runs
@@ -1099,10 +1131,14 @@ def _window_provenance(root: Path, run: _TUMWindowRun) -> dict[str, Any]:
 
 
 def _spatial_window_provenance(run: _TUMSpatialWindowRun) -> dict[str, Any]:
+    offsets = run.result.optimized_values[_SPATIAL_DEPTH_BLOCK]
     return {
         "start_index": run.start_index,
         "status": run.result.status,
-        "lattice_offsets_m": list(run.result.optimized_values[_SPATIAL_DEPTH_BLOCK]),
+        "constant_bias_m": run.result.optimized_values[_SPATIAL_BIAS_BLOCK][0],
+        "zero_mean_lattice_offsets_m": list(offsets),
+        "lattice_offset_mean_m": sum(offsets) / len(offsets),
+        "lattice_max_abs_contrast_m": max(abs(offset) for offset in offsets),
         "solver": run.result.as_dict(),
     }
 
@@ -1211,6 +1247,11 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             values,
             "spatial_lattice_smoothness_sigma_m",
             defaults.spatial_lattice_smoothness_sigma_m,
+        ),
+        spatial_lattice_zero_mean_sigma_m=_positive(
+            values,
+            "spatial_lattice_zero_mean_sigma_m",
+            defaults.spatial_lattice_zero_mean_sigma_m,
         ),
     )
 

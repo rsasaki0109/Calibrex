@@ -191,6 +191,85 @@ def make_joint_trilinear_depth_point_to_plane_factor(
     )
 
 
+def make_joint_centered_trilinear_depth_point_to_plane_factor(
+    measurement: JointTrilinearDepthPointToPlaneMeasurement,
+    *,
+    pose_block: str,
+    extrinsic_block: str,
+    depth_bias_block: str,
+    centered_lattice_block: str,
+) -> JointResidualBlock:
+    """Create `z'=z+b+Σγ_l δz_l` with a separately constrained lattice."""
+
+    normal = _normalize(measurement.plane_normal_world)
+    ray = measurement.normalized_ray_sensor
+    weights = measurement.lattice_weights
+    if measurement.nominal_depth_m <= 0.0 or abs(ray[2] - 1.0) > 1.0e-9:
+        raise ValueError("joint centered depth factor requires positive depth and ray z=1")
+    if not weights or any(weight < 0.0 for weight in weights):
+        raise ValueError("joint centered depth factor requires nonnegative lattice weights")
+    if abs(sum(weights) - 1.0) > 1.0e-9:
+        raise ValueError("joint centered depth lattice weights must sum to one")
+
+    def evaluator(values: ParameterValues) -> tuple[float]:
+        bias_values = values[depth_bias_block]
+        offsets = values[centered_lattice_block]
+        if len(bias_values) != 1:
+            raise ValueError("joint centered depth bias block requires one value")
+        if len(offsets) != len(weights):
+            raise ValueError("joint centered depth lattice block dimension mismatch")
+        spatial_displacement = sum(
+            weight * offset for weight, offset in zip(weights, offsets, strict=True)
+        )
+        corrected_depth = measurement.nominal_depth_m + bias_values[0] + spatial_displacement
+        point_sensor = _scale(ray, corrected_depth)
+        pose_delta = se3_from_tangent(values[pose_block])
+        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
+        transform_world_sensor = pose_delta.compose(
+            measurement.transform_world_body_initial
+        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        point_world = transform_world_sensor.transform_point(point_sensor)
+        return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
+
+    return JointResidualBlock(
+        factor_id=measurement.measurement_id,
+        observation_group=measurement.observation_group,
+        variable_names=(
+            pose_block,
+            extrinsic_block,
+            depth_bias_block,
+            centered_lattice_block,
+        ),
+        evaluator=evaluator,
+        weight=measurement.weight,
+        family="rgbd_centered_trilinear_depth_point_to_plane",
+    )
+
+
+def make_joint_lattice_zero_mean_factor(
+    *, factor_id: str, observation_group: str, block: str, size: int, sigma_m: float
+) -> JointResidualBlock:
+    """Anchor the constant lattice mode while preserving spatial contrasts."""
+
+    if size < 2 or sigma_m <= 0.0:
+        raise ValueError("zero-mean lattice size/sigma must be at least two/positive")
+
+    def evaluator(values: ParameterValues) -> tuple[float]:
+        offsets = values[block]
+        if len(offsets) != size:
+            raise ValueError("joint zero-mean lattice block dimension mismatch")
+        return (sum(offsets) / (size * sigma_m),)
+
+    return JointResidualBlock(
+        factor_id=factor_id,
+        observation_group=observation_group,
+        variable_names=(block,),
+        evaluator=evaluator,
+        family="trilinear_lattice_zero_mean",
+        split_policy="train_only",
+    )
+
+
 def make_joint_lattice_smoothness_factor(
     *,
     factor_id: str,

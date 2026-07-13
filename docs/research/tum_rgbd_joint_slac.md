@@ -104,7 +104,8 @@ point with trilinear weights, while Equation (4) supplies a shape-preserving
 elastic regularizer. Their model is a full three-vector displacement field.
 
 Calibrex now provides a deliberately constrained ablation factor:
-`z_corrected = z_nominal + sum_l gamma_l(p) delta_z_l`. It uses the same
+`z_corrected = z_nominal + b + sum_l gamma_l(p) delta_z_l`, with the lattice
+offsets constrained to zero mean. It uses the same
 bounded regular-lattice/trilinear interpolation structure but estimates one
 ray-depth displacement per control point, not the paper's full XYZ
 displacement. A separate train-only first-order neighbor factor penalizes
@@ -114,29 +115,36 @@ lets later public-data evaluation compare no regularization, scalar
 smoothness, and a future full-vector elastic lattice without changing factor
 semantics.
 
-On a synthetic 2 by 2 by 2 lattice, the backend-neutral optimizer recovers all
-eight nonuniform control offsets within `1e-7 m`, obtains rank 8/8, yields
-held-out RMSE below `1e-8 m`, and detects all 16 signed control perturbations.
+On a synthetic 2 by 2 by 2 lattice, the backend-neutral optimizer recovers the
+constant bias and all eight nonuniform zero-mean control offsets within
+`1e-7 m`, obtains rank 9/9, yields held-out RMSE below `1e-8 m`, and detects all
+18 signed bias/control perturbations.
 
 The public ablation uses a fixed 2 by 2 by 2 sensor-coordinate lattice spanning
-`[-3.1, 3.1] x [-2.4, 2.4] x [0.2, 5.0] m` and a 0.05 m neighbor-difference
-sigma. All three augmented systems converge at rank 62/62. However, only the
-start-60 window improves scalar-model holdout RMSE; start 180 and 300 worsen it
-by 0.000018 m and 0.000505 m. The worst fitted control magnitude is 0.07740 m,
-and the controls within each window are almost constant. This shows that the
-regularized coarse lattice mostly reproduces the earlier additive bias rather
-than identifying a stable spatial pattern.
+`[-3.1, 3.1] x [-2.4, 2.4] x [0.2, 5.0] m`, a 0.05 m neighbor-difference sigma,
+and an explicit `1e-4 m` zero-mean constraint. A separate scalar block carries
+the constant bias, so the lattice cannot reproduce that mode. All three
+augmented systems converge at rank 63/63. However, only the start-60 window
+improves scalar-model holdout RMSE; start 180 and 300 worsen it by 0.000018 m
+and 0.000505 m.
 
-The weakest window detects only 13 of 28 signed extrinsic/lattice probes. Only
-one of six ordered spatial-lattice transfers remains within the unchanged
-0.005 m margin, and the worst transfer increases holdout RMSE by 0.01511 m.
-Thus the extra spatial degrees of freedom do not resolve temporal instability;
-the spatial ablation remains honestly FAIL.
+After centering, the maximum fitted spatial contrast over all 24 controls is
+only 0.000158 m and therefore PASS. In contrast, the separated constant biases
+are -0.01262 m, -0.07733 m, and -0.01006 m, a 0.06727 m temporal range that
+FAILs. This isolates the earlier apparent lattice deformation as an unstable
+constant mode rather than evidence for a repeatable coarse spatial pattern.
+
+The weakest window detects 15 of 30 signed extrinsic/bias/lattice probes. Only
+one of six ordered spatial transfers remains within the unchanged 0.005 m
+margin, and the worst transfer increases holdout RMSE by 0.01511 m. Thus the
+extra spatial degrees of freedom do not resolve temporal instability; the
+spatial ablation remains honestly FAIL.
 
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension separates constant and zero-mean lattice modes and evaluates a
-rematching frontend, since the fixed-correspondence coarse lattice is currently
-dominated by the same window-dependent offset mode.
+next extension evaluates a rematching frontend, since constant/zero-mean
+separation shows the remaining failure is dominated by the window-dependent
+offset and fixed map/correspondence construction rather than coarse spatial
+distortion.
