@@ -28,6 +28,7 @@ holdout evaluation, and known-bad controls.
 | Park-Martin motion hand-eye | Trajectory-derived `AX = XB` extrinsic | Native solver | motion holdout, axis spectrum, translation-system spectrum and closure |
 | Tsai-Lenz motion hand-eye | Independent separable `AX = XB` baseline | Native solver | shared motion holdout, two system spectra, 12 known-bad controls |
 | Daniilidis dual-quaternion hand-eye | Simultaneous `AX = XB` rotation/translation baseline | Native solver | shared holdout, 8D nullspace/Study diagnostics, 12 known-bad controls |
+| Shah robot-world/hand-eye | Absolute-pose `A_j X = Y B_j` hand-eye and robot-world transforms | Native solver | separate holdout, dominant Kronecker gap, 6D translation rank, 24 controls |
 | LiDAR-IMU rotation consistency | Supplied rotation evaluation | Implemented | held-out angular-rate and gravity evidence |
 | Anchored temporal offset | One-dimensional time calibration evidence | Implemented | injected offsets and adapted/anchored comparison |
 | Backend-neutral joint SLAC graph | Coupled trajectory/extrinsic/time optimization | Native graph core + typed Schur LM | grouped holdout, robust LM, 48→8 TUM pose elimination, joint spectrum, per-block controls |
@@ -201,3 +202,10 @@ reports the full singular spectrum and nullspace separation, and selects real
 constrained candidates by train closure. OpenCV `calibrateHandEye` is suitable
 for an optional adapter; Kalibr is a distinct camera-IMU spatiotemporal
 workflow and is not labeled as this native `AX = XB` method.
+
+[Shah](https://doi.org/10.1115/1.4024473) is implemented separately for the
+absolute-pose robot-world/hand-eye equation `A_j X = Y B_j`. Its Kronecker SVD
+returns both `X` and `Y`, followed by a rank-six joint translation solve. The
+adapter preserves a separate absolute-pose split and reports dominant-singular
+width, SO(3) projection correction, held-out closure, and signed controls for
+both transforms; these are not relabeled as relative-motion `AX=XB` evidence.

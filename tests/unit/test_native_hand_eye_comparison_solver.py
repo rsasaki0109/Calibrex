@@ -69,6 +69,7 @@ def _config(
     *,
     min_horaud_gap: float = 1.0e-3,
     min_andreff_width: float = 1.0e-4,
+    min_shah_gap: float = 1.0e-3,
 ) -> CalibrationConfig:
     return CalibrationConfig.model_validate(
         {
@@ -90,6 +91,7 @@ def _config(
                                 min_horaud_gap
                             ),
                             "min_andreff_rotation_width": min_andreff_width,
+                            "min_shah_rotation_normalized_gap": min_shah_gap,
                         },
                     }
                 }
@@ -108,6 +110,9 @@ def test_ethz_reader_builds_disjoint_absolute_pose_pairs(tmp_path: Path) -> None
     )
 
     assert len(dataset.motions) == 20
+    assert len(dataset.absolute_pose_pairs) == 40
+    assert len({pair.hand_source_index for pair in dataset.absolute_pose_pairs}) == 40
+    assert len({pair.eye_source_index for pair in dataset.absolute_pose_pairs}) == 40
     assert dataset.aligned_pose_count == 40
     assert dataset.absolute_pose_reuse_count == 0
     assert dataset.maximum_alignment_delta_sec is not None
@@ -141,6 +146,18 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert result.metrics["hand_eye_andreff_rotation_observable_rank"].grade == "pass"
     assert result.metrics["hand_eye_andreff_rotation_minimum_width"].grade == "pass"
     assert result.metrics["hand_eye_andreff_rotation_nullspace_ratio"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_pose_pair_count"].value == 40.0
+    assert (
+        result.metrics["robot_world_hand_eye_shah_rotation_dominant_multiplicity"].grade
+        == "pass"
+    )
+    assert result.metrics["robot_world_hand_eye_shah_rotation_normalized_gap"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_shah_translation_rank"].value == 6.0
+    assert result.metrics["robot_world_hand_eye_shah_translation_condition_number"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_shah_holdout_rotation_rmse_deg"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_shah_holdout_translation_rmse_m"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_shah_known_bad_detectable_fraction"].value == 1.0
+    assert "T_robot_world" in result.transforms
     for method in (
         "park_martin",
         "tsai_lenz",
@@ -161,6 +178,7 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert isinstance(results, dict)
     assert results["horaud_dornaika"]["paper_doi"] == "10.1177/027836499501400301"
     assert results["andreff"]["paper_doi"] == "10.1109/IM.1999.805374"
+    assert results["shah_robot_world_hand_eye"]["paper"]["doi"] == "10.1115/1.4024473"
 
 
 def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
@@ -220,3 +238,21 @@ def test_andreff_width_gate_cannot_be_weakened_by_convergence(tmp_path: Path) ->
     assert result.observability is not None
     assert result.observability.grade == "fail"
     assert "andreff_kronecker_observability" in result.observability.weak_directions
+
+
+def test_shah_gap_gate_cannot_be_weakened_by_convergence(tmp_path: Path) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, min_shah_gap=1.0)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    assert result.metrics["robot_world_hand_eye_shah_rotation_normalized_gap"].grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"
+    assert "shah_robot_world_hand_eye_observability" in result.observability.weak_directions

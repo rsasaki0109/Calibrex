@@ -1328,6 +1328,57 @@ def _register_builtin_metrics() -> None:
             "lidar_camera",
         ),
         MetricDefinition(
+            "robot_world_hand_eye_pose_pair_count",
+            "One-to-one synchronized absolute pose pairs for robot-world/hand-eye fitting",
+            "pairs",
+            "hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_rotation_dominant_multiplicity",
+            "Multiplicity of Shah's dominant Kronecker rotation singular value",
+            "multiplicity",
+            "hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_rotation_normalized_gap",
+            "Normalized gap from Shah's dominant to second rotation singular value",
+            family="hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_translation_rank",
+            "Rank of Shah's conditional joint translation system",
+            "rank",
+            "hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_translation_condition_number",
+            "Condition number of Shah's conditional joint translation system",
+            family="hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_so3_projection_correction_frobenius_max",
+            "Maximum SO(3) projection correction for Shah's determinant-normalized rotations",
+            "frobenius",
+            "hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_holdout_rotation_rmse_deg",
+            "Held-out AX=YB rotation closure RMSE for Shah's solution",
+            "deg",
+            "hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_holdout_translation_rmse_m",
+            "Held-out AX=YB translation closure RMSE for Shah's solution",
+            "m",
+            "hand_eye",
+        ),
+        MetricDefinition(
+            "robot_world_hand_eye_shah_known_bad_detectable_fraction",
+            "Fraction of signed X/Y perturbations detected on held-out absolute poses",
+            family="hand_eye",
+        ),
+        MetricDefinition(
             "lidar_imu_holdout_rotation_rate_rmse_dps",
             "Holdout rotation-rate RMSE between odometry and candidate-rotated IMU",
             "deg/s",

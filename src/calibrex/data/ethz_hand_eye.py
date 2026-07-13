@@ -41,8 +41,21 @@ class RelativeMotionPair:
 
 
 @dataclass(frozen=True)
+class AlignedHandEyePosePair:
+    """One-to-one absolute poses satisfying ``pose_a X = Y pose_b``."""
+
+    pair_id: str
+    pose_a: SE3
+    pose_b: SE3
+    alignment_delta_sec: float
+    hand_source_index: int
+    eye_source_index: int
+
+
+@dataclass(frozen=True)
 class HandEyeMotionDataset:
     motions: tuple[RelativeMotionPair, ...]
+    absolute_pose_pairs: tuple[AlignedHandEyePosePair, ...]
     hand_pose_count: int
     eye_pose_count: int
     aligned_pose_count: int
@@ -53,6 +66,7 @@ class HandEyeMotionDataset:
     def as_dict(self) -> dict[str, object]:
         return {
             "motion_count": len(self.motions),
+            "robot_world_pose_pair_count": len(self.absolute_pose_pairs),
             "hand_pose_count": self.hand_pose_count,
             "eye_pose_count": self.eye_pose_count,
             "aligned_pose_count": self.aligned_pose_count,
@@ -60,6 +74,9 @@ class HandEyeMotionDataset:
             "motion_stride": self.motion_stride,
             "absolute_pose_reuse_count": self.absolute_pose_reuse_count,
             "pairing_policy": "disjoint absolute-pose blocks",
+            "robot_world_pairing_policy": (
+                "closest timestamp alignment with one unique eye sample per hand pose"
+            ),
         }
 
 
@@ -78,6 +95,17 @@ def read_ethz_robot_arm_hand_eye_motions(
         hand = _read_pose_member(archive, ETHZ_HAND_MEMBER)
         eye = _read_pose_member(archive, ETHZ_EYE_MEMBER)
     aligned = _nearest_aligned_poses(hand, eye, maximum_time_delta_sec)
+    absolute_pose_pairs = tuple(
+        AlignedHandEyePosePair(
+            pair_id=f"ethz-absolute-{hand_pose.source_index:05d}-{eye_pose.source_index:05d}",
+            pose_a=hand_pose.transform,
+            pose_b=eye_pose.transform,
+            alignment_delta_sec=delta,
+            hand_source_index=hand_pose.source_index,
+            eye_source_index=eye_pose.source_index,
+        )
+        for hand_pose, eye_pose, delta in _unique_hand_alignments(aligned)
+    )
     motions: list[RelativeMotionPair] = []
     used_absolute_ids: list[tuple[str, int]] = []
     for start in range(0, len(aligned) - motion_stride, 2 * motion_stride):
@@ -105,6 +133,7 @@ def read_ethz_robot_arm_hand_eye_motions(
     reuse_count = len(used_absolute_ids) - len(set(used_absolute_ids))
     return HandEyeMotionDataset(
         motions=tuple(motions),
+        absolute_pose_pairs=absolute_pose_pairs,
         hand_pose_count=len(hand),
         eye_pose_count=len(eye),
         aligned_pose_count=len(aligned),
@@ -113,6 +142,26 @@ def read_ethz_robot_arm_hand_eye_motions(
         ),
         motion_stride=motion_stride,
         absolute_pose_reuse_count=reuse_count,
+    )
+
+
+def _unique_hand_alignments(
+    aligned: list[tuple[TimestampedPose, TimestampedPose, float]],
+) -> list[tuple[TimestampedPose, TimestampedPose, float]]:
+    """Retain the closest eye sample for each hand pose without pose leakage."""
+
+    closest_by_hand: dict[int, tuple[TimestampedPose, TimestampedPose, float]] = {}
+    for item in aligned:
+        hand_pose, eye_pose, delta = item
+        previous = closest_by_hand.get(hand_pose.source_index)
+        if previous is None or (delta, eye_pose.source_index) < (
+            previous[2],
+            previous[1].source_index,
+        ):
+            closest_by_hand[hand_pose.source_index] = item
+    return sorted(
+        closest_by_hand.values(),
+        key=lambda item: (item[1].timestamp_sec, item[0].source_index),
     )
 
 

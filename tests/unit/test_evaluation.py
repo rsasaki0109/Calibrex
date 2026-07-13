@@ -479,6 +479,15 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "tum_joint_schur_step_count" in names
     assert "tum_joint_schur_linear_residual_inf" in names
     assert "tum_joint_schur_complement_condition_number" in names
+    assert "robot_world_hand_eye_pose_pair_count" in names
+    assert "robot_world_hand_eye_shah_rotation_dominant_multiplicity" in names
+    assert "robot_world_hand_eye_shah_rotation_normalized_gap" in names
+    assert "robot_world_hand_eye_shah_translation_rank" in names
+    assert "robot_world_hand_eye_shah_translation_condition_number" in names
+    assert "robot_world_hand_eye_shah_so3_projection_correction_frobenius_max" in names
+    assert "robot_world_hand_eye_shah_holdout_rotation_rmse_deg" in names
+    assert "robot_world_hand_eye_shah_holdout_translation_rmse_m" in names
+    assert "robot_world_hand_eye_shah_known_bad_detectable_fraction" in names
     assert "tum_joint_data_only_extrinsic_rank" in names
     assert "tum_joint_data_only_shared_rank" in names
     assert "tum_joint_depth_scale" in names

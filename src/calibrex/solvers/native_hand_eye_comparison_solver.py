@@ -1,4 +1,4 @@
-"""Native comparison adapter for five independent hand-eye solvers."""
+"""Native comparison adapter for hand-eye and robot-world/hand-eye solvers."""
 
 from __future__ import annotations
 
@@ -39,6 +39,12 @@ from calibrex.solvers.park_martin_hand_eye_solver import (
     ParkMartinHandEyeResult,
     ParkMartinHandEyeSolver,
 )
+from calibrex.solvers.shah_robot_world_hand_eye_solver import (
+    RobotWorldHandEyePosePair,
+    ShahRobotWorldHandEyeOptions,
+    ShahRobotWorldHandEyeResult,
+    ShahRobotWorldHandEyeSolver,
+)
 from calibrex.solvers.tsai_lenz_hand_eye_solver import (
     TsaiLenzHandEyeOptions,
     TsaiLenzHandEyeResult,
@@ -50,7 +56,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run five primary-paper baselines on one motion and evidence protocol."""
+    """Run five AX=XB baselines plus Shah's absolute-pose AX=YB baseline."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -87,6 +93,10 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             HandEyeMotionPair(item.pair_id, item.motion_a, item.motion_b)
             for item in dataset.motions
         )
+        absolute_poses = tuple(
+            RobotWorldHandEyePosePair(item.pair_id, item.pose_a, item.pose_b)
+            for item in dataset.absolute_pose_pairs
+        )
         holdout_ratio = config.evaluation.holdout_ratio
         split_seed = config.solver.seed or 0
         park_options = ParkMartinHandEyeOptions(
@@ -112,11 +122,25 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 options.get("max_andreff_rotation_nullspace_ratio", 0.25)
             ),
         )
+        shah_options = ShahRobotWorldHandEyeOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            minimum_rotation_normalized_gap=float(
+                options.get("min_shah_rotation_normalized_gap", 1.0e-3)
+            ),
+            max_translation_condition_number=float(
+                options.get("max_shah_translation_condition_number", 1.0e8)
+            ),
+            max_so3_projection_correction_frobenius=float(
+                options.get("max_shah_so3_projection_correction_frobenius", 0.05)
+            ),
+        )
         park = ParkMartinHandEyeSolver().solve(motions, park_options)
         tsai = TsaiLenzHandEyeSolver().solve(motions, tsai_options)
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
         horaud = HoraudDornaikaHandEyeSolver().solve(motions, horaud_options)
         andreff = AndreffHandEyeSolver().solve(motions, andreff_options)
+        shah = ShahRobotWorldHandEyeSolver().solve(absolute_poses, shah_options)
         metrics = _comparison_metrics(
             dataset,
             motions,
@@ -125,6 +149,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             dual,
             horaud,
             andreff,
+            shah,
             tsai_options,
             options,
         )
@@ -136,6 +161,8 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 dual.transform_x,
                 horaud.transform_x,
                 andreff.transform_x,
+                shah.transform_x,
+                shah.transform_y,
             )
         )
         all_gates_pass = all(metric.grade != "fail" for metric in metrics.values())
@@ -155,6 +182,16 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 "hand_eye_andreff_so3_projection_correction_frobenius",
             )
         )
+        shah_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "robot_world_hand_eye_shah_rotation_dominant_multiplicity",
+                "robot_world_hand_eye_shah_rotation_normalized_gap",
+                "robot_world_hand_eye_shah_translation_rank",
+                "robot_world_hand_eye_shah_translation_condition_number",
+                "robot_world_hand_eye_shah_so3_projection_correction_frobenius_max",
+            )
+        )
         selected = dual.transform_x
         warnings = _comparison_warnings(metrics, dataset)
         archive_sha256 = sha256_path(archive_path)
@@ -167,18 +204,29 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 else "inconclusive"
             ),
             metrics=metrics,
-            transforms={"T_hand_eye": selected} if selected is not None else {},
+            transforms={
+                **({"T_hand_eye": selected} if selected is not None else {}),
+                **(
+                    {"T_robot_world": shah.transform_y}
+                    if shah.transform_y is not None
+                    else {}
+                ),
+            },
             observability=ObservabilityResult(
                 rank=dual.linear_rank,
                 condition_number=dual.observable_condition_number,
                 weak_directions=[
                     *([] if horaud_observable else ["horaud_quaternion_minimum_width"]),
                     *([] if andreff_observable else ["andreff_kronecker_observability"]),
+                    *([] if shah_observable else ["shah_robot_world_hand_eye_observability"]),
                     *([] if not warnings else ["hand_eye_perturbation_power"]),
                 ],
                 grade=(
                     "pass"
-                    if all_converged and horaud_observable and andreff_observable
+                    if all_converged
+                    and horaud_observable
+                    and andreff_observable
+                    and shah_observable
                     else "fail"
                 ),
             ),
@@ -208,6 +256,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "daniilidis": dual.as_dict(),
                         "horaud_dornaika": horaud.as_dict(),
                         "andreff": andreff.as_dict(),
+                        "shah_robot_world_hand_eye": shah.as_dict(),
                     },
                 },
             },
@@ -223,6 +272,7 @@ def _comparison_metrics(
     dual: DaniilidisHandEyeResult,
     horaud: HoraudDornaikaHandEyeResult,
     andreff: AndreffHandEyeResult,
+    shah: ShahRobotWorldHandEyeResult,
     probe_options: TsaiLenzHandEyeOptions,
     factor_options: dict[str, Any],
 ) -> dict[str, MetricResult]:
@@ -239,6 +289,22 @@ def _comparison_metrics(
     max_andreff_nullspace_ratio = float(
         factor_options.get("max_andreff_rotation_nullspace_ratio", 0.25)
     )
+    min_shah_gap = float(factor_options.get("min_shah_rotation_normalized_gap", 1.0e-3))
+    max_shah_projection = float(
+        factor_options.get("max_shah_so3_projection_correction_frobenius", 0.05)
+    )
+    max_shah_condition = float(
+        factor_options.get("max_shah_translation_condition_number", 1.0e8)
+    )
+    shah_projection_values = tuple(
+        value
+        for value in (
+            shah.rotation_x_projection_correction_frobenius,
+            shah.rotation_y_projection_correction_frobenius,
+        )
+        if value is not None
+    )
+    shah_projection_max = max(shah_projection_values) if shah_projection_values else None
     common_split = len(
         {
             (result.train_pair_ids, result.holdout_pair_ids)
@@ -324,6 +390,60 @@ def _comparison_metrics(
             ),
             reason=f"determinant-normalized kernel projection <= {max_andreff_projection:g}",
         ),
+        "robot_world_hand_eye_pose_pair_count": MetricResult(
+            value=float(len(dataset.absolute_pose_pairs)),
+            unit="pairs",
+            grade="pass" if len(dataset.absolute_pose_pairs) >= 3 else "fail",
+            reason="one-to-one synchronized absolute hand/eye pose pairs",
+        ),
+        "robot_world_hand_eye_shah_rotation_dominant_multiplicity": MetricResult(
+            value=float(shah.rotation_dominant_multiplicity),
+            unit="multiplicity",
+            grade="pass" if shah.rotation_dominant_multiplicity == 1 else "fail",
+            reason="Shah rotation solution requires one dominant singular-vector pair",
+        ),
+        "robot_world_hand_eye_shah_rotation_normalized_gap": MetricResult(
+            value=shah.rotation_normalized_gap,
+            unit="ratio",
+            grade=(
+                "pass"
+                if shah.rotation_normalized_gap is not None
+                and shah.rotation_normalized_gap >= min_shah_gap
+                else "fail"
+            ),
+            reason=f"dominant-to-second Kronecker singular-value gap >= {min_shah_gap:g}",
+        ),
+        "robot_world_hand_eye_shah_translation_rank": MetricResult(
+            value=float(shah.translation_rank),
+            unit="rank",
+            grade="pass" if shah.translation_rank == 6 else "fail",
+            reason="conditional [t_Y; t_X] system must constrain all six translations",
+        ),
+        "robot_world_hand_eye_shah_translation_condition_number": MetricResult(
+            value=shah.translation_condition_number,
+            grade=(
+                "pass"
+                if shah.translation_condition_number is not None
+                and shah.translation_condition_number <= max_shah_condition
+                else "fail"
+            ),
+            reason=f"conditional translation condition number <= {max_shah_condition:g}",
+        ),
+        "robot_world_hand_eye_shah_so3_projection_correction_frobenius_max": MetricResult(
+            value=shah_projection_max,
+            unit="frobenius",
+            grade=(
+                "pass"
+                if len(shah_projection_values) == 2
+                and shah_projection_max is not None
+                and shah_projection_max <= max_shah_projection
+                else "fail"
+            ),
+            reason=(
+                "determinant-normalized rotations require correction "
+                f"<= {max_shah_projection:g}"
+            ),
+        ),
     }
     park_probes = (
         evaluate_hand_eye_known_bad_probes(
@@ -379,6 +499,40 @@ def _comparison_metrics(
             grade="pass" if fraction is not None and fraction >= min_detectable else "warn",
             reason="held-out ±5 deg / ±5 cm falsification power",
         )
+    shah_rotation = shah.holdout_evaluation.rotation_closure_rmse_deg
+    shah_translation = shah.holdout_evaluation.translation_closure_rmse_m
+    shah_closure_pass = (
+        shah_rotation is not None
+        and shah_rotation <= max_rotation
+        and shah_translation is not None
+        and shah_translation <= max_translation
+    )
+    shah_detectable = [probe.detectable for probe in shah.probes if probe.detectable is not None]
+    shah_fraction = (
+        sum(value is True for value in shah_detectable) / len(shah_detectable)
+        if shah_detectable
+        else None
+    )
+    metrics["robot_world_hand_eye_shah_holdout_rotation_rmse_deg"] = MetricResult(
+        value=shah_rotation,
+        unit="deg",
+        grade="pass" if shah_closure_pass else "fail",
+    )
+    metrics["robot_world_hand_eye_shah_holdout_translation_rmse_m"] = MetricResult(
+        value=shah_translation,
+        unit="m",
+        grade="pass" if shah_closure_pass else "fail",
+    )
+    metrics["robot_world_hand_eye_shah_known_bad_detectable_fraction"] = MetricResult(
+        value=shah_fraction,
+        unit="fraction",
+        grade=(
+            "pass"
+            if shah_fraction is not None and shah_fraction >= min_detectable
+            else "warn"
+        ),
+        reason="held-out signed six-DoF perturbations of both X and Y",
+    )
     return metrics
 
 

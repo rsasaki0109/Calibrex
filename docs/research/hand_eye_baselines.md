@@ -1,4 +1,4 @@
-# Hand-eye calibration baselines research note
+# Hand-eye and robot-world/hand-eye calibration baselines research note
 
 ## Shared contract
 
@@ -11,6 +11,11 @@ and holdout.
 Every baseline uses the same deterministic pair-level split and is evaluated by
 unfitted `A X` versus `X B` rotation and translation closure. This common
 evaluation is deliberately separate from each method's estimator.
+
+The Shah robot-world/hand-eye baseline is deliberately a separate absolute-pose
+contract, `A_j X = Y B_j`. It estimates both hand-eye `X` and robot-world `Y`;
+its absolute-pose train/holdout IDs are never presented as the relative-motion
+split used by the five `AX=XB` solvers.
 
 ## Tsai and Lenz
 
@@ -133,6 +138,43 @@ solution. Synthetic controls recover exact truth with rotations as small as
 rotation-from-translation information but no observable hand-eye translation,
 so they cannot be emitted as a full calibration.
 
+## Shah robot-world/hand-eye Kronecker method
+
+Primary reference: M. I. Shah, *Solving the Robot-World/Hand-Eye Calibration
+Problem Using the Kronecker Product*, Journal of Mechanisms and Robotics 5(3),
+2013, DOI [`10.1115/1.4024473`](https://doi.org/10.1115/1.4024473). The
+[primary PDF is hosted by NIST](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=910225).
+
+For synchronized absolute poses satisfying `A_j X = Y B_j`, Shah first solves
+the rotation equation `R_Aj R_X = R_Y R_Bj`. With column-major vectorization,
+the paper forms
+
+```text
+K = sum_j weight_j (R_Bj tensor R_Aj).
+```
+
+The dominant right and left singular vectors of `K` reshape to proportional
+estimates of `R_X` and `R_Y`. Calibrex applies the paper's determinant
+normalization, then records the Frobenius correction required by a nearest
+SO(3) projection. A repeated dominant singular value, normalized
+dominant-to-second gap below the declared threshold, or excessive projection
+correction is a rotation degeneracy rather than a nominal solution.
+
+Given `R_Y`, both translations are recovered together from
+
+```text
+[I, -R_Aj] [t_Y; t_X] = t_Aj - R_Y t_Bj.
+```
+
+The native solver requires all six translation directions, records the six
+singular values and condition number, and evaluates held-out `A X` versus
+`Y B` closure without refitting. Twenty-four mandatory controls perturb signed
+x/y/z and roll/pitch/yaw directions of `X` and `Y` independently. Synthetic
+tests recover both transforms to numerical precision, detect all controls, and
+reject a repeated-pose family with a non-unique rotation solution. This is an
+independent typed NumPy implementation; no NIST, ASME, OpenCV, ROS, or GPL
+source implementation is copied into `src/calibrex`.
+
 ## Falsification protocol
 
 - Whole relative-motion pairs are split into train and holdout.
@@ -143,6 +185,8 @@ so they cannot be emitted as a full calibration.
   or translation closure rises by more than 5 mm.
 - Pure translation, sub-threshold rotation, a single rotation-axis family, and
   rank-deficient translation systems must not return `converged`.
+- Shah uses one-to-one absolute pose pairs and a separate deterministic split;
+  neither absolute pair nor pose ID may cross its train/holdout boundary.
 
 All implementations are independent NumPy code. No paper or third-party source
 implementation is copied into `src/calibrex`.
@@ -185,9 +229,22 @@ translation rank 3/3, normalized rotation width 0.4836, and SO(3) projection
 correction 0.0003515. Its kernel-to-eighth singular-value ratio is 0.05005.
 These pass the predeclared 0.0001 minimum-width, 0.25 maximum-nullspace-ratio,
 and 0.05 maximum-projection gates. The five methods share exactly the same
-train/holdout IDs. They do not
-reach the unchanged 0.75 known-bad detectable-fraction gate, so the public run
+train/holdout IDs. They do not reach the unchanged 0.75 known-bad
+detectable-fraction gate, so the public run
 is honestly **INCONCLUSIVE**, not PASS. This indicates limited falsification
 power in the selected motion blocks despite low closure residuals. The
 schema-valid result and evidence bundle record the negative finding, input
 digest, split IDs, spectra, and solver provenance.
+
+The same pinned archive provides 1,688 one-to-one absolute pose pairs for the
+Shah `AX=YB` problem (1,350 train, 338 holdout). The dominant rotation
+singular-value multiplicity is 1 and its normalized gap is 0.02955, passing the
+predeclared 0.001 gate. The conditional translation rank is 6/6 with condition
+number 8.187, passing the predeclared `1e8` numerical-stability ceiling;
+maximum determinant-normalized SO(3) projection correction is
+0.00019355, below the unchanged 0.05 gate. Held-out closure is 0.5858 degrees
+and 0.01006 m, and all 24 signed `X/Y` controls are detected. Shah therefore
+passes its declared gates while the overall comparison remains honestly
+INCONCLUSIVE because the five relative-motion baselines still detect only
+6/12 controls. The result and bundle are schema-valid, the pinned input digest
+is checked, and bundle verification reports zero issues.
