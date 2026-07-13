@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Any
+
+from calibrex.evaluation.numerical_curvature import ScalarObjective
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,108 @@ class MultiStartEvaluation:
             "clusters": [cluster.as_dict() for cluster in self.clusters],
             "nonconverged_start_ids": list(self.nonconverged_start_ids),
         }
+
+
+@dataclass(frozen=True)
+class PatternSearchOptions:
+    """Deterministic physical steps and stopping policy for one local search."""
+
+    initial_steps: tuple[float, ...]
+    minimum_steps: tuple[float, ...]
+    max_sweeps: int = 20
+    improvement_tolerance: float = 1.0e-12
+
+
+@dataclass(frozen=True)
+class PatternSearchResult:
+    """One auditable coordinate-pattern local-search trajectory."""
+
+    solution: MultiStartSolution
+    evaluation_count: int
+    completed_sweeps: int
+    final_steps: tuple[float, ...]
+    objective_history: tuple[float, ...]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "solution": {
+                "start_id": self.solution.start_id,
+                "parameters": list(self.solution.parameters),
+                "objective": self.solution.objective,
+                "converged": self.solution.converged,
+            },
+            "evaluation_count": self.evaluation_count,
+            "completed_sweeps": self.completed_sweeps,
+            "final_steps": list(self.final_steps),
+            "objective_history": list(self.objective_history),
+            "method": "deterministic_best_coordinate_pattern_search/v0.1",
+        }
+
+
+def coordinate_pattern_search(
+    objective: ScalarObjective,
+    *,
+    start_id: str,
+    start: tuple[float, ...],
+    options: PatternSearchOptions,
+) -> PatternSearchResult:
+    """Minimize with best signed coordinate probes and deterministic step halving."""
+
+    if (
+        not start_id
+        or not start
+        or len(start) != len(options.initial_steps)
+        or len(start) != len(options.minimum_steps)
+    ):
+        raise ValueError("pattern-search start and step dimensions must match")
+    if (
+        any(step <= 0.0 for step in options.initial_steps)
+        or any(step <= 0.0 for step in options.minimum_steps)
+        or any(
+            minimum > initial
+            for minimum, initial in zip(options.minimum_steps, options.initial_steps, strict=True)
+        )
+        or options.max_sweeps <= 0
+        or options.improvement_tolerance < 0.0
+    ):
+        raise ValueError("pattern-search steps/sweeps/tolerance are invalid")
+    current = tuple(float(value) for value in start)
+    steps = options.initial_steps
+    current_objective = _finite_objective(objective, current)
+    evaluations = 1
+    history = [current_objective]
+    completed_sweeps = 0
+    for sweep in range(options.max_sweeps):
+        candidates: list[tuple[float, tuple[float, ...], int]] = []
+        for dimension, step in enumerate(steps):
+            for sign_order, amount in enumerate((step, -step)):
+                candidate = list(current)
+                candidate[dimension] += amount
+                point = tuple(candidate)
+                candidates.append(
+                    (_finite_objective(objective, point), point, 2 * dimension + sign_order)
+                )
+                evaluations += 1
+        best_objective, best_point, _order = min(candidates, key=lambda item: (item[0], item[2]))
+        if best_objective < current_objective - options.improvement_tolerance:
+            current = best_point
+            current_objective = best_objective
+        else:
+            steps = tuple(step * 0.5 for step in steps)
+        history.append(current_objective)
+        completed_sweeps = sweep + 1
+        if all(step <= minimum for step, minimum in zip(steps, options.minimum_steps, strict=True)):
+            break
+    converged = all(
+        step <= minimum for step, minimum in zip(steps, options.minimum_steps, strict=True)
+    )
+    return PatternSearchResult(
+        MultiStartSolution(start_id, current, current_objective, converged),
+        evaluations,
+        completed_sweeps,
+        steps,
+        tuple(history),
+    )
 
 
 def evaluate_multistart_solutions(
@@ -186,3 +291,10 @@ def _normalized_distance(
             for left_value, right_value, scale in zip(left, right, scales, strict=True)
         )
     )
+
+
+def _finite_objective(objective: ScalarObjective, point: tuple[float, ...]) -> float:
+    value = float(objective(point))
+    if not math.isfinite(value):
+        raise ValueError("pattern-search objective must remain finite")
+    return value

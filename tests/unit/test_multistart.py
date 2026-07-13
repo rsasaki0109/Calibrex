@@ -2,6 +2,8 @@ import pytest
 
 from calibrex.evaluation.multistart import (
     MultiStartSolution,
+    PatternSearchOptions,
+    coordinate_pattern_search,
     evaluate_multistart_solutions,
 )
 
@@ -59,3 +61,49 @@ def test_multistart_excludes_nonconverged_and_validates_dimensions() -> None:
 
     with pytest.raises(ValueError, match="dimensions"):
         evaluate_multistart_solutions((_solution("bad", 0.0, 0.0, 0.0),), parameter_scales=(1.0,))
+
+
+def test_coordinate_pattern_search_recovers_quadratic_minimum() -> None:
+    result = coordinate_pattern_search(
+        lambda x: (x[0] - 1.0) ** 2 + 2.0 * (x[1] + 0.5) ** 2,
+        start_id="far",
+        start=(-2.0, 2.0),
+        options=PatternSearchOptions(
+            initial_steps=(1.0, 1.0),
+            minimum_steps=(1.0e-4, 1.0e-4),
+            max_sweeps=50,
+        ),
+    )
+
+    assert result.solution.converged is True
+    assert result.solution.parameters == pytest.approx((1.0, -0.5), abs=2.0e-4)
+    assert result.solution.objective < 1.0e-7
+    assert result.evaluation_count == 1 + 4 * result.completed_sweeps
+
+
+def test_pattern_search_preserves_two_symmetric_basins() -> None:
+    def objective(x: tuple[float, ...]) -> float:
+        return (x[0] * x[0] - 1.0) ** 2 + x[1] ** 2
+
+    options = PatternSearchOptions(
+        initial_steps=(0.5, 0.5),
+        minimum_steps=(1.0e-4, 1.0e-4),
+        max_sweeps=40,
+    )
+    positive = coordinate_pattern_search(
+        objective, start_id="positive", start=(2.0, 0.3), options=options
+    )
+    negative = coordinate_pattern_search(
+        objective, start_id="negative", start=(-2.0, -0.3), options=options
+    )
+    evaluation = evaluate_multistart_solutions(
+        (positive.solution, negative.solution),
+        parameter_scales=(0.1, 0.1),
+        objective_absolute_tolerance=1.0e-6,
+        objective_relative_tolerance=0.0,
+    )
+
+    assert positive.solution.parameters[0] == pytest.approx(1.0, abs=2.0e-4)
+    assert negative.solution.parameters[0] == pytest.approx(-1.0, abs=2.0e-4)
+    assert evaluation.ambiguous is True
+    assert evaluation.competitive_cluster_count == 2

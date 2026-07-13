@@ -80,3 +80,10 @@ basin is reported as ambiguity, with best-to-second objective gap and maximum
 normalized separation. Synthetic tests distinguish repeated starts in one
 basin from two objective-equivalent symmetric minima separated by 20 physical
 scale units, and retain non-converged start IDs in provenance.
+
+The native local-search companion uses deterministic best signed-coordinate
+probes, physical per-parameter steps, explicit improvement tolerance, and
+step-halving termination. Its output records every accepted objective value,
+final steps, sweeps, and exact evaluation count. Synthetic tests recover a
+coupled quadratic minimum from a distant start and preserve the two distinct
+minima of a symmetric double-well from positive and negative starts.
