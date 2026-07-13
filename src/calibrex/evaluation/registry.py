@@ -747,6 +747,49 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_reassociation_window_count",
+            "Number of TUM windows evaluated by iterative voxel-plane reassociation",
+            "windows",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_converged_fraction",
+            "Fraction of TUM reassociation windows satisfying train-only stability gates",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_train_pair_jaccard_min",
+            "Minimum terminal train query-voxel pair Jaccard over TUM windows",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_train_retained_query_fraction_min",
+            "Minimum terminal train query retention over TUM reassociation windows",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_holdout_pair_jaccard_min",
+            "Minimum diagnostic terminal holdout query-voxel pair Jaccard",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_holdout_rmse_delta_max_m",
+            "Worst final reassociated-minus-fixed spatial holdout RMSE change",
+            "m",
+            "registration",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_outer_iterations_max",
+            "Maximum reassociation rounds executed over TUM windows",
+            "iterations",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_known_bad_detectable_fraction_min",
+            "Minimum frozen-correspondence known-bad detection fraction after reassociation",
+            family="joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_rematch_pair_jaccard_min",
             "Minimum fixed/rematched query-voxel pair Jaccard over TUM windows",
             family="registration",

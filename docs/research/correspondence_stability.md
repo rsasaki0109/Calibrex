@@ -44,8 +44,13 @@ remain inside the gate while many select different local planes. The minimum
 pair-Jaccard metric therefore FAILs its 0.5 WARN threshold. Every per-query
 drop, addition, and reassignment is retained in provenance.
 
-The next step uses repeated reassociation during optimization and compares its
-numerical curvature against the fixed-correspondence Hessian approximation.
+The generic backend-neutral outer loop now performs this repeated
+reassociation with invariant train/holdout groups and train-only stopping. On
+the three public TUM windows, two warm-start rounds retain at least 99.87
+percent of train queries but reach terminal train pair Jaccards of only 0.914,
+0.804, and 0.847. All three therefore hit the declared outer limit instead of
+passing the unchanged 0.99 gate. Holdout pair Jaccards of 0.902, 0.834, and
+0.852 are recorded solely as diagnostics.
 
 ## Numerical-curvature contract
 

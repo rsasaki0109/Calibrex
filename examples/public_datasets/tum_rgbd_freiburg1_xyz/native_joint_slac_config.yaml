@@ -74,6 +74,9 @@ pipeline:
         cross_window_nondegradation_margin_m: 0.005
         spatial_lattice_smoothness_sigma_m: 0.05
         spatial_lattice_zero_mean_sigma_m: 0.0001
+        reassociation_max_outer_iterations: 2
+        reassociation_min_train_pair_jaccard: 0.99
+        reassociation_min_train_retained_fraction: 0.95
 
 solver:
   backend: native_tum_joint_slac
@@ -111,6 +114,14 @@ evaluation:
     - tum_joint_spatial_known_bad_detectable_fraction_min
     - tum_joint_spatial_cross_window_max_holdout_delta_rmse_m
     - tum_joint_spatial_cross_window_nondegrading_fraction
+    - tum_joint_reassociation_window_count
+    - tum_joint_reassociation_converged_fraction
+    - tum_joint_reassociation_train_pair_jaccard_min
+    - tum_joint_reassociation_train_retained_query_fraction_min
+    - tum_joint_reassociation_holdout_pair_jaccard_min
+    - tum_joint_reassociation_holdout_rmse_delta_max_m
+    - tum_joint_reassociation_outer_iterations_max
+    - tum_joint_reassociation_known_bad_detectable_fraction_min
     - tum_joint_rematch_pair_jaccard_min
     - tum_joint_rematch_retained_query_fraction_min
     - tum_joint_rematch_same_target_fraction_min

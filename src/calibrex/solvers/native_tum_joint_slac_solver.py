@@ -16,6 +16,7 @@ from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.livox import (
     LivoxPointRecord,
+    VoxelPlaneMatch,
     build_voxel_plane_map,
     nearest_voxel_plane,
     nearest_voxel_plane_match,
@@ -63,7 +64,14 @@ from calibrex.graph.joint_optimization import (
     JointOptimizerResult,
     JointParameterBlock,
     JointResidualBlock,
+    ParameterValues,
     evaluate_joint_observability,
+)
+from calibrex.graph.joint_reassociation import (
+    BackendNeutralJointReassociation,
+    JointReassociationOptions,
+    JointReassociationResult,
+    JointReassociationState,
 )
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 
@@ -111,6 +119,9 @@ class TUMJointSlacOptions:
     cross_window_nondegradation_margin_m: float = 0.005
     spatial_lattice_smoothness_sigma_m: float = 0.05
     spatial_lattice_zero_mean_sigma_m: float = 1.0e-4
+    reassociation_max_outer_iterations: int = 2
+    reassociation_min_train_pair_jaccard: float = 0.99
+    reassociation_min_train_retained_fraction: float = 0.95
 
     def as_dict(self) -> dict[str, float | int | list[int]]:
         values: dict[str, float | int | list[int]] = {}
@@ -147,6 +158,13 @@ class _TUMSpatialWindowRun:
     source_problem: _TUMJointProblem
     data_factors: tuple[JointResidualBlock, ...]
     result: JointOptimizerResult
+
+
+@dataclass(frozen=True)
+class _TUMIterativeReassociationRun:
+    start_index: int
+    baseline: _TUMSpatialWindowRun
+    result: JointReassociationResult
 
 
 @dataclass(frozen=True)
@@ -221,6 +239,9 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         transfers = _cross_window_transfers(replication_runs)
         spatial_runs = _spatial_ablation_runs(config, replication_runs, options)
         spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
+        reassociation_runs = _iterative_reassociation_runs(
+            root, intrinsics, config, spatial_runs, options
+        )
         rematching = _rematch_spatial_holdouts(root, intrinsics, spatial_runs, options)
         extrinsic = se3_from_tangent(result.optimized_values[_EXTRINSIC_BLOCK])
         variable = f"T_{camera_node.parent}_{camera}"
@@ -243,6 +264,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
             _spatial_ablation_metrics(replication_runs, spatial_runs, spatial_transfers, options)
         )
         metrics.update(_rematching_metrics(rematching))
+        metrics.update(_iterative_reassociation_metrics(reassociation_runs, options))
         warnings = _warnings(
             result,
             extrinsic_observability.information_rank,
@@ -270,6 +292,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 transfers=transfers,
                 spatial_runs=spatial_runs,
                 spatial_transfers=spatial_transfers,
+                reassociation_runs=reassociation_runs,
                 rematching=rematching,
             ),
             warnings=warnings,
@@ -309,16 +332,22 @@ def _optimize_joint(
     return BackendNeutralJointOptimizer().solve(
         parameter_blocks,
         factors,
-        JointOptimizerOptions(
-            max_iterations=max(1, config.solver.max_iterations),
-            convergence_tolerance=config.solver.convergence_tolerance,
-            huber_delta=options.huber_delta_m,
-            holdout_ratio=options.holdout_ratio,
-            split_seed=config.solver.seed or 0,
-            minimum_train_factors=12,
-            known_bad_margin=options.known_bad_margin_m,
-            max_condition_number=1.0e12,
-        ),
+        _joint_optimizer_options(config, options),
+    )
+
+
+def _joint_optimizer_options(
+    config: CalibrationConfig, options: TUMJointSlacOptions
+) -> JointOptimizerOptions:
+    return JointOptimizerOptions(
+        max_iterations=max(1, config.solver.max_iterations),
+        convergence_tolerance=config.solver.convergence_tolerance,
+        huber_delta=options.huber_delta_m,
+        holdout_ratio=options.holdout_ratio,
+        split_seed=config.solver.seed or 0,
+        minimum_train_factors=12,
+        known_bad_margin=options.known_bad_margin_m,
+        max_condition_number=1.0e12,
     )
 
 
@@ -398,71 +427,10 @@ def _spatial_ablation_runs(
     options: TUMJointSlacOptions,
 ) -> tuple[_TUMSpatialWindowRun, ...]:
     runs: list[_TUMSpatialWindowRun] = []
-    lattice_size = math.prod(_SPATIAL_LATTICE_SHAPE)
     for baseline in baseline_runs:
-        factors = tuple(
-            make_joint_centered_trilinear_depth_point_to_plane_factor(
-                JointTrilinearDepthPointToPlaneMeasurement(
-                    measurement.measurement_id,
-                    measurement.observation_group,
-                    measurement.normalized_ray_sensor,
-                    measurement.nominal_depth_m,
-                    trilinear_lattice_weights(
-                        _scale_ray(
-                            measurement.normalized_ray_sensor,
-                            measurement.nominal_depth_m,
-                        ),
-                        minimum=_SPATIAL_LATTICE_MINIMUM_M,
-                        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
-                        shape=_SPATIAL_LATTICE_SHAPE,
-                    ),
-                    measurement.plane_point_world_m,
-                    measurement.plane_normal_world,
-                    measurement.transform_world_body_initial,
-                    measurement.transform_body_sensor_initial,
-                    measurement.weight,
-                ),
-                pose_block=_pose_block(index, frame),
-                extrinsic_block=_EXTRINSIC_BLOCK,
-                depth_bias_block=_SPATIAL_BIAS_BLOCK,
-                centered_lattice_block=_SPATIAL_DEPTH_BLOCK,
-            )
-            for index, frame in enumerate(baseline.problem.query_frames)
-            for measurement in baseline.problem.measurements
-            if measurement.observation_group == f"tum-frame-{index:03d}"
-        )
-        priors = tuple(
-            factor for factor in baseline.problem.all_factors if factor.family == "diagonal_prior"
-        )
-        smoothness = make_joint_lattice_smoothness_factor(
-            factor_id="depth-lattice-smoothness",
-            observation_group="depth-lattice-regularization",
-            block=_SPATIAL_DEPTH_BLOCK,
-            shape=_SPATIAL_LATTICE_SHAPE,
-            sigma_m=options.spatial_lattice_smoothness_sigma_m,
-        )
-        zero_mean = make_joint_lattice_zero_mean_factor(
-            factor_id="depth-lattice-zero-mean",
-            observation_group="depth-lattice-regularization",
-            block=_SPATIAL_DEPTH_BLOCK,
-            size=lattice_size,
-            sigma_m=options.spatial_lattice_zero_mean_sigma_m,
-        )
-        blocks = (
-            *(block for block in baseline.problem.parameter_blocks if block.name != _DEPTH_BLOCK),
-            JointParameterBlock(
-                _SPATIAL_BIAS_BLOCK,
-                (0.0,),
-                finite_difference_steps=(1.0e-5,),
-                known_bad_steps=(options.known_bad_depth_bias_m,),
-            ),
-            JointParameterBlock(
-                _SPATIAL_DEPTH_BLOCK,
-                (0.0,) * lattice_size,
-                finite_difference_steps=(1.0e-5,) * lattice_size,
-                known_bad_steps=(options.known_bad_depth_bias_m,) * lattice_size,
-            ),
-        )
+        factors = _spatial_data_factors(baseline.problem)
+        regularizers = _spatial_train_only_factors(baseline.problem, options)
+        blocks = _spatial_parameter_blocks(baseline.problem, options)
         runs.append(
             _TUMSpatialWindowRun(
                 baseline.start_index,
@@ -471,12 +439,97 @@ def _spatial_ablation_runs(
                 _optimize_joint(
                     config,
                     blocks,
-                    (*factors, *priors, smoothness, zero_mean),
+                    (*factors, *regularizers),
                     options,
                 ),
             )
         )
     return tuple(runs)
+
+
+def _spatial_data_factors(
+    problem: _TUMJointProblem,
+) -> tuple[JointResidualBlock, ...]:
+    return tuple(_spatial_factor(problem, measurement) for measurement in problem.measurements)
+
+
+def _spatial_factor(
+    problem: _TUMJointProblem,
+    measurement: JointDepthPointToPlaneMeasurement,
+    match: VoxelPlaneMatch | None = None,
+) -> JointResidualBlock:
+    frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
+    frame = problem.query_frames[frame_index]
+    return make_joint_centered_trilinear_depth_point_to_plane_factor(
+        JointTrilinearDepthPointToPlaneMeasurement(
+            measurement.measurement_id,
+            measurement.observation_group,
+            measurement.normalized_ray_sensor,
+            measurement.nominal_depth_m,
+            trilinear_lattice_weights(
+                _scale_ray(
+                    measurement.normalized_ray_sensor,
+                    measurement.nominal_depth_m,
+                ),
+                minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                shape=_SPATIAL_LATTICE_SHAPE,
+            ),
+            match.centroid if match is not None else measurement.plane_point_world_m,
+            match.normal if match is not None else measurement.plane_normal_world,
+            measurement.transform_world_body_initial,
+            measurement.transform_body_sensor_initial,
+            measurement.weight,
+        ),
+        pose_block=_pose_block(frame_index, frame),
+        extrinsic_block=_EXTRINSIC_BLOCK,
+        depth_bias_block=_SPATIAL_BIAS_BLOCK,
+        centered_lattice_block=_SPATIAL_DEPTH_BLOCK,
+    )
+
+
+def _spatial_parameter_blocks(
+    problem: _TUMJointProblem, options: TUMJointSlacOptions
+) -> tuple[JointParameterBlock, ...]:
+    lattice_size = math.prod(_SPATIAL_LATTICE_SHAPE)
+    return (
+        *(block for block in problem.parameter_blocks if block.name != _DEPTH_BLOCK),
+        JointParameterBlock(
+            _SPATIAL_BIAS_BLOCK,
+            (0.0,),
+            finite_difference_steps=(1.0e-5,),
+            known_bad_steps=(options.known_bad_depth_bias_m,),
+        ),
+        JointParameterBlock(
+            _SPATIAL_DEPTH_BLOCK,
+            (0.0,) * lattice_size,
+            finite_difference_steps=(1.0e-5,) * lattice_size,
+            known_bad_steps=(options.known_bad_depth_bias_m,) * lattice_size,
+        ),
+    )
+
+
+def _spatial_train_only_factors(
+    problem: _TUMJointProblem, options: TUMJointSlacOptions
+) -> tuple[JointResidualBlock, ...]:
+    priors = tuple(
+        factor for factor in problem.all_factors if factor.family == "diagonal_prior"
+    )
+    smoothness = make_joint_lattice_smoothness_factor(
+        factor_id="depth-lattice-smoothness",
+        observation_group="depth-lattice-regularization",
+        block=_SPATIAL_DEPTH_BLOCK,
+        shape=_SPATIAL_LATTICE_SHAPE,
+        sigma_m=options.spatial_lattice_smoothness_sigma_m,
+    )
+    zero_mean = make_joint_lattice_zero_mean_factor(
+        factor_id="depth-lattice-zero-mean",
+        observation_group="depth-lattice-regularization",
+        block=_SPATIAL_DEPTH_BLOCK,
+        size=math.prod(_SPATIAL_LATTICE_SHAPE),
+        sigma_m=options.spatial_lattice_zero_mean_sigma_m,
+    )
+    return (*priors, smoothness, zero_mean)
 
 
 def _spatial_cross_window_transfers(
@@ -509,6 +562,92 @@ def _spatial_cross_window_transfers(
                 }
             )
     return tuple(transfers)
+
+
+def _iterative_reassociation_runs(
+    root: Path,
+    intrinsics: TUMDepthIntrinsics,
+    config: CalibrationConfig,
+    runs: tuple[_TUMSpatialWindowRun, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[_TUMIterativeReassociationRun, ...]:
+    output: list[_TUMIterativeReassociationRun] = []
+    for run in runs:
+        plane_map = _build_map_planes(
+            root, run.source_problem.map_frames, intrinsics, options
+        )
+        initial_state = _initial_spatial_reassociation_state(
+            run, plane_map, options
+        )
+        result = BackendNeutralJointReassociation().refine(
+            _spatial_parameter_blocks(run.source_problem, options),
+            initial_state,
+            _spatial_train_only_factors(run.source_problem, options),
+            run.result,
+            partial(_reassociated_spatial_state, run, plane_map, options),
+            _joint_optimizer_options(config, options),
+            JointReassociationOptions(
+                max_outer_iterations=options.reassociation_max_outer_iterations,
+                minimum_train_pair_jaccard=(
+                    options.reassociation_min_train_pair_jaccard
+                ),
+                minimum_train_retained_fraction=(
+                    options.reassociation_min_train_retained_fraction
+                ),
+            ),
+        )
+        output.append(_TUMIterativeReassociationRun(run.start_index, run, result))
+    return tuple(output)
+
+
+def _initial_spatial_reassociation_state(
+    run: _TUMSpatialWindowRun,
+    plane_map: dict[tuple[int, int, int], Any],
+    options: TUMJointSlacOptions,
+) -> JointReassociationState:
+    assignments: list[CorrespondenceAssignment] = []
+    for measurement in run.source_problem.measurements:
+        match = nearest_voxel_plane_match(
+            measurement.plane_point_world_m,
+            plane_map,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        if match is None:
+            raise ValueError(
+                f"initial TUM target identity is unavailable for {measurement.measurement_id}"
+            )
+        assignments.append(
+            CorrespondenceAssignment(measurement.measurement_id, match.target_id)
+        )
+    return JointReassociationState(run.data_factors, tuple(assignments))
+
+
+def _reassociated_spatial_state(
+    run: _TUMSpatialWindowRun,
+    plane_map: dict[tuple[int, int, int], Any],
+    options: TUMJointSlacOptions,
+    values: ParameterValues,
+) -> JointReassociationState:
+    factors: list[JointResidualBlock] = []
+    assignments: list[CorrespondenceAssignment] = []
+    for measurement in run.source_problem.measurements:
+        point_world = _spatial_measurement_world_point_from_values(
+            run.source_problem, measurement, values
+        )
+        match = nearest_voxel_plane_match(
+            point_world,
+            plane_map,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        if match is None:
+            continue
+        factors.append(_spatial_factor(run.source_problem, measurement, match))
+        assignments.append(
+            CorrespondenceAssignment(measurement.measurement_id, match.target_id)
+        )
+    return JointReassociationState(tuple(factors), tuple(assignments))
 
 
 def _scale_ray(ray: tuple[float, float, float], depth_m: float) -> tuple[float, float, float]:
@@ -741,9 +880,21 @@ def _spatial_measurement_world_point(
     extrinsic: tuple[float, ...],
     bias_m: float,
 ) -> tuple[float, float, float]:
-    values = run.result.optimized_values
+    values = dict(run.result.optimized_values)
+    values[_EXTRINSIC_BLOCK] = extrinsic
+    values[_SPATIAL_BIAS_BLOCK] = (bias_m,)
+    return _spatial_measurement_world_point_from_values(
+        run.source_problem, measurement, values
+    )
+
+
+def _spatial_measurement_world_point_from_values(
+    problem: _TUMJointProblem,
+    measurement: JointDepthPointToPlaneMeasurement,
+    values: ParameterValues,
+) -> tuple[float, float, float]:
     frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
-    frame = run.source_problem.query_frames[frame_index]
+    frame = problem.query_frames[frame_index]
     weights = trilinear_lattice_weights(
         _scale_ray(measurement.normalized_ray_sensor, measurement.nominal_depth_m),
         minimum=_SPATIAL_LATTICE_MINIMUM_M,
@@ -752,7 +903,7 @@ def _spatial_measurement_world_point(
     )
     depth_m = (
         measurement.nominal_depth_m
-        + bias_m
+        + values[_SPATIAL_BIAS_BLOCK][0]
         + sum(
             weight * offset
             for weight, offset in zip(weights, values[_SPATIAL_DEPTH_BLOCK], strict=True)
@@ -761,7 +912,7 @@ def _spatial_measurement_world_point(
     world_sensor = (
         se3_from_tangent(values[_pose_block(frame_index, frame)])
         .compose(frame.transform_world_camera)
-        .compose(se3_from_tangent(extrinsic))
+        .compose(se3_from_tangent(values[_EXTRINSIC_BLOCK]))
     )
     return world_sensor.transform_point(_scale_ray(measurement.normalized_ray_sensor, depth_m))
 
@@ -1421,6 +1572,113 @@ def _rematching_metrics(
     }
 
 
+def _iterative_reassociation_metrics(
+    runs: tuple[_TUMIterativeReassociationRun, ...],
+    options: TUMJointSlacOptions,
+) -> dict[str, MetricResult]:
+    expected = len(options.replication_start_indices)
+    converged = sum(run.result.status == "converged" for run in runs)
+    train_jaccards = [
+        run.result.terminal_train_stability.pair_jaccard
+        for run in runs
+        if run.result.terminal_train_stability.pair_jaccard is not None
+    ]
+    train_retentions = [
+        run.result.terminal_train_stability.retained_query_fraction
+        for run in runs
+        if run.result.terminal_train_stability.retained_query_fraction is not None
+    ]
+    holdout_jaccards = [
+        run.result.terminal_holdout_stability.pair_jaccard
+        for run in runs
+        if run.result.terminal_holdout_stability.pair_jaccard is not None
+    ]
+    holdout_deltas = [
+        run.result.final_result.holdout_rmse - run.baseline.result.holdout_rmse
+        for run in runs
+        if run.result.final_result.holdout_rmse is not None
+        and run.baseline.result.holdout_rmse is not None
+    ]
+    detectable_fractions: list[float] = []
+    for run in runs:
+        probes = [
+            probe.detectable
+            for probe in run.result.final_result.probes
+            if probe.detectable is not None
+        ]
+        if probes:
+            detectable_fractions.append(
+                sum(value is True for value in probes) / len(probes)
+            )
+    train_jaccard_min = min(train_jaccards) if train_jaccards else None
+    train_retention_min = min(train_retentions) if train_retentions else None
+    complete = len(runs) == expected
+    return {
+        "tum_joint_reassociation_window_count": MetricResult(
+            value=float(len(runs)),
+            unit="windows",
+            grade="pass" if complete else "fail",
+            reason=f"iterative reassociation windows; expected {expected}",
+        ),
+        "tum_joint_reassociation_converged_fraction": MetricResult(
+            value=converged / expected if expected else None,
+            grade="pass" if complete and converged == expected else "fail",
+            reason="outer-loop convergence uses train assignments only",
+        ),
+        "tum_joint_reassociation_train_pair_jaccard_min": MetricResult(
+            value=train_jaccard_min,
+            grade=(
+                "pass"
+                if train_jaccard_min is not None
+                and train_jaccard_min
+                >= options.reassociation_min_train_pair_jaccard
+                else "fail"
+            ),
+            reason="terminal train query/target pair Jaccard over temporal windows",
+        ),
+        "tum_joint_reassociation_train_retained_query_fraction_min": MetricResult(
+            value=train_retention_min,
+            grade=(
+                "pass"
+                if train_retention_min is not None
+                and train_retention_min
+                >= options.reassociation_min_train_retained_fraction
+                else "fail"
+            ),
+            reason="terminal train query retention over temporal windows",
+        ),
+        "tum_joint_reassociation_holdout_pair_jaccard_min": MetricResult(
+            value=min(holdout_jaccards) if holdout_jaccards else None,
+            grade="warn",
+            reason="holdout assignment stability is diagnostic and never stops fitting",
+        ),
+        "tum_joint_reassociation_holdout_rmse_delta_max_m": MetricResult(
+            value=max(holdout_deltas) if holdout_deltas else None,
+            unit="m",
+            grade="warn",
+            reason="final reassociated minus fixed-assignment spatial holdout RMSE",
+        ),
+        "tum_joint_reassociation_outer_iterations_max": MetricResult(
+            value=(float(max(len(run.result.iterations) for run in runs)) if runs else None),
+            unit="iterations",
+            grade="warn",
+            reason="maximum executed reassociation rounds over temporal windows",
+        ),
+        "tum_joint_reassociation_known_bad_detectable_fraction_min": MetricResult(
+            value=min(detectable_fractions) if detectable_fractions else None,
+            grade=(
+                "pass"
+                if detectable_fractions and min(detectable_fractions) == 1.0
+                else "warn"
+            ),
+            reason=(
+                "signed probes on final frozen correspondences; reassociation-aware "
+                "probe rematching is not claimed"
+            ),
+        ),
+    }
+
+
 def _rotation_angle_deg(transform: SE3) -> float:
     return math.degrees(2.0 * math.acos(min(1.0, abs(transform.rotation_quat_xyzw[3]))))
 
@@ -1456,11 +1714,12 @@ def _provenance(
     transfers: tuple[dict[str, float | int | None], ...],
     spatial_runs: tuple[_TUMSpatialWindowRun, ...],
     spatial_transfers: tuple[dict[str, float | int | None], ...],
+    reassociation_runs: tuple[_TUMIterativeReassociationRun, ...],
     rematching: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.8",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.9",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -1537,6 +1796,19 @@ def _provenance(
             "poses and target spatial holdout factors"
         ),
         "native_tum_joint_slac_spatial_cross_window_transfers": list(spatial_transfers),
+        "native_tum_joint_slac_iterative_reassociation_policy": (
+            "each spatial window alternates nearest voxel-plane reassociation and "
+            "warm-start backend-neutral optimization; only train pair Jaccard and "
+            "train retention stop fitting; holdout stability is diagnostic"
+        ),
+        "native_tum_joint_slac_iterative_reassociation": [
+            {
+                "start_index": run.start_index,
+                "baseline_holdout_rmse_m": run.baseline.result.holdout_rmse,
+                "result": run.result.as_dict(),
+            }
+            for run in reassociation_runs
+        ],
         "native_tum_joint_slac_rematching_policy": (
             "held-out optimized points are reassociated to the nearest voxel plane "
             "under the unchanged gate; target identity is the integer voxel key"
@@ -1726,6 +1998,21 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             "spatial_lattice_zero_mean_sigma_m",
             defaults.spatial_lattice_zero_mean_sigma_m,
         ),
+        reassociation_max_outer_iterations=_integer(
+            values,
+            "reassociation_max_outer_iterations",
+            defaults.reassociation_max_outer_iterations,
+        ),
+        reassociation_min_train_pair_jaccard=_fraction(
+            values,
+            "reassociation_min_train_pair_jaccard",
+            defaults.reassociation_min_train_pair_jaccard,
+        ),
+        reassociation_min_train_retained_fraction=_fraction(
+            values,
+            "reassociation_min_train_retained_fraction",
+            defaults.reassociation_min_train_retained_fraction,
+        ),
     )
 
 
@@ -1770,6 +2057,14 @@ def _positive(values: dict[str, Any], key: str, default: float) -> float:
     except (KeyError, TypeError, ValueError):
         return default
     return value if value > 0.0 else default
+
+
+def _fraction(values: dict[str, Any], key: str, default: float) -> float:
+    try:
+        value = float(values[key])
+    except (KeyError, TypeError, ValueError):
+        return default
+    return value if math.isfinite(value) and 0.0 <= value <= 1.0 else default
 
 
 def _unavailable(reason: str) -> SolverAdapterResult:

@@ -167,9 +167,36 @@ extrinsic z against -0.03 m of constant depth bias relative to the competing
 basin. Multi-start evidence therefore confirms a genuine translation/depth
 ambiguity rather than mere failure of one optimizer trajectory.
 
+### Leakage-safe iterative reassociation
+
+The spatial model is now also evaluated inside a backend-neutral outer loop.
+At each round, every query point is transformed with the current pose,
+extrinsic, constant bias, and trilinear depth offsets, reassociated to the
+nearest voxel plane under the unchanged 0.15 m gate, and warm-started through
+the same joint optimizer. Stable query IDs and seeded frame-level
+train/holdout groups remain invariant. Only train pair Jaccard and train query
+retention may stop fitting; holdout correspondence stability is diagnostic.
+
+All inner optimizations converge in both configured rounds for all three
+windows. Nevertheless, none reaches the unchanged 0.99 train pair-Jaccard
+gate. Terminal train pair Jaccards at starts 60, 180, and 300 are 0.9140,
+0.8037, and 0.8469, while minimum train retention remains 0.9987 and passes its
+0.95 gate. The outer-loop convergence fraction is therefore honestly 0/3 and
+FAIL, rather than relabelling high query retention as stable association.
+
+Final reassociated holdout RMSE changes from the fixed spatial baselines are
++0.000874 m, -0.005127 m, and -0.002893 m. Terminal holdout pair Jaccards are
+0.9023, 0.8343, and 0.8516; these values are never used for stopping. The
+weakest final frozen-correspondence known-bad detection fraction is 8/15.
+This probe is explicitly not reassociation-aware, so it remains WARN and the
+provenance does not claim end-to-end falsification of the alternating
+objective. Full round histories, factor identities, assignments, split groups,
+optimizer results, physical parameter deltas, and terminal stability are
+serialized for every window.
+
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension iterates reassociation and compares rematched numerical
-curvature with the fixed-correspondence Hessian approximation.
+next extension will make known-bad probes reassociation-aware and then replace
+the constrained ray-depth lattice with the paper's full XYZ elastic field.

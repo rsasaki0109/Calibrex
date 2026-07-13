@@ -148,6 +148,45 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         for window in spatial_windows
     )
     assert len(result.run.provenance["native_tum_joint_slac_spatial_cross_window_transfers"]) == 6
+    reassociation_count = result.metrics["tum_joint_reassociation_window_count"]
+    assert reassociation_count.value == 3.0
+    assert reassociation_count.grade == "pass"
+    reassociation_convergence = result.metrics["tum_joint_reassociation_converged_fraction"]
+    assert reassociation_convergence.value == 0.0
+    assert reassociation_convergence.grade == "fail"
+    train_jaccard = result.metrics["tum_joint_reassociation_train_pair_jaccard_min"]
+    assert train_jaccard.value is not None and 0.80 < train_jaccard.value < 0.81
+    assert train_jaccard.grade == "fail"
+    train_retention = result.metrics[
+        "tum_joint_reassociation_train_retained_query_fraction_min"
+    ]
+    assert train_retention.value is not None and train_retention.value > 0.998
+    assert train_retention.grade == "pass"
+    holdout_jaccard = result.metrics["tum_joint_reassociation_holdout_pair_jaccard_min"]
+    assert holdout_jaccard.value is not None and 0.83 < holdout_jaccard.value < 0.84
+    assert holdout_jaccard.grade == "warn"
+    reassociated_delta = result.metrics["tum_joint_reassociation_holdout_rmse_delta_max_m"]
+    assert reassociated_delta.value is not None and 0.0008 < reassociated_delta.value < 0.0009
+    assert reassociated_delta.grade == "warn"
+    assert result.metrics["tum_joint_reassociation_outer_iterations_max"].value == 2.0
+    reassociated_detection = result.metrics[
+        "tum_joint_reassociation_known_bad_detectable_fraction_min"
+    ]
+    assert reassociated_detection.value == pytest.approx(8.0 / 15.0)
+    assert reassociated_detection.grade == "warn"
+    reassociation = result.run.provenance[
+        "native_tum_joint_slac_iterative_reassociation"
+    ]
+    assert [item["start_index"] for item in reassociation] == [60, 180, 300]
+    assert all(
+        item["result"]["status"] == "max_iterations"
+        and len(item["result"]["iterations"]) == 2
+        and set(item["result"]["train_observation_groups"]).isdisjoint(
+            item["result"]["holdout_observation_groups"]
+        )
+        and item["result"]["stopping_policy"].startswith("train assignment")
+        for item in reassociation
+    )
     rematch_jaccard = result.metrics["tum_joint_rematch_pair_jaccard_min"]
     assert rematch_jaccard.value is not None and 0.47 < rematch_jaccard.value < 0.49
     assert rematch_jaccard.grade == "fail"
@@ -208,7 +247,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v0.8"
+        "tum_multicapture_pose_extrinsic_depth/v0.9"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

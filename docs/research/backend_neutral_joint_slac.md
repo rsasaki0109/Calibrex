@@ -116,11 +116,14 @@ from the independent fixed-trajectory native baseline by about 0.057 m and
 0.362 degrees. Raw NPZ hashes, split groups, prior policy, full iteration
 history, probes, and baseline status are retained in result provenance.
 
-The TUM RGB-D fr1/xyz integration now adds eight query-pose blocks, a shared
-camera mounting block, three disjoint map frames, and independent ground-truth
-trajectory support. It reports the prior-augmented joint rank separately from
-data-only shared-extrinsic and extrinsic/depth ranks. A shared log-scale/bias
-depth block is now implemented; synthetic truth passes, while public TUM
-honestly FAILS the unchanged bias and mounting-reference gates. The next step
-is multi-window replication and a spatial correction basis to test whether the
-bias persists beyond one fixed-map window.
+The TUM RGB-D fr1/xyz integration adds eight query-pose blocks, a shared camera
+mounting block, three disjoint map frames, independent ground-truth trajectory
+support, a scalar depth model, and a constrained trilinear ray-depth lattice.
+Three temporal windows expose unstable bias and cross-window transfer. The
+same windows now exercise the generic reassociation loop for two warm-start
+rounds. Inner optimization converges each time, but terminal train pair
+Jaccard remains 0.804--0.914 against the unchanged 0.99 gate, so public TUM
+honestly reports 0/3 outer convergence while retaining more than 99.8 percent
+of queries. Holdout association stability remains diagnostic and cannot stop
+fitting. Full assignments, split groups, iteration deltas, optimizer evidence,
+and final frozen-correspondence probes are retained in provenance.
