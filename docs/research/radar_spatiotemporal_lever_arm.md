@@ -2,11 +2,12 @@
 
 ## Scope and primary references
 
-Calibrex estimates a Radar translation (lever arm) and constant Radar clock
-offset from timestamped scan-wise Radar ego velocities and a reference-body
-kinematic trajectory. Rotation is deliberately supplied by an independent
-rotation calibration stage; the solver does not pretend that all six spatial
-degrees of freedom are jointly recovered.
+Calibrex estimates Radar rotation, translation (lever arm), and a constant
+Radar clock offset from timestamped scan-wise Radar ego velocities and a
+reference-body kinematic trajectory. These are staged estimators: the 3D
+rotation stage requires a supplied lever arm and clock offset, while the
+translation/time stage requires a supplied rotation. This avoids disguising a
+non-convex joint problem as a closed-form all-at-once solution.
 
 The measurement contract follows the velocity formulations used by:
 
@@ -25,6 +26,28 @@ The measurement contract follows the velocity formulations used by:
 
 No source code from either project is copied. This module is an Apache-2.0
 native implementation of the declared rigid-body velocity model.
+
+## Three-axis rotation stage
+
+`RadarTrajectoryRotationSolver` implements the velocity-alignment component
+of Wise et al. (ICRA 2021). For paired, time-aligned velocities it minimizes
+
+```text
+sum_i w_i || R_body_radar v_radar_i
+              - (v_body_i + omega_body_i x t_body_radar) ||^2.
+```
+
+Each IRLS step is a weighted Wahba problem solved on SO(3), with Huber weights
+recomputed from vector residuals. It never estimates translation from velocity
+alignment alone. Input IDs are sorted before a deterministic train/holdout
+split, and low-speed pairs are removed before splitting.
+
+The local rotation information matrix stacks the tangent Jacobians
+`-[R v]_x`. Its three singular values, rank, and condition number are retained;
+collinear velocity excitation is rejected because rotation about that line is
+unobservable. Holdout falsification rotates the estimate by both signs of five
+degrees around roll, pitch, and yaw. All six probes and the full solver options
+are serialized together with the ICRA 2021 primary-paper identity.
 
 ## Measurement and time conventions
 
@@ -78,13 +101,19 @@ that the joint-rank gate rejects a near-zero-residual false convergence.
 
 ## nuScenes public-data adapter
 
-The `radar_spatiotemporal_velocity` factor connects the native contract to an
+The `radar_spatiotemporal_velocity` factor connects both native stages to an
 official, locally downloaded nuScenes mini tree without the nuScenes SDK. It
 re-estimates planar Radar ego velocity from static raw `vx`/`vy` returns rather
 than treating the dataset's ego-motion-compensated `vx_comp`/`vy_comp` as an
 independent measurement. Consecutive `ego_pose` positions and orientations
 provide body-frame linear and angular velocity. Every consumed PCD and metadata
 table receives a SHA-256 provenance record.
+
+The adapter independently estimates `R_ego_radar` using the configured
+translation as its lever arm. It publishes rotation holdout RMSE, information
+rank and condition, and the six-probe detectable fraction. This estimate is not
+fed back into the translation/time stage in the same run, preventing
+train-data self-confirmation.
 
 nuScenes automotive Radar has essentially planar LOS support, while ordinary
 road motion is dominated by yaw. Consequently, full three-axis lever-arm rank

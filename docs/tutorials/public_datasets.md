@@ -1119,6 +1119,14 @@ compensation that a low residual or positive one-dimensional curvature can
 miss. All consumed PCD and metadata files are recorded with SHA-256 digests;
 the supplied Radar rotation and solver options are stored in provenance.
 
+The same timestamped velocities also run an independent three-axis rotation
+stage from Wise et al. (ICRA 2021), using the configured translation for the
+lever-arm term. Its holdout RMSE, three-axis information rank/condition, and
+roll/pitch/yaw ±5 degree controls are reported. The estimated rotation is not
+fed into the lever-arm/clock stage in that run. Ordinary road motion can still
+be poorly conditioned; such data remain `INCONCLUSIVE` with the weak spectrum
+preserved instead of being reduced to a yaw-only success.
+
 `input_diagnostics` records missing extrinsics, insufficient records, missing
 ego poses, low-motion exclusions, missing or malformed PCD payloads, and frames
 without eligible static returns. Counts are complete, while example events are

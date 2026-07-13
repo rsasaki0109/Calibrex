@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,12 @@ from calibrex.solvers.radar_spatiotemporal_lever_arm_solver import (
     RadarVelocityMeasurement,
     ReferenceKinematicSample,
 )
+from calibrex.solvers.radar_trajectory_rotation_solver import (
+    RadarTrajectoryRotationOptions,
+    RadarTrajectoryRotationPair,
+    RadarTrajectoryRotationResult,
+    RadarTrajectoryRotationSolver,
+)
 
 _MIN_STATIC_RETURNS = 5
 _MIN_RANGE_M = 1.0
@@ -50,6 +57,7 @@ class NuScenesRadarSpatiotemporalEvidence:
     status: str
     reason: str
     result: RadarSpatiotemporalLeverArmResult | None
+    rotation_result: RadarTrajectoryRotationResult | None
     channel: str
     rotation_ego_radar_xyzw: QuaternionXYZW
     measurement_count: int
@@ -67,6 +75,9 @@ class NuScenesRadarSpatiotemporalEvidence:
             "reference_sample_count": self.reference_sample_count,
             "rejected_scan_count": self.rejected_scan_count,
             "result": self.result.as_dict() if self.result is not None else None,
+            "rotation_result": (
+                self.rotation_result.as_dict() if self.rotation_result is not None else None
+            ),
             "raw_input_files": list(self.raw_input_files),
             "metrics_origin": "recomputed",
             "dataset_license": "nuScenes terms of use; user-supplied local download",
@@ -105,6 +116,7 @@ def radar_spatiotemporal_metrics_from_result(
         dataset_path=config.dataset.path,
         channel=channel,
         rotation_ego_radar_xyzw=t_ego_radar.rotation_quat_xyzw,
+        translation_ego_radar_m=t_ego_radar.translation_m,
         options=RadarSpatiotemporalLeverArmOptions(
             max_abs_time_offset_sec=float(options.get("max_abs_time_offset_sec", 0.1)),
             time_offset_step_sec=float(options.get("time_offset_step_sec", 0.002)),
@@ -155,6 +167,7 @@ def summarize_nuscenes_radar_spatiotemporal(
     dataset_path: str | Path,
     channel: str,
     rotation_ego_radar_xyzw: QuaternionXYZW,
+    translation_ego_radar_m: Vector3 = (0.0, 0.0, 0.0),
     options: RadarSpatiotemporalLeverArmOptions,
     max_frames: int = 64,
 ) -> NuScenesRadarSpatiotemporalEvidence:
@@ -168,6 +181,7 @@ def summarize_nuscenes_radar_spatiotemporal(
         return NuScenesRadarSpatiotemporalEvidence(
             "unavailable",
             "nuScenes metadata, ego poses, or Radar records are unavailable",
+            None,
             None,
             channel,
             rotation_ego_radar_xyzw,
@@ -210,6 +224,14 @@ def summarize_nuscenes_radar_spatiotemporal(
             RadarVelocityMeasurement(f"{channel}:{record.timestamp_ns}", timestamp, velocity)
         )
         manifests.append(_manifest(payload, "nuscenes_radar_pcd"))
+    rotation_pairs = _rotation_pairs(measurements, reference, translation_ego_radar_m)
+    rotation_solved = RadarTrajectoryRotationSolver().solve(
+        rotation_pairs,
+        RadarTrajectoryRotationOptions(
+            holdout_ratio=options.holdout_ratio,
+            split_seed=options.split_seed,
+        ),
+    )
     solved = RadarSpatiotemporalLeverArmSolver().solve(
         measurements, reference, rotation_ego_radar_xyzw, options
     )
@@ -218,6 +240,7 @@ def summarize_nuscenes_radar_spatiotemporal(
         status,
         solved.reason,
         solved,
+        rotation_solved,
         channel,
         rotation_ego_radar_xyzw,
         len(measurements),
@@ -244,13 +267,81 @@ def estimate_planar_radar_ego_velocity(pcd: NuScenesRadarPCD) -> Vector3 | None:
         values.append(-measured)
     if len(rows) < _MIN_STATIC_RETURNS:
         return None
-    matrix = np.asarray(rows, dtype=np.float64)
+    matrix: np.ndarray[Any, np.dtype[np.float64]] = np.asarray(rows, dtype=np.float64)
     if np.linalg.matrix_rank(matrix) < 2:
         return None
     velocity, _residuals, _rank, _spectrum = np.linalg.lstsq(
         matrix, np.asarray(values, dtype=np.float64), rcond=None
     )
     return (float(velocity[0]), float(velocity[1]), 0.0)
+
+
+def _rotation_pairs(
+    measurements: list[RadarVelocityMeasurement],
+    reference: list[ReferenceKinematicSample],
+    translation_ego_radar_m: Vector3,
+) -> list[RadarTrajectoryRotationPair]:
+    """Form the Wise velocity relation at the configured Radar origin."""
+
+    pairs: list[RadarTrajectoryRotationPair] = []
+    ordered = sorted(reference, key=lambda sample: sample.timestamp_sec)
+    for measurement in measurements:
+        kinematic = _interpolate_kinematics(ordered, measurement.timestamp_sec)
+        if kinematic is None:
+            continue
+        linear, angular = kinematic
+        tx, ty, tz = translation_ego_radar_m
+        wx, wy, wz = angular
+        lever_velocity = (
+            wy * tz - wz * ty,
+            wz * tx - wx * tz,
+            wx * ty - wy * tx,
+        )
+        velocity_at_origin: Vector3 = (
+            linear[0] + lever_velocity[0],
+            linear[1] + lever_velocity[1],
+            linear[2] + lever_velocity[2],
+        )
+        pairs.append(
+            RadarTrajectoryRotationPair(
+                measurement.measurement_id,
+                measurement.velocity_radar_mps,
+                velocity_at_origin,
+                measurement.weight,
+            )
+        )
+    return pairs
+
+
+def _interpolate_kinematics(
+    samples: list[ReferenceKinematicSample], timestamp_sec: float
+) -> tuple[Vector3, Vector3] | None:
+    if len(samples) < 2 or timestamp_sec < samples[0].timestamp_sec:
+        return None
+    for left, right in pairwise(samples):
+        if left.timestamp_sec <= timestamp_sec <= right.timestamp_sec:
+            span = right.timestamp_sec - left.timestamp_sec
+            alpha = (timestamp_sec - left.timestamp_sec) / span if span > 0.0 else 0.0
+            linear: Vector3 = _lerp_vector(
+                left.linear_velocity_body_mps,
+                right.linear_velocity_body_mps,
+                alpha,
+            )
+            angular: Vector3 = _lerp_vector(
+                left.angular_velocity_body_radps,
+                right.angular_velocity_body_radps,
+                alpha,
+            )
+            return linear, angular
+    return None
+
+
+def _lerp_vector(left: Vector3, right: Vector3, alpha: float) -> Vector3:
+    return (
+        left[0] + alpha * (right[0] - left[0]),
+        left[1] + alpha * (right[1] - left[1]),
+        left[2] + alpha * (right[2] - left[2]),
+    )
 
 
 def _kinematic_sample(
@@ -304,7 +395,7 @@ def _evidence_metrics(evidence: NuScenesRadarSpatiotemporalEvidence) -> dict[str
     detectable = [probe.detectable for probe in solved.probes]
     fraction = sum(value is True for value in detectable) / len(detectable) if detectable else None
     converged = solved.status == "converged"
-    return {
+    metrics = {
         "radar_spatiotemporal_available": MetricResult(value=1.0, unit="bool", grade="pass"),
         "radar_spatiotemporal_holdout_rmse_mps": MetricResult(
             value=solved.holdout_rmse_mps,
@@ -356,6 +447,43 @@ def _evidence_metrics(evidence: NuScenesRadarSpatiotemporalEvidence) -> dict[str
             grade="pass" if fraction == 1.0 else "warn",
         ),
     }
+    rotation = evidence.rotation_result
+    if rotation is not None:
+        rotation_detectable = [probe.detectable for probe in rotation.probes]
+        rotation_fraction = (
+            sum(value is True for value in rotation_detectable) / len(rotation_detectable)
+            if rotation_detectable
+            else None
+        )
+        rotation_converged = rotation.status == "converged"
+        metrics.update(
+            {
+                "radar_rotation_holdout_rmse_mps": MetricResult(
+                    value=rotation.holdout_rmse_mps,
+                    unit="m/s",
+                    grade="pass" if rotation_converged else "warn",
+                    reason=rotation.reason,
+                ),
+                "radar_rotation_information_rank": MetricResult(
+                    value=float(rotation.information_rank),
+                    unit="rank",
+                    grade="pass" if rotation.information_rank == 3 else "warn",
+                    reason=rotation.reason,
+                ),
+                "radar_rotation_condition_number": MetricResult(
+                    value=rotation.information_condition_number,
+                    unit="ratio",
+                    grade="pass" if rotation_converged else "warn",
+                    reason=rotation.reason,
+                ),
+                "radar_rotation_known_bad_detectable_fraction": MetricResult(
+                    value=rotation_fraction,
+                    unit="fraction",
+                    grade="pass" if rotation_fraction == 1.0 else "warn",
+                ),
+            }
+        )
+    return metrics
 
 
 def _uniform_sample(records: list[Any], maximum: int) -> list[Any]:

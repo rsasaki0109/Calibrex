@@ -112,6 +112,14 @@ from calibrex.solvers.radar_spatiotemporal_lever_arm_solver import (
     ReferenceKinematicSample,
     radar_spatiotemporal_rmse,
 )
+from calibrex.solvers.radar_trajectory_rotation_solver import (
+    RadarRotationProbe,
+    RadarTrajectoryRotationOptions,
+    RadarTrajectoryRotationPair,
+    RadarTrajectoryRotationResult,
+    RadarTrajectoryRotationSolver,
+    radar_trajectory_rotation_rmse,
+)
 from calibrex.solvers.radar_trajectory_yaw_solver import (
     RadarTrajectoryVelocityPair,
     RadarTrajectoryYawResult,
@@ -219,10 +227,15 @@ __all__ = [
     "RadarEgoVelocityResult",
     "RadarEgoVelocitySolver",
     "RadarEgoVelocitySolverOptions",
+    "RadarRotationProbe",
     "RadarSpatiotemporalLeverArmOptions",
     "RadarSpatiotemporalLeverArmResult",
     "RadarSpatiotemporalLeverArmSolver",
     "RadarSpatiotemporalProbe",
+    "RadarTrajectoryRotationOptions",
+    "RadarTrajectoryRotationPair",
+    "RadarTrajectoryRotationResult",
+    "RadarTrajectoryRotationSolver",
     "RadarTrajectoryVelocityPair",
     "RadarTrajectoryYawResult",
     "RadarTrajectoryYawSolver",
@@ -250,6 +263,7 @@ __all__ = [
     "lidar_pair_solve_inputs",
     "load_lidar_pair",
     "radar_spatiotemporal_rmse",
+    "radar_trajectory_rotation_rmse",
     "radar_trajectory_yaw_rmse",
     "read_acfr_vlp_plane_observations",
     "read_acfr_vlp_point_plane_observations",
