@@ -14,6 +14,7 @@ from calibrex.evaluation.holdout import split_indices
 
 ParameterValues: TypeAlias = Mapping[str, tuple[float, ...]]
 ResidualEvaluator: TypeAlias = Callable[[ParameterValues], Sequence[float]]
+SquareRootInformation: TypeAlias = tuple[tuple[float, ...], ...]
 JointOptimizerStatus = Literal["converged", "max_iterations", "insufficient_factors", "degenerate"]
 JointFactorSplitPolicy = Literal["grouped", "train_only"]
 
@@ -44,12 +45,28 @@ class JointResidualBlock:
     weight: float = 1.0
     family: str = "generic"
     split_policy: JointFactorSplitPolicy = "grouped"
+    sqrt_information: SquareRootInformation = ()
 
     def residuals(self, values: ParameterValues) -> tuple[float, ...]:
         owned = {name: values[name] for name in self.variable_names}
-        residuals = tuple(math.sqrt(self.weight) * float(value) for value in self.evaluator(owned))
-        if not residuals or not all(math.isfinite(value) for value in residuals):
+        raw = tuple(float(value) for value in self.evaluator(owned))
+        if not raw or not all(math.isfinite(value) for value in raw):
             raise ValueError("joint factor residuals must be non-empty and finite")
+        if self.sqrt_information:
+            dimension = len(raw)
+            if len(self.sqrt_information) != dimension or any(
+                len(row) != dimension for row in self.sqrt_information
+            ):
+                raise ValueError("square-root information dimension must match factor residuals")
+            whitened = tuple(
+                sum(row[index] * raw[index] for index in range(dimension))
+                for row in self.sqrt_information
+            )
+        else:
+            whitened = raw
+        residuals = tuple(math.sqrt(self.weight) * value for value in whitened)
+        if not all(math.isfinite(value) for value in residuals):
+            raise ValueError("whitened joint factor residuals must be finite")
         return residuals
 
 
@@ -90,6 +107,24 @@ class JointKnownBadProbe:
 
 
 @dataclass(frozen=True)
+class JointFactorWhitening:
+    """Exact whitening contract applied to one residual block."""
+
+    factor_id: str
+    family: str
+    weight: float
+    sqrt_information: SquareRootInformation
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "factor_id": self.factor_id,
+            "family": self.family,
+            "weight": self.weight,
+            "sqrt_information": [list(row) for row in self.sqrt_information],
+        }
+
+
+@dataclass(frozen=True)
 class JointObservabilityEvaluation:
     """Local Jacobian diagnostics at explicitly supplied parameter values."""
 
@@ -100,6 +135,8 @@ class JointObservabilityEvaluation:
     condition_number: float | None
     weak_parameter_blocks: tuple[str, ...]
     information_rank_threshold: float | None = None
+    whitened_factor_count: int = 0
+    factor_whitening: tuple[JointFactorWhitening, ...] = ()
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -112,6 +149,9 @@ class JointObservabilityEvaluation:
             "weak_parameter_blocks": list(self.weak_parameter_blocks),
             "diagnostic_kind": "local_train_jacobian_not_covariance",
             "rank_tolerance_policy": "relative_to_largest_singular_value",
+            "whitened_factor_count": self.whitened_factor_count,
+            "factor_weighting_policy": "sqrt(weight) * sqrt_information * raw_residual",
+            "factor_whitening": [item.as_dict() for item in self.factor_whitening],
         }
 
 
@@ -133,6 +173,8 @@ class JointOptimizerResult:
     probes: tuple[JointKnownBadProbe, ...]
     history: tuple[JointOptimizerIteration, ...]
     information_rank_threshold: float | None = None
+    train_whitened_factor_count: int = 0
+    train_factor_whitening: tuple[JointFactorWhitening, ...] = ()
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -154,9 +196,14 @@ class JointOptimizerResult:
             "weak_parameter_blocks": list(self.weak_parameter_blocks),
             "known_bad_probes": [probe.__dict__ for probe in self.probes],
             "history": [item.__dict__ for item in self.history],
-            "method": "backend_neutral_robust_joint_lm/v0.2",
+            "method": "backend_neutral_robust_joint_lm/v0.3",
             "information_policy": "train residual Jacobian; diagnostic, not covariance",
             "rank_tolerance_policy": "relative_to_largest_singular_value",
+            "train_whitened_factor_count": self.train_whitened_factor_count,
+            "factor_weighting_policy": "sqrt(weight) * sqrt_information * raw_residual",
+            "train_factor_whitening": [
+                item.as_dict() for item in self.train_factor_whitening
+            ],
         }
 
 
@@ -296,6 +343,8 @@ class BackendNeutralJointOptimizer:
             probes,
             tuple(history),
             rank_threshold if len(singular) else None,
+            sum(bool(factor.sqrt_information) for factor in train),
+            _factor_whitening(train),
         )
 
 
@@ -364,6 +413,8 @@ def evaluate_joint_observability(
         condition_number=condition,
         weak_parameter_blocks=_weak_blocks(jacobian, layout, blocks, rank_threshold),
         information_rank_threshold=rank_threshold if len(singular) else None,
+        whitened_factor_count=sum(bool(factor.sqrt_information) for factor in factors),
+        factor_whitening=_factor_whitening(factors),
     )
 
 
@@ -494,6 +545,12 @@ def _validate_factors(
             raise ValueError(f"joint factor references unknown parameter blocks: {sorted(unknown)}")
         if not math.isfinite(factor.weight) or factor.weight <= 0.0:
             raise ValueError("joint factor weights must be finite and positive")
+        if factor.sqrt_information:
+            dimension = len(factor.sqrt_information)
+            if any(len(row) != dimension for row in factor.sqrt_information):
+                raise ValueError("square-root information must be a square matrix")
+            if not all(math.isfinite(value) for row in factor.sqrt_information for value in row):
+                raise ValueError("square-root information values must be finite")
         factor_ids.add(factor.factor_id)
 
 
@@ -524,6 +581,21 @@ def _relative_rank_threshold(
     singular_values: NDArray[np.float64], relative_tolerance: float
 ) -> float:
     return relative_tolerance * float(singular_values[0]) if len(singular_values) else 0.0
+
+
+def _factor_whitening(
+    factors: Sequence[JointResidualBlock],
+) -> tuple[JointFactorWhitening, ...]:
+    return tuple(
+        JointFactorWhitening(
+            factor.factor_id,
+            factor.family,
+            factor.weight,
+            factor.sqrt_information,
+        )
+        for factor in factors
+        if factor.sqrt_information
+    )
 
 
 def _variable_layout(blocks: Sequence[JointParameterBlock]) -> dict[str, slice]:
@@ -649,4 +721,6 @@ def _empty(
         (),
         (),
         None,
+        sum(bool(factor.sqrt_information) for factor in train),
+        _factor_whitening(train),
     )

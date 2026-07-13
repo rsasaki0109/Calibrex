@@ -405,19 +405,26 @@ def make_joint_prior_factor(
 
     targets = tuple(float(value) for value in target)
     sigmas = tuple(float(value) for value in sigma)
-    if not targets or len(targets) != len(sigmas) or any(value <= 0.0 for value in sigmas):
+    if (
+        not targets
+        or len(targets) != len(sigmas)
+        or not all(math.isfinite(value) for value in targets)
+        or not all(math.isfinite(value) and value > 0.0 for value in sigmas)
+    ):
         raise ValueError(
-            "joint prior target/sigma dimensions must match and sigma must be positive"
+            "joint prior target/sigma dimensions must match and values must be finite/positive"
         )
 
     def evaluator(values: ParameterValues) -> tuple[float, ...]:
         current = values[block]
         if len(current) != len(targets):
             raise ValueError("joint prior block dimension mismatch")
-        return tuple(
-            (value - expected) / scale
-            for value, expected, scale in zip(current, targets, sigmas, strict=True)
-        )
+        return tuple(value - expected for value, expected in zip(current, targets, strict=True))
+
+    sqrt_information = tuple(
+        tuple((1.0 / sigmas[row]) if row == column else 0.0 for column in range(len(sigmas)))
+        for row in range(len(sigmas))
+    )
 
     return JointResidualBlock(
         factor_id,
@@ -426,6 +433,7 @@ def make_joint_prior_factor(
         evaluator,
         family="diagonal_prior",
         split_policy="train_only",
+        sqrt_information=sqrt_information,
     )
 
 

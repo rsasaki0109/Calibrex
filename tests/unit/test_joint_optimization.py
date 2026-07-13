@@ -80,7 +80,7 @@ def test_joint_optimizer_recovers_coupled_trajectory_extrinsic_and_time() -> Non
     assert result.train_rmse is not None and result.train_rmse < 1e-8
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
     assert result.information_rank == 5
-    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.2"
+    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.3"
     assert result.information_rank_threshold is not None
     assert result.weak_parameter_blocks == ()
     assert len(result.probes) == 10
@@ -406,4 +406,78 @@ def test_joint_optimizer_rejects_invalid_options() -> None:
             [JointParameterBlock("x", (0.0,))],
             [],
             JointOptimizerOptions(rank_tolerance=1.0),
+        )
+
+
+def test_joint_factor_applies_correlated_whitening_before_scalar_weight() -> None:
+    factor = JointResidualBlock(
+        "correlated",
+        "capture",
+        ("state",),
+        lambda values: values["state"],
+        weight=4.0,
+        sqrt_information=((2.0, 1.0), (0.0, 3.0)),
+    )
+
+    assert factor.residuals({"state": (2.0, -1.0)}) == pytest.approx((6.0, -6.0))
+
+
+def test_joint_optimizer_recovers_truth_with_correlated_whitening() -> None:
+    truth = (0.3, -0.2)
+    factors = [
+        JointResidualBlock(
+            f"correlated-{index}",
+            f"capture-{index}",
+            ("state",),
+            lambda values, offset=0.01 * index: (
+                values["state"][0] - truth[0] + offset,
+                values["state"][1] - truth[1] - offset,
+            ),
+            sqrt_information=((2.0, 0.5), (0.0, 1.5)),
+        )
+        for index in range(6)
+    ]
+
+    result = BackendNeutralJointOptimizer().solve(
+        [JointParameterBlock("state", (0.0, 0.0))],
+        factors,
+        JointOptimizerOptions(holdout_ratio=0.0, minimum_train_factors=1),
+    )
+
+    assert result.status == "converged"
+    assert result.optimized_values["state"] == pytest.approx((0.275, -0.175), abs=1.0e-8)
+    assert result.train_whitened_factor_count == 6
+    assert result.as_dict()["factor_weighting_policy"] == (
+        "sqrt(weight) * sqrt_information * raw_residual"
+    )
+    assert len(result.train_factor_whitening) == 6
+    assert result.train_factor_whitening[0].sqrt_information == (
+        (2.0, 0.5),
+        (0.0, 1.5),
+    )
+    serialized = result.as_dict()["train_factor_whitening"]
+    assert serialized[0]["factor_id"] == "correlated-0"
+    assert serialized[0]["sqrt_information"] == [[2.0, 0.5], [0.0, 1.5]]
+
+
+@pytest.mark.parametrize(
+    "matrix",
+    [((1.0, 0.0),), ((1.0, math.nan), (0.0, 1.0))],
+)
+def test_joint_optimizer_rejects_invalid_square_root_information(
+    matrix: tuple[tuple[float, ...], ...],
+) -> None:
+    factor = JointResidualBlock(
+        "invalid-information",
+        "capture",
+        ("state",),
+        lambda values: values["state"],
+        sqrt_information=matrix,
+    )
+
+    with pytest.raises(ValueError, match="square-root information"):
+        BackendNeutralJointOptimizer().solve(
+            [JointParameterBlock("state", (0.0, 0.0))],
+            [factor],
+            JointOptimizerOptions(holdout_ratio=0.0, minimum_train_factors=1),
         )

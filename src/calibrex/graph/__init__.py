@@ -18,6 +18,7 @@ from calibrex.graph.joint_factors import (
 )
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
+    JointFactorWhitening,
     JointKnownBadProbe,
     JointObservabilityEvaluation,
     JointOptimizerIteration,
@@ -25,6 +26,7 @@ from calibrex.graph.joint_optimization import (
     JointOptimizerResult,
     JointParameterBlock,
     JointResidualBlock,
+    SquareRootInformation,
     evaluate_joint_observability,
     split_joint_factors,
 )
@@ -35,6 +37,7 @@ __all__ = [
     "CalibrationProblemSpec",
     "FactorPlugin",
     "JointDepthPointToPlaneMeasurement",
+    "JointFactorWhitening",
     "JointKnownBadProbe",
     "JointObservabilityEvaluation",
     "JointOptimizerIteration",
@@ -44,6 +47,7 @@ __all__ = [
     "JointPointToPlaneMeasurement",
     "JointRadarDopplerMeasurement",
     "JointResidualBlock",
+    "SquareRootInformation",
     "build_problem",
     "evaluate_joint_observability",
     "get_factor_plugin",

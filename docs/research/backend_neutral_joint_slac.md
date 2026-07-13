@@ -37,6 +37,15 @@ factor-local central-difference Jacobians, assembles a joint train Jacobian,
 applies scalar Huber weights, and uses damped Gauss-Newton/LM steps. The
 implementation depends only on NumPy and typed Calibrex contracts.
 
+Version `v0.3` also permits a typed square-root information matrix per factor.
+The backend-neutral residual contract is `r_w = sqrt(w) L r_raw`, where
+`L^T L` is the declared information matrix. Dimensions and finite values are
+checked before optimization. This supports correlated residual whitening
+without embedding a backend covariance class in the core. Existing diagonal
+pose priors now use this path, so A2D2 and TUM public runs exercise the same
+contract. Every whitened train factor serializes its ID, family, scalar weight,
+and exact matrix; the matrix is not presented as an estimated covariance.
+
 Observation groups, not individual scalar residuals, are deterministically
 split. Camera, LiDAR, IMU, and Radar factors from one capture can therefore be
 kept together and cannot leak across train and holdout merely because they are

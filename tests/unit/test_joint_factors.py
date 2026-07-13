@@ -143,6 +143,7 @@ def test_joint_prior_factor_normalizes_each_dimension() -> None:
 
     assert factor.residuals({"bias": (2.0, 0.0)}) == pytest.approx((2.0, 1.0))
     assert factor.split_policy == "train_only"
+    assert factor.sqrt_information == ((2.0, 0.0), (0.0, 0.5))
 
 
 def test_trilinear_lattice_weights_and_depth_factor() -> None:
