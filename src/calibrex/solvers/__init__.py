@@ -1,12 +1,21 @@
 """Solver adapter interfaces."""
 
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+from calibrex.solvers.daniilidis_hand_eye_solver import (
+    DaniilidisHandEyeOptions,
+    DaniilidisHandEyeResult,
+    DaniilidisHandEyeSolver,
+)
 from calibrex.solvers.fixed_trajectory_se3_solver import (
     FixedTrajectorySe3ExtrinsicSolver,
     FixedTrajectorySe3SolverOptions,
     FixedTrajectorySe3SolverResult,
 )
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.solvers.native_hand_eye_comparison_solver import (
+    NATIVE_HAND_EYE_COMPARISON_BACKEND,
+    NativeHandEyeComparisonSolver,
+)
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
@@ -68,24 +77,37 @@ from calibrex.solvers.robust_point_to_point_icp_solver import (
     RobustPointToPointIcpResult,
     RobustPointToPointIcpSolver,
 )
+from calibrex.solvers.tsai_lenz_hand_eye_solver import (
+    HandEyeProbeResult,
+    TsaiLenzHandEyeOptions,
+    TsaiLenzHandEyeResult,
+    TsaiLenzHandEyeSolver,
+    evaluate_hand_eye_known_bad_probes,
+)
 
 __all__ = [
     "ACFR_VLP_FORMAT",
     "ACFR_VLP_SOURCE_URL",
+    "NATIVE_HAND_EYE_COMPARISON_BACKEND",
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
     "NATIVE_PLANAR_BOARD_BACKEND",
     "BoardBoundaryCorrespondence",
+    "DaniilidisHandEyeOptions",
+    "DaniilidisHandEyeResult",
+    "DaniilidisHandEyeSolver",
     "FixedTrajectorySe3ExtrinsicSolver",
     "FixedTrajectorySe3SolverOptions",
     "FixedTrajectorySe3SolverResult",
     "HandEyeEvaluation",
     "HandEyeMotionPair",
+    "HandEyeProbeResult",
     "IcpIteration",
     "IcpPoint",
     "KoideLidarCameraSolver",
     "LinePlaneBoardObservation",
     "LinePlaneEvaluation",
     "LinePlaneSolverOptions",
+    "NativeHandEyeComparisonSolver",
     "NativeLidarPointToPlaneSolver",
     "NativePlanarBoardSolver",
     "Open3DSLACSolver",
@@ -116,6 +138,10 @@ __all__ = [
     "RobustPointToPointIcpSolver",
     "SolverAdapter",
     "SolverAdapterResult",
+    "TsaiLenzHandEyeOptions",
+    "TsaiLenzHandEyeResult",
+    "TsaiLenzHandEyeSolver",
+    "evaluate_hand_eye_known_bad_probes",
     "evaluate_hand_eye_motions",
     "evaluate_line_plane_observations",
     "evaluate_planar_board_observations",

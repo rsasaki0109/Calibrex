@@ -20,6 +20,8 @@ holdout evaluation, and known-bad controls.
 | Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | plane/edge closure, separate rotation/translation spectra, edge-angle gate |
 | Robust point-to-point ICP | Generic local 3D registration | Native solver | spatial-block holdout, mutual/trimmed matches, 3D-spread and frozen-pair diagnostics |
 | Park-Martin motion hand-eye | Trajectory-derived `AX = XB` extrinsic | Native solver | motion holdout, axis spectrum, translation-system spectrum and closure |
+| Tsai-Lenz motion hand-eye | Independent separable `AX = XB` baseline | Native solver | shared motion holdout, two system spectra, 12 known-bad controls |
+| Daniilidis dual-quaternion hand-eye | Simultaneous `AX = XB` rotation/translation baseline | Native solver | shared holdout, 8D nullspace/Study diagnostics, 12 known-bad controls |
 | LiDAR-IMU rotation consistency | Supplied rotation evaluation | Implemented | held-out angular-rate and gravity evidence |
 | Anchored temporal offset | One-dimensional time calibration evidence | Implemented | injected offsets and adapted/anchored comparison |
 
@@ -164,8 +166,13 @@ randomly splitting a dense all-pairs motion set would leak the same poses into
 both sets. That builder remains separate from the core solver so eye-in-hand,
 eye-to-hand, and robot-world/hand-eye conventions cannot be mixed implicitly.
 
-[Tsai and Lenz](https://doi.org/10.1109/70.34770) and the dual-quaternion method
-of [Daniilidis](https://doi.org/10.1177/02783649922066213) remain independent
-future baselines. OpenCV `calibrateHandEye` is suitable for an optional adapter;
-Kalibr is a distinct camera-IMU spatiotemporal workflow and is not labeled as
-this native `AX = XB` method.
+[Tsai and Lenz](https://doi.org/10.1109/70.34770) is implemented as an
+independent modified-Rodrigues/linear-translation baseline with the same typed
+motion split and closure evaluation as Park-Martin. The simultaneous
+dual-quaternion method of
+[Daniilidis](https://doi.org/10.1177/02783649922066213) is also implemented as
+an independent 8D nullspace solver. It enforces unit and Study constraints,
+reports the full singular spectrum and nullspace separation, and selects real
+constrained candidates by train closure. OpenCV `calibrateHandEye` is suitable
+for an optional adapter; Kalibr is a distinct camera-IMU spatiotemporal
+workflow and is not labeled as this native `AX = XB` method.

@@ -17,6 +17,11 @@ from urllib.request import Request, urlopen, urlretrieve
 import yaml
 
 from calibrex.data.downloads import download_livox_horizon_horizon_pcd_sample
+from calibrex.data.ethz_hand_eye import (
+    ETHZ_ROBOT_ARM_REAL_ARCHIVE,
+    ETHZ_ROBOT_ARM_REAL_SHA256,
+    ETHZ_ROBOT_ARM_REAL_URL,
+)
 from calibrex.solvers.native_planar_board_solver import ACFR_VLP_SOURCE_URL
 
 A2D2_LIDAR_SAMPLE_URL = (
@@ -38,6 +43,7 @@ def main() -> int:
             "a2d2_lidar_pair_sample",
             "livox_horizon_horizon_pcd_sample",
             "acfr_vlp_plane_poses",
+            "ethz_hand_eye_robot_arm_real",
         ],
     )
     parser.add_argument(
@@ -59,6 +65,9 @@ def main() -> int:
         return 0
     if args.dataset == "acfr_vlp_plane_poses":
         download_acfr_vlp_plane_poses(args.output_dir)
+        return 0
+    if args.dataset == "ethz_hand_eye_robot_arm_real":
+        download_ethz_hand_eye_robot_arm_real(args.output_dir)
         return 0
 
     catalog = yaml.safe_load(args.catalog.read_text(encoding="utf-8"))
@@ -113,6 +122,27 @@ def download_acfr_vlp_plane_poses(output_dir: Path) -> None:
     actual = hashlib.sha256(data).hexdigest()
     if actual != expected:
         raise SystemExit(f"ACFR poses.csv digest mismatch: expected {expected}, got {actual}")
+    target.write_bytes(data)
+    print(f"wrote {target}")
+
+
+def download_ethz_hand_eye_robot_arm_real(output_dir: Path) -> None:
+    """Download the pinned ETHZ ASL real robot-arm pose-stream archive."""
+
+    import hashlib
+
+    target_dir = output_dir / "ethz_hand_eye_robot_arm_real"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / ETHZ_ROBOT_ARM_REAL_ARCHIVE
+    request = Request(ETHZ_ROBOT_ARM_REAL_URL, headers={"User-Agent": "Calibrex"})
+    with urlopen(request, timeout=90) as response:
+        data = response.read()
+    actual = hashlib.sha256(data).hexdigest()
+    if actual != ETHZ_ROBOT_ARM_REAL_SHA256:
+        raise SystemExit(
+            "ETHZ hand-eye archive digest mismatch: "
+            f"expected {ETHZ_ROBOT_ARM_REAL_SHA256}, got {actual}"
+        )
     target.write_bytes(data)
     print(f"wrote {target}")
 

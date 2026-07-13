@@ -30,6 +30,21 @@ The native solver consumes only extracted oriented-plane correspondences. The
 upstream ROS/PCL feature extractor stays outside the core and its pinned commit,
 Apache-2.0 license, input digest, and source URL are recorded as provenance.
 
+Three native hand-eye baselines on ETHZ ASL's real robot-arm pose streams:
+
+```bash
+python3 tools/download_public_dataset.py ethz_hand_eye_robot_arm_real \
+  --output-dir data/public
+calibrex calibrate \
+  examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml
+calibrex verify outputs/ethz_hand_eye_robot_arm_real/bundle.json
+```
+
+The comparison runs Park-Martin, Tsai-Lenz, and Daniilidis with one disjoint
+absolute-pose pairing policy and one holdout split. Closure passes on the public
+sample, while the default known-bad gate remains INCONCLUSIVE; the documented
+negative result is not converted into a PASS by threshold tuning.
+
 Solid-state LiDAR-to-LiDAR evidence demo:
 
 ```bash

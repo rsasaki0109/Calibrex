@@ -59,6 +59,10 @@ from calibrex.solvers.koide_lidar_camera_solver import (
     ADAPTER_FACTOR_NAMES as KOIDE_LIDAR_CAMERA_FACTOR_NAMES,
 )
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.solvers.native_hand_eye_comparison_solver import (
+    NATIVE_HAND_EYE_COMPARISON_BACKEND,
+    NativeHandEyeComparisonSolver,
+)
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
@@ -150,6 +154,10 @@ def _apply_pipeline_adapter(
         adapter_result = NativeLidarPointToPlaneSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_PLANAR_BOARD_BACKEND:
         adapter_result = NativePlanarBoardSolver().solve(config, frame_graph, inspection)
+    elif config.solver.backend == NATIVE_HAND_EYE_COMPARISON_BACKEND:
+        adapter_result = NativeHandEyeComparisonSolver().solve(
+            config, frame_graph, inspection
+        )
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -162,6 +170,7 @@ def _apply_pipeline_adapter(
     if adapter_result.backend in {
         NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
         NATIVE_PLANAR_BOARD_BACKEND,
+        NATIVE_HAND_EYE_COMPARISON_BACKEND,
     } and adapter_result.transforms:
         result.metrics["prototype_solver"] = MetricResult(
             value=1.0,
@@ -329,7 +338,10 @@ def _apply_adapter_transforms(
                 adapter_result.backend,
                 note="adapter output applied to Calibrex output estimate",
             )
-            if adapter_result.backend == NATIVE_PLANAR_BOARD_BACKEND:
+            if adapter_result.backend in {
+                NATIVE_PLANAR_BOARD_BACKEND,
+                NATIVE_HAND_EYE_COMPARISON_BACKEND,
+            } and adapter_result.status == "pass":
                 result.transforms[name].quality = TransformQuality(grade="pass")
             applied.append(name)
         elif name == "T_camera0_lidar0":
@@ -340,7 +352,10 @@ def _apply_adapter_transforms(
                     adapter_result.backend,
                     note="relative adapter output composed into rig-frame estimate",
                 )
-                if adapter_result.backend == NATIVE_PLANAR_BOARD_BACKEND:
+                if adapter_result.backend in {
+                    NATIVE_PLANAR_BOARD_BACKEND,
+                    NATIVE_HAND_EYE_COMPARISON_BACKEND,
+                } and adapter_result.status == "pass":
                     result.transforms[applied_name].quality = TransformQuality(grade="pass")
                 applied.append(applied_name)
     if applied:
@@ -348,18 +363,24 @@ def _apply_adapter_transforms(
 
 
 def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateProvenance:
-    if backend in {NATIVE_LIDAR_POINT_TO_PLANE_BACKEND, NATIVE_PLANAR_BOARD_BACKEND}:
+    if backend in {
+        NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+        NATIVE_PLANAR_BOARD_BACKEND,
+        NATIVE_HAND_EYE_COMPARISON_BACKEND,
+    }:
         return TransformEstimateProvenance(
             producer="slac_native",
             execution_mode="offline_batch",
             role_in_comparison="output",
             evidence_level="algorithmically_refined",
             tool_name=backend,
-            source=(
-                "native_planar_board_solver"
-                if backend == NATIVE_PLANAR_BOARD_BACKEND
-                else "native_lidar_point_to_plane_solver"
-            ),
+            source={
+                NATIVE_LIDAR_POINT_TO_PLANE_BACKEND: "native_lidar_point_to_plane_solver",
+                NATIVE_PLANAR_BOARD_BACKEND: "native_planar_board_solver",
+                NATIVE_HAND_EYE_COMPARISON_BACKEND: (
+                    "native_hand_eye_comparison_solver"
+                ),
+            }[backend],
             notes=[note],
         )
     return TransformEstimateProvenance(

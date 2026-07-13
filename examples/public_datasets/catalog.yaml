@@ -1,5 +1,15 @@
 schema_version: slac.public_datasets/v0.1
 datasets:
+  ethz_hand_eye_robot_arm_real:
+    name: ETHZ ASL real robot-arm hand-eye pose streams
+    family: ethz_hand_eye_calibration
+    domain: robotics
+    official_url: https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/
+    download_url: https://raw.githubusercontent.com/ethz-asl/hand_eye_calibration/966cd92518f24aa7dfdacc8ba9c5fa4a441270cd/datasets/robot_arm_w_color_camera_real.zip
+    license_note: Dataset permits non-commercial use; the pinned upstream sample repository is BSD-3-Clause. Calibrex consumes pose CSVs without copying upstream code.
+    slac_manifest: examples/public_datasets/ethz_hand_eye_robot_arm_real/manifest.yaml
+    slac_config: examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml
+    recommended_pipeline: native_hand_eye_comparison
   acfr_vlp_plane_poses:
     name: ACFR VLP-16 camera-LiDAR calibration plane poses
     family: acfr_cam_lidar_calibration

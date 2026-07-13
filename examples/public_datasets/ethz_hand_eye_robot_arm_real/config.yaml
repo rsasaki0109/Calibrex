@@ -1,0 +1,66 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: ethz_real_hand_eye_comparison
+  description: Three native AX=XB solvers on ETHZ ASL public real robot-arm pose streams.
+  output_dir: outputs/ethz_hand_eye_robot_arm_real
+  domain: robotics
+
+dataset:
+  type: filesystem
+  path: data/public/ethz_hand_eye_robot_arm_real
+  time_base: unix_seconds
+
+sensors:
+  eye:
+    type: camera
+    model: intel_sr300_ir
+    frame_id: eye
+
+frames:
+  hand:
+    root: true
+  eye:
+    parent: hand
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+pipeline:
+  type: hand_eye_solver_comparison
+  frontends: [ethz_timestamped_pose_csv]
+  factors:
+    hand_eye_motion_closure:
+      enabled: true
+      options:
+        archive_file: robot_arm_w_color_camera_real.zip
+        maximum_time_delta_sec: 0.011
+        motion_stride: 60
+        absolute_pose_pairing: disjoint
+        max_holdout_rotation_rmse_deg: 2.0
+        max_holdout_translation_rmse_m: 0.03
+        min_known_bad_detectable_fraction: 0.75
+
+solver:
+  backend: native_hand_eye_comparison
+  max_iterations: 0
+  robust_loss: none
+  convergence_tolerance: 1.0e-10
+  seed: 0
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - hand_eye_park_martin_holdout_rotation_rmse_deg
+    - hand_eye_park_martin_holdout_translation_rmse_m
+    - hand_eye_tsai_lenz_holdout_rotation_rmse_deg
+    - hand_eye_tsai_lenz_holdout_translation_rmse_m
+    - hand_eye_daniilidis_holdout_rotation_rmse_deg
+    - hand_eye_daniilidis_holdout_translation_rmse_m
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

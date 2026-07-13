@@ -1,0 +1,22 @@
+schema_version: slac.dataset_manifest/v0.1
+name: ethz_hand_eye_robot_arm_real
+description: ETHZ ASL public real robot-arm hand and calibration-target camera pose streams.
+time_base: unix_seconds
+streams:
+  robot_arm_pose_archive:
+    kind: trajectory
+    count: 2
+    path: data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip
+    sensor: eye
+    frame_id: hand
+    fields: [timestamp_sec, x_m, y_m, z_m, qx, qy, qz, qw]
+provenance:
+  source: ETHZ ASL hand_eye_calibration public robot-arm real sample
+  dataset_doi: 10.3929/ethz-c-000788527
+  official_url: https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/
+  source_commit: 966cd92518f24aa7dfdacc8ba9c5fa4a441270cd
+  source_url: https://raw.githubusercontent.com/ethz-asl/hand_eye_calibration/966cd92518f24aa7dfdacc8ba9c5fa4a441270cd/datasets/robot_arm_w_color_camera_real.zip
+  source_sha256: 2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3
+  dataset_rights: In Copyright - Non-Commercial Use Permitted
+  sample_repository_license_spdx: BSD-3-Clause
+  adapter_boundary: Pose CSV parsing only; upstream ROS/BSD code is not copied or executed.
