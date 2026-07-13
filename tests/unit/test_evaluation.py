@@ -471,6 +471,8 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "native_joint_slac_available" in names
     assert "joint_slac_point_to_plane_rmse_m" in names
     assert "joint_slac_known_bad_detectable_fraction" in names
+    assert "joint_slac_train_factor_family_count" in names
+    assert "joint_slac_train_max_family_information_fraction" in names
     assert "native_tum_joint_slac_available" in names
     assert "tum_joint_point_to_plane_rmse_m" in names
     assert "tum_joint_schur_solver_used" in names
@@ -479,6 +481,8 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "tum_joint_schur_step_count" in names
     assert "tum_joint_schur_linear_residual_inf" in names
     assert "tum_joint_schur_complement_condition_number" in names
+    assert "tum_joint_train_factor_family_count" in names
+    assert "tum_joint_train_max_family_information_fraction" in names
     assert "robot_world_hand_eye_pose_pair_count" in names
     assert "robot_world_hand_eye_shah_rotation_dominant_multiplicity" in names
     assert "robot_world_hand_eye_shah_rotation_normalized_gap" in names

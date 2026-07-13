@@ -2023,6 +2023,11 @@ def _metrics(
         result.max_linear_system_residual_inf is not None
         and result.max_linear_system_residual_inf <= 1.0e-8
     )
+    family_fractions = [
+        item.robust_information_fraction
+        for item in result.train_factor_family_diagnostics
+        if item.robust_information_fraction is not None
+    ]
     return {
         "native_tum_joint_slac_available": MetricResult(
             value=1.0, grade="pass", reason="native TUM multi-capture joint solver executed"
@@ -2086,6 +2091,21 @@ def _metrics(
             value=result.max_schur_complement_condition_number,
             grade="warn",
             reason="maximum reduced-system condition diagnostic; unit-dependent, not covariance",
+        ),
+        "tum_joint_train_factor_family_count": MetricResult(
+            value=float(len(result.train_factor_family_diagnostics)),
+            unit="families",
+            grade="pass" if len(result.train_factor_family_diagnostics) >= 2 else "warn",
+            reason="distinct depth/regularization/prior families in the final train Jacobian",
+        ),
+        "tum_joint_train_max_family_information_fraction": MetricResult(
+            value=max(family_fractions) if family_fractions else None,
+            unit="fraction",
+            grade="warn",
+            reason=(
+                "largest family share of Huber-weighted local Jacobian energy; "
+                "unit-dependent diagnostic without a universal acceptance threshold"
+            ),
         ),
         "tum_joint_data_only_extrinsic_rank": MetricResult(
             value=float(extrinsic_observability.information_rank),

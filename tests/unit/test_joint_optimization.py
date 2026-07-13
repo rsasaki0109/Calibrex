@@ -81,12 +81,22 @@ def test_joint_optimizer_recovers_coupled_trajectory_extrinsic_and_time() -> Non
     assert result.train_rmse is not None and result.train_rmse < 1e-8
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
     assert result.information_rank == 5
-    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.4"
+    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.5"
     assert result.information_rank_threshold is not None
     assert result.weak_parameter_blocks == ()
     assert len(result.probes) == 10
     assert all(probe.detectable is True for probe in result.probes)
     assert set(result.train_observation_groups).isdisjoint(result.holdout_observation_groups)
+    assert len(result.train_factor_family_diagnostics) == 1
+    assert result.train_factor_family_diagnostics[0].family == "synthetic_multisensor"
+    assert result.train_factor_family_diagnostics[0].robust_information_fraction == pytest.approx(
+        1.0
+    )
+    assert len(result.holdout_factor_family_diagnostics) == 1
+    assert result.holdout_factor_family_diagnostics[0].residual_rmse == pytest.approx(
+        result.holdout_rmse
+    )
+    assert result.holdout_factor_family_diagnostics[0].robust_information_fraction is None
 
 
 def test_schur_solver_matches_dense_joint_step_and_truth() -> None:
@@ -347,6 +357,58 @@ def test_explicit_observability_evaluation_excludes_fixed_blocks() -> None:
     assert evaluation.information_rank_threshold == pytest.approx(1.0e-8)
     assert evaluation.condition_number == pytest.approx(1.0)
     assert evaluation.weak_parameter_blocks == ()
+
+
+def test_factor_family_diagnostics_report_robust_information_balance() -> None:
+    blocks = [
+        JointParameterBlock("camera_state", (0.0,)),
+        JointParameterBlock("lidar_state", (0.0,)),
+    ]
+    factors = []
+    for index in range(4):
+        factors.extend(
+            [
+                JointResidualBlock(
+                    f"camera-{index}",
+                    f"capture-{index}",
+                    ("camera_state",),
+                    lambda values: (10.0 * values["camera_state"][0] + 100.0,),
+                    family="camera_outlier",
+                ),
+                JointResidualBlock(
+                    f"lidar-{index}",
+                    f"capture-{index}",
+                    ("lidar_state",),
+                    lambda values: (values["lidar_state"][0],),
+                    family="lidar_inlier",
+                ),
+            ]
+        )
+
+    evaluation = evaluate_joint_observability(
+        blocks,
+        factors,
+        {"camera_state": (0.0,), "lidar_state": (0.0,)},
+        JointOptimizerOptions(huber_delta=1.0),
+    )
+
+    diagnostics = {item.family: item for item in evaluation.factor_family_diagnostics}
+    camera = diagnostics["camera_outlier"]
+    lidar = diagnostics["lidar_inlier"]
+    assert camera.factor_count == lidar.factor_count == 4
+    assert camera.observation_group_count == lidar.observation_group_count == 4
+    assert camera.residual_dimension == lidar.residual_dimension == 4
+    assert camera.residual_rmse == pytest.approx(100.0)
+    assert lidar.residual_rmse == pytest.approx(0.0)
+    assert camera.mean_huber_weight == pytest.approx(0.01)
+    assert lidar.mean_huber_weight == pytest.approx(1.0)
+    assert camera.robust_jacobian_frobenius_norm == pytest.approx(2.0)
+    assert lidar.robust_jacobian_frobenius_norm == pytest.approx(2.0)
+    assert camera.robust_information_fraction == pytest.approx(0.5)
+    assert lidar.robust_information_fraction == pytest.approx(0.5)
+    serialized = evaluation.as_dict()["factor_family_diagnostics"]
+    assert isinstance(serialized, list)
+    assert "not covariance" in serialized[0]["diagnostic_kind"]
 
 
 @pytest.mark.parametrize("residual_scale", [1.0, 1.0e-12, 1.0e9])

@@ -134,6 +134,36 @@ class JointFactorWhitening:
 
 
 @dataclass(frozen=True)
+class JointFactorFamilyDiagnostic:
+    """Residual and robust-Jacobian contribution from one factor family."""
+
+    family: str
+    factor_count: int
+    observation_group_count: int
+    residual_dimension: int
+    residual_rmse: float | None
+    mean_huber_weight: float | None
+    robust_jacobian_frobenius_norm: float | None
+    robust_information_fraction: float | None
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "family": self.family,
+            "factor_count": self.factor_count,
+            "observation_group_count": self.observation_group_count,
+            "residual_dimension": self.residual_dimension,
+            "residual_rmse": self.residual_rmse,
+            "mean_huber_weight": self.mean_huber_weight,
+            "robust_jacobian_frobenius_norm": self.robust_jacobian_frobenius_norm,
+            "robust_information_fraction": self.robust_information_fraction,
+            "diagnostic_kind": (
+                "Huber-weighted local Jacobian energy; unit- and parameterization-dependent, "
+                "not covariance"
+            ),
+        }
+
+
+@dataclass(frozen=True)
 class JointObservabilityEvaluation:
     """Local Jacobian diagnostics at explicitly supplied parameter values."""
 
@@ -146,6 +176,7 @@ class JointObservabilityEvaluation:
     information_rank_threshold: float | None = None
     whitened_factor_count: int = 0
     factor_whitening: tuple[JointFactorWhitening, ...] = ()
+    factor_family_diagnostics: tuple[JointFactorFamilyDiagnostic, ...] = ()
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -161,6 +192,9 @@ class JointObservabilityEvaluation:
             "whitened_factor_count": self.whitened_factor_count,
             "factor_weighting_policy": "sqrt(weight) * sqrt_information * raw_residual",
             "factor_whitening": [item.as_dict() for item in self.factor_whitening],
+            "factor_family_diagnostics": [
+                item.as_dict() for item in self.factor_family_diagnostics
+            ],
         }
 
 
@@ -191,6 +225,8 @@ class JointOptimizerResult:
     schur_retained_dimension: int = 0
     max_linear_system_residual_inf: float | None = None
     max_schur_complement_condition_number: float | None = None
+    train_factor_family_diagnostics: tuple[JointFactorFamilyDiagnostic, ...] = ()
+    holdout_factor_family_diagnostics: tuple[JointFactorFamilyDiagnostic, ...] = ()
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -212,12 +248,22 @@ class JointOptimizerResult:
             "weak_parameter_blocks": list(self.weak_parameter_blocks),
             "known_bad_probes": [probe.__dict__ for probe in self.probes],
             "history": [item.__dict__ for item in self.history],
-            "method": "backend_neutral_robust_joint_lm/v0.4",
+            "method": "backend_neutral_robust_joint_lm/v0.5",
             "information_policy": "train residual Jacobian; diagnostic, not covariance",
             "rank_tolerance_policy": "relative_to_largest_singular_value",
             "train_whitened_factor_count": self.train_whitened_factor_count,
             "factor_weighting_policy": "sqrt(weight) * sqrt_information * raw_residual",
             "train_factor_whitening": [item.as_dict() for item in self.train_factor_whitening],
+            "train_factor_family_diagnostics": [
+                item.as_dict() for item in self.train_factor_family_diagnostics
+            ],
+            "holdout_factor_family_diagnostics": [
+                item.as_dict() for item in self.holdout_factor_family_diagnostics
+            ],
+            "factor_family_information_policy": (
+                "fraction of total squared Frobenius norm of the final Huber-weighted "
+                "local Jacobian; diagnostic, not covariance"
+            ),
             "linear_solver": self.linear_solver,
             "schur_eliminated_blocks": list(self.schur_eliminated_blocks),
             "schur_retained_blocks": list(self.schur_retained_blocks),
@@ -395,9 +441,16 @@ class BackendNeutralJointOptimizer:
             or condition > solver_options.max_condition_number
         ):
             status = "degenerate"
-        train_rmse = _factor_rmse(train, values)
-        holdout_rmse = _factor_rmse(holdout, values)
+        train_rmse = _rmse(residual) if residual.size else None
+        holdout_residual = _factor_residuals(holdout, values)
+        holdout_rmse = _rmse(holdout_residual) if holdout_residual.size else None
         probes = _known_bad_probes(blocks, holdout, values, holdout_rmse, solver_options)
+        train_family_diagnostics = _factor_family_diagnostics(
+            train, values, residual, jacobian, solver_options
+        )
+        holdout_family_diagnostics = _factor_family_diagnostics(
+            holdout, values, holdout_residual, None, solver_options
+        )
         reason = {
             "converged": "joint LM step fell below tolerance",
             "max_iterations": "maximum joint LM iterations reached",
@@ -437,6 +490,8 @@ class BackendNeutralJointOptimizer:
                 ),
                 default=None,
             ),
+            train_family_diagnostics,
+            holdout_family_diagnostics,
         )
 
 
@@ -505,6 +560,9 @@ def evaluate_joint_observability(
         information_rank_threshold=rank_threshold if len(singular) else None,
         whitened_factor_count=sum(bool(factor.sqrt_information) for factor in factors),
         factor_whitening=_factor_whitening(factors),
+        factor_family_diagnostics=_factor_family_diagnostics(
+            factors, normalized, residual, jacobian, solver_options
+        ),
     )
 
 
@@ -684,6 +742,65 @@ def _factor_whitening(
         )
         for factor in factors
         if factor.sqrt_information
+    )
+
+
+def _factor_family_diagnostics(
+    factors: Sequence[JointResidualBlock],
+    values: dict[str, tuple[float, ...]],
+    residual: NDArray[np.float64],
+    jacobian: NDArray[np.float64] | None,
+    options: JointOptimizerOptions,
+) -> tuple[JointFactorFamilyDiagnostic, ...]:
+    if not factors:
+        return ()
+    family_rows: dict[str, list[int]] = {}
+    row_cursor = 0
+    for factor in factors:
+        residual_count = len(factor.residuals(values))
+        family_rows.setdefault(factor.family, []).extend(
+            range(row_cursor, row_cursor + residual_count)
+        )
+        row_cursor += residual_count
+    if row_cursor != len(residual):
+        raise ValueError("joint factor residual dimension changed during family diagnostics")
+    partial: list[tuple[str, int, int, NDArray[np.float64], float, float | None]] = []
+    for family in sorted(family_rows):
+        family_factors = [factor for factor in factors if factor.family == family]
+        rows = family_rows[family]
+        family_residual = residual[rows]
+        huber_weights = _huber_weights(family_residual, options.huber_delta)
+        if jacobian is None:
+            energy = None
+        else:
+            family_jacobian = jacobian[rows, :]
+            robust_jacobian = family_jacobian * np.sqrt(huber_weights)[:, None]
+            energy = float(np.sum(robust_jacobian * robust_jacobian))
+        partial.append(
+            (
+                family,
+                len(family_factors),
+                len({factor.observation_group for factor in family_factors}),
+                family_residual,
+                float(np.mean(huber_weights)) if family_residual.size else math.nan,
+                energy,
+            )
+        )
+    total_energy = sum(item[5] for item in partial if item[5] is not None)
+    return tuple(
+        JointFactorFamilyDiagnostic(
+            family=family,
+            factor_count=factor_count,
+            observation_group_count=group_count,
+            residual_dimension=len(residual),
+            residual_rmse=_rmse(residual) if residual.size else None,
+            mean_huber_weight=mean_weight if math.isfinite(mean_weight) else None,
+            robust_jacobian_frobenius_norm=math.sqrt(energy) if energy is not None else None,
+            robust_information_fraction=(
+                energy / total_energy if energy is not None and total_energy > 0.0 else None
+            ),
+        )
+        for family, factor_count, group_count, residual, mean_weight, energy in partial
     )
 
 

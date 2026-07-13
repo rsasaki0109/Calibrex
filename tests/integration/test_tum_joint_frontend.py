@@ -67,7 +67,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     query_frames = set(result.run.provenance["native_tum_joint_slac_query_frame_ids"])
     assert map_frames.isdisjoint(query_frames)
     solver = result.run.provenance["native_tum_joint_slac_solver"]
-    assert solver["method"] == "backend_neutral_robust_joint_lm/v0.4"
+    assert solver["method"] == "backend_neutral_robust_joint_lm/v0.5"
     assert solver["rank_tolerance_policy"] == "relative_to_largest_singular_value"
     assert solver["information_rank_threshold"] > 0.0
     assert solver["linear_solver"] == "schur"
@@ -82,6 +82,11 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         and len(item["sqrt_information"][0]) == 6
         for item in solver["train_factor_whitening"]
     )
+    train_families = solver["train_factor_family_diagnostics"]
+    assert len(train_families) >= 2
+    assert sum(item["robust_information_fraction"] for item in train_families) == pytest.approx(
+        1.0
+    )
     assert set(solver["train_observation_groups"]).isdisjoint(solver["holdout_observation_groups"])
     rmse = result.metrics["tum_joint_point_to_plane_rmse_m"]
     assert rmse.train is not None and rmse.train < 0.05
@@ -92,6 +97,8 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert result.metrics["tum_joint_schur_eliminated_dimension"].value == 48.0
     assert result.metrics["tum_joint_schur_retained_dimension"].value == 8.0
     assert result.metrics["tum_joint_schur_linear_residual_inf"].grade == "pass"
+    assert result.metrics["tum_joint_train_factor_family_count"].value is not None
+    assert result.metrics["tum_joint_train_max_family_information_fraction"].value is not None
     assert result.metrics["tum_joint_data_only_extrinsic_rank"].value == 6.0
     condition = result.metrics["tum_joint_data_only_extrinsic_condition_number"].value
     assert condition is not None and condition < 100.0

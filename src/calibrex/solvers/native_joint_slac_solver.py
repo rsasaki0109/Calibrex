@@ -270,6 +270,11 @@ def _metrics(
         sum(value is True for value in detectable) / len(detectable) if detectable else None
     )
     rank_grade: Grade = "pass" if result.information_rank == 12 else "warn"
+    family_fractions = [
+        item.robust_information_fraction
+        for item in result.train_factor_family_diagnostics
+        if item.robust_information_fraction is not None
+    ]
     metrics = {
         "native_joint_slac_available": MetricResult(
             value=1.0,
@@ -304,6 +309,21 @@ def _metrics(
             value=detectable_fraction,
             grade="pass" if detectable_fraction == 1.0 else "warn",
             reason="fraction of signed pose/extrinsic holdout perturbations that worsen RMSE",
+        ),
+        "joint_slac_train_factor_family_count": MetricResult(
+            value=float(len(result.train_factor_family_diagnostics)),
+            unit="families",
+            grade="pass" if len(result.train_factor_family_diagnostics) >= 2 else "warn",
+            reason="distinct data/prior factor families in the final train Jacobian",
+        ),
+        "joint_slac_train_max_family_information_fraction": MetricResult(
+            value=max(family_fractions) if family_fractions else None,
+            unit="fraction",
+            grade="warn",
+            reason=(
+                "largest family share of Huber-weighted local Jacobian energy; "
+                "unit-dependent diagnostic without a universal acceptance threshold"
+            ),
         ),
     }
     baseline_transform = baseline.transforms.get(variable)

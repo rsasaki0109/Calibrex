@@ -667,6 +667,18 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_train_factor_family_count",
+            "Factor families represented in the final TUM train Jacobian",
+            "families",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_train_max_family_information_fraction",
+            "Largest TUM factor-family share of robust local Jacobian energy",
+            "fraction",
+            "joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_schur_solver_used",
             "Whether the TUM joint solve used typed Schur elimination",
             family="joint_slac",
@@ -1048,6 +1060,18 @@ def _register_builtin_metrics() -> None:
             "joint_slac_known_bad_detectable_fraction",
             "Fraction of signed joint holdout perturbations detected",
             family="joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_train_factor_family_count",
+            "Factor families represented in the final joint train Jacobian",
+            "families",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_train_max_family_information_fraction",
+            "Largest factor-family share of robust local Jacobian energy",
+            "fraction",
+            "joint_slac",
         ),
         MetricDefinition(
             "joint_slac_vs_fixed_baseline_translation_m",

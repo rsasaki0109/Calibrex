@@ -26,6 +26,7 @@ from calibrex.graph.joint_factors import (
 )
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
+    JointFactorFamilyDiagnostic,
     JointFactorWhitening,
     JointKnownBadProbe,
     JointLinearSolver,
@@ -60,6 +61,7 @@ __all__ = [
     "CalibrationProblemSpec",
     "FactorPlugin",
     "JointDepthPointToPlaneMeasurement",
+    "JointFactorFamilyDiagnostic",
     "JointFactorWhitening",
     "JointKnownBadProbe",
     "JointLinearSolver",

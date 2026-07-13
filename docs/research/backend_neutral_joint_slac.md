@@ -56,6 +56,20 @@ pose priors now use this path, so A2D2 and TUM public runs exercise the same
 contract. Every whitened train factor serializes its ID, family, scalar weight,
 and exact matrix; the matrix is not presented as an estimated covariance.
 
+Version `v0.5` reports factor-family balance at the final state. Train and
+unchanged holdout factors are partitioned by their declared `family`; each
+partition records factor count, observation-group count, residual dimension,
+RMSE, and mean Huber weight. Train families additionally report the Frobenius
+norm of their Huber-weighted local Jacobian. The squared norm is the trace
+contribution to `J_w^T J_w`, so its fraction over all train families exposes a
+prior or high-volume modality dominating the local normal equations. Train
+diagnostics reuse the already assembled final Jacobian rows. Holdout Jacobians
+are deliberately not formed: their family residual statistics remain
+evaluation-only without adding a second numerical linearization to every run.
+These fractions are unit- and parameterization-dependent diagnostics, not
+covariance, sensor importance, or a universal acceptance gate. Holdout-family
+statistics remain evaluation-only and cannot change optimization or stopping.
+
 Version `v0.4` adds a typed Schur linear-solver mode. Each free
 `JointParameterBlock` declares `schur_role: eliminated | retained`; the default
 remains retained, so existing dense callers preserve their behavior. For a
@@ -162,6 +176,13 @@ from the independent fixed-trajectory native baseline by about 0.057 m and
 0.362 degrees. Raw NPZ hashes, split groups, prior policy, full iteration
 history, probes, and baseline status are retained in result provenance.
 
+The v0.5 rerun contains two train families. The 1,117 LiDAR point-to-plane
+factors contribute `0.847023` of robust local Jacobian energy, while the
+six-residual train-only pose prior contributes `0.152977`; mean Huber weights
+are `0.736587` and `1.0`, respectively. The 685-point unchanged holdout contains
+only the LiDAR family and has mean Huber weight `0.847634`. Rank, condition,
+RMSE, the 18/24 probe outcome, and the overall WARN verdict remain unchanged.
+
 The TUM RGB-D fr1/xyz integration adds eight query-pose blocks, a shared camera
 mounting block, three disjoint map frames, independent ground-truth trajectory
 support, a scalar depth model, and a constrained trilinear ray-depth lattice.
@@ -190,6 +211,15 @@ train RMSE differs by `2.98e-15 m`, holdout RMSE by `-7.77e-16 m`, depth-scale
 error by `2.54e-11` percentage points, and bias error by `-6.03e-13 m`.
 The existing public depth-bias and transfer failures remain unchanged; solver
 equivalence is not used to weaken any calibration gate.
+
+The v0.5 primary TUM train Jacobian has two families: eight whitened pose priors
+contribute `0.982314` of robust local Jacobian energy and 2,007 RGB-D
+point-to-plane factors contribute `0.017686`. This does not mean the priors
+explain 98 percent of the scene; it exposes the chosen residual units and prior
+scales dominating the augmented local normal equations. The metric therefore
+remains WARN without an invented threshold. The unchanged depth-bias error is
+`0.075541 m` (FAIL), known-bad detection is `0.8125` (WARN), and worst
+cross-window holdout increase is `0.015136 m` (FAIL).
 
 The Zhou--Koltun full-XYZ extension now adds 24 shared trilinear field
 dimensions, the paper's two-sided correspondence factor, a fixed-map public

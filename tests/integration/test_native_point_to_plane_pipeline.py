@@ -156,10 +156,20 @@ def test_native_joint_slac_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
     )
     assert "source-pose-gauge-prior" in solver["train_factor_ids"]
     assert "source-pose-gauge-prior" not in solver["holdout_factor_ids"]
+    train_families = solver["train_factor_family_diagnostics"]
+    assert {item["family"] for item in train_families} == {
+        "diagonal_prior",
+        "lidar_point_to_plane",
+    }
+    assert sum(item["robust_information_fraction"] for item in train_families) == pytest.approx(
+        1.0
+    )
     rmse = result.metrics["joint_slac_point_to_plane_rmse_m"]
     assert rmse.train is not None
     assert rmse.holdout is not None
     assert result.metrics["joint_slac_augmented_information_rank"].value == 12.0
+    assert result.metrics["joint_slac_train_factor_family_count"].value == 2.0
+    assert result.metrics["joint_slac_train_max_family_information_fraction"].value is not None
     assert result.metrics["joint_slac_vs_fixed_baseline_translation_m"].value is not None
     assert result.metrics["joint_slac_vs_fixed_baseline_rotation_deg"].value is not None
     transform = result.transforms["T_base_link_lidar_front_right"]
