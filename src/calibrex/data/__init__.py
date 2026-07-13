@@ -18,7 +18,15 @@ from calibrex.data.livox import LivoxPCDDataset
 from calibrex.data.manifest import DatasetManifest, StreamManifest, load_manifest
 from calibrex.data.nuscenes import NuScenesDataset
 from calibrex.data.public_datasets import PublicDatasetCatalog, PublicDatasetEntry
-from calibrex.data.tum_rgbd import TUMRGBDDataset
+from calibrex.data.tum_rgbd import (
+    TUMDepthImage,
+    TUMDepthIntrinsics,
+    TUMDepthPoseEntry,
+    TUMRGBDDataset,
+    associate_depth_groundtruth,
+    read_tum_depth_png,
+    sample_tum_depth_points,
+)
 
 __all__ = [
     "ETHZ_HAND_EYE_COMMIT",
@@ -38,10 +46,16 @@ __all__ = [
     "RelativeMotionPair",
     "StreamManifest",
     "StreamSummary",
+    "TUMDepthImage",
+    "TUMDepthIntrinsics",
+    "TUMDepthPoseEntry",
     "TUMRGBDDataset",
     "TimestampedPose",
     "TimestampedRecord",
+    "associate_depth_groundtruth",
     "inspect_dataset",
     "load_manifest",
     "read_ethz_robot_arm_hand_eye_motions",
+    "read_tum_depth_png",
+    "sample_tum_depth_points",
 ]

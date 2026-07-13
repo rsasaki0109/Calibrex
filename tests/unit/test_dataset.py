@@ -1,6 +1,7 @@
 import json
 import struct
 import zipfile
+import zlib
 from pathlib import Path
 
 import pytest
@@ -29,9 +30,14 @@ from calibrex.data.livox import (
 from calibrex.data.manifest import load_manifest
 from calibrex.data.nuscenes import NuScenesDataset, read_nuscenes_reference_extrinsics
 from calibrex.data.tum_rgbd import (
+    TUMDepthIntrinsics,
     TUMRGBDDataset,
+    associate_depth_groundtruth,
     associate_rgb_depth,
+    read_groundtruth,
     read_image_index,
+    read_tum_depth_png,
+    sample_tum_depth_points,
     write_associations,
 )
 
@@ -89,6 +95,39 @@ def test_tum_rgbd_reader_parses_indices_and_associations(tmp_path: Path) -> None
     assert streams["depth"] == 1
     assert streams["rgbd_associations"] == 1
     assert len(list(dataset.records("groundtruth"))) == 1
+
+
+def test_tum_depth_png_decode_backproject_and_groundtruth_pairing(tmp_path: Path) -> None:
+    depth_path = tmp_path / "depth.png"
+    _write_depth_png(depth_path, [[0, 5000], [10000, 2500]])
+    image = read_tum_depth_png(depth_path)
+
+    assert image.width == 2
+    assert image.height == 2
+    assert image.raw_values == (0, 5000, 10000, 2500)
+    points = sample_tum_depth_points(
+        image,
+        TUMDepthIntrinsics(fx=1.0, fy=1.0, cx=0.0, cy=0.0),
+        max_points=4,
+        min_depth_m=0.1,
+        max_depth_m=3.0,
+    )
+    assert points == [(1.0, 0.0, 1.0), (0.0, 2.0, 2.0), (0.5, 0.5, 0.5)]
+
+    (tmp_path / "depth.txt").write_text("1.010 depth.png\n", encoding="utf-8")
+    (tmp_path / "groundtruth.txt").write_text(
+        "1.000 1 2 3 0 0 0 1\n1.020 4 5 6 0 0 0 1\n",
+        encoding="utf-8",
+    )
+    paired = associate_depth_groundtruth(
+        read_image_index(tmp_path / "depth.txt"),
+        read_groundtruth(tmp_path / "groundtruth.txt"),
+        max_difference_sec=0.02,
+    )
+    assert len(paired) == 1
+    assert paired[0].trajectory.translation_m == (1.0, 2.0, 3.0)
+    assert paired[0].absolute_time_delta_sec == pytest.approx(0.01)
+    assert paired[0].transform_world_camera.translation_m == (1.0, 2.0, 3.0)
 
 
 def test_kitti_raw_reader_counts_fixed_lidar_streams(tmp_path: Path) -> None:
@@ -477,6 +516,30 @@ def _write_a2d2_lidar_npz(path: Path) -> None:
         _write_npy(archive, "pcloud_points.npy", "<f8", (4, 3), points)
         _write_npy(archive, "pcloud_attr.lidar_id.npy", "<i8", (4,), lidar_ids)
         _write_npy(archive, "pcloud_attr.valid.npy", "|b1", (4,), valid)
+
+
+def _write_depth_png(path: Path, rows: list[list[int]]) -> None:
+    height = len(rows)
+    width = len(rows[0])
+    raw = b"".join(
+        b"\x00" + b"".join(struct.pack(">H", value) for value in row)
+        for row in rows
+    )
+
+    def chunk(kind: bytes, payload: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(payload))
+            + kind
+            + payload
+            + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+        )
+
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 16, 0, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
 
 
 def _write_npy(
