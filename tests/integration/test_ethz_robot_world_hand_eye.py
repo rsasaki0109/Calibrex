@@ -60,6 +60,22 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert detection.value == 1.0
     assert detection.grade == "pass"
     comparison = result.run.provenance["native_hand_eye_comparison"]
+    hand_eye_nonlinear = comparison["results"]["horaud_dornaika_nonlinear"]
+    assert hand_eye_nonlinear["status"] == "converged"
+    assert hand_eye_nonlinear["accepted_step_count"] == 8
+    assert hand_eye_nonlinear["data_jacobian_rank"] == 6
+    assert 4.9 < hand_eye_nonlinear["data_jacobian_condition_number"] < 5.1
+    assert hand_eye_nonlinear["quaternion_unit_error"] < 1.0e-8
+    assert hand_eye_nonlinear["final_cost"] <= hand_eye_nonlinear["initial_cost"]
+    nonlinear_rotation = result.metrics[
+        "hand_eye_horaud_dornaika_nonlinear_holdout_rotation_rmse_deg"
+    ]
+    nonlinear_translation = result.metrics[
+        "hand_eye_horaud_dornaika_nonlinear_holdout_translation_rmse_m"
+    ]
+    assert nonlinear_rotation.value is not None and 0.98 < nonlinear_rotation.value < 0.99
+    assert nonlinear_translation.value is not None and 0.018 < nonlinear_translation.value < 0.020
+    assert nonlinear_rotation.grade == nonlinear_translation.grade == "pass"
     shah = comparison["results"]["shah_robot_world_hand_eye"]
     assert shah["method"] == "shah_separable_robot_world_hand_eye_kronecker/v0.1"
     assert shah["paper"]["doi"] == "10.1115/1.4024473"

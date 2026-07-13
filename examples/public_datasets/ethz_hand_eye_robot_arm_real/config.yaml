@@ -45,6 +45,9 @@ pipeline:
         min_horaud_quaternion_normalized_eigengap: 0.001
         min_chou_kamel_rotation_nullspace_gap: 0.001
         max_chou_kamel_translation_condition_number: 1000000.0
+        horaud_dornaika_nonlinear_max_iterations: 50
+        max_horaud_dornaika_nonlinear_data_jacobian_condition_number: 100000000.0
+        max_horaud_dornaika_nonlinear_quaternion_unit_error: 0.00001
         min_andreff_rotation_width: 0.0001
         max_andreff_rotation_nullspace_ratio: 0.25
         max_andreff_so3_projection_correction_frobenius: 0.05

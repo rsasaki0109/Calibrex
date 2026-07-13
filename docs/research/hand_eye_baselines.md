@@ -135,6 +135,34 @@ rotation-axis family produces a repeated minimum and is rejected. This is an
 independent NumPy implementation; no source implementation from the paper or
 another package is copied.
 
+## Horaud and Dornaika simultaneous nonlinear method
+
+The same 1995 primary paper, DOI `10.1177/027836499501400301`, Section 5.2 and
+equations (27), (28), (30), and (32), also estimates rotation and translation
+simultaneously. For every motion, Calibrex minimizes
+
+```text
+lambda1 ||n_A - q * n_B * conjugate(q)||^2
+  + lambda2 ||q * t_B * conjugate(q) - (R_A - I)t_X - t_A||^2
+  + lambda (1 - transpose(q)q)^2.
+```
+
+The implementation preserves the paper's fixed `lambda1=lambda2=1` and
+unit-quaternion penalty `lambda=2e6`. It starts from the paper's closed-form
+axis-quaternion result and applies deterministic Levenberg-Marquardt to the raw
+four quaternion coefficients and three translation coefficients. Accepted
+steps must strictly reduce the complete paper objective. Changing these three
+weights is rejected rather than silently creating an undocumented estimator.
+
+The optimizer reports every LM trial, initial/final objective and data RMSE,
+accepted-step count, final gradient, quaternion norm/error, and a six-value
+physical tangent Jacobian spectrum. The latter excludes the artificial unit
+penalty direction and must have rank 6 under a fixed condition-number gate.
+Train/holdout IDs, closure, and all twelve signed known-bad probes remain the
+same as the separable baselines. The mixed-unit `lambda1=lambda2=1` objective is
+documented as a paper limitation, not interpreted as a probabilistic metric.
+This is typed, ROS-independent NumPy code with no copied external solver.
+
 ## Andreff, Horaud, and Espiau incremental Kronecker method
 
 Primary reference: N. Andreff, R. Horaud, and B. Espiau, *On-line Hand-Eye
@@ -421,10 +449,11 @@ split. The recorded absolute-pose reuse count is zero.
 | Tsai-Lenz | 0.945° | 0.0174 m | 6/12 |
 | Daniilidis | 0.939° | 0.0174 m | 6/12 |
 | Horaud-Dornaika | 0.985° | 0.0190 m | 6/12 |
+| Horaud-Dornaika nonlinear | 0.984° | 0.0190 m | 6/12 |
 | Chou-Kamel | 0.939° | 0.0172 m | 6/12 |
 | Andreff-Horaud-Espiau | 0.939° | 0.0172 m | 6/12 |
 
-All six methods pass the declared closure gates of 2° and 3 cm. Horaud-
+All seven methods pass the declared closure gates of 2° and 3 cm. Horaud-
 Dornaika has axis rank 3/3 and normalized quaternion eigengap 0.7758, passing
 the predeclared 0.001 minimum-width gate. Andreff has rotation rank 8/8,
 translation rank 3/3, normalized rotation width 0.4836, and SO(3) projection
@@ -435,7 +464,11 @@ and 0.05 maximum-projection gates. Chou-Kamel has observable quaternion rank
 translation rank 3/3 with
 condition number 1.212. Its quaternion nullspace residual is 0.002695 and is
 retained as a noise diagnostic. These pass the predeclared 0.001 minimum-gap
-and `1e6` maximum-condition gates. The six methods share exactly the same
+and `1e6` maximum-condition gates. The simultaneous nonlinear method accepts
+eight LM steps and reduces equation (30) from 0.0232894701 to 0.0232891617.
+Its physical Jacobian has rank 6/6 and condition number 5.0003; quaternion unit
+error is `6.44e-9`, and mixed-unit data RMSE is 0.0278623. These pass the fixed
+`1e8` condition and `1e-5` unit-error gates. The seven methods share exactly the same
 train/holdout IDs. They do not reach the unchanged 0.75 known-bad
 detectable-fraction gate, so the public run
 is honestly **INCONCLUSIVE**, not PASS. This indicates limited falsification
@@ -452,7 +485,7 @@ maximum determinant-normalized SO(3) projection correction is
 0.00019355, below the unchanged 0.05 gate. Held-out closure is 0.5858 degrees
 and 0.01006 m, and all 24 signed `X/Y` controls are detected. Shah therefore
 passes its declared gates while the overall comparison remains honestly
-INCONCLUSIVE because the six relative-motion baselines still detect only
+INCONCLUSIVE because the seven relative-motion baselines still detect only
 6/12 controls. The result and bundle are schema-valid, the pinned input digest
 is checked, and bundle verification reports zero issues.
 
@@ -477,7 +510,7 @@ rank is 6/6 with condition number 8.187. Held-out closure is 0.5907 degrees and
 Dornaika-Horaud closed form, `X` differs by 0.2547 degrees / 0.00212 m and `Z`
 by 0.2616 degrees / 0.00254 m; these are comparison diagnostics, not
 ground-truth errors. Every Zhuang gate passes while the overall public run
-remains honestly **INCONCLUSIVE** because the six relative-motion baselines
+remains honestly **INCONCLUSIVE** because the seven relative-motion baselines
 still detect only 6/12 controls.
 
 Dornaika-Horaud uses the same 1,350/338 split. Its quaternion sign preparation
@@ -490,7 +523,7 @@ detected. Its result differs from Shah by about `1.13e-5` degrees / `4.90e-8` m
 for `X` and `1.16e-5` degrees / `1.49e-7` m for `Z/Y`; these remain ungated
 comparison diagnostics, not ground-truth errors. The closed-form method passes
 all declared gates while the overall comparison remains honestly
-**INCONCLUSIVE** because the six relative-motion methods still detect only
+**INCONCLUSIVE** because the seven relative-motion methods still detect only
 6/12 controls.
 
 The nonlinear Section III-B estimator starts from that closed-form result and
@@ -501,5 +534,5 @@ the final mixed-unit data RMSE is 0.005594. The final data Jacobian has rank
 closure is 0.5872 degrees and 0.01004 m with all 24 controls detected. Relative
 to the closed form, `X` changes by 0.0548 degrees / 0.000389 m and `Z` by
 0.0581 degrees / 0.000611 m. Every nonlinear gate passes; the overall run
-remains **INCONCLUSIVE** only because the unchanged six relative-motion
+remains **INCONCLUSIVE** only because the unchanged seven relative-motion
 baselines still detect 6/12 controls.

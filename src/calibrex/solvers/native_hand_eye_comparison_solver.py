@@ -50,6 +50,11 @@ from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
     HoraudDornaikaHandEyeResult,
     HoraudDornaikaHandEyeSolver,
 )
+from calibrex.solvers.horaud_dornaika_nonlinear_hand_eye_solver import (
+    HoraudDornaikaNonlinearHandEyeOptions,
+    HoraudDornaikaNonlinearHandEyeResult,
+    HoraudDornaikaNonlinearHandEyeSolver,
+)
 from calibrex.solvers.li_robot_world_hand_eye_solver import (
     LiRobotWorldHandEyeOptions,
     LiRobotWorldHandEyeResult,
@@ -83,7 +88,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run six AX=XB baselines plus five absolute-pose AX=YB baselines."""
+    """Run seven AX=XB baselines plus five absolute-pose AX=YB baselines."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -140,6 +145,17 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             ),
             max_translation_condition_number=float(
                 options.get("max_chou_kamel_translation_condition_number", 1.0e6)
+            ),
+        )
+        hand_eye_nonlinear_options = HoraudDornaikaNonlinearHandEyeOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            max_iterations=int(options.get("horaud_dornaika_nonlinear_max_iterations", 50)),
+            max_data_jacobian_condition_number=float(
+                options.get("max_horaud_dornaika_nonlinear_data_jacobian_condition_number", 1.0e8)
+            ),
+            max_quaternion_unit_error=float(
+                options.get("max_horaud_dornaika_nonlinear_quaternion_unit_error", 1.0e-5)
             ),
         )
         andreff_options = AndreffHandEyeOptions(
@@ -226,6 +242,9 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
         horaud = HoraudDornaikaHandEyeSolver().solve(motions, horaud_options)
         chou = ChouKamelHandEyeSolver().solve(motions, chou_options)
+        hand_eye_nonlinear = HoraudDornaikaNonlinearHandEyeSolver().solve(
+            motions, hand_eye_nonlinear_options
+        )
         andreff = AndreffHandEyeSolver().solve(motions, andreff_options)
         shah = ShahRobotWorldHandEyeSolver().solve(absolute_poses, shah_options)
         li = LiRobotWorldHandEyeSolver().solve(absolute_poses, li_options)
@@ -240,6 +259,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             dual,
             horaud,
             chou,
+            hand_eye_nonlinear,
             andreff,
             shah,
             li,
@@ -257,6 +277,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 dual.transform_x,
                 horaud.transform_x,
                 chou.transform_x,
+                hand_eye_nonlinear.transform_x,
                 andreff.transform_x,
                 shah.transform_x,
                 shah.transform_y,
@@ -281,6 +302,15 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 "hand_eye_chou_kamel_rotation_nullspace_gap",
                 "hand_eye_chou_kamel_translation_rank",
                 "hand_eye_chou_kamel_translation_condition_number",
+            )
+        )
+        hand_eye_nonlinear_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "hand_eye_horaud_dornaika_nonlinear_objective_nonincrease",
+                "hand_eye_horaud_dornaika_nonlinear_data_jacobian_rank",
+                "hand_eye_horaud_dornaika_nonlinear_data_jacobian_condition_number",
+                "hand_eye_horaud_dornaika_nonlinear_quaternion_unit_error",
             )
         )
         andreff_observable = all(
@@ -364,6 +394,11 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 weak_directions=[
                     *([] if horaud_observable else ["horaud_quaternion_minimum_width"]),
                     *([] if chou_observable else ["chou_kamel_quaternion_observability"]),
+                    *(
+                        []
+                        if hand_eye_nonlinear_observable
+                        else ["horaud_dornaika_nonlinear_hand_eye_observability"]
+                    ),
                     *([] if andreff_observable else ["andreff_kronecker_observability"]),
                     *([] if shah_observable else ["shah_robot_world_hand_eye_observability"]),
                     *([] if li_observable else ["li_robot_world_hand_eye_observability"]),
@@ -389,6 +424,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     if all_converged
                     and horaud_observable
                     and chou_observable
+                    and hand_eye_nonlinear_observable
                     and andreff_observable
                     and shah_observable
                     and li_observable
@@ -424,6 +460,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "daniilidis": dual.as_dict(),
                         "horaud_dornaika": horaud.as_dict(),
                         "chou_kamel": chou.as_dict(),
+                        "horaud_dornaika_nonlinear": hand_eye_nonlinear.as_dict(),
                         "andreff": andreff.as_dict(),
                         "shah_robot_world_hand_eye": shah.as_dict(),
                         "li_robot_world_hand_eye": li.as_dict(),
@@ -445,6 +482,7 @@ def _comparison_metrics(
     dual: DaniilidisHandEyeResult,
     horaud: HoraudDornaikaHandEyeResult,
     chou: ChouKamelHandEyeResult,
+    hand_eye_nonlinear: HoraudDornaikaNonlinearHandEyeResult,
     andreff: AndreffHandEyeResult,
     shah: ShahRobotWorldHandEyeResult,
     li: LiRobotWorldHandEyeResult,
@@ -461,6 +499,14 @@ def _comparison_metrics(
     min_chou_gap = float(factor_options.get("min_chou_kamel_rotation_nullspace_gap", 1.0e-3))
     max_chou_translation_condition = float(
         factor_options.get("max_chou_kamel_translation_condition_number", 1.0e6)
+    )
+    max_hand_eye_nonlinear_condition = float(
+        factor_options.get(
+            "max_horaud_dornaika_nonlinear_data_jacobian_condition_number", 1.0e8
+        )
+    )
+    max_hand_eye_nonlinear_unit_error = float(
+        factor_options.get("max_horaud_dornaika_nonlinear_quaternion_unit_error", 1.0e-5)
     )
     min_andreff_width = float(factor_options.get("min_andreff_rotation_width", 1.0e-4))
     max_andreff_projection = float(
@@ -558,7 +604,7 @@ def _comparison_metrics(
         len(
             {
                 (result.train_pair_ids, result.holdout_pair_ids)
-                for result in (park, tsai, dual, horaud, chou, andreff)
+                for result in (park, tsai, dual, horaud, chou, hand_eye_nonlinear, andreff)
             }
         )
         == 1
@@ -629,6 +675,73 @@ def _comparison_metrics(
             reason=(
                 "conditional translation condition number <= "
                 f"{max_chou_translation_condition:g}"
+            ),
+        ),
+        "hand_eye_horaud_dornaika_nonlinear_objective_nonincrease": MetricResult(
+            value=float(
+                hand_eye_nonlinear.initial_cost is not None
+                and hand_eye_nonlinear.final_cost is not None
+                and hand_eye_nonlinear.final_cost
+                <= hand_eye_nonlinear.initial_cost
+                + 1.0e-12 * max(hand_eye_nonlinear.initial_cost, 1.0)
+            ),
+            unit="bool",
+            grade=(
+                "pass"
+                if hand_eye_nonlinear.initial_cost is not None
+                and hand_eye_nonlinear.final_cost is not None
+                and hand_eye_nonlinear.final_cost
+                <= hand_eye_nonlinear.initial_cost
+                + 1.0e-12 * max(hand_eye_nonlinear.initial_cost, 1.0)
+                else "fail"
+            ),
+            reason="accepted LM solution must not increase paper equation (30)",
+        ),
+        "hand_eye_horaud_dornaika_nonlinear_accepted_step_count": MetricResult(
+            value=float(hand_eye_nonlinear.accepted_step_count),
+            unit="steps",
+            grade="warn",
+            reason="diagnostic number of accepted simultaneous nonlinear updates",
+        ),
+        "hand_eye_horaud_dornaika_nonlinear_final_data_residual_rmse": MetricResult(
+            value=hand_eye_nonlinear.final_data_residual_rmse,
+            grade="warn",
+            reason="diagnostic mixed-unit residual under paper lambda1=lambda2=1",
+        ),
+        "hand_eye_horaud_dornaika_nonlinear_data_jacobian_rank": MetricResult(
+            value=float(hand_eye_nonlinear.data_jacobian_rank),
+            unit="rank",
+            grade="pass" if hand_eye_nonlinear.data_jacobian_rank == 6 else "fail",
+            reason="all six physical tangent directions must be locally observable",
+        ),
+        "hand_eye_horaud_dornaika_nonlinear_data_jacobian_condition_number": (
+            MetricResult(
+                value=hand_eye_nonlinear.data_jacobian_condition_number,
+                grade=(
+                    "pass"
+                    if hand_eye_nonlinear.data_jacobian_condition_number is not None
+                    and hand_eye_nonlinear.data_jacobian_condition_number
+                    <= max_hand_eye_nonlinear_condition
+                    else "fail"
+                ),
+                reason=(
+                    "physical data Jacobian condition number <= "
+                    f"{max_hand_eye_nonlinear_condition:g}"
+                ),
+            )
+        ),
+        "hand_eye_horaud_dornaika_nonlinear_quaternion_unit_error": MetricResult(
+            value=hand_eye_nonlinear.quaternion_unit_error,
+            grade=(
+                "pass"
+                if hand_eye_nonlinear.quaternion_unit_error is not None
+                and hand_eye_nonlinear.quaternion_unit_error
+                <= max_hand_eye_nonlinear_unit_error
+                else "fail"
+            ),
+            reason=(
+                "paper unit-quaternion penalty error <= "
+                f"{max_hand_eye_nonlinear_unit_error:g}"
             ),
         ),
         "hand_eye_common_split_consistent": MetricResult(
@@ -1098,6 +1211,7 @@ def _comparison_metrics(
         "daniilidis": dual.probes,
         "horaud_dornaika": horaud.probes,
         "chou_kamel": chou.probes,
+        "horaud_dornaika_nonlinear": hand_eye_nonlinear.probes,
         "andreff": andreff.probes,
     }
     for name, result in (
@@ -1106,6 +1220,7 @@ def _comparison_metrics(
         ("daniilidis", dual),
         ("horaud_dornaika", horaud),
         ("chou_kamel", chou),
+        ("horaud_dornaika_nonlinear", hand_eye_nonlinear),
         ("andreff", andreff),
     ):
         rotation = result.holdout_evaluation.rotation_closure_rmse_deg

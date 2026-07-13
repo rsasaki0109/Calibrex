@@ -48,6 +48,12 @@ from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
     HoraudDornaikaHandEyeResult,
     HoraudDornaikaHandEyeSolver,
 )
+from calibrex.solvers.horaud_dornaika_nonlinear_hand_eye_solver import (
+    HoraudDornaikaNonlinearHandEyeIteration,
+    HoraudDornaikaNonlinearHandEyeOptions,
+    HoraudDornaikaNonlinearHandEyeResult,
+    HoraudDornaikaNonlinearHandEyeSolver,
+)
 from calibrex.solvers.horn_point_lidar_camera_solver import (
     HornPointEvaluation,
     HornPointLidarCameraResult,
@@ -261,6 +267,10 @@ __all__ = [
     "HoraudDornaikaHandEyeOptions",
     "HoraudDornaikaHandEyeResult",
     "HoraudDornaikaHandEyeSolver",
+    "HoraudDornaikaNonlinearHandEyeIteration",
+    "HoraudDornaikaNonlinearHandEyeOptions",
+    "HoraudDornaikaNonlinearHandEyeResult",
+    "HoraudDornaikaNonlinearHandEyeSolver",
     "HornPointEvaluation",
     "HornPointLidarCameraResult",
     "HornPointLidarCameraSolver",
