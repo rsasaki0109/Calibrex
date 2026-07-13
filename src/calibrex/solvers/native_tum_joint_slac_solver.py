@@ -10,7 +10,7 @@ from typing import Any
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
-from calibrex.core.geometry import SE3, QuaternionXYZW, rotate_vector_xyzw
+from calibrex.core.geometry import SE3, QuaternionXYZW, Vector3, rotate_vector_xyzw
 from calibrex.core.provenance import sha256_path
 from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
@@ -211,6 +211,7 @@ class _TUMXYZPairAssociation:
     source_frame_index: int
     target_frame_index: int
     source_point_index: int
+    target_point_index: int
     target_id: str
     initial_centroid_distance_m: float
 
@@ -230,6 +231,7 @@ class _TUMXYZPairProblem:
     parameter_blocks: tuple[JointParameterBlock, ...]
     pair_counts: tuple[tuple[str, int], ...]
     associations: tuple[_TUMXYZPairAssociation, ...]
+    sampled_points: tuple[tuple[Vector3, ...], ...]
 
 
 @dataclass(frozen=True)
@@ -246,6 +248,17 @@ class _TUMXYZPairWindowRun:
     @property
     def result(self) -> JointOptimizerResult:
         return self.results[-1]
+
+
+@dataclass(frozen=True)
+class _TUMXYZPairReassociationRun:
+    """Two-sided outer-loop reassociation and fixed-population probes."""
+
+    start_index: int
+    baseline: _TUMXYZPairWindowRun
+    result: JointReassociationResult
+    terminal_state: JointReassociationState
+    probe_evaluation: JointReassociationProbeEvaluation
 
 
 @dataclass(frozen=True)
@@ -324,6 +337,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         xyz_transfers = _xyz_cross_window_transfers(xyz_runs)
         xyz_pair_runs = _xyz_pair_ablation_runs(root, intrinsics, config, replication_runs, options)
         xyz_pair_transfers = _xyz_pair_cross_window_transfers(xyz_pair_runs)
+        xyz_pair_reassociation_runs = _xyz_pair_reassociation_runs(config, xyz_pair_runs, options)
         reassociation_runs = _iterative_reassociation_runs(
             root, intrinsics, config, spatial_runs, options
         )
@@ -350,6 +364,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         )
         metrics.update(_xyz_ablation_metrics(spatial_runs, xyz_runs, xyz_transfers, options))
         metrics.update(_xyz_pair_ablation_metrics(xyz_pair_runs, xyz_pair_transfers, options))
+        metrics.update(_xyz_pair_reassociation_metrics(xyz_pair_reassociation_runs, options))
         metrics.update(_rematching_metrics(rematching))
         metrics.update(_iterative_reassociation_metrics(reassociation_runs, options))
         warnings = _warnings(
@@ -401,6 +416,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 xyz_transfers=xyz_transfers,
                 xyz_pair_runs=xyz_pair_runs,
                 xyz_pair_transfers=xyz_pair_transfers,
+                xyz_pair_reassociation_runs=xyz_pair_reassociation_runs,
                 reassociation_runs=reassociation_runs,
                 rematching=rematching,
             ),
@@ -711,6 +727,68 @@ def _xyz_pair_ablation_runs(
     return tuple(runs)
 
 
+def _xyz_pair_reassociation_runs(
+    config: CalibrationConfig,
+    baselines: tuple[_TUMXYZPairWindowRun, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[_TUMXYZPairReassociationRun, ...]:
+    controls = regular_lattice_control_points(
+        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+        shape=_SPATIAL_LATTICE_SHAPE,
+    )
+    runs: list[_TUMXYZPairReassociationRun] = []
+    for baseline in baselines:
+        problem = baseline.problem
+        initial_state = _xyz_pair_initial_reassociation_state(problem)
+        train_only = _xyz_pair_train_only_factors(
+            problem,
+            controls,
+            baseline.local_rotation_history[-1],
+            options,
+        )
+        callback = partial(
+            _xyz_pair_reassociation_state,
+            problem,
+            options=options,
+        )
+        refined = BackendNeutralJointReassociation().refine(
+            problem.parameter_blocks,
+            initial_state,
+            train_only,
+            baseline.result,
+            callback,
+            _joint_optimizer_options(config, options),
+            JointReassociationOptions(
+                max_outer_iterations=options.reassociation_max_outer_iterations,
+                minimum_train_pair_jaccard=(options.reassociation_min_train_pair_jaccard),
+                minimum_train_retained_fraction=(options.reassociation_min_train_retained_fraction),
+            ),
+        )
+        terminal_state = callback(refined.final_result.optimized_values)
+        probes = evaluate_joint_reassociation_probes(
+            problem.parameter_blocks,
+            initial_state,
+            refined,
+            callback,
+            JointReassociationProbeOptions(
+                unmatched_residual_penalty=(options.reassociation_unmatched_residual_penalty_m),
+                known_bad_margin=options.known_bad_margin_m,
+                minimum_retained_fraction=(options.reassociation_min_train_retained_fraction),
+            ),
+        )
+        runs.append(
+            _TUMXYZPairReassociationRun(
+                baseline.start_index,
+                baseline,
+                refined,
+                terminal_state,
+                probes,
+            )
+        )
+    return tuple(runs)
+
+
 def _build_xyz_pair_problem(
     root: Path,
     query_frames: tuple[TUMDepthPoseEntry, ...],
@@ -739,6 +817,9 @@ def _build_xyz_pair_problem(
             LivoxPointRecord((*point, 0.0), None) for point in sampled_points[target_index]
         ]
         target_plane_map = build_voxel_plane_map(target_records, options.voxel_size_m)
+        target_points_by_voxel = _xyz_pair_points_by_voxel(
+            sampled_points[target_index], sampled_points[target_index], options.voxel_size_m
+        )
         transform_target_source = target_frame.transform_world_camera.inverse().compose(
             source_frame.transform_world_camera
         )
@@ -754,6 +835,9 @@ def _build_xyz_pair_problem(
             )
             if match is None:
                 continue
+            target_point_index, target_point = _xyz_pair_representative_point(
+                match, target_points_by_voxel
+            )
             normal_world = rotate_vector_xyzw(
                 target_frame.transform_world_camera.rotation_quat_xyzw,
                 match.normal,
@@ -765,7 +849,7 @@ def _build_xyz_pair_problem(
                         measurement_id=measurement_id,
                         observation_group=group,
                         source_point_sensor_m=source_point,
-                        target_point_sensor_m=match.centroid,
+                        target_point_sensor_m=target_point,
                         source_lattice_weights=trilinear_lattice_weights(
                             source_point,
                             minimum=_SPATIAL_LATTICE_MINIMUM_M,
@@ -773,7 +857,7 @@ def _build_xyz_pair_problem(
                             shape=_SPATIAL_LATTICE_SHAPE,
                         ),
                         target_lattice_weights=trilinear_lattice_weights(
-                            match.centroid,
+                            target_point,
                             minimum=_SPATIAL_LATTICE_MINIMUM_M,
                             maximum=_SPATIAL_LATTICE_MAXIMUM_M,
                             shape=_SPATIAL_LATTICE_SHAPE,
@@ -788,7 +872,8 @@ def _build_xyz_pair_problem(
                         source_index,
                         target_index,
                         point_index,
-                        match.target_id,
+                        target_point_index,
+                        _xyz_pair_target_id(target_index, target_point_index),
                         match.centroid_distance_m,
                     ),
                 )
@@ -836,6 +921,7 @@ def _build_xyz_pair_problem(
         tuple(blocks),
         tuple(pair_counts),
         tuple(associations),
+        sampled_points,
     )
 
 
@@ -847,6 +933,160 @@ def _bounded_pair_sample(
         return measurements
     step = math.ceil(len(measurements) / maximum)
     return measurements[::step][:maximum]
+
+
+def _xyz_pair_points_by_voxel(
+    raw_points: tuple[Vector3, ...],
+    geometry_points: tuple[Vector3, ...],
+    voxel_size_m: float,
+) -> dict[tuple[int, int, int], list[tuple[int, Vector3, Vector3]]]:
+    if len(raw_points) != len(geometry_points):
+        raise ValueError("pair raw and calibrated target populations must align")
+    grouped: dict[tuple[int, int, int], list[tuple[int, Vector3, Vector3]]] = {}
+    for index, (raw, geometry) in enumerate(zip(raw_points, geometry_points, strict=True)):
+        key = (
+            math.floor(geometry[0] / voxel_size_m),
+            math.floor(geometry[1] / voxel_size_m),
+            math.floor(geometry[2] / voxel_size_m),
+        )
+        grouped.setdefault(key, []).append((index, raw, geometry))
+    return grouped
+
+
+def _xyz_pair_representative_point(
+    match: VoxelPlaneMatch,
+    points_by_voxel: dict[tuple[int, int, int], list[tuple[int, Vector3, Vector3]]],
+) -> tuple[int, Vector3]:
+    candidates = points_by_voxel.get(match.voxel_key)
+    if not candidates:
+        raise ValueError("matched pair voxel has no raw target-point lineage")
+    index, raw, _geometry = min(
+        candidates,
+        key=lambda item: (math.dist(item[2], match.centroid), item[0]),
+    )
+    return index, raw
+
+
+def _xyz_pair_target_id(frame_index: int, point_index: int) -> str:
+    return f"tum-target-point:{frame_index:03d}:{point_index:05d}"
+
+
+def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Vector3:
+    weights = trilinear_lattice_weights(
+        point,
+        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+        shape=_SPATIAL_LATTICE_SHAPE,
+    )
+    if len(offsets) != 3 * len(weights):
+        raise ValueError("pair full-XYZ field dimension does not match lattice")
+    return tuple(
+        point[axis]
+        + sum(weight * offsets[3 * index + axis] for index, weight in enumerate(weights))
+        for axis in range(3)
+    )  # type: ignore[return-value]
+
+
+def _xyz_pair_reassociation_state(
+    problem: _TUMXYZPairProblem,
+    values: ParameterValues,
+    options: TUMJointSlacOptions,
+) -> JointReassociationState:
+    offsets = values[_XYZ_LATTICE_BLOCK]
+    factors: list[JointResidualBlock] = []
+    assignments: list[CorrespondenceAssignment] = []
+    for source_index in range(len(problem.query_frames) - options.xyz_pair_stride):
+        target_index = source_index + options.xyz_pair_stride
+        source_frame = problem.query_frames[source_index]
+        target_frame = problem.query_frames[target_index]
+        source_pose = se3_from_tangent(values[_pose_block(source_index, source_frame)]).compose(
+            source_frame.transform_world_camera
+        )
+        target_pose = se3_from_tangent(values[_pose_block(target_index, target_frame)]).compose(
+            target_frame.transform_world_camera
+        )
+        raw_targets = problem.sampled_points[target_index]
+        calibrated_targets = tuple(
+            _xyz_pair_calibrated_point(point, offsets) for point in raw_targets
+        )
+        target_plane_map = build_voxel_plane_map(
+            [LivoxPointRecord((*point, 0.0), None) for point in calibrated_targets],
+            options.voxel_size_m,
+        )
+        target_points_by_voxel = _xyz_pair_points_by_voxel(
+            raw_targets, calibrated_targets, options.voxel_size_m
+        )
+        group = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}"
+        group_associations = (
+            association
+            for association in problem.associations
+            if association.observation_group == group
+        )
+        for association in group_associations:
+            source_point = problem.sampled_points[source_index][association.source_point_index]
+            calibrated_source = _xyz_pair_calibrated_point(source_point, offsets)
+            source_world = source_pose.transform_point(calibrated_source)
+            source_in_calibrated_target = target_pose.inverse().transform_point(source_world)
+            match = nearest_voxel_plane_match(
+                source_in_calibrated_target,
+                target_plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            if match is None:
+                continue
+            target_point_index, target_point = _xyz_pair_representative_point(
+                match, target_points_by_voxel
+            )
+            normal_world = rotate_vector_xyzw(target_pose.rotation_quat_xyzw, match.normal)
+            measurement = JointTrilinearXYZPairMeasurement(
+                association.measurement_id,
+                group,
+                source_point,
+                target_point,
+                trilinear_lattice_weights(
+                    source_point,
+                    minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                    maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                    shape=_SPATIAL_LATTICE_SHAPE,
+                ),
+                trilinear_lattice_weights(
+                    target_point,
+                    minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                    maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                    shape=_SPATIAL_LATTICE_SHAPE,
+                ),
+                normal_world,
+                source_frame.transform_world_camera,
+                target_frame.transform_world_camera,
+            )
+            factors.append(
+                make_joint_trilinear_xyz_pair_factor(
+                    measurement,
+                    source_pose_block=_pose_block(source_index, source_frame),
+                    target_pose_block=_pose_block(target_index, target_frame),
+                    xyz_lattice_block=_XYZ_LATTICE_BLOCK,
+                )
+            )
+            assignments.append(
+                CorrespondenceAssignment(
+                    association.measurement_id,
+                    _xyz_pair_target_id(target_index, target_point_index),
+                )
+            )
+    return JointReassociationState(tuple(factors), tuple(assignments))
+
+
+def _xyz_pair_initial_reassociation_state(
+    problem: _TUMXYZPairProblem,
+) -> JointReassociationState:
+    return JointReassociationState(
+        problem.data_factors,
+        tuple(
+            CorrespondenceAssignment(association.measurement_id, association.target_id)
+            for association in problem.associations
+        ),
+    )
 
 
 def _xyz_pair_train_only_factors(
@@ -2326,6 +2566,165 @@ def _xyz_pair_ablation_metrics(
     }
 
 
+def _xyz_pair_reassociation_metrics(
+    runs: tuple[_TUMXYZPairReassociationRun, ...],
+    options: TUMJointSlacOptions,
+) -> dict[str, MetricResult]:
+    expected = len(options.replication_start_indices)
+    train_jaccards = [
+        run.result.terminal_train_stability.pair_jaccard
+        for run in runs
+        if run.result.terminal_train_stability.pair_jaccard is not None
+    ]
+    train_retentions = [
+        run.result.terminal_train_stability.retained_query_fraction
+        for run in runs
+        if run.result.terminal_train_stability.retained_query_fraction is not None
+    ]
+    holdout_jaccards = [
+        run.result.terminal_holdout_stability.pair_jaccard
+        for run in runs
+        if run.result.terminal_holdout_stability.pair_jaccard is not None
+    ]
+    holdout_deltas: list[float] = []
+    frozen_probe_fractions: list[float] = []
+    aware_probe_fractions: list[float] = []
+    valid_probe_fractions: list[float] = []
+    support_collapse_fractions: list[float] = []
+    aware_pair_jaccards: list[float] = []
+    baseline_retentions: list[float] = []
+    for run in runs:
+        holdout_groups = set(run.result.holdout_observation_groups)
+        terminal_holdout = [
+            factor
+            for factor in run.terminal_state.factors
+            if factor.observation_group in holdout_groups
+        ]
+        terminal_rmse = _factor_rmse(terminal_holdout, run.result.final_result.optimized_values)
+        baseline_rmse = run.baseline.result.holdout_rmse
+        if terminal_rmse is not None and baseline_rmse is not None:
+            holdout_deltas.append(terminal_rmse - baseline_rmse)
+        frozen = [
+            probe.detectable
+            for probe in run.result.final_result.probes
+            if probe.detectable is not None
+        ]
+        if frozen:
+            frozen_probe_fractions.append(sum(value is True for value in frozen) / len(frozen))
+        evaluation = run.probe_evaluation
+        baseline_retentions.append(evaluation.baseline_retained_fraction)
+        valid = [probe for probe in evaluation.probes if probe.detectable is not None]
+        if evaluation.probes:
+            valid_probe_fractions.append(len(valid) / len(evaluation.probes))
+        if valid:
+            aware_probe_fractions.append(
+                sum(probe.detectable is True for probe in valid) / len(valid)
+            )
+        support = [
+            probe.support_collapse
+            for probe in evaluation.probes
+            if probe.support_collapse is not None
+        ]
+        if support:
+            support_collapse_fractions.append(
+                sum(value is True for value in support) / len(support)
+            )
+        aware_pair_jaccards.extend(
+            probe.stability.pair_jaccard
+            for probe in evaluation.probes
+            if probe.stability is not None and probe.stability.pair_jaccard is not None
+        )
+    train_jaccard_min = min(train_jaccards) if train_jaccards else None
+    train_retention_min = min(train_retentions) if train_retentions else None
+    complete = len(runs) == expected
+    return {
+        "tum_joint_xyz_pair_reassociation_window_count": MetricResult(
+            value=float(len(runs)),
+            unit="windows",
+            grade="pass" if complete else "fail",
+        ),
+        "tum_joint_xyz_pair_reassociation_converged_fraction": MetricResult(
+            value=(
+                sum(run.result.status == "converged" for run in runs) / expected
+                if expected
+                else None
+            ),
+            grade=(
+                "pass"
+                if complete and all(run.result.status == "converged" for run in runs)
+                else "fail"
+            ),
+            reason="outer-loop stopping uses train pair assignments only",
+        ),
+        "tum_joint_xyz_pair_reassociation_train_pair_jaccard_min": MetricResult(
+            value=train_jaccard_min,
+            grade=(
+                "pass"
+                if train_jaccard_min is not None
+                and train_jaccard_min >= options.reassociation_min_train_pair_jaccard
+                else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_reassociation_train_retained_fraction_min": MetricResult(
+            value=train_retention_min,
+            grade=(
+                "pass"
+                if train_retention_min is not None
+                and train_retention_min >= options.reassociation_min_train_retained_fraction
+                else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_reassociation_holdout_pair_jaccard_min": MetricResult(
+            value=min(holdout_jaccards) if holdout_jaccards else None,
+            grade="warn",
+            reason="held-out pair stability is diagnostic and never stops fitting",
+        ),
+        "tum_joint_xyz_pair_reassociation_holdout_rmse_delta_max_m": MetricResult(
+            value=max(holdout_deltas) if holdout_deltas else None,
+            unit="m",
+            grade="warn",
+            reason="terminal rematched minus fixed-pair holdout RMSE",
+        ),
+        "tum_joint_xyz_pair_reassociation_frozen_probe_detectable_fraction_min": MetricResult(
+            value=(min(frozen_probe_fractions) if frozen_probe_fractions else None),
+            grade="warn",
+        ),
+        "tum_joint_xyz_pair_reassociation_aware_probe_detectable_fraction_min": MetricResult(
+            value=min(aware_probe_fractions) if aware_probe_fractions else None,
+            grade=(
+                "pass" if aware_probe_fractions and min(aware_probe_fractions) == 1.0 else "warn"
+            ),
+        ),
+        "tum_joint_xyz_pair_reassociation_aware_probe_valid_fraction_min": MetricResult(
+            value=min(valid_probe_fractions) if valid_probe_fractions else None,
+            grade=(
+                "pass" if valid_probe_fractions and min(valid_probe_fractions) == 1.0 else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_reassociation_support_collapse_fraction_max": MetricResult(
+            value=(max(support_collapse_fractions) if support_collapse_fractions else None),
+            grade=(
+                "pass"
+                if support_collapse_fractions and max(support_collapse_fractions) == 0.0
+                else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_reassociation_aware_pair_jaccard_min": MetricResult(
+            value=min(aware_pair_jaccards) if aware_pair_jaccards else None,
+            grade="warn",
+        ),
+        "tum_joint_xyz_pair_reassociation_baseline_retained_fraction_min": MetricResult(
+            value=min(baseline_retentions) if baseline_retentions else None,
+            grade=(
+                "pass"
+                if baseline_retentions
+                and min(baseline_retentions) >= options.reassociation_min_train_retained_fraction
+                else "fail"
+            ),
+        ),
+    }
+
+
 def _rematching_metrics(
     evaluations: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, MetricResult]:
@@ -2647,12 +3046,13 @@ def _provenance(
     xyz_transfers: tuple[dict[str, float | int | None], ...],
     xyz_pair_runs: tuple[_TUMXYZPairWindowRun, ...],
     xyz_pair_transfers: tuple[dict[str, float | int | None], ...],
+    xyz_pair_reassociation_runs: tuple[_TUMXYZPairReassociationRun, ...],
     reassociation_runs: tuple[_TUMIterativeReassociationRun, ...],
     rematching: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.3",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.4",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -2767,7 +3167,8 @@ def _provenance(
             "maximum_correspondences_per_pair": (options.xyz_pair_max_correspondences_per_pair),
             "correspondence_policy": (
                 "source points transformed by initial T_target_source and associated "
-                "to target-local voxel-plane centroids; assignments remain frozen"
+                "to target-local voxel planes; q is the real target sample nearest "
+                "the plane centroid and carries a stable point ID"
             ),
             "normal_policy": "target-local plane normal rotated to world by initial T_world_target",
             "split_policy": (
@@ -2788,6 +3189,14 @@ def _provenance(
             "pair edges while retaining target optimized pose corrections"
         ),
         "native_tum_joint_slac_xyz_pair_cross_window_transfers": list(xyz_pair_transfers),
+        "native_tum_joint_slac_xyz_pair_reassociation_policy": (
+            "both endpoints are calibrated; target-local planes are rebuilt from "
+            "C(q), source queries use current relative poses, train assignment "
+            "stability alone controls stopping, and holdout remains diagnostic"
+        ),
+        "native_tum_joint_slac_xyz_pair_reassociation": [
+            _xyz_pair_reassociation_provenance(run) for run in xyz_pair_reassociation_runs
+        ],
         "native_tum_joint_slac_iterative_reassociation_policy": (
             "each spatial window alternates nearest voxel-plane reassociation and "
             "warm-start backend-neutral optimization; only train pair Jaccard and "
@@ -2927,6 +3336,30 @@ def _xyz_pair_window_provenance(run: _TUMXYZPairWindowRun) -> dict[str, Any]:
         "data_only_field_observability": (run.data_only_field_observability.as_dict()),
         "data_only_joint_observability": (run.data_only_joint_observability.as_dict()),
         "optimizer_rounds": [result.as_dict() for result in run.results],
+    }
+
+
+def _xyz_pair_reassociation_provenance(
+    run: _TUMXYZPairReassociationRun,
+) -> dict[str, Any]:
+    holdout_groups = set(run.result.holdout_observation_groups)
+    terminal_holdout = [
+        factor
+        for factor in run.terminal_state.factors
+        if factor.observation_group in holdout_groups
+    ]
+    return {
+        "start_index": run.start_index,
+        "baseline_holdout_rmse_m": run.baseline.result.holdout_rmse,
+        "terminal_rematched_holdout_rmse_m": _factor_rmse(
+            terminal_holdout, run.result.final_result.optimized_values
+        ),
+        "frozen_shape_rotation_policy": (
+            "last fixed-pair Procrustes rotations remain frozen across outer rounds"
+        ),
+        "result": run.result.as_dict(),
+        "terminal_state": run.terminal_state.as_dict(),
+        "reassociation_aware_probe_evaluation": (run.probe_evaluation.as_dict()),
     }
 
 

@@ -191,10 +191,11 @@ full field-only rank do not establish a sequence-wide calibration function.
 A separate public graph now evaluates the paper residual
 `(T_i C(p) - T_j C(q)) dot n_world` on adjacent query-query frame pairs. For
 each directed edge, target depth samples form a target-camera voxel-plane map.
-Source samples are transformed with the initial `T_target_source`; accepted
-target centroids provide `q`, and target normals are rotated into the world
-frame. Both `p` and `q` are calibrated by the same 24-dimensional trilinear XYZ
-field. No extrinsic block is inserted into this paper-faithful ablation.
+Source samples are transformed with the initial `T_target_source`; the real
+target depth sample nearest an accepted plane centroid provides `q`, and target
+normals are rotated into the world frame. Both `p` and `q` are calibrated by
+the same 24-dimensional trilinear XYZ field. No extrinsic block is inserted
+into this paper-faithful ablation.
 
 The frontend caps each edge at 60 deterministic correspondences and retains
 414, 405, and 403 factors at starts 60, 180, and 300. Complete pair IDs are the
@@ -209,20 +210,37 @@ fixed, train data observes the field at rank 24/24. With non-gauge poses free,
 the data-only joint rank is 57/66 and is WARN. Train-only regularization makes
 the augmented graph rank 66/66, but that rank is never reported as geometric
 observability. Only one of three held-out pair objectives improves from the
-identity field/pose initialization; the worst change is `+3.85e-6 m`, so the
+identity field/pose initialization; the worst change is `+6.39e-6 m`, so the
 unchanged non-degradation comparison FAILs. Signed non-gauge pose and field
-probes detect only 40/132, 40/132, and 39/132 perturbations.
+probes detect only 40/132, 42/132, and 40/132 perturbations.
 
 All six ordered transfers replace only the source window's field while keeping
 the target's optimized pose corrections and held-out pair factors. Every
 direction remains within the unchanged 0.005 m margin; the worst increase is
-`4.67e-8 m`. This PASS is recorded alongside, not in place of, the weak probe
+`5.26e-8 m`. This PASS is recorded alongside, not in place of, the weak probe
 and joint-rank evidence. Pair counts, frame IDs, exact train/holdout edges,
 field controls, two optimizer rounds, local rotations, all probes, both rank
 diagnostics, and transfer scores are serialized in provenance. Each fixed
-association also records its source sample index, pair group, stable target
-voxel ID, and initial centroid distance, allowing reconstruction from the
-hashed raw frame and declared deterministic sampler.
+association also records its source and target sample indexes, pair group,
+stable target point ID, and initial centroid distance, allowing reconstruction
+from the hashed raw frame and declared deterministic sampler.
+
+For association-aware evaluation, every target map is rebuilt in target-local
+coordinates from the currently calibrated `C(q)` population. Each calibrated
+source query is transformed by the current source pose and inverse current
+target pose before matching. All three windows pass the unchanged 0.99 train
+pair-Jaccard and 0.95 retention gates on the first outer round. Minimum train
+pair Jaccard is 0.99322, train retention is 1.0, and diagnostic holdout pair
+Jaccard is 1.0. Terminal rematched holdout RMSE changes by at most
+`+7.76e-8 m`.
+
+The association-aware known-bad protocol fixes the original held-out source
+population and charges 0.15 m for unmatched queries. All 396 signed pose/field
+probes are valid, baseline retention is 1.0, and support-collapse fraction is
+zero. The three detection counts are 55/132, 64/132, and 43/132; the weakest
+0.3258 remains WARN. Perturbed pair Jaccard reaches 0.6571. Thus stable fitted
+pair assignments coexist with materially assignment-changing known-bad
+directions, and both facts are retained rather than collapsed into one score.
 
 ### Optimized correspondence rematching
 
@@ -293,5 +311,5 @@ This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension can evaluate reassociation for the two-sided branch and increase
-lattice resolution only if public support remains observable.
+The next extension can increase lattice resolution only if public support
+remains observable, or move to the next primary-paper calibration family.

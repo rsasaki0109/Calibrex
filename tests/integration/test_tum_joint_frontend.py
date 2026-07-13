@@ -216,7 +216,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert pair_improved.value == pytest.approx(1.0 / 3.0)
     assert pair_improved.grade == "fail"
     pair_delta = result.metrics["tum_joint_xyz_pair_worst_holdout_delta_rmse_m"]
-    assert pair_delta.value is not None and 3.0e-6 < pair_delta.value < 4.5e-6
+    assert pair_delta.value is not None and 6.0e-6 < pair_delta.value < 6.8e-6
     assert pair_delta.grade == "fail"
     assert result.metrics["tum_joint_xyz_pair_data_only_field_rank_min"].value == 24.0
     pair_joint_rank = result.metrics["tum_joint_xyz_pair_data_only_joint_rank_min"]
@@ -224,10 +224,10 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert pair_joint_rank.grade == "warn"
     assert result.metrics["tum_joint_xyz_pair_augmented_rank_min"].value == 66.0
     pair_detection = result.metrics["tum_joint_xyz_pair_known_bad_detectable_fraction_min"]
-    assert pair_detection.value == pytest.approx(39.0 / 132.0)
+    assert pair_detection.value == pytest.approx(40.0 / 132.0)
     assert pair_detection.grade == "warn"
     pair_transfer = result.metrics["tum_joint_xyz_pair_cross_window_max_holdout_delta_rmse_m"]
-    assert pair_transfer.value is not None and pair_transfer.value < 5.0e-8
+    assert pair_transfer.value is not None and pair_transfer.value < 5.5e-8
     assert pair_transfer.grade == "pass"
     assert result.metrics["tum_joint_xyz_pair_cross_window_nondegrading_fraction"].value == 1.0
     xyz_pair_windows = result.run.provenance["native_tum_joint_slac_xyz_pair_windows"]
@@ -236,7 +236,8 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         len(window["pair_correspondence_counts"]) == 7
         and len(window["fixed_associations"]) == sum(window["pair_correspondence_counts"].values())
         and all(
-            association["target_id"].startswith("voxel:")
+            association["target_id"].startswith("tum-target-point:")
+            and association["target_point_index"] >= 0
             and association["initial_centroid_distance_m"] <= 0.15
             for association in window["fixed_associations"]
         )
@@ -252,6 +253,50 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     pair_model = result.run.provenance["native_tum_joint_slac_xyz_pair_model"]
     assert pair_model["residual"] == "(T_i C(p) - T_j C(q)) dot n_world"
     assert "factor-disjoint" in pair_model["split_policy"]
+    pair_reassociation_count = result.metrics["tum_joint_xyz_pair_reassociation_window_count"]
+    assert pair_reassociation_count.value == 3.0
+    assert pair_reassociation_count.grade == "pass"
+    pair_reassociation_convergence = result.metrics[
+        "tum_joint_xyz_pair_reassociation_converged_fraction"
+    ]
+    assert pair_reassociation_convergence.value == 1.0
+    assert pair_reassociation_convergence.grade == "pass"
+    pair_train_jaccard = result.metrics["tum_joint_xyz_pair_reassociation_train_pair_jaccard_min"]
+    assert pair_train_jaccard.value == pytest.approx(0.9932203389830508)
+    assert pair_train_jaccard.grade == "pass"
+    assert (
+        result.metrics["tum_joint_xyz_pair_reassociation_train_retained_fraction_min"].value == 1.0
+    )
+    assert result.metrics["tum_joint_xyz_pair_reassociation_holdout_pair_jaccard_min"].value == 1.0
+    pair_rematch_delta = result.metrics["tum_joint_xyz_pair_reassociation_holdout_rmse_delta_max_m"]
+    assert pair_rematch_delta.value is not None
+    assert 7.0e-8 < pair_rematch_delta.value < 8.5e-8
+    pair_aware_detection = result.metrics[
+        "tum_joint_xyz_pair_reassociation_aware_probe_detectable_fraction_min"
+    ]
+    assert pair_aware_detection.value == pytest.approx(43.0 / 132.0)
+    assert pair_aware_detection.grade == "warn"
+    assert (
+        result.metrics["tum_joint_xyz_pair_reassociation_aware_probe_valid_fraction_min"].value
+        == 1.0
+    )
+    assert (
+        result.metrics["tum_joint_xyz_pair_reassociation_support_collapse_fraction_max"].value
+        == 0.0
+    )
+    pair_aware_jaccard = result.metrics["tum_joint_xyz_pair_reassociation_aware_pair_jaccard_min"]
+    assert pair_aware_jaccard.value == pytest.approx(0.6571428571428571)
+    pair_reassociation = result.run.provenance["native_tum_joint_slac_xyz_pair_reassociation"]
+    assert [item["start_index"] for item in pair_reassociation] == [60, 180, 300]
+    assert all(
+        item["result"]["status"] == "converged"
+        and len(item["result"]["iterations"]) == 1
+        and item["reassociation_aware_probe_evaluation"]["method"]
+        == "joint_reassociation_fixed_population_probes/v0.1"
+        and len(item["reassociation_aware_probe_evaluation"]["probes"]) == 132
+        and item["terminal_state"]["assignments"]
+        for item in pair_reassociation
+    )
     assert result.degeneracy.reason is not None
     assert "full-XYZ data-only" in result.degeneracy.reason
     reassociation_count = result.metrics["tum_joint_reassociation_window_count"]
@@ -378,7 +423,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v1.3"
+        "tum_multicapture_pose_extrinsic_depth/v1.4"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

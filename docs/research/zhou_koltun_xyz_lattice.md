@@ -102,11 +102,11 @@ collapse. Ordered extrinsic/field transfer passes the unchanged 0.005 m margin
 in only 2/6 directions; the worst holdout increase is 0.011746 m.
 
 A public two-sided branch now builds seven adjacent query-query edges per
-window. Source points are transformed by the initial `T_target_source`, matched
-to target-local voxel-plane centroids, and both endpoints pass through the same
-`C`. Target normals are rotated into world coordinates. Assignments remain
-fixed, so this is the paper's Eq. (2) residual rather than an undocumented
-rematching objective.
+window. Source points are transformed by the initial `T_target_source` and
+matched to target-local voxel planes. The real target depth sample nearest each
+plane centroid supplies `q`, so both endpoints pass through the same `C` and
+the target has a stable point ID. Target normals are rotated into world
+coordinates.
 
 The split holds out complete pair edges: five train and two holdout edges per
 window. It is factor-disjoint but honestly not frame-disjoint because adjacent
@@ -118,12 +118,29 @@ pose, shape, and rigid-field priors raise the augmented systems to 66/66 but do
 not replace that diagnostic.
 
 Only one of three pair holdouts improves over identity initialization; the
-worst increase is `3.85e-6 m`, hence FAIL under the unchanged zero-degradation
-comparison. The weakest signed pose/field probe detection is 39/132 (0.2955),
-also WARN. In contrast, all six ordered field-only transfers stay inside the
-unchanged 0.005 m margin; the worst increase is only `4.67e-8 m`. This
+worst increase is `6.39e-6 m`, hence FAIL under the unchanged zero-degradation
+comparison. Frozen signed pose/field probes detect 40/132, 42/132, and 40/132;
+the weakest 0.3030 fraction is WARN. In contrast, all six ordered field-only
+transfers stay inside the unchanged 0.005 m margin; the worst increase is only
+`5.26e-8 m`. This
 establishes the missing public two-sided execution path while refusing to turn
 augmented rank or near-zero transfer deltas into a claim of strong calibration
-observability. Every fixed association retains its source sample index, pair
-group, stable target voxel ID, and initial centroid distance alongside the raw
-frame hashes and deterministic sampling policy.
+observability. Every fixed association retains its source and target sample
+indexes, pair group, stable target point ID, and initial centroid distance
+alongside the raw frame hashes and deterministic sampling policy.
+
+The two-sided branch now also rebuilds each target-local plane map from
+calibrated `C(q)` points. A source query is evaluated with the current source
+pose and field, transformed through the inverse current target pose, and
+associated in calibrated target coordinates. The first reassociation round
+passes the unchanged train gates in all windows: minimum pair Jaccard is
+0.99322 and retention is 1.0. Holdout pair Jaccard is 1.0 and is never used for
+stopping. The terminal rematched holdout differs from the fixed score by at
+most `7.76e-8 m`.
+
+Reassociation-aware signed probes use the original held-out source population;
+unmatched queries pay the declared 0.15 m penalty. All 396 probes are valid,
+baseline retention is 1.0, and no probe causes support collapse. Detection is
+55/132, 64/132, and 43/132, so the weakest 0.3258 remains WARN. Perturbed pair
+Jaccard falls to 0.6571. Stable fitted assignments therefore do not imply that
+known-bad perturbations preserve the same objective.
