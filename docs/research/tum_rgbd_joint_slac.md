@@ -140,6 +140,43 @@ margin, and the worst transfer increases holdout RMSE by 0.01511 m. Thus the
 extra spatial degrees of freedom do not resolve temporal instability; the
 spatial ablation remains honestly FAIL.
 
+### Full XYZ calibration lattice
+
+The next ablation implements the paper's three-vector calibration field rather
+than a ray-depth-only approximation. Each of eight regular controls carries an
+XYZ displacement, for 24 field dimensions. A fixed-map point-to-plane factor
+evaluates `C(p) = p + sum_l gamma_l(p) delta_l`; the generic graph also exposes
+the paper's two-sided `Ti C(p) - Tj C(q)` factor. Directed neighbor residuals
+use a local proper rotation frozen inside each optimizer round. After the first
+solve, each node's rotation is updated by a train-fitted Procrustes estimate and
+the graph is warm-started for a second round.
+
+The elastic term intentionally assigns zero cost to a rigid field. Because
+those six modes can exchange with the camera extrinsic, a separate train-only
+gauge constrains mean field translation and infinitesimal rotation moment. The
+augmented pose/extrinsic/field systems are then rank 78/78 in every window.
+Data-only diagnostics remain separate: with pose and extrinsic fixed the field
+is rank 24/24, while the combined extrinsic/field system is rank 24/30 and
+names both blocks as weak. The latter is WARN, not PASS; the six missing modes
+are the predicted rigid exchange ambiguity rather than evidence created by the
+gauge.
+
+Both frozen-local-rotation solves converge in all three windows. The fitted
+field is extremely small: the largest control component is 91.3 micrometers,
+and the largest local rotation used in the second round is 0.000347 degrees.
+Compared with the scalar ray-depth lattice, held-out RMSE changes are
+-0.000130 m, +0.004047 m, and +0.000142 m at starts 60, 180, and 300. Only one
+of three windows improves and the worst change therefore FAILs.
+
+Final frozen-factor signed control probes detect 20/48, 14/48, and 11/48
+perturbations. The minimum 11/48 is WARN. Thus the extra lateral degrees of
+freedom are locally rank-complete only after fixing pose/extrinsic, but are
+weakly falsifiable and do not provide repeatable public-data improvement.
+Every control vector, local rotation, optimizer round, split, probe, augmented
+rank, and data-only rank is retained in provenance. The fixed map remains an
+explicit specialization; the public run does not claim that both sides of the
+paper's pairwise objective were calibrated.
+
 ### Optimized correspondence rematching
 
 Held-out optimized points are rematched to the same voxel-plane map under the
@@ -198,5 +235,5 @@ This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension will make known-bad probes reassociation-aware and then replace
-the constrained ray-depth lattice with the paper's full XYZ elastic field.
+next extension will make known-bad probes reassociation-aware and test full-XYZ
+cross-window transfer before increasing lattice resolution.

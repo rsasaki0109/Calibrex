@@ -74,11 +74,21 @@ rank 24/24, achieves held-out RMSE below `1e-9 m`, and detects all 48 signed
 known-bad control probes. Fixed pose and extrinsic blocks are explicit gauges
 and do not contribute to the reported rank.
 
-## Current boundary
+## Public TUM evidence and current boundary
 
-This change establishes the license-safe full-XYZ factor and regularizer
-foundation. It is not yet a public-data claim. The next adapter revision must
-update local rotations between optimization rounds, emit the field and its
-regularization policy in result provenance, compare scalar-depth and XYZ
-holdout evidence on public TUM windows, and preserve honest failure when
-temporal transfer or reassociation gates remain unstable.
+The public `freiburg1_xyz` adapter now performs one train-fitted local-rotation
+update in each of three temporal windows. All six inner solves converge. The
+field-only data rank is 24/24, while extrinsic plus field is rank 24/30 because
+of the expected rigid exchange modes. The gauge-augmented full graph is rank
+78/78 but is never substituted for either data-only diagnostic.
+
+Only one of three windows improves on the scalar ray-depth holdout. The worst
+full-XYZ-minus-scalar change is +0.004047 m and FAILs. Maximum displacement is
+91.3 micrometers, maximum updated local rotation is 0.000347 degrees, and the
+weakest frozen-factor probe detection is 11/48. The public result therefore
+does not claim useful lateral calibration despite full field-only rank.
+
+The adapter still uses fixed disjoint map planes, which is explicitly labelled
+as a specialization of Equation (2). Full-XYZ cross-window transfer,
+reassociation-aware probes, and a public two-sided correspondence frontend
+remain future evidence requirements.

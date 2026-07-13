@@ -493,6 +493,10 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "tum_joint_reassociation_train_pair_jaccard_min" in names
     assert "tum_joint_reassociation_holdout_pair_jaccard_min" in names
     assert "tum_joint_reassociation_known_bad_detectable_fraction_min" in names
+    assert "tum_joint_xyz_ablation_window_count" in names
+    assert "tum_joint_xyz_data_only_field_rank_min" in names
+    assert "tum_joint_xyz_data_only_shared_rank_min" in names
+    assert "tum_joint_xyz_known_bad_detectable_fraction_min" in names
     assert "lidar_frame_coverage" in names
     assert "lidar_point_coverage" in names
     assert "lidar_spatial_coverage_m" in names

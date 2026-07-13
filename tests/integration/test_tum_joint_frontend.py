@@ -148,6 +148,48 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         for window in spatial_windows
     )
     assert len(result.run.provenance["native_tum_joint_slac_spatial_cross_window_transfers"]) == 6
+    assert result.metrics["tum_joint_xyz_ablation_window_count"].value == 3.0
+    xyz_converged = result.metrics["tum_joint_xyz_ablation_converged_fraction"]
+    assert xyz_converged.value == 1.0
+    assert xyz_converged.grade == "pass"
+    xyz_improved = result.metrics["tum_joint_xyz_ablation_holdout_improved_fraction"]
+    assert xyz_improved.value == pytest.approx(1.0 / 3.0)
+    assert xyz_improved.grade == "fail"
+    xyz_delta = result.metrics["tum_joint_xyz_ablation_worst_holdout_delta_rmse_m"]
+    assert xyz_delta.value is not None and 0.0040 < xyz_delta.value < 0.0041
+    assert xyz_delta.grade == "fail"
+    xyz_field_rank = result.metrics["tum_joint_xyz_data_only_field_rank_min"]
+    assert xyz_field_rank.value == 24.0
+    assert xyz_field_rank.grade == "pass"
+    xyz_shared_rank = result.metrics["tum_joint_xyz_data_only_shared_rank_min"]
+    assert xyz_shared_rank.value == 24.0
+    assert xyz_shared_rank.grade == "warn"
+    xyz_offset = result.metrics["tum_joint_xyz_lattice_max_abs_offset_m"]
+    assert xyz_offset.value is not None and 9.0e-5 < xyz_offset.value < 9.2e-5
+    xyz_rotation = result.metrics["tum_joint_xyz_local_rotation_update_max_deg"]
+    assert xyz_rotation.value is not None and 0.0003 < xyz_rotation.value < 0.0004
+    xyz_detection = result.metrics["tum_joint_xyz_known_bad_detectable_fraction_min"]
+    assert xyz_detection.value == pytest.approx(11.0 / 48.0)
+    assert xyz_detection.grade == "warn"
+    xyz_windows = result.run.provenance["native_tum_joint_slac_xyz_lattice_windows"]
+    assert [window["start_index"] for window in xyz_windows] == [60, 180, 300]
+    assert all(
+        len(window["xyz_control_offsets_m"]) == 8
+        and len(window["local_rotation_history_xyzw"]) == 2
+        and len(window["optimizer_rounds"]) == 2
+        and all(
+            round_result["status"] == "converged"
+            for round_result in window["optimizer_rounds"]
+        )
+        and window["optimizer_rounds"][-1]["information_rank"] == 78
+        and window["data_only_field_observability"]["information_rank"] == 24
+        and window["data_only_shared_observability"]["information_rank"] == 24
+        and set(window["data_only_shared_observability"]["weak_parameter_blocks"])
+        == {"T_trajectory_camera_correction", "depth_full_xyz_lattice_offsets_m"}
+        for window in xyz_windows
+    )
+    assert result.degeneracy.reason is not None
+    assert "full-XYZ data-only" in result.degeneracy.reason
     reassociation_count = result.metrics["tum_joint_reassociation_window_count"]
     assert reassociation_count.value == 3.0
     assert reassociation_count.grade == "pass"
@@ -247,7 +289,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v0.9"
+        "tum_multicapture_pose_extrinsic_depth/v1.0"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

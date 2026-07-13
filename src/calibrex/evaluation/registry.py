@@ -747,6 +747,55 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_xyz_ablation_window_count",
+            "Number of TUM windows evaluated with the full XYZ calibration lattice",
+            "windows",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_ablation_converged_fraction",
+            "Fraction of full XYZ TUM windows whose final local-rotation round converged",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_ablation_holdout_improved_fraction",
+            "Fraction of windows where full XYZ improves scalar-lattice holdout RMSE",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_ablation_worst_holdout_delta_rmse_m",
+            "Worst full-XYZ-minus-scalar-lattice holdout RMSE change",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_data_only_field_rank_min",
+            "Minimum train data rank of the 24-dimensional XYZ field",
+            family="observability",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_data_only_shared_rank_min",
+            "Minimum train data rank of shared extrinsic plus XYZ field",
+            family="observability",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_lattice_max_abs_offset_m",
+            "Largest fitted full-XYZ lattice displacement component",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_local_rotation_update_max_deg",
+            "Largest frozen local lattice rotation used by a TUM optimizer round",
+            "deg",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_known_bad_detectable_fraction_min",
+            "Minimum detection fraction over signed full-XYZ control probes",
+            family="joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_reassociation_window_count",
             "Number of TUM windows evaluated by iterative voxel-plane reassociation",
             "windows",

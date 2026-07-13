@@ -10,7 +10,7 @@ from typing import Any
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, QuaternionXYZW
 from calibrex.core.provenance import sha256_path
 from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
@@ -49,11 +49,17 @@ from calibrex.evaluation.numerical_curvature import (
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
+    JointTrilinearXYZPointToPlaneMeasurement,
+    estimate_xyz_lattice_local_rotations,
     make_joint_centered_trilinear_depth_point_to_plane_factor,
     make_joint_depth_point_to_plane_factor,
     make_joint_lattice_smoothness_factor,
     make_joint_lattice_zero_mean_factor,
     make_joint_prior_factor,
+    make_joint_trilinear_xyz_point_to_plane_factor,
+    make_joint_xyz_lattice_rigid_gauge_factor,
+    make_joint_xyz_lattice_shape_factor,
+    regular_lattice_control_points,
     se3_from_tangent,
     trilinear_lattice_weights,
 )
@@ -81,6 +87,7 @@ _EXTRINSIC_BLOCK = "T_trajectory_camera_correction"
 _DEPTH_BLOCK = "depth_log_scale_bias_m"
 _SPATIAL_BIAS_BLOCK = "depth_spatial_constant_bias_m"
 _SPATIAL_DEPTH_BLOCK = "depth_zero_mean_trilinear_ray_offsets_m"
+_XYZ_LATTICE_BLOCK = "depth_full_xyz_lattice_offsets_m"
 _SPATIAL_LATTICE_SHAPE = (2, 2, 2)
 _SPATIAL_LATTICE_MINIMUM_M = (-3.1, -2.4, 0.2)
 _SPATIAL_LATTICE_MAXIMUM_M = (3.1, 2.4, 5.0)
@@ -122,6 +129,10 @@ class TUMJointSlacOptions:
     reassociation_max_outer_iterations: int = 2
     reassociation_min_train_pair_jaccard: float = 0.99
     reassociation_min_train_retained_fraction: float = 0.95
+    xyz_lattice_shape_sigma_m: float = 0.05
+    xyz_lattice_translation_gauge_sigma_m: float = 1.0e-4
+    xyz_lattice_rotation_gauge_sigma_rad: float = 1.0e-4
+    xyz_lattice_local_rotation_updates: int = 1
 
     def as_dict(self) -> dict[str, float | int | list[int]]:
         values: dict[str, float | int | list[int]] = {}
@@ -165,6 +176,21 @@ class _TUMIterativeReassociationRun:
     start_index: int
     baseline: _TUMSpatialWindowRun
     result: JointReassociationResult
+
+
+@dataclass(frozen=True)
+class _TUMXYZWindowRun:
+    start_index: int
+    source_problem: _TUMJointProblem
+    data_factors: tuple[JointResidualBlock, ...]
+    local_rotation_history: tuple[tuple[QuaternionXYZW, ...], ...]
+    results: tuple[JointOptimizerResult, ...]
+    data_only_field_observability: JointObservabilityEvaluation
+    data_only_shared_observability: JointObservabilityEvaluation
+
+    @property
+    def result(self) -> JointOptimizerResult:
+        return self.results[-1]
 
 
 @dataclass(frozen=True)
@@ -239,6 +265,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         transfers = _cross_window_transfers(replication_runs)
         spatial_runs = _spatial_ablation_runs(config, replication_runs, options)
         spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
+        xyz_runs = _xyz_ablation_runs(config, replication_runs, options)
         reassociation_runs = _iterative_reassociation_runs(
             root, intrinsics, config, spatial_runs, options
         )
@@ -263,6 +290,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         metrics.update(
             _spatial_ablation_metrics(replication_runs, spatial_runs, spatial_transfers, options)
         )
+        metrics.update(_xyz_ablation_metrics(spatial_runs, xyz_runs))
         metrics.update(_rematching_metrics(rematching))
         metrics.update(_iterative_reassociation_metrics(reassociation_runs, options))
         warnings = _warnings(
@@ -270,6 +298,14 @@ class NativeTUMJointSlacSolver(SolverAdapter):
             extrinsic_observability.information_rank,
             shared_observability.information_rank,
         )
+        xyz_shared_rank = min(
+            run.data_only_shared_observability.information_rank for run in xyz_runs
+        )
+        if xyz_shared_rank < 30:
+            warnings.append(
+                "TUM full-XYZ data-only extrinsic/field rank is "
+                f"{xyz_shared_rank} < 30; rigid field modes exchange with extrinsic"
+            )
         return SolverAdapterResult(
             backend=self.backend,
             available=True,
@@ -292,6 +328,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 transfers=transfers,
                 spatial_runs=spatial_runs,
                 spatial_transfers=spatial_transfers,
+                xyz_runs=xyz_runs,
                 reassociation_runs=reassociation_runs,
                 rematching=rematching,
             ),
@@ -445,6 +482,176 @@ def _spatial_ablation_runs(
             )
         )
     return tuple(runs)
+
+
+def _xyz_ablation_runs(
+    config: CalibrationConfig,
+    baseline_runs: tuple[_TUMWindowRun, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[_TUMXYZWindowRun, ...]:
+    controls = regular_lattice_control_points(
+        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+        shape=_SPATIAL_LATTICE_SHAPE,
+    )
+    identity_rotations: tuple[QuaternionXYZW, ...] = (
+        (0.0, 0.0, 0.0, 1.0),
+    ) * len(controls)
+    runs: list[_TUMXYZWindowRun] = []
+    for baseline in baseline_runs:
+        problem = baseline.problem
+        data_factors = _xyz_data_factors(problem)
+        blocks = _xyz_parameter_blocks(problem, options)
+        rotations = identity_rotations
+        rotation_history: list[tuple[QuaternionXYZW, ...]] = []
+        results: list[JointOptimizerResult] = []
+        current_blocks = blocks
+        for _round in range(options.xyz_lattice_local_rotation_updates + 1):
+            rotation_history.append(rotations)
+            result = _optimize_joint(
+                config,
+                current_blocks,
+                (
+                    *data_factors,
+                    *_xyz_train_only_factors(problem, controls, rotations, options),
+                ),
+                options,
+            )
+            results.append(result)
+            if result.status != "converged":
+                break
+            rotations = estimate_xyz_lattice_local_rotations(
+                control_points_m=controls,
+                offsets_m=result.optimized_values[_XYZ_LATTICE_BLOCK],
+                shape=_SPATIAL_LATTICE_SHAPE,
+            )
+            current_blocks = tuple(
+                replace(block, initial_values=result.optimized_values[block.name])
+                for block in blocks
+            )
+        final = results[-1]
+        runs.append(
+            _TUMXYZWindowRun(
+                baseline.start_index,
+                problem,
+                data_factors,
+                tuple(rotation_history),
+                tuple(results),
+                _xyz_data_only_observability(
+                    blocks, data_factors, final, include_extrinsic=False
+                ),
+                _xyz_data_only_observability(
+                    blocks, data_factors, final, include_extrinsic=True
+                ),
+            )
+        )
+    return tuple(runs)
+
+
+def _xyz_data_factors(problem: _TUMJointProblem) -> tuple[JointResidualBlock, ...]:
+    return tuple(_xyz_factor(problem, measurement) for measurement in problem.measurements)
+
+
+def _xyz_factor(
+    problem: _TUMJointProblem, measurement: JointDepthPointToPlaneMeasurement
+) -> JointResidualBlock:
+    frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
+    frame = problem.query_frames[frame_index]
+    point = _scale_ray(measurement.normalized_ray_sensor, measurement.nominal_depth_m)
+    return make_joint_trilinear_xyz_point_to_plane_factor(
+        JointTrilinearXYZPointToPlaneMeasurement(
+            measurement.measurement_id,
+            measurement.observation_group,
+            point,
+            trilinear_lattice_weights(
+                point,
+                minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                shape=_SPATIAL_LATTICE_SHAPE,
+            ),
+            measurement.plane_point_world_m,
+            measurement.plane_normal_world,
+            measurement.transform_world_body_initial,
+            measurement.transform_body_sensor_initial,
+            measurement.weight,
+        ),
+        pose_block=_pose_block(frame_index, frame),
+        extrinsic_block=_EXTRINSIC_BLOCK,
+        xyz_lattice_block=_XYZ_LATTICE_BLOCK,
+    )
+
+
+def _xyz_parameter_blocks(
+    problem: _TUMJointProblem, options: TUMJointSlacOptions
+) -> tuple[JointParameterBlock, ...]:
+    dimension = 3 * math.prod(_SPATIAL_LATTICE_SHAPE)
+    return (
+        *(block for block in problem.parameter_blocks if block.name != _DEPTH_BLOCK),
+        JointParameterBlock(
+            _XYZ_LATTICE_BLOCK,
+            (0.0,) * dimension,
+            finite_difference_steps=(1.0e-5,) * dimension,
+            known_bad_steps=(options.known_bad_depth_bias_m,) * dimension,
+        ),
+    )
+
+
+def _xyz_train_only_factors(
+    problem: _TUMJointProblem,
+    controls: tuple[tuple[float, float, float], ...],
+    rotations: tuple[QuaternionXYZW, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[JointResidualBlock, ...]:
+    priors = tuple(
+        factor for factor in problem.all_factors if factor.family == "diagonal_prior"
+    )
+    shape = make_joint_xyz_lattice_shape_factor(
+        factor_id="depth-xyz-lattice-shape",
+        observation_group="depth-xyz-lattice-regularization",
+        block=_XYZ_LATTICE_BLOCK,
+        control_points_m=controls,
+        local_rotations_xyzw=rotations,
+        shape=_SPATIAL_LATTICE_SHAPE,
+        sigma_m=options.xyz_lattice_shape_sigma_m,
+    )
+    gauge = make_joint_xyz_lattice_rigid_gauge_factor(
+        factor_id="depth-xyz-lattice-rigid-gauge",
+        observation_group="depth-xyz-lattice-regularization",
+        block=_XYZ_LATTICE_BLOCK,
+        control_points_m=controls,
+        translation_sigma_m=options.xyz_lattice_translation_gauge_sigma_m,
+        rotation_sigma_rad=options.xyz_lattice_rotation_gauge_sigma_rad,
+    )
+    return (*priors, shape, gauge)
+
+
+def _xyz_data_only_observability(
+    blocks: tuple[JointParameterBlock, ...],
+    data_factors: tuple[JointResidualBlock, ...],
+    result: JointOptimizerResult,
+    *,
+    include_extrinsic: bool,
+) -> JointObservabilityEvaluation:
+    free = {_XYZ_LATTICE_BLOCK}
+    if include_extrinsic:
+        free.add(_EXTRINSIC_BLOCK)
+    diagnostic_blocks = tuple(
+        replace(
+            block,
+            initial_values=result.optimized_values[block.name],
+            fixed=block.name not in free,
+        )
+        for block in blocks
+    )
+    train_groups = set(result.train_observation_groups)
+    train_data = tuple(
+        factor for factor in data_factors if factor.observation_group in train_groups
+    )
+    return evaluate_joint_observability(
+        diagnostic_blocks,
+        train_data,
+        result.optimized_values,
+    )
 
 
 def _spatial_data_factors(
@@ -1462,6 +1669,109 @@ def _spatial_ablation_metrics(
     }
 
 
+def _xyz_ablation_metrics(
+    scalar_runs: tuple[_TUMSpatialWindowRun, ...],
+    xyz_runs: tuple[_TUMXYZWindowRun, ...],
+) -> dict[str, MetricResult]:
+    baselines = {run.start_index: run for run in scalar_runs}
+    holdout_deltas: list[float] = []
+    for run in xyz_runs:
+        baseline = baselines.get(run.start_index)
+        xyz_rmse = run.result.holdout_rmse
+        scalar_rmse = baseline.result.holdout_rmse if baseline is not None else None
+        if xyz_rmse is not None and scalar_rmse is not None:
+            holdout_deltas.append(xyz_rmse - scalar_rmse)
+    improved = sum(delta < 0.0 for delta in holdout_deltas)
+    field_probe_fractions: list[float] = []
+    for run in xyz_runs:
+        probes = [
+            probe.detectable
+            for probe in run.result.probes
+            if probe.block == _XYZ_LATTICE_BLOCK and probe.detectable is not None
+        ]
+        if probes:
+            field_probe_fractions.append(
+                sum(value is True for value in probes) / len(probes)
+            )
+    offsets = [
+        value
+        for run in xyz_runs
+        for value in run.result.optimized_values[_XYZ_LATTICE_BLOCK]
+    ]
+    rotation_angles = [
+        _quaternion_angle_deg(rotation)
+        for run in xyz_runs
+        for rotations in run.local_rotation_history
+        for rotation in rotations
+    ]
+    field_ranks = [run.data_only_field_observability.information_rank for run in xyz_runs]
+    shared_ranks = [run.data_only_shared_observability.information_rank for run in xyz_runs]
+    expected = len(scalar_runs)
+    complete = len(xyz_runs) == expected
+    return {
+        "tum_joint_xyz_ablation_window_count": MetricResult(
+            value=float(len(xyz_runs)),
+            unit="windows",
+            grade="pass" if complete else "fail",
+            reason=f"full XYZ lattice windows; expected {expected}",
+        ),
+        "tum_joint_xyz_ablation_converged_fraction": MetricResult(
+            value=(
+                sum(run.result.status == "converged" for run in xyz_runs) / expected
+                if expected
+                else None
+            ),
+            grade=(
+                "pass"
+                if complete and all(run.result.status == "converged" for run in xyz_runs)
+                else "fail"
+            ),
+            reason="final frozen-local-rotation optimizer status over temporal windows",
+        ),
+        "tum_joint_xyz_ablation_holdout_improved_fraction": MetricResult(
+            value=improved / len(holdout_deltas) if holdout_deltas else None,
+            grade="pass" if holdout_deltas and improved == len(holdout_deltas) else "fail",
+            reason="full XYZ versus scalar ray-depth same-window holdout RMSE",
+        ),
+        "tum_joint_xyz_ablation_worst_holdout_delta_rmse_m": MetricResult(
+            value=max(holdout_deltas) if holdout_deltas else None,
+            unit="m",
+            grade="pass" if holdout_deltas and max(holdout_deltas) <= 0.0 else "fail",
+        ),
+        "tum_joint_xyz_data_only_field_rank_min": MetricResult(
+            value=float(min(field_ranks)) if field_ranks else None,
+            grade="pass" if field_ranks and min(field_ranks) == 24 else "fail",
+            reason="train data rank of 24 XYZ controls with poses/extrinsic fixed",
+        ),
+        "tum_joint_xyz_data_only_shared_rank_min": MetricResult(
+            value=float(min(shared_ranks)) if shared_ranks else None,
+            grade="warn" if shared_ranks and min(shared_ranks) == 24 else "fail",
+            reason="train data rank of 30 extrinsic/field dimensions; six rigid exchange modes",
+        ),
+        "tum_joint_xyz_lattice_max_abs_offset_m": MetricResult(
+            value=max((abs(value) for value in offsets), default=None),
+            unit="m",
+            grade="warn",
+            reason="largest fitted full-XYZ control displacement component",
+        ),
+        "tum_joint_xyz_local_rotation_update_max_deg": MetricResult(
+            value=max(rotation_angles) if rotation_angles else None,
+            unit="deg",
+            grade="warn",
+            reason="largest frozen local Procrustes rotation used by an optimizer round",
+        ),
+        "tum_joint_xyz_known_bad_detectable_fraction_min": MetricResult(
+            value=min(field_probe_fractions) if field_probe_fractions else None,
+            grade=(
+                "pass"
+                if field_probe_fractions and min(field_probe_fractions) == 1.0
+                else "warn"
+            ),
+            reason="minimum final frozen-factor detection over 48 signed XYZ control probes",
+        ),
+    }
+
+
 def _rematching_metrics(
     evaluations: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, MetricResult]:
@@ -1680,7 +1990,11 @@ def _iterative_reassociation_metrics(
 
 
 def _rotation_angle_deg(transform: SE3) -> float:
-    return math.degrees(2.0 * math.acos(min(1.0, abs(transform.rotation_quat_xyzw[3]))))
+    return _quaternion_angle_deg(transform.rotation_quat_xyzw)
+
+
+def _quaternion_angle_deg(quaternion: QuaternionXYZW) -> float:
+    return math.degrees(2.0 * math.acos(min(1.0, abs(quaternion[3]))))
 
 
 def _warnings(result: JointOptimizerResult, extrinsic_rank: int, shared_rank: int) -> list[str]:
@@ -1714,12 +2028,13 @@ def _provenance(
     transfers: tuple[dict[str, float | int | None], ...],
     spatial_runs: tuple[_TUMSpatialWindowRun, ...],
     spatial_transfers: tuple[dict[str, float | int | None], ...],
+    xyz_runs: tuple[_TUMXYZWindowRun, ...],
     reassociation_runs: tuple[_TUMIterativeReassociationRun, ...],
     rematching: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.9",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.0",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -1796,6 +2111,34 @@ def _provenance(
             "poses and target spatial holdout factors"
         ),
         "native_tum_joint_slac_spatial_cross_window_transfers": list(spatial_transfers),
+        "native_tum_joint_slac_xyz_lattice_model": {
+            "kind": "shared_full_xyz_trilinear_displacement_field",
+            "primary_source": "Zhou and Koltun, CVPR 2014, equations 2-4",
+            "lattice_shape": list(_SPATIAL_LATTICE_SHAPE),
+            "minimum_sensor_m": list(_SPATIAL_LATTICE_MINIMUM_M),
+            "maximum_sensor_m": list(_SPATIAL_LATTICE_MAXIMUM_M),
+            "shape_regularizer": (
+                "directed neighbor residuals with local rotations frozen within "
+                "each optimizer round"
+            ),
+            "shape_sigma_m": options.xyz_lattice_shape_sigma_m,
+            "local_rotation_updates": options.xyz_lattice_local_rotation_updates,
+            "local_rotation_estimator": "per-node proper-rotation Procrustes fit",
+            "rigid_gauge": (
+                "train-only mean translation plus infinitesimal rotation moment"
+            ),
+            "translation_gauge_sigma_m": (
+                options.xyz_lattice_translation_gauge_sigma_m
+            ),
+            "rotation_gauge_sigma_rad": options.xyz_lattice_rotation_gauge_sigma_rad,
+            "target_policy": (
+                "fixed disjoint map planes; this public adapter specializes equation 2 "
+                "rather than claiming pairwise calibration on both sides"
+            ),
+        },
+        "native_tum_joint_slac_xyz_lattice_windows": [
+            _xyz_window_provenance(run) for run in xyz_runs
+        ],
         "native_tum_joint_slac_iterative_reassociation_policy": (
             "each spatial window alternates nearest voxel-plane reassociation and "
             "warm-start backend-neutral optimization; only train pair Jaccard and "
@@ -1885,6 +2228,28 @@ def _spatial_window_provenance(run: _TUMSpatialWindowRun) -> dict[str, Any]:
         "lattice_offset_mean_m": sum(offsets) / len(offsets),
         "lattice_max_abs_contrast_m": max(abs(offset) for offset in offsets),
         "solver": run.result.as_dict(),
+    }
+
+
+def _xyz_window_provenance(run: _TUMXYZWindowRun) -> dict[str, Any]:
+    offsets = run.result.optimized_values[_XYZ_LATTICE_BLOCK]
+    vectors = [list(offsets[index : index + 3]) for index in range(0, len(offsets), 3)]
+    return {
+        "start_index": run.start_index,
+        "status": run.result.status,
+        "xyz_control_offsets_m": vectors,
+        "max_abs_offset_component_m": max(abs(value) for value in offsets),
+        "local_rotation_history_xyzw": [
+            [list(rotation) for rotation in rotations]
+            for rotations in run.local_rotation_history
+        ],
+        "data_only_field_observability": (
+            run.data_only_field_observability.as_dict()
+        ),
+        "data_only_shared_observability": (
+            run.data_only_shared_observability.as_dict()
+        ),
+        "optimizer_rounds": [result.as_dict() for result in run.results],
     }
 
 
@@ -2012,6 +2377,26 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             values,
             "reassociation_min_train_retained_fraction",
             defaults.reassociation_min_train_retained_fraction,
+        ),
+        xyz_lattice_shape_sigma_m=_positive(
+            values,
+            "xyz_lattice_shape_sigma_m",
+            defaults.xyz_lattice_shape_sigma_m,
+        ),
+        xyz_lattice_translation_gauge_sigma_m=_positive(
+            values,
+            "xyz_lattice_translation_gauge_sigma_m",
+            defaults.xyz_lattice_translation_gauge_sigma_m,
+        ),
+        xyz_lattice_rotation_gauge_sigma_rad=_positive(
+            values,
+            "xyz_lattice_rotation_gauge_sigma_rad",
+            defaults.xyz_lattice_rotation_gauge_sigma_rad,
+        ),
+        xyz_lattice_local_rotation_updates=_nonnegative_integer(
+            values,
+            "xyz_lattice_local_rotation_updates",
+            defaults.xyz_lattice_local_rotation_updates,
         ),
     )
 

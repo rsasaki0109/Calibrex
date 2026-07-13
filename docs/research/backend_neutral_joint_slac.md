@@ -127,3 +127,13 @@ honestly reports 0/3 outer convergence while retaining more than 99.8 percent
 of queries. Holdout association stability remains diagnostic and cannot stop
 fitting. Full assignments, split groups, iteration deltas, optimizer evidence,
 and final frozen-correspondence probes are retained in provenance.
+
+The Zhou--Koltun full-XYZ extension now adds 24 shared trilinear field
+dimensions, the paper's two-sided correspondence factor, a fixed-map public
+specialization, directed shape-preserving residuals, per-node local-rotation
+updates, and an explicit six-mode field gauge. On public TUM, all final rounds
+converge and field-only rank is 24/24, but extrinsic plus field is rank 24/30
+and therefore WARN. Only one of three windows improves scalar-lattice holdout;
+the worst increase is 0.004047 m and the weakest control-probe detection is
+11/48. The full-XYZ ablation remains honestly FAIL rather than treating its
+gauge-augmented 78/78 rank as data observability.
