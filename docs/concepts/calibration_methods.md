@@ -164,10 +164,12 @@ distinct transform with equivalent spatial holdout error as a symmetry
 ambiguity. Local curvature and global multi-start falsification remain separate
 diagnostics because either can pass while the other fails.
 
-Open3D GICP and PCL/Autoware NDT are optional adapters with distinct method
-IDs. Their library-specific fitness values are retained as raw provenance, not
-treated as directly comparable metrics; Calibrex recomputes common spatial
-holdout and rematching metrics for cross-backend comparisons. An external NDT
+[Segal-Haehnel-Thrun GICP](https://doi.org/10.15607/RSS.2009.V.021) and
+[Biber-Strasser NDT](https://doi.org/10.1109/IROS.2003.1249285) are optional
+adapters with distinct method IDs. Their library-specific fitness values are
+retained as raw provenance, not treated as directly comparable metrics;
+Calibrex recomputes common spatial holdout, inlier, rematching curvature, and
+correspondence-Jaccard metrics for cross-backend comparisons. An external NDT
 result that does not declare train/holdout isolation is explicitly warned.
 
 ## Motion hand-eye calibration

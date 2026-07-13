@@ -5,10 +5,11 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
+from calibrex.core.geometry import SE3
 from calibrex.core.provenance import sha256_path
 from calibrex.core.result import MetricResult, ObservabilityResult
 from calibrex.data.downloads import (
@@ -236,6 +237,7 @@ def _metrics(
 ) -> dict[str, MetricResult]:
     max_rmse = float(options.get("max_holdout_rmse_m", 0.75))
     min_inlier = float(options.get("min_inlier_fraction", 0.25))
+    min_jaccard = float(options.get("min_correspondence_jaccard", 0.5))
     holdout_pass = native.holdout_rmse_m is not None and native.holdout_rmse_m <= max_rmse
     weak_count = (
         len(native.rematching_diagnostics.weak_directions) if native.rematching_diagnostics else 6
@@ -245,7 +247,7 @@ def _metrics(
         if native.rematching_diagnostics
         else None
     )
-    return {
+    metrics = {
         "registration_dataset_available": MetricResult(value=1.0, unit="bool", grade="pass"),
         "registration_native_icp_train_rmse_m": MetricResult(
             value=native.train_rmse_m,
@@ -266,7 +268,8 @@ def _metrics(
         "registration_native_icp_min_correspondence_jaccard": MetricResult(
             value=jaccard,
             unit="fraction",
-            grade="pass" if jaccard is not None and jaccard >= 0.5 else "warn",
+            grade="pass" if jaccard is not None and jaccard >= min_jaccard else "warn",
+            reason=f"rematched correspondence Jaccard >= {min_jaccard:g}",
         ),
         "registration_native_icp_weak_direction_count": MetricResult(
             value=float(weak_count), unit="dof", grade="pass" if weak_count == 0 else "warn"
@@ -276,31 +279,148 @@ def _metrics(
             unit="bool",
             grade="warn" if native.symmetry_ambiguous else "pass",
         ),
-        "registration_open3d_gicp_available": MetricResult(
-            value=float(gicp.available),
-            unit="bool",
-            grade="pass" if gicp.available else "warn",
-            reason=gicp.status,
-        ),
-        "registration_open3d_gicp_holdout_rmse_m": MetricResult(
-            value=gicp.common_evaluation.holdout_rmse_m if gicp.common_evaluation else None,
+    }
+    metrics.update(
+        _adapter_common_metrics(
+            "registration_open3d_gicp",
+            gicp,
+            max_rmse=max_rmse,
+            min_inlier=min_inlier,
+            min_jaccard=min_jaccard,
+        )
+    )
+    metrics.update(
+        _adapter_common_metrics(
+            "registration_external_ndt",
+            ndt,
+            max_rmse=max_rmse,
+            min_inlier=min_inlier,
+            min_jaccard=min_jaccard,
+        )
+    )
+    evaluated = [
+        result.common_evaluation
+        for result in (gicp, ndt)
+        if result.common_evaluation is not None
+    ]
+    split_consistent = all(
+        evaluation.train_source_ids == native.train_source_ids
+        and evaluation.holdout_source_ids == native.holdout_source_ids
+        for evaluation in evaluated
+    )
+    metrics["registration_backend_common_split_consistent"] = MetricResult(
+        value=float(split_consistent) if evaluated else None,
+        unit="bool",
+        grade="pass" if evaluated and split_consistent else "warn",
+        reason="every executed adapter must reuse native spatial train/holdout IDs",
+    )
+    for prefix, result in (
+        ("registration_open3d_gicp_native", gicp),
+        ("registration_external_ndt_native", ndt),
+    ):
+        rotation_delta, translation_delta = _transform_delta(
+            result.transform_target_source, native.transform_target_source
+        )
+        metrics[f"{prefix}_rotation_delta_deg"] = MetricResult(
+            value=rotation_delta,
+            unit="deg",
+            grade="warn",
+            reason="backend-comparison diagnostic; public data have no transform ground truth",
+        )
+        metrics[f"{prefix}_translation_delta_m"] = MetricResult(
+            value=translation_delta,
             unit="m",
-            grade="pass" if gicp.common_evaluation else "warn",
-            reason=gicp.status,
-        ),
-        "registration_external_ndt_available": MetricResult(
-            value=float(ndt.available),
+            grade="warn",
+            reason="backend-comparison diagnostic; public data have no transform ground truth",
+        )
+    return metrics
+
+
+def _adapter_common_metrics(
+    prefix: str,
+    result: RegistrationAdapterResult,
+    *,
+    max_rmse: float,
+    min_inlier: float,
+    min_jaccard: float,
+) -> dict[str, MetricResult]:
+    """Expose one adapter through the same rematching-aware evaluation gates."""
+
+    evaluation = result.common_evaluation
+    rematching = evaluation.rematching_diagnostics if evaluation is not None else None
+    jaccard = rematching.minimum_correspondence_jaccard if rematching is not None else None
+    weak_count = len(rematching.weak_directions) if rematching is not None else None
+    unavailable_grade: Literal["fail", "warn"] = "fail" if result.available else "warn"
+    return {
+        f"{prefix}_available": MetricResult(
+            value=float(result.available),
             unit="bool",
-            grade="pass" if ndt.available else "warn",
-            reason=ndt.status,
+            grade="pass" if result.available else "warn",
+            reason=result.status,
         ),
-        "registration_external_ndt_holdout_rmse_m": MetricResult(
-            value=ndt.common_evaluation.holdout_rmse_m if ndt.common_evaluation else None,
+        f"{prefix}_train_rmse_m": MetricResult(
+            value=evaluation.train_rmse_m if evaluation is not None else None,
             unit="m",
-            grade="pass" if ndt.common_evaluation else "warn",
-            reason=ndt.status,
+            grade=(
+                "pass"
+                if evaluation is not None and evaluation.train_rmse_m is not None
+                else unavailable_grade
+            ),
+            reason=result.status,
+        ),
+        f"{prefix}_holdout_rmse_m": MetricResult(
+            value=evaluation.holdout_rmse_m if evaluation is not None else None,
+            unit="m",
+            grade=(
+                "pass"
+                if evaluation is not None
+                and evaluation.holdout_rmse_m is not None
+                and evaluation.holdout_rmse_m <= max_rmse
+                else unavailable_grade
+            ),
+            reason=f"common spatial-holdout gate <= {max_rmse:g} m; status={result.status}",
+        ),
+        f"{prefix}_inlier_fraction": MetricResult(
+            value=evaluation.inlier_fraction if evaluation is not None else None,
+            unit="fraction",
+            grade=(
+                "pass"
+                if evaluation is not None and evaluation.inlier_fraction >= min_inlier
+                else unavailable_grade
+            ),
+            reason=f"common train inlier fraction >= {min_inlier:g}; status={result.status}",
+        ),
+        f"{prefix}_min_correspondence_jaccard": MetricResult(
+            value=jaccard,
+            unit="fraction",
+            grade=(
+                "pass"
+                if jaccard is not None and jaccard >= min_jaccard
+                else ("warn" if not result.available or evaluation is not None else "fail")
+            ),
+            reason=f"common rematched correspondence Jaccard >= {min_jaccard:g}",
+        ),
+        f"{prefix}_weak_direction_count": MetricResult(
+            value=float(weak_count) if weak_count is not None else None,
+            unit="dof",
+            grade=(
+                "pass"
+                if weak_count == 0
+                else ("warn" if not result.available or evaluation is not None else "fail")
+            ),
+            reason="common rematching curvature must constrain all six directions",
         ),
     }
+
+
+def _transform_delta(left: SE3 | None, right: SE3 | None) -> tuple[float | None, float | None]:
+    if left is None or right is None:
+        return None, None
+    delta = left.inverse().compose(right)
+    quaternion_w = min(1.0, max(-1.0, abs(delta.rotation_quat_xyzw[3])))
+    rotation_deg = math.degrees(2.0 * math.acos(quaternion_w))
+    translation_m = math.sqrt(sum(value * value for value in delta.translation_m))
+    return rotation_deg, translation_m
 
 
 def _warnings(
@@ -313,7 +433,7 @@ def _warnings(
     if native.status != "converged":
         warnings.append(f"native ICP status is {native.status}: {native.reason}")
     if any(metric.grade == "fail" for metric in metrics.values()):
-        warnings.append("native ICP public-data evidence did not satisfy all fixed gates")
+        warnings.append("registration public-data evidence did not satisfy all fixed gates")
     if not gicp.available:
         warnings.append(
             "Open3D GICP was unavailable; native result remains independently evaluated"

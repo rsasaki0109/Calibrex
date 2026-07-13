@@ -68,6 +68,23 @@ multi-start path reports the second exact solution.
 
 ## Adapter boundary
 
+Primary GICP reference: A. Segal, D. Haehnel, and S. Thrun,
+[*Generalized-ICP*](https://www.roboticsproceedings.org/rss05/p21.pdf), Robotics:
+Science and Systems V, 2009, DOI
+[`10.15607/RSS.2009.V.021`](https://doi.org/10.15607/RSS.2009.V.021). The paper
+models local surface structure in both scans and minimizes a probabilistic
+plane-to-plane objective. Calibrex calls Open3D's MIT implementation through an
+optional import; it does not re-label point-to-point ICP as GICP and does not
+copy the paper or Open3D implementation.
+
+Primary NDT reference: P. Biber and W. Strasser, *The Normal Distributions
+Transform: A New Approach to Laser Scan Matching*, IROS 2003, pp. 2743-2748,
+DOI [`10.1109/IROS.2003.1249285`](https://doi.org/10.1109/IROS.2003.1249285).
+The paper represents fixed spatial cells by normal distributions and optimizes
+the likelihood of transformed scan samples. Calibrex does not implement an
+unverified approximation: PCL or Autoware NDT remains a declared subprocess or
+precomputed-result boundary.
+
 Open3D Generalized ICP and PCL/Autoware NDT are distinct optional adapters.
 Open3D is imported only when installed and receives train source points from
 the same deterministic spatial split. PCL/Autoware NDT remains a subprocess or
@@ -76,10 +93,14 @@ whether train isolation was declared.
 
 Both adapters pass their output transform back through
 `evaluate_icp_candidate`, which recomputes train residual, fresh spatial
-holdout nearest-neighbor RMSE, rematching curvature, and correspondence Jaccard
-inside Calibrex. Backend-specific fitness, probability, or inlier RMSE values
-remain raw provenance and are not compared as common metrics. GPL or
-license-uncertain implementations are not copied into `src/calibrex`.
+holdout nearest-neighbor RMSE, inlier fraction, rematching curvature, and
+correspondence Jaccard inside Calibrex. These values are exported as parallel
+native/GICP/NDT metric families with the same fixed gates and split IDs.
+Backend-specific fitness, probability, or inlier RMSE values remain raw
+provenance and are not compared as common metrics. Transform deltas against the
+native estimate are ungated diagnostics because this dataset has no extrinsic
+ground truth. GPL or license-uncertain implementations are not copied into
+`src/calibrex`.
 
 Adapter inputs are fingerprinted as ordered stable point IDs plus big-endian
 float64 XYZ values. GICP records full-input fingerprints, the train-source
@@ -109,9 +130,19 @@ with zero curvature-weak directions and no multi-start symmetry flag. This is
 evidence for a locally stable basin, not evidence that the estimate generalizes
 over the low-overlap fields of view.
 
-Open3D was not installed in the evaluation environment and external NDT was
-not configured. Both states are serialized as `unavailable`/`not_executed`;
-no comparison value is synthesized. The complete reproducible output is
+Open3D 0.19.0 GICP is now executed on exactly the native train source IDs. Its
+Open3D-native fitness and inlier RMSE are retained only as raw provenance. The
+common Calibrex scores are train RMSE 0.4863 m, holdout RMSE 2.9039 m, inlier
+fraction 0.2771, and minimum rematched correspondence Jaccard 0.6873. The
+holdout gate remains the unchanged 0.75 m and therefore honestly **fails**.
+Rematching curvature reports `y`, `roll`, and `yaw` as weak even though the
+Jaccard gate passes. GICP differs from the native estimate by 18.71 degrees and
+0.855 m; this is an ungated disagreement diagnostic, not a ground-truth error.
+The common split-ID check passes.
+
+External NDT remains unconfigured and is serialized as `not_executed`; no NDT
+value is synthesized. Its metric slots are WARN with null values rather than
+being omitted or populated from another backend. The schema-valid bundle is
 written to `outputs/livox_horizon_horizon_icp_comparison` by:
 
 ```bash

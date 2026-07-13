@@ -48,6 +48,7 @@ pipeline:
         holdout_voxel_size_m: 1.0
         max_holdout_rmse_m: 0.75
         min_inlier_fraction: 0.25
+        min_correspondence_jaccard: 0.5
 
 solver:
   backend: native_registration_comparison
@@ -67,9 +68,22 @@ evaluation:
     - registration_native_icp_weak_direction_count
     - registration_native_icp_symmetry_ambiguous
     - registration_open3d_gicp_available
+    - registration_open3d_gicp_train_rmse_m
     - registration_open3d_gicp_holdout_rmse_m
+    - registration_open3d_gicp_inlier_fraction
+    - registration_open3d_gicp_min_correspondence_jaccard
+    - registration_open3d_gicp_weak_direction_count
+    - registration_open3d_gicp_native_rotation_delta_deg
+    - registration_open3d_gicp_native_translation_delta_m
     - registration_external_ndt_available
+    - registration_external_ndt_train_rmse_m
     - registration_external_ndt_holdout_rmse_m
+    - registration_external_ndt_inlier_fraction
+    - registration_external_ndt_min_correspondence_jaccard
+    - registration_external_ndt_weak_direction_count
+    - registration_external_ndt_native_rotation_delta_deg
+    - registration_external_ndt_native_translation_delta_m
+    - registration_backend_common_split_consistent
 
 outputs:
   result: result.yaml
