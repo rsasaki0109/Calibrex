@@ -72,6 +72,41 @@ This is not described as the Tsai-Lenz or Park-Martin separable solution. The
 baselines share only typed inputs, deterministic split, closure evaluation,
 and falsification protocol.
 
+## Chou and Kamel normalized quaternion method
+
+Primary reference: J. C. K. Chou and M. Kamel, *Finding the Position and
+Orientation of a Sensor on a Robot Manipulator Using Quaternions*,
+International Journal of Robotics Research 10(3), 1991, pp. 240-254, DOI
+[`10.1177/027836499101000305`](https://doi.org/10.1177/027836499101000305).
+
+For normalized quaternions in scalar-last storage, the rotational equation is
+
+```text
+q_A * q_X = q_X * q_B
+(L(q_A) - R(q_B)) q_X = 0.
+```
+
+Calibrex stacks the weighted four-row systems and takes the one-dimensional
+right nullspace by SVD. It reports all four singular values, the observable
+rank, observable condition number, normalized third-to-fourth singular-value
+separation, and the fitted nullspace residual. The solution is accepted only when exactly
+three directions are observable and the remaining nullspace is unique under a
+fixed gap gate. A single rotation-axis family exposes a two-dimensional
+nullspace and is rejected. In agreement with the paper, at least two distinct
+rotation-excited movements are required.
+
+The second structured system solves translation conditionally from
+
+```text
+(R_A - I) t_X = R_X t_B - t_A.
+```
+
+Its rank and condition number are separate gates. This follows the paper's
+normalized-quaternion/generalized-inverse construction and is independent of
+the Tsai modified-Rodrigues, Horaud axis-alignment, Park-Martin Lie-algebra,
+and Daniilidis dual-quaternion estimators. No publisher or third-party source
+code is copied.
+
 ## Horaud and Dornaika closed form
 
 Primary reference: R. Horaud and F. Dornaika, *Hand-Eye Calibration*,
@@ -386,15 +421,21 @@ split. The recorded absolute-pose reuse count is zero.
 | Tsai-Lenz | 0.945° | 0.0174 m | 6/12 |
 | Daniilidis | 0.939° | 0.0174 m | 6/12 |
 | Horaud-Dornaika | 0.985° | 0.0190 m | 6/12 |
+| Chou-Kamel | 0.939° | 0.0172 m | 6/12 |
 | Andreff-Horaud-Espiau | 0.939° | 0.0172 m | 6/12 |
 
-All five methods pass the declared closure gates of 2° and 3 cm. Horaud-
+All six methods pass the declared closure gates of 2° and 3 cm. Horaud-
 Dornaika has axis rank 3/3 and normalized quaternion eigengap 0.7758, passing
 the predeclared 0.001 minimum-width gate. Andreff has rotation rank 8/8,
 translation rank 3/3, normalized rotation width 0.4836, and SO(3) projection
 correction 0.0003515. Its kernel-to-eighth singular-value ratio is 0.05005.
 These pass the predeclared 0.0001 minimum-width, 0.25 maximum-nullspace-ratio,
-and 0.05 maximum-projection gates. The five methods share exactly the same
+and 0.05 maximum-projection gates. Chou-Kamel has observable quaternion rank
+3/3, normalized third-to-fourth singular-value separation 0.9693, and conditional
+translation rank 3/3 with
+condition number 1.212. Its quaternion nullspace residual is 0.002695 and is
+retained as a noise diagnostic. These pass the predeclared 0.001 minimum-gap
+and `1e6` maximum-condition gates. The six methods share exactly the same
 train/holdout IDs. They do not reach the unchanged 0.75 known-bad
 detectable-fraction gate, so the public run
 is honestly **INCONCLUSIVE**, not PASS. This indicates limited falsification
@@ -411,7 +452,7 @@ maximum determinant-normalized SO(3) projection correction is
 0.00019355, below the unchanged 0.05 gate. Held-out closure is 0.5858 degrees
 and 0.01006 m, and all 24 signed `X/Y` controls are detected. Shah therefore
 passes its declared gates while the overall comparison remains honestly
-INCONCLUSIVE because the five relative-motion baselines still detect only
+INCONCLUSIVE because the six relative-motion baselines still detect only
 6/12 controls. The result and bundle are schema-valid, the pinned input digest
 is checked, and bundle verification reports zero issues.
 
@@ -436,7 +477,7 @@ rank is 6/6 with condition number 8.187. Held-out closure is 0.5907 degrees and
 Dornaika-Horaud closed form, `X` differs by 0.2547 degrees / 0.00212 m and `Z`
 by 0.2616 degrees / 0.00254 m; these are comparison diagnostics, not
 ground-truth errors. Every Zhuang gate passes while the overall public run
-remains honestly **INCONCLUSIVE** because the five relative-motion baselines
+remains honestly **INCONCLUSIVE** because the six relative-motion baselines
 still detect only 6/12 controls.
 
 Dornaika-Horaud uses the same 1,350/338 split. Its quaternion sign preparation
@@ -449,7 +490,7 @@ detected. Its result differs from Shah by about `1.13e-5` degrees / `4.90e-8` m
 for `X` and `1.16e-5` degrees / `1.49e-7` m for `Z/Y`; these remain ungated
 comparison diagnostics, not ground-truth errors. The closed-form method passes
 all declared gates while the overall comparison remains honestly
-**INCONCLUSIVE** because the five relative-motion methods still detect only
+**INCONCLUSIVE** because the six relative-motion methods still detect only
 6/12 controls.
 
 The nonlinear Section III-B estimator starts from that closed-form result and
@@ -460,5 +501,5 @@ the final mixed-unit data RMSE is 0.005594. The final data Jacobian has rank
 closure is 0.5872 degrees and 0.01004 m with all 24 controls detected. Relative
 to the closed form, `X` changes by 0.0548 degrees / 0.000389 m and `Z` by
 0.0581 degrees / 0.000611 m. Every nonlinear gate passes; the overall run
-remains **INCONCLUSIVE** only because the unchanged five relative-motion
+remains **INCONCLUSIVE** only because the unchanged six relative-motion
 baselines still detect 6/12 controls.

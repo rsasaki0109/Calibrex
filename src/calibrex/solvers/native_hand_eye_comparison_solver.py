@@ -25,6 +25,11 @@ from calibrex.solvers.andreff_hand_eye_solver import (
     AndreffHandEyeSolver,
 )
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+from calibrex.solvers.chou_kamel_hand_eye_solver import (
+    ChouKamelHandEyeOptions,
+    ChouKamelHandEyeResult,
+    ChouKamelHandEyeSolver,
+)
 from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeOptions,
     DaniilidisHandEyeResult,
@@ -78,7 +83,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run five AX=XB baselines plus five absolute-pose AX=YB baselines."""
+    """Run six AX=XB baselines plus five absolute-pose AX=YB baselines."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -126,6 +131,16 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         dual_options = DaniilidisHandEyeOptions(holdout_ratio=holdout_ratio, split_seed=split_seed)
         horaud_options = HoraudDornaikaHandEyeOptions(
             holdout_ratio=holdout_ratio, split_seed=split_seed
+        )
+        chou_options = ChouKamelHandEyeOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            minimum_rotation_nullspace_gap=float(
+                options.get("min_chou_kamel_rotation_nullspace_gap", 1.0e-3)
+            ),
+            max_translation_condition_number=float(
+                options.get("max_chou_kamel_translation_condition_number", 1.0e6)
+            ),
         )
         andreff_options = AndreffHandEyeOptions(
             holdout_ratio=holdout_ratio,
@@ -210,6 +225,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         tsai = TsaiLenzHandEyeSolver().solve(motions, tsai_options)
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
         horaud = HoraudDornaikaHandEyeSolver().solve(motions, horaud_options)
+        chou = ChouKamelHandEyeSolver().solve(motions, chou_options)
         andreff = AndreffHandEyeSolver().solve(motions, andreff_options)
         shah = ShahRobotWorldHandEyeSolver().solve(absolute_poses, shah_options)
         li = LiRobotWorldHandEyeSolver().solve(absolute_poses, li_options)
@@ -223,6 +239,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             tsai,
             dual,
             horaud,
+            chou,
             andreff,
             shah,
             li,
@@ -239,6 +256,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 tsai.transform_x,
                 dual.transform_x,
                 horaud.transform_x,
+                chou.transform_x,
                 andreff.transform_x,
                 shah.transform_x,
                 shah.transform_y,
@@ -255,6 +273,15 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         all_gates_pass = all(metric.grade != "fail" for metric in metrics.values())
         horaud_observable = (
             metrics["hand_eye_horaud_dornaika_quaternion_normalized_eigengap"].grade == "pass"
+        )
+        chou_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "hand_eye_chou_kamel_rotation_rank",
+                "hand_eye_chou_kamel_rotation_nullspace_gap",
+                "hand_eye_chou_kamel_translation_rank",
+                "hand_eye_chou_kamel_translation_condition_number",
+            )
         )
         andreff_observable = all(
             metrics[name].grade == "pass"
@@ -336,6 +363,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 condition_number=dual.observable_condition_number,
                 weak_directions=[
                     *([] if horaud_observable else ["horaud_quaternion_minimum_width"]),
+                    *([] if chou_observable else ["chou_kamel_quaternion_observability"]),
                     *([] if andreff_observable else ["andreff_kronecker_observability"]),
                     *([] if shah_observable else ["shah_robot_world_hand_eye_observability"]),
                     *([] if li_observable else ["li_robot_world_hand_eye_observability"]),
@@ -360,6 +388,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     "pass"
                     if all_converged
                     and horaud_observable
+                    and chou_observable
                     and andreff_observable
                     and shah_observable
                     and li_observable
@@ -394,6 +423,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "tsai_lenz": tsai.as_dict(),
                         "daniilidis": dual.as_dict(),
                         "horaud_dornaika": horaud.as_dict(),
+                        "chou_kamel": chou.as_dict(),
                         "andreff": andreff.as_dict(),
                         "shah_robot_world_hand_eye": shah.as_dict(),
                         "li_robot_world_hand_eye": li.as_dict(),
@@ -414,6 +444,7 @@ def _comparison_metrics(
     tsai: TsaiLenzHandEyeResult,
     dual: DaniilidisHandEyeResult,
     horaud: HoraudDornaikaHandEyeResult,
+    chou: ChouKamelHandEyeResult,
     andreff: AndreffHandEyeResult,
     shah: ShahRobotWorldHandEyeResult,
     li: LiRobotWorldHandEyeResult,
@@ -427,6 +458,10 @@ def _comparison_metrics(
     max_translation = float(factor_options.get("max_holdout_translation_rmse_m", 0.03))
     min_detectable = float(factor_options.get("min_known_bad_detectable_fraction", 0.75))
     min_horaud_gap = float(factor_options.get("min_horaud_quaternion_normalized_eigengap", 1.0e-3))
+    min_chou_gap = float(factor_options.get("min_chou_kamel_rotation_nullspace_gap", 1.0e-3))
+    max_chou_translation_condition = float(
+        factor_options.get("max_chou_kamel_translation_condition_number", 1.0e6)
+    )
     min_andreff_width = float(factor_options.get("min_andreff_rotation_width", 1.0e-4))
     max_andreff_projection = float(
         factor_options.get("max_andreff_so3_projection_correction_frobenius", 0.05)
@@ -523,7 +558,7 @@ def _comparison_metrics(
         len(
             {
                 (result.train_pair_ids, result.holdout_pair_ids)
-                for result in (park, tsai, dual, horaud, andreff)
+                for result in (park, tsai, dual, horaud, chou, andreff)
             }
         )
         == 1
@@ -554,6 +589,47 @@ def _comparison_metrics(
                 else "fail"
             ),
             reason=f"closed-form minimum-width gate >= {min_horaud_gap:g}",
+        ),
+        "hand_eye_chou_kamel_rotation_rank": MetricResult(
+            value=float(chou.rotation_rank),
+            unit="rank",
+            grade="pass" if chou.rotation_rank == 3 else "fail",
+            reason="normalized quaternion system requires three observable directions",
+        ),
+        "hand_eye_chou_kamel_rotation_nullspace_gap": MetricResult(
+            value=chou.rotation_nullspace_gap,
+            unit="ratio",
+            grade=(
+                "pass"
+                if chou.rotation_nullspace_gap is not None
+                and chou.rotation_nullspace_gap >= min_chou_gap
+                else "fail"
+            ),
+            reason=f"normalized third-to-fourth singular-value separation >= {min_chou_gap:g}",
+        ),
+        "hand_eye_chou_kamel_rotation_nullspace_residual": MetricResult(
+            value=chou.rotation_nullspace_residual,
+            grade="warn",
+            reason="diagnostic RMS residual of the normalized quaternion nullspace",
+        ),
+        "hand_eye_chou_kamel_translation_rank": MetricResult(
+            value=float(chou.translation_rank),
+            unit="rank",
+            grade="pass" if chou.translation_rank == 3 else "fail",
+            reason="conditional translation system must constrain all three directions",
+        ),
+        "hand_eye_chou_kamel_translation_condition_number": MetricResult(
+            value=chou.translation_condition_number,
+            grade=(
+                "pass"
+                if chou.translation_condition_number is not None
+                and chou.translation_condition_number <= max_chou_translation_condition
+                else "fail"
+            ),
+            reason=(
+                "conditional translation condition number <= "
+                f"{max_chou_translation_condition:g}"
+            ),
         ),
         "hand_eye_common_split_consistent": MetricResult(
             value=float(common_split),
@@ -1021,6 +1097,7 @@ def _comparison_metrics(
         "tsai_lenz": tsai.probes,
         "daniilidis": dual.probes,
         "horaud_dornaika": horaud.probes,
+        "chou_kamel": chou.probes,
         "andreff": andreff.probes,
     }
     for name, result in (
@@ -1028,6 +1105,7 @@ def _comparison_metrics(
         ("tsai_lenz", tsai),
         ("daniilidis", dual),
         ("horaud_dornaika", horaud),
+        ("chou_kamel", chou),
         ("andreff", andreff),
     ):
         rotation = result.holdout_evaluation.rotation_closure_rmse_deg

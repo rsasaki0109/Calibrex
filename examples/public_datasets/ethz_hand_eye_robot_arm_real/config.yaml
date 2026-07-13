@@ -43,6 +43,8 @@ pipeline:
         max_holdout_translation_rmse_m: 0.03
         min_known_bad_detectable_fraction: 0.75
         min_horaud_quaternion_normalized_eigengap: 0.001
+        min_chou_kamel_rotation_nullspace_gap: 0.001
+        max_chou_kamel_translation_condition_number: 1000000.0
         min_andreff_rotation_width: 0.0001
         max_andreff_rotation_nullspace_ratio: 0.25
         max_andreff_so3_projection_correction_frobenius: 0.05

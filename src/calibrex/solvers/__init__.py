@@ -17,6 +17,11 @@ from calibrex.solvers.camera_lidar_capture_time_solver import (
     CameraLidarTimeProbe,
     evaluate_camera_lidar_capture_times,
 )
+from calibrex.solvers.chou_kamel_hand_eye_solver import (
+    ChouKamelHandEyeOptions,
+    ChouKamelHandEyeResult,
+    ChouKamelHandEyeSolver,
+)
 from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeOptions,
     DaniilidisHandEyeResult,
@@ -234,6 +239,9 @@ __all__ = [
     "CameraLidarCaptureTimeSolver",
     "CameraLidarTimeProbe",
     "CameraLidarTimedCapture",
+    "ChouKamelHandEyeOptions",
+    "ChouKamelHandEyeResult",
+    "ChouKamelHandEyeSolver",
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",
     "DaniilidisHandEyeSolver",
