@@ -1173,7 +1173,10 @@ the same eligible scan IDs and train/holdout split as the staged solver, which
 is checked by `radar_joint_spatiotemporal_common_split_consistent`. Rank must
 be 7/7 and all fourteen signed spatial/temporal controls remain visible; the
 joint estimate is diagnostic and is not automatically applied on weak road
-motion.
+motion. Its configured initial SE(3)/clock state and optimized state are both
+scored on the unchanged holdout IDs. The absolute and fractional RMSE
+improvements therefore expose a converged estimate that fails to outperform
+the supplied calibration without feeding holdout evidence back into fitting.
 
 `input_diagnostics` records missing extrinsics, insufficient records, missing
 ego poses, low-motion exclusions, missing or malformed PCD payloads, and frames

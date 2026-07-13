@@ -546,6 +546,38 @@ def _evidence_metrics(evidence: NuScenesRadarSpatiotemporalEvidence) -> dict[str
                     grade="pass" if joint_converged else "warn",
                     reason=joint.reason,
                 ),
+                "radar_joint_spatiotemporal_initial_holdout_rmse_mps": MetricResult(
+                    value=joint.initial_holdout_rmse_mps,
+                    unit="m/s",
+                    grade="pass" if joint.initial_holdout_rmse_mps is not None else "warn",
+                    reason="configured initial SE(3) and clock offset on unchanged holdout scans",
+                ),
+                "radar_joint_spatiotemporal_holdout_improvement_mps": MetricResult(
+                    value=joint.holdout_rmse_improvement_mps,
+                    unit="m/s",
+                    grade=(
+                        "pass"
+                        if joint_converged
+                        and joint.holdout_rmse_improvement_mps is not None
+                        and joint.holdout_rmse_improvement_mps >= 0.0
+                        else "warn"
+                    ),
+                    reason=(
+                        "initial holdout RMSE minus optimized holdout RMSE; not used for fitting"
+                    ),
+                ),
+                "radar_joint_spatiotemporal_holdout_improvement_fraction": MetricResult(
+                    value=joint.holdout_rmse_improvement_fraction,
+                    unit="fraction",
+                    grade=(
+                        "pass"
+                        if joint_converged
+                        and joint.holdout_rmse_improvement_fraction is not None
+                        and joint.holdout_rmse_improvement_fraction >= 0.0
+                        else "warn"
+                    ),
+                    reason="relative holdout improvement over the configured initial calibration",
+                ),
                 "radar_joint_spatiotemporal_information_rank": MetricResult(
                     value=float(joint.information_rank),
                     unit="rank",

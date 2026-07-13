@@ -102,6 +102,13 @@ def test_joint_radar_solver_recovers_seven_dof_truth_and_probes() -> None:
     assert result.time_offset_sec == pytest.approx(0.02, abs=1.0e-6)
     assert result.information_rank == 7
     assert result.holdout_rmse_mps is not None and result.holdout_rmse_mps < 1.0e-6
+    assert result.initial_holdout_rmse_mps is not None
+    assert result.initial_holdout_rmse_mps > 0.1
+    assert result.holdout_rmse_improvement_mps == pytest.approx(
+        result.initial_holdout_rmse_mps - result.holdout_rmse_mps
+    )
+    assert result.holdout_rmse_improvement_fraction is not None
+    assert result.holdout_rmse_improvement_fraction > 0.999
     assert len(result.probes) == 14
     assert all(probe.detectable is True for probe in result.probes)
     assert set(result.train_measurement_ids).isdisjoint(result.holdout_measurement_ids)
@@ -138,6 +145,10 @@ def test_joint_radar_solver_recovers_seven_dof_truth_and_probes() -> None:
     assert metrics["radar_joint_spatiotemporal_information_rank"].value == 7.0
     assert metrics["radar_joint_spatiotemporal_known_bad_detectable_fraction"].value == 1.0
     assert metrics["radar_joint_spatiotemporal_common_split_consistent"].value == 1.0
+    assert metrics["radar_joint_spatiotemporal_initial_holdout_rmse_mps"].value == pytest.approx(
+        result.initial_holdout_rmse_mps
+    )
+    assert metrics["radar_joint_spatiotemporal_holdout_improvement_fraction"].grade == "pass"
 
 
 def test_joint_radar_solver_reports_constant_motion_degeneracy() -> None:

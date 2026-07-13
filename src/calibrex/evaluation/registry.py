@@ -1878,6 +1878,24 @@ def _register_builtin_metrics() -> None:
         ),
         MetricDefinition("observability_rank", "Estimated observability rank"),
         MetricDefinition(
+            "radar_joint_spatiotemporal_initial_holdout_rmse_mps",
+            "Initial Radar SE(3)/clock velocity RMSE on unchanged holdout scans",
+            "m/s",
+            "radar",
+        ),
+        MetricDefinition(
+            "radar_joint_spatiotemporal_holdout_improvement_mps",
+            "Absolute holdout RMSE improvement from joint Radar calibration",
+            "m/s",
+            "radar",
+        ),
+        MetricDefinition(
+            "radar_joint_spatiotemporal_holdout_improvement_fraction",
+            "Fractional holdout RMSE improvement from joint Radar calibration",
+            "fraction",
+            "radar",
+        ),
+        MetricDefinition(
             "radar_lidar_velocity_consistency",
             "Radar-LiDAR ego-motion velocity consistency",
             "m/s",

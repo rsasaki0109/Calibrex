@@ -75,6 +75,9 @@ class RadarJointSpatiotemporalResult:
     holdout_measurement_ids: tuple[str, ...]
     train_rmse_mps: float | None
     holdout_rmse_mps: float | None
+    initial_holdout_rmse_mps: float | None
+    holdout_rmse_improvement_mps: float | None
+    holdout_rmse_improvement_fraction: float | None
     information_singular_values: tuple[float, ...]
     information_rank: int
     information_rank_threshold: float | None
@@ -100,6 +103,9 @@ class RadarJointSpatiotemporalResult:
             "holdout_measurement_ids": list(self.holdout_measurement_ids),
             "train_rmse_mps": self.train_rmse_mps,
             "holdout_rmse_mps": self.holdout_rmse_mps,
+            "initial_holdout_rmse_mps": self.initial_holdout_rmse_mps,
+            "holdout_rmse_improvement_mps": self.holdout_rmse_improvement_mps,
+            "holdout_rmse_improvement_fraction": self.holdout_rmse_improvement_fraction,
             "information_singular_values": self.information_singular_values,
             "information_rank": self.information_rank,
             "information_rank_threshold": self.information_rank_threshold,
@@ -214,6 +220,7 @@ class RadarJointSpatiotemporalSolver:
                 len(eligible),
                 rejected_ids,
                 initial_transform_body_radar,
+                None,
             )
         values = optimizer.optimized_values
         transform = se3_from_tangent(values[_EXTRINSIC_BLOCK]).compose(initial_transform_body_radar)
@@ -221,6 +228,12 @@ class RadarJointSpatiotemporalSolver:
         holdout_ids = set(optimizer.holdout_factor_ids)
         holdout = [item for item in eligible if item.measurement_id in holdout_ids]
         baseline = radar_joint_spatiotemporal_rmse(holdout, reference, transform, offset)
+        initial_holdout_rmse = _weighted_radar_joint_spatiotemporal_rmse(
+            holdout,
+            reference,
+            initial_transform_body_radar,
+            opts.initial_time_offset_sec,
+        )
         probes = _known_bad_probes(holdout, reference, transform, offset, baseline, opts)
         status: RadarJointSpatiotemporalStatus = (
             "degenerate_motion"
@@ -241,6 +254,7 @@ class RadarJointSpatiotemporalSolver:
             len(eligible),
             rejected_ids,
             initial_transform_body_radar,
+            initial_holdout_rmse,
         )
 
 
@@ -278,6 +292,23 @@ def _measurement_error(
     predicted = rotate_vector_xyzw(transform.rotation_quat_xyzw, measurement.velocity_radar_mps)
     expected = _add(kinematic[0], _cross(kinematic[1], transform.translation_m))
     return math.sqrt(sum((predicted[index] - expected[index]) ** 2 for index in range(3)))
+
+
+def _weighted_radar_joint_spatiotemporal_rmse(
+    measurements: Sequence[RadarVelocityMeasurement],
+    reference: Sequence[ReferenceKinematicSample],
+    transform: SE3,
+    offset: float,
+) -> float | None:
+    if not measurements:
+        return None
+    squared_norm = 0.0
+    for measurement in measurements:
+        error = _measurement_error(measurement, reference, transform, offset)
+        if not math.isfinite(error):
+            return None
+        squared_norm += measurement.weight * error * error
+    return math.sqrt(squared_norm / (3 * len(measurements)))
 
 
 def _make_factor(
@@ -375,7 +406,20 @@ def _from_optimizer(
     eligible_count: int,
     rejected_ids: tuple[str, ...],
     initial_transform: SE3,
+    initial_holdout_rmse: float | None,
 ) -> RadarJointSpatiotemporalResult:
+    improvement = (
+        initial_holdout_rmse - optimizer.holdout_rmse
+        if initial_holdout_rmse is not None and optimizer.holdout_rmse is not None
+        else None
+    )
+    improvement_fraction = (
+        improvement / initial_holdout_rmse
+        if improvement is not None
+        and initial_holdout_rmse is not None
+        and initial_holdout_rmse > 1.0e-15
+        else None
+    )
     return RadarJointSpatiotemporalResult(
         status=status,
         reason=reason,
@@ -389,6 +433,9 @@ def _from_optimizer(
         holdout_measurement_ids=optimizer.holdout_factor_ids,
         train_rmse_mps=optimizer.train_rmse,
         holdout_rmse_mps=optimizer.holdout_rmse,
+        initial_holdout_rmse_mps=initial_holdout_rmse,
+        holdout_rmse_improvement_mps=improvement,
+        holdout_rmse_improvement_fraction=improvement_fraction,
         information_singular_values=optimizer.information_singular_values,
         information_rank=optimizer.information_rank,
         information_rank_threshold=optimizer.information_rank_threshold,

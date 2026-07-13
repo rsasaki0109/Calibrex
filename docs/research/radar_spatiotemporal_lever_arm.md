@@ -78,7 +78,10 @@ the robust optimizer.
 
 After fitting, unchanged holdout data receive both signs of 10 cm x/y/z,
 5 degree roll/pitch/yaw, and 20 ms clock perturbations: fourteen probes in
-total. Synthetic tests jointly recover all seven truth parameters, reject
+total. The configured initial SE(3) and clock offset are scored on those same
+unchanged holdout IDs. Absolute and fractional RMSE improvement are evaluation
+evidence and never enter optimization or convergence decisions. Synthetic
+tests jointly recover all seven truth parameters, reject
 constant-velocity zero-angular-rate motion, verify duplicate-ID rejection,
 and preserve primary-paper and specialization provenance.
 
@@ -153,6 +156,7 @@ feeding that result into either staged estimator. Joint and staged evidence
 share the joint solver's declared initial-residual integrity filter and must
 contain identical train and holdout IDs; this is a published metric, not an
 assumption. Public scoring reports joint holdout RMSE, rank 7/7,
+the initial holdout RMSE, absolute and fractional holdout improvement,
 unit-dependent condition, and fourteen-probe detection. Planar road motion is
 expected to be weak and remains an honest `INCONCLUSIVE` when the joint
 Jacobian is deficient.
