@@ -13,6 +13,7 @@ holdout evaluation, and known-bad controls.
 | Online motion-compensated LiDAR point-to-plane | Streaming LiDAR extrinsic refinement | Implemented | rolling holdout and adoption gates |
 | Open3D RGB-D SLAC | External RGB-D trajectory/calibration adapter | Adapter boundary | Calibrex result/report metrics |
 | Koide-style direct LiDAR-camera | External targetless baseline | Adapter boundary | projection, edge, depth-edge, and controls |
+| Per-point Camera-LiDAR capture time | Asynchronous projection/deskew contract | Native primitive | clock convention, constant-twist truth, mount composition |
 | Radar Doppler candidate consistency | Radar yaw evidence | Implemented | frame holdout, four yaw controls, sensor policy |
 | Robust Radar ego velocity | Scan-wise motion estimation from Doppler | Native solver | synthetic truth, outliers, LOS rank diagnostics |
 | Radar-to-trajectory yaw | Radar extrinsic rotation from paired velocities | Native solver | deterministic holdout, direction diversity, four yaw controls |
