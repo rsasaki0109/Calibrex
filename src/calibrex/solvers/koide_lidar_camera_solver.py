@@ -157,6 +157,9 @@ class KoideLidarCameraSolver(SolverAdapter):
                 "koide_lidar_camera_execution": execution.as_dict(),
                 "koide_lidar_camera_camera_streams": list(inputs.camera_streams),
                 "koide_lidar_camera_lidar_streams": list(inputs.lidar_streams),
+                "koide_lidar_camera_training_isolation_declared": bool(
+                    _adapter_options(config).get("training_isolation_declared", False)
+                ),
                 "koide_lidar_camera_loaded_transforms": {
                     name: {"convention": "T_parent_child", **transform.as_dict()}
                     for name, transform in sorted(transforms.items())
@@ -199,6 +202,11 @@ def _adapter_factor(config: CalibrationConfig) -> tuple[str | None, FactorConfig
         if factor is not None and factor.enabled:
             return name, factor
     return None, None
+
+
+def _adapter_options(config: CalibrationConfig) -> dict[str, Any]:
+    _name, factor = _adapter_factor(config)
+    return factor.options if factor is not None else {}
 
 
 def _stream_names(streams: list[StreamSummary], *, kind: str) -> tuple[str, ...]:

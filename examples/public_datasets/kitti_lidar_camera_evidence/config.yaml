@@ -72,6 +72,14 @@ pipeline:
       enabled: true
     koide_lidar_camera:
       enabled: true
+      options:
+        training_isolation_declared: false
+    lidar_camera_baseline_comparison:
+      enabled: true
+      options:
+        max_frames: 2
+        max_points: 800
+        capture_time_policy: unavailable_in_kitti_fixture
     fixed_lidar_mount_prior:
       enabled: true
       options:
@@ -118,6 +126,13 @@ evaluation:
     - lidar_camera_perturbation_depth_edge_delta_mean
     - lidar_camera_perturbation_projection_ratio_delta_mean
     - lidar_camera_mutual_information_score
+    - lidar_camera_comparison_candidate_count
+    - lidar_camera_comparison_kitti_dataset_reference_holdout_edge_alignment
+    - lidar_camera_comparison_kitti_dataset_reference_holdout_depth_edge_alignment
+    - lidar_camera_comparison_kitti_dataset_reference_holdout_projection_ratio
+    - lidar_camera_comparison_calibrex_applied_holdout_edge_alignment
+    - lidar_camera_comparison_calibrex_applied_holdout_depth_edge_alignment
+    - lidar_camera_comparison_calibrex_applied_holdout_projection_ratio
 
 outputs:
   result: result.yaml

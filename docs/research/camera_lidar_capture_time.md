@@ -57,3 +57,29 @@ rotation, non-identity LiDAR mounting, independent per-point capture times,
 and empty scans. The next layer compares external and dataset-reference
 Camera-LiDAR transforms under the exact same frame split and capture-time
 policy.
+
+## Common external-baseline comparison
+
+KITTI dataset-reference, Calibrex-applied, and optional Koide-style external
+transforms are projected over one shared seeded frame split. Each candidate
+gets fresh projection ratio, image-edge alignment, and depth-edge alignment on
+the same frame IDs. With only two public fixture frames, the splitter still
+reserves one complete frame for holdout instead of silently producing an empty
+holdout.
+
+An external transform is not labelled independently validated unless its
+adapter declares training isolation. Otherwise the same numbers remain useful
+post-hoc diagnostics but receive WARN with an explicit leakage limitation.
+Backend-native scores are not compared against Calibrex projection metrics.
+The provenance records each transform, split IDs, capture-time policy, and
+training-isolation declaration.
+
+The checked two-frame KITTI public fixture materializes one train and one
+holdout frame. Both the dataset reference and currently applied candidate
+produce holdout projection ratio 1.0, edge alignment 0.5, and depth-edge
+alignment 0.5. These equal values are not evidence of method equivalence: the
+fixture is deliberately tiny and its calibration transform is identity. The
+dataset reference is marked training-isolated; the applied candidate remains
+WARN because its training isolation is undeclared. Bundle verification
+recomputes SHA-256 for both images, both Velodyne scans, and two calibration
+files (six raw inputs) with zero issues.

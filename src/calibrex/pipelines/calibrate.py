@@ -49,6 +49,9 @@ from calibrex.evaluation.lidar import (
     livox_pair_evidence_from_dataset,
 )
 from calibrex.evaluation.lidar_camera import lidar_camera_metrics_from_result
+from calibrex.evaluation.lidar_camera_comparison import (
+    lidar_camera_comparison_metrics_from_result,
+)
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
 from calibrex.evaluation.radar import radar_velocity_metrics_from_result
@@ -130,6 +133,9 @@ def run_calibration(
     _apply_extrinsic_reference_comparisons(result)
     _apply_pipeline_adapter(config, frame_graph, inspection, result)
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
+    result.metrics.update(
+        lidar_camera_comparison_metrics_from_result(config, result, inspection)
+    )
     result.metrics.update(imu_metrics_from_result(config, result, inspection))
     result.metrics.update(radar_velocity_metrics_from_result(config, result, inspection))
     result.metrics.update(
