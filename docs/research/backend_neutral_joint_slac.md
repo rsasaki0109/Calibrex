@@ -59,8 +59,16 @@ whose weak directions span both extrinsic and time blocks.
 
 ## Remaining integration
 
-The next layer translates concrete existing Calibrex LiDAR plane, hand-eye,
-Radar velocity, and Camera-LiDAR evidence into these residual blocks and emits
-schema-valid transforms/time offsets from one joint adapter. Public-data
-evaluation must then compare this joint result with the already implemented
-independent baselines without weakening their gates.
+Concrete residual builders now translate pose–extrinsic LiDAR point-to-plane
+measurements, Radar Doppler with lever-arm/time terms, and diagonal tangent
+priors into joint residual blocks. The LiDAR factor evaluates
+`nᵀ(T_world_body T_body_sensor p-q)`. The Radar factor evaluates static-target
+Doppler after applying body acceleration over the clock offset and
+`omega cross t_body_radar` at the Radar origin. Tests prove that each factor is
+zero at its coupled synthetic truth and responds to incorrect pose,
+extrinsic, or time blocks.
+
+The remaining layer assembles concrete public-dataset observations into these
+builders and emits schema-valid transforms/time offsets from one joint adapter.
+Public-data evaluation must compare that joint result with the already
+implemented independent baselines without weakening their gates.
