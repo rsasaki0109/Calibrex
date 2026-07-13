@@ -67,6 +67,19 @@ solver:
     return config_path
 
 
+def _write_joint_config(tmp_path: Path, output_dir: Path) -> Path:
+    config_path = _write_native_config(tmp_path, output_dir)
+    text = config_path.read_text(encoding="utf-8")
+    config_path.write_text(
+        text.replace(
+            "backend: native_lidar_point_to_plane",
+            "backend: native_joint_slac\n  seed: 17",
+        ).replace("max_target_points: 3000", "max_target_points: 800"),
+        encoding="utf-8",
+    )
+    return config_path
+
+
 @requires_a2d2_pair
 def test_native_point_to_plane_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
     output_dir = tmp_path / "outputs"
@@ -121,6 +134,43 @@ def test_native_point_to_plane_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
     assert (output_dir / "report.html").exists()
 
 
+@requires_a2d2_pair
+def test_native_joint_slac_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
+    output_dir = tmp_path / "joint-outputs"
+    result = run_calibration(
+        _write_joint_config(tmp_path, output_dir), CalibrationRunOptions()
+    )
+
+    assert result is not None
+    assert result.run.provenance["solver_adapter"] == "native_joint_slac"
+    assert result.run.provenance["solver_adapter_status"] == "converged"
+    assert result.run.provenance["native_joint_slac_observation_count"] >= 12
+    assert result.run.provenance["native_joint_slac_source_sha256"]
+    assert result.run.provenance["native_joint_slac_target_sha256"]
+    assert "train-only diagonal prior" in result.run.provenance[
+        "native_joint_slac_gauge_policy"
+    ]
+    solver = result.run.provenance["native_joint_slac_solver"]
+    assert set(solver["train_observation_groups"]).isdisjoint(
+        solver["holdout_observation_groups"]
+    )
+    assert "source-pose-gauge-prior" in solver["train_factor_ids"]
+    assert "source-pose-gauge-prior" not in solver["holdout_factor_ids"]
+    rmse = result.metrics["joint_slac_point_to_plane_rmse_m"]
+    assert rmse.train is not None
+    assert rmse.holdout is not None
+    assert result.metrics["joint_slac_augmented_information_rank"].value == 12.0
+    assert result.metrics["joint_slac_vs_fixed_baseline_translation_m"].value is not None
+    assert result.metrics["joint_slac_vs_fixed_baseline_rotation_deg"].value is not None
+    assert result.transforms["T_base_link_lidar_front_right"].provenance.tool_name == (
+        "native_joint_slac"
+    )
+    saved = load_result(output_dir / "result.yaml")
+    assert saved.run.provenance["native_joint_slac_method"] == (
+        "pose_extrinsic_point_to_plane/v0.1"
+    )
+
+
 def test_native_point_to_plane_backend_reports_unavailable_without_data(
     tmp_path: Path,
 ) -> None:
@@ -165,3 +215,15 @@ solver:
     assert metric.grade == "warn"
     # the stub observability stays untouched when the native solve cannot run
     assert result.observability.rank is None
+
+    joint_path = tmp_path / "missing_joint_config.yaml"
+    joint_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            "backend: native_lidar_point_to_plane", "backend: native_joint_slac"
+        ),
+        encoding="utf-8",
+    )
+    joint = run_calibration(joint_path, CalibrationRunOptions())
+    assert joint is not None
+    assert joint.run.provenance["solver_adapter_status"] == "unavailable"
+    assert joint.metrics["native_joint_slac_available"].value == 0.0

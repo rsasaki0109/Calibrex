@@ -459,6 +459,29 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.0,
         direction="higher_is_better",
     ),
+    "native_joint_slac_available": MetricThreshold(
+        metric="native_joint_slac_available",
+        pass_value=1.0,
+        warn_value=0.0,
+        direction="higher_is_better",
+    ),
+    "joint_slac_augmented_information_rank": MetricThreshold(
+        metric="joint_slac_augmented_information_rank",
+        pass_value=12.0,
+        warn_value=6.0,
+        direction="higher_is_better",
+    ),
+    "joint_slac_augmented_condition_number": MetricThreshold(
+        metric="joint_slac_augmented_condition_number",
+        pass_value=1.0e6,
+        warn_value=1.0e8,
+    ),
+    "joint_slac_known_bad_detectable_fraction": MetricThreshold(
+        metric="joint_slac_known_bad_detectable_fraction",
+        pass_value=1.0,
+        warn_value=0.5,
+        direction="higher_is_better",
+    ),
     "rgbd_fragment_count": MetricThreshold(
         metric="rgbd_fragment_count",
         pass_value=1.0,

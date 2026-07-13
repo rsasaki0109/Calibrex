@@ -49,7 +49,7 @@ _MIN_OBSERVATIONS = 6
 
 
 @dataclass(frozen=True)
-class _NativeSolveInputs:
+class LidarPairSolveInputs:
     """Resolved geometry and tuning inputs for a native LiDAR pair solve."""
 
     voxel_size_m: float
@@ -59,7 +59,7 @@ class _NativeSolveInputs:
 
 
 @dataclass(frozen=True)
-class _LidarPairData:
+class LidarPairData:
     """Source plane records and target query points for one LiDAR pair."""
 
     source_records: list[LivoxPointRecord]
@@ -94,7 +94,7 @@ class NativeLidarPointToPlaneSolver(SolverAdapter):
                 f"native LiDAR point-to-plane does not support dataset type "
                 f"'{config.dataset.type}'"
             )
-        files = _dataset_files(config)
+        files = lidar_pair_dataset_files(config)
         if len(files) < 2:
             return self._unavailable(
                 "native LiDAR point-to-plane requires at least two LiDAR frames"
@@ -108,8 +108,8 @@ class NativeLidarPointToPlaneSolver(SolverAdapter):
                 "source and target LiDAR frames must be present in the frame graph"
             )
 
-        inputs = _solve_inputs(config)
-        pair = _load_pair(config, files, inputs)
+        inputs = lidar_pair_solve_inputs(config)
+        pair = load_lidar_pair(config, files, inputs)
         t_base_source = source_node.transform_to_parent
         t_base_target = target_node.transform_to_parent
         t_source_target_init = t_base_source.inverse().compose(t_base_target)
@@ -213,7 +213,9 @@ class NativeLidarPointToPlaneSolver(SolverAdapter):
         )
 
 
-def _dataset_files(config: CalibrationConfig) -> list[Path]:
+def lidar_pair_dataset_files(config: CalibrationConfig) -> list[Path]:
+    """Return deterministic LiDAR-pair files supported by native adapters."""
+
     if config.dataset.type == "a2d2_lidar":
         return find_a2d2_lidar_npz_files(config.dataset.path)
     if config.dataset.type == "livox_pcd":
@@ -221,11 +223,13 @@ def _dataset_files(config: CalibrationConfig) -> list[Path]:
     return []
 
 
-def _load_pair(
+def load_lidar_pair(
     config: CalibrationConfig,
     files: list[Path],
-    inputs: _NativeSolveInputs,
-) -> _LidarPairData:
+    inputs: LidarPairSolveInputs,
+) -> LidarPairData:
+    """Load the first supported source/target cloud pair without ROS dependencies."""
+
     source_path, target_path = files[0], files[1]
     if config.dataset.type == "a2d2_lidar":
         source_points = read_a2d2_lidar_points(
@@ -238,7 +242,7 @@ def _load_pair(
             LivoxPointRecord(point=(x, y, z, 0.0), normal_xyz=None)
             for x, y, z in source_points
         ]
-        return _LidarPairData(
+        return LidarPairData(
             source_records=source_records,
             target_points=list(target_points),
             source_path=str(source_path),
@@ -250,7 +254,7 @@ def _load_pair(
     target_records = _stride(
         read_livox_binary_pcd_records(target_path), inputs.max_target_points
     )
-    return _LidarPairData(
+    return LidarPairData(
         source_records=source_records,
         target_points=[
             (record.point[0], record.point[1], record.point[2])
@@ -268,10 +272,12 @@ def _stride(records: list[LivoxPointRecord], max_records: int | None) -> list[Li
     return records[::step]
 
 
-def _solve_inputs(config: CalibrationConfig) -> _NativeSolveInputs:
+def lidar_pair_solve_inputs(config: CalibrationConfig) -> LidarPairSolveInputs:
+    """Resolve shared native LiDAR-pair frontend options from the config."""
+
     factor = config.pipeline.factors.get(_FACTOR_NAME)
     options: dict[str, Any] = dict(factor.options) if factor is not None else {}
-    return _NativeSolveInputs(
+    return LidarPairSolveInputs(
         voxel_size_m=_float_option(options, "voxel_size_m", default=1.0, minimum=0.05),
         correspondence_gate_m=_float_option(
             options, "correspondence_gate_m", default=1.5, minimum=0.05
@@ -337,8 +343,8 @@ def _provenance(
     variable: str,
     source_sensor: str,
     target_sensor: str,
-    pair: _LidarPairData,
-    inputs: _NativeSolveInputs,
+    pair: LidarPairData,
+    inputs: LidarPairSolveInputs,
     observation_count: int,
     solver_result: FixedTrajectorySe3SolverResult,
     evaluation_rank: int,

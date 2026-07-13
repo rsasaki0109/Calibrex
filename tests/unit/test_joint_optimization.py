@@ -107,6 +107,35 @@ def test_observation_group_split_keeps_modal_factors_together() -> None:
     assert block.dimension == 1
 
 
+def test_train_only_prior_never_leaks_into_holdout() -> None:
+    factors = [
+        JointResidualBlock(
+            f"measurement-{capture}",
+            capture,
+            ("x",),
+            lambda values: (values["x"][0],),
+        )
+        for capture in ("a", "b", "c", "d")
+    ]
+    factors.append(
+        JointResidualBlock(
+            "pose-prior",
+            "prior",
+            ("x",),
+            lambda values: (values["x"][0],),
+            family="diagonal_prior",
+            split_policy="train_only",
+        )
+    )
+
+    train, holdout, _train_groups, _holdout_groups = split_joint_factors(
+        factors, 0.25, 3
+    )
+
+    assert "pose-prior" in {factor.factor_id for factor in train}
+    assert "pose-prior" not in {factor.factor_id for factor in holdout}
+
+
 def test_joint_optimizer_reports_rank_deficient_parameter_blocks() -> None:
     blocks = [
         JointParameterBlock("extrinsic", (0.0, 0.0)),
@@ -134,6 +163,33 @@ def test_joint_optimizer_reports_rank_deficient_parameter_blocks() -> None:
     assert result.information_rank == 1
     assert "extrinsic" in result.weak_parameter_blocks
     assert "time" in result.weak_parameter_blocks
+
+
+def test_huber_acceptance_uses_robust_objective_not_raw_rmse() -> None:
+    targets = [0.0] * 20 + [100.0]
+    least_squares_mean = sum(targets) / len(targets)
+    factors = [
+        JointResidualBlock(
+            f"sample-{index}",
+            f"capture-{index}",
+            ("x",),
+            lambda values, target=target: (values["x"][0] - target,),
+        )
+        for index, target in enumerate(targets)
+    ]
+
+    result = BackendNeutralJointOptimizer().solve(
+        [JointParameterBlock("x", (least_squares_mean,))],
+        factors,
+        JointOptimizerOptions(holdout_ratio=0.0, huber_delta=0.1),
+    )
+
+    assert result.status == "converged"
+    assert result.optimized_values["x"][0] == pytest.approx(0.005, abs=1e-4)
+    assert result.history[0].accepted is True
+    assert result.history[0].train_rmse > math.sqrt(
+        sum((least_squares_mean - target) ** 2 for target in targets) / len(targets)
+    )
 
 
 def test_joint_optimizer_rejects_duplicate_parameter_names() -> None:

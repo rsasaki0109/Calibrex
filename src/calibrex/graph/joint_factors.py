@@ -158,6 +158,7 @@ def make_joint_prior_factor(
         (block,),
         evaluator,
         family="diagonal_prior",
+        split_policy="train_only",
     )
 
 

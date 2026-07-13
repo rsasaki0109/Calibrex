@@ -91,6 +91,7 @@ def test_joint_prior_factor_normalizes_each_dimension() -> None:
     )
 
     assert factor.residuals({"bias": (2.0, 0.0)}) == pytest.approx((2.0, 1.0))
+    assert factor.split_policy == "train_only"
 
 
 def test_se3_tangent_requires_six_values() -> None:

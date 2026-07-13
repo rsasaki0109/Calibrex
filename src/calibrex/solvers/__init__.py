@@ -16,9 +16,18 @@ from calibrex.solvers.native_hand_eye_comparison_solver import (
     NATIVE_HAND_EYE_COMPARISON_BACKEND,
     NativeHandEyeComparisonSolver,
 )
+from calibrex.solvers.native_joint_slac_solver import (
+    NATIVE_JOINT_SLAC_BACKEND,
+    NativeJointSlacSolver,
+)
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+    LidarPairData,
+    LidarPairSolveInputs,
     NativeLidarPointToPlaneSolver,
+    lidar_pair_dataset_files,
+    lidar_pair_solve_inputs,
+    load_lidar_pair,
 )
 from calibrex.solvers.native_planar_board_solver import (
     ACFR_VLP_FORMAT,
@@ -115,6 +124,7 @@ __all__ = [
     "ACFR_VLP_FORMAT",
     "ACFR_VLP_SOURCE_URL",
     "NATIVE_HAND_EYE_COMPARISON_BACKEND",
+    "NATIVE_JOINT_SLAC_BACKEND",
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
     "NATIVE_PLANAR_BOARD_BACKEND",
     "NATIVE_REGISTRATION_COMPARISON_BACKEND",
@@ -134,10 +144,13 @@ __all__ = [
     "IcpPoint",
     "IcpRematchingDiagnostics",
     "KoideLidarCameraSolver",
+    "LidarPairData",
+    "LidarPairSolveInputs",
     "LinePlaneBoardObservation",
     "LinePlaneEvaluation",
     "LinePlaneSolverOptions",
     "NativeHandEyeComparisonSolver",
+    "NativeJointSlacSolver",
     "NativeLidarPointToPlaneSolver",
     "NativePlanarBoardSolver",
     "NativeRegistrationComparisonSolver",
@@ -188,6 +201,9 @@ __all__ = [
     "evaluate_icp_candidate",
     "evaluate_line_plane_observations",
     "evaluate_planar_board_observations",
+    "lidar_pair_dataset_files",
+    "lidar_pair_solve_inputs",
+    "load_lidar_pair",
     "radar_spatiotemporal_rmse",
     "radar_trajectory_yaw_rmse",
     "read_acfr_vlp_plane_observations",

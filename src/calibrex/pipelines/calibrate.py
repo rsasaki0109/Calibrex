@@ -69,6 +69,10 @@ from calibrex.solvers.native_hand_eye_comparison_solver import (
     NATIVE_HAND_EYE_COMPARISON_BACKEND,
     NativeHandEyeComparisonSolver,
 )
+from calibrex.solvers.native_joint_slac_solver import (
+    NATIVE_JOINT_SLAC_BACKEND,
+    NativeJointSlacSolver,
+)
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
@@ -168,6 +172,8 @@ def _apply_pipeline_adapter(
         adapter_result = Open3DSLACSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_LIDAR_POINT_TO_PLANE_BACKEND:
         adapter_result = NativeLidarPointToPlaneSolver().solve(config, frame_graph, inspection)
+    elif config.solver.backend == NATIVE_JOINT_SLAC_BACKEND:
+        adapter_result = NativeJointSlacSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_PLANAR_BOARD_BACKEND:
         adapter_result = NativePlanarBoardSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_HAND_EYE_COMPARISON_BACKEND:
@@ -191,6 +197,7 @@ def _apply_pipeline_adapter(
         adapter_result.backend
         in {
             NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+            NATIVE_JOINT_SLAC_BACKEND,
             NATIVE_PLANAR_BOARD_BACKEND,
             NATIVE_HAND_EYE_COMPARISON_BACKEND,
             NATIVE_REGISTRATION_COMPARISON_BACKEND,

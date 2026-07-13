@@ -1,0 +1,81 @@
+schema_version: slac.config/v0.1
+
+# Backend-neutral joint pose/extrinsic optimization on a public A2D2 LiDAR
+# pair. A single pair cannot geometrically separate source pose from extrinsic,
+# so the source-pose correction has an explicit train-only prior. The result
+# labels rank and condition number as augmented by that prior.
+#
+# Download the sample first:
+#   python tools/download_public_dataset.py a2d2_lidar_pair_sample
+
+project:
+  name: a2d2_native_joint_slac
+  description: Joint pose-extrinsic point-to-plane calibration on public A2D2 data
+  output_dir: outputs/a2d2_native_joint_slac
+  domain: autonomous_driving
+
+dataset:
+  type: a2d2_lidar
+  path: data/public/a2d2_lidar_pair
+
+sensors:
+  lidar_front_left:
+    type: lidar
+    model: a2d2_front_left
+    frame_id: lidar_front_left
+  lidar_front_right:
+    type: lidar
+    model: a2d2_front_right
+    frame_id: lidar_front_right
+
+frames:
+  base_link:
+    root: true
+  lidar_front_left:
+    parent: base_link
+    transform:
+      estimate: false
+  lidar_front_right:
+    parent: base_link
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 5.0
+
+pipeline:
+  type: multi_sensor_slac
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.75
+        correspondence_gate_m: 1.0
+        max_target_points: 3000
+        joint_holdout_ratio: 0.2
+        joint_holdout_voxel_m: 5.0
+        joint_pose_prior_translation_sigma_m: 0.02
+        joint_pose_prior_rotation_sigma_deg: 0.5
+        joint_known_bad_translation_m: 0.05
+        joint_known_bad_rotation_deg: 1.0
+
+solver:
+  backend: native_joint_slac
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+  seed: 17
+
+evaluation:
+  metrics:
+    - joint_slac_point_to_plane_rmse_m
+    - joint_slac_augmented_information_rank
+    - joint_slac_augmented_condition_number
+    - joint_slac_known_bad_detectable_fraction
+    - joint_slac_vs_fixed_baseline_translation_m
+    - joint_slac_vs_fixed_baseline_rotation_deg
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

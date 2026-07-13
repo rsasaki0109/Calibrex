@@ -15,6 +15,7 @@ from calibrex.evaluation.holdout import split_indices
 ParameterValues: TypeAlias = Mapping[str, tuple[float, ...]]
 ResidualEvaluator: TypeAlias = Callable[[ParameterValues], Sequence[float]]
 JointOptimizerStatus = Literal["converged", "max_iterations", "insufficient_factors", "degenerate"]
+JointFactorSplitPolicy = Literal["grouped", "train_only"]
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class JointResidualBlock:
     evaluator: ResidualEvaluator
     weight: float = 1.0
     family: str = "generic"
+    split_policy: JointFactorSplitPolicy = "grouped"
 
     def residuals(self, values: ParameterValues) -> tuple[float, ...]:
         owned = {name: values[name] for name in self.variable_names}
@@ -67,6 +69,7 @@ class JointOptimizerOptions:
 class JointOptimizerIteration:
     iteration: int
     train_rmse: float
+    train_robust_objective: float
     damping: float
     step_norm: float
     accepted: bool
@@ -181,8 +184,14 @@ class BackendNeutralJointOptimizer:
                 )
             candidate = vector + step
             current_rmse = _rmse(residual)
-            candidate_rmse = _factor_rmse(train, _unpack(candidate, initial, layout))
-            accepted = candidate_rmse is not None and candidate_rmse < current_rmse
+            current_objective = _huber_objective(residual, solver_options.huber_delta)
+            candidate_values = _unpack(candidate, initial, layout)
+            candidate_residual = _factor_residuals(train, candidate_values)
+            candidate_rmse = _rmse(candidate_residual)
+            candidate_objective = _huber_objective(
+                candidate_residual, solver_options.huber_delta
+            )
+            accepted = candidate_objective < current_objective
             if accepted:
                 vector = candidate
                 damping = max(1.0e-12, damping * 0.5)
@@ -191,13 +200,23 @@ class BackendNeutralJointOptimizer:
             history.append(
                 JointOptimizerIteration(
                     iteration,
-                    candidate_rmse if accepted and candidate_rmse is not None else current_rmse,
+                    candidate_rmse if accepted else current_rmse,
+                    candidate_objective if accepted else current_objective,
                     damping,
                     float(np.linalg.norm(step)),
                     accepted,
                 )
             )
-            if accepted and float(np.linalg.norm(step)) <= solver_options.convergence_tolerance:
+            step_converged = float(np.linalg.norm(step)) <= (
+                solver_options.convergence_tolerance
+            )
+            rejected_stationary = (
+                not accepted
+                and step_converged
+                and float(np.linalg.norm(gradient, ord=np.inf))
+                <= math.sqrt(solver_options.convergence_tolerance)
+            )
+            if (accepted and step_converged) or rejected_stationary:
                 status = "converged"
                 break
         values = _unpack(vector, initial, layout)
@@ -254,15 +273,18 @@ def split_joint_factors(
 ]:
     """Split complete observation groups so correlated factors cannot leak."""
 
-    groups = tuple(sorted({factor.observation_group for factor in factors}))
+    grouped = [factor for factor in factors if factor.split_policy == "grouped"]
+    train_only = [factor for factor in factors if factor.split_policy == "train_only"]
+    groups = tuple(sorted({factor.observation_group for factor in grouped}))
     train_indices, holdout_indices = split_indices(len(groups), holdout_ratio, seed)
     if len(groups) > 1 and holdout_ratio > 0.0 and not holdout_indices:
         train_indices, holdout_indices = split_indices(len(groups), 1.0 / len(groups), seed)
     train_groups = tuple(groups[index] for index in train_indices)
     holdout_groups = tuple(groups[index] for index in holdout_indices)
     train_set, holdout_set = set(train_groups), set(holdout_groups)
-    train = [factor for factor in factors if factor.observation_group in train_set]
-    holdout = [factor for factor in factors if factor.observation_group in holdout_set]
+    train = [factor for factor in grouped if factor.observation_group in train_set]
+    train.extend(train_only)
+    holdout = [factor for factor in grouped if factor.observation_group in holdout_set]
     return train, holdout, train_groups, holdout_groups
 
 
@@ -311,6 +333,16 @@ def _rmse(residuals: NDArray[np.float64]) -> float:
 def _huber_weights(residuals: NDArray[np.float64], delta: float) -> NDArray[np.float64]:
     absolute = np.abs(residuals)
     return np.where(absolute <= delta, 1.0, delta / np.maximum(absolute, 1.0e-15))
+
+
+def _huber_objective(residuals: NDArray[np.float64], delta: float) -> float:
+    absolute = np.abs(residuals)
+    losses = np.where(
+        absolute <= delta,
+        0.5 * residuals * residuals,
+        delta * (absolute - 0.5 * delta),
+    )
+    return float(np.sum(losses))
 
 
 def _validate_blocks(

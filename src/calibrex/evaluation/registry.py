@@ -564,6 +564,44 @@ def _register_builtin_metrics() -> None:
             "Open3D optional backend availability",
             family="backend",
         ),
+        MetricDefinition(
+            "native_joint_slac_available",
+            "Native backend-neutral joint SLAC execution availability",
+            family="backend",
+        ),
+        MetricDefinition(
+            "joint_slac_point_to_plane_rmse_m",
+            "Joint pose-extrinsic point-to-plane RMSE excluding priors",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_augmented_information_rank",
+            "Joint information rank including declared gauge priors",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_augmented_condition_number",
+            "Joint Jacobian condition number including declared gauge priors",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_known_bad_detectable_fraction",
+            "Fraction of signed joint holdout perturbations detected",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_vs_fixed_baseline_translation_m",
+            "Translation delta from the fixed-trajectory native baseline",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "joint_slac_vs_fixed_baseline_rotation_deg",
+            "Rotation delta from the fixed-trajectory native baseline",
+            "deg",
+            "joint_slac",
+        ),
         MetricDefinition("rgbd_fragment_count", "RGB-D fragment count", family="open3d"),
         MetricDefinition("pose_graph_edges", "Pose graph edge count", family="open3d"),
         MetricDefinition(

@@ -33,6 +33,20 @@ def test_metric_thresholds_grade_holdout_values() -> None:
     assert metrics["dataset_exists"].grade == "pass"
 
 
+def test_joint_slac_thresholds_preserve_known_bad_warning() -> None:
+    metrics = {
+        "joint_slac_augmented_information_rank": MetricResult(value=12.0),
+        "joint_slac_augmented_condition_number": MetricResult(value=80.8),
+        "joint_slac_known_bad_detectable_fraction": MetricResult(value=0.75),
+    }
+
+    apply_metric_thresholds(metrics, "default")
+
+    assert metrics["joint_slac_augmented_information_rank"].grade == "pass"
+    assert metrics["joint_slac_augmented_condition_number"].grade == "pass"
+    assert metrics["joint_slac_known_bad_detectable_fraction"].grade == "warn"
+
+
 def test_evidence_leakage_validator_reports_frame_overlap() -> None:
     assert stable_artifact_id("slice", ["a", "b"]) == stable_artifact_id("slice", ["a", "b"])
 
@@ -452,6 +466,9 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "extrinsic_reference_translation_delta_max_m" in names
     assert "extrinsic_reference_rotation_delta_max_deg" in names
     assert "radar_lidar_velocity_consistency" in names
+    assert "native_joint_slac_available" in names
+    assert "joint_slac_point_to_plane_rmse_m" in names
+    assert "joint_slac_known_bad_detectable_fraction" in names
     assert "lidar_frame_coverage" in names
     assert "lidar_point_coverage" in names
     assert "lidar_spatial_coverage_m" in names
