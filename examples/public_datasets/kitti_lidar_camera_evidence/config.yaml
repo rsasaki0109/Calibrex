@@ -79,7 +79,11 @@ pipeline:
       options:
         max_frames: 2
         max_points: 800
-        capture_time_policy: unavailable_in_kitti_fixture
+        capture_time_policy:
+          point_offset_unit: seconds
+          stamp_reference: scan_end
+          sensor_time_offset_sec: 0.0
+        camera_reference: exposure_timestamp
     fixed_lidar_mount_prior:
       enabled: true
       options:
@@ -127,12 +131,17 @@ evaluation:
     - lidar_camera_perturbation_projection_ratio_delta_mean
     - lidar_camera_mutual_information_score
     - lidar_camera_comparison_candidate_count
+    - lidar_camera_capture_time_policy_declared
+    - lidar_camera_capture_time_deskew_applied
     - lidar_camera_comparison_kitti_dataset_reference_holdout_edge_alignment
     - lidar_camera_comparison_kitti_dataset_reference_holdout_depth_edge_alignment
     - lidar_camera_comparison_kitti_dataset_reference_holdout_projection_ratio
     - lidar_camera_comparison_calibrex_applied_holdout_edge_alignment
     - lidar_camera_comparison_calibrex_applied_holdout_depth_edge_alignment
     - lidar_camera_comparison_calibrex_applied_holdout_projection_ratio
+    - lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_translation_delta_m
+    - lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_rotation_delta_deg
+    - lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_holdout_edge_alignment_delta
 
 outputs:
   result: result.yaml

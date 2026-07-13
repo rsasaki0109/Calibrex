@@ -1,9 +1,12 @@
 import math
 from pathlib import Path
 
+import pytest
+
 from calibrex.core.geometry import SE3
 from calibrex.data.kitti import read_velodyne_to_camera_transform
 from calibrex.evaluation.lidar_camera_comparison import (
+    compare_lidar_camera_candidate_scores,
     evaluate_lidar_camera_candidates_on_kitti,
 )
 
@@ -42,6 +45,18 @@ def test_candidates_share_identical_train_holdout_frame_ids() -> None:
     assert scores["reference"].holdout_edge_alignment is not None
     assert scores["external"].holdout_edge_alignment is not None
 
+    deltas = compare_lidar_camera_candidate_scores(
+        scores,
+        reference_candidate_id="reference",
+    )
+    external = deltas["external"]
+    assert external.translation_delta_m == pytest.approx(0.1)
+    assert external.rotation_delta_deg == pytest.approx(1.0)
+    assert external.holdout_edge_alignment_delta == pytest.approx(
+        scores["external"].holdout_edge_alignment - scores["reference"].holdout_edge_alignment
+    )
+    assert external.both_training_isolated is False
+
 
 def test_empty_dataset_returns_no_candidate_scores(tmp_path: Path) -> None:
     scores = evaluate_lidar_camera_candidates_on_kitti(
@@ -55,3 +70,7 @@ def test_empty_dataset_returns_no_candidate_scores(tmp_path: Path) -> None:
 
     assert scores["candidate"].scored_frame_count == 0
     assert scores["candidate"].holdout_projection_ratio is None
+
+
+def test_missing_reference_returns_no_pairwise_deltas() -> None:
+    assert compare_lidar_camera_candidate_scores({}, reference_candidate_id="missing") == {}

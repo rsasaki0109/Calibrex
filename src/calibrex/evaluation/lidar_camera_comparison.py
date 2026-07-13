@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
+from calibrex.core.capture_time import LidarCaptureTimePolicy
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3
 from calibrex.core.provenance import sha256_path
@@ -54,6 +56,59 @@ class LidarCameraCandidateScore:
             "transform_camera_lidar": self.transform_camera_lidar.as_dict(),
             "training_isolation_declared": self.training_isolation_declared,
             "evaluation_policy": "shared seeded frame holdout with fresh projection",
+        }
+
+
+@dataclass(frozen=True)
+class LidarCameraCandidateDelta:
+    """SE(3) and holdout-evidence delta from one declared reference candidate."""
+
+    reference_candidate_id: str
+    candidate_id: str
+    translation_delta_m: float
+    rotation_delta_deg: float
+    holdout_projection_ratio_delta: float | None
+    holdout_edge_alignment_delta: float | None
+    holdout_depth_edge_alignment_delta: float | None
+    both_training_isolated: bool
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "reference_candidate_id": self.reference_candidate_id,
+            "candidate_id": self.candidate_id,
+            "translation_delta_m": self.translation_delta_m,
+            "rotation_delta_deg": self.rotation_delta_deg,
+            "holdout_projection_ratio_delta": self.holdout_projection_ratio_delta,
+            "holdout_edge_alignment_delta": self.holdout_edge_alignment_delta,
+            "holdout_depth_edge_alignment_delta": self.holdout_depth_edge_alignment_delta,
+            "both_training_isolated": self.both_training_isolated,
+            "delta_convention": "candidate minus reference; higher evidence scores are better",
+        }
+
+
+@dataclass(frozen=True)
+class LidarCameraCaptureTimeEvidence:
+    """Structured declaration of the time model used by KITTI projection comparison."""
+
+    status: Literal["undeclared", "invalid", "declared_unavailable"]
+    reason: str
+    policy: LidarCaptureTimePolicy | None
+    camera_reference: str
+    per_point_times_available: bool
+    deskew_applied: bool
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "reason": self.reason,
+            "policy": self.policy.as_dict() if self.policy is not None else None,
+            "camera_reference": self.camera_reference,
+            "per_point_times_available": self.per_point_times_available,
+            "deskew_applied": self.deskew_applied,
+            "lidar_message_timestamp_source": "velodyne_points/timestamps.txt",
+            "camera_timestamp_source": "image_02/timestamps.txt",
+            "point_timestamp_source": None,
+            "projection_time_model": "rigid scan at LiDAR message timestamp",
         }
 
 
@@ -126,6 +181,47 @@ def evaluate_lidar_camera_candidates_on_kitti(
     return output
 
 
+def compare_lidar_camera_candidate_scores(
+    scores: Mapping[str, LidarCameraCandidateScore],
+    *,
+    reference_candidate_id: str,
+) -> dict[str, LidarCameraCandidateDelta]:
+    """Compare every non-reference candidate in transform and holdout-evidence space."""
+
+    reference = scores.get(reference_candidate_id)
+    if reference is None:
+        return {}
+    output: dict[str, LidarCameraCandidateDelta] = {}
+    for candidate_id, candidate in sorted(scores.items()):
+        if candidate_id == reference_candidate_id:
+            continue
+        relative = reference.transform_camera_lidar.inverse().compose(
+            candidate.transform_camera_lidar
+        )
+        output[candidate_id] = LidarCameraCandidateDelta(
+            reference_candidate_id=reference_candidate_id,
+            candidate_id=candidate_id,
+            translation_delta_m=math.sqrt(sum(value * value for value in relative.translation_m)),
+            rotation_delta_deg=_rotation_angle_deg(relative),
+            holdout_projection_ratio_delta=_optional_delta(
+                candidate.holdout_projection_ratio,
+                reference.holdout_projection_ratio,
+            ),
+            holdout_edge_alignment_delta=_optional_delta(
+                candidate.holdout_edge_alignment,
+                reference.holdout_edge_alignment,
+            ),
+            holdout_depth_edge_alignment_delta=_optional_delta(
+                candidate.holdout_depth_edge_alignment,
+                reference.holdout_depth_edge_alignment,
+            ),
+            both_training_isolated=(
+                reference.training_isolation_declared and candidate.training_isolation_declared
+            ),
+        )
+    return output
+
+
 def lidar_camera_comparison_metrics_from_result(
     config: CalibrationConfig,
     result: CalibrationResult,
@@ -155,11 +251,19 @@ def lidar_camera_comparison_metrics_from_result(
         holdout_ratio=config.evaluation.holdout_ratio,
         split_seed=config.solver.seed or 0,
     )
+    reference_candidate_id = "kitti_dataset_reference"
+    deltas = compare_lidar_camera_candidate_scores(
+        scores,
+        reference_candidate_id=reference_candidate_id,
+    )
+    capture_time = _capture_time_evidence(options)
     result.run.provenance["lidar_camera_baseline_comparison"] = {
         "status": "scored" if scores else "unavailable",
         "candidates": {name: score.as_dict() for name, score in scores.items()},
         "candidate_ids": sorted(scores),
-        "capture_time_policy": options.get("capture_time_policy", "not_declared"),
+        "reference_candidate_id": reference_candidate_id,
+        "pairwise_deltas": {name: delta.as_dict() for name, delta in deltas.items()},
+        "capture_time_evidence": capture_time.as_dict(),
         "comparison_warning": (
             "post-hoc holdout is not training-isolated for candidates that do not declare it"
         ),
@@ -168,9 +272,7 @@ def lidar_camera_comparison_metrics_from_result(
             int(options.get("max_frames", config.evaluation.kitti.max_projection_pairs)),
         ),
     }
-    manifests = result.run.provenance["lidar_camera_baseline_comparison"][
-        "raw_input_files"
-    ]
+    manifests = result.run.provenance["lidar_camera_baseline_comparison"]["raw_input_files"]
     if isinstance(manifests, list) and manifests:
         result.run.provenance.setdefault("raw_input_files", []).extend(manifests)
         result.run.provenance["data_verified"] = True
@@ -180,7 +282,19 @@ def lidar_camera_comparison_metrics_from_result(
             value=float(len(scores)),
             unit="candidates",
             grade="pass" if len(scores) >= 2 else "warn",
-        )
+        ),
+        "lidar_camera_capture_time_policy_declared": MetricResult(
+            value=1.0 if capture_time.policy is not None else 0.0,
+            unit="bool",
+            grade="pass" if capture_time.policy is not None else "warn",
+            reason=capture_time.reason,
+        ),
+        "lidar_camera_capture_time_deskew_applied": MetricResult(
+            value=1.0 if capture_time.deskew_applied else 0.0,
+            unit="bool",
+            grade="pass" if capture_time.deskew_applied else "warn",
+            reason=capture_time.reason,
+        ),
     }
     for name, score in scores.items():
         prefix = f"lidar_camera_comparison_{name}"
@@ -209,6 +323,30 @@ def lidar_camera_comparison_metrics_from_result(
             holdout=score.holdout_projection_ratio,
             value=score.holdout_projection_ratio,
             grade=grade,
+            reason=reason,
+        )
+    for name, delta in deltas.items():
+        prefix = f"lidar_camera_comparison_{name}_vs_{reference_candidate_id}"
+        reason = (
+            "diagnostic candidate-minus-reference comparison on the shared frame holdout; "
+            "no acceptance threshold is declared"
+        )
+        metrics[f"{prefix}_translation_delta_m"] = MetricResult(
+            value=delta.translation_delta_m,
+            unit="m",
+            grade="warn",
+            reason=reason,
+        )
+        metrics[f"{prefix}_rotation_delta_deg"] = MetricResult(
+            value=delta.rotation_delta_deg,
+            unit="deg",
+            grade="warn",
+            reason=reason,
+        )
+        metrics[f"{prefix}_holdout_edge_alignment_delta"] = MetricResult(
+            value=delta.holdout_edge_alignment_delta,
+            unit="fraction",
+            grade="warn",
             reason=reason,
         )
     return metrics
@@ -273,6 +411,60 @@ def _comparison_input_manifests(
         }
         for path, role in unique.values()
     ]
+
+
+def _capture_time_evidence(options: Mapping[str, Any]) -> LidarCameraCaptureTimeEvidence:
+    raw = options.get("capture_time_policy")
+    camera_reference = str(options.get("camera_reference", "exposure_timestamp"))
+    if raw is None:
+        return LidarCameraCaptureTimeEvidence(
+            "undeclared",
+            "capture-time policy was not declared",
+            None,
+            camera_reference,
+            False,
+            False,
+        )
+    if not isinstance(raw, Mapping):
+        return LidarCameraCaptureTimeEvidence(
+            "invalid",
+            "capture-time policy must be a mapping, not a free-form label",
+            None,
+            camera_reference,
+            False,
+            False,
+        )
+    try:
+        policy = LidarCaptureTimePolicy.from_mapping(raw)
+    except ValueError as exc:
+        return LidarCameraCaptureTimeEvidence(
+            "invalid",
+            str(exc),
+            None,
+            camera_reference,
+            False,
+            False,
+        )
+    return LidarCameraCaptureTimeEvidence(
+        "declared_unavailable",
+        (
+            "KITTI Velodyne .bin payloads do not carry per-point capture offsets; "
+            "the declared policy is recorded but per-point deskew is not applied"
+        ),
+        policy,
+        camera_reference,
+        False,
+        False,
+    )
+
+
+def _rotation_angle_deg(transform: SE3) -> float:
+    scalar = min(1.0, max(-1.0, abs(transform.rotation_quat_xyzw[3])))
+    return math.degrees(2.0 * math.acos(scalar))
+
+
+def _optional_delta(value: float | None, reference: float | None) -> float | None:
+    return value - reference if value is not None and reference is not None else None
 
 
 def _mean(values: Any) -> float | None:

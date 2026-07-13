@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 from calibrex.core.geometry import SE3, Vector3, quaternion_xyzw_from_rotation_matrix
 
@@ -20,6 +20,31 @@ class LidarCaptureTimePolicy:
     point_offset_unit: PointOffsetUnit
     stamp_reference: StampReference
     sensor_time_offset_sec: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.point_offset_unit not in {"seconds", "nanoseconds"}:
+            raise ValueError("point_offset_unit must be seconds or nanoseconds")
+        if self.stamp_reference not in {"scan_start", "scan_midpoint", "scan_end"}:
+            raise ValueError("stamp_reference must be scan_start, scan_midpoint, or scan_end")
+        if not math.isfinite(self.sensor_time_offset_sec):
+            raise ValueError("sensor_time_offset_sec must be finite")
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, object]) -> LidarCaptureTimePolicy:
+        """Parse a schema-friendly policy mapping with strict enum validation."""
+
+        point_offset_unit = value.get("point_offset_unit")
+        stamp_reference = value.get("stamp_reference")
+        sensor_time_offset_sec = value.get("sensor_time_offset_sec", 0.0)
+        if not isinstance(point_offset_unit, str) or not isinstance(stamp_reference, str):
+            raise ValueError("capture-time policy requires string unit and stamp reference")
+        if not isinstance(sensor_time_offset_sec, int | float):
+            raise ValueError("sensor_time_offset_sec must be numeric")
+        return cls(
+            point_offset_unit=cast(PointOffsetUnit, point_offset_unit),
+            stamp_reference=cast(StampReference, stamp_reference),
+            sensor_time_offset_sec=float(sensor_time_offset_sec),
+        )
 
     def point_reference_time_sec(
         self, message_stamp_sec: float, point_offset: float | int
@@ -60,6 +85,12 @@ class ConstantBodyTwist:
     linear_velocity_body_mps: Vector3
     angular_velocity_body_radps: Vector3
 
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "linear_velocity_body_mps": list(self.linear_velocity_body_mps),
+            "angular_velocity_body_radps": list(self.angular_velocity_body_radps),
+        }
+
 
 @dataclass(frozen=True)
 class DeskewedLidarPoint:
@@ -77,6 +108,8 @@ class LidarDeskewResult:
     maximum_capture_time_sec: float | None
     maximum_abs_deskew_sec: float
     policy: LidarCaptureTimePolicy
+    twist: ConstantBodyTwist
+    transform_body_lidar: SE3
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -86,8 +119,10 @@ class LidarDeskewResult:
             "maximum_abs_deskew_sec": self.maximum_abs_deskew_sec,
             "point_count": len(self.points),
             "policy": self.policy.as_dict(),
+            "twist": self.twist.as_dict(),
+            "transform_body_lidar": self.transform_body_lidar.as_dict(),
             "points": [point.__dict__ for point in self.points],
-            "method": "constant_body_twist_per_point_deskew/v0.1",
+            "method": "constant_body_twist_per_point_deskew/v0.2",
         }
 
 
@@ -132,6 +167,8 @@ def deskew_lidar_points_to_reference(
             (abs(reference_time_sec - value) for value in capture_times), default=0.0
         ),
         policy=policy,
+        twist=twist,
+        transform_body_lidar=transform_body_lidar,
     )
 
 

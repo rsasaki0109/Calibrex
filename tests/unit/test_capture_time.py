@@ -22,6 +22,22 @@ def test_point_capture_time_uses_calibrex_clock_convention() -> None:
     assert policy.as_dict()["time_convention"] == ("sensor_time + dt_sensor = reference_time")
 
 
+def test_capture_time_policy_parses_schema_mapping_and_rejects_free_values() -> None:
+    policy = LidarCaptureTimePolicy.from_mapping(
+        {
+            "point_offset_unit": "seconds",
+            "stamp_reference": "scan_midpoint",
+            "sensor_time_offset_sec": 0.004,
+        }
+    )
+
+    assert policy == LidarCaptureTimePolicy("seconds", "scan_midpoint", 0.004)
+    with pytest.raises(ValueError, match="point_offset_unit"):
+        LidarCaptureTimePolicy.from_mapping(
+            {"point_offset_unit": "ticks", "stamp_reference": "scan_start"}
+        )
+
+
 def test_translation_deskew_recovers_static_point_at_camera_time() -> None:
     result = deskew_lidar_points_to_reference(
         [TimedLidarPoint("early", (10.0, 1.0, 0.0), 0.0)],
@@ -65,6 +81,16 @@ def test_nonidentity_lidar_mount_is_composed_during_deskew() -> None:
     )
 
     assert result.points[0].position_lidar_at_reference_m == pytest.approx((3.8, 0.0, 0.0))
+    serialized = result.as_dict()
+    assert serialized["method"] == "constant_body_twist_per_point_deskew/v0.2"
+    assert serialized["twist"] == {
+        "linear_velocity_body_mps": [1.0, 0.0, 0.0],
+        "angular_velocity_body_radps": [0.0, 0.0, 0.0],
+    }
+    assert serialized["transform_body_lidar"] == {
+        "translation_m": [1.0, 0.0, 0.0],
+        "rotation_quat_xyzw": [0.0, 0.0, 0.0, 1.0],
+    }
 
 
 def test_empty_scan_retains_declared_policy() -> None:

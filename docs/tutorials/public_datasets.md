@@ -991,6 +991,16 @@ adapter, so those metrics reflect availability, not a computed result. This
 is an evaluation layer for externally produced camera-LiDAR candidates, not a
 standalone camera calibration algorithm.
 
+`lidar_camera_baseline_comparison` validates a structured LiDAR capture-time
+policy and records camera exposure as the reference instant. KITTI `.bin`
+payloads have no per-point firing offsets, so the demo deliberately reports
+`lidar_camera_capture_time_deskew_applied=0` (WARN) and does not infer offsets
+from point order. Every non-reference candidate is also compared with
+`kitti_dataset_reference` in SE(3): translation/rotation distance and
+candidate-minus-reference holdout edge evidence are stored together. These are
+diagnostics, not PASS thresholds; a small evidence delta can reflect weak
+observability rather than transform agreement.
+
 Evidence rows (protocol `kitti_lidar_camera_projection_edge_holdout/v0.1`) use
 recorded thresholds from `evaluation.kitti.evidence_gate_*` (defaults mirror
 metric grading: holdout edge-alignment `>= 0.20`, depth-edge holdout

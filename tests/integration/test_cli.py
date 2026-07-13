@@ -1860,6 +1860,16 @@ pipeline:
       enabled: true
       options:
         result_path: {external_result}
+    lidar_camera_baseline_comparison:
+      enabled: true
+      options:
+        max_frames: 2
+        max_points: 800
+        capture_time_policy:
+          point_offset_unit: seconds
+          stamp_reference: scan_end
+          sensor_time_offset_sec: 0.0
+        camera_reference: exposure_timestamp
     fixed_lidar_mount_prior:
       enabled: true
 solver:
@@ -1957,6 +1967,17 @@ outputs:
     assert result.metrics["lidar_camera_perturbation_projection_ratio_delta_mean"].value is not None
     assert "lidar_camera_mutual_information_score" in result.metrics
     assert result.metrics["koide_lidar_camera_result_available"].grade == "pass"
+    comparison = result.run.provenance["lidar_camera_baseline_comparison"]
+    assert comparison["candidate_ids"] == [
+        "calibrex_applied",
+        "kitti_dataset_reference",
+        "koide_external",
+    ]
+    assert comparison["capture_time_evidence"]["status"] == "declared_unavailable"
+    external_delta = comparison["pairwise_deltas"]["koide_external"]
+    assert external_delta["translation_delta_m"] == pytest.approx(math.sqrt(77.0))
+    assert external_delta["rotation_delta_deg"] == 0.0
+    assert external_delta["both_training_isolated"] is False
     assert result.run.provenance["dataset_initialization"]["applied_to"] == "T_base_link_lidar0"
     assert result.run.provenance["solver_adapter"] == "koide_lidar_camera"
     assert result.run.provenance["solver_adapter_applied_transforms"] == ["T_base_link_lidar0"]
@@ -2564,6 +2585,15 @@ def test_kitti_lidar_camera_demo_command_produces_evidence_artifacts(
     assert result.metrics["koide_lidar_camera_execution_success"].reason == (
         "external execution was not requested"
     )
+    assert result.metrics["lidar_camera_capture_time_policy_declared"].value == 1.0
+    assert result.metrics["lidar_camera_capture_time_deskew_applied"].value == 0.0
+    comparison = result.run.provenance["lidar_camera_baseline_comparison"]
+    assert comparison["capture_time_evidence"]["status"] == "declared_unavailable"
+    assert comparison["capture_time_evidence"]["deskew_applied"] is False
+    applied_delta = comparison["pairwise_deltas"]["calibrex_applied"]
+    assert applied_delta["translation_delta_m"] == 0.0
+    assert applied_delta["rotation_delta_deg"] == 0.0
+    assert applied_delta["holdout_edge_alignment_delta"] == 0.0
     assert result.run.provenance.get("solver_adapter_applied_transforms") is None
 
     lidar_transform = result.transforms["T_base_link_lidar0"]

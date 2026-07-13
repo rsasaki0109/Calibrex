@@ -984,6 +984,24 @@ def _register_builtin_metrics() -> None:
             family="lidar_camera",
         ),
         MetricDefinition(
+            "lidar_camera_comparison_candidate_count",
+            "Camera-LiDAR extrinsic candidates evaluated on the shared frame split",
+            "candidates",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "lidar_camera_capture_time_policy_declared",
+            "Whether a valid structured LiDAR capture-time policy was declared",
+            "bool",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "lidar_camera_capture_time_deskew_applied",
+            "Whether per-point LiDAR capture-time deskew was applied for camera projection",
+            "bool",
+            "lidar_camera",
+        ),
+        MetricDefinition(
             "lidar_imu_holdout_rotation_rate_rmse_dps",
             "Holdout rotation-rate RMSE between odometry and candidate-rotated IMU",
             "deg/s",

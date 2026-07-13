@@ -20,6 +20,10 @@ The contract is informed by:
 - OA-LICalib, *Observability-Aware Intrinsic and Extrinsic Calibration of
   LiDAR-IMU Systems*, arXiv `2205.03276`, which explicitly models individual
   LiDAR measurement timestamps and motion distortion in continuous time.
+- Koide et al., *General, Single-shot, Target-less, and Automatic
+  LiDAR-Camera Extrinsic Calibration Toolbox*, ICRA 2023, arXiv `2302.05094`,
+  which provides the independent direct-registration baseline kept behind the
+  Calibrex subprocess/precomputed-result adapter.
 
 No implementation code from these projects is copied into Calibrex.
 
@@ -40,7 +44,9 @@ offset. Camera exposure time is the deskew reference instant.
 The native primitive transforms a point through `T_body_lidar`, applies the
 inverse constant-body-twist motion from point capture to camera exposure, and
 returns it to the LiDAR frame at the exposure instant. It records minimum and
-maximum capture times, maximum deskew duration, point IDs, policy, and method.
+maximum capture times, maximum deskew duration, point IDs, policy, body twist,
+`T_body_lidar`, and method. Policy mappings reject unknown units, unknown stamp
+references, and non-finite clock offsets before evidence is produced.
 
 ## Evidence boundary
 
@@ -54,9 +60,9 @@ configured.
 
 Synthetic tests cover seconds/nanoseconds, sensor clock offset, translation,
 rotation, non-identity LiDAR mounting, independent per-point capture times,
-and empty scans. The next layer compares external and dataset-reference
-Camera-LiDAR transforms under the exact same frame split and capture-time
-policy.
+invalid policy values, and empty scans. The comparison layer evaluates external
+and dataset-reference Camera-LiDAR transforms under the exact same frame split
+and structured capture-time declaration.
 
 ## Common external-baseline comparison
 
@@ -71,11 +77,23 @@ An external transform is not labelled independently validated unless its
 adapter declares training isolation. Otherwise the same numbers remain useful
 post-hoc diagnostics but receive WARN with an explicit leakage limitation.
 Backend-native scores are not compared against Calibrex projection metrics.
-The provenance records each transform, split IDs, capture-time policy, and
-training-isolation declaration.
+For every non-reference candidate, Calibrex records the SE(3) translation and
+rotation delta from the KITTI dataset reference together with candidate-minus-
+reference holdout projection, edge, and depth-edge deltas. This exposes cases
+where meaningfully different transforms are indistinguishable under weak image
+evidence. These deltas remain WARN diagnostics because no metrology acceptance
+threshold is declared. The provenance records each transform, split IDs,
+pairwise deltas, structured capture-time evidence, and training-isolation
+declaration.
 
-The checked two-frame KITTI public fixture materializes one train and one
-holdout frame. Both the dataset reference and currently applied candidate
+KITTI Velodyne `.bin` payloads contain `(x, y, z, intensity)` but no per-point
+capture offset. The configured policy is therefore validated and serialized,
+while `per_point_times_available=false` and `deskew_applied=false` are explicit.
+Calibrex does not infer firing times from array order. Projection remains a
+rigid scan at the LiDAR message timestamp, and the limitation is a WARN metric.
+
+The checked two-frame synthetic KITTI-shaped fixture materializes one train
+and one holdout frame. Both the dataset reference and currently applied candidate
 produce holdout projection ratio 1.0, edge alignment 0.5, and depth-edge
 alignment 0.5. These equal values are not evidence of method equivalence: the
 fixture is deliberately tiny and its calibration transform is identity. The
