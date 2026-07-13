@@ -11,6 +11,11 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
     FixedTrajectorySe3SolverOptions,
     FixedTrajectorySe3SolverResult,
 )
+from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
+    HoraudDornaikaHandEyeOptions,
+    HoraudDornaikaHandEyeResult,
+    HoraudDornaikaHandEyeSolver,
+)
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 from calibrex.solvers.native_hand_eye_comparison_solver import (
     NATIVE_HAND_EYE_COMPARISON_BACKEND,
@@ -154,6 +159,9 @@ __all__ = [
     "HandEyeEvaluation",
     "HandEyeMotionPair",
     "HandEyeProbeResult",
+    "HoraudDornaikaHandEyeOptions",
+    "HoraudDornaikaHandEyeResult",
+    "HoraudDornaikaHandEyeSolver",
     "IcpCandidateEvaluation",
     "IcpIteration",
     "IcpMultiStartTrial",

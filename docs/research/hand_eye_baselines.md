@@ -62,8 +62,36 @@ observable rank and condition number, sixth/seventh singular-direction gap,
 candidate count, and final constraint errors.
 
 This is not described as the Tsai-Lenz or Park-Martin separable solution. The
-three implementations share only typed inputs, deterministic split, closure
-evaluation, and falsification protocol.
+baselines share only typed inputs, deterministic split, closure evaluation,
+and falsification protocol.
+
+## Horaud and Dornaika closed form
+
+Primary reference: R. Horaud and F. Dornaika, *Hand-Eye Calibration*,
+International Journal of Robotics Research 14(3), 1995, DOI
+`10.1177/027836499501400301`, equations (16), (18), (27), and (29). The authors
+also provide the article text as arXiv `2311.12655`.
+
+For the classical formulation, corresponding nonzero motion rotations provide
+unit axes satisfying
+
+```text
+n_A = R_X n_B.
+```
+
+Writing `R_X n_B = q_X * n_B * conjugate(q_X)` turns every axis pair into a
+positive semidefinite four-dimensional quadratic form. The unit quaternion
+`q_X` is the eigenvector of their weighted sum associated with its smallest
+eigenvalue. Translation is then solved from the same `AX = XB` linear equation
+used by the other separable baselines.
+
+Calibrex records the axis singular spectrum and rank, all four quaternion
+objective eigenvalues, the smallest-eigenvalue gap, its normalization by the
+largest eigenvalue, and the translation spectrum. The eigengap represents the
+width of the closed-form minimum rather than claiming covariance. A single
+rotation-axis family produces a repeated minimum and is rejected. This is an
+independent NumPy implementation; no source implementation from the paper or
+another package is copied.
 
 ## Falsification protocol
 
@@ -106,8 +134,11 @@ absolute-pose reuse count is zero.
 | Park-Martin | 0.938° | 0.0172 m | 6/12 |
 | Tsai-Lenz | 0.945° | 0.0174 m | 6/12 |
 | Daniilidis | 0.939° | 0.0174 m | 6/12 |
+| Horaud-Dornaika | 0.985° | 0.0190 m | 6/12 |
 
-All three methods pass the declared closure gates of 2° and 3 cm. They do not
+All four methods pass the declared closure gates of 2° and 3 cm. Horaud-
+Dornaika has axis rank 3/3 and normalized quaternion eigengap 0.7758, passing
+the predeclared 0.001 minimum-width gate. The four methods do not
 reach the unchanged 0.75 known-bad detectable-fraction gate, so the public run
 is honestly **INCONCLUSIVE**, not PASS. This indicates limited falsification
 power in the selected motion blocks despite low closure residuals. The

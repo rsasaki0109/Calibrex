@@ -221,6 +221,15 @@ def _apply_pipeline_adapter(
     if adapter_result.backend == NATIVE_PLANAR_BOARD_BACKEND and adapter_result.status == "pass":
         result.degeneracy.grade = "pass"
         result.degeneracy.reason = None
+    if adapter_result.backend == NATIVE_HAND_EYE_COMPARISON_BACKEND:
+        result.degeneracy.grade = (
+            "pass"
+            if adapter_result.observability is not None
+            and adapter_result.observability.grade == "pass"
+            and not adapter_result.warnings
+            else "warn"
+        )
+        result.degeneracy.reason = None
     result.degeneracy.reason = _append_reason(result.degeneracy.reason, adapter_result.warnings)
 
 

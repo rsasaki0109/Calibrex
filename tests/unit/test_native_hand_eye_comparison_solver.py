@@ -15,6 +15,7 @@ from calibrex.data.ethz_hand_eye import (
     read_ethz_robot_arm_hand_eye_motions,
 )
 from calibrex.data.inspect import DatasetInspection
+from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.solvers.native_hand_eye_comparison_solver import (
     NativeHandEyeComparisonSolver,
 )
@@ -63,7 +64,9 @@ def _write_synthetic_archive(path: Path, count: int = 40) -> SE3:
     return truth
 
 
-def _config(dataset_path: Path) -> CalibrationConfig:
+def _config(
+    dataset_path: Path, *, min_horaud_gap: float = 1.0e-3
+) -> CalibrationConfig:
     return CalibrationConfig.model_validate(
         {
             "dataset": {"type": "filesystem", "path": str(dataset_path)},
@@ -80,6 +83,9 @@ def _config(dataset_path: Path) -> CalibrationConfig:
                             "archive_file": "robot_arm_w_color_camera_real.zip",
                             "motion_stride": 1,
                             "maximum_time_delta_sec": 0.005,
+                            "min_horaud_quaternion_normalized_eigengap": (
+                                min_horaud_gap
+                            ),
                         },
                     }
                 }
@@ -120,7 +126,14 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
         np.asarray(result.transforms["T_hand_eye"].translation_m) - truth.translation_m
     ) < 1.0e-9
     assert result.metrics["hand_eye_absolute_pose_reuse_count"].value == 0.0
-    for method in ("park_martin", "tsai_lenz", "daniilidis"):
+    assert result.metrics["hand_eye_horaud_dornaika_rotation_axis_rank"].grade == "pass"
+    assert (
+        result.metrics[
+            "hand_eye_horaud_dornaika_quaternion_normalized_eigengap"
+        ].grade
+        == "pass"
+    )
+    for method in ("park_martin", "tsai_lenz", "daniilidis", "horaud_dornaika"):
         assert result.metrics[f"hand_eye_{method}_holdout_rotation_rmse_deg"].grade == "pass"
         assert (
             result.metrics[f"hand_eye_{method}_known_bad_detectable_fraction"].value
@@ -128,3 +141,49 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
         )
     assert result.provenance["metrics_origin"] == "recomputed"
     assert result.provenance["data_verified"] is False
+    comparison = result.provenance["native_hand_eye_comparison"]
+    assert isinstance(comparison, dict)
+    results = comparison["results"]
+    assert isinstance(results, dict)
+    assert results["horaud_dornaika"]["paper_doi"] == "10.1177/027836499501400301"
+
+
+def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
+    tmp_path: Path,
+) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config_path = tmp_path / "config.json"
+    config_path.write_text(_config(tmp_path).model_dump_json(), encoding="utf-8")
+
+    result = run_calibration(
+        config_path, CalibrationRunOptions(output_dir=tmp_path / "output")
+    )
+
+    assert result is not None
+    assert result.degeneracy.grade == "pass"
+    assert result.degeneracy.reason is None
+    assert "hand_eye_horaud_dornaika_quaternion_normalized_eigengap" in result.metrics
+
+
+def test_declared_minimum_width_gate_cannot_be_weakened_by_convergence(
+    tmp_path: Path,
+) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, min_horaud_gap=1.0)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    metric = result.metrics[
+        "hand_eye_horaud_dornaika_quaternion_normalized_eigengap"
+    ]
+    assert metric.grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"
+    assert "horaud_quaternion_minimum_width" in result.observability.weak_directions

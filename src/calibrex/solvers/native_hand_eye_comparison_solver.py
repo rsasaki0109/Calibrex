@@ -1,4 +1,4 @@
-"""Native comparison adapter for three independent hand-eye solvers."""
+"""Native comparison adapter for four independent hand-eye solvers."""
 
 from __future__ import annotations
 
@@ -23,6 +23,11 @@ from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeResult,
     DaniilidisHandEyeSolver,
 )
+from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
+    HoraudDornaikaHandEyeOptions,
+    HoraudDornaikaHandEyeResult,
+    HoraudDornaikaHandEyeSolver,
+)
 from calibrex.solvers.park_martin_hand_eye_solver import (
     HandEyeMotionPair,
     ParkMartinHandEyeOptions,
@@ -40,7 +45,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run Park-Martin, Tsai-Lenz, and Daniilidis on one motion protocol."""
+    """Run four primary-paper baselines on one motion and evidence protocol."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -88,15 +93,31 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         dual_options = DaniilidisHandEyeOptions(
             holdout_ratio=holdout_ratio, split_seed=split_seed
         )
+        horaud_options = HoraudDornaikaHandEyeOptions(
+            holdout_ratio=holdout_ratio, split_seed=split_seed
+        )
         park = ParkMartinHandEyeSolver().solve(motions, park_options)
         tsai = TsaiLenzHandEyeSolver().solve(motions, tsai_options)
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
+        horaud = HoraudDornaikaHandEyeSolver().solve(motions, horaud_options)
         metrics = _comparison_metrics(
-            dataset, motions, park, tsai, dual, tsai_options, options
+            dataset, motions, park, tsai, dual, horaud, tsai_options, options
         )
         all_converged = all(
             transform is not None
-            for transform in (park.transform_x, tsai.transform_x, dual.transform_x)
+            for transform in (
+                park.transform_x,
+                tsai.transform_x,
+                dual.transform_x,
+                horaud.transform_x,
+            )
+        )
+        all_gates_pass = all(metric.grade != "fail" for metric in metrics.values())
+        horaud_observable = (
+            metrics[
+                "hand_eye_horaud_dornaika_quaternion_normalized_eigengap"
+            ].grade
+            == "pass"
         )
         selected = dual.transform_x
         warnings = _comparison_warnings(metrics, dataset)
@@ -104,14 +125,21 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         return SolverAdapterResult(
             backend=self.backend,
             available=True,
-            status="pass" if all_converged and not warnings else "inconclusive",
+            status=(
+                "pass"
+                if all_converged and all_gates_pass and not warnings
+                else "inconclusive"
+            ),
             metrics=metrics,
             transforms={"T_hand_eye": selected} if selected is not None else {},
             observability=ObservabilityResult(
                 rank=dual.linear_rank,
                 condition_number=dual.observable_condition_number,
-                weak_directions=([] if not warnings else ["hand_eye_perturbation_power"]),
-                grade="pass" if all_converged else "fail",
+                weak_directions=[
+                    *([] if horaud_observable else ["horaud_quaternion_minimum_width"]),
+                    *([] if not warnings else ["hand_eye_perturbation_power"]),
+                ],
+                grade="pass" if all_converged and horaud_observable else "fail",
             ),
             provenance={
                 "metrics_origin": "recomputed",
@@ -137,6 +165,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "park_martin": park.as_dict(),
                         "tsai_lenz": tsai.as_dict(),
                         "daniilidis": dual.as_dict(),
+                        "horaud_dornaika": horaud.as_dict(),
                     },
                 },
             },
@@ -150,12 +179,16 @@ def _comparison_metrics(
     park: ParkMartinHandEyeResult,
     tsai: TsaiLenzHandEyeResult,
     dual: DaniilidisHandEyeResult,
+    horaud: HoraudDornaikaHandEyeResult,
     probe_options: TsaiLenzHandEyeOptions,
     factor_options: dict[str, Any],
 ) -> dict[str, MetricResult]:
     max_rotation = float(factor_options.get("max_holdout_rotation_rmse_deg", 2.0))
     max_translation = float(factor_options.get("max_holdout_translation_rmse_m", 0.03))
     min_detectable = float(factor_options.get("min_known_bad_detectable_fraction", 0.75))
+    min_horaud_gap = float(
+        factor_options.get("min_horaud_quaternion_normalized_eigengap", 1.0e-3)
+    )
     metrics: dict[str, MetricResult] = {
         "hand_eye_motion_pair_count": MetricResult(
             value=float(len(dataset.motions)), unit="pairs", grade="pass"
@@ -165,6 +198,23 @@ def _comparison_metrics(
             unit="poses",
             grade="pass" if dataset.absolute_pose_reuse_count == 0 else "fail",
             reason="absolute poses must not leak between relative-motion pairs",
+        ),
+        "hand_eye_horaud_dornaika_rotation_axis_rank": MetricResult(
+            value=float(horaud.rotation_axis_rank),
+            unit="rank",
+            grade="pass" if horaud.rotation_axis_rank >= 2 else "fail",
+            reason="at least two independent rotation-axis directions are required",
+        ),
+        "hand_eye_horaud_dornaika_quaternion_normalized_eigengap": MetricResult(
+            value=horaud.quaternion_normalized_eigengap,
+            unit="ratio",
+            grade=(
+                "pass"
+                if horaud.quaternion_normalized_eigengap is not None
+                and horaud.quaternion_normalized_eigengap >= min_horaud_gap
+                else "fail"
+            ),
+            reason=f"closed-form minimum-width gate >= {min_horaud_gap:g}",
         ),
     }
     park_probes = (
@@ -185,11 +235,13 @@ def _comparison_metrics(
         "park_martin": park_probes,
         "tsai_lenz": tsai.probes,
         "daniilidis": dual.probes,
+        "horaud_dornaika": horaud.probes,
     }
     for name, result in (
         ("park_martin", park),
         ("tsai_lenz", tsai),
         ("daniilidis", dual),
+        ("horaud_dornaika", horaud),
     ):
         rotation = result.holdout_evaluation.rotation_closure_rmse_deg
         translation = result.holdout_evaluation.translation_closure_rmse_m

@@ -2,7 +2,7 @@ schema_version: slac.config/v0.1
 
 project:
   name: ethz_real_hand_eye_comparison
-  description: Three native AX=XB solvers on ETHZ ASL public real robot-arm pose streams.
+  description: Four native AX=XB solvers on ETHZ ASL public real robot-arm pose streams.
   output_dir: outputs/ethz_hand_eye_robot_arm_real
   domain: robotics
 
@@ -42,6 +42,7 @@ pipeline:
         max_holdout_rotation_rmse_deg: 2.0
         max_holdout_translation_rmse_m: 0.03
         min_known_bad_detectable_fraction: 0.75
+        min_horaud_quaternion_normalized_eigengap: 0.001
 
 solver:
   backend: native_hand_eye_comparison
@@ -55,10 +56,18 @@ evaluation:
   metrics:
     - hand_eye_park_martin_holdout_rotation_rmse_deg
     - hand_eye_park_martin_holdout_translation_rmse_m
+    - hand_eye_park_martin_known_bad_detectable_fraction
     - hand_eye_tsai_lenz_holdout_rotation_rmse_deg
     - hand_eye_tsai_lenz_holdout_translation_rmse_m
+    - hand_eye_tsai_lenz_known_bad_detectable_fraction
     - hand_eye_daniilidis_holdout_rotation_rmse_deg
     - hand_eye_daniilidis_holdout_translation_rmse_m
+    - hand_eye_daniilidis_known_bad_detectable_fraction
+    - hand_eye_horaud_dornaika_holdout_rotation_rmse_deg
+    - hand_eye_horaud_dornaika_holdout_translation_rmse_m
+    - hand_eye_horaud_dornaika_known_bad_detectable_fraction
+    - hand_eye_horaud_dornaika_rotation_axis_rank
+    - hand_eye_horaud_dornaika_quaternion_normalized_eigengap
 
 outputs:
   result: result.yaml
