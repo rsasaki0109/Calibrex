@@ -295,11 +295,27 @@ def _linearize(
     layout: dict[str, slice],
     options: JointOptimizerOptions,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    baseline = _factor_residuals(factors, values)
+    baseline_parts = [factor.residuals(values) for factor in factors]
+    baseline = np.asarray(
+        [value for residuals in baseline_parts for value in residuals],
+        dtype=np.float64,
+    )
     jacobian = np.zeros((len(baseline), sum(item.stop - item.start for item in layout.values())))
+    row_slices: list[slice] = []
+    row_cursor = 0
+    for residuals in baseline_parts:
+        row_slices.append(slice(row_cursor, row_cursor + len(residuals)))
+        row_cursor += len(residuals)
     block_by_name = {block.name: block for block in blocks}
     for name, block_slice in layout.items():
         block = block_by_name[name]
+        affected = [
+            (factor, row_slice, len(baseline_parts[index]))
+            for index, (factor, row_slice) in enumerate(
+                zip(factors, row_slices, strict=True)
+            )
+            if name in factor.variable_names
+        ]
         for local_index in range(block.dimension):
             step = (
                 block.finite_difference_steps[local_index]
@@ -308,9 +324,17 @@ def _linearize(
             )
             plus = _perturb(values, name, local_index, step)
             minus = _perturb(values, name, local_index, -step)
-            jacobian[:, block_slice.start + local_index] = (
-                _factor_residuals(factors, plus) - _factor_residuals(factors, minus)
-            ) / (2.0 * step)
+            for factor, row_slice, residual_count in affected:
+                plus_residuals = factor.residuals(plus)
+                minus_residuals = factor.residuals(minus)
+                if (
+                    len(plus_residuals) != residual_count
+                    or len(minus_residuals) != residual_count
+                ):
+                    raise ValueError("joint factor residual dimension changed during linearization")
+                jacobian[row_slice, block_slice.start + local_index] = (
+                    np.asarray(plus_residuals) - np.asarray(minus_residuals)
+                ) / (2.0 * step)
     return baseline, jacobian
 
 

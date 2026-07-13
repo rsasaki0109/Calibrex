@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from calibrex.core.result import load_result
 from calibrex.data.tum_rgbd import (
     associate_depth_groundtruth,
     read_groundtruth,
@@ -11,9 +12,17 @@ from calibrex.data.tum_rgbd import (
     read_tum_depth_png,
     sample_tum_depth_points,
 )
+from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TUM_ROOT = _REPO_ROOT / "data" / "public" / "rgbd_dataset_freiburg1_xyz"
+_JOINT_CONFIG = (
+    _REPO_ROOT
+    / "examples"
+    / "public_datasets"
+    / "tum_rgbd_freiburg1_xyz"
+    / "native_joint_slac_config.yaml"
+)
 
 requires_tum_xyz = pytest.mark.skipif(
     not (_TUM_ROOT / "depth.txt").exists()
@@ -41,3 +50,68 @@ def test_public_tum_depth_and_groundtruth_frontend() -> None:
     assert len(points) >= 500
     assert min(point[2] for point in points) >= 0.2
     assert max(point[2] for point in points) <= 5.0
+
+
+@requires_tum_xyz
+def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
+    output_dir = tmp_path / "outputs"
+    result = run_calibration(
+        _JOINT_CONFIG,
+        CalibrationRunOptions(output_dir=output_dir),
+    )
+
+    assert result is not None
+    assert result.run.provenance["solver_adapter"] == "native_tum_joint_slac"
+    assert result.run.provenance["solver_adapter_status"] == "converged"
+    assert result.run.provenance["native_tum_joint_slac_depth_index_sha256"]
+    assert result.run.provenance["native_tum_joint_slac_groundtruth_sha256"]
+    map_frames = set(result.run.provenance["native_tum_joint_slac_map_frame_ids"])
+    query_frames = set(result.run.provenance["native_tum_joint_slac_query_frame_ids"])
+    assert map_frames.isdisjoint(query_frames)
+    solver = result.run.provenance["native_tum_joint_slac_solver"]
+    assert set(solver["train_observation_groups"]).isdisjoint(
+        solver["holdout_observation_groups"]
+    )
+    rmse = result.metrics["tum_joint_point_to_plane_rmse_m"]
+    assert rmse.train is not None and rmse.train < 0.05
+    assert rmse.holdout is not None and rmse.holdout < 0.05
+    assert rmse.grade == "pass"
+    assert result.metrics["tum_joint_augmented_information_rank"].value == 54.0
+    assert result.metrics["tum_joint_data_only_extrinsic_rank"].value == 6.0
+    condition = result.metrics["tum_joint_data_only_extrinsic_condition_number"].value
+    assert condition is not None and condition < 100.0
+    assert result.metrics["tum_joint_known_bad_detectable_fraction"].value == pytest.approx(
+        0.75
+    )
+    assert result.metrics["tum_joint_known_bad_detectable_fraction"].grade == "warn"
+    translation = result.metrics["tum_joint_identity_reference_translation_error_m"]
+    rotation = result.metrics["tum_joint_identity_reference_rotation_error_deg"]
+    assert translation.value is not None and translation.value < 0.05
+    assert rotation.value is not None and rotation.value < 1.0
+    transform = result.transforms["T_trajectory_body_rgbd0"]
+    assert transform.provenance.tool_name == "native_tum_joint_slac"
+    saved = load_result(output_dir / "result.yaml")
+    assert saved.run.provenance["native_tum_joint_slac_method"] == (
+        "tum_multicapture_pose_extrinsic/v0.1"
+    )
+
+
+def test_tum_joint_pipeline_reports_missing_public_download(tmp_path: Path) -> None:
+    config = tmp_path / "missing_tum_joint.yaml"
+    config.write_text(
+        _JOINT_CONFIG.read_text(encoding="utf-8").replace(
+            "data/public/rgbd_dataset_freiburg1_xyz",
+            str(tmp_path / "missing-tum"),
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_calibration(
+        config,
+        CalibrationRunOptions(output_dir=tmp_path / "missing-output"),
+    )
+
+    assert result is not None
+    assert result.run.provenance["solver_adapter_status"] == "unavailable"
+    assert result.metrics["native_tum_joint_slac_available"].value == 0.0
+    assert result.observability.rank is None

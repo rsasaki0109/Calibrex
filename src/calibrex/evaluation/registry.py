@@ -570,6 +570,67 @@ def _register_builtin_metrics() -> None:
             family="backend",
         ),
         MetricDefinition(
+            "native_tum_joint_slac_available",
+            "Native TUM RGB-D multi-capture joint SLAC availability",
+            family="backend",
+        ),
+        MetricDefinition(
+            "tum_joint_map_frame_count",
+            "Disjoint TUM RGB-D frames reserved to build the world plane map",
+            "frames",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_query_frame_count",
+            "TUM RGB-D query frames grouped for joint train/holdout",
+            "frames",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_correspondence_count",
+            "Multi-capture TUM point-to-world-plane correspondences",
+            "correspondences",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_point_to_plane_rmse_m",
+            "TUM joint point-to-plane RMSE excluding trajectory priors",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_augmented_information_rank",
+            "TUM joint pose/extrinsic rank including measured-pose priors",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_data_only_extrinsic_rank",
+            "TUM train-geometry shared-extrinsic rank with poses fixed",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_data_only_extrinsic_condition_number",
+            "TUM train-geometry normalized shared-extrinsic condition number",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_known_bad_detectable_fraction",
+            "Fraction of signed shared-extrinsic perturbations detected on TUM holdout",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_identity_reference_translation_error_m",
+            "TUM shared mounting translation error against camera-frame identity",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_identity_reference_rotation_error_deg",
+            "TUM shared mounting rotation error against camera-frame identity",
+            "deg",
+            "joint_slac",
+        ),
+        MetricDefinition(
             "joint_slac_point_to_plane_rmse_m",
             "Joint pose-extrinsic point-to-plane RMSE excluding priors",
             "m",

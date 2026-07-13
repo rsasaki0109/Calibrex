@@ -1,0 +1,91 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: tum_rgbd_freiburg1_xyz_native_joint_slac
+  description: Native multi-capture pose/extrinsic joint calibration on TUM fr1/xyz
+  output_dir: outputs/tum_rgbd_freiburg1_xyz_native_joint_slac
+  domain: robotics
+
+dataset:
+  type: tum_rgbd
+  path: data/public/rgbd_dataset_freiburg1_xyz
+  time_base: sensor_time_sec
+
+sensors:
+  rgbd0:
+    type: camera
+    model: tum_rgbd_registered_depth
+    frame_id: rgbd0
+    intrinsics:
+      estimate: false
+      # Official TUM projection page recommends this default set for the
+      # pre-registered depth maps because applying RGB undistortion is nontrivial.
+      fx: 525.0
+      fy: 525.0
+      cx: 319.5
+      cy: 239.5
+      distortion_model: none
+
+frames:
+  world:
+    root: true
+  trajectory_body:
+    parent: world
+    transform:
+      estimate: false
+  rgbd0:
+    parent: trajectory_body
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+pipeline:
+  type: multi_sensor_slac
+  frontends: [tum_depth_png, tum_groundtruth_trajectory]
+  factors:
+    tum_rgbd_joint_point_to_plane:
+      enabled: true
+      options:
+        frame_start_index: 180
+        frame_stride: 10
+        map_frame_count: 3
+        query_frame_count: 8
+        map_points_per_frame: 5000
+        query_points_per_frame: 1000
+        max_correspondences_per_frame: 400
+        voxel_size_m: 0.1
+        correspondence_gate_m: 0.15
+        max_pose_time_delta_sec: 0.02
+        pose_prior_translation_sigma_m: 0.01
+        pose_prior_rotation_sigma_deg: 0.5
+        holdout_ratio: 0.25
+        huber_delta_m: 0.05
+        known_bad_translation_m: 0.03
+        known_bad_rotation_deg: 0.5
+        reference_translation_gate_m: 0.05
+        reference_rotation_gate_deg: 1.0
+
+solver:
+  backend: native_tum_joint_slac
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+  seed: 23
+
+evaluation:
+  holdout_ratio: 0.25
+  metrics:
+    - tum_joint_point_to_plane_rmse_m
+    - tum_joint_augmented_information_rank
+    - tum_joint_data_only_extrinsic_rank
+    - tum_joint_data_only_extrinsic_condition_number
+    - tum_joint_known_bad_detectable_fraction
+    - tum_joint_identity_reference_translation_error_m
+    - tum_joint_identity_reference_rotation_error_deg
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

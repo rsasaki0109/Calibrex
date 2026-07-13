@@ -102,6 +102,17 @@ def test_tum_rgbd_public_config_compiles() -> None:
     assert "open3d_control_grid" in {variable.name for variable in problem.variables}
 
 
+def test_tum_rgbd_native_joint_public_config_compiles() -> None:
+    config = load_config(
+        "examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml"
+    )
+    frame_graph = FrameGraph.from_config(config)
+
+    assert config.solver.backend == "native_tum_joint_slac"
+    assert frame_graph.nodes["rgbd0"].parent == "trajectory_body"
+    assert "tum_rgbd_joint_point_to_plane" in config.pipeline.factors
+
+
 def test_kitti_public_config_compiles_lidar_camera_factor() -> None:
     config = load_config("examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml")
     problem = build_problem(config, FrameGraph.from_config(config), inspect_dataset(config.dataset))

@@ -88,7 +88,9 @@ from the independent fixed-trajectory native baseline by about 0.057 m and
 0.362 degrees. Raw NPZ hashes, split groups, prior policy, full iteration
 history, probes, and baseline status are retained in result provenance.
 
-The next integration step is a multi-capture public sequence with independently
-measured trajectory support. That removes the single-pair gauge prior as the
-main source of pose/extrinsic separation and permits genuine data-only joint
-observability reporting.
+The TUM RGB-D fr1/xyz integration now adds eight query-pose blocks, a shared
+camera mounting block, three disjoint map frames, and independent ground-truth
+trajectory support. It reports the prior-augmented joint rank separately from
+the data-only rank of the shared extrinsic. The next integration step is a
+shared depth scale/bias or spatial correction block, closer to the original
+consumer-depth-camera SLAC calibration function.

@@ -85,6 +85,10 @@ from calibrex.solvers.native_registration_comparison_solver import (
     NATIVE_REGISTRATION_COMPARISON_BACKEND,
     NativeRegistrationComparisonSolver,
 )
+from calibrex.solvers.native_tum_joint_slac_solver import (
+    NATIVE_TUM_JOINT_SLAC_BACKEND,
+    NativeTUMJointSlacSolver,
+)
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import write_report_artifacts
@@ -184,6 +188,8 @@ def _apply_pipeline_adapter(
         adapter_result = NativeRegistrationComparisonSolver().solve(
             config, frame_graph, inspection
         )
+    elif config.solver.backend == NATIVE_TUM_JOINT_SLAC_BACKEND:
+        adapter_result = NativeTUMJointSlacSolver().solve(config, frame_graph, inspection)
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -201,6 +207,7 @@ def _apply_pipeline_adapter(
             NATIVE_PLANAR_BOARD_BACKEND,
             NATIVE_HAND_EYE_COMPARISON_BACKEND,
             NATIVE_REGISTRATION_COMPARISON_BACKEND,
+            NATIVE_TUM_JOINT_SLAC_BACKEND,
         }
         and adapter_result.transforms
     ):

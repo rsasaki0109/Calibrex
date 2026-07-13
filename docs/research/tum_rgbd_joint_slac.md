@@ -40,12 +40,33 @@ scaling, pinhole coordinates, nearest-pose association, and SE(3) conversion.
 The checked local public sample is also decoded directly before factor
 integration.
 
-## Next factor integration
+## Joint factor integration
 
-The next commit will reserve disjoint map frames, build world-frame voxel
-planes, and create one pose block per query frame plus a shared camera mounting
-block. Ground-truth pose priors will be train-only. Query frames, not pixels,
-will define train/holdout groups. The result will separately report augmented
-joint rank and data-only shared-extrinsic rank, identity-reference extrinsic
-error, known-bad holdout response, raw image/trajectory hashes, and the exact
-frame-selection protocol.
+`NativeTUMJointSlacSolver` reserves three disjoint map frames, builds
+world-frame voxel planes, and creates one pose block for each of eight query
+frames plus a shared camera mounting block. Ground-truth pose priors are
+train-only. Query frames, not pixels, define train/holdout groups. Numeric
+linearization uses declared factor ownership, so perturbing one pose block only
+re-evaluates that frame's factors while the shared extrinsic still touches all
+frames.
+
+The public fr1/xyz run converges with 0.0298 m train and 0.0318 m held-out
+point-to-plane RMSE. The augmented 54-dimensional joint system is full rank.
+With optimized poses fixed, the train geometry gives shared-extrinsic rank 6
+and normalized condition number 14.1. TUM ground truth already describes the
+camera frame, so the mounting reference is identity; the recovered shared
+transform is 0.0376 m and 0.205 degrees from that reference, inside the declared
+0.05 m / 1 degree gates.
+
+Nine of twelve signed shared-extrinsic perturbations worsen held-out RMSE, a
+detectable fraction of 0.75. This remains WARN under the unchanged requirement
+of 1.0. The result records depth-index and trajectory hashes, hashes for all 11
+selected PNGs, timestamp association deltas, disjoint frame IDs, map support,
+intrinsics, options, iterations, split groups, and every known-bad probe.
+
+This is independently trajectory-supported joint refinement, not
+trajectory-from-scratch SLAM: the 54-dimensional rank includes measured-pose
+priors and is therefore reported as augmented. The separate rank-6 metric is
+the data-only shared-extrinsic diagnostic. The next extension is a shared depth
+scale/bias or spatial depth-correction block, closer to the correction function
+estimated in Zhou and Koltun's original SLAC formulation.

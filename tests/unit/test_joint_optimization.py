@@ -210,3 +210,30 @@ def test_factor_callback_receives_only_declared_parameter_blocks() -> None:
     factor = JointResidualBlock("factor", "capture", ("x",), evaluator)
     assert factor.residuals({"x": (0.0,), "secret": (9.0,)}) == (0.0,)
     assert seen == [{"x"}]
+
+
+def test_numeric_linearization_evaluates_only_factors_owned_by_each_block() -> None:
+    calls = {"x": 0, "y": 0}
+
+    def x_factor(values: dict[str, tuple[float, ...]]) -> tuple[float]:
+        calls["x"] += 1
+        return (values["x"][0] + values["x"][1] - 1.0,)
+
+    def y_factor(values: dict[str, tuple[float, ...]]) -> tuple[float]:
+        calls["y"] += 1
+        return (values["y"][0] - 1.0,)
+
+    BackendNeutralJointOptimizer().solve(
+        [JointParameterBlock("x", (0.0, 0.0)), JointParameterBlock("y", (0.0,))],
+        [
+            JointResidualBlock("x-factor", "x-group", ("x",), x_factor),
+            JointResidualBlock("y-factor", "y-group", ("y",), y_factor),
+        ],
+        JointOptimizerOptions(
+            max_iterations=1,
+            holdout_ratio=0.0,
+            minimum_train_factors=1,
+        ),
+    )
+
+    assert calls["x"] - calls["y"] == 4

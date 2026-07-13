@@ -1,3 +1,4 @@
+import math
 from dataclasses import replace
 
 import pytest
@@ -10,6 +11,11 @@ from calibrex.graph.joint_factors import (
     make_joint_prior_factor,
     make_joint_radar_doppler_factor,
     se3_from_tangent,
+)
+from calibrex.graph.joint_optimization import (
+    BackendNeutralJointOptimizer,
+    JointOptimizerOptions,
+    JointParameterBlock,
 )
 
 
@@ -97,3 +103,75 @@ def test_joint_prior_factor_normalizes_each_dimension() -> None:
 def test_se3_tangent_requires_six_values() -> None:
     with pytest.raises(ValueError, match="six"):
         se3_from_tangent((0.0, 0.0))
+
+
+def test_multicapture_pose_prior_problem_recovers_shared_extrinsic_truth() -> None:
+    truth = (0.02, -0.01, 0.015, 0.005, -0.004, 0.006)
+    blocks: list[JointParameterBlock] = []
+    factors = []
+    for capture in range(4):
+        pose_block = f"pose-{capture}"
+        pose_initial = se3_from_tangent(
+            (0.2 * capture, -0.1 * capture, 0.05 * capture, 0.01 * capture, 0.0, 0.0)
+        )
+        blocks.append(JointParameterBlock(pose_block, (0.0,) * 6))
+        factors.append(
+            make_joint_prior_factor(
+                factor_id=f"prior-{capture}",
+                observation_group=f"prior-{capture}",
+                block=pose_block,
+                target=(0.0,) * 6,
+                sigma=(0.001,) * 3 + (0.0005,) * 3,
+            )
+        )
+        for sample in range(24):
+            phase = 0.31 * sample + 0.17 * capture
+            point = (
+                0.8 * math.sin(phase),
+                0.6 * math.cos(0.7 * phase),
+                1.2 + 0.2 * math.sin(1.3 * phase),
+            )
+            normal = (
+                math.cos(0.9 * phase),
+                math.sin(1.1 * phase),
+                0.4 + math.cos(0.5 * phase),
+            )
+            plane_point = pose_initial.compose(se3_from_tangent(truth)).transform_point(
+                point
+            )
+            measurement = JointPointToPlaneMeasurement(
+                f"plane-{capture}-{sample}",
+                f"capture-{capture}",
+                point,
+                plane_point,
+                normal,
+                pose_initial,
+                SE3.identity(),
+            )
+            factors.append(
+                make_joint_point_to_plane_factor(
+                    measurement,
+                    pose_block=pose_block,
+                    extrinsic_block="extrinsic",
+                )
+            )
+    blocks.append(
+        JointParameterBlock(
+            "extrinsic",
+            (0.0,) * 6,
+            known_bad_steps=(0.03,) * 3 + (math.radians(0.5),) * 3,
+        )
+    )
+
+    result = BackendNeutralJointOptimizer().solve(
+        blocks,
+        factors,
+        JointOptimizerOptions(holdout_ratio=0.25, split_seed=7, huber_delta=0.05),
+    )
+
+    assert result.status == "converged"
+    assert result.optimized_values["extrinsic"] == pytest.approx(truth, abs=2e-5)
+    assert result.information_rank == 30
+    assert result.holdout_rmse is not None and result.holdout_rmse < 1e-5
+    assert len(result.probes) == 12
+    assert all(probe.detectable is True for probe in result.probes)

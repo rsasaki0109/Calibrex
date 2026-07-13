@@ -41,6 +41,11 @@ from calibrex.solvers.native_registration_comparison_solver import (
     NativeRegistrationComparisonSolver,
     voxel_downsample_icp_points,
 )
+from calibrex.solvers.native_tum_joint_slac_solver import (
+    NATIVE_TUM_JOINT_SLAC_BACKEND,
+    NativeTUMJointSlacSolver,
+    TUMJointSlacOptions,
+)
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.solvers.park_martin_hand_eye_solver import (
     HandEyeEvaluation,
@@ -128,6 +133,7 @@ __all__ = [
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
     "NATIVE_PLANAR_BOARD_BACKEND",
     "NATIVE_REGISTRATION_COMPARISON_BACKEND",
+    "NATIVE_TUM_JOINT_SLAC_BACKEND",
     "BoardBoundaryCorrespondence",
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",
@@ -154,6 +160,7 @@ __all__ = [
     "NativeLidarPointToPlaneSolver",
     "NativePlanarBoardSolver",
     "NativeRegistrationComparisonSolver",
+    "NativeTUMJointSlacSolver",
     "NdtSubprocessAdapter",
     "NdtSubprocessOptions",
     "Open3DGeneralizedIcpAdapter",
@@ -193,6 +200,7 @@ __all__ = [
     "RobustPointToPointIcpSolver",
     "SolverAdapter",
     "SolverAdapterResult",
+    "TUMJointSlacOptions",
     "TsaiLenzHandEyeOptions",
     "TsaiLenzHandEyeResult",
     "TsaiLenzHandEyeSolver",
