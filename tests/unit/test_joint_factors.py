@@ -8,11 +8,15 @@ from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointPointToPlaneMeasurement,
     JointRadarDopplerMeasurement,
+    JointTrilinearDepthPointToPlaneMeasurement,
     make_joint_depth_point_to_plane_factor,
+    make_joint_lattice_smoothness_factor,
     make_joint_point_to_plane_factor,
     make_joint_prior_factor,
     make_joint_radar_doppler_factor,
+    make_joint_trilinear_depth_point_to_plane_factor,
     se3_from_tangent,
+    trilinear_lattice_weights,
 )
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
@@ -121,11 +125,9 @@ def test_depth_factor_couples_pose_extrinsic_scale_and_bias() -> None:
     assert factor.residuals(
         {"pose": pose, "extrinsic": extrinsic, "depth": calibration}
     ) == pytest.approx((0.0,), abs=1e-12)
-    assert abs(
-        factor.residuals(
-            {"pose": pose, "extrinsic": extrinsic, "depth": (0.0, 0.0)}
-        )[0]
-    ) > 1e-3
+    assert (
+        abs(factor.residuals({"pose": pose, "extrinsic": extrinsic, "depth": (0.0, 0.0)})[0]) > 1e-3
+    )
 
 
 def test_joint_prior_factor_normalizes_each_dimension() -> None:
@@ -138,6 +140,54 @@ def test_joint_prior_factor_normalizes_each_dimension() -> None:
     )
 
     assert factor.residuals({"bias": (2.0, 0.0)}) == pytest.approx((2.0, 1.0))
+    assert factor.split_policy == "train_only"
+
+
+def test_trilinear_lattice_weights_and_depth_factor() -> None:
+    weights = trilinear_lattice_weights(
+        (0.5, 0.5, 1.5),
+        minimum=(0.0, 0.0, 1.0),
+        maximum=(1.0, 1.0, 2.0),
+        shape=(2, 2, 2),
+    )
+    truth = tuple(0.01 * index for index in range(8))
+    displacement = sum(weight * offset for weight, offset in zip(weights, truth, strict=True))
+    factor = make_joint_trilinear_depth_point_to_plane_factor(
+        JointTrilinearDepthPointToPlaneMeasurement(
+            "lattice-depth",
+            "capture",
+            (0.0, 0.0, 1.0),
+            1.5,
+            weights,
+            (0.0, 0.0, 1.5 + displacement),
+            (0.0, 0.0, 1.0),
+            SE3.identity(),
+            SE3.identity(),
+        ),
+        pose_block="pose",
+        extrinsic_block="extrinsic",
+        depth_lattice_block="lattice",
+    )
+
+    assert weights == pytest.approx((0.125,) * 8)
+    assert factor.residuals(
+        {"pose": (0.0,) * 6, "extrinsic": (0.0,) * 6, "lattice": truth}
+    ) == pytest.approx((0.0,), abs=1e-12)
+    assert factor.family == "rgbd_trilinear_depth_point_to_plane"
+
+
+def test_lattice_smoothness_uses_each_axis_neighbor_once() -> None:
+    factor = make_joint_lattice_smoothness_factor(
+        factor_id="smooth",
+        observation_group="regularization",
+        block="lattice",
+        shape=(2, 2, 2),
+        sigma_m=0.1,
+    )
+
+    residuals = factor.residuals({"lattice": tuple(float(index) for index in range(8))})
+    assert len(residuals) == 12
+    assert residuals[:3] == pytest.approx((10.0, 20.0, 40.0))
     assert factor.split_policy == "train_only"
 
 
@@ -231,5 +281,67 @@ def test_multicapture_pose_prior_problem_recovers_shared_extrinsic_truth() -> No
     assert result.optimized_values["depth"] == pytest.approx(depth_truth, abs=2e-5)
     assert result.information_rank == 32
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-5
+    assert len(result.probes) == 16
+    assert all(probe.detectable is True for probe in result.probes)
+
+
+def test_trilinear_depth_lattice_recovers_synthetic_control_truth() -> None:
+    shape = (2, 2, 2)
+    minimum = (-0.5, -0.4, 1.0)
+    maximum = (0.5, 0.4, 2.0)
+    truth = (-0.03, 0.01, 0.025, -0.015, 0.02, -0.01, 0.035, -0.02)
+    blocks = [
+        JointParameterBlock("pose", (0.0,) * 6, fixed=True),
+        JointParameterBlock("extrinsic", (0.0,) * 6, fixed=True),
+        JointParameterBlock("lattice", (0.0,) * 8, known_bad_steps=(0.02,) * 8),
+    ]
+    factors = []
+    sample_index = 0
+    for z_fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
+        for y_fraction in (0.0, 0.5, 1.0):
+            for x_fraction in (0.0, 0.5, 1.0):
+                point = (
+                    minimum[0] + x_fraction * (maximum[0] - minimum[0]),
+                    minimum[1] + y_fraction * (maximum[1] - minimum[1]),
+                    minimum[2] + z_fraction * (maximum[2] - minimum[2]),
+                )
+                weights = trilinear_lattice_weights(
+                    point, minimum=minimum, maximum=maximum, shape=shape
+                )
+                displacement = sum(
+                    weight * offset for weight, offset in zip(weights, truth, strict=True)
+                )
+                ray = (point[0] / point[2], point[1] / point[2], 1.0)
+                corrected = tuple(value * (point[2] + displacement) for value in ray)
+                factors.append(
+                    make_joint_trilinear_depth_point_to_plane_factor(
+                        JointTrilinearDepthPointToPlaneMeasurement(
+                            f"lattice-{sample_index:03d}",
+                            f"capture-{sample_index % 5}",
+                            ray,
+                            point[2],
+                            weights,
+                            corrected,
+                            (0.2 + x_fraction, 0.3 + y_fraction, 1.0),
+                            SE3.identity(),
+                            SE3.identity(),
+                        ),
+                        pose_block="pose",
+                        extrinsic_block="extrinsic",
+                        depth_lattice_block="lattice",
+                    )
+                )
+                sample_index += 1
+
+    result = BackendNeutralJointOptimizer().solve(
+        blocks,
+        factors,
+        JointOptimizerOptions(holdout_ratio=0.2, split_seed=11),
+    )
+
+    assert result.status == "converged"
+    assert result.optimized_values["lattice"] == pytest.approx(truth, abs=1e-7)
+    assert result.information_rank == 8
+    assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
     assert len(result.probes) == 16
     assert all(probe.detectable is True for probe in result.probes)

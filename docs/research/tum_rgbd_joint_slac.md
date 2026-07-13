@@ -96,9 +96,32 @@ selected PNGs, timestamp association deltas, disjoint frame IDs, map support,
 intrinsics, depth convention, options, iterations, data-only observability,
 split groups, every known-bad probe, and all six transfer scores.
 
+### Trilinear depth-lattice foundation
+
+Zhou and Koltun define a static calibration mapping `C: P3 -> P3`, shared by
+all frames. Equation (3) samples it on a regular 3D lattice and evaluates a
+point with trilinear weights, while Equation (4) supplies a shape-preserving
+elastic regularizer. Their model is a full three-vector displacement field.
+
+Calibrex now provides a deliberately constrained ablation factor:
+`z_corrected = z_nominal + sum_l gamma_l(p) delta_z_l`. It uses the same
+bounded regular-lattice/trilinear interpolation structure but estimates one
+ray-depth displacement per control point, not the paper's full XYZ
+displacement. A separate train-only first-order neighbor factor penalizes
+scalar control differences; it is not claimed to reproduce the paper's local
+SE(3) elasticity term. This separation keeps the approximation explicit and
+lets later public-data evaluation compare no regularization, scalar
+smoothness, and a future full-vector elastic lattice without changing factor
+semantics.
+
+On a synthetic 2 by 2 by 2 lattice, the backend-neutral optimizer recovers all
+eight nonuniform control offsets within `1e-7 m`, obtains rank 8/8, yields
+held-out RMSE below `1e-8 m`, and detects all 16 signed control perturbations.
+
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension is a spatial depth-correction basis with an explicit ablation
-against the now-measured temporal map/frontend systematics.
+next extension connects the scalar lattice to the public multi-window frontend
+and performs the explicit regularization/transfer ablation against the
+now-measured temporal map/frontend systematics.
