@@ -68,3 +68,15 @@ at starts 60, 180, and 300. Their Frobenius differences from the fixed Hessians,
 normalized by fixed-Hessian norm, are 1.92, 10.12, and 10.68. Thus full rank
 does not imply a locally convex rematched objective, and fixed `J^T J` curvature
 materially misrepresents the association-aware landscape.
+
+## Multi-start basin contract
+
+Multi-start outcomes are clustered in parameter space after division by
+declared physical scales. Only converged starts participate. Each basin is
+represented by its lowest-objective member and records every contributing
+start plus its basin fraction. Objective-competitive basins use separately
+declared absolute and relative tolerances. More than one separated competitive
+basin is reported as ambiguity, with best-to-second objective gap and maximum
+normalized separation. Synthetic tests distinguish repeated starts in one
+basin from two objective-equivalent symmetric minima separated by 20 physical
+scale units, and retain non-converged start IDs in provenance.
