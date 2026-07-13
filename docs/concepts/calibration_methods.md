@@ -16,6 +16,7 @@ holdout evaluation, and known-bad controls.
 | Radar Doppler candidate consistency | Radar yaw evidence | Implemented | frame holdout, four yaw controls, sensor policy |
 | Robust Radar ego velocity | Scan-wise motion estimation from Doppler | Native solver | synthetic truth, outliers, LOS rank diagnostics |
 | Radar-to-trajectory yaw | Radar extrinsic rotation from paired velocities | Native solver | deterministic holdout, direction diversity, four yaw controls |
+| Radar lever arm and clock offset | Translation/time from Radar and reference velocities | Native solver | profiled time grid, lever-arm spectrum, holdout, eight controls |
 | Planar-board LiDAR-camera plane alignment | LiDAR-to-camera 6-DoF extrinsic | Native solver | capture holdout, normal/offset closure, normal-span diagnostics |
 | Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | plane/edge closure, separate rotation/translation spectra, edge-angle gate |
 | Robust point-to-point ICP | Generic local 3D registration | Native solver | spatial-block holdout, mutual/trimmed matches, 3D-spread and frozen-pair diagnostics |
@@ -36,7 +37,9 @@ full 3D support.
 
 ## Next Native Methods
 
-1. Multi-plane LiDAR calibration using plane normal and offset constraints.
+1. Public-data adapter for Radar lever-arm and clock-offset evidence.
+2. Camera-LiDAR external baseline comparison with capture-time semantics.
+3. Backend-neutral joint SLAC factors and optimizer.
 
 ## Optional Adapter Methods
 
