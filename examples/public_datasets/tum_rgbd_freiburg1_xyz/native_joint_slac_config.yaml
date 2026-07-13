@@ -70,6 +70,8 @@ pipeline:
         reference_rotation_gate_deg: 1.0
         reference_depth_scale_error_gate_percent: 2.0
         reference_depth_bias_gate_m: 0.03
+        replication_start_indices: [60, 180, 300]
+        cross_window_nondegradation_margin_m: 0.005
 
 solver:
   backend: native_tum_joint_slac
@@ -92,6 +94,13 @@ evaluation:
     - tum_joint_known_bad_detectable_fraction
     - tum_joint_identity_reference_translation_error_m
     - tum_joint_identity_reference_rotation_error_deg
+    - tum_joint_replication_window_count
+    - tum_joint_replication_converged_fraction
+    - tum_joint_replication_reference_pass_fraction
+    - tum_joint_replication_depth_scale_range_percent
+    - tum_joint_replication_depth_bias_range_m
+    - tum_joint_cross_window_max_holdout_delta_rmse_m
+    - tum_joint_cross_window_nondegrading_fraction
 
 outputs:
   result: result.yaml

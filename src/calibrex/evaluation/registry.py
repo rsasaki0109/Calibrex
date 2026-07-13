@@ -664,6 +664,45 @@ def _register_builtin_metrics() -> None:
             "joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_replication_window_count",
+            "Number of independently constructed TUM temporal windows",
+            "windows",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_replication_converged_fraction",
+            "Fraction of configured TUM replication windows converged",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_replication_reference_pass_fraction",
+            "Fraction of TUM windows passing unchanged mounting and depth references",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_replication_depth_scale_range_percent",
+            "Range of estimated depth multipliers over TUM temporal windows",
+            "percent",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_replication_depth_bias_range_m",
+            "Range of estimated depth biases over TUM temporal windows",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_cross_window_max_holdout_delta_rmse_m",
+            "Worst holdout RMSE change after cross-window shared-parameter transfer",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_cross_window_nondegrading_fraction",
+            "Fraction of ordered cross-window transfers within the RMSE margin",
+            family="joint_slac",
+        ),
+        MetricDefinition(
             "joint_slac_point_to_plane_rmse_m",
             "Joint pose-extrinsic point-to-plane RMSE excluding priors",
             "m",

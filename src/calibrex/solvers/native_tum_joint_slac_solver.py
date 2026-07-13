@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -79,13 +79,17 @@ class TUMJointSlacOptions:
     known_bad_depth_bias_m: float = 0.02
     reference_depth_scale_error_gate_percent: float = 2.0
     reference_depth_bias_gate_m: float = 0.03
+    replication_start_indices: tuple[int, ...] = (60, 180, 300)
+    cross_window_nondegradation_margin_m: float = 0.005
 
-    def as_dict(self) -> dict[str, float | int]:
-        return {
-            name: value
-            for name, value in self.__dict__.items()
-            if isinstance(value, (float, int))
-        }
+    def as_dict(self) -> dict[str, float | int | list[int]]:
+        values: dict[str, float | int | list[int]] = {}
+        for name, value in self.__dict__.items():
+            if isinstance(value, tuple):
+                values[name] = list(value)
+            elif isinstance(value, (float, int)):
+                values[name] = value
+        return values
 
 
 @dataclass(frozen=True)
@@ -98,6 +102,13 @@ class _TUMJointProblem:
     all_factors: tuple[JointResidualBlock, ...]
     map_record_count: int
     map_plane_count: int
+
+
+@dataclass(frozen=True)
+class _TUMWindowRun:
+    start_index: int
+    problem: _TUMJointProblem
+    result: JointOptimizerResult
 
 
 class NativeTUMJointSlacSolver(SolverAdapter):
@@ -116,9 +127,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         del inspection
         if config.dataset.type != "tum_rgbd":
             return _unavailable("native TUM joint SLAC requires dataset.type=tum_rgbd")
-        cameras = sorted(
-            name for name, sensor in config.sensors.items() if sensor.type == "camera"
-        )
+        cameras = sorted(name for name, sensor in config.sensors.items() if sensor.type == "camera")
         if not cameras:
             return _unavailable("native TUM joint SLAC requires one camera sensor")
         camera = cameras[0]
@@ -153,20 +162,12 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 f"({len(problem.measurements)} < {_MIN_TOTAL_CORRESPONDENCES})"
             )
 
-        result = BackendNeutralJointOptimizer().solve(
-            problem.parameter_blocks,
-            problem.all_factors,
-            JointOptimizerOptions(
-                max_iterations=max(1, config.solver.max_iterations),
-                convergence_tolerance=config.solver.convergence_tolerance,
-                huber_delta=options.huber_delta_m,
-                holdout_ratio=options.holdout_ratio,
-                split_seed=config.solver.seed or 0,
-                minimum_train_factors=12,
-                known_bad_margin=options.known_bad_margin_m,
-                max_condition_number=1.0e12,
-            ),
+        result = _optimize_problem(config, problem, options)
+        primary_run = _TUMWindowRun(options.frame_start_index, problem, result)
+        replication_runs = _replicate_windows(
+            root, paired, intrinsics, config, options, primary_run
         )
+        transfers = _cross_window_transfers(replication_runs)
         extrinsic = se3_from_tangent(result.optimized_values[_EXTRINSIC_BLOCK])
         variable = f"T_{camera_node.parent}_{camera}"
         extrinsic_observability = _data_only_shared_observability(
@@ -183,6 +184,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
             shared_observability,
             options,
         )
+        metrics.update(_replication_metrics(replication_runs, transfers, options))
         warnings = _warnings(
             result,
             extrinsic_observability.information_rank,
@@ -206,6 +208,8 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 variable=variable,
                 extrinsic_observability=extrinsic_observability,
                 shared_observability=shared_observability,
+                replication_runs=replication_runs,
+                transfers=transfers,
             ),
             warnings=warnings,
             observability=ObservabilityResult(
@@ -221,12 +225,101 @@ def _select_frames(
     paired: list[TUMDepthPoseEntry], options: TUMJointSlacOptions
 ) -> tuple[TUMDepthPoseEntry, ...] | None:
     count = options.map_frame_count + options.query_frame_count
-    indexes = [
-        options.frame_start_index + index * options.frame_stride for index in range(count)
-    ]
+    indexes = [options.frame_start_index + index * options.frame_stride for index in range(count)]
     if not indexes or indexes[-1] >= len(paired):
         return None
     return tuple(paired[index] for index in indexes)
+
+
+def _optimize_problem(
+    config: CalibrationConfig,
+    problem: _TUMJointProblem,
+    options: TUMJointSlacOptions,
+) -> JointOptimizerResult:
+    return BackendNeutralJointOptimizer().solve(
+        problem.parameter_blocks,
+        problem.all_factors,
+        JointOptimizerOptions(
+            max_iterations=max(1, config.solver.max_iterations),
+            convergence_tolerance=config.solver.convergence_tolerance,
+            huber_delta=options.huber_delta_m,
+            holdout_ratio=options.holdout_ratio,
+            split_seed=config.solver.seed or 0,
+            minimum_train_factors=12,
+            known_bad_margin=options.known_bad_margin_m,
+            max_condition_number=1.0e12,
+        ),
+    )
+
+
+def _replicate_windows(
+    root: Path,
+    paired: list[TUMDepthPoseEntry],
+    intrinsics: TUMDepthIntrinsics,
+    config: CalibrationConfig,
+    options: TUMJointSlacOptions,
+    primary: _TUMWindowRun,
+) -> tuple[_TUMWindowRun, ...]:
+    runs: list[_TUMWindowRun] = []
+    for start_index in options.replication_start_indices:
+        if start_index == primary.start_index:
+            runs.append(primary)
+            continue
+        window_options = replace(options, frame_start_index=start_index)
+        selected = _select_frames(paired, window_options)
+        if selected is None:
+            continue
+        try:
+            problem = _build_problem(root, selected, intrinsics, window_options)
+        except (OSError, ValueError):
+            continue
+        if (
+            len(problem.query_frames) < _MIN_QUERY_FRAMES
+            or len(problem.measurements) < _MIN_TOTAL_CORRESPONDENCES
+        ):
+            continue
+        runs.append(
+            _TUMWindowRun(
+                start_index,
+                problem,
+                _optimize_problem(config, problem, window_options),
+            )
+        )
+    return tuple(runs)
+
+
+def _cross_window_transfers(
+    runs: tuple[_TUMWindowRun, ...],
+) -> tuple[dict[str, float | int | None], ...]:
+    transfers: list[dict[str, float | int | None]] = []
+    for source in runs:
+        for target in runs:
+            if source.start_index == target.start_index:
+                continue
+            holdout_ids = set(target.result.holdout_factor_ids)
+            factors = [
+                factor for factor in target.problem.data_factors if factor.factor_id in holdout_ids
+            ]
+            values = dict(target.result.optimized_values)
+            values[_EXTRINSIC_BLOCK] = source.result.optimized_values[_EXTRINSIC_BLOCK]
+            values[_DEPTH_BLOCK] = source.result.optimized_values[_DEPTH_BLOCK]
+            transferred_rmse = _factor_rmse(factors, values)
+            baseline_rmse = target.result.holdout_rmse
+            delta = (
+                transferred_rmse - baseline_rmse
+                if transferred_rmse is not None and baseline_rmse is not None
+                else None
+            )
+            transfers.append(
+                {
+                    "source_start_index": source.start_index,
+                    "target_start_index": target.start_index,
+                    "target_baseline_holdout_rmse_m": baseline_rmse,
+                    "transferred_holdout_rmse_m": transferred_rmse,
+                    "delta_rmse_m": delta,
+                }
+            )
+    return tuple(transfers)
 
 
 def _build_problem(
@@ -252,10 +345,9 @@ def _build_problem(
     factors: list[JointResidualBlock] = []
     blocks: list[JointParameterBlock] = []
     priors: list[JointResidualBlock] = []
-    pose_sigma = (
-        (options.pose_prior_translation_sigma_m,) * 3
-        + (options.pose_prior_rotation_sigma_rad,) * 3
-    )
+    pose_sigma = (options.pose_prior_translation_sigma_m,) * 3 + (
+        options.pose_prior_rotation_sigma_rad,
+    ) * 3
     for frame_index, frame in enumerate(query_frames):
         pose_block = _pose_block(frame_index, frame)
         blocks.append(
@@ -319,10 +411,7 @@ def _build_problem(
             )
             for measurement in retained
         )
-    known_bad = (
-        (options.known_bad_translation_m,) * 3
-        + (options.known_bad_rotation_rad,) * 3
-    )
+    known_bad = (options.known_bad_translation_m,) * 3 + (options.known_bad_rotation_rad,) * 3
     blocks.append(
         JointParameterBlock(
             _EXTRINSIC_BLOCK,
@@ -411,9 +500,7 @@ def _metrics(
     options: TUMJointSlacOptions,
 ) -> dict[str, MetricResult]:
     train_ids = set(result.train_factor_ids)
-    train_factors = [
-        factor for factor in problem.data_factors if factor.factor_id in train_ids
-    ]
+    train_factors = [factor for factor in problem.data_factors if factor.factor_id in train_ids]
     train_rmse = _factor_rmse(train_factors, result.optimized_values)
     probes = [probe for probe in result.probes if probe.detectable is not None]
     detectable = sum(probe.detectable is True for probe in probes) / len(probes) if probes else None
@@ -532,8 +619,7 @@ def _metrics(
             unit="m",
             grade=reference_grade,
             reason=(
-                "TUM ground truth already describes the camera frame; "
-                "mounting truth is identity"
+                "TUM ground truth already describes the camera frame; mounting truth is identity"
             ),
         ),
         "tum_joint_identity_reference_rotation_error_deg": MetricResult(
@@ -541,8 +627,7 @@ def _metrics(
             unit="deg",
             grade=reference_grade,
             reason=(
-                "TUM ground truth already describes the camera frame; "
-                "mounting truth is identity"
+                "TUM ground truth already describes the camera frame; mounting truth is identity"
             ),
         ),
     }
@@ -557,15 +642,96 @@ def _factor_rmse(
     return math.sqrt(sum(value * value for value in residuals) / len(residuals))
 
 
-def _rotation_angle_deg(transform: SE3) -> float:
-    return math.degrees(
-        2.0 * math.acos(min(1.0, abs(transform.rotation_quat_xyzw[3])))
+def _replication_metrics(
+    runs: tuple[_TUMWindowRun, ...],
+    transfers: tuple[dict[str, float | int | None], ...],
+    options: TUMJointSlacOptions,
+) -> dict[str, MetricResult]:
+    expected = len(options.replication_start_indices)
+    converged = sum(run.result.status == "converged" for run in runs)
+    scales = [math.exp(run.result.optimized_values[_DEPTH_BLOCK][0]) for run in runs]
+    biases = [run.result.optimized_values[_DEPTH_BLOCK][1] for run in runs]
+    translations = [
+        math.dist(
+            (0.0, 0.0, 0.0),
+            se3_from_tangent(run.result.optimized_values[_EXTRINSIC_BLOCK]).translation_m,
+        )
+        for run in runs
+    ]
+    rotations = [
+        _rotation_angle_deg(se3_from_tangent(run.result.optimized_values[_EXTRINSIC_BLOCK]))
+        for run in runs
+    ]
+    reference_passes = sum(
+        abs(scale - 1.0) * 100.0 <= options.reference_depth_scale_error_gate_percent
+        and abs(bias) <= options.reference_depth_bias_gate_m
+        and translation <= options.reference_translation_gate_m
+        and rotation <= options.reference_rotation_gate_deg
+        for scale, bias, translation, rotation in zip(
+            scales, biases, translations, rotations, strict=True
+        )
     )
+    deltas = [
+        float(transfer["delta_rmse_m"])
+        for transfer in transfers
+        if transfer["delta_rmse_m"] is not None
+    ]
+    nondegrading = sum(delta <= options.cross_window_nondegradation_margin_m for delta in deltas)
+    complete = len(runs) == expected
+    return {
+        "tum_joint_replication_window_count": MetricResult(
+            value=float(len(runs)),
+            unit="windows",
+            grade="pass" if complete else "fail",
+            reason=f"resolved disjoint temporal windows; expected {expected}",
+        ),
+        "tum_joint_replication_converged_fraction": MetricResult(
+            value=converged / expected if expected else None,
+            grade="pass" if converged == expected else "fail",
+        ),
+        "tum_joint_replication_reference_pass_fraction": MetricResult(
+            value=reference_passes / expected if expected else None,
+            grade="pass" if reference_passes == expected else "fail",
+            reason="fraction passing unchanged mounting and depth references",
+        ),
+        "tum_joint_replication_depth_scale_range_percent": MetricResult(
+            value=(max(scales) - min(scales)) * 100.0 if scales else None,
+            unit="percent",
+            grade="warn",
+            reason="temporal-window spread; diagnostic, not a relaxed reference gate",
+        ),
+        "tum_joint_replication_depth_bias_range_m": MetricResult(
+            value=max(biases) - min(biases) if biases else None,
+            unit="m",
+            grade="warn",
+            reason="temporal-window spread; diagnostic, not a relaxed reference gate",
+        ),
+        "tum_joint_cross_window_max_holdout_delta_rmse_m": MetricResult(
+            value=max(deltas) if deltas else None,
+            unit="m",
+            grade=(
+                "pass"
+                if deltas and max(deltas) <= options.cross_window_nondegradation_margin_m
+                else "fail"
+            ),
+            reason="source shared calibration transferred onto target-window optimized poses",
+        ),
+        "tum_joint_cross_window_nondegrading_fraction": MetricResult(
+            value=nondegrading / len(deltas) if deltas else None,
+            grade="pass" if deltas and nondegrading == len(deltas) else "fail",
+            reason=(
+                "ordered transfers within declared "
+                f"{options.cross_window_nondegradation_margin_m:g} m RMSE margin"
+            ),
+        ),
+    }
 
 
-def _warnings(
-    result: JointOptimizerResult, extrinsic_rank: int, shared_rank: int
-) -> list[str]:
+def _rotation_angle_deg(transform: SE3) -> float:
+    return math.degrees(2.0 * math.acos(min(1.0, abs(transform.rotation_quat_xyzw[3]))))
+
+
+def _warnings(result: JointOptimizerResult, extrinsic_rank: int, shared_rank: int) -> list[str]:
     warnings = [
         "joint rank includes independently measured TUM pose priors; use the separate "
         "data-only shared calibration ranks for geometric observability"
@@ -573,13 +739,9 @@ def _warnings(
     if result.status != "converged":
         warnings.append(f"native TUM joint SLAC status is {result.status}: {result.reason}")
     if extrinsic_rank < 6:
-        warnings.append(
-            f"TUM train geometry shared-extrinsic rank is {extrinsic_rank} < 6"
-        )
+        warnings.append(f"TUM train geometry shared-extrinsic rank is {extrinsic_rank} < 6")
     if shared_rank < 8:
-        warnings.append(
-            f"TUM train geometry extrinsic/depth shared rank is {shared_rank} < 8"
-        )
+        warnings.append(f"TUM train geometry extrinsic/depth shared rank is {shared_rank} < 8")
     return warnings
 
 
@@ -596,10 +758,12 @@ def _provenance(
     variable: str,
     extrinsic_observability: JointObservabilityEvaluation,
     shared_observability: JointObservabilityEvaluation,
+    replication_runs: tuple[_TUMWindowRun, ...],
+    transfers: tuple[dict[str, float | int | None], ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.2",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.3",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -642,10 +806,53 @@ def _provenance(
         "native_tum_joint_slac_data_only_extrinsic_observability": (
             extrinsic_observability.as_dict()
         ),
-        "native_tum_joint_slac_data_only_shared_observability": (
-            shared_observability.as_dict()
-        ),
+        "native_tum_joint_slac_data_only_shared_observability": (shared_observability.as_dict()),
         "native_tum_joint_slac_solver": result.as_dict(),
+        "native_tum_joint_slac_replication_policy": (
+            "each configured start index rebuilds an independent fixed map and query "
+            "problem; the primary window is reused without recomputation"
+        ),
+        "native_tum_joint_slac_replication_windows": [
+            _window_provenance(root, run) for run in replication_runs
+        ],
+        "native_tum_joint_slac_cross_window_policy": (
+            "source-window shared extrinsic and depth correction are evaluated on "
+            "target holdout factors while retaining target-window optimized poses; "
+            "this tests shared-parameter transfer, not independent pose transfer"
+        ),
+        "native_tum_joint_slac_cross_window_transfers": list(transfers),
+    }
+
+
+def _window_provenance(root: Path, run: _TUMWindowRun) -> dict[str, Any]:
+    selected = [*run.problem.map_frames, *run.problem.query_frames]
+    extrinsic = se3_from_tangent(run.result.optimized_values[_EXTRINSIC_BLOCK])
+    depth_log_scale, depth_bias_m = run.result.optimized_values[_DEPTH_BLOCK]
+    return {
+        "start_index": run.start_index,
+        "status": run.result.status,
+        "map_frame_ids": [f"{frame.depth.timestamp_sec:.6f}" for frame in run.problem.map_frames],
+        "query_frame_ids": [
+            f"{frame.depth.timestamp_sec:.6f}" for frame in run.problem.query_frames
+        ],
+        "selected_depth_files": [
+            {
+                "path": str(root / frame.depth.path),
+                "sha256": sha256_path(root / frame.depth.path),
+                "pose_time_delta_sec": frame.absolute_time_delta_sec,
+            }
+            for frame in selected
+        ],
+        "map_record_count": run.problem.map_record_count,
+        "map_plane_count": run.problem.map_plane_count,
+        "correspondence_count": len(run.problem.measurements),
+        "depth_scale": math.exp(depth_log_scale),
+        "depth_bias_m": depth_bias_m,
+        "identity_reference_translation_error_m": math.dist(
+            (0.0, 0.0, 0.0), extrinsic.translation_m
+        ),
+        "identity_reference_rotation_error_deg": _rotation_angle_deg(extrinsic),
+        "solver": run.result.as_dict(),
     }
 
 
@@ -704,9 +911,7 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
                 math.degrees(defaults.pose_prior_rotation_sigma_rad),
             )
         ),
-        holdout_ratio=min(
-            0.5, _positive(values, "holdout_ratio", defaults.holdout_ratio)
-        ),
+        holdout_ratio=min(0.5, _positive(values, "holdout_ratio", defaults.holdout_ratio)),
         huber_delta_m=_positive(values, "huber_delta_m", defaults.huber_delta_m),
         known_bad_translation_m=_positive(
             values, "known_bad_translation_m", defaults.known_bad_translation_m
@@ -718,9 +923,7 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
                 math.degrees(defaults.known_bad_rotation_rad),
             )
         ),
-        known_bad_margin_m=_positive(
-            values, "known_bad_margin_m", defaults.known_bad_margin_m
-        ),
+        known_bad_margin_m=_positive(values, "known_bad_margin_m", defaults.known_bad_margin_m),
         reference_translation_gate_m=_positive(
             values,
             "reference_translation_gate_m",
@@ -743,6 +946,16 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
         reference_depth_bias_gate_m=_positive(
             values, "reference_depth_bias_gate_m", defaults.reference_depth_bias_gate_m
         ),
+        replication_start_indices=_nonnegative_integer_tuple(
+            values,
+            "replication_start_indices",
+            defaults.replication_start_indices,
+        ),
+        cross_window_nondegradation_margin_m=_positive(
+            values,
+            "cross_window_nondegradation_margin_m",
+            defaults.cross_window_nondegradation_margin_m,
+        ),
     )
 
 
@@ -762,6 +975,25 @@ def _nonnegative_integer(values: dict[str, Any], key: str, default: int) -> int:
     return value if value >= 0 else default
 
 
+def _nonnegative_integer_tuple(
+    values: dict[str, Any], key: str, default: tuple[int, ...]
+) -> tuple[int, ...]:
+    raw = values.get(key)
+    if not isinstance(raw, (list, tuple)):
+        return default
+    parsed: list[int] = []
+    for item in raw:
+        try:
+            value = int(item)
+        except (TypeError, ValueError):
+            return default
+        if value < 0:
+            return default
+        if value not in parsed:
+            parsed.append(value)
+    return tuple(parsed) if parsed else default
+
+
 def _positive(values: dict[str, Any], key: str, default: float) -> float:
     try:
         value = float(values[key])
@@ -776,9 +1008,7 @@ def _unavailable(reason: str) -> SolverAdapterResult:
         available=False,
         status="unavailable",
         metrics={
-            "native_tum_joint_slac_available": MetricResult(
-                value=0.0, grade="warn", reason=reason
-            )
+            "native_tum_joint_slac_available": MetricResult(value=0.0, grade="warn", reason=reason)
         },
         provenance={
             "native_tum_joint_slac_status": "unavailable",

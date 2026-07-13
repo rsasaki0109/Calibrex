@@ -71,15 +71,34 @@ honestly FAIL despite its lower geometric residual and full local rank. This is
 evidence of model/reference tension and bias-versus-z-translation correlation,
 not a reason to relax gates.
 
-The result records depth-index and trajectory hashes, hashes for all 11 selected
-PNGs, timestamp association deltas, disjoint frame IDs, map support, intrinsics,
-depth convention, options, iterations, both data-only observability evaluations,
-split groups, and every known-bad probe.
+### Multi-window replication and transfer
+
+The same frontend and unchanged gates are also run at paired-frame start indices
+60, 180, and 300. All three independent problems converge. Their depth
+scale/bias estimates are respectively `(0.99924, -0.01160 m)`,
+`(0.99839, -0.07554 m)`, and `(1.02352, -0.03293 m)`. Their identity-mounting
+translation errors are 0.0129 m, 0.1120 m, and 0.0522 m. Only one of three
+windows passes all four unchanged depth-scale, depth-bias, translation, and
+rotation reference gates. The scale range is 2.513 percent and the bias range
+is 0.06394 m. Thus the large primary-window bias is not a stable sequence-wide
+constant; temporal map/frontend systematics are materially involved.
+
+Each source window's shared extrinsic and depth correction is transferred onto
+each other target window's held-out factors while retaining the target's
+optimized pose blocks. This deliberately tests shared-parameter transfer, not
+independent pose transfer. Only one of six ordered transfers stays within the
+declared 0.005 m non-degradation margin. The worst holdout RMSE increase is
+0.01514 m. The cross-window transfer result therefore FAILs and prevents a
+locally low residual from being presented as a persistent calibration.
+
+The result records depth-index and trajectory hashes, per-window hashes for all
+selected PNGs, timestamp association deltas, disjoint frame IDs, map support,
+intrinsics, depth convention, options, iterations, data-only observability,
+split groups, every known-bad probe, and all six transfer scores.
 
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension is multi-window replication and a spatial depth-correction basis,
-with an explicit ablation to distinguish persistent bias from map/frontend
-systematics.
+next extension is a spatial depth-correction basis with an explicit ablation
+against the now-measured temporal map/frontend systematics.
