@@ -7,6 +7,7 @@ from calibrex.graph.joint_optimization import (
     JointOptimizerOptions,
     JointParameterBlock,
     JointResidualBlock,
+    evaluate_joint_observability,
     split_joint_factors,
 )
 
@@ -237,3 +238,36 @@ def test_numeric_linearization_evaluates_only_factors_owned_by_each_block() -> N
     )
 
     assert calls["x"] - calls["y"] == 4
+
+
+def test_explicit_observability_evaluation_excludes_fixed_blocks() -> None:
+    blocks = [
+        JointParameterBlock("fixed_pose", (2.0,), fixed=True),
+        JointParameterBlock("shared", (0.0, 0.0)),
+    ]
+    factors = [
+        JointResidualBlock(
+            "x",
+            "capture",
+            ("fixed_pose", "shared"),
+            lambda values: (values["shared"][0] + values["fixed_pose"][0],),
+        ),
+        JointResidualBlock(
+            "y",
+            "capture",
+            ("shared",),
+            lambda values: (values["shared"][1],),
+        ),
+    ]
+
+    evaluation = evaluate_joint_observability(
+        blocks,
+        factors,
+        {"fixed_pose": (2.0,), "shared": (0.0, 0.0)},
+    )
+
+    assert evaluation.parameter_dimension == 2
+    assert evaluation.residual_dimension == 2
+    assert evaluation.information_rank == 2
+    assert evaluation.condition_number == pytest.approx(1.0)
+    assert evaluation.weak_parameter_blocks == ()

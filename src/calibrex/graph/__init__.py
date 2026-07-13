@@ -7,8 +7,10 @@ from calibrex.graph.factors import (
     register_factor,
 )
 from calibrex.graph.joint_factors import (
+    JointDepthPointToPlaneMeasurement,
     JointPointToPlaneMeasurement,
     JointRadarDopplerMeasurement,
+    make_joint_depth_point_to_plane_factor,
     make_joint_point_to_plane_factor,
     make_joint_prior_factor,
     make_joint_radar_doppler_factor,
@@ -17,11 +19,13 @@ from calibrex.graph.joint_factors import (
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
     JointKnownBadProbe,
+    JointObservabilityEvaluation,
     JointOptimizerIteration,
     JointOptimizerOptions,
     JointOptimizerResult,
     JointParameterBlock,
     JointResidualBlock,
+    evaluate_joint_observability,
     split_joint_factors,
 )
 from calibrex.graph.problem import CalibrationProblemSpec, build_problem
@@ -30,7 +34,9 @@ __all__ = [
     "BackendNeutralJointOptimizer",
     "CalibrationProblemSpec",
     "FactorPlugin",
+    "JointDepthPointToPlaneMeasurement",
     "JointKnownBadProbe",
+    "JointObservabilityEvaluation",
     "JointOptimizerIteration",
     "JointOptimizerOptions",
     "JointOptimizerResult",
@@ -39,8 +45,10 @@ __all__ = [
     "JointRadarDopplerMeasurement",
     "JointResidualBlock",
     "build_problem",
+    "evaluate_joint_observability",
     "get_factor_plugin",
     "list_factor_plugins",
+    "make_joint_depth_point_to_plane_factor",
     "make_joint_point_to_plane_factor",
     "make_joint_prior_factor",
     "make_joint_radar_doppler_factor",

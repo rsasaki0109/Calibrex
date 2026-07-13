@@ -91,6 +91,8 @@ history, probes, and baseline status are retained in result provenance.
 The TUM RGB-D fr1/xyz integration now adds eight query-pose blocks, a shared
 camera mounting block, three disjoint map frames, and independent ground-truth
 trajectory support. It reports the prior-augmented joint rank separately from
-the data-only rank of the shared extrinsic. The next integration step is a
-shared depth scale/bias or spatial correction block, closer to the original
-consumer-depth-camera SLAC calibration function.
+data-only shared-extrinsic and extrinsic/depth ranks. A shared log-scale/bias
+depth block is now implemented; synthetic truth passes, while public TUM
+honestly FAILS the unchanged bias and mounting-reference gates. The next step
+is multi-window replication and a spatial correction basis to test whether the
+bias persists beyond one fixed-map window.

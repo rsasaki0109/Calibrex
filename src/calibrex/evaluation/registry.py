@@ -614,6 +614,39 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_data_only_shared_rank",
+            "TUM train rank of shared extrinsic plus depth scale/bias",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_data_only_shared_condition_number",
+            "TUM train condition number of shared extrinsic plus depth scale/bias",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_depth_scale",
+            "Estimated multiplicative correction of nominal TUM metric depth",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_depth_bias_m",
+            "Estimated additive correction of nominal TUM metric depth",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_depth_scale_reference_error_percent",
+            "TUM depth multiplier error against the official pre-scaled reference",
+            "percent",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_depth_bias_reference_error_m",
+            "TUM depth bias error against the official zero-bias reference",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_known_bad_detectable_fraction",
             "Fraction of signed shared-extrinsic perturbations detected on TUM holdout",
             family="joint_slac",

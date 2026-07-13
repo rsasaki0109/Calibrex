@@ -34,6 +34,21 @@ class JointPointToPlaneMeasurement:
 
 
 @dataclass(frozen=True)
+class JointDepthPointToPlaneMeasurement:
+    """One depth ray/world-plane observation with shared scale and bias."""
+
+    measurement_id: str
+    observation_group: str
+    normalized_ray_sensor: Vector3
+    nominal_depth_m: float
+    plane_point_world_m: Vector3
+    plane_normal_world: Vector3
+    transform_world_body_initial: SE3
+    transform_body_sensor_initial: SE3
+    weight: float = 1.0
+
+
+@dataclass(frozen=True)
 class JointRadarDopplerMeasurement:
     """One static-target Doppler constraint coupling velocity/extrinsic/time."""
 
@@ -75,6 +90,46 @@ def make_joint_point_to_plane_factor(
         evaluator=evaluator,
         weight=measurement.weight,
         family="lidar_point_to_plane",
+    )
+
+
+def make_joint_depth_point_to_plane_factor(
+    measurement: JointDepthPointToPlaneMeasurement,
+    *,
+    pose_block: str,
+    extrinsic_block: str,
+    depth_calibration_block: str,
+) -> JointResidualBlock:
+    """Create a pose/extrinsic/depth factor with `z'=exp(s)z+b`."""
+
+    normal = _normalize(measurement.plane_normal_world)
+    ray = measurement.normalized_ray_sensor
+    if measurement.nominal_depth_m <= 0.0 or abs(ray[2] - 1.0) > 1.0e-9:
+        raise ValueError("joint depth factor requires positive depth and ray z=1")
+
+    def evaluator(values: ParameterValues) -> tuple[float]:
+        depth_values = tuple(values[depth_calibration_block])
+        if len(depth_values) != 2:
+            raise ValueError("joint depth calibration block requires log-scale and bias")
+        corrected_depth = (
+            math.exp(depth_values[0]) * measurement.nominal_depth_m + depth_values[1]
+        )
+        point_sensor = _scale(ray, corrected_depth)
+        pose_delta = se3_from_tangent(values[pose_block])
+        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
+        transform_world_sensor = pose_delta.compose(
+            measurement.transform_world_body_initial
+        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        point_world = transform_world_sensor.transform_point(point_sensor)
+        return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
+
+    return JointResidualBlock(
+        factor_id=measurement.measurement_id,
+        observation_group=measurement.observation_group,
+        variable_names=(pose_block, extrinsic_block, depth_calibration_block),
+        evaluator=evaluator,
+        weight=measurement.weight,
+        family="rgbd_depth_point_to_plane",
     )
 
 

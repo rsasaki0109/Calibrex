@@ -76,24 +76,43 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert rmse.train is not None and rmse.train < 0.05
     assert rmse.holdout is not None and rmse.holdout < 0.05
     assert rmse.grade == "pass"
-    assert result.metrics["tum_joint_augmented_information_rank"].value == 54.0
+    assert result.metrics["tum_joint_augmented_information_rank"].value == 56.0
     assert result.metrics["tum_joint_data_only_extrinsic_rank"].value == 6.0
     condition = result.metrics["tum_joint_data_only_extrinsic_condition_number"].value
     assert condition is not None and condition < 100.0
+    assert result.metrics["tum_joint_data_only_shared_rank"].value == 8.0
+    shared_condition = result.metrics[
+        "tum_joint_data_only_shared_condition_number"
+    ].value
+    assert shared_condition is not None and shared_condition < 100.0
+    scale_error = result.metrics["tum_joint_depth_scale_reference_error_percent"]
+    bias_error = result.metrics["tum_joint_depth_bias_reference_error_m"]
+    assert scale_error.value is not None and scale_error.value < 2.0
+    assert scale_error.grade == "pass"
+    assert bias_error.value is not None and bias_error.value > 0.06
+    assert bias_error.grade == "fail"
     assert result.metrics["tum_joint_known_bad_detectable_fraction"].value == pytest.approx(
-        0.75
+        0.8125
     )
     assert result.metrics["tum_joint_known_bad_detectable_fraction"].grade == "warn"
     translation = result.metrics["tum_joint_identity_reference_translation_error_m"]
     rotation = result.metrics["tum_joint_identity_reference_rotation_error_deg"]
-    assert translation.value is not None and translation.value < 0.05
-    assert rotation.value is not None and rotation.value < 1.0
+    assert translation.value is not None and translation.value > 0.10
+    assert translation.grade == "fail"
+    assert rotation.value is not None and 1.0 < rotation.value < 2.0
+    assert rotation.grade == "warn"
+    assert result.quality.grade == "fail"
     transform = result.transforms["T_trajectory_body_rgbd0"]
+    assert transform.provenance.producer == "slac_native"
+    assert transform.provenance.execution_mode == "offline_batch"
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic/v0.1"
+        "tum_multicapture_pose_extrinsic_depth/v0.2"
     )
+    assert saved.run.provenance[
+        "native_tum_joint_slac_data_only_shared_observability"
+    ]["information_rank"] == 8
 
 
 def test_tum_joint_pipeline_reports_missing_public_download(tmp_path: Path) -> None:

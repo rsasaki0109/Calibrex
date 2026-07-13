@@ -2,7 +2,7 @@ schema_version: slac.config/v0.1
 
 project:
   name: tum_rgbd_freiburg1_xyz_native_joint_slac
-  description: Native multi-capture pose/extrinsic joint calibration on TUM fr1/xyz
+  description: Native pose/extrinsic/depth-scale/bias joint calibration on TUM fr1/xyz
   output_dir: outputs/tum_rgbd_freiburg1_xyz_native_joint_slac
   domain: robotics
 
@@ -64,8 +64,12 @@ pipeline:
         huber_delta_m: 0.05
         known_bad_translation_m: 0.03
         known_bad_rotation_deg: 0.5
+        known_bad_depth_log_scale: 0.02
+        known_bad_depth_bias_m: 0.02
         reference_translation_gate_m: 0.05
         reference_rotation_gate_deg: 1.0
+        reference_depth_scale_error_gate_percent: 2.0
+        reference_depth_bias_gate_m: 0.03
 
 solver:
   backend: native_tum_joint_slac
@@ -81,6 +85,10 @@ evaluation:
     - tum_joint_augmented_information_rank
     - tum_joint_data_only_extrinsic_rank
     - tum_joint_data_only_extrinsic_condition_number
+    - tum_joint_data_only_shared_rank
+    - tum_joint_data_only_shared_condition_number
+    - tum_joint_depth_scale_reference_error_percent
+    - tum_joint_depth_bias_reference_error_m
     - tum_joint_known_bad_detectable_fraction
     - tum_joint_identity_reference_translation_error_m
     - tum_joint_identity_reference_rotation_error_deg

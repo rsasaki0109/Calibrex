@@ -5,8 +5,10 @@ import pytest
 
 from calibrex.core.geometry import SE3
 from calibrex.graph.joint_factors import (
+    JointDepthPointToPlaneMeasurement,
     JointPointToPlaneMeasurement,
     JointRadarDopplerMeasurement,
+    make_joint_depth_point_to_plane_factor,
     make_joint_point_to_plane_factor,
     make_joint_prior_factor,
     make_joint_radar_doppler_factor,
@@ -87,6 +89,45 @@ def test_radar_factor_couples_velocity_lever_arm_rotation_and_time() -> None:
     )
 
 
+def test_depth_factor_couples_pose_extrinsic_scale_and_bias() -> None:
+    pose = (0.1, -0.2, 0.05, 0.01, 0.0, -0.01)
+    extrinsic = (0.02, -0.01, 0.03, 0.0, 0.01, 0.0)
+    calibration = (math.log(1.02), -0.015)
+    ray = (0.2, -0.1, 1.0)
+    nominal_depth = 2.0
+    corrected_depth = math.exp(calibration[0]) * nominal_depth + calibration[1]
+    truth_point = (
+        se3_from_tangent(pose)
+        .compose(se3_from_tangent(extrinsic))
+        .transform_point(tuple(value * corrected_depth for value in ray))
+    )
+    factor = make_joint_depth_point_to_plane_factor(
+        JointDepthPointToPlaneMeasurement(
+            "depth-plane",
+            "capture",
+            ray,
+            nominal_depth,
+            truth_point,
+            (0.3, -0.4, 0.8),
+            SE3.identity(),
+            SE3.identity(),
+        ),
+        pose_block="pose",
+        extrinsic_block="extrinsic",
+        depth_calibration_block="depth",
+    )
+
+    assert factor.family == "rgbd_depth_point_to_plane"
+    assert factor.residuals(
+        {"pose": pose, "extrinsic": extrinsic, "depth": calibration}
+    ) == pytest.approx((0.0,), abs=1e-12)
+    assert abs(
+        factor.residuals(
+            {"pose": pose, "extrinsic": extrinsic, "depth": (0.0, 0.0)}
+        )[0]
+    ) > 1e-3
+
+
 def test_joint_prior_factor_normalizes_each_dimension() -> None:
     factor = make_joint_prior_factor(
         factor_id="prior",
@@ -107,6 +148,7 @@ def test_se3_tangent_requires_six_values() -> None:
 
 def test_multicapture_pose_prior_problem_recovers_shared_extrinsic_truth() -> None:
     truth = (0.02, -0.01, 0.015, 0.005, -0.004, 0.006)
+    depth_truth = (math.log(1.03), -0.02)
     blocks: list[JointParameterBlock] = []
     factors = []
     for capture in range(4):
@@ -136,23 +178,31 @@ def test_multicapture_pose_prior_problem_recovers_shared_extrinsic_truth() -> No
                 math.sin(1.1 * phase),
                 0.4 + math.cos(0.5 * phase),
             )
-            plane_point = pose_initial.compose(se3_from_tangent(truth)).transform_point(
-                point
+            corrected_depth = math.exp(depth_truth[0]) * point[2] + depth_truth[1]
+            corrected_point = (
+                point[0] / point[2] * corrected_depth,
+                point[1] / point[2] * corrected_depth,
+                corrected_depth,
             )
-            measurement = JointPointToPlaneMeasurement(
+            plane_point = pose_initial.compose(se3_from_tangent(truth)).transform_point(
+                corrected_point
+            )
+            measurement = JointDepthPointToPlaneMeasurement(
                 f"plane-{capture}-{sample}",
                 f"capture-{capture}",
-                point,
+                (point[0] / point[2], point[1] / point[2], 1.0),
+                point[2],
                 plane_point,
                 normal,
                 pose_initial,
                 SE3.identity(),
             )
             factors.append(
-                make_joint_point_to_plane_factor(
+                make_joint_depth_point_to_plane_factor(
                     measurement,
                     pose_block=pose_block,
                     extrinsic_block="extrinsic",
+                    depth_calibration_block="depth",
                 )
             )
     blocks.append(
@@ -160,6 +210,13 @@ def test_multicapture_pose_prior_problem_recovers_shared_extrinsic_truth() -> No
             "extrinsic",
             (0.0,) * 6,
             known_bad_steps=(0.03,) * 3 + (math.radians(0.5),) * 3,
+        )
+    )
+    blocks.append(
+        JointParameterBlock(
+            "depth",
+            (0.0, 0.0),
+            known_bad_steps=(0.02, 0.02),
         )
     )
 
@@ -171,7 +228,8 @@ def test_multicapture_pose_prior_problem_recovers_shared_extrinsic_truth() -> No
 
     assert result.status == "converged"
     assert result.optimized_values["extrinsic"] == pytest.approx(truth, abs=2e-5)
-    assert result.information_rank == 30
+    assert result.optimized_values["depth"] == pytest.approx(depth_truth, abs=2e-5)
+    assert result.information_rank == 32
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-5
-    assert len(result.probes) == 12
+    assert len(result.probes) == 16
     assert all(probe.detectable is True for probe in result.probes)

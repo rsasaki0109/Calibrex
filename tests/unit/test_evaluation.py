@@ -40,6 +40,9 @@ def test_joint_slac_thresholds_preserve_known_bad_warning() -> None:
         "joint_slac_known_bad_detectable_fraction": MetricResult(value=0.75),
         "tum_joint_point_to_plane_rmse_m": MetricResult(holdout=0.0318),
         "tum_joint_data_only_extrinsic_rank": MetricResult(value=6.0),
+        "tum_joint_data_only_shared_rank": MetricResult(value=8.0),
+        "tum_joint_depth_scale_reference_error_percent": MetricResult(value=0.161),
+        "tum_joint_depth_bias_reference_error_m": MetricResult(value=0.0755),
         "tum_joint_known_bad_detectable_fraction": MetricResult(value=0.75),
     }
 
@@ -50,6 +53,9 @@ def test_joint_slac_thresholds_preserve_known_bad_warning() -> None:
     assert metrics["joint_slac_known_bad_detectable_fraction"].grade == "warn"
     assert metrics["tum_joint_point_to_plane_rmse_m"].grade == "pass"
     assert metrics["tum_joint_data_only_extrinsic_rank"].grade == "pass"
+    assert metrics["tum_joint_data_only_shared_rank"].grade == "pass"
+    assert metrics["tum_joint_depth_scale_reference_error_percent"].grade == "pass"
+    assert metrics["tum_joint_depth_bias_reference_error_m"].grade == "fail"
     assert metrics["tum_joint_known_bad_detectable_fraction"].grade == "warn"
 
 
@@ -478,6 +484,11 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "native_tum_joint_slac_available" in names
     assert "tum_joint_point_to_plane_rmse_m" in names
     assert "tum_joint_data_only_extrinsic_rank" in names
+    assert "tum_joint_data_only_shared_rank" in names
+    assert "tum_joint_depth_scale" in names
+    assert "tum_joint_depth_bias_m" in names
+    assert "tum_joint_depth_scale_reference_error_percent" in names
+    assert "tum_joint_depth_bias_reference_error_m" in names
     assert "lidar_frame_coverage" in names
     assert "lidar_point_coverage" in names
     assert "lidar_spatial_coverage_m" in names

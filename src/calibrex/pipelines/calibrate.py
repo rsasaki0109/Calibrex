@@ -413,10 +413,12 @@ def _apply_adapter_transforms(
 
 def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateProvenance:
     if backend in {
+        NATIVE_JOINT_SLAC_BACKEND,
         NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
         NATIVE_PLANAR_BOARD_BACKEND,
         NATIVE_HAND_EYE_COMPARISON_BACKEND,
         NATIVE_REGISTRATION_COMPARISON_BACKEND,
+        NATIVE_TUM_JOINT_SLAC_BACKEND,
     }:
         return TransformEstimateProvenance(
             producer="slac_native",
@@ -425,6 +427,7 @@ def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateP
             evidence_level="algorithmically_refined",
             tool_name=backend,
             source={
+                NATIVE_JOINT_SLAC_BACKEND: "native_joint_slac_solver",
                 NATIVE_LIDAR_POINT_TO_PLANE_BACKEND: "native_lidar_point_to_plane_solver",
                 NATIVE_PLANAR_BOARD_BACKEND: "native_planar_board_solver",
                 NATIVE_HAND_EYE_COMPARISON_BACKEND: (
@@ -433,6 +436,7 @@ def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateP
                 NATIVE_REGISTRATION_COMPARISON_BACKEND: (
                     "native_registration_comparison_solver"
                 ),
+                NATIVE_TUM_JOINT_SLAC_BACKEND: "native_tum_joint_slac_solver",
             }[backend],
             notes=[note],
         )

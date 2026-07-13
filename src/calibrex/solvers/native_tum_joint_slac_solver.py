@@ -28,28 +28,26 @@ from calibrex.data.tum_rgbd import (
     sample_tum_depth_points,
 )
 from calibrex.graph.joint_factors import (
-    JointPointToPlaneMeasurement,
-    make_joint_point_to_plane_factor,
+    JointDepthPointToPlaneMeasurement,
+    make_joint_depth_point_to_plane_factor,
     make_joint_prior_factor,
     se3_from_tangent,
 )
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
+    JointObservabilityEvaluation,
     JointOptimizerOptions,
     JointOptimizerResult,
     JointParameterBlock,
     JointResidualBlock,
-)
-from calibrex.graph.lidar_point_to_plane import (
-    LidarPointToPlaneObservation,
-    LidarRigPointToPlaneEvaluation,
-    LidarRigPointToPlaneFactor,
+    evaluate_joint_observability,
 )
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 
 NATIVE_TUM_JOINT_SLAC_BACKEND = "native_tum_joint_slac"
 _FACTOR_NAME = "tum_rgbd_joint_point_to_plane"
 _EXTRINSIC_BLOCK = "T_trajectory_camera_correction"
+_DEPTH_BLOCK = "depth_log_scale_bias_m"
 _MIN_QUERY_FRAMES = 4
 _MIN_TOTAL_CORRESPONDENCES = 100
 
@@ -77,6 +75,10 @@ class TUMJointSlacOptions:
     known_bad_margin_m: float = 1.0e-4
     reference_translation_gate_m: float = 0.05
     reference_rotation_gate_deg: float = 1.0
+    known_bad_depth_log_scale: float = 0.02
+    known_bad_depth_bias_m: float = 0.02
+    reference_depth_scale_error_gate_percent: float = 2.0
+    reference_depth_bias_gate_m: float = 0.03
 
     def as_dict(self) -> dict[str, float | int]:
         return {
@@ -90,7 +92,7 @@ class TUMJointSlacOptions:
 class _TUMJointProblem:
     map_frames: tuple[TUMDepthPoseEntry, ...]
     query_frames: tuple[TUMDepthPoseEntry, ...]
-    measurements: tuple[JointPointToPlaneMeasurement, ...]
+    measurements: tuple[JointDepthPointToPlaneMeasurement, ...]
     data_factors: tuple[JointResidualBlock, ...]
     parameter_blocks: tuple[JointParameterBlock, ...]
     all_factors: tuple[JointResidualBlock, ...]
@@ -167,11 +169,25 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         )
         extrinsic = se3_from_tangent(result.optimized_values[_EXTRINSIC_BLOCK])
         variable = f"T_{camera_node.parent}_{camera}"
-        data_observability = _data_only_extrinsic_observability(
-            problem, result, extrinsic, variable, camera
+        extrinsic_observability = _data_only_shared_observability(
+            problem, result, include_depth_calibration=False
         )
-        metrics = _metrics(problem, result, extrinsic, data_observability, options)
-        warnings = _warnings(result, data_observability.rank)
+        shared_observability = _data_only_shared_observability(
+            problem, result, include_depth_calibration=True
+        )
+        metrics = _metrics(
+            problem,
+            result,
+            extrinsic,
+            extrinsic_observability,
+            shared_observability,
+            options,
+        )
+        warnings = _warnings(
+            result,
+            extrinsic_observability.information_rank,
+            shared_observability.information_rank,
+        )
         return SolverAdapterResult(
             backend=self.backend,
             available=True,
@@ -188,6 +204,8 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 intrinsics=intrinsics,
                 options=options,
                 variable=variable,
+                extrinsic_observability=extrinsic_observability,
+                shared_observability=shared_observability,
             ),
             warnings=warnings,
             observability=ObservabilityResult(
@@ -230,7 +248,7 @@ def _build_problem(
             world = frame.transform_world_camera.transform_point(point)
             map_records.append(LivoxPointRecord((*world, 0.0), None))
     plane_map = build_voxel_plane_map(map_records, options.voxel_size_m)
-    measurements: list[JointPointToPlaneMeasurement] = []
+    measurements: list[JointDepthPointToPlaneMeasurement] = []
     factors: list[JointResidualBlock] = []
     blocks: list[JointParameterBlock] = []
     priors: list[JointResidualBlock] = []
@@ -257,7 +275,7 @@ def _build_problem(
             )
         )
         image = read_tum_depth_png(root / frame.depth.path)
-        candidates: list[JointPointToPlaneMeasurement] = []
+        candidates: list[JointDepthPointToPlaneMeasurement] = []
         for point_index, point in enumerate(
             sample_tum_depth_points(
                 image,
@@ -275,10 +293,15 @@ def _build_problem(
             if plane is None or plane.normal is None:
                 continue
             candidates.append(
-                JointPointToPlaneMeasurement(
+                JointDepthPointToPlaneMeasurement(
                     measurement_id=f"tum-{frame_index:03d}-{point_index:05d}",
                     observation_group=f"tum-frame-{frame_index:03d}",
-                    point_sensor_m=point,
+                    normalized_ray_sensor=(
+                        point[0] / point[2],
+                        point[1] / point[2],
+                        1.0,
+                    ),
+                    nominal_depth_m=point[2],
                     plane_point_world_m=plane.centroid,
                     plane_normal_world=plane.normal,
                     transform_world_body_initial=frame.transform_world_camera,
@@ -288,10 +311,11 @@ def _build_problem(
         retained = _bounded_sample(candidates, options.max_correspondences_per_frame)
         measurements.extend(retained)
         factors.extend(
-            make_joint_point_to_plane_factor(
+            make_joint_depth_point_to_plane_factor(
                 measurement,
                 pose_block=pose_block,
                 extrinsic_block=_EXTRINSIC_BLOCK,
+                depth_calibration_block=_DEPTH_BLOCK,
             )
             for measurement in retained
         )
@@ -307,6 +331,17 @@ def _build_problem(
             known_bad_steps=known_bad,
         )
     )
+    blocks.append(
+        JointParameterBlock(
+            _DEPTH_BLOCK,
+            (0.0, 0.0),
+            finite_difference_steps=(1.0e-5, 1.0e-5),
+            known_bad_steps=(
+                options.known_bad_depth_log_scale,
+                options.known_bad_depth_bias_m,
+            ),
+        )
+    )
     return _TUMJointProblem(
         map_frames,
         query_frames,
@@ -320,8 +355,8 @@ def _build_problem(
 
 
 def _bounded_sample(
-    measurements: list[JointPointToPlaneMeasurement], maximum: int
-) -> list[JointPointToPlaneMeasurement]:
+    measurements: list[JointDepthPointToPlaneMeasurement], maximum: int
+) -> list[JointDepthPointToPlaneMeasurement]:
     if len(measurements) <= maximum:
         return measurements
     step = math.ceil(len(measurements) / maximum)
@@ -332,45 +367,47 @@ def _pose_block(index: int, frame: TUMDepthPoseEntry) -> str:
     return f"pose_{index:03d}_{frame.depth.timestamp_sec:.6f}"
 
 
-def _data_only_extrinsic_observability(
+def _data_only_shared_observability(
     problem: _TUMJointProblem,
     result: JointOptimizerResult,
-    extrinsic: SE3,
-    variable: str,
-    camera: str,
-) -> LidarRigPointToPlaneEvaluation:
+    *,
+    include_depth_calibration: bool,
+) -> JointObservabilityEvaluation:
     train_ids = set(result.train_factor_ids)
-    observations: list[LidarPointToPlaneObservation] = []
-    for measurement in problem.measurements:
-        if measurement.measurement_id not in train_ids:
-            continue
-        frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
-        frame = problem.query_frames[frame_index]
-        pose = se3_from_tangent(
-            result.optimized_values[_pose_block(frame_index, frame)]
-        ).compose(frame.transform_world_camera)
-        observations.append(
-            LidarPointToPlaneObservation(
-                point_lidar_m=measurement.point_sensor_m,
-                plane_point_world_m=measurement.plane_point_world_m,
-                plane_normal_world=measurement.plane_normal_world,
-                t_world_ego=pose,
-                weight=measurement.weight,
-            )
+    factors = [factor for factor in problem.data_factors if factor.factor_id in train_ids]
+    blocks = [
+        JointParameterBlock(
+            _pose_block(index, frame),
+            result.optimized_values[_pose_block(index, frame)],
+            fixed=True,
         )
-    return LidarRigPointToPlaneFactor(
-        variable=variable,
-        t_ego_lidar=extrinsic,
-        observations=observations,
-        sensor=camera,
-    ).evaluate()
+        for index, frame in enumerate(problem.query_frames)
+    ]
+    blocks.extend(
+        [
+            JointParameterBlock(
+                _EXTRINSIC_BLOCK,
+                result.optimized_values[_EXTRINSIC_BLOCK],
+                finite_difference_steps=(1.0e-4,) * 3 + (1.0e-5,) * 3,
+            ),
+            JointParameterBlock(
+                _DEPTH_BLOCK,
+                result.optimized_values[_DEPTH_BLOCK],
+                fixed=not include_depth_calibration,
+                finite_difference_steps=(1.0e-5, 1.0e-5),
+            ),
+        ]
+    )
+    values = {block.name: block.initial_values for block in blocks}
+    return evaluate_joint_observability(blocks, factors, values)
 
 
 def _metrics(
     problem: _TUMJointProblem,
     result: JointOptimizerResult,
     extrinsic: SE3,
-    data_observability: LidarRigPointToPlaneEvaluation,
+    extrinsic_observability: JointObservabilityEvaluation,
+    shared_observability: JointObservabilityEvaluation,
     options: TUMJointSlacOptions,
 ) -> dict[str, MetricResult]:
     train_ids = set(result.train_factor_ids)
@@ -388,7 +425,19 @@ def _metrics(
         and rotation_error <= options.reference_rotation_gate_deg
         else "fail"
     )
-    expected_rank = 6 * (len(problem.query_frames) + 1)
+    depth_log_scale, depth_bias_m = result.optimized_values[_DEPTH_BLOCK]
+    depth_scale = math.exp(depth_log_scale)
+    depth_scale_error_percent = abs(depth_scale - 1.0) * 100.0
+    depth_bias_error_m = abs(depth_bias_m)
+    depth_scale_grade: Grade = (
+        "pass"
+        if depth_scale_error_percent <= options.reference_depth_scale_error_gate_percent
+        else "fail"
+    )
+    depth_bias_grade: Grade = (
+        "pass" if depth_bias_error_m <= options.reference_depth_bias_gate_m else "fail"
+    )
+    expected_rank = 6 * (len(problem.query_frames) + 1) + 2
     return {
         "native_tum_joint_slac_available": MetricResult(
             value=1.0, grade="pass", reason="native TUM multi-capture joint solver executed"
@@ -418,24 +467,65 @@ def _metrics(
             ),
         ),
         "tum_joint_data_only_extrinsic_rank": MetricResult(
-            value=float(data_observability.rank),
-            grade="pass" if data_observability.rank == 6 else "warn",
+            value=float(extrinsic_observability.information_rank),
+            grade="pass" if extrinsic_observability.information_rank == 6 else "warn",
             reason="shared-extrinsic rank from train geometry with optimized poses fixed",
         ),
         "tum_joint_data_only_extrinsic_condition_number": MetricResult(
-            value=data_observability.normalized_condition_number_estimate,
+            value=extrinsic_observability.condition_number,
             grade=(
                 "pass"
-                if data_observability.normalized_condition_number_estimate is not None
-                and data_observability.rank == 6
+                if extrinsic_observability.condition_number is not None
+                and extrinsic_observability.information_rank == 6
                 else "warn"
             ),
-            reason="normalized fixed-pose train curvature diagnostic; not covariance",
+            reason="fixed-pose train Jacobian diagnostic; not covariance",
+        ),
+        "tum_joint_data_only_shared_rank": MetricResult(
+            value=float(shared_observability.information_rank),
+            grade="pass" if shared_observability.information_rank == 8 else "warn",
+            reason="train rank of shared extrinsic plus depth log-scale/bias with poses fixed",
+        ),
+        "tum_joint_data_only_shared_condition_number": MetricResult(
+            value=shared_observability.condition_number,
+            grade=(
+                "pass"
+                if shared_observability.condition_number is not None
+                and shared_observability.information_rank == 8
+                else "warn"
+            ),
+            reason="unit-dependent shared 8D train Jacobian diagnostic; not covariance",
+        ),
+        "tum_joint_depth_scale": MetricResult(
+            value=depth_scale,
+            grade=depth_scale_grade,
+            reason="multiplicative correction applied to nominal metric query depth",
+        ),
+        "tum_joint_depth_bias_m": MetricResult(
+            value=depth_bias_m,
+            unit="m",
+            grade=depth_bias_grade,
+            reason="additive correction applied after multiplicative query-depth scale",
+        ),
+        "tum_joint_depth_scale_reference_error_percent": MetricResult(
+            value=depth_scale_error_percent,
+            unit="percent",
+            grade=depth_scale_grade,
+            reason="TUM depth is officially pre-scaled; reference multiplier is one",
+        ),
+        "tum_joint_depth_bias_reference_error_m": MetricResult(
+            value=depth_bias_error_m,
+            unit="m",
+            grade=depth_bias_grade,
+            reason="TUM depth is officially pre-scaled; reference additive bias is zero",
         ),
         "tum_joint_known_bad_detectable_fraction": MetricResult(
             value=detectable,
             grade="pass" if detectable == 1.0 else "warn",
-            reason="signed shared-extrinsic perturbations scored on held-out query frames",
+            reason=(
+                "signed shared-extrinsic and depth-calibration perturbations scored "
+                "on held-out query frames"
+            ),
         ),
         "tum_joint_identity_reference_translation_error_m": MetricResult(
             value=translation_error,
@@ -473,15 +563,23 @@ def _rotation_angle_deg(transform: SE3) -> float:
     )
 
 
-def _warnings(result: JointOptimizerResult, data_rank: int) -> list[str]:
+def _warnings(
+    result: JointOptimizerResult, extrinsic_rank: int, shared_rank: int
+) -> list[str]:
     warnings = [
         "joint rank includes independently measured TUM pose priors; use the separate "
-        "data-only shared-extrinsic rank for geometric observability"
+        "data-only shared calibration ranks for geometric observability"
     ]
     if result.status != "converged":
         warnings.append(f"native TUM joint SLAC status is {result.status}: {result.reason}")
-    if data_rank < 6:
-        warnings.append(f"TUM train geometry shared-extrinsic rank is {data_rank} < 6")
+    if extrinsic_rank < 6:
+        warnings.append(
+            f"TUM train geometry shared-extrinsic rank is {extrinsic_rank} < 6"
+        )
+    if shared_rank < 8:
+        warnings.append(
+            f"TUM train geometry extrinsic/depth shared rank is {shared_rank} < 8"
+        )
     return warnings
 
 
@@ -496,10 +594,12 @@ def _provenance(
     intrinsics: TUMDepthIntrinsics,
     options: TUMJointSlacOptions,
     variable: str,
+    extrinsic_observability: JointObservabilityEvaluation,
+    shared_observability: JointObservabilityEvaluation,
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic/v0.1",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.2",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -532,7 +632,18 @@ def _provenance(
         ),
         "native_tum_joint_slac_reference_policy": (
             "TUM ground truth is T_world_camera, so T_trajectory_camera identity is "
-            "the independently measured mounting reference"
+            "the independently measured mounting reference; official TUM depth is "
+            "pre-scaled, so depth multiplier/bias reference is one/zero"
+        ),
+        "native_tum_joint_slac_depth_correction_convention": (
+            "query z_corrected_m = exp(log_scale) * z_nominal_m + bias_m; "
+            "disjoint map depths remain the fixed metric reference"
+        ),
+        "native_tum_joint_slac_data_only_extrinsic_observability": (
+            extrinsic_observability.as_dict()
+        ),
+        "native_tum_joint_slac_data_only_shared_observability": (
+            shared_observability.as_dict()
         ),
         "native_tum_joint_slac_solver": result.as_dict(),
     }
@@ -617,6 +728,20 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
         ),
         reference_rotation_gate_deg=_positive(
             values, "reference_rotation_gate_deg", defaults.reference_rotation_gate_deg
+        ),
+        known_bad_depth_log_scale=_positive(
+            values, "known_bad_depth_log_scale", defaults.known_bad_depth_log_scale
+        ),
+        known_bad_depth_bias_m=_positive(
+            values, "known_bad_depth_bias_m", defaults.known_bad_depth_bias_m
+        ),
+        reference_depth_scale_error_gate_percent=_positive(
+            values,
+            "reference_depth_scale_error_gate_percent",
+            defaults.reference_depth_scale_error_gate_percent,
+        ),
+        reference_depth_bias_gate_m=_positive(
+            values, "reference_depth_bias_gate_m", defaults.reference_depth_bias_gate_m
         ),
     )
 

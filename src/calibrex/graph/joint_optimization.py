@@ -87,6 +87,29 @@ class JointKnownBadProbe:
 
 
 @dataclass(frozen=True)
+class JointObservabilityEvaluation:
+    """Local Jacobian diagnostics at explicitly supplied parameter values."""
+
+    parameter_dimension: int
+    residual_dimension: int
+    information_singular_values: tuple[float, ...]
+    information_rank: int
+    condition_number: float | None
+    weak_parameter_blocks: tuple[str, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "parameter_dimension": self.parameter_dimension,
+            "residual_dimension": self.residual_dimension,
+            "information_singular_values": self.information_singular_values,
+            "information_rank": self.information_rank,
+            "condition_number": self.condition_number,
+            "weak_parameter_blocks": list(self.weak_parameter_blocks),
+            "diagnostic_kind": "local_train_jacobian_not_covariance",
+        }
+
+
+@dataclass(frozen=True)
 class JointOptimizerResult:
     status: JointOptimizerStatus
     reason: str
@@ -286,6 +309,47 @@ def split_joint_factors(
     train.extend(train_only)
     holdout = [factor for factor in grouped if factor.observation_group in holdout_set]
     return train, holdout, train_groups, holdout_groups
+
+
+def evaluate_joint_observability(
+    parameter_blocks: Sequence[JointParameterBlock],
+    factors: Sequence[JointResidualBlock],
+    values: ParameterValues,
+    options: JointOptimizerOptions | None = None,
+) -> JointObservabilityEvaluation:
+    """Evaluate local rank/conditioning without taking an optimization step."""
+
+    solver_options = options or JointOptimizerOptions()
+    blocks = _validate_blocks(parameter_blocks)
+    expected_names = {block.name for block in blocks}
+    if set(values) != expected_names:
+        raise ValueError("joint observability values must match all parameter blocks")
+    normalized = {
+        block.name: tuple(float(value) for value in values[block.name]) for block in blocks
+    }
+    if any(len(normalized[block.name]) != block.dimension for block in blocks):
+        raise ValueError("joint observability value dimension mismatch")
+    layout = _variable_layout(blocks)
+    residual, jacobian = _linearize(
+        factors, normalized, blocks, layout, solver_options
+    )
+    singular = np.linalg.svd(jacobian, compute_uv=False) if jacobian.size else np.asarray([])
+    rank = int(sum(value > solver_options.rank_tolerance for value in singular))
+    condition = (
+        float(singular[0] / singular[-1])
+        if len(singular) and singular[-1] > solver_options.rank_tolerance
+        else None
+    )
+    return JointObservabilityEvaluation(
+        parameter_dimension=jacobian.shape[1],
+        residual_dimension=len(residual),
+        information_singular_values=tuple(float(value) for value in singular),
+        information_rank=rank,
+        condition_number=condition,
+        weak_parameter_blocks=_weak_blocks(
+            jacobian, layout, blocks, solver_options.rank_tolerance
+        ),
+    )
 
 
 def _linearize(

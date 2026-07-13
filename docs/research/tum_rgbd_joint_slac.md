@@ -44,29 +44,42 @@ integration.
 
 `NativeTUMJointSlacSolver` reserves three disjoint map frames, builds
 world-frame voxel planes, and creates one pose block for each of eight query
-frames plus a shared camera mounting block. Ground-truth pose priors are
-train-only. Query frames, not pixels, define train/holdout groups. Numeric
+frames plus a shared camera mounting block and a shared two-value depth block.
+The depth convention is `z_corrected = exp(log_scale) * z_nominal + bias_m`.
+The disjoint map depths remain the fixed metric reference. Ground-truth pose
+priors are train-only. Query frames, not pixels, define train/holdout groups. Numeric
 linearization uses declared factor ownership, so perturbing one pose block only
 re-evaluates that frame's factors while the shared extrinsic still touches all
 frames.
 
-The public fr1/xyz run converges with 0.0298 m train and 0.0318 m held-out
-point-to-plane RMSE. The augmented 54-dimensional joint system is full rank.
-With optimized poses fixed, the train geometry gives shared-extrinsic rank 6
-and normalized condition number 14.1. TUM ground truth already describes the
-camera frame, so the mounting reference is identity; the recovered shared
-transform is 0.0376 m and 0.205 degrees from that reference, inside the declared
-0.05 m / 1 degree gates.
+Synthetic multi-capture tests jointly recover trajectory-supported extrinsic,
+depth log-scale, and bias truth within `2e-5`, reach rank 32/32, and detect all
+16 signed shared-parameter probes.
 
-Nine of twelve signed shared-extrinsic perturbations worsen held-out RMSE, a
-detectable fraction of 0.75. This remains WARN under the unchanged requirement
-of 1.0. The result records depth-index and trajectory hashes, hashes for all 11
-selected PNGs, timestamp association deltas, disjoint frame IDs, map support,
-intrinsics, options, iterations, split groups, and every known-bad probe.
+The public fr1/xyz depth-enabled run converges with 0.0271 m train and 0.0277 m
+held-out point-to-plane RMSE. The augmented 56-dimensional joint system is full
+rank. With optimized poses fixed, train geometry gives extrinsic rank 6/6 and
+combined extrinsic/depth rank 8/8, with local condition numbers 6.04 and 16.99.
+The recovered depth multiplier is 0.99839, only 0.161 percent from the official
+pre-scaled reference and therefore PASS.
+
+The additive bias is -0.0755 m, outside the unchanged 0.03 m reference gate.
+It co-varies with a 0.112 m / 1.25 degree mounting correction, also outside the
+translation PASS/WARN boundary. Thirteen of sixteen signed shared-extrinsic and
+depth perturbations worsen held-out RMSE (0.8125). The public result is therefore
+honestly FAIL despite its lower geometric residual and full local rank. This is
+evidence of model/reference tension and bias-versus-z-translation correlation,
+not a reason to relax gates.
+
+The result records depth-index and trajectory hashes, hashes for all 11 selected
+PNGs, timestamp association deltas, disjoint frame IDs, map support, intrinsics,
+depth convention, options, iterations, both data-only observability evaluations,
+split groups, and every known-bad probe.
 
 This is independently trajectory-supported joint refinement, not
-trajectory-from-scratch SLAM: the 54-dimensional rank includes measured-pose
-priors and is therefore reported as augmented. The separate rank-6 metric is
-the data-only shared-extrinsic diagnostic. The next extension is a shared depth
-scale/bias or spatial depth-correction block, closer to the correction function
-estimated in Zhou and Koltun's original SLAC formulation.
+trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
+priors and is therefore reported as augmented. Separate rank-6 and rank-8
+metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
+next extension is multi-window replication and a spatial depth-correction basis,
+with an explicit ablation to distinguish persistent bias from map/frontend
+systematics.

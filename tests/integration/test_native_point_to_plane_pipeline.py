@@ -162,9 +162,10 @@ def test_native_joint_slac_pipeline_on_a2d2_pair(tmp_path: Path) -> None:
     assert result.metrics["joint_slac_augmented_information_rank"].value == 12.0
     assert result.metrics["joint_slac_vs_fixed_baseline_translation_m"].value is not None
     assert result.metrics["joint_slac_vs_fixed_baseline_rotation_deg"].value is not None
-    assert result.transforms["T_base_link_lidar_front_right"].provenance.tool_name == (
-        "native_joint_slac"
-    )
+    transform = result.transforms["T_base_link_lidar_front_right"]
+    assert transform.provenance.producer == "slac_native"
+    assert transform.provenance.execution_mode == "offline_batch"
+    assert transform.provenance.tool_name == "native_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_joint_slac_method"] == (
         "pose_extrinsic_point_to_plane/v0.1"
