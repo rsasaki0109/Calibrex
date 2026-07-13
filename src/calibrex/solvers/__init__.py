@@ -1,5 +1,12 @@
 """Solver adapter interfaces."""
 
+from calibrex.solvers.andreff_hand_eye_solver import (
+    AndreffHandEyeOptions,
+    AndreffHandEyeResult,
+    AndreffHandEyeSolver,
+    AndreffIncrementalUpdate,
+    AndreffKroneckerAccumulator,
+)
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeOptions,
@@ -149,6 +156,11 @@ __all__ = [
     "NATIVE_PLANAR_BOARD_BACKEND",
     "NATIVE_REGISTRATION_COMPARISON_BACKEND",
     "NATIVE_TUM_JOINT_SLAC_BACKEND",
+    "AndreffHandEyeOptions",
+    "AndreffHandEyeResult",
+    "AndreffHandEyeSolver",
+    "AndreffIncrementalUpdate",
+    "AndreffKroneckerAccumulator",
     "BoardBoundaryCorrespondence",
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",

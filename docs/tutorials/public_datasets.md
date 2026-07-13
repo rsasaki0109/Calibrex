@@ -36,7 +36,7 @@ diagnostic. The upstream ROS/PCL feature extractor stays outside the core and
 its pinned commit, Apache-2.0 license, input digest, and source URL are recorded
 as provenance.
 
-Four native hand-eye baselines on ETHZ ASL's real robot-arm pose streams:
+Five native hand-eye baselines on ETHZ ASL's real robot-arm pose streams:
 
 ```bash
 python3 tools/download_public_dataset.py ethz_hand_eye_robot_arm_real \
@@ -46,11 +46,12 @@ calibrex calibrate \
 calibrex verify outputs/ethz_hand_eye_robot_arm_real/bundle.json
 ```
 
-The comparison runs Park-Martin, Tsai-Lenz, Daniilidis, and Horaud-Dornaika
-with one disjoint absolute-pose pairing policy and one holdout split. Closure
-and the Horaud-Dornaika minimum-width gate pass on the public sample, while the
-default known-bad gate remains INCONCLUSIVE; the documented negative result is
-not converted into a PASS by threshold tuning.
+The comparison runs Park-Martin, Tsai-Lenz, Daniilidis, Horaud-Dornaika, and
+the incremental Andreff-Horaud-Espiau Kronecker method with one disjoint
+absolute-pose pairing policy and one holdout split. Closure and both
+minimum-width gates pass on the public sample, while the default known-bad gate
+remains INCONCLUSIVE; the documented negative result is not converted into a
+PASS by threshold tuning.
 
 Solid-state LiDAR-to-LiDAR evidence demo:
 

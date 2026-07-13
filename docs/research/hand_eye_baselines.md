@@ -93,6 +93,46 @@ rotation-axis family produces a repeated minimum and is rejected. This is an
 independent NumPy implementation; no source implementation from the paper or
 another package is copied.
 
+## Andreff, Horaud, and Espiau incremental Kronecker method
+
+Primary reference: N. Andreff, R. Horaud, and B. Espiau, *On-line Hand-Eye
+Calibration*, Second International Conference on 3-D Digital Imaging and
+Modeling, 1999, DOI `10.1109/IM.1999.805374`, equations (10), (13), (14), and
+(15). The [primary PDF is hosted by
+INRIA](https://perception.inrialpes.fr/Publications/1999/AHE99/3dim99.pdf).
+
+Using row-major vectorization, the paper rewrites the rotational part of each
+motion as the homogeneous system
+
+```text
+(I_9 - R_A tensor R_B) vec(R_X) = 0.
+```
+
+Two nonparallel rotation axes give eight observable directions and a
+one-dimensional kernel. Calibrex incrementally accumulates the 9x9 normal
+matrix, extracts the kernel by symmetric eigendecomposition, applies the
+paper's determinant normalization, and records the correction required by a
+nearest-SO(3) projection. Translation is then solved conditionally from
+
+```text
+(I_3 - R_A) t_X = t_A - R_X t_B.
+```
+
+The online state also accumulates a 3x3 translation information matrix, its
+camera-motion right-hand side, and a 3x9 rotation/translation coupling. It can
+therefore update without retaining raw motions. Every accepted train motion
+records the evolving axis rank, rotation-kernel rank and width, translation
+rank, and the rank with which translations alone constrain `vec(R_X)`.
+
+The paper explicitly warns that solving all twelve rotation-matrix and
+translation coefficients at once is physical-unit dependent and does not
+guarantee an orthogonal rotation. Calibrex records
+`full_12_variable_solution_executed: false` and follows the paper's two-stage
+solution. Synthetic controls recover exact truth with rotations as small as
+0.05 degrees. Three independent pure translations correctly report rank 9 for
+rotation-from-translation information but no observable hand-eye translation,
+so they cannot be emitted as a full calibration.
+
 ## Falsification protocol
 
 - Whole relative-motion pairs are split into train and holdout.
@@ -126,8 +166,9 @@ calibrex verify outputs/ethz_hand_eye_robot_arm_real/bundle.json
 ```
 
 Timestamp alignment retained 1,688 pairs within 10 ms. Fourteen relative
-motions were constructed from disjoint absolute-pose blocks; the recorded
-absolute-pose reuse count is zero.
+motions were constructed from disjoint absolute-pose blocks; thirteen pass the
+shared one-degree comparison filter and produce a common 10-train/3-holdout
+split. The recorded absolute-pose reuse count is zero.
 
 | Method | Holdout rotation | Holdout translation | Known-bad detection |
 | --- | ---: | ---: | ---: |
@@ -135,10 +176,16 @@ absolute-pose reuse count is zero.
 | Tsai-Lenz | 0.945° | 0.0174 m | 6/12 |
 | Daniilidis | 0.939° | 0.0174 m | 6/12 |
 | Horaud-Dornaika | 0.985° | 0.0190 m | 6/12 |
+| Andreff-Horaud-Espiau | 0.939° | 0.0172 m | 6/12 |
 
-All four methods pass the declared closure gates of 2° and 3 cm. Horaud-
+All five methods pass the declared closure gates of 2° and 3 cm. Horaud-
 Dornaika has axis rank 3/3 and normalized quaternion eigengap 0.7758, passing
-the predeclared 0.001 minimum-width gate. The four methods do not
+the predeclared 0.001 minimum-width gate. Andreff has rotation rank 8/8,
+translation rank 3/3, normalized rotation width 0.4836, and SO(3) projection
+correction 0.0003515. Its kernel-to-eighth singular-value ratio is 0.05005.
+These pass the predeclared 0.0001 minimum-width, 0.25 maximum-nullspace-ratio,
+and 0.05 maximum-projection gates. The five methods share exactly the same
+train/holdout IDs. They do not
 reach the unchanged 0.75 known-bad detectable-fraction gate, so the public run
 is honestly **INCONCLUSIVE**, not PASS. This indicates limited falsification
 power in the selected motion blocks despite low closure residuals. The

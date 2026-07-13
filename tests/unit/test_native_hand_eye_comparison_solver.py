@@ -65,7 +65,10 @@ def _write_synthetic_archive(path: Path, count: int = 40) -> SE3:
 
 
 def _config(
-    dataset_path: Path, *, min_horaud_gap: float = 1.0e-3
+    dataset_path: Path,
+    *,
+    min_horaud_gap: float = 1.0e-3,
+    min_andreff_width: float = 1.0e-4,
 ) -> CalibrationConfig:
     return CalibrationConfig.model_validate(
         {
@@ -86,6 +89,7 @@ def _config(
                             "min_horaud_quaternion_normalized_eigengap": (
                                 min_horaud_gap
                             ),
+                            "min_andreff_rotation_width": min_andreff_width,
                         },
                     }
                 }
@@ -133,7 +137,17 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
         ].grade
         == "pass"
     )
-    for method in ("park_martin", "tsai_lenz", "daniilidis", "horaud_dornaika"):
+    assert result.metrics["hand_eye_common_split_consistent"].value == 1.0
+    assert result.metrics["hand_eye_andreff_rotation_observable_rank"].grade == "pass"
+    assert result.metrics["hand_eye_andreff_rotation_minimum_width"].grade == "pass"
+    assert result.metrics["hand_eye_andreff_rotation_nullspace_ratio"].grade == "pass"
+    for method in (
+        "park_martin",
+        "tsai_lenz",
+        "daniilidis",
+        "horaud_dornaika",
+        "andreff",
+    ):
         assert result.metrics[f"hand_eye_{method}_holdout_rotation_rmse_deg"].grade == "pass"
         assert (
             result.metrics[f"hand_eye_{method}_known_bad_detectable_fraction"].value
@@ -146,6 +160,7 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     results = comparison["results"]
     assert isinstance(results, dict)
     assert results["horaud_dornaika"]["paper_doi"] == "10.1177/027836499501400301"
+    assert results["andreff"]["paper_doi"] == "10.1109/IM.1999.805374"
 
 
 def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
@@ -187,3 +202,21 @@ def test_declared_minimum_width_gate_cannot_be_weakened_by_convergence(
     assert result.observability is not None
     assert result.observability.grade == "fail"
     assert "horaud_quaternion_minimum_width" in result.observability.weak_directions
+
+
+def test_andreff_width_gate_cannot_be_weakened_by_convergence(tmp_path: Path) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, min_andreff_width=1.0)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    assert result.metrics["hand_eye_andreff_rotation_minimum_width"].grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"
+    assert "andreff_kronecker_observability" in result.observability.weak_directions
