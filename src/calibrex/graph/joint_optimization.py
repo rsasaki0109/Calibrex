@@ -17,6 +17,8 @@ ResidualEvaluator: TypeAlias = Callable[[ParameterValues], Sequence[float]]
 SquareRootInformation: TypeAlias = tuple[tuple[float, ...], ...]
 JointOptimizerStatus = Literal["converged", "max_iterations", "insufficient_factors", "degenerate"]
 JointFactorSplitPolicy = Literal["grouped", "train_only"]
+JointLinearSolver = Literal["dense", "schur"]
+JointSchurRole = Literal["retained", "eliminated"]
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,7 @@ class JointParameterBlock:
     fixed: bool = False
     finite_difference_steps: tuple[float, ...] = ()
     known_bad_steps: tuple[float, ...] = ()
+    schur_role: JointSchurRole = "retained"
 
     @property
     def dimension(self) -> int:
@@ -83,6 +86,7 @@ class JointOptimizerOptions:
     max_condition_number: float = 1.0e10
     default_finite_difference_step: float = 1.0e-6
     known_bad_margin: float = 1.0e-3
+    linear_solver: JointLinearSolver = "dense"
 
 
 @dataclass(frozen=True)
@@ -93,6 +97,11 @@ class JointOptimizerIteration:
     damping: float
     step_norm: float
     accepted: bool
+    linear_solver: JointLinearSolver
+    eliminated_dimension: int
+    retained_dimension: int
+    linear_system_residual_inf: float
+    schur_complement_condition_number: float | None
 
 
 @dataclass(frozen=True)
@@ -175,6 +184,13 @@ class JointOptimizerResult:
     information_rank_threshold: float | None = None
     train_whitened_factor_count: int = 0
     train_factor_whitening: tuple[JointFactorWhitening, ...] = ()
+    linear_solver: JointLinearSolver = "dense"
+    schur_eliminated_blocks: tuple[str, ...] = ()
+    schur_retained_blocks: tuple[str, ...] = ()
+    schur_eliminated_dimension: int = 0
+    schur_retained_dimension: int = 0
+    max_linear_system_residual_inf: float | None = None
+    max_schur_complement_condition_number: float | None = None
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -196,13 +212,40 @@ class JointOptimizerResult:
             "weak_parameter_blocks": list(self.weak_parameter_blocks),
             "known_bad_probes": [probe.__dict__ for probe in self.probes],
             "history": [item.__dict__ for item in self.history],
-            "method": "backend_neutral_robust_joint_lm/v0.3",
+            "method": "backend_neutral_robust_joint_lm/v0.4",
             "information_policy": "train residual Jacobian; diagnostic, not covariance",
             "rank_tolerance_policy": "relative_to_largest_singular_value",
             "train_whitened_factor_count": self.train_whitened_factor_count,
             "factor_weighting_policy": "sqrt(weight) * sqrt_information * raw_residual",
-            "train_factor_whitening": [
-                item.as_dict() for item in self.train_factor_whitening
+            "train_factor_whitening": [item.as_dict() for item in self.train_factor_whitening],
+            "linear_solver": self.linear_solver,
+            "schur_eliminated_blocks": list(self.schur_eliminated_blocks),
+            "schur_retained_blocks": list(self.schur_retained_blocks),
+            "schur_eliminated_dimension": self.schur_eliminated_dimension,
+            "schur_retained_dimension": self.schur_retained_dimension,
+            "max_linear_system_residual_inf": self.max_linear_system_residual_inf,
+            "max_schur_complement_condition_number": (self.max_schur_complement_condition_number),
+            "linear_solver_contract": (
+                "Huber-weighted damped normal equations; typed eliminated partition, "
+                "Schur solve on retained variables, then eliminated-variable back-substitution"
+            ),
+            "linear_solver_limitation": (
+                "dense NumPy block foundation, not a sparse-matrix or covariance backend"
+            ),
+            "linear_solver_papers": [
+                {
+                    "title": "Bundle Adjustment — A Modern Synthesis",
+                    "authors": (
+                        "Bill Triggs, Philip F. McLauchlan, Richard I. Hartley, "
+                        "and Andrew W. Fitzgibbon"
+                    ),
+                    "doi": "10.1007/3-540-44480-7_21",
+                },
+                {
+                    "title": "SBA: A Software Package for Generic Sparse Bundle Adjustment",
+                    "authors": "Manolis I. A. Lourakis and Antonis A. Argyros",
+                    "doi": "10.1145/1486525.1486527",
+                },
             ],
         }
 
@@ -226,11 +269,28 @@ class BackendNeutralJointOptimizer:
         initial = {block.name: block.initial_values for block in blocks}
         if len(train) < solver_options.minimum_train_factors:
             return _empty(
-                "insufficient_factors", initial, train, holdout, train_groups, holdout_groups
+                "insufficient_factors",
+                initial,
+                train,
+                holdout,
+                train_groups,
+                holdout_groups,
+                linear_solver=solver_options.linear_solver,
             )
         layout = _variable_layout(blocks)
         if not layout:
-            return _empty("degenerate", initial, train, holdout, train_groups, holdout_groups)
+            return _empty(
+                "degenerate",
+                initial,
+                train,
+                holdout,
+                train_groups,
+                holdout_groups,
+                linear_solver=solver_options.linear_solver,
+            )
+        eliminated_names, retained_names, eliminated_indices, retained_indices = (
+            _linear_solver_partition(blocks, layout, solver_options.linear_solver)
+        )
         vector = _pack(initial, layout)
         damping = solver_options.initial_damping
         history: list[JointOptimizerIteration] = []
@@ -246,6 +306,11 @@ class BackendNeutralJointOptimizer:
                     holdout,
                     train_groups,
                     holdout_groups,
+                    linear_solver=solver_options.linear_solver,
+                    eliminated_names=eliminated_names,
+                    retained_names=retained_names,
+                    eliminated_dimension=len(eliminated_indices),
+                    retained_dimension=len(retained_indices),
                 )
             weights = _huber_weights(residual, solver_options.huber_delta)
             weighted_jacobian = jacobian * np.sqrt(weights)[:, None]
@@ -253,7 +318,14 @@ class BackendNeutralJointOptimizer:
             hessian = weighted_jacobian.T @ weighted_jacobian
             gradient = weighted_jacobian.T @ weighted_residual
             try:
-                step = -np.linalg.solve(hessian + damping * np.eye(hessian.shape[0]), gradient)
+                step, linear_residual, schur_condition = _solve_linear_step(
+                    hessian,
+                    gradient,
+                    damping,
+                    solver_options.linear_solver,
+                    eliminated_indices,
+                    retained_indices,
+                )
             except np.linalg.LinAlgError:
                 return _empty(
                     "degenerate",
@@ -262,6 +334,11 @@ class BackendNeutralJointOptimizer:
                     holdout,
                     train_groups,
                     holdout_groups,
+                    linear_solver=solver_options.linear_solver,
+                    eliminated_names=eliminated_names,
+                    retained_names=retained_names,
+                    eliminated_dimension=len(eliminated_indices),
+                    retained_dimension=len(retained_indices),
                 )
             candidate = vector + step
             current_rmse = _rmse(residual)
@@ -269,9 +346,7 @@ class BackendNeutralJointOptimizer:
             candidate_values = _unpack(candidate, initial, layout)
             candidate_residual = _factor_residuals(train, candidate_values)
             candidate_rmse = _rmse(candidate_residual)
-            candidate_objective = _huber_objective(
-                candidate_residual, solver_options.huber_delta
-            )
+            candidate_objective = _huber_objective(candidate_residual, solver_options.huber_delta)
             accepted = candidate_objective < current_objective
             if accepted:
                 vector = candidate
@@ -286,11 +361,14 @@ class BackendNeutralJointOptimizer:
                     damping,
                     float(np.linalg.norm(step)),
                     accepted,
+                    solver_options.linear_solver,
+                    len(eliminated_indices),
+                    len(retained_indices),
+                    linear_residual,
+                    schur_condition,
                 )
             )
-            step_converged = float(np.linalg.norm(step)) <= (
-                solver_options.convergence_tolerance
-            )
+            step_converged = float(np.linalg.norm(step)) <= (solver_options.convergence_tolerance)
             rejected_stationary = (
                 not accepted
                 and step_converged
@@ -345,6 +423,20 @@ class BackendNeutralJointOptimizer:
             rank_threshold if len(singular) else None,
             sum(bool(factor.sqrt_information) for factor in train),
             _factor_whitening(train),
+            solver_options.linear_solver,
+            eliminated_names,
+            retained_names,
+            len(eliminated_indices),
+            len(retained_indices),
+            max((item.linear_system_residual_inf for item in history), default=None),
+            max(
+                (
+                    item.schur_complement_condition_number
+                    for item in history
+                    if item.schur_complement_condition_number is not None
+                ),
+                default=None,
+            ),
         )
 
 
@@ -394,9 +486,7 @@ def evaluate_joint_observability(
     if any(len(normalized[block.name]) != block.dimension for block in blocks):
         raise ValueError("joint observability value dimension mismatch")
     layout = _variable_layout(blocks)
-    residual, jacobian = _linearize(
-        factors, normalized, blocks, layout, solver_options
-    )
+    residual, jacobian = _linearize(factors, normalized, blocks, layout, solver_options)
     singular = np.linalg.svd(jacobian, compute_uv=False) if jacobian.size else np.asarray([])
     rank_threshold = _relative_rank_threshold(singular, solver_options.rank_tolerance)
     rank = int(sum(value > rank_threshold for value in singular))
@@ -441,9 +531,7 @@ def _linearize(
         block = block_by_name[name]
         affected = [
             (factor, row_slice, len(baseline_parts[index]))
-            for index, (factor, row_slice) in enumerate(
-                zip(factors, row_slices, strict=True)
-            )
+            for index, (factor, row_slice) in enumerate(zip(factors, row_slices, strict=True))
             if name in factor.variable_names
         ]
         for local_index in range(block.dimension):
@@ -457,10 +545,7 @@ def _linearize(
             for factor, row_slice, residual_count in affected:
                 plus_residuals = factor.residuals(plus)
                 minus_residuals = factor.residuals(minus)
-                if (
-                    len(plus_residuals) != residual_count
-                    or len(minus_residuals) != residual_count
-                ):
+                if len(plus_residuals) != residual_count or len(minus_residuals) != residual_count:
                     raise ValueError("joint factor residual dimension changed during linearization")
                 jacobian[row_slice, block_slice.start + local_index] = (
                     np.asarray(plus_residuals) - np.asarray(minus_residuals)
@@ -521,6 +606,8 @@ def _validate_blocks(
             math.isfinite(value) and value > 0.0 for value in block.known_bad_steps
         ):
             raise ValueError("known-bad steps must be finite and positive")
+        if block.schur_role not in {"retained", "eliminated"}:
+            raise ValueError("joint Schur role must be retained or eliminated")
         names.add(block.name)
         output.append(block)
     return tuple(output)
@@ -575,6 +662,8 @@ def _validate_options(options: JointOptimizerOptions) -> None:
         raise ValueError("joint rank tolerance and maximum condition number are invalid")
     if not math.isfinite(options.known_bad_margin) or options.known_bad_margin < 0.0:
         raise ValueError("joint known-bad margin must be finite and non-negative")
+    if options.linear_solver not in {"dense", "schur"}:
+        raise ValueError("joint linear solver must be dense or schur")
 
 
 def _relative_rank_threshold(
@@ -607,6 +696,84 @@ def _variable_layout(blocks: Sequence[JointParameterBlock]) -> dict[str, slice]:
         layout[block.name] = slice(cursor, cursor + block.dimension)
         cursor += block.dimension
     return layout
+
+
+def _linear_solver_partition(
+    blocks: Sequence[JointParameterBlock],
+    layout: Mapping[str, slice],
+    linear_solver: JointLinearSolver,
+) -> tuple[tuple[str, ...], tuple[str, ...], NDArray[np.int64], NDArray[np.int64]]:
+    if linear_solver == "dense":
+        dimension = sum(block_slice.stop - block_slice.start for block_slice in layout.values())
+        return (
+            (),
+            tuple(layout),
+            np.empty(0, dtype=np.int64),
+            np.arange(dimension, dtype=np.int64),
+        )
+    eliminated_names = tuple(
+        block.name for block in blocks if block.name in layout and block.schur_role == "eliminated"
+    )
+    retained_names = tuple(name for name in layout if name not in set(eliminated_names))
+    eliminated = np.asarray(
+        [
+            index
+            for name in eliminated_names
+            for index in range(layout[name].start, layout[name].stop)
+        ],
+        dtype=np.int64,
+    )
+    retained = np.asarray(
+        [
+            index
+            for name in retained_names
+            for index in range(layout[name].start, layout[name].stop)
+        ],
+        dtype=np.int64,
+    )
+    if linear_solver == "schur" and (not len(eliminated) or not len(retained)):
+        raise ValueError(
+            "Schur linear solver requires free eliminated and retained parameter blocks"
+        )
+    return eliminated_names, retained_names, eliminated, retained
+
+
+def _solve_linear_step(
+    hessian: NDArray[np.float64],
+    gradient: NDArray[np.float64],
+    damping: float,
+    linear_solver: JointLinearSolver,
+    eliminated: NDArray[np.int64],
+    retained: NDArray[np.int64],
+) -> tuple[NDArray[np.float64], float, float | None]:
+    system = hessian + damping * np.eye(hessian.shape[0], dtype=np.float64)
+    if linear_solver == "dense":
+        step = -np.linalg.solve(system, gradient)
+        residual = float(np.linalg.norm(system @ step + gradient, ord=np.inf))
+        return step, residual, None
+
+    eliminated_system = system[np.ix_(eliminated, eliminated)]
+    eliminated_retained = system[np.ix_(eliminated, retained)]
+    retained_eliminated = system[np.ix_(retained, eliminated)]
+    retained_system = system[np.ix_(retained, retained)]
+    eliminated_gradient = gradient[eliminated]
+    retained_gradient = gradient[retained]
+    eliminated_solutions = np.linalg.solve(
+        eliminated_system,
+        np.column_stack((eliminated_gradient, eliminated_retained)),
+    )
+    eliminated_gradient_solution = eliminated_solutions[:, 0]
+    eliminated_retained_solution = eliminated_solutions[:, 1:]
+    complement = retained_system - retained_eliminated @ eliminated_retained_solution
+    retained_rhs = -retained_gradient + (retained_eliminated @ eliminated_gradient_solution)
+    retained_step = np.linalg.solve(complement, retained_rhs)
+    eliminated_step = -eliminated_gradient_solution - (eliminated_retained_solution @ retained_step)
+    step = np.zeros_like(gradient)
+    step[eliminated] = eliminated_step
+    step[retained] = retained_step
+    residual = float(np.linalg.norm(system @ step + gradient, ord=np.inf))
+    condition = float(np.linalg.cond(complement))
+    return step, residual, condition if math.isfinite(condition) else None
 
 
 def _pack(values: ParameterValues, layout: Mapping[str, slice]) -> NDArray[np.float64]:
@@ -701,6 +868,12 @@ def _empty(
     holdout: Sequence[JointResidualBlock],
     train_groups: tuple[str, ...],
     holdout_groups: tuple[str, ...],
+    *,
+    linear_solver: JointLinearSolver = "dense",
+    eliminated_names: tuple[str, ...] = (),
+    retained_names: tuple[str, ...] = (),
+    eliminated_dimension: int = 0,
+    retained_dimension: int = 0,
 ) -> JointOptimizerResult:
     return JointOptimizerResult(
         status,
@@ -723,4 +896,9 @@ def _empty(
         None,
         sum(bool(factor.sqrt_information) for factor in train),
         _factor_whitening(train),
+        linear_solver,
+        eliminated_names,
+        retained_names,
+        eliminated_dimension,
+        retained_dimension,
     )

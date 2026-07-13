@@ -667,6 +667,39 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_schur_solver_used",
+            "Whether the TUM joint solve used typed Schur elimination",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_schur_eliminated_dimension",
+            "Capture-local pose tangent dimensions eliminated before the reduced solve",
+            "parameters",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_schur_retained_dimension",
+            "Shared calibration tangent dimensions retained in the Schur complement",
+            "parameters",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_schur_step_count",
+            "TUM LM steps solved through Schur reduction and back-substitution",
+            "steps",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_schur_linear_residual_inf",
+            "Maximum infinity-norm residual of the reconstructed damped normal equations",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_schur_complement_condition_number",
+            "Maximum condition number of the reduced shared-calibration system",
+            family="joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_data_only_extrinsic_rank",
             "TUM train-geometry shared-extrinsic rank with poses fixed",
             family="joint_slac",

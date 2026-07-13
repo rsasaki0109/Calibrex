@@ -19,6 +19,16 @@ The design follows the joint-estimation structure demonstrated by:
 - Brookshire and Teller, *Automatic Calibration of Multiple Coplanar Sensors*,
   RSS 2011, which emphasizes suitable motion and explicit calibration
   observability rather than treating solver convergence as identifiability.
+- Triggs, McLauchlan, Hartley, and Fitzgibbon, *Bundle Adjustment — A Modern
+  Synthesis*, DOI
+  [`10.1007/3-540-44480-7_21`](https://doi.org/10.1007/3-540-44480-7_21),
+  which develops robust joint estimation, gauge handling, and sparse Newton
+  structure for viewing and calibration variables.
+- Lourakis and Argyros, *SBA: A Software Package for Generic Sparse Bundle
+  Adjustment*, DOI
+  [`10.1145/1486525.1486527`](https://doi.org/10.1145/1486525.1486527),
+  which gives the damped block-normal-equation Schur reduction and
+  back-substitution used as the numerical reference for the new solver mode.
 
 No code from those systems or from GPL graph optimizers is copied into
 `src/calibrex`.
@@ -45,6 +55,36 @@ without embedding a backend covariance class in the core. Existing diagonal
 pose priors now use this path, so A2D2 and TUM public runs exercise the same
 contract. Every whitened train factor serializes its ID, family, scalar weight,
 and exact matrix; the matrix is not presented as an estimated covariance.
+
+Version `v0.4` adds a typed Schur linear-solver mode. Each free
+`JointParameterBlock` declares `schur_role: eliminated | retained`; the default
+remains retained, so existing dense callers preserve their behavior. For a
+Huber-weighted Jacobian, Calibrex first forms the same damped normal system as
+the dense LM path,
+
+```text
+A = J_w^T J_w + lambda I,       g = J_w^T r_w
+[A_ee A_er; A_re A_rr] [delta_e; delta_r] = -[g_e; g_r].
+```
+
+It then solves
+
+```text
+S       = A_rr - A_re A_ee^-1 A_er
+S delta_r = -g_r + A_re A_ee^-1 g_e
+delta_e = -A_ee^-1 (g_e + A_er delta_r).
+```
+
+The retained step is therefore the exact Schur complement of the same damped
+system, followed by eliminated-variable back-substitution. The implementation
+serializes block names and dimensions, solver choice, every step's
+`||(A delta + g)||_inf`, and reduced-system condition number. It does not call
+that condition a covariance or observability result.
+
+This is a dense NumPy block foundation, not yet a sparse storage backend. It
+can eliminate coupled local blocks correctly, but computational scaling will
+only improve materially after block-sparse assembly avoids materializing the
+full dense Hessian. The distinction is recorded in every result.
 
 Observation groups, not individual scalar residuals, are deterministically
 split. Camera, LiDAR, IMU, and Radar factors from one capture can therefore be
@@ -84,6 +124,12 @@ tests jointly recover two trajectory values, two extrinsic values, and one
 time offset while preserving a fixed world gauge. They also prove grouped
 holdout isolation, ten perturbation controls, and a coupled rank-one failure
 whose weak directions span both extrinsic and time blocks.
+
+The Schur synthetic control solves the same coupled trajectory/extrinsic/time
+problem through both dense and reduced paths. Optimized values, train/holdout
+factor IDs, RMSE, and status agree within `1e-10`; the Schur solve still recovers
+all truth parameters and all ten controls. Invalid all-retained and
+all-eliminated partitions are rejected before optimization.
 
 ## Concrete factors and public-data integration
 
@@ -132,6 +178,18 @@ step and penalizes unmatched holdout queries by 0.15 m. All 90 public probes
 are valid with no support collapse, but the weakest detection fraction falls
 from 0.533 frozen to 0.433 aware while perturbation pair Jaccard reaches 0.476.
 The two falsification semantics remain separately named.
+
+The TUM adapter now marks all eight six-dimensional query poses as eliminated
+and retains the shared six-dimensional mounting plus two-dimensional depth
+model. The primary real-data solve therefore reduces 56 dimensions to 8 for
+nine LM steps. Maximum reconstructed damped-system residual is
+`9.77e-15`; maximum reduced-system condition number is `293.12`. Every one of
+31 primary, replication, spatial-lattice, full-XYZ, and two-sided inner results
+uses the Schur path. Against the previously materialized dense run, primary
+train RMSE differs by `2.98e-15 m`, holdout RMSE by `-7.77e-16 m`, depth-scale
+error by `2.54e-11` percentage points, and bias error by `-6.03e-13 m`.
+The existing public depth-bias and transfer failures remain unchanged; solver
+equivalence is not used to weaken any calibration gate.
 
 The Zhou--Koltun full-XYZ extension now adds 24 shared trilinear field
 dimensions, the paper's two-sided correspondence factor, a fixed-map public

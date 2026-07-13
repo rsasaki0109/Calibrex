@@ -1,4 +1,5 @@
 import math
+from dataclasses import replace
 
 import pytest
 
@@ -80,12 +81,86 @@ def test_joint_optimizer_recovers_coupled_trajectory_extrinsic_and_time() -> Non
     assert result.train_rmse is not None and result.train_rmse < 1e-8
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
     assert result.information_rank == 5
-    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.3"
+    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.4"
     assert result.information_rank_threshold is not None
     assert result.weak_parameter_blocks == ()
     assert len(result.probes) == 10
     assert all(probe.detectable is True for probe in result.probes)
     assert set(result.train_observation_groups).isdisjoint(result.holdout_observation_groups)
+
+
+def test_schur_solver_matches_dense_joint_step_and_truth() -> None:
+    blocks, factors = _joint_problem()
+    schur_blocks = [
+        replace(block, schur_role="eliminated") if block.name == "trajectory" else block
+        for block in blocks
+    ]
+    options = JointOptimizerOptions(
+        holdout_ratio=0.25,
+        split_seed=17,
+        known_bad_margin=1.0e-5,
+    )
+
+    dense = BackendNeutralJointOptimizer().solve(blocks, factors, options)
+    dense_with_roles = BackendNeutralJointOptimizer().solve(schur_blocks, factors, options)
+    schur = BackendNeutralJointOptimizer().solve(
+        schur_blocks,
+        factors,
+        replace(options, linear_solver="schur"),
+    )
+
+    assert dense.status == schur.status == "converged"
+    assert dense_with_roles.schur_eliminated_dimension == 0
+    assert dense_with_roles.schur_retained_dimension == 5
+    assert set(schur.optimized_values) == set(dense.optimized_values)
+    for name, values in dense.optimized_values.items():
+        assert schur.optimized_values[name] == pytest.approx(values, abs=1.0e-10)
+    assert schur.train_factor_ids == dense.train_factor_ids
+    assert schur.holdout_factor_ids == dense.holdout_factor_ids
+    assert schur.train_rmse == pytest.approx(dense.train_rmse, abs=1.0e-12)
+    assert schur.holdout_rmse == pytest.approx(dense.holdout_rmse, abs=1.0e-12)
+    assert schur.linear_solver == "schur"
+    assert schur.schur_eliminated_blocks == ("trajectory",)
+    assert schur.schur_retained_blocks == ("T_body_sensor", "dt_sensor")
+    assert schur.schur_eliminated_dimension == 2
+    assert schur.schur_retained_dimension == 3
+    assert schur.max_linear_system_residual_inf is not None
+    assert schur.max_linear_system_residual_inf < 1.0e-10
+    assert all(item.linear_solver == "schur" for item in schur.history)
+    assert all(item.eliminated_dimension == 2 for item in schur.history)
+    assert all(item.retained_dimension == 3 for item in schur.history)
+    document = schur.as_dict()
+    assert document["linear_solver_papers"][0]["doi"] == "10.1007/3-540-44480-7_21"
+    assert document["linear_solver_papers"][1]["doi"] == "10.1145/1486525.1486527"
+
+
+@pytest.mark.parametrize(
+    "blocks",
+    [
+        [JointParameterBlock("retained", (0.0,))],
+        [JointParameterBlock("eliminated", (0.0,), schur_role="eliminated")],
+    ],
+)
+def test_schur_solver_requires_both_free_partitions(
+    blocks: list[JointParameterBlock],
+) -> None:
+    factor = JointResidualBlock(
+        "factor",
+        "capture",
+        (blocks[0].name,),
+        lambda values: (values[blocks[0].name][0],),
+    )
+
+    with pytest.raises(ValueError, match="requires free eliminated and retained"):
+        BackendNeutralJointOptimizer().solve(
+            blocks,
+            [factor],
+            JointOptimizerOptions(
+                holdout_ratio=0.0,
+                minimum_train_factors=1,
+                linear_solver="schur",
+            ),
+        )
 
 
 def test_observation_group_split_keeps_modal_factors_together() -> None:
@@ -131,9 +206,7 @@ def test_train_only_prior_never_leaks_into_holdout() -> None:
         )
     )
 
-    train, holdout, _train_groups, _holdout_groups = split_joint_factors(
-        factors, 0.25, 3
-    )
+    train, holdout, _train_groups, _holdout_groups = split_joint_factors(factors, 0.25, 3)
 
     assert "pose-prior" in {factor.factor_id for factor in train}
     assert "pose-prior" not in {factor.factor_id for factor in holdout}

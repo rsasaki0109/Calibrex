@@ -52,6 +52,28 @@ linearization uses declared factor ownership, so perturbing one pose block only
 re-evaluates that frame's factors while the shared extrinsic still touches all
 frames.
 
+### Typed Schur LM solve
+
+Following the block normal-equation treatment in Triggs et al., *Bundle
+Adjustment — A Modern Synthesis* (DOI `10.1007/3-540-44480-7_21`) and Lourakis
+and Argyros, *SBA* (DOI `10.1145/1486525.1486527`), each query pose is now a
+typed eliminated block. The shared camera mounting and depth scale/bias are
+retained. The primary 56-dimensional problem is reduced from 48 local pose
+dimensions to an 8-dimensional shared system, then the pose steps are recovered
+by back-substitution.
+
+The public run takes nine Schur LM steps. Maximum
+`||(H + lambda I) delta + g||_inf` is `9.77e-15`, and the largest reduced-system
+condition number is `293.12` (a unit-dependent numerical diagnostic, not
+covariance). The earlier dense and new Schur primary results agree to floating
+point precision: train/holdout point-to-plane RMSE changes by only
+`+2.98e-15/-7.77e-16 m`. All 31 inner solves across the replication,
+ray-depth, full-XYZ, and two-sided ablations use the same Schur contract.
+
+The implementation currently materializes dense NumPy blocks. It establishes
+the algebraic partition and evidence contract, not a sparse-performance claim;
+block-sparse assembly remains a separate extension.
+
 Synthetic multi-capture tests jointly recover trajectory-supported extrinsic,
 depth log-scale, and bias truth within `2e-5`, reach rank 32/32, and detect all
 16 signed shared-parameter probes.
@@ -228,11 +250,12 @@ from the hashed raw frame and declared deterministic sampler.
 For association-aware evaluation, every target map is rebuilt in target-local
 coordinates from the currently calibrated `C(q)` population. Each calibrated
 source query is transformed by the current source pose and inverse current
-target pose before matching. All three windows pass the unchanged 0.99 train
-pair-Jaccard and 0.95 retention gates on the first outer round. Minimum train
-pair Jaccard is 0.99322, train retention is 1.0, and diagnostic holdout pair
-Jaccard is 1.0. Terminal rematched holdout RMSE changes by at most
-`+7.76e-8 m`.
+target pose before matching. Starts 60 and 180 pass the unchanged 0.99 train
+pair-Jaccard and 0.95 retention gates on the first outer round. Start 300
+reaches the two-round limit with train pair Jaccard 0.98616, so outer-loop
+convergence is honestly 2/3 and FAIL. Minimum train retention remains 1.0,
+diagnostic holdout pair Jaccard is 1.0, and terminal rematched holdout RMSE
+changes by at most `+7.76e-8 m`.
 
 The association-aware known-bad protocol fixes the original held-out source
 population and charges 0.15 m for unmatched queries. All 396 signed pose/field

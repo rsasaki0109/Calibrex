@@ -131,7 +131,7 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
                 value=0.01,
                 grade="warn",
                 unit="m",
-            )
+            ),
         },
         observability=ObservabilityResult(
             rank=4,
@@ -170,7 +170,7 @@ def test_compare_results_reports_metric_and_transform_deltas() -> None:
                 value=0.04,
                 grade="pass",
                 unit="m",
-            )
+            ),
         },
         observability=ObservabilityResult(rank=5, condition_number=500.0),
         degeneracy=DegeneracyResult(grade="pass"),
@@ -249,25 +249,22 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     ]
     assert comparison.protocol_compatibility.left_protocols[0].metrics_origin == "cached"
     assert comparison.protocol_compatibility.left_protocols[0].support_population_id == (
-        "livox_pair_support:train=base:holdout=target:eligible_points=1000:"
-        "voxel_m=1:gate_m=1.5"
+        "livox_pair_support:train=base:holdout=target:eligible_points=1000:voxel_m=1:gate_m=1.5"
     )
     assert comparison.protocol_compatibility.left_protocols[0].challenge_id == (
         "livox_pair_mandatory_6dof_large_controls/v0.1"
     )
-    assert comparison.protocol_compatibility.left_protocols[
-        0
-    ].challenge_target_supported_detection_count == 8
     assert (
         comparison.protocol_compatibility.left_protocols[
             0
-        ].mandatory_detection_by_dof_digest
-        is not None
+        ].challenge_target_supported_detection_count
+        == 8
     )
     assert (
-        comparison.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
-        == "right"
+        comparison.protocol_compatibility.left_protocols[0].mandatory_detection_by_dof_digest
+        is not None
     )
+    assert comparison.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner == "right"
 
     support_changed = CalibrationResult(
         run=RunInfo(
@@ -285,10 +282,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
     )
     support_changed.run.provenance["livox_pair_evidence"]["holdout_geometry"][
         "support_population_id"
-    ] = (
-        "livox_pair_support:train=base:holdout=other:eligible_points=1000:"
-        "voxel_m=1:gate_m=1.5"
-    )
+    ] = "livox_pair_support:train=base:holdout=other:eligible_points=1000:voxel_m=1:gate_m=1.5"
     support_mismatch = compare_results(left, support_changed)
 
     assert support_mismatch.protocol_compatibility.status == "warning"
@@ -341,9 +335,7 @@ def test_compare_results_reports_protocol_compatibility() -> None:
         "challenge supported-detection target differs (8 vs 10)"
     ]
     assert (
-        challenge_mismatch.metrics[
-            "lidar_pair_holdout_point_to_plane_support_ratio"
-        ].winner
+        challenge_mismatch.metrics["lidar_pair_holdout_point_to_plane_support_ratio"].winner
         == "not_comparable"
     )
 
@@ -403,9 +395,7 @@ def _livox_pair_provenance(metrics_origin: str) -> dict[str, object]:
                     "livox_pair_support:train=base:holdout=target:"
                     "eligible_points=1000:voxel_m=1:gate_m=1.5"
                 ),
-                "support_definition": (
-                    "eligible population is every finite target PCD point"
-                ),
+                "support_definition": ("eligible population is every finite target PCD point"),
                 "voxel_size_m": 1.0,
                 "correspondence_gate_m": 1.5,
                 "inlier_threshold_m": 0.25,
@@ -483,6 +473,12 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "joint_slac_known_bad_detectable_fraction" in names
     assert "native_tum_joint_slac_available" in names
     assert "tum_joint_point_to_plane_rmse_m" in names
+    assert "tum_joint_schur_solver_used" in names
+    assert "tum_joint_schur_eliminated_dimension" in names
+    assert "tum_joint_schur_retained_dimension" in names
+    assert "tum_joint_schur_step_count" in names
+    assert "tum_joint_schur_linear_residual_inf" in names
+    assert "tum_joint_schur_complement_condition_number" in names
     assert "tum_joint_data_only_extrinsic_rank" in names
     assert "tum_joint_data_only_shared_rank" in names
     assert "tum_joint_depth_scale" in names
@@ -644,7 +640,7 @@ def test_lidar_metrics_from_kitti_inspection_diagnostics() -> None:
                 "point_to_plane_rmse_holdout_m": 0.05,
                 "point_to_plane_median_holdout_m": 0.02,
                 "point_to_plane_p95_holdout_m": 0.12,
-            }
+            },
         },
     )
     metrics = lidar_metrics_from_inspection(inspection)
@@ -899,7 +895,7 @@ def test_lidar_degeneracy_passes_for_rich_planar_structure() -> None:
                 "camera_lidar_max_abs_dt_ms": 5.0,
                 "lidar_oxts_pair_count": 120,
                 "lidar_oxts_max_abs_dt_ms": 5.0,
-            }
+            },
         },
     )
     degeneracy = degeneracy_from_inspection(inspection)
@@ -954,7 +950,7 @@ def test_lidar_degeneracy_warns_for_weak_geometry_and_holdout_gap() -> None:
                 "camera_lidar_max_abs_dt_ms": 120.0,
                 "lidar_oxts_pair_count": 2,
                 "lidar_oxts_max_abs_dt_ms": 80.0,
-            }
+            },
         },
     )
     degeneracy = degeneracy_from_inspection(inspection)

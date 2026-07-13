@@ -30,7 +30,7 @@ holdout evaluation, and known-bad controls.
 | Daniilidis dual-quaternion hand-eye | Simultaneous `AX = XB` rotation/translation baseline | Native solver | shared holdout, 8D nullspace/Study diagnostics, 12 known-bad controls |
 | LiDAR-IMU rotation consistency | Supplied rotation evaluation | Implemented | held-out angular-rate and gravity evidence |
 | Anchored temporal offset | One-dimensional time calibration evidence | Implemented | injected offsets and adapted/anchored comparison |
-| Backend-neutral joint SLAC graph | Coupled trajectory/extrinsic/time optimization | Native graph core | grouped holdout, robust LM, joint spectrum, per-block controls |
+| Backend-neutral joint SLAC graph | Coupled trajectory/extrinsic/time optimization | Native graph core + typed Schur LM | grouped holdout, robust LM, 48→8 TUM pose elimination, joint spectrum, per-block controls |
 
 The native Radar ego-velocity solver uses Huber IRLS on
 `d_i = -u_i^T v`. It reports rank and condition diagnostics from the LOS normal
@@ -41,9 +41,9 @@ full 3D support.
 
 ## Next Native Methods
 
-1. Backend-neutral joint SLAC factor and optimizer extensions.
-2. Additional primary-paper baselines behind the common evidence contract.
-3. Continuous-time motion adapters that preserve the native capture-time schema.
+1. Analytic/manifold factor Jacobians and sparse block storage behind the joint graph contract.
+2. Sliding-window marginalization with explicit gauge and consistency diagnostics.
+3. Additional primary-paper baselines and continuous-time motion adapters.
 
 ## Optional Adapter Methods
 

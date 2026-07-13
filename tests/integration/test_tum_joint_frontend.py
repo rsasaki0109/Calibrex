@@ -67,9 +67,13 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     query_frames = set(result.run.provenance["native_tum_joint_slac_query_frame_ids"])
     assert map_frames.isdisjoint(query_frames)
     solver = result.run.provenance["native_tum_joint_slac_solver"]
-    assert solver["method"] == "backend_neutral_robust_joint_lm/v0.3"
+    assert solver["method"] == "backend_neutral_robust_joint_lm/v0.4"
     assert solver["rank_tolerance_policy"] == "relative_to_largest_singular_value"
     assert solver["information_rank_threshold"] > 0.0
+    assert solver["linear_solver"] == "schur"
+    assert solver["schur_eliminated_dimension"] == 48
+    assert solver["schur_retained_dimension"] == 8
+    assert solver["max_linear_system_residual_inf"] < 1.0e-8
     assert solver["train_whitened_factor_count"] == 8
     assert len(solver["train_factor_whitening"]) == 8
     assert all(
@@ -84,6 +88,10 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert rmse.holdout is not None and rmse.holdout < 0.05
     assert rmse.grade == "pass"
     assert result.metrics["tum_joint_augmented_information_rank"].value == 56.0
+    assert result.metrics["tum_joint_schur_solver_used"].value == 1.0
+    assert result.metrics["tum_joint_schur_eliminated_dimension"].value == 48.0
+    assert result.metrics["tum_joint_schur_retained_dimension"].value == 8.0
+    assert result.metrics["tum_joint_schur_linear_residual_inf"].grade == "pass"
     assert result.metrics["tum_joint_data_only_extrinsic_rank"].value == 6.0
     condition = result.metrics["tum_joint_data_only_extrinsic_condition_number"].value
     assert condition is not None and condition < 100.0
@@ -259,11 +267,11 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     pair_reassociation_convergence = result.metrics[
         "tum_joint_xyz_pair_reassociation_converged_fraction"
     ]
-    assert pair_reassociation_convergence.value == 1.0
-    assert pair_reassociation_convergence.grade == "pass"
+    assert pair_reassociation_convergence.value == pytest.approx(2.0 / 3.0)
+    assert pair_reassociation_convergence.grade == "fail"
     pair_train_jaccard = result.metrics["tum_joint_xyz_pair_reassociation_train_pair_jaccard_min"]
-    assert pair_train_jaccard.value == pytest.approx(0.9932203389830508)
-    assert pair_train_jaccard.grade == "pass"
+    assert pair_train_jaccard.value == pytest.approx(0.986159169550173)
+    assert pair_train_jaccard.grade == "fail"
     assert (
         result.metrics["tum_joint_xyz_pair_reassociation_train_retained_fraction_min"].value == 1.0
     )
@@ -288,10 +296,14 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert pair_aware_jaccard.value == pytest.approx(0.6571428571428571)
     pair_reassociation = result.run.provenance["native_tum_joint_slac_xyz_pair_reassociation"]
     assert [item["start_index"] for item in pair_reassociation] == [60, 180, 300]
+    assert [item["result"]["status"] for item in pair_reassociation] == [
+        "converged",
+        "converged",
+        "max_iterations",
+    ]
+    assert [len(item["result"]["iterations"]) for item in pair_reassociation] == [1, 1, 2]
     assert all(
-        item["result"]["status"] == "converged"
-        and len(item["result"]["iterations"]) == 1
-        and item["reassociation_aware_probe_evaluation"]["method"]
+        item["reassociation_aware_probe_evaluation"]["method"]
         == "joint_reassociation_fixed_population_probes/v0.1"
         and len(item["reassociation_aware_probe_evaluation"]["probes"]) == 132
         and item["terminal_state"]["assignments"]

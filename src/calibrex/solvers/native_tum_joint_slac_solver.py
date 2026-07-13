@@ -473,6 +473,7 @@ def _joint_optimizer_options(
         minimum_train_factors=12,
         known_bad_margin=options.known_bad_margin_m,
         max_condition_number=1.0e12,
+        linear_solver="schur",
     )
 
 
@@ -902,6 +903,7 @@ def _build_xyz_pair_problem(
             fixed=index == 0,
             finite_difference_steps=(1.0e-4,) * 3 + (1.0e-5,) * 3,
             known_bad_steps=pose_known_bad,
+            schur_role="eliminated",
         )
         for index, frame in enumerate(query_frames)
     ]
@@ -1840,6 +1842,7 @@ def _build_problem(
                 pose_block,
                 (0.0,) * 6,
                 finite_difference_steps=(1.0e-4,) * 3 + (1.0e-5,) * 3,
+                schur_role="eliminated",
             )
         )
         priors.append(
@@ -2010,6 +2013,16 @@ def _metrics(
         "pass" if depth_bias_error_m <= options.reference_depth_bias_gate_m else "fail"
     )
     expected_rank = 6 * (len(problem.query_frames) + 1) + 2
+    expected_eliminated_dimension = 6 * len(problem.query_frames)
+    schur_partition_valid = (
+        result.linear_solver == "schur"
+        and result.schur_eliminated_dimension == expected_eliminated_dimension
+        and result.schur_retained_dimension == 8
+    )
+    schur_residual_valid = (
+        result.max_linear_system_residual_inf is not None
+        and result.max_linear_system_residual_inf <= 1.0e-8
+    )
     return {
         "native_tum_joint_slac_available": MetricResult(
             value=1.0, grade="pass", reason="native TUM multi-capture joint solver executed"
@@ -2037,6 +2050,42 @@ def _metrics(
                 f"joint rank for {len(problem.query_frames)} pose blocks plus shared "
                 "extrinsic, including pose priors"
             ),
+        ),
+        "tum_joint_schur_solver_used": MetricResult(
+            value=1.0 if result.linear_solver == "schur" else 0.0,
+            unit="bool",
+            grade="pass" if result.linear_solver == "schur" else "fail",
+            reason="typed capture-local pose elimination in the backend-neutral LM solver",
+        ),
+        "tum_joint_schur_eliminated_dimension": MetricResult(
+            value=float(result.schur_eliminated_dimension),
+            unit="parameters",
+            grade="pass" if schur_partition_valid else "fail",
+            reason=(
+                f"expected {expected_eliminated_dimension} capture-local pose tangent dimensions"
+            ),
+        ),
+        "tum_joint_schur_retained_dimension": MetricResult(
+            value=float(result.schur_retained_dimension),
+            unit="parameters",
+            grade="pass" if schur_partition_valid else "fail",
+            reason="shared six-DoF extrinsic plus depth log-scale and bias",
+        ),
+        "tum_joint_schur_step_count": MetricResult(
+            value=float(len(result.history)),
+            unit="steps",
+            grade="pass" if result.history else "warn",
+            reason="LM linear systems solved through Schur reduction and back-substitution",
+        ),
+        "tum_joint_schur_linear_residual_inf": MetricResult(
+            value=result.max_linear_system_residual_inf,
+            grade="pass" if schur_residual_valid else "fail",
+            reason="maximum ||(H + lambda I) delta + g||_inf over all LM steps",
+        ),
+        "tum_joint_schur_complement_condition_number": MetricResult(
+            value=result.max_schur_complement_condition_number,
+            grade="warn",
+            reason="maximum reduced-system condition diagnostic; unit-dependent, not covariance",
         ),
         "tum_joint_data_only_extrinsic_rank": MetricResult(
             value=float(extrinsic_observability.information_rank),
