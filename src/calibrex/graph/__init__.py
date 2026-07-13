@@ -30,10 +30,19 @@ from calibrex.graph.joint_optimization import (
     evaluate_joint_observability,
     split_joint_factors,
 )
+from calibrex.graph.joint_reassociation import (
+    BackendNeutralJointReassociation,
+    JointReassociationCallback,
+    JointReassociationIteration,
+    JointReassociationOptions,
+    JointReassociationResult,
+    JointReassociationState,
+)
 from calibrex.graph.problem import CalibrationProblemSpec, build_problem
 
 __all__ = [
     "BackendNeutralJointOptimizer",
+    "BackendNeutralJointReassociation",
     "CalibrationProblemSpec",
     "FactorPlugin",
     "JointDepthPointToPlaneMeasurement",
@@ -46,6 +55,11 @@ __all__ = [
     "JointParameterBlock",
     "JointPointToPlaneMeasurement",
     "JointRadarDopplerMeasurement",
+    "JointReassociationCallback",
+    "JointReassociationIteration",
+    "JointReassociationOptions",
+    "JointReassociationResult",
+    "JointReassociationState",
     "JointResidualBlock",
     "SquareRootInformation",
     "build_problem",

@@ -51,6 +51,15 @@ split. Camera, LiDAR, IMU, and Radar factors from one capture can therefore be
 kept together and cannot leak across train and holdout merely because they are
 different modalities.
 
+`BackendNeutralJointReassociation` adds an association-aware outer loop without
+making the core depend on a point-cloud backend. A frontend callback returns
+one deterministic factor and stable target ID per query. Each changed state is
+warm-started through the same optimizer, while train/holdout observation groups
+must remain byte-for-byte identical. Only train assignment pair Jaccard and
+train retained-query fraction may stop the loop; holdout assignment stability
+is recorded but cannot decide iteration count. Complete group drops, query
+identity changes, and inner optimizer failures are explicit terminal statuses.
+
 ## Observability and falsification
 
 The final train Jacobian supplies singular values, numerical rank, condition
