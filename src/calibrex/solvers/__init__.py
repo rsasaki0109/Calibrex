@@ -27,6 +27,11 @@ from calibrex.solvers.native_planar_board_solver import (
     NativePlanarBoardSolver,
     read_acfr_vlp_plane_observations,
 )
+from calibrex.solvers.native_registration_comparison_solver import (
+    NATIVE_REGISTRATION_COMPARISON_BACKEND,
+    NativeRegistrationComparisonSolver,
+    voxel_downsample_icp_points,
+)
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.solvers.park_martin_hand_eye_solver import (
     HandEyeEvaluation,
@@ -70,12 +75,24 @@ from calibrex.solvers.radar_trajectory_yaw_solver import (
     RadarYawProbeResult,
     radar_trajectory_yaw_rmse,
 )
+from calibrex.solvers.registration_adapters import (
+    NdtSubprocessAdapter,
+    NdtSubprocessOptions,
+    Open3DGeneralizedIcpAdapter,
+    Open3DGeneralizedIcpOptions,
+    RegistrationAdapterResult,
+)
 from calibrex.solvers.robust_point_to_point_icp_solver import (
+    IcpCandidateEvaluation,
     IcpIteration,
+    IcpMultiStartTrial,
     IcpPoint,
+    IcpRematchingDiagnostics,
     RobustPointToPointIcpOptions,
     RobustPointToPointIcpResult,
     RobustPointToPointIcpSolver,
+    evaluate_icp_candidate,
+    split_icp_source_points,
 )
 from calibrex.solvers.tsai_lenz_hand_eye_solver import (
     HandEyeProbeResult,
@@ -91,6 +108,7 @@ __all__ = [
     "NATIVE_HAND_EYE_COMPARISON_BACKEND",
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
     "NATIVE_PLANAR_BOARD_BACKEND",
+    "NATIVE_REGISTRATION_COMPARISON_BACKEND",
     "BoardBoundaryCorrespondence",
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",
@@ -101,8 +119,11 @@ __all__ = [
     "HandEyeEvaluation",
     "HandEyeMotionPair",
     "HandEyeProbeResult",
+    "IcpCandidateEvaluation",
     "IcpIteration",
+    "IcpMultiStartTrial",
     "IcpPoint",
+    "IcpRematchingDiagnostics",
     "KoideLidarCameraSolver",
     "LinePlaneBoardObservation",
     "LinePlaneEvaluation",
@@ -110,6 +131,11 @@ __all__ = [
     "NativeHandEyeComparisonSolver",
     "NativeLidarPointToPlaneSolver",
     "NativePlanarBoardSolver",
+    "NativeRegistrationComparisonSolver",
+    "NdtSubprocessAdapter",
+    "NdtSubprocessOptions",
+    "Open3DGeneralizedIcpAdapter",
+    "Open3DGeneralizedIcpOptions",
     "Open3DSLACSolver",
     "OrientedLine3D",
     "OrientedPlane",
@@ -133,6 +159,7 @@ __all__ = [
     "RadarTrajectoryYawSolver",
     "RadarTrajectoryYawSolverOptions",
     "RadarYawProbeResult",
+    "RegistrationAdapterResult",
     "RobustPointToPointIcpOptions",
     "RobustPointToPointIcpResult",
     "RobustPointToPointIcpSolver",
@@ -143,8 +170,11 @@ __all__ = [
     "TsaiLenzHandEyeSolver",
     "evaluate_hand_eye_known_bad_probes",
     "evaluate_hand_eye_motions",
+    "evaluate_icp_candidate",
     "evaluate_line_plane_observations",
     "evaluate_planar_board_observations",
     "radar_trajectory_yaw_rmse",
     "read_acfr_vlp_plane_observations",
+    "split_icp_source_points",
+    "voxel_downsample_icp_points",
 ]

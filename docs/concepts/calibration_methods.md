@@ -19,6 +19,8 @@ holdout evaluation, and known-bad controls.
 | Planar-board LiDAR-camera plane alignment | LiDAR-to-camera 6-DoF extrinsic | Native solver | capture holdout, normal/offset closure, normal-span diagnostics |
 | Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | plane/edge closure, separate rotation/translation spectra, edge-angle gate |
 | Robust point-to-point ICP | Generic local 3D registration | Native solver | spatial-block holdout, mutual/trimmed matches, 3D-spread and frozen-pair diagnostics |
+| Open3D Generalized ICP | Optional probabilistic registration baseline | MIT adapter | train-only source fit, common Calibrex spatial holdout/rematching metrics |
+| PCL/Autoware NDT | External registration baseline | Subprocess/precomputed adapter | declared train isolation, common Calibrex spatial holdout/rematching metrics |
 | Park-Martin motion hand-eye | Trajectory-derived `AX = XB` extrinsic | Native solver | motion holdout, axis spectrum, translation-system spectrum and closure |
 | Tsai-Lenz motion hand-eye | Independent separable `AX = XB` baseline | Native solver | shared motion holdout, two system spectra, 12 known-bad controls |
 | Daniilidis dual-quaternion hand-eye | Simultaneous `AX = XB` rotation/translation baseline | Native solver | shared holdout, 8D nullspace/Study diagnostics, 12 known-bad controls |
@@ -130,16 +132,23 @@ The solver reports the fixed-pair six-dimensional information spectrum, but it
 does not interpret its inverse as calibration covariance. As shown by
 [Bonnabel, Barczyk, and Goulette](https://doi.org/10.1109/ACC.2016.7526532),
 ordinary point-to-point fixed-correspondence Hessians can be misleading when
-ICP rematches points. The first native version therefore conservatively rejects
+ICP rematches points. The native solver therefore conservatively rejects
 collinear and planar retained geometry instead of reporting full confidence
-from a formally rank-six frozen-pair Jacobian. A later effective-observability
-stage should add re-matched numerical curvature, correspondence Jaccard, and
-symmetry/multi-start probes before relaxing that gate.
+from a formally rank-six frozen-pair Jacobian.
 
-Open3D, PCL, and libpointmatcher remain optional adapters with distinct method
+Effective diagnostics now perturb all six transform directions and rerun the
+complete nearest/mutual/gate/trim correspondence policy. They report rematched
+black-box objective curvature and correspondence-pair Jaccard stability, not a
+covariance matrix. Six independent initialization probes additionally flag a
+distinct transform with equivalent spatial holdout error as a symmetry
+ambiguity. Local curvature and global multi-start falsification remain separate
+diagnostics because either can pass while the other fails.
+
+Open3D GICP and PCL/Autoware NDT are optional adapters with distinct method
 IDs. Their library-specific fitness values are retained as raw provenance, not
-treated as directly comparable metrics; Calibrex recomputes common holdout
-metrics for cross-backend comparisons.
+treated as directly comparable metrics; Calibrex recomputes common spatial
+holdout and rematching metrics for cross-backend comparisons. An external NDT
+result that does not declare train/holdout isolation is explicitly warned.
 
 ## Motion hand-eye calibration
 

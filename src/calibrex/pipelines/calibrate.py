@@ -71,6 +71,10 @@ from calibrex.solvers.native_planar_board_solver import (
     NATIVE_PLANAR_BOARD_BACKEND,
     NativePlanarBoardSolver,
 )
+from calibrex.solvers.native_registration_comparison_solver import (
+    NATIVE_REGISTRATION_COMPARISON_BACKEND,
+    NativeRegistrationComparisonSolver,
+)
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import write_report_artifacts
@@ -158,6 +162,10 @@ def _apply_pipeline_adapter(
         adapter_result = NativeHandEyeComparisonSolver().solve(
             config, frame_graph, inspection
         )
+    elif config.solver.backend == NATIVE_REGISTRATION_COMPARISON_BACKEND:
+        adapter_result = NativeRegistrationComparisonSolver().solve(
+            config, frame_graph, inspection
+        )
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -167,11 +175,16 @@ def _apply_pipeline_adapter(
     result.run.provenance["solver_adapter"] = adapter_result.backend
     result.run.provenance["solver_adapter_status"] = adapter_result.status
     _apply_adapter_transforms(result, adapter_result)
-    if adapter_result.backend in {
-        NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
-        NATIVE_PLANAR_BOARD_BACKEND,
-        NATIVE_HAND_EYE_COMPARISON_BACKEND,
-    } and adapter_result.transforms:
+    if (
+        adapter_result.backend
+        in {
+            NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+            NATIVE_PLANAR_BOARD_BACKEND,
+            NATIVE_HAND_EYE_COMPARISON_BACKEND,
+            NATIVE_REGISTRATION_COMPARISON_BACKEND,
+        }
+        and adapter_result.transforms
+    ):
         result.metrics["prototype_solver"] = MetricResult(
             value=1.0,
             grade="pass",
@@ -338,10 +351,15 @@ def _apply_adapter_transforms(
                 adapter_result.backend,
                 note="adapter output applied to Calibrex output estimate",
             )
-            if adapter_result.backend in {
-                NATIVE_PLANAR_BOARD_BACKEND,
-                NATIVE_HAND_EYE_COMPARISON_BACKEND,
-            } and adapter_result.status == "pass":
+            if (
+                adapter_result.backend
+                in {
+                    NATIVE_PLANAR_BOARD_BACKEND,
+                    NATIVE_HAND_EYE_COMPARISON_BACKEND,
+                    NATIVE_REGISTRATION_COMPARISON_BACKEND,
+                }
+                and adapter_result.status == "pass"
+            ):
                 result.transforms[name].quality = TransformQuality(grade="pass")
             applied.append(name)
         elif name == "T_camera0_lidar0":
@@ -352,10 +370,15 @@ def _apply_adapter_transforms(
                     adapter_result.backend,
                     note="relative adapter output composed into rig-frame estimate",
                 )
-                if adapter_result.backend in {
-                    NATIVE_PLANAR_BOARD_BACKEND,
-                    NATIVE_HAND_EYE_COMPARISON_BACKEND,
-                } and adapter_result.status == "pass":
+                if (
+                    adapter_result.backend
+                    in {
+                        NATIVE_PLANAR_BOARD_BACKEND,
+                        NATIVE_HAND_EYE_COMPARISON_BACKEND,
+                        NATIVE_REGISTRATION_COMPARISON_BACKEND,
+                    }
+                    and adapter_result.status == "pass"
+                ):
                     result.transforms[applied_name].quality = TransformQuality(grade="pass")
                 applied.append(applied_name)
     if applied:
@@ -367,6 +390,7 @@ def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateP
         NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
         NATIVE_PLANAR_BOARD_BACKEND,
         NATIVE_HAND_EYE_COMPARISON_BACKEND,
+        NATIVE_REGISTRATION_COMPARISON_BACKEND,
     }:
         return TransformEstimateProvenance(
             producer="slac_native",
@@ -379,6 +403,9 @@ def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateP
                 NATIVE_PLANAR_BOARD_BACKEND: "native_planar_board_solver",
                 NATIVE_HAND_EYE_COMPARISON_BACKEND: (
                     "native_hand_eye_comparison_solver"
+                ),
+                NATIVE_REGISTRATION_COMPARISON_BACKEND: (
+                    "native_registration_comparison_solver"
                 ),
             }[backend],
             notes=[note],
