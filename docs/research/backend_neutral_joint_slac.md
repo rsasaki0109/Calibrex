@@ -126,7 +126,12 @@ Jaccard remains 0.804--0.914 against the unchanged 0.99 gate, so public TUM
 honestly reports 0/3 outer convergence while retaining more than 99.8 percent
 of queries. Holdout association stability remains diagnostic and cannot stop
 fitting. Full assignments, split groups, iteration deltas, optimizer evidence,
-and final frozen-correspondence probes are retained in provenance.
+and final frozen-correspondence probes are retained in provenance. A separate
+fixed-population evaluator now rebuilds correspondence for every known-bad
+step and penalizes unmatched holdout queries by 0.15 m. All 90 public probes
+are valid with no support collapse, but the weakest detection fraction falls
+from 0.533 frozen to 0.433 aware while perturbation pair Jaccard reaches 0.476.
+The two falsification semantics remain separately named.
 
 The Zhou--Koltun full-XYZ extension now adds 24 shared trilinear field
 dimensions, the paper's two-sided correspondence factor, a fixed-map public

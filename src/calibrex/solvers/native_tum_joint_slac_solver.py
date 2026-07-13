@@ -76,8 +76,11 @@ from calibrex.graph.joint_optimization import (
 from calibrex.graph.joint_reassociation import (
     BackendNeutralJointReassociation,
     JointReassociationOptions,
+    JointReassociationProbeEvaluation,
+    JointReassociationProbeOptions,
     JointReassociationResult,
     JointReassociationState,
+    evaluate_joint_reassociation_probes,
 )
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 
@@ -129,6 +132,7 @@ class TUMJointSlacOptions:
     reassociation_max_outer_iterations: int = 2
     reassociation_min_train_pair_jaccard: float = 0.99
     reassociation_min_train_retained_fraction: float = 0.95
+    reassociation_unmatched_residual_penalty_m: float = 0.15
     xyz_lattice_shape_sigma_m: float = 0.05
     xyz_lattice_translation_gauge_sigma_m: float = 1.0e-4
     xyz_lattice_rotation_gauge_sigma_rad: float = 1.0e-4
@@ -176,6 +180,7 @@ class _TUMIterativeReassociationRun:
     start_index: int
     baseline: _TUMSpatialWindowRun
     result: JointReassociationResult
+    probe_evaluation: JointReassociationProbeEvaluation
 
 
 @dataclass(frozen=True)
@@ -786,12 +791,14 @@ def _iterative_reassociation_runs(
         initial_state = _initial_spatial_reassociation_state(
             run, plane_map, options
         )
+        blocks = _spatial_parameter_blocks(run.source_problem, options)
+        reassociate = partial(_reassociated_spatial_state, run, plane_map, options)
         result = BackendNeutralJointReassociation().refine(
-            _spatial_parameter_blocks(run.source_problem, options),
+            blocks,
             initial_state,
             _spatial_train_only_factors(run.source_problem, options),
             run.result,
-            partial(_reassociated_spatial_state, run, plane_map, options),
+            reassociate,
             _joint_optimizer_options(config, options),
             JointReassociationOptions(
                 max_outer_iterations=options.reassociation_max_outer_iterations,
@@ -803,7 +810,29 @@ def _iterative_reassociation_runs(
                 ),
             ),
         )
-        output.append(_TUMIterativeReassociationRun(run.start_index, run, result))
+        probe_evaluation = evaluate_joint_reassociation_probes(
+            blocks,
+            initial_state,
+            result,
+            reassociate,
+            JointReassociationProbeOptions(
+                unmatched_residual_penalty=(
+                    options.reassociation_unmatched_residual_penalty_m
+                ),
+                known_bad_margin=options.known_bad_margin_m,
+                minimum_retained_fraction=(
+                    options.reassociation_min_train_retained_fraction
+                ),
+            ),
+        )
+        output.append(
+            _TUMIterativeReassociationRun(
+                run.start_index,
+                run,
+                result,
+                probe_evaluation,
+            )
+        )
     return tuple(output)
 
 
@@ -1910,6 +1939,11 @@ def _iterative_reassociation_metrics(
         and run.baseline.result.holdout_rmse is not None
     ]
     detectable_fractions: list[float] = []
+    aware_detectable_fractions: list[float] = []
+    aware_support_collapse_fractions: list[float] = []
+    aware_pair_jaccards: list[float] = []
+    aware_valid_fractions: list[float] = []
+    aware_baseline_retentions: list[float] = []
     for run in runs:
         probes = [
             probe.detectable
@@ -1920,6 +1954,30 @@ def _iterative_reassociation_metrics(
             detectable_fractions.append(
                 sum(value is True for value in probes) / len(probes)
             )
+        aware = run.probe_evaluation
+        aware_baseline_retentions.append(aware.baseline_retained_fraction)
+        valid = [probe for probe in aware.probes if probe.detectable is not None]
+        if aware.probes:
+            aware_valid_fractions.append(len(valid) / len(aware.probes))
+        if valid:
+            aware_detectable_fractions.append(
+                sum(probe.detectable is True for probe in valid) / len(valid)
+            )
+        support = [
+            probe.support_collapse
+            for probe in aware.probes
+            if probe.support_collapse is not None
+        ]
+        if support:
+            aware_support_collapse_fractions.append(
+                sum(value is True for value in support) / len(support)
+            )
+        aware_pair_jaccards.extend(
+            probe.stability.pair_jaccard
+            for probe in aware.probes
+            if probe.stability is not None
+            and probe.stability.pair_jaccard is not None
+        )
     train_jaccard_min = min(train_jaccards) if train_jaccards else None
     train_retention_min = min(train_retentions) if train_retentions else None
     complete = len(runs) == expected
@@ -1982,9 +2040,66 @@ def _iterative_reassociation_metrics(
                 else "warn"
             ),
             reason=(
-                "signed probes on final frozen correspondences; reassociation-aware "
-                "probe rematching is not claimed"
+                "signed probes on final frozen correspondences; reported separately "
+                "from reassociation-aware probes"
             ),
+        ),
+        "tum_joint_reassociation_aware_known_bad_detectable_fraction_min": MetricResult(
+            value=(
+                min(aware_detectable_fractions)
+                if aware_detectable_fractions
+                else None
+            ),
+            grade=(
+                "pass"
+                if aware_detectable_fractions
+                and min(aware_detectable_fractions) == 1.0
+                else "warn"
+            ),
+            reason="fixed-population holdout probes rebuild correspondences",
+        ),
+        "tum_joint_reassociation_aware_probe_valid_fraction_min": MetricResult(
+            value=min(aware_valid_fractions) if aware_valid_fractions else None,
+            grade=(
+                "pass"
+                if aware_valid_fractions and min(aware_valid_fractions) == 1.0
+                else "fail"
+            ),
+            reason="fraction of declared probes with a valid reassociation evaluation",
+        ),
+        "tum_joint_reassociation_aware_support_collapse_fraction_max": MetricResult(
+            value=(
+                max(aware_support_collapse_fractions)
+                if aware_support_collapse_fractions
+                else None
+            ),
+            grade=(
+                "pass"
+                if aware_support_collapse_fractions
+                and max(aware_support_collapse_fractions) == 0.0
+                else "warn"
+            ),
+            reason="probe retention below the declared fixed-population support gate",
+        ),
+        "tum_joint_reassociation_aware_pair_jaccard_min": MetricResult(
+            value=min(aware_pair_jaccards) if aware_pair_jaccards else None,
+            grade="warn",
+            reason="minimum baseline/perturbed holdout query-target pair Jaccard",
+        ),
+        "tum_joint_reassociation_aware_baseline_retained_fraction_min": MetricResult(
+            value=(
+                min(aware_baseline_retentions)
+                if aware_baseline_retentions
+                else None
+            ),
+            grade=(
+                "pass"
+                if aware_baseline_retentions
+                and min(aware_baseline_retentions)
+                >= options.reassociation_min_train_retained_fraction
+                else "fail"
+            ),
+            reason="terminal rematched holdout support relative to the initial population",
         ),
     }
 
@@ -2034,7 +2149,7 @@ def _provenance(
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.0",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.1",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -2149,6 +2264,9 @@ def _provenance(
                 "start_index": run.start_index,
                 "baseline_holdout_rmse_m": run.baseline.result.holdout_rmse,
                 "result": run.result.as_dict(),
+                "reassociation_aware_probe_evaluation": (
+                    run.probe_evaluation.as_dict()
+                ),
             }
             for run in reassociation_runs
         ],
@@ -2377,6 +2495,11 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             values,
             "reassociation_min_train_retained_fraction",
             defaults.reassociation_min_train_retained_fraction,
+        ),
+        reassociation_unmatched_residual_penalty_m=_positive(
+            values,
+            "reassociation_unmatched_residual_penalty_m",
+            defaults.reassociation_unmatched_residual_penalty_m,
         ),
         xyz_lattice_shape_sigma_m=_positive(
             values,

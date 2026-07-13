@@ -76,6 +76,14 @@ the penalty still detects the probe and explicitly marks support collapse.
 Frozen and reassociation-aware probe results are never merged under one metric
 name.
 
+On the three public TUM windows, all 90 declared probes evaluate successfully
+with no support collapse under the unchanged 0.95 retention gate. The
+fixed-population baseline retains at least 96.99 percent of holdout queries.
+Aware detection counts are 18/30, 13/30, and 22/30; the minimum 0.4333 is lower
+than the frozen minimum 0.5333. Perturbed pair Jaccard reaches 0.4763. The
+result therefore records that fixed correspondences overstate the weakest
+window's falsification evidence rather than weakening either gate.
+
 ## Numerical-curvature contract
 
 `evaluate_numerical_curvature` evaluates the objective itself at symmetric

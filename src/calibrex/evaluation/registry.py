@@ -839,6 +839,31 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_reassociation_aware_known_bad_detectable_fraction_min",
+            "Minimum fixed-population rematching-aware known-bad detection fraction",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_aware_probe_valid_fraction_min",
+            "Minimum valid rematching-aware probe fraction over TUM windows",
+            family="joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_aware_support_collapse_fraction_max",
+            "Maximum support-collapse fraction over rematching-aware probes",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_aware_pair_jaccard_min",
+            "Minimum baseline/perturbed pair Jaccard over rematching-aware probes",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_reassociation_aware_baseline_retained_fraction_min",
+            "Minimum terminal rematched holdout support used by aware probes",
+            family="registration",
+        ),
+        MetricDefinition(
             "tum_joint_rematch_pair_jaccard_min",
             "Minimum fixed/rematched query-voxel pair Jaccard over TUM windows",
             family="registration",

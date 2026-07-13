@@ -77,6 +77,7 @@ pipeline:
         reassociation_max_outer_iterations: 2
         reassociation_min_train_pair_jaccard: 0.99
         reassociation_min_train_retained_fraction: 0.95
+        reassociation_unmatched_residual_penalty_m: 0.15
         xyz_lattice_shape_sigma_m: 0.05
         xyz_lattice_translation_gauge_sigma_m: 0.0001
         xyz_lattice_rotation_gauge_sigma_rad: 0.0001
@@ -135,6 +136,11 @@ evaluation:
     - tum_joint_reassociation_holdout_rmse_delta_max_m
     - tum_joint_reassociation_outer_iterations_max
     - tum_joint_reassociation_known_bad_detectable_fraction_min
+    - tum_joint_reassociation_aware_known_bad_detectable_fraction_min
+    - tum_joint_reassociation_aware_probe_valid_fraction_min
+    - tum_joint_reassociation_aware_support_collapse_fraction_max
+    - tum_joint_reassociation_aware_pair_jaccard_min
+    - tum_joint_reassociation_aware_baseline_retained_fraction_min
     - tum_joint_rematch_pair_jaccard_min
     - tum_joint_rematch_retained_query_fraction_min
     - tum_joint_rematch_same_target_fraction_min

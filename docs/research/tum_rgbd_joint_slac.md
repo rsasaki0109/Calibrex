@@ -225,15 +225,26 @@ Final reassociated holdout RMSE changes from the fixed spatial baselines are
 +0.000874 m, -0.005127 m, and -0.002893 m. Terminal holdout pair Jaccards are
 0.9023, 0.8343, and 0.8516; these values are never used for stopping. The
 weakest final frozen-correspondence known-bad detection fraction is 8/15.
-This probe is explicitly not reassociation-aware, so it remains WARN and the
-provenance does not claim end-to-end falsification of the alternating
-objective. Full round histories, factor identities, assignments, split groups,
-optimizer results, physical parameter deltas, and terminal stability are
-serialized for every window.
+This remains a separately named frozen-factor WARN metric.
+
+Each of the same 30 signed extrinsic/bias/lattice probes per window is now also
+evaluated after rebuilding correspondences. The original holdout query set is
+the fixed population; unmatched queries contribute the declared 0.15 m
+residual penalty. Baseline population retention is 1.0000, 0.9891, and 0.9699.
+All 90 evaluations are valid and none crosses the unchanged 0.95 support
+collapse gate. Nevertheless, only 18/30, 13/30, and 22/30 probes are detected.
+The weakest reassociation-aware fraction is therefore 0.4333, below the frozen
+minimum of 0.5333, and remains WARN. Perturbed pair Jaccard falls as low as
+0.4763, confirming that the two probe objectives are materially different.
+
+Full round histories, factor identities, assignments, split groups, optimizer
+results, physical parameter deltas, frozen probes, fixed-population aware
+probes, support accounting, and terminal stability are serialized for every
+window.
 
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension will make known-bad probes reassociation-aware and test full-XYZ
-cross-window transfer before increasing lattice resolution.
+next extension will test full-XYZ cross-window transfer and then add a public
+two-sided correspondence frontend before increasing lattice resolution.

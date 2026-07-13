@@ -216,6 +216,29 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     ]
     assert reassociated_detection.value == pytest.approx(8.0 / 15.0)
     assert reassociated_detection.grade == "warn"
+    aware_detection = result.metrics[
+        "tum_joint_reassociation_aware_known_bad_detectable_fraction_min"
+    ]
+    assert aware_detection.value == pytest.approx(13.0 / 30.0)
+    assert aware_detection.grade == "warn"
+    aware_valid = result.metrics[
+        "tum_joint_reassociation_aware_probe_valid_fraction_min"
+    ]
+    assert aware_valid.value == 1.0
+    assert aware_valid.grade == "pass"
+    aware_collapse = result.metrics[
+        "tum_joint_reassociation_aware_support_collapse_fraction_max"
+    ]
+    assert aware_collapse.value == 0.0
+    assert aware_collapse.grade == "pass"
+    aware_jaccard = result.metrics["tum_joint_reassociation_aware_pair_jaccard_min"]
+    assert aware_jaccard.value is not None and 0.47 < aware_jaccard.value < 0.48
+    assert aware_jaccard.grade == "warn"
+    aware_retention = result.metrics[
+        "tum_joint_reassociation_aware_baseline_retained_fraction_min"
+    ]
+    assert aware_retention.value is not None and 0.969 < aware_retention.value < 0.971
+    assert aware_retention.grade == "pass"
     reassociation = result.run.provenance[
         "native_tum_joint_slac_iterative_reassociation"
     ]
@@ -228,6 +251,20 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         )
         and item["result"]["stopping_policy"].startswith("train assignment")
         for item in reassociation
+    )
+    aware_evaluations = [
+        item["reassociation_aware_probe_evaluation"] for item in reassociation
+    ]
+    assert [
+        sum(probe["detectable"] is True for probe in evaluation["probes"])
+        for evaluation in aware_evaluations
+    ] == [18, 13, 22]
+    assert all(
+        evaluation["method"] == "joint_reassociation_fixed_population_probes/v0.1"
+        and evaluation["options"]["unmatched_residual_penalty"] == 0.15
+        and len(evaluation["probes"]) == 30
+        and all(probe["error"] is None for probe in evaluation["probes"])
+        for evaluation in aware_evaluations
     )
     rematch_jaccard = result.metrics["tum_joint_rematch_pair_jaccard_min"]
     assert rematch_jaccard.value is not None and 0.47 < rematch_jaccard.value < 0.49
@@ -289,7 +326,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v1.0"
+        "tum_multicapture_pose_extrinsic_depth/v1.1"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

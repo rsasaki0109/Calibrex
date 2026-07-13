@@ -493,6 +493,9 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "tum_joint_reassociation_train_pair_jaccard_min" in names
     assert "tum_joint_reassociation_holdout_pair_jaccard_min" in names
     assert "tum_joint_reassociation_known_bad_detectable_fraction_min" in names
+    assert "tum_joint_reassociation_aware_known_bad_detectable_fraction_min" in names
+    assert "tum_joint_reassociation_aware_probe_valid_fraction_min" in names
+    assert "tum_joint_reassociation_aware_support_collapse_fraction_max" in names
     assert "tum_joint_xyz_ablation_window_count" in names
     assert "tum_joint_xyz_data_only_field_rank_min" in names
     assert "tum_joint_xyz_data_only_shared_rank_min" in names
