@@ -1,0 +1,20 @@
+schema_version: slac.dataset_manifest/v0.1
+name: acfr_vlp_plane_poses
+description: ACFR public real VLP-16 and camera checkerboard plane-pose observations.
+time_base: capture_index
+streams:
+  plane_correspondences:
+    kind: other
+    count: 40
+    path: data/public/acfr_vlp_plane_poses/poses.csv
+    sensor: camera0_lidar0
+    frame_id: camera0
+    fields: [camera_center_mm, camera_normal, lidar_center_mm, lidar_normal]
+provenance:
+  source: acfr/cam_lidar_calibration VLP quick-start extracted poses
+  official_url: https://github.com/acfr/cam_lidar_calibration
+  source_commit: ecda574ed902913fbc2ae50f92ad3356f318431c
+  source_url: https://raw.githubusercontent.com/acfr/cam_lidar_calibration/ecda574ed902913fbc2ae50f92ad3356f318431c/data/vlp/poses.csv
+  source_sha256: 024bc6ed9009652761e9c0df49b106d325a10c88d41a80e9b36ea55fd567e110
+  license_spdx: Apache-2.0
+  upstream_extractor: ROS/PCL implementation remains external and is not copied into Calibrex.

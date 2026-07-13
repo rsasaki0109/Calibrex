@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, load_config
@@ -62,6 +62,10 @@ from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
+)
+from calibrex.solvers.native_planar_board_solver import (
+    NATIVE_PLANAR_BOARD_BACKEND,
+    NativePlanarBoardSolver,
 )
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
@@ -120,6 +124,12 @@ def run_calibration(
     _apply_world_map_dof_diagnostics(result)
     result.artifacts.html_report = str(report_path)
     evaluate_quality(result, strict=options.strict)
+    result.run.status = cast(
+        Literal["success", "warning", "failed", "dry_run"],
+        {"pass": "success", "warn": "warning", "fail": "failed"}[
+            result.quality.grade
+        ],
+    )
     write_camera_lidar_overlay_artifact(result, output_dir / config.outputs.artifacts_dir)
     write_rig_3d_artifact(result, output_dir / config.outputs.artifacts_dir)
     result.save(result_path)
@@ -138,6 +148,8 @@ def _apply_pipeline_adapter(
         adapter_result = Open3DSLACSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_LIDAR_POINT_TO_PLANE_BACKEND:
         adapter_result = NativeLidarPointToPlaneSolver().solve(config, frame_graph, inspection)
+    elif config.solver.backend == NATIVE_PLANAR_BOARD_BACKEND:
+        adapter_result = NativePlanarBoardSolver().solve(config, frame_graph, inspection)
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -147,8 +159,20 @@ def _apply_pipeline_adapter(
     result.run.provenance["solver_adapter"] = adapter_result.backend
     result.run.provenance["solver_adapter_status"] = adapter_result.status
     _apply_adapter_transforms(result, adapter_result)
+    if adapter_result.backend in {
+        NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+        NATIVE_PLANAR_BOARD_BACKEND,
+    } and adapter_result.transforms:
+        result.metrics["prototype_solver"] = MetricResult(
+            value=1.0,
+            grade="pass",
+            reason=f"native solver {adapter_result.backend} produced an output transform",
+        )
     if adapter_result.observability is not None:
         result.observability = adapter_result.observability
+    if adapter_result.backend == NATIVE_PLANAR_BOARD_BACKEND and adapter_result.status == "pass":
+        result.degeneracy.grade = "pass"
+        result.degeneracy.reason = None
     result.degeneracy.reason = _append_reason(result.degeneracy.reason, adapter_result.warnings)
 
 
@@ -305,6 +329,8 @@ def _apply_adapter_transforms(
                 adapter_result.backend,
                 note="adapter output applied to Calibrex output estimate",
             )
+            if adapter_result.backend == NATIVE_PLANAR_BOARD_BACKEND:
+                result.transforms[name].quality = TransformQuality(grade="pass")
             applied.append(name)
         elif name == "T_camera0_lidar0":
             applied_name = _apply_relative_lidar_camera_transform(result, transform)
@@ -314,20 +340,26 @@ def _apply_adapter_transforms(
                     adapter_result.backend,
                     note="relative adapter output composed into rig-frame estimate",
                 )
+                if adapter_result.backend == NATIVE_PLANAR_BOARD_BACKEND:
+                    result.transforms[applied_name].quality = TransformQuality(grade="pass")
                 applied.append(applied_name)
     if applied:
         result.run.provenance["solver_adapter_applied_transforms"] = applied
 
 
 def _adapter_output_provenance(backend: str, *, note: str) -> TransformEstimateProvenance:
-    if backend == NATIVE_LIDAR_POINT_TO_PLANE_BACKEND:
+    if backend in {NATIVE_LIDAR_POINT_TO_PLANE_BACKEND, NATIVE_PLANAR_BOARD_BACKEND}:
         return TransformEstimateProvenance(
             producer="slac_native",
             execution_mode="offline_batch",
             role_in_comparison="output",
             evidence_level="algorithmically_refined",
             tool_name=backend,
-            source="native_lidar_point_to_plane_solver",
+            source=(
+                "native_planar_board_solver"
+                if backend == NATIVE_PLANAR_BOARD_BACKEND
+                else "native_lidar_point_to_plane_solver"
+            ),
             notes=[note],
         )
     return TransformEstimateProvenance(

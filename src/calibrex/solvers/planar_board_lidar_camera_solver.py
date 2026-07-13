@@ -60,12 +60,31 @@ class PlanarBoardSolverOptions:
     convergence_tolerance: float = 1.0e-10
     huber_delta: float = 1.5
     angular_scale_m_per_rad: float = 1.0
+    known_bad_rotation_deg: float = 5.0
+    known_bad_translation_m: float = 0.05
+    known_bad_normal_margin_deg: float = 0.1
+    known_bad_offset_margin_m: float = 0.005
+    normal_sign_policy: Literal["initial_alignment", "preserve"] = "initial_alignment"
 
 
 @dataclass(frozen=True)
 class PlanarBoardEvaluation:
     normal_rmse_deg: float | None
     offset_rmse_m: float | None
+
+
+@dataclass(frozen=True)
+class PlanarBoardProbeResult:
+    """Held-out response to one deliberately wrong transform component."""
+
+    dof: Literal["x", "y", "z", "roll", "pitch", "yaw"]
+    amount: float
+    unit: Literal["m", "deg"]
+    normal_rmse_deg: float | None
+    offset_rmse_m: float | None
+    normal_delta_deg: float | None
+    offset_delta_m: float | None
+    detectable: bool | None
 
 
 @dataclass(frozen=True)
@@ -81,6 +100,8 @@ class PlanarBoardLidarCameraResult:
     normal_condition_number: float | None
     train_evaluation: PlanarBoardEvaluation
     holdout_evaluation: PlanarBoardEvaluation
+    probes: tuple[PlanarBoardProbeResult, ...]
+    normal_sign_policy: Literal["initial_alignment", "preserve"]
     iterations: int
 
     def as_dict(self) -> dict[str, object]:
@@ -102,11 +123,12 @@ class PlanarBoardLidarCameraResult:
             "normal_condition_number": self.normal_condition_number,
             "train_evaluation": self.train_evaluation.__dict__,
             "holdout_evaluation": self.holdout_evaluation.__dict__,
+            "known_bad_probes": [probe.__dict__ for probe in self.probes],
             "iterations": self.iterations,
             "method": "zhang_pless_plane_correspondence_irls/v0.1",
             "paper_doi": "10.1109/IROS.2004.1389752",
             "frame_convention": "p_camera = R_camera_lidar p_lidar + t_camera_lidar",
-            "normal_sign_policy": "align LiDAR normal to camera normal using initial rotation",
+            "normal_sign_policy": self.normal_sign_policy,
             "extractor": "external adapter; not part of native solver",
         }
 
@@ -129,13 +151,23 @@ class PlanarBoardLidarCameraSolver:
         train_indices, holdout_indices = split_indices(
             len(usable), solver_options.holdout_ratio, seed=solver_options.split_seed
         )
-        oriented, flipped = _orient_observations(usable, initial)
+        oriented, flipped = (
+            _orient_observations(usable, initial)
+            if solver_options.normal_sign_policy == "initial_alignment"
+            else (list(usable), ())
+        )
         train = [oriented[index] for index in train_indices]
         holdout = [oriented[index] for index in holdout_indices]
         train_ids = tuple(item.frame_id for item in train)
         holdout_ids = tuple(item.frame_id for item in holdout)
         if len(train) < solver_options.min_train_observations:
-            return _empty_result("insufficient_observations", train_ids, holdout_ids, flipped)
+            return _empty_result(
+                "insufficient_observations",
+                train_ids,
+                holdout_ids,
+                flipped,
+                normal_sign_policy=solver_options.normal_sign_policy,
+            )
 
         spectrum = np.linalg.svd(
             np.asarray([item.camera_plane.normal for item in train]), compute_uv=False
@@ -153,6 +185,7 @@ class PlanarBoardLidarCameraSolver:
                 singular_values,
                 rank,
                 condition,
+                normal_sign_policy=solver_options.normal_sign_policy,
             )
 
         robust = np.ones(len(train), dtype=float)
@@ -169,6 +202,7 @@ class PlanarBoardLidarCameraSolver:
                     singular_values,
                     rank,
                     condition,
+                    normal_sign_policy=solver_options.normal_sign_policy,
                 )
             residuals = np.asarray(
                 [_combined_residual(item, candidate, solver_options) for item in train]
@@ -195,6 +229,8 @@ class PlanarBoardLidarCameraSolver:
             normal_condition_number=condition,
             train_evaluation=evaluate_planar_board_observations(train, transform),
             holdout_evaluation=evaluate_planar_board_observations(holdout, transform),
+            probes=_known_bad_probes(holdout, transform, solver_options),
+            normal_sign_policy=solver_options.normal_sign_policy,
             iterations=iterations,
         )
 
@@ -282,6 +318,97 @@ def _combined_residual(
     return math.hypot(options.angular_scale_m_per_rad * angle, offset)
 
 
+def _known_bad_probes(
+    holdout: Sequence[PlanarBoardObservation],
+    transform: SE3,
+    options: PlanarBoardSolverOptions,
+) -> tuple[PlanarBoardProbeResult, ...]:
+    baseline = evaluate_planar_board_observations(holdout, transform)
+    probes: list[PlanarBoardProbeResult] = []
+    axes: tuple[Vector3, Vector3, Vector3] = (
+        (1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, 0.0, 1.0),
+    )
+    translation_dofs: tuple[Literal["x", "y", "z"], ...] = ("x", "y", "z")
+    for index, translation_dof in enumerate(translation_dofs):
+        for sign in (-1.0, 1.0):
+            amount = sign * options.known_bad_translation_m
+            axis = axes[index]
+            translation: Vector3 = (
+                amount * axis[0],
+                amount * axis[1],
+                amount * axis[2],
+            )
+            candidate = SE3(translation, (0.0, 0.0, 0.0, 1.0)).compose(transform)
+            probes.append(
+                _probe_result(
+                    translation_dof, amount, "m", holdout, candidate, baseline, options
+                )
+            )
+    rotation_dofs: tuple[Literal["roll", "pitch", "yaw"], ...] = (
+        "roll",
+        "pitch",
+        "yaw",
+    )
+    for index, rotation_dof in enumerate(rotation_dofs):
+        for sign in (-1.0, 1.0):
+            amount = sign * options.known_bad_rotation_deg
+            half = math.radians(amount) / 2.0
+            axis = axes[index]
+            quaternion = (
+                axis[0] * math.sin(half),
+                axis[1] * math.sin(half),
+                axis[2] * math.sin(half),
+                math.cos(half),
+            )
+            candidate = SE3((0.0, 0.0, 0.0), quaternion).compose(transform)
+            probes.append(
+                _probe_result(
+                    rotation_dof, amount, "deg", holdout, candidate, baseline, options
+                )
+            )
+    return tuple(probes)
+
+
+def _probe_result(
+    dof: Literal["x", "y", "z", "roll", "pitch", "yaw"],
+    amount: float,
+    unit: Literal["m", "deg"],
+    holdout: Sequence[PlanarBoardObservation],
+    candidate: SE3,
+    baseline: PlanarBoardEvaluation,
+    options: PlanarBoardSolverOptions,
+) -> PlanarBoardProbeResult:
+    evaluated = evaluate_planar_board_observations(holdout, candidate)
+    normal_delta = (
+        evaluated.normal_rmse_deg - baseline.normal_rmse_deg
+        if evaluated.normal_rmse_deg is not None and baseline.normal_rmse_deg is not None
+        else None
+    )
+    offset_delta = (
+        evaluated.offset_rmse_m - baseline.offset_rmse_m
+        if evaluated.offset_rmse_m is not None and baseline.offset_rmse_m is not None
+        else None
+    )
+    detectable = (
+        normal_delta > options.known_bad_normal_margin_deg
+        or offset_delta > options.known_bad_offset_margin_m
+        if normal_delta is not None and offset_delta is not None
+        else None
+    )
+    return PlanarBoardProbeResult(
+        dof=dof,
+        amount=amount,
+        unit=unit,
+        normal_rmse_deg=evaluated.normal_rmse_deg,
+        offset_rmse_m=evaluated.offset_rmse_m,
+        normal_delta_deg=normal_delta,
+        offset_delta_m=offset_delta,
+        detectable=detectable,
+    )
+
+
 def _rotation_matrix(transform: SE3) -> FloatArray:
     x, y, z, w = transform.rotation_quat_xyzw
     matrix: FloatArray = np.asarray(
@@ -303,6 +430,7 @@ def _empty_result(
     spectrum: tuple[float, float, float] | None = None,
     rank: int = 0,
     condition: float | None = None,
+    normal_sign_policy: Literal["initial_alignment", "preserve"] = "initial_alignment",
 ) -> PlanarBoardLidarCameraResult:
     return PlanarBoardLidarCameraResult(
         status=status,
@@ -321,5 +449,7 @@ def _empty_result(
         normal_condition_number=condition,
         train_evaluation=PlanarBoardEvaluation(None, None),
         holdout_evaluation=PlanarBoardEvaluation(None, None),
+        probes=(),
+        normal_sign_policy=normal_sign_policy,
         iterations=0,
     )

@@ -64,6 +64,22 @@ def test_recovers_six_dof_and_holdout() -> None:
     assert result.holdout_evaluation.offset_rmse_m is not None
     assert result.holdout_evaluation.offset_rmse_m < 1.0e-8
     assert result.normal_rank == 3
+    assert len(result.probes) == 12
+    assert all(probe.detectable is True for probe in result.probes)
+
+
+def test_known_bad_probes_are_serialized_with_provenance() -> None:
+    truth = SE3((0.42, -0.17, 0.09), (0.12, -0.08, 0.18, 0.972))
+    result = PlanarBoardLidarCameraSolver().solve(_observations(truth))
+
+    payload = result.as_dict()
+    assert payload["method"] == "zhang_pless_plane_correspondence_irls/v0.1"
+    assert payload["paper_doi"] == "10.1109/IROS.2004.1389752"
+    probes = payload["known_bad_probes"]
+    assert isinstance(probes, list)
+    assert {probe["dof"] for probe in probes} == {
+        "x", "y", "z", "roll", "pitch", "yaw"
+    }
 
 
 def test_normal_sign_is_resolved_and_recorded() -> None:

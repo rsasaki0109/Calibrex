@@ -1,5 +1,15 @@
 schema_version: slac.public_datasets/v0.1
 datasets:
+  acfr_vlp_plane_poses:
+    name: ACFR VLP-16 camera-LiDAR calibration plane poses
+    family: acfr_cam_lidar_calibration
+    domain: robotics
+    official_url: https://github.com/acfr/cam_lidar_calibration
+    download_url: https://raw.githubusercontent.com/acfr/cam_lidar_calibration/ecda574ed902913fbc2ae50f92ad3356f318431c/data/vlp/poses.csv
+    license_note: Apache-2.0; extracted real checkerboard centres and normals from the upstream VLP-16 quick-start dataset.
+    slac_manifest: examples/public_datasets/acfr_vlp_plane_poses/manifest.yaml
+    slac_config: examples/public_datasets/acfr_vlp_plane_poses/config.yaml
+    recommended_pipeline: native_planar_board
   tum_rgbd_freiburg1_xyz:
     name: TUM RGB-D fr1/xyz
     family: tum_rgbd

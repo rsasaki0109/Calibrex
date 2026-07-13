@@ -18,6 +18,18 @@ python3 tools/download_public_dataset.py tum_rgbd_freiburg1_xyz --output-dir dat
 calibrex calibrate examples/public_datasets/tum_rgbd_freiburg1_xyz/config.yaml
 ```
 
+Multi-plane LiDAR-camera calibration on ACFR's public real VLP-16 target poses:
+
+```bash
+python3 tools/download_public_dataset.py acfr_vlp_plane_poses --output-dir data/public
+calibrex calibrate examples/public_datasets/acfr_vlp_plane_poses/config.yaml
+calibrex verify outputs/acfr_vlp_plane_poses/bundle.json
+```
+
+The native solver consumes only extracted oriented-plane correspondences. The
+upstream ROS/PCL feature extractor stays outside the core and its pinned commit,
+Apache-2.0 license, input digest, and source URL are recorded as provenance.
+
 Solid-state LiDAR-to-LiDAR evidence demo:
 
 ```bash

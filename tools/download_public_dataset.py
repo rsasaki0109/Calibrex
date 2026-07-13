@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen, urlretrieve
 import yaml
 
 from calibrex.data.downloads import download_livox_horizon_horizon_pcd_sample
+from calibrex.solvers.native_planar_board_solver import ACFR_VLP_SOURCE_URL
 
 A2D2_LIDAR_SAMPLE_URL = (
     "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
@@ -36,6 +37,7 @@ def main() -> int:
             "a2d2_sensor_setup",
             "a2d2_lidar_pair_sample",
             "livox_horizon_horizon_pcd_sample",
+            "acfr_vlp_plane_poses",
         ],
     )
     parser.add_argument(
@@ -54,6 +56,9 @@ def main() -> int:
         downloaded = download_livox_horizon_horizon_pcd_sample(args.output_dir)
         for path in downloaded.files:
             print(f"ready {path}")
+        return 0
+    if args.dataset == "acfr_vlp_plane_poses":
+        download_acfr_vlp_plane_poses(args.output_dir)
         return 0
 
     catalog = yaml.safe_load(args.catalog.read_text(encoding="utf-8"))
@@ -89,6 +94,25 @@ def download_a2d2_lidar_pair_sample(output_dir: Path) -> None:
         data = response.read()
     if len(data) != A2D2_LIDAR_SAMPLE_SIZE:
         raise SystemExit(f"expected {A2D2_LIDAR_SAMPLE_SIZE} bytes, got {len(data)}")
+    target.write_bytes(data)
+    print(f"wrote {target}")
+
+
+def download_acfr_vlp_plane_poses(output_dir: Path) -> None:
+    """Download the pinned Apache-2.0 ACFR VLP extracted-pose example."""
+
+    import hashlib
+
+    target_dir = output_dir / "acfr_vlp_plane_poses"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / "poses.csv"
+    request = Request(ACFR_VLP_SOURCE_URL, headers={"User-Agent": "Calibrex"})
+    with urlopen(request, timeout=90) as response:
+        data = response.read()
+    expected = "024bc6ed9009652761e9c0df49b106d325a10c88d41a80e9b36ea55fd567e110"
+    actual = hashlib.sha256(data).hexdigest()
+    if actual != expected:
+        raise SystemExit(f"ACFR poses.csv digest mismatch: expected {expected}, got {actual}")
     target.write_bytes(data)
     print(f"wrote {target}")
 

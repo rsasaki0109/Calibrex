@@ -11,6 +11,13 @@ from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
 )
+from calibrex.solvers.native_planar_board_solver import (
+    ACFR_VLP_FORMAT,
+    ACFR_VLP_SOURCE_URL,
+    NATIVE_PLANAR_BOARD_BACKEND,
+    NativePlanarBoardSolver,
+    read_acfr_vlp_plane_observations,
+)
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
 from calibrex.solvers.park_martin_hand_eye_solver import (
     HandEyeEvaluation,
@@ -26,6 +33,7 @@ from calibrex.solvers.planar_board_lidar_camera_solver import (
     PlanarBoardLidarCameraResult,
     PlanarBoardLidarCameraSolver,
     PlanarBoardObservation,
+    PlanarBoardProbeResult,
     PlanarBoardSolverOptions,
     evaluate_planar_board_observations,
 )
@@ -62,7 +70,10 @@ from calibrex.solvers.robust_point_to_point_icp_solver import (
 )
 
 __all__ = [
+    "ACFR_VLP_FORMAT",
+    "ACFR_VLP_SOURCE_URL",
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
+    "NATIVE_PLANAR_BOARD_BACKEND",
     "BoardBoundaryCorrespondence",
     "FixedTrajectorySe3ExtrinsicSolver",
     "FixedTrajectorySe3SolverOptions",
@@ -76,6 +87,7 @@ __all__ = [
     "LinePlaneEvaluation",
     "LinePlaneSolverOptions",
     "NativeLidarPointToPlaneSolver",
+    "NativePlanarBoardSolver",
     "Open3DSLACSolver",
     "OrientedLine3D",
     "OrientedPlane",
@@ -88,6 +100,7 @@ __all__ = [
     "PlanarBoardLinePlaneResult",
     "PlanarBoardLinePlaneSolver",
     "PlanarBoardObservation",
+    "PlanarBoardProbeResult",
     "PlanarBoardSolverOptions",
     "RadarDopplerObservation",
     "RadarEgoVelocityResult",
@@ -107,4 +120,5 @@ __all__ = [
     "evaluate_line_plane_observations",
     "evaluate_planar_board_observations",
     "radar_trajectory_yaw_rmse",
+    "read_acfr_vlp_plane_observations",
 ]

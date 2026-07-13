@@ -1,0 +1,66 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: acfr_vlp_multi_plane_calibration
+  description: Native multi-plane calibration on ACFR public real checkerboard observations.
+  output_dir: outputs/acfr_vlp_plane_poses
+  domain: robotics
+
+dataset:
+  type: filesystem
+  path: data/public/acfr_vlp_plane_poses
+  time_base: capture_index
+
+sensors:
+  camera0:
+    type: camera
+    model: acfr_gmsl
+    frame_id: camera0
+  lidar0:
+    type: lidar
+    model: velodyne_vlp16
+    frame_id: lidar0
+
+frames:
+  camera0:
+    root: true
+  lidar0:
+    parent: camera0
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+pipeline:
+  type: planar_board_lidar_camera
+  frontends: [acfr_vlp_pose_adapter]
+  factors:
+    planar_board_plane_correspondence:
+      enabled: true
+      options:
+        poses_file: poses.csv
+        input_format: acfr_vlp_poses_v1
+        normal_sign_policy: preserve
+        max_holdout_normal_rmse_deg: 3.0
+        max_holdout_offset_rmse_m: 0.05
+        min_known_bad_detectable_fraction: 0.8
+
+solver:
+  backend: native_planar_board
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-10
+  seed: 0
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - planar_board_normal_rmse_deg
+    - planar_board_offset_rmse_m
+    - planar_board_known_bad_detectable_fraction
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
