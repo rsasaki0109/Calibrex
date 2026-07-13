@@ -113,6 +113,79 @@ class JointReassociationResult:
         }
 
 
+@dataclass(frozen=True)
+class JointReassociationProbeOptions:
+    """Fixed-population policy for reassociation-aware known-bad probes."""
+
+    unmatched_residual_penalty: float
+    known_bad_margin: float = 1.0e-3
+    minimum_retained_fraction: float = 0.95
+
+
+@dataclass(frozen=True)
+class JointReassociationProbe:
+    """One signed perturbation evaluated after rebuilding correspondences."""
+
+    block: str
+    dimension: int
+    amount: float
+    baseline_fixed_population_rmse: float
+    perturbed_fixed_population_rmse: float | None
+    delta: float | None
+    detectable: bool | None
+    perturbed_retained_fraction: float | None
+    support_collapse: bool | None
+    stability: CorrespondenceStabilityEvaluation | None
+    error: str | None = None
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "block": self.block,
+            "dimension": self.dimension,
+            "amount": self.amount,
+            "baseline_fixed_population_rmse": self.baseline_fixed_population_rmse,
+            "perturbed_fixed_population_rmse": self.perturbed_fixed_population_rmse,
+            "delta": self.delta,
+            "detectable": self.detectable,
+            "perturbed_retained_fraction": self.perturbed_retained_fraction,
+            "support_collapse": self.support_collapse,
+            "stability": self.stability.as_dict() if self.stability is not None else None,
+            "error": self.error,
+        }
+
+
+@dataclass(frozen=True)
+class JointReassociationProbeEvaluation:
+    """Complete rematching-aware probe evidence for one fitted graph."""
+
+    holdout_query_count: int
+    baseline_matched_query_count: int
+    baseline_retained_fraction: float
+    baseline_fixed_population_rmse: float
+    options: JointReassociationProbeOptions
+    probes: tuple[JointReassociationProbe, ...]
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "holdout_query_count": self.holdout_query_count,
+            "baseline_matched_query_count": self.baseline_matched_query_count,
+            "baseline_retained_fraction": self.baseline_retained_fraction,
+            "baseline_fixed_population_rmse": self.baseline_fixed_population_rmse,
+            "options": self.options.__dict__,
+            "probes": [probe.as_dict() for probe in self.probes],
+            "method": "joint_reassociation_fixed_population_probes/v0.1",
+            "population_policy": (
+                "initial holdout query IDs remain fixed; each matched factor contributes "
+                "its own residual RMS and each unmatched query contributes the declared "
+                "penalty"
+            ),
+            "detection_policy": (
+                "fixed-population RMSE delta exceeds the declared margin; support "
+                "collapse is reported separately and cannot improve the objective"
+            ),
+        }
+
+
 class BackendNeutralJointReassociation:
     """Alternate deterministic reassociation and warm-start joint optimization."""
 
@@ -341,6 +414,108 @@ class BackendNeutralJointReassociation:
         )
 
 
+def evaluate_joint_reassociation_probes(
+    parameter_blocks: Sequence[JointParameterBlock],
+    initial_state: JointReassociationState,
+    result: JointReassociationResult,
+    reassociate: JointReassociationCallback,
+    options: JointReassociationProbeOptions,
+) -> JointReassociationProbeEvaluation:
+    """Evaluate signed known-bad steps with rematching and a fixed holdout population."""
+
+    _validate_probe_options(options)
+    blocks = tuple(parameter_blocks)
+    values = result.final_result.optimized_values
+    if {block.name for block in blocks} != set(values):
+        raise ValueError("reassociation probe blocks must match optimized values")
+    query_groups = {
+        factor.factor_id: factor.observation_group for factor in initial_state.factors
+    }
+    holdout_groups = set(result.holdout_observation_groups)
+    population = tuple(
+        sorted(
+            query_id
+            for query_id, group in query_groups.items()
+            if group in holdout_groups
+        )
+    )
+    if not population:
+        raise ValueError("reassociation probes require a non-empty holdout query population")
+    baseline_state = reassociate(values)
+    baseline_error = _probe_state_error(baseline_state, query_groups)
+    if baseline_error is not None:
+        raise ValueError(f"baseline reassociation state is invalid: {baseline_error}")
+    baseline_rmse, baseline_matched = _fixed_population_rmse(
+        baseline_state,
+        values,
+        population,
+        options.unmatched_residual_penalty,
+    )
+    baseline_assignments = _population_assignments(baseline_state, population)
+    probes: list[JointReassociationProbe] = []
+    for block in blocks:
+        if block.fixed or not block.known_bad_steps:
+            continue
+        for dimension, step in enumerate(block.known_bad_steps):
+            for amount in (-step, step):
+                perturbed = _perturbed_values(values, block.name, dimension, amount)
+                try:
+                    state = reassociate(perturbed)
+                    error = _probe_state_error(state, query_groups)
+                    if error is not None:
+                        raise ValueError(error)
+                    perturbed_rmse, matched = _fixed_population_rmse(
+                        state,
+                        perturbed,
+                        population,
+                        options.unmatched_residual_penalty,
+                    )
+                    retained = matched / len(population)
+                    delta = perturbed_rmse - baseline_rmse
+                    stability = evaluate_correspondence_stability(
+                        baseline_assignments,
+                        _population_assignments(state, population),
+                    )
+                    probes.append(
+                        JointReassociationProbe(
+                            block.name,
+                            dimension,
+                            amount,
+                            baseline_rmse,
+                            perturbed_rmse,
+                            delta,
+                            delta > options.known_bad_margin,
+                            retained,
+                            retained < options.minimum_retained_fraction,
+                            stability,
+                        )
+                    )
+                except (KeyError, ValueError) as exc:
+                    probes.append(
+                        JointReassociationProbe(
+                            block.name,
+                            dimension,
+                            amount,
+                            baseline_rmse,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            str(exc),
+                        )
+                    )
+    return JointReassociationProbeEvaluation(
+        len(population),
+        baseline_matched,
+        baseline_matched / len(population),
+        baseline_rmse,
+        options,
+        tuple(probes),
+    )
+
+
 def _validate_options(options: JointReassociationOptions) -> None:
     if options.max_outer_iterations <= 0:
         raise ValueError("reassociation outer iteration count must be positive")
@@ -350,6 +525,19 @@ def _validate_options(options: JointReassociationOptions) -> None:
     )
     if not all(math.isfinite(value) and 0.0 <= value <= 1.0 for value in fractions):
         raise ValueError("reassociation stability gates must be finite fractions")
+
+
+def _validate_probe_options(options: JointReassociationProbeOptions) -> None:
+    if not math.isfinite(options.unmatched_residual_penalty) or (
+        options.unmatched_residual_penalty <= 0.0
+    ):
+        raise ValueError("reassociation unmatched residual penalty must be finite positive")
+    if not math.isfinite(options.known_bad_margin) or options.known_bad_margin < 0.0:
+        raise ValueError("reassociation known-bad margin must be finite nonnegative")
+    if not math.isfinite(options.minimum_retained_fraction) or not (
+        0.0 <= options.minimum_retained_fraction <= 1.0
+    ):
+        raise ValueError("reassociation minimum retained fraction must be finite in [0, 1]")
 
 
 def _validate_initial_contract(
@@ -420,6 +608,25 @@ def _state_error(
     return None
 
 
+def _probe_state_error(
+    state: JointReassociationState,
+    immutable_query_groups: Mapping[str, str],
+) -> str | None:
+    error = _state_shape_error(state)
+    if error is not None:
+        return error
+    if any(factor.split_policy != "grouped" for factor in state.factors):
+        return "reassociated probe data factors must keep grouped splitting"
+    current = {factor.factor_id: factor.observation_group for factor in state.factors}
+    if any(
+        query_id not in immutable_query_groups
+        or immutable_query_groups[query_id] != observation_group
+        for query_id, observation_group in current.items()
+    ):
+        return "reassociation probe added a query or changed its observation group"
+    return None
+
+
 def _split_stability(
     reference: tuple[CorrespondenceAssignment, ...],
     rematched: tuple[CorrespondenceAssignment, ...],
@@ -473,6 +680,51 @@ def _block_parameter_delta(
         )
         for name, values in before.items()
     }
+
+
+def _perturbed_values(
+    values: ParameterValues,
+    block: str,
+    dimension: int,
+    amount: float,
+) -> dict[str, tuple[float, ...]]:
+    perturbed = dict(values)
+    selected = list(perturbed[block])
+    selected[dimension] += amount
+    perturbed[block] = tuple(selected)
+    return perturbed
+
+
+def _population_assignments(
+    state: JointReassociationState,
+    population: tuple[str, ...],
+) -> tuple[CorrespondenceAssignment, ...]:
+    selected = set(population)
+    return tuple(
+        assignment
+        for assignment in state.assignments
+        if assignment.query_id in selected
+    )
+
+
+def _fixed_population_rmse(
+    state: JointReassociationState,
+    values: ParameterValues,
+    population: tuple[str, ...],
+    unmatched_penalty: float,
+) -> tuple[float, int]:
+    factors = {factor.factor_id: factor for factor in state.factors}
+    squared_scores: list[float] = []
+    matched = 0
+    for query_id in population:
+        factor = factors.get(query_id)
+        if factor is None:
+            squared_scores.append(unmatched_penalty * unmatched_penalty)
+            continue
+        residuals = factor.residuals(values)
+        squared_scores.append(sum(value * value for value in residuals) / len(residuals))
+        matched += 1
+    return math.sqrt(sum(squared_scores) / len(squared_scores)), matched
 
 
 def _result(

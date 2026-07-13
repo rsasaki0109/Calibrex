@@ -52,6 +52,30 @@ percent of train queries but reach terminal train pair Jaccards of only 0.914,
 passing the unchanged 0.99 gate. Holdout pair Jaccards of 0.902, 0.834, and
 0.852 are recorded solely as diagnostics.
 
+## Reassociation-aware known-bad probes
+
+Frozen-correspondence perturbations can overstate falsification when the
+frontend would select a different target after a calibration change. Calibrex
+therefore provides a separate reassociation-aware probe evaluator. Each signed
+declared parameter step reruns the deterministic frontend callback and records
+query/target stability, retention, support collapse, fixed-population RMSE,
+delta, detectability, and callback errors.
+
+The population is the original seeded holdout query set. Each matched factor
+contributes its own whitened residual RMS, so factors are query-balanced even
+when residual dimensions differ. Each unmatched query contributes a declared
+residual penalty. Dropping difficult queries therefore cannot lower the score;
+support collapse remains a separate diagnostic rather than being confused
+with geometric improvement.
+
+Synthetic tests distinguish the two probe semantics. A fixed target detects
+both signed perturbations, but a rematched symmetric target follows the state
+and reduces reassociation-aware detection to 0/2 while pair Jaccard falls to
+zero. A second test drops half the holdout population under one perturbation:
+the penalty still detects the probe and explicitly marks support collapse.
+Frozen and reassociation-aware probe results are never merged under one metric
+name.
+
 ## Numerical-curvature contract
 
 `evaluate_numerical_curvature` evaluates the objective itself at symmetric

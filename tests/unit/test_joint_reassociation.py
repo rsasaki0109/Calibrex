@@ -10,7 +10,9 @@ from calibrex.graph.joint_optimization import (
 from calibrex.graph.joint_reassociation import (
     BackendNeutralJointReassociation,
     JointReassociationOptions,
+    JointReassociationProbeOptions,
     JointReassociationState,
+    evaluate_joint_reassociation_probes,
 )
 
 
@@ -166,3 +168,96 @@ def test_joint_reassociation_reports_outer_iteration_limit() -> None:
     assert result.status == "max_iterations"
     assert len(result.iterations) == 2
     assert result.terminal_train_stability.pair_jaccard == 0.0
+
+
+def test_reassociation_aware_probes_expose_rematched_symmetry() -> None:
+    initial_state = _state("target-1.000", 1.0)
+    blocks, optimizer_options, initial_result = _initial(initial_state)
+
+    def reassociate(values) -> JointReassociationState:
+        target = values["x"][0]
+        return _state(f"target-{target:.3f}", target)
+
+    fitted = BackendNeutralJointReassociation().refine(
+        blocks,
+        initial_state,
+        (),
+        initial_result,
+        reassociate,
+        optimizer_options,
+    )
+    evaluation = evaluate_joint_reassociation_probes(
+        blocks,
+        initial_state,
+        fitted,
+        reassociate,
+        JointReassociationProbeOptions(
+            unmatched_residual_penalty=0.5,
+            known_bad_margin=0.01,
+        ),
+    )
+
+    assert all(probe.detectable is True for probe in fitted.final_result.probes)
+    assert len(evaluation.probes) == 2
+    assert all(probe.detectable is False for probe in evaluation.probes)
+    assert all(probe.delta == pytest.approx(0.0) for probe in evaluation.probes)
+    assert all(
+        probe.stability is not None and probe.stability.pair_jaccard == 0.0
+        for probe in evaluation.probes
+    )
+    assert evaluation.as_dict()["method"] == (
+        "joint_reassociation_fixed_population_probes/v0.1"
+    )
+
+
+def test_reassociation_aware_probes_penalize_holdout_support_collapse() -> None:
+    initial_state = _state("target", 1.0)
+    blocks, optimizer_options, initial_result = _initial(initial_state)
+    holdout_queries = {
+        factor.factor_id
+        for factor in initial_state.factors
+        if factor.observation_group in initial_result.holdout_observation_groups
+    }
+    dropped_query = sorted(holdout_queries)[0]
+
+    def reassociate(values) -> JointReassociationState:
+        if values["x"][0] <= 1.05:
+            return initial_state
+        factors = tuple(
+            factor for factor in initial_state.factors if factor.factor_id != dropped_query
+        )
+        return JointReassociationState(
+            factors,
+            tuple(
+                CorrespondenceAssignment(factor.factor_id, "target")
+                for factor in factors
+            ),
+        )
+
+    fitted = BackendNeutralJointReassociation().refine(
+        blocks,
+        initial_state,
+        (),
+        initial_result,
+        reassociate,
+        optimizer_options,
+    )
+    evaluation = evaluate_joint_reassociation_probes(
+        blocks,
+        initial_state,
+        fitted,
+        reassociate,
+        JointReassociationProbeOptions(
+            unmatched_residual_penalty=0.5,
+            known_bad_margin=0.01,
+            minimum_retained_fraction=0.75,
+        ),
+    )
+    positive = next(probe for probe in evaluation.probes if probe.amount > 0.0)
+
+    assert evaluation.holdout_query_count == 2
+    assert positive.perturbed_retained_fraction == pytest.approx(0.5)
+    assert positive.support_collapse is True
+    assert positive.detectable is True
+    assert positive.perturbed_fixed_population_rmse is not None
+    assert positive.perturbed_fixed_population_rmse > 0.35

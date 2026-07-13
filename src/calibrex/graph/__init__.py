@@ -43,8 +43,12 @@ from calibrex.graph.joint_reassociation import (
     JointReassociationCallback,
     JointReassociationIteration,
     JointReassociationOptions,
+    JointReassociationProbe,
+    JointReassociationProbeEvaluation,
+    JointReassociationProbeOptions,
     JointReassociationResult,
     JointReassociationState,
+    evaluate_joint_reassociation_probes,
 )
 from calibrex.graph.problem import CalibrationProblemSpec, build_problem
 
@@ -66,6 +70,9 @@ __all__ = [
     "JointReassociationCallback",
     "JointReassociationIteration",
     "JointReassociationOptions",
+    "JointReassociationProbe",
+    "JointReassociationProbeEvaluation",
+    "JointReassociationProbeOptions",
     "JointReassociationResult",
     "JointReassociationState",
     "JointResidualBlock",
@@ -75,6 +82,7 @@ __all__ = [
     "build_problem",
     "estimate_xyz_lattice_local_rotations",
     "evaluate_joint_observability",
+    "evaluate_joint_reassociation_probes",
     "get_factor_plugin",
     "list_factor_plugins",
     "make_joint_depth_point_to_plane_factor",
