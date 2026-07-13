@@ -68,12 +68,17 @@ from calibrex.solvers.tsai_lenz_hand_eye_solver import (
     TsaiLenzHandEyeSolver,
     evaluate_hand_eye_known_bad_probes,
 )
+from calibrex.solvers.zhuang_roth_sudhakar_robot_world_hand_eye_solver import (
+    ZhuangRothSudhakarOptions,
+    ZhuangRothSudhakarResult,
+    ZhuangRothSudhakarSolver,
+)
 
 NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run five AX=XB baselines plus four absolute-pose AX=YB baselines."""
+    """Run five AX=XB baselines plus five absolute-pose AX=YB baselines."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -162,6 +167,28 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 options.get("max_dornaika_horaud_translation_condition_number", 1.0e8)
             ),
         )
+        zhuang_options = ZhuangRothSudhakarOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            minimum_abs_a_scalar=float(
+                options.get("min_zhuang_roth_sudhakar_abs_a_scalar", 1.0e-8)
+            ),
+            minimum_abs_z_scalar=float(
+                options.get("min_zhuang_roth_sudhakar_abs_z_scalar", 1.0e-8)
+            ),
+            max_rotation_condition_number=float(
+                options.get("max_zhuang_roth_sudhakar_rotation_condition_number", 1.0e8)
+            ),
+            max_quaternion_normalization_disagreement=float(
+                options.get(
+                    "max_zhuang_roth_sudhakar_quaternion_normalization_disagreement",
+                    0.05,
+                )
+            ),
+            max_translation_condition_number=float(
+                options.get("max_zhuang_roth_sudhakar_translation_condition_number", 1.0e8)
+            ),
+        )
         nonlinear_options = DornaikaHoraudNonlinearOptions(
             holdout_ratio=holdout_ratio,
             split_seed=split_seed,
@@ -187,6 +214,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         shah = ShahRobotWorldHandEyeSolver().solve(absolute_poses, shah_options)
         li = LiRobotWorldHandEyeSolver().solve(absolute_poses, li_options)
         dornaika = DornaikaHoraudRobotWorldHandEyeSolver().solve(absolute_poses, dornaika_options)
+        zhuang = ZhuangRothSudhakarSolver().solve(absolute_poses, zhuang_options)
         nonlinear = DornaikaHoraudNonlinearSolver().solve(absolute_poses, nonlinear_options)
         metrics = _comparison_metrics(
             dataset,
@@ -199,6 +227,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             shah,
             li,
             dornaika,
+            zhuang,
             nonlinear,
             tsai_options,
             options,
@@ -217,6 +246,8 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 li.transform_z,
                 dornaika.transform_x,
                 dornaika.transform_z,
+                zhuang.transform_x,
+                zhuang.transform_z,
                 nonlinear.transform_x,
                 nonlinear.transform_z,
             )
@@ -264,6 +295,19 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 "robot_world_hand_eye_dornaika_horaud_translation_condition_number",
             )
         )
+        zhuang_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "robot_world_hand_eye_zhuang_roth_sudhakar_rotation_rank",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_rotation_condition_number",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_minimum_abs_a_scalar",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_recovered_abs_z_scalar",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_quaternion_normalization_disagreement",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_sign_synchronization_fraction",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_translation_rank",
+                "robot_world_hand_eye_zhuang_roth_sudhakar_translation_condition_number",
+            )
+        )
         nonlinear_observable = all(
             metrics[name].grade == "pass"
             for name in (
@@ -302,6 +346,11 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     ),
                     *(
                         []
+                        if zhuang_observable
+                        else ["zhuang_roth_sudhakar_robot_world_hand_eye_observability"]
+                    ),
+                    *(
+                        []
                         if nonlinear_observable
                         else ["dornaika_horaud_nonlinear_robot_world_hand_eye_observability"]
                     ),
@@ -315,6 +364,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     and shah_observable
                     and li_observable
                     and dornaika_observable
+                    and zhuang_observable
                     and nonlinear_observable
                     else "fail"
                 ),
@@ -348,6 +398,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "shah_robot_world_hand_eye": shah.as_dict(),
                         "li_robot_world_hand_eye": li.as_dict(),
                         "dornaika_horaud_robot_world_hand_eye": dornaika.as_dict(),
+                        "zhuang_roth_sudhakar_robot_world_hand_eye": zhuang.as_dict(),
                         "dornaika_horaud_nonlinear_robot_world_hand_eye": (nonlinear.as_dict()),
                     },
                 },
@@ -367,6 +418,7 @@ def _comparison_metrics(
     shah: ShahRobotWorldHandEyeResult,
     li: LiRobotWorldHandEyeResult,
     dornaika: DornaikaHoraudRobotWorldHandEyeResult,
+    zhuang: ZhuangRothSudhakarResult,
     nonlinear: DornaikaHoraudNonlinearResult,
     probe_options: TsaiLenzHandEyeOptions,
     factor_options: dict[str, Any],
@@ -402,6 +454,26 @@ def _comparison_metrics(
     )
     min_dornaika_sign_fraction = float(
         factor_options.get("min_dornaika_horaud_sign_synchronization_fraction", 0.99)
+    )
+    min_zhuang_abs_a = float(
+        factor_options.get("min_zhuang_roth_sudhakar_abs_a_scalar", 1.0e-8)
+    )
+    min_zhuang_abs_z = float(
+        factor_options.get("min_zhuang_roth_sudhakar_abs_z_scalar", 1.0e-8)
+    )
+    max_zhuang_rotation_condition = float(
+        factor_options.get("max_zhuang_roth_sudhakar_rotation_condition_number", 1.0e8)
+    )
+    max_zhuang_normalization_disagreement = float(
+        factor_options.get(
+            "max_zhuang_roth_sudhakar_quaternion_normalization_disagreement", 0.05
+        )
+    )
+    min_zhuang_sign_fraction = float(
+        factor_options.get("min_zhuang_roth_sudhakar_sign_synchronization_fraction", 0.99)
+    )
+    max_zhuang_translation_condition = float(
+        factor_options.get("max_zhuang_roth_sudhakar_translation_condition_number", 1.0e8)
     )
     max_nonlinear_condition = float(
         factor_options.get(
@@ -639,7 +711,7 @@ def _comparison_metrics(
                 len(
                     {
                         (result.train_pair_ids, result.holdout_pair_ids)
-                        for result in (shah, li, dornaika, nonlinear)
+                        for result in (shah, li, dornaika, zhuang, nonlinear)
                     }
                 )
                 == 1
@@ -650,7 +722,7 @@ def _comparison_metrics(
                 if len(
                     {
                         (result.train_pair_ids, result.holdout_pair_ids)
-                        for result in (shah, li, dornaika, nonlinear)
+                        for result in (shah, li, dornaika, zhuang, nonlinear)
                     }
                 )
                 == 1
@@ -741,6 +813,112 @@ def _comparison_metrics(
                     else "fail"
                 ),
                 reason=(f"conditional translation condition number <= {max_dornaika_condition:g}"),
+            )
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_rotation_rank": MetricResult(
+            value=float(zhuang.rotation_rank),
+            unit="rank",
+            grade="pass" if zhuang.rotation_rank == 6 else "fail",
+            reason="paper equation (8) must constrain all six scaled quaternion vectors",
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_rotation_condition_number": (
+            MetricResult(
+                value=zhuang.rotation_condition_number,
+                grade=(
+                    "pass"
+                    if zhuang.rotation_condition_number is not None
+                    and zhuang.rotation_condition_number <= max_zhuang_rotation_condition
+                    else "fail"
+                ),
+                reason=f"linear quaternion condition number <= {max_zhuang_rotation_condition:g}",
+            )
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_minimum_abs_a_scalar": MetricResult(
+            value=zhuang.minimum_abs_a_scalar,
+            grade=(
+                "pass"
+                if zhuang.minimum_abs_a_scalar is not None
+                and zhuang.minimum_abs_a_scalar >= min_zhuang_abs_a
+                else "fail"
+            ),
+            reason=f"paper elimination requires every |a0| >= {min_zhuang_abs_a:g}",
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_recovered_abs_z_scalar": MetricResult(
+            value=zhuang.recovered_abs_z_scalar,
+            grade=(
+                "pass"
+                if zhuang.recovered_abs_z_scalar is not None
+                and zhuang.recovered_abs_z_scalar >= min_zhuang_abs_z
+                else "fail"
+            ),
+            reason=f"paper parameterization requires recovered |z0| >= {min_zhuang_abs_z:g}",
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_quaternion_normalization_disagreement": (
+            MetricResult(
+                value=zhuang.quaternion_normalization_disagreement,
+                unit="fraction",
+                grade=(
+                    "pass"
+                    if zhuang.quaternion_normalization_disagreement is not None
+                    and zhuang.quaternion_normalization_disagreement
+                    <= max_zhuang_normalization_disagreement
+                    else "fail"
+                ),
+                reason=(
+                    "independent raw quaternion norm disagreement <= "
+                    f"{max_zhuang_normalization_disagreement:g}"
+                ),
+            )
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_scalar_reconstruction_rmse": (
+            MetricResult(
+                value=zhuang.scalar_reconstruction_rmse,
+                grade="warn",
+                reason="diagnostic dispersion of x0/z0 reconstructed from paper equation (7)",
+            )
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_sign_flip_count": MetricResult(
+            value=float(zhuang.quaternion_sign_flip_count),
+            unit="poses",
+            grade="warn",
+            reason="diagnostic quaternion double-cover signs changed before fitting",
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_sign_synchronization_fraction": (
+            MetricResult(
+                value=zhuang.quaternion_sign_synchronization_fraction,
+                unit="fraction",
+                grade=(
+                    "pass"
+                    if zhuang.quaternion_sign_synchronization_fraction is not None
+                    and zhuang.quaternion_sign_synchronization_fraction
+                    >= min_zhuang_sign_fraction
+                    else "fail"
+                ),
+                reason=(
+                    "weighted pairwise quaternion sign consistency "
+                    f">= {min_zhuang_sign_fraction:g}"
+                ),
+            )
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_translation_rank": MetricResult(
+            value=float(zhuang.translation_rank),
+            unit="rank",
+            grade="pass" if zhuang.translation_rank == 6 else "fail",
+            reason="conditional [t_X; t_Z] system must constrain all six translations",
+        ),
+        "robot_world_hand_eye_zhuang_roth_sudhakar_translation_condition_number": (
+            MetricResult(
+                value=zhuang.translation_condition_number,
+                grade=(
+                    "pass"
+                    if zhuang.translation_condition_number is not None
+                    and zhuang.translation_condition_number <= max_zhuang_translation_condition
+                    else "fail"
+                ),
+                reason=(
+                    "conditional translation condition number <= "
+                    f"{max_zhuang_translation_condition:g}"
+                ),
             )
         ),
         "robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease": (
@@ -968,6 +1146,48 @@ def _comparison_metrics(
         ),
         reason="held-out signed six-DoF perturbations of both X and Z",
     )
+    zhuang_rotation = zhuang.holdout_evaluation.rotation_closure_rmse_deg
+    zhuang_translation = zhuang.holdout_evaluation.translation_closure_rmse_m
+    zhuang_closure_pass = (
+        zhuang_rotation is not None
+        and zhuang_rotation <= max_rotation
+        and zhuang_translation is not None
+        and zhuang_translation <= max_translation
+    )
+    zhuang_detectable = [
+        probe.detectable for probe in zhuang.probes if probe.detectable is not None
+    ]
+    zhuang_fraction = (
+        sum(value is True for value in zhuang_detectable) / len(zhuang_detectable)
+        if zhuang_detectable
+        else None
+    )
+    metrics["robot_world_hand_eye_zhuang_roth_sudhakar_holdout_rotation_rmse_deg"] = (
+        MetricResult(
+            value=zhuang_rotation,
+            unit="deg",
+            grade="pass" if zhuang_closure_pass else "fail",
+        )
+    )
+    metrics["robot_world_hand_eye_zhuang_roth_sudhakar_holdout_translation_rmse_m"] = (
+        MetricResult(
+            value=zhuang_translation,
+            unit="m",
+            grade="pass" if zhuang_closure_pass else "fail",
+        )
+    )
+    metrics["robot_world_hand_eye_zhuang_roth_sudhakar_known_bad_detectable_fraction"] = (
+        MetricResult(
+            value=zhuang_fraction,
+            unit="fraction",
+            grade=(
+                "pass"
+                if zhuang_fraction is not None and zhuang_fraction >= min_detectable
+                else "warn"
+            ),
+            reason="held-out signed six-DoF perturbations of both X and Z",
+        )
+    )
     nonlinear_rotation = nonlinear.holdout_evaluation.rotation_closure_rmse_deg
     nonlinear_translation = nonlinear.holdout_evaluation.translation_closure_rmse_m
     nonlinear_closure_pass = (
@@ -1049,6 +1269,28 @@ def _comparison_metrics(
                 grade="warn",
                 reason="method-comparison diagnostic; no accuracy claim without ground truth",
             )
+        )
+    zhuang_comparisons = (
+        ("x", zhuang.transform_x, dornaika.transform_x),
+        ("z", zhuang.transform_z, dornaika.transform_z),
+    )
+    for role, zhuang_transform, closed_transform in zhuang_comparisons:
+        rotation_delta, translation_delta = _transform_delta(zhuang_transform, closed_transform)
+        metrics[
+            f"robot_world_hand_eye_zhuang_roth_sudhakar_closed_form_{role}_rotation_delta_deg"
+        ] = MetricResult(
+            value=rotation_delta,
+            unit="deg",
+            grade="warn",
+            reason="method-comparison diagnostic; no accuracy claim without ground truth",
+        )
+        metrics[
+            f"robot_world_hand_eye_zhuang_roth_sudhakar_closed_form_{role}_translation_delta_m"
+        ] = MetricResult(
+            value=translation_delta,
+            unit="m",
+            grade="warn",
+            reason="method-comparison diagnostic; no accuracy claim without ground truth",
         )
     nonlinear_comparisons = (
         ("x", nonlinear.transform_x, dornaika.transform_x),

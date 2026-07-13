@@ -149,6 +149,74 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert dornaika["nonlinear_method_executed"] is False
     assert dornaika["transform_x"] is not None
     assert dornaika["transform_z"] is not None
+    zhuang_rank = result.metrics["robot_world_hand_eye_zhuang_roth_sudhakar_rotation_rank"]
+    assert zhuang_rank.value == 6.0
+    assert zhuang_rank.grade == "pass"
+    zhuang_condition = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_rotation_condition_number"
+    ]
+    assert zhuang_condition.value is not None and 21.9 < zhuang_condition.value < 22.1
+    assert zhuang_condition.grade == "pass"
+    zhuang_a_scalar = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_minimum_abs_a_scalar"
+    ]
+    assert zhuang_a_scalar.value is not None and 0.21 < zhuang_a_scalar.value < 0.22
+    assert zhuang_a_scalar.grade == "pass"
+    zhuang_z_scalar = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_recovered_abs_z_scalar"
+    ]
+    assert zhuang_z_scalar.value is not None and 0.70 < zhuang_z_scalar.value < 0.71
+    assert zhuang_z_scalar.grade == "pass"
+    zhuang_normalization = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_quaternion_normalization_disagreement"
+    ]
+    assert zhuang_normalization.value is not None
+    assert zhuang_normalization.value < 0.0001
+    assert zhuang_normalization.grade == "pass"
+    zhuang_scalar_rmse = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_scalar_reconstruction_rmse"
+    ]
+    assert zhuang_scalar_rmse.value is not None
+    assert 0.012 < zhuang_scalar_rmse.value < 0.013
+    assert zhuang_scalar_rmse.grade == "warn"
+    zhuang_sign_fraction = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_sign_synchronization_fraction"
+    ]
+    assert zhuang_sign_fraction.value == 1.0
+    assert zhuang_sign_fraction.grade == "pass"
+    zhuang_translation_condition = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_translation_condition_number"
+    ]
+    assert zhuang_translation_condition.value is not None
+    assert 8.1 < zhuang_translation_condition.value < 8.3
+    assert zhuang_translation_condition.grade == "pass"
+    zhuang_rotation = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_holdout_rotation_rmse_deg"
+    ]
+    zhuang_translation = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_holdout_translation_rmse_m"
+    ]
+    assert zhuang_rotation.value is not None and 0.59 < zhuang_rotation.value < 0.60
+    assert zhuang_translation.value is not None and 0.010 < zhuang_translation.value < 0.011
+    assert zhuang_rotation.grade == zhuang_translation.grade == "pass"
+    zhuang_detection = result.metrics[
+        "robot_world_hand_eye_zhuang_roth_sudhakar_known_bad_detectable_fraction"
+    ]
+    assert zhuang_detection.value == 1.0
+    assert zhuang_detection.grade == "pass"
+    zhuang = comparison["results"]["zhuang_roth_sudhakar_robot_world_hand_eye"]
+    assert zhuang["method"] == "zhuang_roth_sudhakar_robot_world_hand_eye_linear/v0.1"
+    assert zhuang["paper"]["doi"] == "10.1109/70.313105"
+    assert len(zhuang["train_pair_ids"]) == 1350
+    assert len(zhuang["holdout_pair_ids"]) == 338
+    assert len(zhuang["rotation_singular_values"]) == 6
+    assert len(zhuang["known_bad_probes"]) == 24
+    assert zhuang["quaternion_sign_flip_count"] == 405
+    assert zhuang["quaternion_sign_synchronization_fraction"] == 1.0
+    assert zhuang["external_code_executed"] is False
+    assert zhuang["transform_x"] is not None
+    assert zhuang["transform_z"] is not None
+    assert all(probe["detectable"] is True for probe in zhuang["known_bad_probes"])
     nonlinear_nonincrease = result.metrics[
         "robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease"
     ]

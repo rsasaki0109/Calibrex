@@ -2,7 +2,7 @@ schema_version: slac.config/v0.1
 
 project:
   name: ethz_real_hand_eye_comparison
-  description: Five native AX=XB solvers plus Shah AX=YB on ETHZ ASL robot-arm poses.
+  description: Five native AX=XB and five absolute-pose AX=YB solvers on ETHZ ASL robot-arm poses.
   output_dir: outputs/ethz_hand_eye_robot_arm_real
   domain: robotics
 
@@ -55,6 +55,12 @@ pipeline:
         max_dornaika_horaud_translation_condition_number: 100000000.0
         max_dornaika_horaud_quaternion_unit_error: 0.000000000001
         min_dornaika_horaud_sign_synchronization_fraction: 0.99
+        min_zhuang_roth_sudhakar_abs_a_scalar: 0.00000001
+        min_zhuang_roth_sudhakar_abs_z_scalar: 0.00000001
+        max_zhuang_roth_sudhakar_rotation_condition_number: 100000000.0
+        max_zhuang_roth_sudhakar_quaternion_normalization_disagreement: 0.05
+        min_zhuang_roth_sudhakar_sign_synchronization_fraction: 0.99
+        max_zhuang_roth_sudhakar_translation_condition_number: 100000000.0
         dornaika_horaud_nonlinear_max_iterations: 50
         max_dornaika_horaud_nonlinear_data_jacobian_condition_number: 1000000000000.0
         max_dornaika_horaud_nonlinear_orthogonality_error_frobenius: 0.0002
@@ -130,6 +136,23 @@ evaluation:
     - robot_world_hand_eye_dornaika_horaud_shah_x_translation_delta_m
     - robot_world_hand_eye_dornaika_horaud_shah_z_rotation_delta_deg
     - robot_world_hand_eye_dornaika_horaud_shah_z_translation_delta_m
+    - robot_world_hand_eye_zhuang_roth_sudhakar_rotation_rank
+    - robot_world_hand_eye_zhuang_roth_sudhakar_rotation_condition_number
+    - robot_world_hand_eye_zhuang_roth_sudhakar_minimum_abs_a_scalar
+    - robot_world_hand_eye_zhuang_roth_sudhakar_recovered_abs_z_scalar
+    - robot_world_hand_eye_zhuang_roth_sudhakar_quaternion_normalization_disagreement
+    - robot_world_hand_eye_zhuang_roth_sudhakar_scalar_reconstruction_rmse
+    - robot_world_hand_eye_zhuang_roth_sudhakar_sign_flip_count
+    - robot_world_hand_eye_zhuang_roth_sudhakar_sign_synchronization_fraction
+    - robot_world_hand_eye_zhuang_roth_sudhakar_translation_rank
+    - robot_world_hand_eye_zhuang_roth_sudhakar_translation_condition_number
+    - robot_world_hand_eye_zhuang_roth_sudhakar_holdout_rotation_rmse_deg
+    - robot_world_hand_eye_zhuang_roth_sudhakar_holdout_translation_rmse_m
+    - robot_world_hand_eye_zhuang_roth_sudhakar_known_bad_detectable_fraction
+    - robot_world_hand_eye_zhuang_roth_sudhakar_closed_form_x_rotation_delta_deg
+    - robot_world_hand_eye_zhuang_roth_sudhakar_closed_form_x_translation_delta_m
+    - robot_world_hand_eye_zhuang_roth_sudhakar_closed_form_z_rotation_delta_deg
+    - robot_world_hand_eye_zhuang_roth_sudhakar_closed_form_z_translation_delta_m
     - robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease
     - robot_world_hand_eye_dornaika_horaud_nonlinear_accepted_step_count
     - robot_world_hand_eye_dornaika_horaud_nonlinear_final_data_residual_rmse

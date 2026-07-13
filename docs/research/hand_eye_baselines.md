@@ -12,9 +12,10 @@ Every baseline uses the same deterministic pair-level split and is evaluated by
 unfitted `A X` versus `X B` rotation and translation closure. This common
 evaluation is deliberately separate from each method's estimator.
 
-The Shah, Li-Wang-Wu, and two Dornaika-Horaud robot-world/hand-eye estimators
+The Zhuang-Roth-Sudhakar, Shah, Li-Wang-Wu, and two Dornaika-Horaud
+robot-world/hand-eye estimators
 deliberately use a separate absolute-pose contract, `A_j X = Y B_j` (the latter
-papers write `Z` for the shared `Y` role). All four estimate the hand-eye and
+papers write `Z` for the shared `Y` role). All five estimate the hand-eye and
 robot-world transforms; their common absolute-pose train/holdout IDs are never
 presented as the relative-motion split used by the five `AX=XB` solvers.
 
@@ -138,6 +139,47 @@ solution. Synthetic controls recover exact truth with rotations as small as
 0.05 degrees. Three independent pure translations correctly report rank 9 for
 rotation-from-translation information but no observable hand-eye translation,
 so they cannot be emitted as a full calibration.
+
+## Zhuang, Roth, and Sudhakar linear quaternion method
+
+Primary reference: H. Zhuang, Z. S. Roth, and R. Sudhakar, *Simultaneous
+robot/world and tool/flange calibration by solving homogeneous transformation
+equations of the form AX=YB*, IEEE Transactions on Robotics and Automation
+10(4), 1994, pp. 549-554, DOI
+[`10.1109/70.313105`](https://doi.org/10.1109/70.313105). Equations (4)-(8)
+are also reproduced by the original method's first comparison paper, the
+[Dornaika-Horaud author manuscript](https://arxiv.org/abs/2311.11818), which
+was used to cross-check notation and the two stated failure configurations.
+
+For scalar-first unit quaternions, `q_A * q_X = q_Z * q_B`. If `a0` and `z0`
+are nonzero, the scalar product equation eliminates `x0`; the vector equation
+then becomes
+
+```text
+[a0 I + aa^T/a0 + Omega(a)] (x/z0)
+  + [-b0 I - ab^T/a0 + Omega(b)] (z/z0)
+  = b - (b0/a0) a.
+```
+
+The paper's exact construction needs three poses for this six-variable linear
+system. Calibrex preserves the same estimator while extending it to positive
+pose weights and an overdetermined weighted least-squares solve. Equation (7)
+reconstructs `x0/z0` for every train pose; their weighted mean supplies the raw
+`q_X`, while raw `q_Z = [1, z/z0]`. Both quaternions are normalized separately,
+as specified by the linear method. Their pre-normalization norm disagreement
+and the per-pose scalar reconstruction RMSE remain explicit diagnostics rather
+than being hidden by normalization.
+
+The implementation rejects any `|a0|` or recovered `|z0|` below its declared
+threshold. These are the two special configurations that the paper states the
+linear parameterization cannot solve. It also requires rank 6, bounds the
+six-variable condition number and quaternion normalization disagreement, and
+then requires rank 6 in the conditional translation solve. Input quaternion
+double-cover signs use the same estimate-free synchronization evidence as the
+Dornaika-Horaud implementation. Synthetic tests recover both transforms to
+machine precision, detect all 24 controls, and exercise both paper-specific
+failure configurations. The implementation is typed, ROS-independent NumPy;
+no publisher, OpenCV, ROS, or third-party solver code is copied.
 
 ## Dornaika-Horaud robot-world/hand-eye closed form
 
@@ -308,9 +350,9 @@ is copied into `src/calibrex`.
   or translation closure rises by more than 5 mm.
 - Pure translation, sub-threshold rotation, a single rotation-axis family, and
   rank-deficient translation systems must not return `converged`.
-- Both Dornaika-Horaud estimators, Shah, and Li use one-to-one absolute pose
-  pairs and an identical separate deterministic split; neither absolute pair
-  nor pose ID may cross its train/holdout boundary.
+- Zhuang-Roth-Sudhakar, both Dornaika-Horaud estimators, Shah, and Li use
+  one-to-one absolute pose pairs and an identical separate deterministic split;
+  neither absolute pair nor pose ID may cross its train/holdout boundary.
 
 All implementations are independent NumPy code. No paper or third-party source
 implementation is copied into `src/calibrex`.
@@ -382,6 +424,20 @@ Li estimate differs by 0.0608 degrees / 0.01025 m for `X` and 0.0644 degrees /
 0.00671 m for `Z/Y`. These are comparison diagnostics, not ground-truth errors.
 Li passes every declared gate while the overall run remains honestly
 **INCONCLUSIVE** for the unchanged relative-motion falsification limitation.
+
+Zhuang-Roth-Sudhakar uses the same 1,350/338 absolute-pose split. Its paper
+equation (8) system has rank 6/6 and condition number 21.96. The minimum input
+`|a0|` is 0.2163 and recovered `|z0|` is 0.7068, safely outside both declared
+`1e-8` special-configuration boundaries. Raw quaternion norm disagreement is
+`9.887e-5`, below the unchanged 0.05 gate; scalar reconstruction RMSE is
+0.01269 and is retained as an ungated noise diagnostic. Conditional translation
+rank is 6/6 with condition number 8.187. Held-out closure is 0.5907 degrees and
+0.01013 m, and all 24 signed controls are detected. Relative to the
+Dornaika-Horaud closed form, `X` differs by 0.2547 degrees / 0.00212 m and `Z`
+by 0.2616 degrees / 0.00254 m; these are comparison diagnostics, not
+ground-truth errors. Every Zhuang gate passes while the overall public run
+remains honestly **INCONCLUSIVE** because the five relative-motion baselines
+still detect only 6/12 controls.
 
 Dornaika-Horaud uses the same 1,350/338 split. Its quaternion sign preparation
 flips 405 train-pose representations and reaches weighted pairwise consistency
