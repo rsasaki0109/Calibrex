@@ -516,6 +516,33 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "robot_world_hand_eye_dornaika_horaud_shah_x_translation_delta_m" in names
     assert "robot_world_hand_eye_dornaika_horaud_shah_z_rotation_delta_deg" in names
     assert "robot_world_hand_eye_dornaika_horaud_shah_z_translation_delta_m" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_accepted_step_count" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_final_data_residual_rmse" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_rank" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_condition_number" in names
+    assert (
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_orthogonality_error_frobenius_max" in names
+    )
+    assert (
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max"
+        in names
+    )
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_rotation_rmse_deg" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_translation_rmse_m" in names
+    assert "robot_world_hand_eye_dornaika_horaud_nonlinear_known_bad_detectable_fraction" in names
+    assert (
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_x_rotation_delta_deg" in names
+    )
+    assert (
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_x_translation_delta_m" in names
+    )
+    assert (
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_z_rotation_delta_deg" in names
+    )
+    assert (
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_z_translation_delta_m" in names
+    )
     assert "tum_joint_data_only_extrinsic_rank" in names
     assert "tum_joint_data_only_shared_rank" in names
     assert "tum_joint_depth_scale" in names

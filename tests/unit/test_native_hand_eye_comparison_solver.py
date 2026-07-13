@@ -73,6 +73,7 @@ def _config(
     max_li_projection: float = 0.05,
     min_dornaika_gap: float = 1.0e-3,
     min_dornaika_sign_fraction: float = 0.99,
+    max_nonlinear_projection: float = 1.0e-4,
 ) -> CalibrationConfig:
     return CalibrationConfig.model_validate(
         {
@@ -97,6 +98,9 @@ def _config(
                             "min_dornaika_horaud_rotation_normalized_gap": (min_dornaika_gap),
                             "min_dornaika_horaud_sign_synchronization_fraction": (
                                 min_dornaika_sign_fraction
+                            ),
+                            "max_dornaika_horaud_nonlinear_so3_projection_correction_frobenius": (
+                                max_nonlinear_projection
                             ),
                         },
                     }
@@ -198,6 +202,38 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
         result.metrics["robot_world_hand_eye_dornaika_horaud_known_bad_detectable_fraction"].value
         == 1.0
     )
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease"].grade
+        == "pass"
+    )
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_rank"].value
+        == 24.0
+    )
+    assert (
+        result.metrics[
+            "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_condition_number"
+        ].grade
+        == "pass"
+    )
+    assert (
+        result.metrics[
+            "robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max"
+        ].grade
+        == "pass"
+    )
+    assert (
+        result.metrics[
+            "robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_rotation_rmse_deg"
+        ].grade
+        == "pass"
+    )
+    assert (
+        result.metrics[
+            "robot_world_hand_eye_dornaika_horaud_nonlinear_known_bad_detectable_fraction"
+        ].value
+        == 1.0
+    )
     assert "T_robot_world" in result.transforms
     for method in (
         "park_martin",
@@ -219,6 +255,10 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert results["shah_robot_world_hand_eye"]["paper"]["doi"] == "10.1115/1.4024473"
     assert results["li_robot_world_hand_eye"]["paper"]["doi"] == "10.5897/IJPS.9000501"
     assert results["dornaika_horaud_robot_world_hand_eye"]["paper"]["doi"] == "10.1109/70.704233"
+    assert (
+        results["dornaika_horaud_nonlinear_robot_world_hand_eye"]["paper"]["doi"]
+        == "10.1109/70.704233"
+    )
 
 
 def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
@@ -355,3 +395,29 @@ def test_dornaika_horaud_sign_gate_cannot_be_weakened_by_convergence(
     assert result.status == "inconclusive"
     assert result.observability is not None
     assert result.observability.grade == "fail"
+
+
+def test_dornaika_horaud_nonlinear_projection_gate_cannot_be_weakened(
+    tmp_path: Path,
+) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, max_nonlinear_projection=1.0e-20)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    metric = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max"
+    ]
+    assert metric.grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"
+    assert (
+        "dornaika_horaud_nonlinear_robot_world_hand_eye_observability"
+        in result.observability.weak_directions
+    )

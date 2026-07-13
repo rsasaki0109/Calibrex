@@ -149,3 +149,60 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert dornaika["nonlinear_method_executed"] is False
     assert dornaika["transform_x"] is not None
     assert dornaika["transform_z"] is not None
+    nonlinear_nonincrease = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease"
+    ]
+    assert nonlinear_nonincrease.value == 1.0
+    assert nonlinear_nonincrease.grade == "pass"
+    nonlinear_steps = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_accepted_step_count"
+    ]
+    assert nonlinear_steps.value == 9.0
+    nonlinear_residual = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_final_data_residual_rmse"
+    ]
+    assert nonlinear_residual.value is not None
+    assert 0.0055 < nonlinear_residual.value < 0.0057
+    nonlinear_rank = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_rank"
+    ]
+    assert nonlinear_rank.value == 24.0
+    assert nonlinear_rank.grade == "pass"
+    nonlinear_condition = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_condition_number"
+    ]
+    assert nonlinear_condition.value is not None and 28.3 < nonlinear_condition.value < 28.5
+    assert nonlinear_condition.grade == "pass"
+    nonlinear_projection = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max"
+    ]
+    assert nonlinear_projection.value is not None
+    assert nonlinear_projection.value < 1.0e-6
+    assert nonlinear_projection.grade == "pass"
+    nonlinear_rotation = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_rotation_rmse_deg"
+    ]
+    nonlinear_translation = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_translation_rmse_m"
+    ]
+    assert nonlinear_rotation.value is not None and 0.58 < nonlinear_rotation.value < 0.60
+    assert nonlinear_translation.value is not None
+    assert 0.010 < nonlinear_translation.value < 0.011
+    assert nonlinear_rotation.grade == nonlinear_translation.grade == "pass"
+    nonlinear_detection = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_known_bad_detectable_fraction"
+    ]
+    assert nonlinear_detection.value == 1.0
+    assert nonlinear_detection.grade == "pass"
+    nonlinear = comparison["results"]["dornaika_horaud_nonlinear_robot_world_hand_eye"]
+    assert nonlinear["method"] == "dornaika_horaud_robot_world_hand_eye_nonlinear/v0.1"
+    assert nonlinear["paper"]["doi"] == "10.1109/70.704233"
+    assert len(nonlinear["train_pair_ids"]) == 1350
+    assert len(nonlinear["holdout_pair_ids"]) == 338
+    assert len(nonlinear["data_jacobian_singular_values"]) == 24
+    assert len(nonlinear["known_bad_probes"]) == 24
+    assert nonlinear["accepted_step_count"] == 9
+    assert nonlinear["initial_cost"] > nonlinear["final_cost"]
+    assert nonlinear["external_code_executed"] is False
+    assert nonlinear["transform_x"] is not None
+    assert nonlinear["transform_z"] is not None

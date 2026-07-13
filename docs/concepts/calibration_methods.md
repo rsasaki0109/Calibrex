@@ -31,6 +31,7 @@ holdout evaluation, and known-bad controls.
 | Shah robot-world/hand-eye | Absolute-pose `A_j X = Y B_j` hand-eye and robot-world transforms | Native solver | separate holdout, dominant Kronecker gap, 6D translation rank, 24 controls |
 | Li-Wang-Wu robot-world/hand-eye | Simultaneous absolute-pose `A_j X = Z B_j` 24-variable Kronecker baseline | Native solver | shared-with-Shah holdout, full rank/condition spectrum, SO(3) projection correction, 24 controls |
 | Dornaika-Horaud robot-world/hand-eye | Unit-constrained absolute-pose `A_j X = Z B_j` quaternion closed form | Native solver | common absolute split, sign synchronization, closed-form width, 6D translation rank, 24 controls |
+| Dornaika-Horaud nonlinear robot-world/hand-eye | Simultaneous 24-parameter `A_j X = Z B_j` refinement | Native analytic-Jacobian LM | paper penalties, data-Jacobian spectrum, convergence trace, SO(3) correction, 24 controls |
 | LiDAR-IMU rotation consistency | Supplied rotation evaluation | Implemented | held-out angular-rate and gravity evidence |
 | Anchored temporal offset | One-dimensional time calibration evidence | Implemented | injected offsets and adapted/anchored comparison |
 | Backend-neutral joint SLAC graph | Coupled trajectory/extrinsic/time optimization | Native graph core + typed Schur LM | grouped holdout, robust LM, 48→8 TUM pose elimination, joint spectrum, per-block controls |
@@ -224,4 +225,7 @@ absolute-pose estimator. It directly enforces two unit-quaternion constraints
 in the paper's positive quadratic closed form, then conditionally solves six
 translations. Calibrex records quaternion double-cover sign synchronization,
 the four-value spectrum and minimum width, unit errors, held-out closure, and
-24 controls. It does not execute the paper's separate nonlinear method.
+24 controls. The paper's separate nonlinear method is also implemented as a
+24-parameter analytic-Jacobian LM refinement. Its convergence trace,
+data-Jacobian width, orthogonality penalty, SO(3) correction, and mixed-unit
+weighting limitation remain explicit.

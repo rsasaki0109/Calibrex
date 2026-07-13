@@ -30,6 +30,11 @@ from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeResult,
     DaniilidisHandEyeSolver,
 )
+from calibrex.solvers.dornaika_horaud_nonlinear_robot_world_hand_eye_solver import (
+    DornaikaHoraudNonlinearOptions,
+    DornaikaHoraudNonlinearResult,
+    DornaikaHoraudNonlinearSolver,
+)
 from calibrex.solvers.dornaika_horaud_robot_world_hand_eye_solver import (
     DornaikaHoraudRobotWorldHandEyeOptions,
     DornaikaHoraudRobotWorldHandEyeResult,
@@ -68,7 +73,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run five AX=XB baselines plus three absolute-pose AX=YB baselines."""
+    """Run five AX=XB baselines plus four absolute-pose AX=YB baselines."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -157,6 +162,23 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 options.get("max_dornaika_horaud_translation_condition_number", 1.0e8)
             ),
         )
+        nonlinear_options = DornaikaHoraudNonlinearOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            max_iterations=int(options.get("dornaika_horaud_nonlinear_max_iterations", 50)),
+            max_data_jacobian_condition_number=float(
+                options.get(
+                    "max_dornaika_horaud_nonlinear_data_jacobian_condition_number",
+                    1.0e12,
+                )
+            ),
+            max_so3_projection_correction_frobenius=float(
+                options.get(
+                    "max_dornaika_horaud_nonlinear_so3_projection_correction_frobenius",
+                    1.0e-4,
+                )
+            ),
+        )
         park = ParkMartinHandEyeSolver().solve(motions, park_options)
         tsai = TsaiLenzHandEyeSolver().solve(motions, tsai_options)
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
@@ -165,6 +187,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         shah = ShahRobotWorldHandEyeSolver().solve(absolute_poses, shah_options)
         li = LiRobotWorldHandEyeSolver().solve(absolute_poses, li_options)
         dornaika = DornaikaHoraudRobotWorldHandEyeSolver().solve(absolute_poses, dornaika_options)
+        nonlinear = DornaikaHoraudNonlinearSolver().solve(absolute_poses, nonlinear_options)
         metrics = _comparison_metrics(
             dataset,
             motions,
@@ -176,6 +199,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             shah,
             li,
             dornaika,
+            nonlinear,
             tsai_options,
             options,
         )
@@ -193,6 +217,8 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 li.transform_z,
                 dornaika.transform_x,
                 dornaika.transform_z,
+                nonlinear.transform_x,
+                nonlinear.transform_z,
             )
         )
         all_gates_pass = all(metric.grade != "fail" for metric in metrics.values())
@@ -238,6 +264,15 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 "robot_world_hand_eye_dornaika_horaud_translation_condition_number",
             )
         )
+        nonlinear_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease",
+                "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_rank",
+                "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_condition_number",
+                "robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max",
+            )
+        )
         selected = dual.transform_x
         warnings = _comparison_warnings(metrics, dataset)
         archive_sha256 = sha256_path(archive_path)
@@ -265,6 +300,11 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         if dornaika_observable
                         else ["dornaika_horaud_robot_world_hand_eye_observability"]
                     ),
+                    *(
+                        []
+                        if nonlinear_observable
+                        else ["dornaika_horaud_nonlinear_robot_world_hand_eye_observability"]
+                    ),
                     *([] if not warnings else ["hand_eye_perturbation_power"]),
                 ],
                 grade=(
@@ -275,6 +315,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     and shah_observable
                     and li_observable
                     and dornaika_observable
+                    and nonlinear_observable
                     else "fail"
                 ),
             ),
@@ -307,6 +348,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "shah_robot_world_hand_eye": shah.as_dict(),
                         "li_robot_world_hand_eye": li.as_dict(),
                         "dornaika_horaud_robot_world_hand_eye": dornaika.as_dict(),
+                        "dornaika_horaud_nonlinear_robot_world_hand_eye": (nonlinear.as_dict()),
                     },
                 },
             },
@@ -325,6 +367,7 @@ def _comparison_metrics(
     shah: ShahRobotWorldHandEyeResult,
     li: LiRobotWorldHandEyeResult,
     dornaika: DornaikaHoraudRobotWorldHandEyeResult,
+    nonlinear: DornaikaHoraudNonlinearResult,
     probe_options: TsaiLenzHandEyeOptions,
     factor_options: dict[str, Any],
 ) -> dict[str, MetricResult]:
@@ -360,6 +403,24 @@ def _comparison_metrics(
     min_dornaika_sign_fraction = float(
         factor_options.get("min_dornaika_horaud_sign_synchronization_fraction", 0.99)
     )
+    max_nonlinear_condition = float(
+        factor_options.get(
+            "max_dornaika_horaud_nonlinear_data_jacobian_condition_number",
+            1.0e12,
+        )
+    )
+    max_nonlinear_projection = float(
+        factor_options.get(
+            "max_dornaika_horaud_nonlinear_so3_projection_correction_frobenius",
+            1.0e-4,
+        )
+    )
+    max_nonlinear_orthogonality = float(
+        factor_options.get(
+            "max_dornaika_horaud_nonlinear_orthogonality_error_frobenius",
+            2.0e-4,
+        )
+    )
     shah_projection_values = tuple(
         value
         for value in (
@@ -378,6 +439,14 @@ def _comparison_metrics(
         if value is not None
     )
     li_projection_max = max(li_projection_values) if li_projection_values else None
+    nonlinear_orthogonality_max = _maximum_optional(
+        nonlinear.rotation_x_orthogonality_error_frobenius,
+        nonlinear.rotation_z_orthogonality_error_frobenius,
+    )
+    nonlinear_projection_max = _maximum_optional(
+        nonlinear.rotation_x_projection_correction_frobenius,
+        nonlinear.rotation_z_projection_correction_frobenius,
+    )
     common_split = (
         len(
             {
@@ -570,7 +639,7 @@ def _comparison_metrics(
                 len(
                     {
                         (result.train_pair_ids, result.holdout_pair_ids)
-                        for result in (shah, li, dornaika)
+                        for result in (shah, li, dornaika, nonlinear)
                     }
                 )
                 == 1
@@ -581,7 +650,7 @@ def _comparison_metrics(
                 if len(
                     {
                         (result.train_pair_ids, result.holdout_pair_ids)
-                        for result in (shah, li, dornaika)
+                        for result in (shah, li, dornaika, nonlinear)
                     }
                 )
                 == 1
@@ -672,6 +741,90 @@ def _comparison_metrics(
                     else "fail"
                 ),
                 reason=(f"conditional translation condition number <= {max_dornaika_condition:g}"),
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease": (
+            MetricResult(
+                value=(
+                    float(
+                        nonlinear.initial_cost is not None
+                        and nonlinear.final_cost is not None
+                        and nonlinear.final_cost
+                        <= nonlinear.initial_cost + 1.0e-12 * max(nonlinear.initial_cost, 1.0)
+                    )
+                ),
+                unit="bool",
+                grade=(
+                    "pass"
+                    if nonlinear.initial_cost is not None
+                    and nonlinear.final_cost is not None
+                    and nonlinear.final_cost
+                    <= nonlinear.initial_cost + 1.0e-12 * max(nonlinear.initial_cost, 1.0)
+                    else "fail"
+                ),
+                reason="accepted LM solution must not increase the paper objective",
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_accepted_step_count": (
+            MetricResult(
+                value=float(nonlinear.accepted_step_count),
+                unit="steps",
+                grade="warn",
+                reason="diagnostic number of accepted Levenberg-Marquardt updates",
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_final_data_residual_rmse": (
+            MetricResult(
+                value=nonlinear.final_data_residual_rmse,
+                grade="warn",
+                reason="diagnostic mixed-unit residual under the paper's mu1=mu2=1",
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_rank": MetricResult(
+            value=float(nonlinear.data_jacobian_rank),
+            unit="rank",
+            grade="pass" if nonlinear.data_jacobian_rank == 24 else "fail",
+            reason="all 24 simultaneous data directions must be locally observable",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_condition_number": (
+            MetricResult(
+                value=nonlinear.data_jacobian_condition_number,
+                grade=(
+                    "pass"
+                    if nonlinear.data_jacobian_condition_number is not None
+                    and nonlinear.data_jacobian_condition_number <= max_nonlinear_condition
+                    else "fail"
+                ),
+                reason=f"final data Jacobian condition number <= {max_nonlinear_condition:g}",
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_orthogonality_error_frobenius_max": (
+            MetricResult(
+                value=nonlinear_orthogonality_max,
+                unit="frobenius",
+                grade=(
+                    "pass"
+                    if nonlinear_orthogonality_max is not None
+                    and nonlinear_orthogonality_max <= max_nonlinear_orthogonality
+                    else "fail"
+                ),
+                reason=f"paper rotation penalty residual <= {max_nonlinear_orthogonality:g}",
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max": (
+            MetricResult(
+                value=nonlinear_projection_max,
+                unit="frobenius",
+                grade=(
+                    "pass"
+                    if nonlinear_projection_max is not None
+                    and nonlinear_projection_max <= max_nonlinear_projection
+                    else "fail"
+                ),
+                reason=(
+                    "optimized rotations require SO(3) correction "
+                    f"<= {max_nonlinear_projection:g}"
+                ),
             )
         ),
     }
@@ -815,6 +968,48 @@ def _comparison_metrics(
         ),
         reason="held-out signed six-DoF perturbations of both X and Z",
     )
+    nonlinear_rotation = nonlinear.holdout_evaluation.rotation_closure_rmse_deg
+    nonlinear_translation = nonlinear.holdout_evaluation.translation_closure_rmse_m
+    nonlinear_closure_pass = (
+        nonlinear_rotation is not None
+        and nonlinear_rotation <= max_rotation
+        and nonlinear_translation is not None
+        and nonlinear_translation <= max_translation
+    )
+    nonlinear_detectable = [
+        probe.detectable for probe in nonlinear.probes if probe.detectable is not None
+    ]
+    nonlinear_fraction = (
+        sum(value is True for value in nonlinear_detectable) / len(nonlinear_detectable)
+        if nonlinear_detectable
+        else None
+    )
+    metrics["robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_rotation_rmse_deg"] = (
+        MetricResult(
+            value=nonlinear_rotation,
+            unit="deg",
+            grade="pass" if nonlinear_closure_pass else "fail",
+        )
+    )
+    metrics["robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_translation_rmse_m"] = (
+        MetricResult(
+            value=nonlinear_translation,
+            unit="m",
+            grade="pass" if nonlinear_closure_pass else "fail",
+        )
+    )
+    metrics["robot_world_hand_eye_dornaika_horaud_nonlinear_known_bad_detectable_fraction"] = (
+        MetricResult(
+            value=nonlinear_fraction,
+            unit="fraction",
+            grade=(
+                "pass"
+                if nonlinear_fraction is not None and nonlinear_fraction >= min_detectable
+                else "warn"
+            ),
+            reason="held-out signed six-DoF perturbations of both optimized transforms",
+        )
+    )
     comparisons = (
         ("x", li.transform_x, shah.transform_x),
         ("z", li.transform_z, shah.transform_y),
@@ -855,6 +1050,28 @@ def _comparison_metrics(
                 reason="method-comparison diagnostic; no accuracy claim without ground truth",
             )
         )
+    nonlinear_comparisons = (
+        ("x", nonlinear.transform_x, dornaika.transform_x),
+        ("z", nonlinear.transform_z, dornaika.transform_z),
+    )
+    for role, nonlinear_transform, closed_transform in nonlinear_comparisons:
+        rotation_delta, translation_delta = _transform_delta(nonlinear_transform, closed_transform)
+        metrics[
+            f"robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_{role}_rotation_delta_deg"
+        ] = MetricResult(
+            value=rotation_delta,
+            unit="deg",
+            grade="warn",
+            reason="method-comparison diagnostic; no accuracy claim without ground truth",
+        )
+        metrics[
+            f"robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_{role}_translation_delta_m"
+        ] = MetricResult(
+            value=translation_delta,
+            unit="m",
+            grade="warn",
+            reason="method-comparison diagnostic; no accuracy claim without ground truth",
+        )
     return metrics
 
 
@@ -866,6 +1083,12 @@ def _transform_delta(left: SE3 | None, right: SE3 | None) -> tuple[float | None,
     rotation_deg = math.degrees(2.0 * math.acos(quaternion_w))
     translation_m = math.sqrt(sum(value * value for value in delta.translation_m))
     return rotation_deg, translation_m
+
+
+def _maximum_optional(left: float | None, right: float | None) -> float | None:
+    if left is None or right is None:
+        return None
+    return max(left, right)
 
 
 def _comparison_warnings(

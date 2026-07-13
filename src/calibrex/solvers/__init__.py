@@ -22,6 +22,12 @@ from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeResult,
     DaniilidisHandEyeSolver,
 )
+from calibrex.solvers.dornaika_horaud_nonlinear_robot_world_hand_eye_solver import (
+    DornaikaHoraudNonlinearIteration,
+    DornaikaHoraudNonlinearOptions,
+    DornaikaHoraudNonlinearResult,
+    DornaikaHoraudNonlinearSolver,
+)
 from calibrex.solvers.dornaika_horaud_robot_world_hand_eye_solver import (
     DornaikaHoraudRobotWorldHandEyeOptions,
     DornaikaHoraudRobotWorldHandEyeResult,
@@ -231,6 +237,10 @@ __all__ = [
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",
     "DaniilidisHandEyeSolver",
+    "DornaikaHoraudNonlinearIteration",
+    "DornaikaHoraudNonlinearOptions",
+    "DornaikaHoraudNonlinearResult",
+    "DornaikaHoraudNonlinearSolver",
     "DornaikaHoraudRobotWorldHandEyeOptions",
     "DornaikaHoraudRobotWorldHandEyeResult",
     "DornaikaHoraudRobotWorldHandEyeSolver",

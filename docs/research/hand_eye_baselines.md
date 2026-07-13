@@ -12,9 +12,9 @@ Every baseline uses the same deterministic pair-level split and is evaluated by
 unfitted `A X` versus `X B` rotation and translation closure. This common
 evaluation is deliberately separate from each method's estimator.
 
-The Shah, Li-Wang-Wu, and Dornaika-Horaud robot-world/hand-eye baselines
+The Shah, Li-Wang-Wu, and two Dornaika-Horaud robot-world/hand-eye estimators
 deliberately use a separate absolute-pose contract, `A_j X = Y B_j` (the latter
-two write `Z` for the shared `Y` role). All three estimate the hand-eye and
+papers write `Z` for the shared `Y` role). All four estimate the hand-eye and
 robot-world transforms; their common absolute-pose train/holdout IDs are never
 presented as the relative-motion split used by the five `AX=XB` solvers.
 
@@ -146,8 +146,9 @@ Hand-Eye Calibration*, IEEE Transactions on Robotics and Automation 14(4),
 1998, pp. 617-622, DOI
 [`10.1109/70.704233`](https://doi.org/10.1109/70.704233). The
 [author manuscript](https://arxiv.org/abs/2311.11818) contains the original
-paper text and equations. Calibrex implements the closed-form method in
-Section III-A, not the paper's nonlinear constrained alternative.
+paper text and equations. Calibrex implements both the closed-form method in
+Section III-A and, as a separately reported estimator, the nonlinear method in
+Section III-B.
 
 For unit scalar-first quaternions, each synchronized pose satisfies
 
@@ -189,6 +190,41 @@ Synthetic tests recover both transforms to numerical precision, detect all 24
 signed controls, preserve input-order invariance, and reject repeated poses.
 This is independent typed NumPy code; no IEEE, arXiv, ROS, OpenCV, or GPL source
 implementation is copied into `src/calibrex`.
+
+### Nonlinear simultaneous refinement
+
+Section III-B optimizes 24 parameters together: the nine entries of each
+rotation matrix and both three-vector translations. For every train pose,
+Calibrex stacks the paper's rotation and translation residuals
+
+```text
+sqrt(mu1) vec(R_Ai R_X - R_Z R_Bi)
+sqrt(mu2) (R_Ai t_X + t_Ai - R_Z t_Bi - t_Z)
+```
+
+and the two rotation penalties
+
+```text
+sqrt(mu3) vec(R_X transpose(R_X) - I)
+sqrt(mu4) vec(R_Z transpose(R_Z) - I).
+```
+
+The declared paper values are retained: `mu1=mu2=1` and
+`mu3=mu4=1e6`. A deterministic Levenberg-Marquardt solver uses the closed-form
+result as the paper-authorized initializer and analytic Jacobians for all 24
+columns. The implementation records every accepted/rejected step, damping,
+initial/final objective, mixed-unit data RMSE, final gradient, and the complete
+24-value data-Jacobian spectrum. Rank 24 and the declared condition ceiling are
+required. Raw determinants, orthogonality error, and nearest-SO(3) correction
+are retained; excessive projection refuses typed `SE3` output.
+
+The paper's equal rotation/translation weights mix dimensionless matrix entries
+with translations in dataset length units. Calibrex preserves this historical
+objective for method fidelity and labels its scalar residual as a diagnostic,
+not a cross-dataset accuracy metric. Synthetic exact and noisy tests verify
+truth recovery, objective reduction, input-order invariance, initializer
+failure, and refusal to emit a max-iteration result. No external optimization
+or paper source code is executed.
 
 ## Shah robot-world/hand-eye Kronecker method
 
@@ -272,9 +308,9 @@ is copied into `src/calibrex`.
   or translation closure rises by more than 5 mm.
 - Pure translation, sub-threshold rotation, a single rotation-axis family, and
   rank-deficient translation systems must not return `converged`.
-- Dornaika-Horaud, Shah, and Li use one-to-one absolute pose pairs and an
-  identical separate deterministic split; neither absolute pair nor pose ID
-  may cross its train/holdout boundary.
+- Both Dornaika-Horaud estimators, Shah, and Li use one-to-one absolute pose
+  pairs and an identical separate deterministic split; neither absolute pair
+  nor pose ID may cross its train/holdout boundary.
 
 All implementations are independent NumPy code. No paper or third-party source
 implementation is copied into `src/calibrex`.
@@ -359,3 +395,14 @@ comparison diagnostics, not ground-truth errors. The closed-form method passes
 all declared gates while the overall comparison remains honestly
 **INCONCLUSIVE** because the five relative-motion methods still detect only
 6/12 controls.
+
+The nonlinear Section III-B estimator starts from that closed-form result and
+accepts nine LM steps. Its objective decreases from 0.253684 to 0.253505 and
+the final mixed-unit data RMSE is 0.005594. The final data Jacobian has rank
+24/24 and condition number 28.40. Maximum raw orthogonality error is
+`1.95e-7`, and maximum SO(3) projection correction is `9.75e-8`. Held-out
+closure is 0.5872 degrees and 0.01004 m with all 24 controls detected. Relative
+to the closed form, `X` changes by 0.0548 degrees / 0.000389 m and `Z` by
+0.0581 degrees / 0.000611 m. Every nonlinear gate passes; the overall run
+remains **INCONCLUSIVE** only because the unchanged five relative-motion
+baselines still detect 6/12 controls.

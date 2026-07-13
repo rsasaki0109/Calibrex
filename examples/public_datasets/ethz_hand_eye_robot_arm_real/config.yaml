@@ -55,6 +55,10 @@ pipeline:
         max_dornaika_horaud_translation_condition_number: 100000000.0
         max_dornaika_horaud_quaternion_unit_error: 0.000000000001
         min_dornaika_horaud_sign_synchronization_fraction: 0.99
+        dornaika_horaud_nonlinear_max_iterations: 50
+        max_dornaika_horaud_nonlinear_data_jacobian_condition_number: 1000000000000.0
+        max_dornaika_horaud_nonlinear_orthogonality_error_frobenius: 0.0002
+        max_dornaika_horaud_nonlinear_so3_projection_correction_frobenius: 0.0001
 
 solver:
   backend: native_hand_eye_comparison
@@ -126,6 +130,20 @@ evaluation:
     - robot_world_hand_eye_dornaika_horaud_shah_x_translation_delta_m
     - robot_world_hand_eye_dornaika_horaud_shah_z_rotation_delta_deg
     - robot_world_hand_eye_dornaika_horaud_shah_z_translation_delta_m
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_objective_nonincrease
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_accepted_step_count
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_final_data_residual_rmse
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_rank
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_data_jacobian_condition_number
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_orthogonality_error_frobenius_max
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_so3_projection_correction_frobenius_max
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_rotation_rmse_deg
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_holdout_translation_rmse_m
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_known_bad_detectable_fraction
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_x_rotation_delta_deg
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_x_translation_delta_m
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_z_rotation_delta_deg
+    - robot_world_hand_eye_dornaika_horaud_nonlinear_closed_form_z_translation_delta_m
 
 outputs:
   result: result.yaml

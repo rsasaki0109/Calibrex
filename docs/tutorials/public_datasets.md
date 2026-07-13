@@ -36,8 +36,9 @@ diagnostic. The upstream ROS/PCL feature extractor stays outside the core and
 its pinned commit, Apache-2.0 license, input digest, and source URL are recorded
 as provenance.
 
-Five native hand-eye baselines plus Shah, Li-Wang-Wu, and Dornaika-Horaud
-robot-world/hand-eye on ETHZ ASL's real robot-arm pose streams:
+Five native hand-eye baselines plus Shah, Li-Wang-Wu, and the closed-form and
+nonlinear Dornaika-Horaud robot-world/hand-eye estimators on ETHZ ASL's real
+robot-arm pose streams:
 
 ```bash
 python3 tools/download_public_dataset.py ethz_hand_eye_robot_arm_real \
@@ -49,10 +50,11 @@ calibrex verify outputs/ethz_hand_eye_robot_arm_real/bundle.json
 
 The comparison runs Park-Martin, Tsai-Lenz, Daniilidis, Horaud-Dornaika, and
 the incremental Andreff-Horaud-Espiau Kronecker method with one disjoint
-relative-motion protocol. Shah, Li-Wang-Wu, and Dornaika-Horaud independently
+relative-motion protocol. Shah, Li-Wang-Wu, and both Dornaika-Horaud methods
 solve absolute-pose `AX=YB` (`Z` in the latter papers) for both transforms on
-one common leakage-safe split. Dornaika-Horaud also reports quaternion
-double-cover sign synchronization. Closure
+one common leakage-safe split. Dornaika-Horaud reports quaternion double-cover
+sign synchronization and the nonlinear estimator's full 24-column local
+spectrum. Closure
 and all minimum-width gates pass on the public sample, while the default known-bad gate
 remains INCONCLUSIVE; the documented negative result is not converted into a
 PASS by threshold tuning.
