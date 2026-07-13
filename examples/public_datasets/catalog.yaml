@@ -70,6 +70,16 @@ datasets:
     slac_manifest: examples/public_datasets/a2d2_lidar_pair_sample/manifest.yaml
     slac_config: null
     recommended_pipeline: multi_lidar_evidence
+  a2d2_pandey_mutual_information:
+    name: A2D2 real camera-LiDAR mutual-information pair
+    family: a2d2
+    domain: autonomous_driving
+    official_url: https://www.a2d2.audi/en/download/
+    download_url: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_camera_frontleft.tar
+    license_note: A2D2 is CC BY-ND 4.0; the helper range-fetches two synchronized image/point-cloud pairs and records that the clouds are pre-registered to the camera view.
+    slac_manifest: examples/public_datasets/a2d2_pandey_mutual_information/manifest.yaml
+    slac_config: examples/public_datasets/a2d2_pandey_mutual_information/config.yaml
+    recommended_pipeline: native_pandey_mutual_information
   livox_horizon_horizon_pcd_sample:
     name: Livox official Horizon-Horizon solid-state LiDAR PCD sample
     family: livox_calibration

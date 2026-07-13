@@ -31,6 +31,43 @@ A2D2_LIDAR_SAMPLE_URL = (
 A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
 A2D2_LIDAR_SAMPLE_START = 1536
 A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
+A2D2_CAMERA_FRONTLEFT_URL = (
+    "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
+    "camera_lidar-20180810150607_camera_frontleft.tar"
+)
+A2D2_CALIBRATION_URL = (
+    "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json"
+)
+A2D2_PANDEY_RANGES = (
+    (
+        A2D2_CAMERA_FRONTLEFT_URL,
+        "20180810150607_camera_frontleft_000000060.png",
+        1536,
+        3_008_998,
+        "b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca",
+    ),
+    (
+        A2D2_CAMERA_FRONTLEFT_URL,
+        "20180810150607_camera_frontleft_000000061.png",
+        3_014_144,
+        3_010_263,
+        "a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616",
+    ),
+    (
+        A2D2_LIDAR_SAMPLE_URL,
+        "20180810150607_lidar_frontleft_000000060.npz",
+        1536,
+        2_977_425,
+        "1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63",
+    ),
+    (
+        A2D2_LIDAR_SAMPLE_URL,
+        "20180810150607_lidar_frontleft_000000061.npz",
+        2_979_840,
+        2_946_473,
+        "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91",
+    ),
+)
 
 
 def main() -> int:
@@ -41,6 +78,7 @@ def main() -> int:
             "tum_rgbd_freiburg1_xyz",
             "a2d2_sensor_setup",
             "a2d2_lidar_pair_sample",
+            "a2d2_pandey_mutual_information",
             "livox_horizon_horizon_pcd_sample",
             "acfr_vlp_plane_poses",
             "ethz_hand_eye_robot_arm_real",
@@ -57,6 +95,9 @@ def main() -> int:
 
     if args.dataset == "a2d2_lidar_pair_sample":
         download_a2d2_lidar_pair_sample(args.output_dir)
+        return 0
+    if args.dataset == "a2d2_pandey_mutual_information":
+        download_a2d2_pandey_mutual_information(args.output_dir)
         return 0
     if args.dataset == "livox_horizon_horizon_pcd_sample":
         downloaded = download_livox_horizon_horizon_pcd_sample(args.output_dir)
@@ -105,6 +146,42 @@ def download_a2d2_lidar_pair_sample(output_dir: Path) -> None:
         raise SystemExit(f"expected {A2D2_LIDAR_SAMPLE_SIZE} bytes, got {len(data)}")
     target.write_bytes(data)
     print(f"wrote {target}")
+
+
+def download_a2d2_pandey_mutual_information(output_dir: Path) -> None:
+    """Range-fetch two synchronized real A2D2 camera/LiDAR pairs."""
+
+    import hashlib
+
+    target_dir = output_dir / "a2d2_pandey_mutual_information"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for url, name, start, size, expected_sha256 in A2D2_PANDEY_RANGES:
+        target = target_dir / name
+        end = start + size - 1
+        print(f"downloading A2D2 member {name} bytes={start}-{end}")
+        request = Request(url, headers={"Range": f"bytes={start}-{end}"})
+        with urlopen(request, timeout=90) as response:
+            data = response.read()
+        if len(data) != size:
+            raise SystemExit(f"expected {size} bytes for {name}, got {len(data)}")
+        actual_sha256 = hashlib.sha256(data).hexdigest()
+        if actual_sha256 != expected_sha256:
+            raise SystemExit(
+                f"A2D2 digest mismatch for {name}: expected {expected_sha256}, "
+                f"got {actual_sha256}"
+            )
+        target.write_bytes(data)
+        print(f"wrote {target}")
+    calibration_target = target_dir / "cams_lidars.json"
+    with urlopen(A2D2_CALIBRATION_URL, timeout=90) as response:
+        calibration_data = response.read()
+    expected_calibration_sha256 = (
+        "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2"
+    )
+    if hashlib.sha256(calibration_data).hexdigest() != expected_calibration_sha256:
+        raise SystemExit("A2D2 cams_lidars.json digest mismatch")
+    calibration_target.write_bytes(calibration_data)
+    print(f"wrote {calibration_target}")
 
 
 def download_acfr_vlp_plane_poses(output_dir: Path) -> None:

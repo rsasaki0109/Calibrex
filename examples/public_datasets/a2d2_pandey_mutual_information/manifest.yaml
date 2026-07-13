@@ -1,0 +1,36 @@
+schema_version: slac.dataset_manifest/v0.1
+name: a2d2_pandey_mutual_information
+description: Two real synchronized A2D2 front-left camera/LiDAR pairs for Pandey MI evidence.
+time_base: sensor_time
+streams:
+  camera_front_left:
+    kind: image
+    count: 2
+    path: data/public/a2d2_pandey_mutual_information
+    sensor: camera0
+    frame_id: camera_front_left
+    fields: [rgb8]
+  lidar_camera_view_front_left:
+    kind: pointcloud
+    count: 2
+    path: data/public/a2d2_pandey_mutual_information
+    sensor: lidar0
+    frame_id: camera_front_left_view
+    fields:
+      - pcloud_points
+      - pcloud_attr.reflectance
+      - pcloud_attr.valid
+provenance:
+  source: A2D2 public sensor-fusion sequence 20180810_150607
+  official_url: https://www.a2d2.audi/en/download/
+  camera_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_camera_frontleft.tar
+  lidar_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar
+  calibration_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json
+  camera_members:
+    - ./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000060.png
+    - ./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000061.png
+  lidar_members:
+    - ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000060.npz
+    - ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000061.npz
+  license: CC BY-ND 4.0
+  limitation: LiDAR points are distributed already mapped into the camera view.

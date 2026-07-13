@@ -81,6 +81,10 @@ from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
 )
+from calibrex.solvers.native_pandey_mutual_information_solver import (
+    NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
+    NativePandeyMutualInformationSolver,
+)
 from calibrex.solvers.native_planar_board_solver import (
     NATIVE_PLANAR_BOARD_BACKEND,
     NativePlanarBoardSolver,
@@ -196,6 +200,10 @@ def _apply_pipeline_adapter(
         adapter_result = NativeTUMJointSlacSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND:
         adapter_result = NativeCameraLidarCaptureTimeSolver().solve(config, frame_graph, inspection)
+    elif config.solver.backend == NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND:
+        adapter_result = NativePandeyMutualInformationSolver().solve(
+            config, frame_graph, inspection
+        )
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -218,6 +226,7 @@ def _apply_pipeline_adapter(
             NATIVE_REGISTRATION_COMPARISON_BACKEND,
             NATIVE_TUM_JOINT_SLAC_BACKEND,
             NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
+            NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
         }
         and adapter_result.transforms
     ):
@@ -457,6 +466,7 @@ def _adapter_output_provenance(
         NATIVE_HAND_EYE_COMPARISON_BACKEND,
         NATIVE_REGISTRATION_COMPARISON_BACKEND,
         NATIVE_TUM_JOINT_SLAC_BACKEND,
+        NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
     }:
         return TransformEstimateProvenance(
             producer="slac_native",
@@ -475,6 +485,9 @@ def _adapter_output_provenance(
                     "native_registration_comparison_solver"
                 ),
                 NATIVE_TUM_JOINT_SLAC_BACKEND: "native_tum_joint_slac_solver",
+                NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND: (
+                    "native_pandey_mutual_information_solver"
+                ),
             }[backend],
             notes=[note],
         )

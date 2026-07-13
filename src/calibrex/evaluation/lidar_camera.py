@@ -114,7 +114,10 @@ def lidar_camera_metrics_from_result(
         projection_payload,
         transform_pairs=transform_pairs,
     )
-    if _uses_mutual_information(config):
+    if (
+        _uses_mutual_information(config)
+        and "lidar_camera_mutual_information_score" not in result.metrics
+    ):
         metrics["lidar_camera_mutual_information_score"] = MetricResult(
             value=None,
             grade="warn",

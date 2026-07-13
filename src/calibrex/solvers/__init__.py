@@ -97,6 +97,10 @@ from calibrex.solvers.native_lidar_point_to_plane_solver import (
     lidar_pair_solve_inputs,
     load_lidar_pair,
 )
+from calibrex.solvers.native_pandey_mutual_information_solver import (
+    NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
+    NativePandeyMutualInformationSolver,
+)
 from calibrex.solvers.native_planar_board_solver import (
     ACFR_VLP_FORMAT,
     ACFR_VLP_SOURCE_URL,
@@ -117,6 +121,17 @@ from calibrex.solvers.native_tum_joint_slac_solver import (
     TUMJointSlacOptions,
 )
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
+from calibrex.solvers.pandey_mutual_information_solver import (
+    MutualInformationCameraModel,
+    MutualInformationEvaluation,
+    MutualInformationObservation,
+    PandeyMutualInformationIteration,
+    PandeyMutualInformationOptions,
+    PandeyMutualInformationProbe,
+    PandeyMutualInformationResult,
+    PandeyMutualInformationSolver,
+    evaluate_mutual_information,
+)
 from calibrex.solvers.park_martin_hand_eye_solver import (
     HandEyeEvaluation,
     HandEyeMotionPair,
@@ -242,6 +257,7 @@ __all__ = [
     "NATIVE_HAND_EYE_COMPARISON_BACKEND",
     "NATIVE_JOINT_SLAC_BACKEND",
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
+    "NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND",
     "NATIVE_PLANAR_BOARD_BACKEND",
     "NATIVE_REGISTRATION_COMPARISON_BACKEND",
     "NATIVE_TUM_JOINT_SLAC_BACKEND",
@@ -308,10 +324,14 @@ __all__ = [
     "LinePlaneBoardObservation",
     "LinePlaneEvaluation",
     "LinePlaneSolverOptions",
+    "MutualInformationCameraModel",
+    "MutualInformationEvaluation",
+    "MutualInformationObservation",
     "NativeCameraLidarCaptureTimeSolver",
     "NativeHandEyeComparisonSolver",
     "NativeJointSlacSolver",
     "NativeLidarPointToPlaneSolver",
+    "NativePandeyMutualInformationSolver",
     "NativePlanarBoardSolver",
     "NativeRegistrationComparisonSolver",
     "NativeTUMJointSlacSolver",
@@ -322,6 +342,11 @@ __all__ = [
     "Open3DSLACSolver",
     "OrientedLine3D",
     "OrientedPlane",
+    "PandeyMutualInformationIteration",
+    "PandeyMutualInformationOptions",
+    "PandeyMutualInformationProbe",
+    "PandeyMutualInformationResult",
+    "PandeyMutualInformationSolver",
     "ParkMartinHandEyeOptions",
     "ParkMartinHandEyeResult",
     "ParkMartinHandEyeSolver",
@@ -389,6 +414,7 @@ __all__ = [
     "evaluate_horn_point_observations",
     "evaluate_icp_candidate",
     "evaluate_line_plane_observations",
+    "evaluate_mutual_information",
     "evaluate_planar_board_observations",
     "evaluate_point_plane_observations",
     "evaluate_robot_world_hand_eye_known_bad_probes",

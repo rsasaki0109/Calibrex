@@ -78,6 +78,7 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert "nuscenes_mini" in catalog.datasets
     assert "a2d2_sensor_setup" in catalog.datasets
     assert "a2d2_lidar_pair_sample" in catalog.datasets
+    assert "a2d2_pandey_mutual_information" in catalog.datasets
     assert "livox_horizon_horizon_pcd_sample" in catalog.datasets
     assert "tiers_livox_lidars_cali" in catalog.datasets
     assert "tiers_lidars_dataset_indoor02" in catalog.datasets
@@ -85,6 +86,7 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert catalog.datasets["nuscenes_mini"].slac_config is not None
     assert catalog.datasets["a2d2_sensor_setup"].family == "a2d2"
     assert catalog.datasets["a2d2_lidar_pair_sample"].family == "a2d2"
+    assert catalog.datasets["a2d2_pandey_mutual_information"].family == "a2d2"
     assert catalog.datasets["livox_horizon_horizon_pcd_sample"].family == "livox_calibration"
     assert catalog.datasets["livox_horizon_horizon_pcd_sample"].slac_config is not None
     assert catalog.datasets["tiers_livox_lidars_cali"].family == "tiers_lidars"

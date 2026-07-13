@@ -485,7 +485,9 @@ class _VoxelPlanaritySummary:
 
 
 @dataclass(frozen=True)
-class _LuminanceImage:
+class LuminanceImage:
+    """Decoded 8-bit PNG luminance image without optional image dependencies."""
+
     width: int
     height: int
     rows: tuple[tuple[float, ...], ...]
@@ -843,7 +845,7 @@ def score_lidar_camera_edge_alignment(
             projection.reason or "no projected LiDAR points are available",
         )
 
-    image = _read_png_luminance(Path(projection.camera_path))
+    image = read_png_luminance(Path(projection.camera_path))
     if image is None:
         return _edge_alignment_failure(
             gradient_threshold,
@@ -898,7 +900,7 @@ def score_lidar_camera_depth_edge_alignment(
             projection.reason or "no projected LiDAR points are available",
         )
 
-    image = _read_png_luminance(Path(projection.camera_path))
+    image = read_png_luminance(Path(projection.camera_path))
     if image is None:
         return _depth_edge_alignment_failure(
             depth_jump_m,
@@ -1453,16 +1455,24 @@ def _png_size(path: Path) -> tuple[int, int] | None:
     return (width, height)
 
 
-def _read_png_luminance(path: Path) -> _LuminanceImage | None:
+def read_png_luminance(path: str | Path) -> LuminanceImage | None:
+    """Decode a non-interlaced 8-bit PNG into luminance rows.
+
+    Grayscale, grayscale-alpha, RGB, and RGBA images are supported using only
+    the Python standard library.  ``None`` denotes an unreadable or unsupported
+    PNG encoding.
+    """
+
+    image_path = Path(path)
     try:
-        data = path.read_bytes()
+        data = image_path.read_bytes()
     except OSError:
         return None
     decoded = _decode_png_luminance(data)
     return decoded
 
 
-def _decode_png_luminance(data: bytes) -> _LuminanceImage | None:
+def _decode_png_luminance(data: bytes) -> LuminanceImage | None:
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return None
     offset = 8
@@ -1513,7 +1523,7 @@ def _unfilter_png_luminance(
     width: int,
     height: int,
     channels: int,
-) -> _LuminanceImage | None:
+) -> LuminanceImage | None:
     row_length = width * channels
     expected_length = height * (row_length + 1)
     if len(raw) < expected_length:
@@ -1530,7 +1540,7 @@ def _unfilter_png_luminance(
             return None
         rows.append(_scanline_luminance(scanline, width, channels))
         previous = scanline
-    return _LuminanceImage(width=width, height=height, rows=tuple(rows))
+    return LuminanceImage(width=width, height=height, rows=tuple(rows))
 
 
 def _apply_png_filter(
@@ -1600,7 +1610,7 @@ def _paeth_predictor(left: int, up: int, up_left: int) -> int:
 
 
 def _local_gradient_max(
-    image: _LuminanceImage,
+    image: LuminanceImage,
     x: int,
     y: int,
     radius: int,

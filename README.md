@@ -109,6 +109,7 @@ It records:
 | TUM RGB-D / Open3D SLAC adapter boundary | Experimental |
 | Fixed-trajectory and motion-compensated SE(3) LiDAR extrinsic solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
+| Pandey targetless camera-LiDAR mutual information | Native typed NumPy solver with BB ascent, train/holdout split, 12 signed controls, and objective curvature; real A2D2 pre-registered run honestly FAILs the unchanged MI gate |
 | Camera-LiDAR projection / edge-alignment evidence | Evaluated ADR-0004 protocol rows (holdout, known-bad probes, policy gates); not standalone camera calibration |
 | Camera-LiDAR per-point capture-time solver | Native fixed-twist scalar offset solver; 17 ms synthetic truth and authenticated TIERS public application (honest weak-motion INCONCLUSIVE) |
 | Temporal time-offset probes + 1D holdout-RMSE estimator | Anchored (`time_offset_anchor: initial`) and adapted dual-mode evaluation; selftest injection tracked exactly in anchored mode; cross-sensor separability degenerate on Indoor02 |
