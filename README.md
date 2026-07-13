@@ -115,7 +115,7 @@ It records:
 | LiDAR-IMU rotation evidence | Evaluated `lidar_imu` family (holdout rotation-rate RMSE 3.56 deg/s, gravity support 4.42°); yaw probes weak under z-dominated excitation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
 | Multi-LiDAR fixed-rig and online evidence | Public A2D2 VLP-16 demo; TIERS LidarsCali (static + mixed spinning×solid-state) |
-| Hand-eye and robot-world/hand-eye calibration | Five native `AX=XB` baselines plus independent Shah and Li-Wang-Wu simultaneous `AX=YB`; ETHZ common absolute-pose holdout and 24 controls per method |
+| Hand-eye and robot-world/hand-eye calibration | Five native `AX=XB` baselines plus independent Shah, Li-Wang-Wu, and Dornaika-Horaud `AX=YB`; ETHZ common absolute-pose holdout and 24 controls per method |
 | Backend-neutral joint SLAC optimizer | Grouped holdout, robust LM, typed Schur pose elimination, TUM RGB-D 48→8 shared-calibration solve |
 | Radar extrinsic velocity-consistency check (nuScenes) | Experimental; `radar_lidar_velocity_consistency` scores static-target radial Doppler residuals against ego motion, not full radar calibration |
 

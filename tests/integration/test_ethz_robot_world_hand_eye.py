@@ -107,3 +107,45 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert li["transform_x"] is not None
     assert li["transform_z"] is not None
     assert all(probe["detectable"] is True for probe in li["known_bad_probes"])
+    assert result.metrics["robot_world_hand_eye_absolute_common_split_consistent"].value == 1.0
+    dornaika_gap = result.metrics["robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap"]
+    assert dornaika_gap.value is not None and 0.029 < dornaika_gap.value < 0.030
+    assert dornaika_gap.grade == "pass"
+    sign_flips = result.metrics["robot_world_hand_eye_dornaika_horaud_sign_flip_count"]
+    assert sign_flips.value == 405.0
+    sign_fraction = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction"
+    ]
+    assert sign_fraction.value == 1.0
+    assert sign_fraction.grade == "pass"
+    dornaika_condition = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_translation_condition_number"
+    ]
+    assert dornaika_condition.value is not None and 8.1 < dornaika_condition.value < 8.3
+    assert dornaika_condition.grade == "pass"
+    dornaika_rotation = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_holdout_rotation_rmse_deg"
+    ]
+    dornaika_translation = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_holdout_translation_rmse_m"
+    ]
+    assert dornaika_rotation.value is not None and 0.58 < dornaika_rotation.value < 0.59
+    assert dornaika_translation.value is not None and 0.010 < dornaika_translation.value < 0.011
+    assert dornaika_rotation.grade == dornaika_translation.grade == "pass"
+    dornaika_detection = result.metrics[
+        "robot_world_hand_eye_dornaika_horaud_known_bad_detectable_fraction"
+    ]
+    assert dornaika_detection.value == 1.0
+    assert dornaika_detection.grade == "pass"
+    dornaika = comparison["results"]["dornaika_horaud_robot_world_hand_eye"]
+    assert dornaika["method"] == "dornaika_horaud_robot_world_hand_eye_closed_form/v0.1"
+    assert dornaika["paper"]["doi"] == "10.1109/70.704233"
+    assert len(dornaika["train_pair_ids"]) == 1350
+    assert len(dornaika["holdout_pair_ids"]) == 338
+    assert len(dornaika["rotation_singular_values"]) == 4
+    assert len(dornaika["known_bad_probes"]) == 24
+    assert dornaika["quaternion_sign_flip_count"] == 405
+    assert dornaika["quaternion_sign_synchronization_fraction"] == 1.0
+    assert dornaika["nonlinear_method_executed"] is False
+    assert dornaika["transform_x"] is not None
+    assert dornaika["transform_z"] is not None

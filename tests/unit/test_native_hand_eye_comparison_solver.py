@@ -71,6 +71,8 @@ def _config(
     min_andreff_width: float = 1.0e-4,
     min_shah_gap: float = 1.0e-3,
     max_li_projection: float = 0.05,
+    min_dornaika_gap: float = 1.0e-3,
+    min_dornaika_sign_fraction: float = 0.99,
 ) -> CalibrationConfig:
     return CalibrationConfig.model_validate(
         {
@@ -92,6 +94,10 @@ def _config(
                             "min_andreff_rotation_width": min_andreff_width,
                             "min_shah_rotation_normalized_gap": min_shah_gap,
                             "max_li_so3_projection_correction_frobenius": (max_li_projection),
+                            "min_dornaika_horaud_rotation_normalized_gap": (min_dornaika_gap),
+                            "min_dornaika_horaud_sign_synchronization_fraction": (
+                                min_dornaika_sign_fraction
+                            ),
                         },
                     }
                 }
@@ -166,6 +172,32 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert result.metrics["robot_world_hand_eye_li_known_bad_detectable_fraction"].value == 1.0
     assert result.metrics["robot_world_hand_eye_li_shah_x_rotation_delta_deg"].value is not None
     assert result.metrics["robot_world_hand_eye_li_shah_z_translation_delta_m"].value is not None
+    assert result.metrics["robot_world_hand_eye_absolute_common_split_consistent"].value == 1.0
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_rotation_dominant_multiplicity"].value
+        == 1.0
+    )
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap"].grade
+        == "pass"
+    )
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_quaternion_unit_error_max"].grade
+        == "pass"
+    )
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction"].value
+        == 1.0
+    )
+    assert result.metrics["robot_world_hand_eye_dornaika_horaud_translation_rank"].value == 6.0
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_holdout_rotation_rmse_deg"].grade
+        == "pass"
+    )
+    assert (
+        result.metrics["robot_world_hand_eye_dornaika_horaud_known_bad_detectable_fraction"].value
+        == 1.0
+    )
     assert "T_robot_world" in result.transforms
     for method in (
         "park_martin",
@@ -186,6 +218,7 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert results["andreff"]["paper_doi"] == "10.1109/IM.1999.805374"
     assert results["shah_robot_world_hand_eye"]["paper"]["doi"] == "10.1115/1.4024473"
     assert results["li_robot_world_hand_eye"]["paper"]["doi"] == "10.5897/IJPS.9000501"
+    assert results["dornaika_horaud_robot_world_hand_eye"]["paper"]["doi"] == "10.1109/70.704233"
 
 
 def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
@@ -278,3 +311,47 @@ def test_li_projection_gate_cannot_be_weakened_by_convergence(tmp_path: Path) ->
     assert result.observability is not None
     assert result.observability.grade == "fail"
     assert "li_robot_world_hand_eye_observability" in result.observability.weak_directions
+
+
+def test_dornaika_horaud_gap_gate_cannot_be_weakened_by_convergence(
+    tmp_path: Path,
+) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, min_dornaika_gap=1.0)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    metric = result.metrics["robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap"]
+    assert metric.grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"
+    assert (
+        "dornaika_horaud_robot_world_hand_eye_observability" in result.observability.weak_directions
+    )
+
+
+def test_dornaika_horaud_sign_gate_cannot_be_weakened_by_convergence(
+    tmp_path: Path,
+) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, min_dornaika_sign_fraction=1.01)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    metric = result.metrics["robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction"]
+    assert metric.value == 1.0
+    assert metric.grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"

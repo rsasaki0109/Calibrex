@@ -30,6 +30,7 @@ holdout evaluation, and known-bad controls.
 | Daniilidis dual-quaternion hand-eye | Simultaneous `AX = XB` rotation/translation baseline | Native solver | shared holdout, 8D nullspace/Study diagnostics, 12 known-bad controls |
 | Shah robot-world/hand-eye | Absolute-pose `A_j X = Y B_j` hand-eye and robot-world transforms | Native solver | separate holdout, dominant Kronecker gap, 6D translation rank, 24 controls |
 | Li-Wang-Wu robot-world/hand-eye | Simultaneous absolute-pose `A_j X = Z B_j` 24-variable Kronecker baseline | Native solver | shared-with-Shah holdout, full rank/condition spectrum, SO(3) projection correction, 24 controls |
+| Dornaika-Horaud robot-world/hand-eye | Unit-constrained absolute-pose `A_j X = Z B_j` quaternion closed form | Native solver | common absolute split, sign synchronization, closed-form width, 6D translation rank, 24 controls |
 | LiDAR-IMU rotation consistency | Supplied rotation evaluation | Implemented | held-out angular-rate and gravity evidence |
 | Anchored temporal offset | One-dimensional time calibration evidence | Implemented | injected offsets and adapted/anchored comparison |
 | Backend-neutral joint SLAC graph | Coupled trajectory/extrinsic/time optimization | Native graph core + typed Schur LM | grouped holdout, robust LM, 48→8 TUM pose elimination, joint spectrum, per-block controls |
@@ -215,5 +216,12 @@ absolute-pose comparison: their equations (17)-(19) solve `vec(R_X)`,
 `vec(R_Z)`, `t_X`, and `t_Z` in one rank-gated 24-variable system. Calibrex
 preserves the paper method's non-recomputed translations after SO(3) projection
 and exposes the resulting correction and held-out closure rather than treating
-the linear estimate as automatically physical. Neither absolute-pose baseline
-is relabeled as relative-motion `AX=XB` evidence.
+the linear estimate as automatically physical. None of the absolute-pose
+baselines is relabeled as relative-motion `AX=XB` evidence.
+
+[Dornaika and Horaud](https://doi.org/10.1109/70.704233) add a third independent
+absolute-pose estimator. It directly enforces two unit-quaternion constraints
+in the paper's positive quadratic closed form, then conditionally solves six
+translations. Calibrex records quaternion double-cover sign synchronization,
+the four-value spectrum and minimum width, unit errors, held-out closure, and
+24 controls. It does not execute the paper's separate nonlinear method.

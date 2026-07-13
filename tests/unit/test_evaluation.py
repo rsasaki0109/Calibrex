@@ -500,6 +500,22 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "robot_world_hand_eye_li_shah_x_translation_delta_m" in names
     assert "robot_world_hand_eye_li_shah_z_rotation_delta_deg" in names
     assert "robot_world_hand_eye_li_shah_z_translation_delta_m" in names
+    assert "robot_world_hand_eye_absolute_common_split_consistent" in names
+    assert "robot_world_hand_eye_dornaika_horaud_rotation_dominant_multiplicity" in names
+    assert "robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap" in names
+    assert "robot_world_hand_eye_dornaika_horaud_rotation_objective" in names
+    assert "robot_world_hand_eye_dornaika_horaud_quaternion_unit_error_max" in names
+    assert "robot_world_hand_eye_dornaika_horaud_sign_flip_count" in names
+    assert "robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction" in names
+    assert "robot_world_hand_eye_dornaika_horaud_translation_rank" in names
+    assert "robot_world_hand_eye_dornaika_horaud_translation_condition_number" in names
+    assert "robot_world_hand_eye_dornaika_horaud_holdout_rotation_rmse_deg" in names
+    assert "robot_world_hand_eye_dornaika_horaud_holdout_translation_rmse_m" in names
+    assert "robot_world_hand_eye_dornaika_horaud_known_bad_detectable_fraction" in names
+    assert "robot_world_hand_eye_dornaika_horaud_shah_x_rotation_delta_deg" in names
+    assert "robot_world_hand_eye_dornaika_horaud_shah_x_translation_delta_m" in names
+    assert "robot_world_hand_eye_dornaika_horaud_shah_z_rotation_delta_deg" in names
+    assert "robot_world_hand_eye_dornaika_horaud_shah_z_translation_delta_m" in names
     assert "tum_joint_data_only_extrinsic_rank" in names
     assert "tum_joint_data_only_shared_rank" in names
     assert "tum_joint_depth_scale" in names

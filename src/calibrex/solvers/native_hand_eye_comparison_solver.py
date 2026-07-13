@@ -30,6 +30,11 @@ from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeResult,
     DaniilidisHandEyeSolver,
 )
+from calibrex.solvers.dornaika_horaud_robot_world_hand_eye_solver import (
+    DornaikaHoraudRobotWorldHandEyeOptions,
+    DornaikaHoraudRobotWorldHandEyeResult,
+    DornaikaHoraudRobotWorldHandEyeSolver,
+)
 from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
     HoraudDornaikaHandEyeOptions,
     HoraudDornaikaHandEyeResult,
@@ -63,7 +68,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run five AX=XB baselines plus two absolute-pose AX=YB baselines."""
+    """Run five AX=XB baselines plus three absolute-pose AX=YB baselines."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -142,6 +147,16 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 options.get("max_li_so3_projection_correction_frobenius", 0.05)
             ),
         )
+        dornaika_options = DornaikaHoraudRobotWorldHandEyeOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            minimum_rotation_normalized_gap=float(
+                options.get("min_dornaika_horaud_rotation_normalized_gap", 1.0e-3)
+            ),
+            max_translation_condition_number=float(
+                options.get("max_dornaika_horaud_translation_condition_number", 1.0e8)
+            ),
+        )
         park = ParkMartinHandEyeSolver().solve(motions, park_options)
         tsai = TsaiLenzHandEyeSolver().solve(motions, tsai_options)
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
@@ -149,6 +164,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         andreff = AndreffHandEyeSolver().solve(motions, andreff_options)
         shah = ShahRobotWorldHandEyeSolver().solve(absolute_poses, shah_options)
         li = LiRobotWorldHandEyeSolver().solve(absolute_poses, li_options)
+        dornaika = DornaikaHoraudRobotWorldHandEyeSolver().solve(absolute_poses, dornaika_options)
         metrics = _comparison_metrics(
             dataset,
             motions,
@@ -159,6 +175,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             andreff,
             shah,
             li,
+            dornaika,
             tsai_options,
             options,
         )
@@ -174,6 +191,8 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 shah.transform_y,
                 li.transform_x,
                 li.transform_z,
+                dornaika.transform_x,
+                dornaika.transform_z,
             )
         )
         all_gates_pass = all(metric.grade != "fail" for metric in metrics.values())
@@ -208,6 +227,17 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 "robot_world_hand_eye_li_so3_projection_correction_frobenius_max",
             )
         )
+        dornaika_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "robot_world_hand_eye_dornaika_horaud_rotation_dominant_multiplicity",
+                "robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap",
+                "robot_world_hand_eye_dornaika_horaud_quaternion_unit_error_max",
+                "robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction",
+                "robot_world_hand_eye_dornaika_horaud_translation_rank",
+                "robot_world_hand_eye_dornaika_horaud_translation_condition_number",
+            )
+        )
         selected = dual.transform_x
         warnings = _comparison_warnings(metrics, dataset)
         archive_sha256 = sha256_path(archive_path)
@@ -230,6 +260,11 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     *([] if andreff_observable else ["andreff_kronecker_observability"]),
                     *([] if shah_observable else ["shah_robot_world_hand_eye_observability"]),
                     *([] if li_observable else ["li_robot_world_hand_eye_observability"]),
+                    *(
+                        []
+                        if dornaika_observable
+                        else ["dornaika_horaud_robot_world_hand_eye_observability"]
+                    ),
                     *([] if not warnings else ["hand_eye_perturbation_power"]),
                 ],
                 grade=(
@@ -239,6 +274,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     and andreff_observable
                     and shah_observable
                     and li_observable
+                    and dornaika_observable
                     else "fail"
                 ),
             ),
@@ -270,6 +306,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                         "andreff": andreff.as_dict(),
                         "shah_robot_world_hand_eye": shah.as_dict(),
                         "li_robot_world_hand_eye": li.as_dict(),
+                        "dornaika_horaud_robot_world_hand_eye": dornaika.as_dict(),
                     },
                 },
             },
@@ -287,6 +324,7 @@ def _comparison_metrics(
     andreff: AndreffHandEyeResult,
     shah: ShahRobotWorldHandEyeResult,
     li: LiRobotWorldHandEyeResult,
+    dornaika: DornaikaHoraudRobotWorldHandEyeResult,
     probe_options: TsaiLenzHandEyeOptions,
     factor_options: dict[str, Any],
 ) -> dict[str, MetricResult]:
@@ -309,6 +347,18 @@ def _comparison_metrics(
     max_li_condition = float(factor_options.get("max_li_linear_condition_number", 1.0e8))
     max_li_projection = float(
         factor_options.get("max_li_so3_projection_correction_frobenius", 0.05)
+    )
+    min_dornaika_gap = float(
+        factor_options.get("min_dornaika_horaud_rotation_normalized_gap", 1.0e-3)
+    )
+    max_dornaika_condition = float(
+        factor_options.get("max_dornaika_horaud_translation_condition_number", 1.0e8)
+    )
+    max_dornaika_unit_error = float(
+        factor_options.get("max_dornaika_horaud_quaternion_unit_error", 1.0e-12)
+    )
+    min_dornaika_sign_fraction = float(
+        factor_options.get("min_dornaika_horaud_sign_synchronization_fraction", 0.99)
     )
     shah_projection_values = tuple(
         value
@@ -515,6 +565,115 @@ def _comparison_metrics(
             ),
             reason="Li and Shah must use identical absolute-pose train/holdout splits",
         ),
+        "robot_world_hand_eye_absolute_common_split_consistent": MetricResult(
+            value=float(
+                len(
+                    {
+                        (result.train_pair_ids, result.holdout_pair_ids)
+                        for result in (shah, li, dornaika)
+                    }
+                )
+                == 1
+            ),
+            unit="bool",
+            grade=(
+                "pass"
+                if len(
+                    {
+                        (result.train_pair_ids, result.holdout_pair_ids)
+                        for result in (shah, li, dornaika)
+                    }
+                )
+                == 1
+                else "fail"
+            ),
+            reason="all absolute-pose estimators must use one common split",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_rotation_dominant_multiplicity": (
+            MetricResult(
+                value=float(dornaika.rotation_dominant_multiplicity),
+                unit="multiplicity",
+                grade=("pass" if dornaika.rotation_dominant_multiplicity == 1 else "fail"),
+                reason="closed-form quaternion minimum requires one dominant singular pair",
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap": MetricResult(
+            value=dornaika.rotation_normalized_gap,
+            unit="ratio",
+            grade=(
+                "pass"
+                if dornaika.rotation_normalized_gap is not None
+                and dornaika.rotation_normalized_gap >= min_dornaika_gap
+                else "fail"
+            ),
+            reason=f"dominant quaternion singular-value gap >= {min_dornaika_gap:g}",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_rotation_objective": MetricResult(
+            value=dornaika.rotation_objective,
+            grade="warn",
+            reason="diagnostic mean squared quaternion equation residual",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_quaternion_unit_error_max": MetricResult(
+            value=(
+                max(dornaika.quaternion_x_unit_error, dornaika.quaternion_z_unit_error)
+                if dornaika.quaternion_x_unit_error is not None
+                and dornaika.quaternion_z_unit_error is not None
+                else None
+            ),
+            grade=(
+                "pass"
+                if dornaika.quaternion_x_unit_error is not None
+                and dornaika.quaternion_z_unit_error is not None
+                and max(
+                    dornaika.quaternion_x_unit_error,
+                    dornaika.quaternion_z_unit_error,
+                )
+                <= max_dornaika_unit_error
+                else "fail"
+            ),
+            reason=f"both closed-form quaternion unit errors <= {max_dornaika_unit_error:g}",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_sign_flip_count": MetricResult(
+            value=float(dornaika.quaternion_sign_flip_count),
+            unit="poses",
+            grade="warn",
+            reason="diagnostic quaternion double-cover signs changed before fitting",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction": (
+            MetricResult(
+                value=dornaika.quaternion_sign_synchronization_fraction,
+                unit="fraction",
+                grade=(
+                    "pass"
+                    if dornaika.quaternion_sign_synchronization_fraction is not None
+                    and dornaika.quaternion_sign_synchronization_fraction
+                    >= min_dornaika_sign_fraction
+                    else "fail"
+                ),
+                reason=(
+                    "weighted pairwise quaternion sign consistency "
+                    f">= {min_dornaika_sign_fraction:g}"
+                ),
+            )
+        ),
+        "robot_world_hand_eye_dornaika_horaud_translation_rank": MetricResult(
+            value=float(dornaika.translation_rank),
+            unit="rank",
+            grade="pass" if dornaika.translation_rank == 6 else "fail",
+            reason="conditional [t_X; t_Z] system must constrain all six translations",
+        ),
+        "robot_world_hand_eye_dornaika_horaud_translation_condition_number": (
+            MetricResult(
+                value=dornaika.translation_condition_number,
+                grade=(
+                    "pass"
+                    if dornaika.translation_condition_number is not None
+                    and dornaika.translation_condition_number <= max_dornaika_condition
+                    else "fail"
+                ),
+                reason=(f"conditional translation condition number <= {max_dornaika_condition:g}"),
+            )
+        ),
     }
     park_probes = (
         evaluate_hand_eye_known_bad_probes(
@@ -620,6 +779,42 @@ def _comparison_metrics(
         grade=("pass" if li_fraction is not None and li_fraction >= min_detectable else "warn"),
         reason="held-out signed six-DoF perturbations of both X and Z",
     )
+    dornaika_rotation = dornaika.holdout_evaluation.rotation_closure_rmse_deg
+    dornaika_translation = dornaika.holdout_evaluation.translation_closure_rmse_m
+    dornaika_closure_pass = (
+        dornaika_rotation is not None
+        and dornaika_rotation <= max_rotation
+        and dornaika_translation is not None
+        and dornaika_translation <= max_translation
+    )
+    dornaika_detectable = [
+        probe.detectable for probe in dornaika.probes if probe.detectable is not None
+    ]
+    dornaika_fraction = (
+        sum(value is True for value in dornaika_detectable) / len(dornaika_detectable)
+        if dornaika_detectable
+        else None
+    )
+    metrics["robot_world_hand_eye_dornaika_horaud_holdout_rotation_rmse_deg"] = MetricResult(
+        value=dornaika_rotation,
+        unit="deg",
+        grade="pass" if dornaika_closure_pass else "fail",
+    )
+    metrics["robot_world_hand_eye_dornaika_horaud_holdout_translation_rmse_m"] = MetricResult(
+        value=dornaika_translation,
+        unit="m",
+        grade="pass" if dornaika_closure_pass else "fail",
+    )
+    metrics["robot_world_hand_eye_dornaika_horaud_known_bad_detectable_fraction"] = MetricResult(
+        value=dornaika_fraction,
+        unit="fraction",
+        grade=(
+            "pass"
+            if dornaika_fraction is not None and dornaika_fraction >= min_detectable
+            else "warn"
+        ),
+        reason="held-out signed six-DoF perturbations of both X and Z",
+    )
     comparisons = (
         ("x", li.transform_x, shah.transform_x),
         ("z", li.transform_z, shah.transform_y),
@@ -637,6 +832,28 @@ def _comparison_metrics(
             unit="m",
             grade="warn",
             reason="method-comparison diagnostic; no accuracy claim without ground truth",
+        )
+    dornaika_comparisons = (
+        ("x", dornaika.transform_x, shah.transform_x),
+        ("z", dornaika.transform_z, shah.transform_y),
+    )
+    for role, dornaika_transform, shah_transform in dornaika_comparisons:
+        rotation_delta, translation_delta = _transform_delta(dornaika_transform, shah_transform)
+        metrics[f"robot_world_hand_eye_dornaika_horaud_shah_{role}_rotation_delta_deg"] = (
+            MetricResult(
+                value=rotation_delta,
+                unit="deg",
+                grade="warn",
+                reason="method-comparison diagnostic; no accuracy claim without ground truth",
+            )
+        )
+        metrics[f"robot_world_hand_eye_dornaika_horaud_shah_{role}_translation_delta_m"] = (
+            MetricResult(
+                value=translation_delta,
+                unit="m",
+                grade="warn",
+                reason="method-comparison diagnostic; no accuracy claim without ground truth",
+            )
         )
     return metrics
 

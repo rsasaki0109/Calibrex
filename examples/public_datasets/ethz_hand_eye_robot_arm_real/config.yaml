@@ -51,6 +51,10 @@ pipeline:
         max_shah_so3_projection_correction_frobenius: 0.05
         max_li_linear_condition_number: 100000000.0
         max_li_so3_projection_correction_frobenius: 0.05
+        min_dornaika_horaud_rotation_normalized_gap: 0.001
+        max_dornaika_horaud_translation_condition_number: 100000000.0
+        max_dornaika_horaud_quaternion_unit_error: 0.000000000001
+        min_dornaika_horaud_sign_synchronization_fraction: 0.99
 
 solver:
   backend: native_hand_eye_comparison
@@ -106,6 +110,22 @@ evaluation:
     - robot_world_hand_eye_li_shah_x_translation_delta_m
     - robot_world_hand_eye_li_shah_z_rotation_delta_deg
     - robot_world_hand_eye_li_shah_z_translation_delta_m
+    - robot_world_hand_eye_absolute_common_split_consistent
+    - robot_world_hand_eye_dornaika_horaud_rotation_dominant_multiplicity
+    - robot_world_hand_eye_dornaika_horaud_rotation_normalized_gap
+    - robot_world_hand_eye_dornaika_horaud_rotation_objective
+    - robot_world_hand_eye_dornaika_horaud_quaternion_unit_error_max
+    - robot_world_hand_eye_dornaika_horaud_sign_flip_count
+    - robot_world_hand_eye_dornaika_horaud_sign_synchronization_fraction
+    - robot_world_hand_eye_dornaika_horaud_translation_rank
+    - robot_world_hand_eye_dornaika_horaud_translation_condition_number
+    - robot_world_hand_eye_dornaika_horaud_holdout_rotation_rmse_deg
+    - robot_world_hand_eye_dornaika_horaud_holdout_translation_rmse_m
+    - robot_world_hand_eye_dornaika_horaud_known_bad_detectable_fraction
+    - robot_world_hand_eye_dornaika_horaud_shah_x_rotation_delta_deg
+    - robot_world_hand_eye_dornaika_horaud_shah_x_translation_delta_m
+    - robot_world_hand_eye_dornaika_horaud_shah_z_rotation_delta_deg
+    - robot_world_hand_eye_dornaika_horaud_shah_z_translation_delta_m
 
 outputs:
   result: result.yaml

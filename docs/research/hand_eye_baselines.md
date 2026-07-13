@@ -12,11 +12,11 @@ Every baseline uses the same deterministic pair-level split and is evaluated by
 unfitted `A X` versus `X B` rotation and translation closure. This common
 evaluation is deliberately separate from each method's estimator.
 
-The Shah and Li-Wang-Wu robot-world/hand-eye baselines deliberately use a
-separate absolute-pose contract, `A_j X = Y B_j` (Li writes `Z` for the shared
-`Y` role). Both estimate the hand-eye and robot-world transforms; their common
-absolute-pose train/holdout IDs are never presented as the relative-motion
-split used by the five `AX=XB` solvers.
+The Shah, Li-Wang-Wu, and Dornaika-Horaud robot-world/hand-eye baselines
+deliberately use a separate absolute-pose contract, `A_j X = Y B_j` (the latter
+two write `Z` for the shared `Y` role). All three estimate the hand-eye and
+robot-world transforms; their common absolute-pose train/holdout IDs are never
+presented as the relative-motion split used by the five `AX=XB` solvers.
 
 ## Tsai and Lenz
 
@@ -139,6 +139,57 @@ solution. Synthetic controls recover exact truth with rotations as small as
 rotation-from-translation information but no observable hand-eye translation,
 so they cannot be emitted as a full calibration.
 
+## Dornaika-Horaud robot-world/hand-eye closed form
+
+Primary reference: F. Dornaika and R. Horaud, *Simultaneous Robot-World and
+Hand-Eye Calibration*, IEEE Transactions on Robotics and Automation 14(4),
+1998, pp. 617-622, DOI
+[`10.1109/70.704233`](https://doi.org/10.1109/70.704233). The
+[author manuscript](https://arxiv.org/abs/2311.11818) contains the original
+paper text and equations. Calibrex implements the closed-form method in
+Section III-A, not the paper's nonlinear constrained alternative.
+
+For unit scalar-first quaternions, each synchronized pose satisfies
+
+```text
+Q(q_Ai) q_X = W(q_Bi) q_Z.
+```
+
+Equations (9)-(15) sum the positive quadratic residual under the two separate
+unit constraints. With
+
+```text
+C = -sum_i weight_i transpose(Q(q_Ai)) W(q_Bi),
+```
+
+the minimizing pair is the dominant singular-vector pair of `C`, with one sign
+chosen so that `q_X^T C q_Z` is negative. Calibrex reports all four singular
+values, dominant multiplicity, normalized dominant-to-second gap, the actual
+quaternion objective, and both unit-norm errors. A repeated maximum or gap
+below the declared threshold is rejected as a non-unique closed-form minimum.
+
+Rotation quaternions have a double-cover sign that is absent from the input
+rotation matrices. Arbitrary per-pose signs can turn the paper's equality into
+`Q(q_Ai) q_X = -W(q_Bi) q_Z` without changing any physical pose. Before fitting,
+Calibrex synchronizes these representation signs without using another
+calibration estimate: right multiplication preserves quaternion inner
+products, hence the desired relative sign for poses `i,j` is the sign of
+`dot(q_Ai,q_Aj) dot(q_Bi,q_Bj)`. A deterministic maximum-spanning tree fixes
+the signs; weighted all-pairs consistency, the number of flips, and the rule
+itself are recorded as evidence. Low sign consistency is a declared FAIL.
+
+After rotation, translations are fit exactly as specified by the paper:
+
+```text
+[R_Ai, -I] [t_X; t_Z] = R_Z t_Bi - t_Ai.
+```
+
+The system must have rank six and satisfy the declared condition ceiling.
+Synthetic tests recover both transforms to numerical precision, detect all 24
+signed controls, preserve input-order invariance, and reject repeated poses.
+This is independent typed NumPy code; no IEEE, arXiv, ROS, OpenCV, or GPL source
+implementation is copied into `src/calibrex`.
+
 ## Shah robot-world/hand-eye Kronecker method
 
 Primary reference: M. I. Shah, *Solving the Robot-World/Hand-Eye Calibration
@@ -221,9 +272,9 @@ is copied into `src/calibrex`.
   or translation closure rises by more than 5 mm.
 - Pure translation, sub-threshold rotation, a single rotation-axis family, and
   rank-deficient translation systems must not return `converged`.
-- Shah and Li use one-to-one absolute pose pairs and an identical separate
-  deterministic split; neither absolute pair nor pose ID may cross its
-  train/holdout boundary.
+- Dornaika-Horaud, Shah, and Li use one-to-one absolute pose pairs and an
+  identical separate deterministic split; neither absolute pair nor pose ID
+  may cross its train/holdout boundary.
 
 All implementations are independent NumPy code. No paper or third-party source
 implementation is copied into `src/calibrex`.
@@ -295,3 +346,16 @@ Li estimate differs by 0.0608 degrees / 0.01025 m for `X` and 0.0644 degrees /
 0.00671 m for `Z/Y`. These are comparison diagnostics, not ground-truth errors.
 Li passes every declared gate while the overall run remains honestly
 **INCONCLUSIVE** for the unchanged relative-motion falsification limitation.
+
+Dornaika-Horaud uses the same 1,350/338 split. Its quaternion sign preparation
+flips 405 train-pose representations and reaches weighted pairwise consistency
+1.0. The dominant singular pair is unique with normalized gap 0.02955; the
+mean squared quaternion residual is `3.164e-5`, and the maximum unit error is
+`2.22e-16`. Conditional translation rank is 6/6 with condition number 8.187.
+Held-out closure is 0.5858 degrees and 0.01006 m, and all 24 controls are
+detected. Its result differs from Shah by about `1.13e-5` degrees / `4.90e-8` m
+for `X` and `1.16e-5` degrees / `1.49e-7` m for `Z/Y`; these remain ungated
+comparison diagnostics, not ground-truth errors. The closed-form method passes
+all declared gates while the overall comparison remains honestly
+**INCONCLUSIVE** because the five relative-motion methods still detect only
+6/12 controls.
