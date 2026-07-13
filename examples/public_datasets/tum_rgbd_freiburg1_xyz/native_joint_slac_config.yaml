@@ -82,6 +82,8 @@ pipeline:
         xyz_lattice_translation_gauge_sigma_m: 0.0001
         xyz_lattice_rotation_gauge_sigma_rad: 0.0001
         xyz_lattice_local_rotation_updates: 1
+        xyz_pair_max_correspondences_per_pair: 60
+        xyz_pair_stride: 1
 
 solver:
   backend: native_tum_joint_slac
@@ -126,6 +128,9 @@ evaluation:
     - tum_joint_xyz_data_only_field_rank_min
     - tum_joint_xyz_data_only_shared_rank_min
     - tum_joint_xyz_lattice_max_abs_offset_m
+    - tum_joint_xyz_pair_holdout_improved_fraction
+    - tum_joint_xyz_pair_data_only_field_rank_min
+    - tum_joint_xyz_pair_known_bad_detectable_fraction_min
     - tum_joint_xyz_local_rotation_update_max_deg
     - tum_joint_xyz_known_bad_detectable_fraction_min
     - tum_joint_xyz_cross_window_max_holdout_delta_rmse_m

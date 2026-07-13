@@ -171,15 +171,11 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     xyz_detection = result.metrics["tum_joint_xyz_known_bad_detectable_fraction_min"]
     assert xyz_detection.value == pytest.approx(11.0 / 48.0)
     assert xyz_detection.grade == "warn"
-    xyz_transfer_delta = result.metrics[
-        "tum_joint_xyz_cross_window_max_holdout_delta_rmse_m"
-    ]
+    xyz_transfer_delta = result.metrics["tum_joint_xyz_cross_window_max_holdout_delta_rmse_m"]
     assert xyz_transfer_delta.value is not None
     assert 0.0117 < xyz_transfer_delta.value < 0.0118
     assert xyz_transfer_delta.grade == "fail"
-    xyz_transfer_fraction = result.metrics[
-        "tum_joint_xyz_cross_window_nondegrading_fraction"
-    ]
+    xyz_transfer_fraction = result.metrics["tum_joint_xyz_cross_window_nondegrading_fraction"]
     assert xyz_transfer_fraction.value == pytest.approx(1.0 / 3.0)
     assert xyz_transfer_fraction.grade == "fail"
     xyz_windows = result.run.provenance["native_tum_joint_slac_xyz_lattice_windows"]
@@ -189,8 +185,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         and len(window["local_rotation_history_xyzw"]) == 2
         and len(window["optimizer_rounds"]) == 2
         and all(
-            round_result["status"] == "converged"
-            for round_result in window["optimizer_rounds"]
+            round_result["status"] == "converged" for round_result in window["optimizer_rounds"]
         )
         and window["optimizer_rounds"][-1]["information_rank"] == 78
         and window["data_only_field_observability"]["information_rank"] == 24
@@ -199,18 +194,64 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         == {"T_trajectory_camera_correction", "depth_full_xyz_lattice_offsets_m"}
         for window in xyz_windows
     )
-    xyz_transfers = result.run.provenance[
-        "native_tum_joint_slac_xyz_cross_window_transfers"
-    ]
+    xyz_transfers = result.run.provenance["native_tum_joint_slac_xyz_cross_window_transfers"]
     assert len(xyz_transfers) == 6
     assert {
         (transfer["source_start_index"], transfer["target_start_index"])
         for transfer in xyz_transfers
         if transfer["delta_rmse_m"] <= 0.005
     } == {(180, 300), (300, 180)}
-    assert "local-rotation and gauge residuals are excluded" in result.run.provenance[
-        "native_tum_joint_slac_xyz_cross_window_policy"
-    ]
+    assert (
+        "local-rotation and gauge residuals are excluded"
+        in result.run.provenance["native_tum_joint_slac_xyz_cross_window_policy"]
+    )
+    xyz_pair_count = result.metrics["tum_joint_xyz_pair_window_count"]
+    assert xyz_pair_count.value == 3.0
+    assert xyz_pair_count.grade == "pass"
+    assert result.metrics["tum_joint_xyz_pair_converged_fraction"].value == 1.0
+    pair_correspondences = result.metrics["tum_joint_xyz_pair_correspondence_count_min"]
+    assert pair_correspondences.value is not None
+    assert 400 <= pair_correspondences.value <= 420
+    pair_improved = result.metrics["tum_joint_xyz_pair_holdout_improved_fraction"]
+    assert pair_improved.value == pytest.approx(1.0 / 3.0)
+    assert pair_improved.grade == "fail"
+    pair_delta = result.metrics["tum_joint_xyz_pair_worst_holdout_delta_rmse_m"]
+    assert pair_delta.value is not None and 3.0e-6 < pair_delta.value < 4.5e-6
+    assert pair_delta.grade == "fail"
+    assert result.metrics["tum_joint_xyz_pair_data_only_field_rank_min"].value == 24.0
+    pair_joint_rank = result.metrics["tum_joint_xyz_pair_data_only_joint_rank_min"]
+    assert pair_joint_rank.value == 57.0
+    assert pair_joint_rank.grade == "warn"
+    assert result.metrics["tum_joint_xyz_pair_augmented_rank_min"].value == 66.0
+    pair_detection = result.metrics["tum_joint_xyz_pair_known_bad_detectable_fraction_min"]
+    assert pair_detection.value == pytest.approx(39.0 / 132.0)
+    assert pair_detection.grade == "warn"
+    pair_transfer = result.metrics["tum_joint_xyz_pair_cross_window_max_holdout_delta_rmse_m"]
+    assert pair_transfer.value is not None and pair_transfer.value < 5.0e-8
+    assert pair_transfer.grade == "pass"
+    assert result.metrics["tum_joint_xyz_pair_cross_window_nondegrading_fraction"].value == 1.0
+    xyz_pair_windows = result.run.provenance["native_tum_joint_slac_xyz_pair_windows"]
+    assert [window["start_index"] for window in xyz_pair_windows] == [60, 180, 300]
+    assert all(
+        len(window["pair_correspondence_counts"]) == 7
+        and len(window["fixed_associations"]) == sum(window["pair_correspondence_counts"].values())
+        and all(
+            association["target_id"].startswith("voxel:")
+            and association["initial_centroid_distance_m"] <= 0.15
+            for association in window["fixed_associations"]
+        )
+        and len(window["train_pair_groups"]) == 5
+        and len(window["holdout_pair_groups"]) == 2
+        and len(window["optimizer_rounds"]) == 2
+        and window["optimizer_rounds"][-1]["information_rank"] == 66
+        and window["data_only_field_observability"]["information_rank"] == 24
+        and window["data_only_joint_observability"]["information_rank"] == 57
+        for window in xyz_pair_windows
+    )
+    assert len(result.run.provenance["native_tum_joint_slac_xyz_pair_cross_window_transfers"]) == 6
+    pair_model = result.run.provenance["native_tum_joint_slac_xyz_pair_model"]
+    assert pair_model["residual"] == "(T_i C(p) - T_j C(q)) dot n_world"
+    assert "factor-disjoint" in pair_model["split_policy"]
     assert result.degeneracy.reason is not None
     assert "full-XYZ data-only" in result.degeneracy.reason
     reassociation_count = result.metrics["tum_joint_reassociation_window_count"]
@@ -222,9 +263,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     train_jaccard = result.metrics["tum_joint_reassociation_train_pair_jaccard_min"]
     assert train_jaccard.value is not None and 0.80 < train_jaccard.value < 0.81
     assert train_jaccard.grade == "fail"
-    train_retention = result.metrics[
-        "tum_joint_reassociation_train_retained_query_fraction_min"
-    ]
+    train_retention = result.metrics["tum_joint_reassociation_train_retained_query_fraction_min"]
     assert train_retention.value is not None and train_retention.value > 0.998
     assert train_retention.grade == "pass"
     holdout_jaccard = result.metrics["tum_joint_reassociation_holdout_pair_jaccard_min"]
@@ -244,27 +283,19 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     ]
     assert aware_detection.value == pytest.approx(13.0 / 30.0)
     assert aware_detection.grade == "warn"
-    aware_valid = result.metrics[
-        "tum_joint_reassociation_aware_probe_valid_fraction_min"
-    ]
+    aware_valid = result.metrics["tum_joint_reassociation_aware_probe_valid_fraction_min"]
     assert aware_valid.value == 1.0
     assert aware_valid.grade == "pass"
-    aware_collapse = result.metrics[
-        "tum_joint_reassociation_aware_support_collapse_fraction_max"
-    ]
+    aware_collapse = result.metrics["tum_joint_reassociation_aware_support_collapse_fraction_max"]
     assert aware_collapse.value == 0.0
     assert aware_collapse.grade == "pass"
     aware_jaccard = result.metrics["tum_joint_reassociation_aware_pair_jaccard_min"]
     assert aware_jaccard.value is not None and 0.47 < aware_jaccard.value < 0.48
     assert aware_jaccard.grade == "warn"
-    aware_retention = result.metrics[
-        "tum_joint_reassociation_aware_baseline_retained_fraction_min"
-    ]
+    aware_retention = result.metrics["tum_joint_reassociation_aware_baseline_retained_fraction_min"]
     assert aware_retention.value is not None and 0.969 < aware_retention.value < 0.971
     assert aware_retention.grade == "pass"
-    reassociation = result.run.provenance[
-        "native_tum_joint_slac_iterative_reassociation"
-    ]
+    reassociation = result.run.provenance["native_tum_joint_slac_iterative_reassociation"]
     assert [item["start_index"] for item in reassociation] == [60, 180, 300]
     assert all(
         item["result"]["status"] == "max_iterations"
@@ -275,9 +306,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         and item["result"]["stopping_policy"].startswith("train assignment")
         for item in reassociation
     )
-    aware_evaluations = [
-        item["reassociation_aware_probe_evaluation"] for item in reassociation
-    ]
+    aware_evaluations = [item["reassociation_aware_probe_evaluation"] for item in reassociation]
     assert [
         sum(probe["detectable"] is True for probe in evaluation["probes"])
         for evaluation in aware_evaluations
@@ -349,7 +378,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v1.2"
+        "tum_multicapture_pose_extrinsic_depth/v1.3"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

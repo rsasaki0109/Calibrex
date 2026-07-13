@@ -174,8 +174,7 @@ freedom are locally rank-complete only after fixing pose/extrinsic, but are
 weakly falsifiable and do not provide repeatable public-data improvement.
 Every control vector, local rotation, optimizer round, split, probe, augmented
 rank, and data-only rank is retained in provenance. The fixed map remains an
-explicit specialization; the public run does not claim that both sides of the
-paper's pairwise objective were calibrated.
+explicit specialization and is evaluated separately from the two-sided branch.
 
 The shared extrinsic and all 24 field components are also transferred in all
 six ordered directions while retaining each target window's optimized poses
@@ -186,6 +185,44 @@ residuals are excluded from transfer scoring. Only start 180 to 300 and start
 0.00763--0.01175 m; the worst is start 60 to 180 at +0.011746 m. The
 nondegrading fraction is therefore 2/6 and FAIL. The small fitted field and
 full field-only rank do not establish a sequence-wide calibration function.
+
+### Two-sided Zhou--Koltun Equation (2)
+
+A separate public graph now evaluates the paper residual
+`(T_i C(p) - T_j C(q)) dot n_world` on adjacent query-query frame pairs. For
+each directed edge, target depth samples form a target-camera voxel-plane map.
+Source samples are transformed with the initial `T_target_source`; accepted
+target centroids provide `q`, and target normals are rotated into the world
+frame. Both `p` and `q` are calibrated by the same 24-dimensional trilinear XYZ
+field. No extrinsic block is inserted into this paper-faithful ablation.
+
+The frontend caps each edge at 60 deterministic correspondences and retains
+414, 405, and 403 factors at starts 60, 180, and 300. Complete pair IDs are the
+split groups, producing five train and two held-out edges. This is factor- and
+edge-disjoint, but adjacent edges can share endpoint frames; provenance states
+that limitation instead of calling it frame-disjoint. The first pose correction
+is fixed as the world gauge. Ground-truth pose priors, the Equation (4) shape
+term, and the rigid-field gauge are train-only.
+
+Both frozen-local-rotation rounds converge in all three windows. With all poses
+fixed, train data observes the field at rank 24/24. With non-gauge poses free,
+the data-only joint rank is 57/66 and is WARN. Train-only regularization makes
+the augmented graph rank 66/66, but that rank is never reported as geometric
+observability. Only one of three held-out pair objectives improves from the
+identity field/pose initialization; the worst change is `+3.85e-6 m`, so the
+unchanged non-degradation comparison FAILs. Signed non-gauge pose and field
+probes detect only 40/132, 40/132, and 39/132 perturbations.
+
+All six ordered transfers replace only the source window's field while keeping
+the target's optimized pose corrections and held-out pair factors. Every
+direction remains within the unchanged 0.005 m margin; the worst increase is
+`4.67e-8 m`. This PASS is recorded alongside, not in place of, the weak probe
+and joint-rank evidence. Pair counts, frame IDs, exact train/holdout edges,
+field controls, two optimizer rounds, local rotations, all probes, both rank
+diagnostics, and transfer scores are serialized in provenance. Each fixed
+association also records its source sample index, pair group, stable target
+voxel ID, and initial centroid distance, allowing reconstruction from the
+hashed raw frame and declared deterministic sampler.
 
 ### Optimized correspondence rematching
 
@@ -256,5 +293,5 @@ This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension will add a public two-sided correspondence frontend before
-increasing lattice resolution.
+next extension can evaluate reassociation for the two-sided branch and increase
+lattice resolution only if public support remains observable.

@@ -307,6 +307,79 @@ def test_trilinear_xyz_pair_factor_calibrates_both_correspondence_sides() -> Non
     assert factor.family == "rgbd_trilinear_xyz_pair_point_to_plane"
 
 
+def test_trilinear_xyz_pair_graph_recovers_synthetic_field_truth() -> None:
+    shape = (2, 2, 2)
+    minimum = (-0.5, -0.4, 1.0)
+    maximum = (0.5, 0.4, 2.0)
+    controls = regular_lattice_control_points(minimum=minimum, maximum=maximum, shape=shape)
+    truth = tuple(
+        component
+        for index in range(len(controls))
+        for component in (
+            0.002 * (index - 3.5),
+            -0.003 * (index % 3 - 1),
+            0.0025 * ((index + 1) % 4 - 1.5),
+        )
+    )
+    blocks = (
+        JointParameterBlock("source-pose", (0.0,) * 6, fixed=True),
+        JointParameterBlock("target-pose", (0.0,) * 6, fixed=True),
+        JointParameterBlock(
+            "xyz-lattice",
+            (0.0,) * len(truth),
+            known_bad_steps=(0.02,) * len(truth),
+        ),
+    )
+    axis_geometry = (
+        ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0)),
+        ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0, 0.0)),
+        ((0.0, 0.0, 1.0), (1.0, 0.0, 0.0, 0.0)),
+    )
+    factors = []
+    for replicate in range(5):
+        for index, point in enumerate(controls):
+            weights = trilinear_lattice_weights(
+                point, minimum=minimum, maximum=maximum, shape=shape
+            )
+            calibrated = tuple(point[axis] + truth[3 * index + axis] for axis in range(3))
+            for axis, (normal, target_rotation) in enumerate(axis_geometry):
+                rotated = rotate_vector_xyzw(target_rotation, calibrated)
+                target_translation = tuple(
+                    calibrated[component] - rotated[component] for component in range(3)
+                )
+                factors.append(
+                    make_joint_trilinear_xyz_pair_factor(
+                        JointTrilinearXYZPairMeasurement(
+                            f"xyz-pair-{replicate}-{index}-{axis}",
+                            f"capture-set-{replicate}",
+                            point,
+                            point,
+                            weights,
+                            weights,
+                            normal,
+                            SE3.identity(),
+                            SE3(target_translation, target_rotation),
+                        ),
+                        source_pose_block="source-pose",
+                        target_pose_block="target-pose",
+                        xyz_lattice_block="xyz-lattice",
+                    )
+                )
+
+    result = BackendNeutralJointOptimizer().solve(
+        blocks,
+        factors,
+        JointOptimizerOptions(holdout_ratio=0.2, split_seed=7),
+    )
+
+    assert result.status == "converged"
+    assert result.optimized_values["xyz-lattice"] == pytest.approx(truth, abs=1e-8)
+    assert result.information_rank == 24
+    assert result.holdout_rmse is not None and result.holdout_rmse < 1e-9
+    assert len(result.probes) == 48
+    assert all(probe.detectable is True for probe in result.probes)
+
+
 def test_xyz_lattice_rigid_gauge_separates_translation_and_rotation() -> None:
     controls = regular_lattice_control_points(
         minimum=(-1.0, -1.0, -1.0), maximum=(1.0, 1.0, 1.0), shape=(2, 2, 2)
@@ -366,8 +439,7 @@ def test_xyz_lattice_local_rotation_fit_recovers_rigid_field() -> None:
     expected = (cosine, sine, 0.0)
     assert len(rotations) == 8
     assert all(
-        rotate_vector_xyzw(rotation, (1.0, 0.0, 0.0))
-        == pytest.approx(expected, abs=1e-12)
+        rotate_vector_xyzw(rotation, (1.0, 0.0, 0.0)) == pytest.approx(expected, abs=1e-12)
         for rotation in rotations
     )
 
@@ -546,9 +618,7 @@ def test_trilinear_xyz_lattice_recovers_synthetic_truth_and_probes() -> None:
     shape = (2, 2, 2)
     minimum = (-0.5, -0.4, 1.0)
     maximum = (0.5, 0.4, 2.0)
-    controls = regular_lattice_control_points(
-        minimum=minimum, maximum=maximum, shape=shape
-    )
+    controls = regular_lattice_control_points(minimum=minimum, maximum=maximum, shape=shape)
     truth = tuple(
         component
         for index in range(len(controls))

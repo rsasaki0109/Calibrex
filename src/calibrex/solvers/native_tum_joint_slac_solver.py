@@ -10,7 +10,7 @@ from typing import Any
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
-from calibrex.core.geometry import SE3, QuaternionXYZW
+from calibrex.core.geometry import SE3, QuaternionXYZW, rotate_vector_xyzw
 from calibrex.core.provenance import sha256_path
 from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
@@ -49,6 +49,7 @@ from calibrex.evaluation.numerical_curvature import (
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
+    JointTrilinearXYZPairMeasurement,
     JointTrilinearXYZPointToPlaneMeasurement,
     estimate_xyz_lattice_local_rotations,
     make_joint_centered_trilinear_depth_point_to_plane_factor,
@@ -56,6 +57,7 @@ from calibrex.graph.joint_factors import (
     make_joint_lattice_smoothness_factor,
     make_joint_lattice_zero_mean_factor,
     make_joint_prior_factor,
+    make_joint_trilinear_xyz_pair_factor,
     make_joint_trilinear_xyz_point_to_plane_factor,
     make_joint_xyz_lattice_rigid_gauge_factor,
     make_joint_xyz_lattice_shape_factor,
@@ -137,6 +139,8 @@ class TUMJointSlacOptions:
     xyz_lattice_translation_gauge_sigma_m: float = 1.0e-4
     xyz_lattice_rotation_gauge_sigma_rad: float = 1.0e-4
     xyz_lattice_local_rotation_updates: int = 1
+    xyz_pair_max_correspondences_per_pair: int = 120
+    xyz_pair_stride: int = 1
 
     def as_dict(self) -> dict[str, float | int | list[int]]:
         values: dict[str, float | int | list[int]] = {}
@@ -192,6 +196,52 @@ class _TUMXYZWindowRun:
     results: tuple[JointOptimizerResult, ...]
     data_only_field_observability: JointObservabilityEvaluation
     data_only_shared_observability: JointObservabilityEvaluation
+
+    @property
+    def result(self) -> JointOptimizerResult:
+        return self.results[-1]
+
+
+@dataclass(frozen=True)
+class _TUMXYZPairAssociation:
+    """Reconstructable identity for one fixed query-query association."""
+
+    measurement_id: str
+    observation_group: str
+    source_frame_index: int
+    target_frame_index: int
+    source_point_index: int
+    target_id: str
+    initial_centroid_distance_m: float
+
+    def as_dict(self) -> dict[str, str | int | float]:
+        """Return schema-friendly correspondence lineage."""
+
+        return self.__dict__
+
+
+@dataclass(frozen=True)
+class _TUMXYZPairProblem:
+    """Fixed query-query correspondences for Zhou--Koltun Eq. (2)."""
+
+    query_frames: tuple[TUMDepthPoseEntry, ...]
+    measurements: tuple[JointTrilinearXYZPairMeasurement, ...]
+    data_factors: tuple[JointResidualBlock, ...]
+    parameter_blocks: tuple[JointParameterBlock, ...]
+    pair_counts: tuple[tuple[str, int], ...]
+    associations: tuple[_TUMXYZPairAssociation, ...]
+
+
+@dataclass(frozen=True)
+class _TUMXYZPairWindowRun:
+    """One public-window two-sided Eq. (2) optimization and diagnostics."""
+
+    start_index: int
+    problem: _TUMXYZPairProblem
+    local_rotation_history: tuple[tuple[QuaternionXYZW, ...], ...]
+    results: tuple[JointOptimizerResult, ...]
+    data_only_field_observability: JointObservabilityEvaluation
+    data_only_joint_observability: JointObservabilityEvaluation
 
     @property
     def result(self) -> JointOptimizerResult:
@@ -272,6 +322,8 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
         xyz_runs = _xyz_ablation_runs(config, replication_runs, options)
         xyz_transfers = _xyz_cross_window_transfers(xyz_runs)
+        xyz_pair_runs = _xyz_pair_ablation_runs(root, intrinsics, config, replication_runs, options)
+        xyz_pair_transfers = _xyz_pair_cross_window_transfers(xyz_pair_runs)
         reassociation_runs = _iterative_reassociation_runs(
             root, intrinsics, config, spatial_runs, options
         )
@@ -297,6 +349,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
             _spatial_ablation_metrics(replication_runs, spatial_runs, spatial_transfers, options)
         )
         metrics.update(_xyz_ablation_metrics(spatial_runs, xyz_runs, xyz_transfers, options))
+        metrics.update(_xyz_pair_ablation_metrics(xyz_pair_runs, xyz_pair_transfers, options))
         metrics.update(_rematching_metrics(rematching))
         metrics.update(_iterative_reassociation_metrics(reassociation_runs, options))
         warnings = _warnings(
@@ -312,6 +365,16 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 "TUM full-XYZ data-only extrinsic/field rank is "
                 f"{xyz_shared_rank} < 30; rigid field modes exchange with extrinsic"
             )
+        if xyz_pair_runs:
+            xyz_pair_rank = min(
+                run.data_only_joint_observability.information_rank for run in xyz_pair_runs
+            )
+            xyz_pair_dimension = xyz_pair_runs[0].data_only_joint_observability.parameter_dimension
+            if xyz_pair_rank < xyz_pair_dimension:
+                warnings.append(
+                    "TUM two-sided Eq. (2) data-only pose/field rank is "
+                    f"{xyz_pair_rank} < {xyz_pair_dimension} after fixing the world gauge"
+                )
         return SolverAdapterResult(
             backend=self.backend,
             available=True,
@@ -336,6 +399,8 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 spatial_transfers=spatial_transfers,
                 xyz_runs=xyz_runs,
                 xyz_transfers=xyz_transfers,
+                xyz_pair_runs=xyz_pair_runs,
+                xyz_pair_transfers=xyz_pair_transfers,
                 reassociation_runs=reassociation_runs,
                 rematching=rematching,
             ),
@@ -501,9 +566,7 @@ def _xyz_ablation_runs(
         maximum=_SPATIAL_LATTICE_MAXIMUM_M,
         shape=_SPATIAL_LATTICE_SHAPE,
     )
-    identity_rotations: tuple[QuaternionXYZW, ...] = (
-        (0.0, 0.0, 0.0, 1.0),
-    ) * len(controls)
+    identity_rotations: tuple[QuaternionXYZW, ...] = ((0.0, 0.0, 0.0, 1.0),) * len(controls)
     runs: list[_TUMXYZWindowRun] = []
     for baseline in baseline_runs:
         problem = baseline.problem
@@ -544,15 +607,309 @@ def _xyz_ablation_runs(
                 data_factors,
                 tuple(rotation_history),
                 tuple(results),
-                _xyz_data_only_observability(
-                    blocks, data_factors, final, include_extrinsic=False
-                ),
-                _xyz_data_only_observability(
-                    blocks, data_factors, final, include_extrinsic=True
-                ),
+                _xyz_data_only_observability(blocks, data_factors, final, include_extrinsic=False),
+                _xyz_data_only_observability(blocks, data_factors, final, include_extrinsic=True),
             )
         )
     return tuple(runs)
+
+
+def _xyz_pair_cross_window_transfers(
+    runs: tuple[_TUMXYZPairWindowRun, ...],
+) -> tuple[dict[str, float | int | None], ...]:
+    transfers: list[dict[str, float | int | None]] = []
+    for source in runs:
+        for target in runs:
+            if source.start_index == target.start_index:
+                continue
+            holdout_groups = set(target.result.holdout_observation_groups)
+            factors = [
+                factor
+                for factor in target.problem.data_factors
+                if factor.observation_group in holdout_groups
+            ]
+            values = dict(target.result.optimized_values)
+            values[_XYZ_LATTICE_BLOCK] = source.result.optimized_values[_XYZ_LATTICE_BLOCK]
+            transferred_rmse = _factor_rmse(factors, values)
+            baseline_rmse = target.result.holdout_rmse
+            transfers.append(
+                {
+                    "source_start_index": source.start_index,
+                    "target_start_index": target.start_index,
+                    "target_baseline_holdout_rmse_m": baseline_rmse,
+                    "transferred_holdout_rmse_m": transferred_rmse,
+                    "delta_rmse_m": (
+                        transferred_rmse - baseline_rmse
+                        if transferred_rmse is not None and baseline_rmse is not None
+                        else None
+                    ),
+                }
+            )
+    return tuple(transfers)
+
+
+def _xyz_pair_ablation_runs(
+    root: Path,
+    intrinsics: TUMDepthIntrinsics,
+    config: CalibrationConfig,
+    baseline_runs: tuple[_TUMWindowRun, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[_TUMXYZPairWindowRun, ...]:
+    """Run the paper's two-sided Eq. (2) on fixed query-query pairs."""
+
+    controls = regular_lattice_control_points(
+        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+        shape=_SPATIAL_LATTICE_SHAPE,
+    )
+    identity_rotations: tuple[QuaternionXYZW, ...] = ((0.0, 0.0, 0.0, 1.0),) * len(controls)
+    runs: list[_TUMXYZPairWindowRun] = []
+    for baseline in baseline_runs:
+        pair_problem = _build_xyz_pair_problem(
+            root, baseline.problem.query_frames, intrinsics, options
+        )
+        if len(pair_problem.data_factors) < _MIN_TOTAL_CORRESPONDENCES:
+            continue
+        rotations = identity_rotations
+        current_blocks = pair_problem.parameter_blocks
+        rotation_history: list[tuple[QuaternionXYZW, ...]] = []
+        results: list[JointOptimizerResult] = []
+        for _round in range(options.xyz_lattice_local_rotation_updates + 1):
+            rotation_history.append(rotations)
+            result = _optimize_joint(
+                config,
+                current_blocks,
+                (
+                    *pair_problem.data_factors,
+                    *_xyz_pair_train_only_factors(pair_problem, controls, rotations, options),
+                ),
+                options,
+            )
+            results.append(result)
+            if result.status != "converged":
+                break
+            rotations = estimate_xyz_lattice_local_rotations(
+                control_points_m=controls,
+                offsets_m=result.optimized_values[_XYZ_LATTICE_BLOCK],
+                shape=_SPATIAL_LATTICE_SHAPE,
+            )
+            current_blocks = tuple(
+                replace(block, initial_values=result.optimized_values[block.name])
+                for block in pair_problem.parameter_blocks
+            )
+        final = results[-1]
+        runs.append(
+            _TUMXYZPairWindowRun(
+                baseline.start_index,
+                pair_problem,
+                tuple(rotation_history),
+                tuple(results),
+                _xyz_pair_data_only_observability(pair_problem, final, include_poses=False),
+                _xyz_pair_data_only_observability(pair_problem, final, include_poses=True),
+            )
+        )
+    return tuple(runs)
+
+
+def _build_xyz_pair_problem(
+    root: Path,
+    query_frames: tuple[TUMDepthPoseEntry, ...],
+    intrinsics: TUMDepthIntrinsics,
+    options: TUMJointSlacOptions,
+) -> _TUMXYZPairProblem:
+    sampled_points = tuple(
+        tuple(
+            sample_tum_depth_points(
+                read_tum_depth_png(root / frame.depth.path),
+                intrinsics,
+                max_points=options.query_points_per_frame,
+            )
+        )
+        for frame in query_frames
+    )
+    measurements: list[JointTrilinearXYZPairMeasurement] = []
+    factors: list[JointResidualBlock] = []
+    pair_counts: list[tuple[str, int]] = []
+    associations: list[_TUMXYZPairAssociation] = []
+    for source_index in range(len(query_frames) - options.xyz_pair_stride):
+        target_index = source_index + options.xyz_pair_stride
+        source_frame = query_frames[source_index]
+        target_frame = query_frames[target_index]
+        target_records = [
+            LivoxPointRecord((*point, 0.0), None) for point in sampled_points[target_index]
+        ]
+        target_plane_map = build_voxel_plane_map(target_records, options.voxel_size_m)
+        transform_target_source = target_frame.transform_world_camera.inverse().compose(
+            source_frame.transform_world_camera
+        )
+        group = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}"
+        candidates: list[tuple[JointTrilinearXYZPairMeasurement, _TUMXYZPairAssociation]] = []
+        for point_index, source_point in enumerate(sampled_points[source_index]):
+            source_in_target = transform_target_source.transform_point(source_point)
+            match = nearest_voxel_plane_match(
+                source_in_target,
+                target_plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            if match is None:
+                continue
+            normal_world = rotate_vector_xyzw(
+                target_frame.transform_world_camera.rotation_quat_xyzw,
+                match.normal,
+            )
+            measurement_id = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}-{point_index:05d}"
+            candidates.append(
+                (
+                    JointTrilinearXYZPairMeasurement(
+                        measurement_id=measurement_id,
+                        observation_group=group,
+                        source_point_sensor_m=source_point,
+                        target_point_sensor_m=match.centroid,
+                        source_lattice_weights=trilinear_lattice_weights(
+                            source_point,
+                            minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                            maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                            shape=_SPATIAL_LATTICE_SHAPE,
+                        ),
+                        target_lattice_weights=trilinear_lattice_weights(
+                            match.centroid,
+                            minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                            maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                            shape=_SPATIAL_LATTICE_SHAPE,
+                        ),
+                        plane_normal_world=normal_world,
+                        transform_world_source_initial=source_frame.transform_world_camera,
+                        transform_world_target_initial=target_frame.transform_world_camera,
+                    ),
+                    _TUMXYZPairAssociation(
+                        measurement_id,
+                        group,
+                        source_index,
+                        target_index,
+                        point_index,
+                        match.target_id,
+                        match.centroid_distance_m,
+                    ),
+                )
+            )
+        retained_pairs = _bounded_pair_sample(
+            candidates, options.xyz_pair_max_correspondences_per_pair
+        )
+        retained = [measurement for measurement, _association in retained_pairs]
+        associations.extend(association for _measurement, association in retained_pairs)
+        pair_counts.append((group, len(retained)))
+        measurements.extend(retained)
+        factors.extend(
+            make_joint_trilinear_xyz_pair_factor(
+                measurement,
+                source_pose_block=_pose_block(source_index, source_frame),
+                target_pose_block=_pose_block(target_index, target_frame),
+                xyz_lattice_block=_XYZ_LATTICE_BLOCK,
+            )
+            for measurement in retained
+        )
+    pose_known_bad = (options.known_bad_translation_m,) * 3 + (options.known_bad_rotation_rad,) * 3
+    blocks: list[JointParameterBlock] = [
+        JointParameterBlock(
+            _pose_block(index, frame),
+            (0.0,) * 6,
+            fixed=index == 0,
+            finite_difference_steps=(1.0e-4,) * 3 + (1.0e-5,) * 3,
+            known_bad_steps=pose_known_bad,
+        )
+        for index, frame in enumerate(query_frames)
+    ]
+    dimension = 3 * math.prod(_SPATIAL_LATTICE_SHAPE)
+    blocks.append(
+        JointParameterBlock(
+            _XYZ_LATTICE_BLOCK,
+            (0.0,) * dimension,
+            finite_difference_steps=(1.0e-5,) * dimension,
+            known_bad_steps=(options.known_bad_depth_bias_m,) * dimension,
+        )
+    )
+    return _TUMXYZPairProblem(
+        query_frames,
+        tuple(measurements),
+        tuple(factors),
+        tuple(blocks),
+        tuple(pair_counts),
+        tuple(associations),
+    )
+
+
+def _bounded_pair_sample(
+    measurements: list[tuple[JointTrilinearXYZPairMeasurement, _TUMXYZPairAssociation]],
+    maximum: int,
+) -> list[tuple[JointTrilinearXYZPairMeasurement, _TUMXYZPairAssociation]]:
+    if len(measurements) <= maximum:
+        return measurements
+    step = math.ceil(len(measurements) / maximum)
+    return measurements[::step][:maximum]
+
+
+def _xyz_pair_train_only_factors(
+    problem: _TUMXYZPairProblem,
+    controls: tuple[tuple[float, float, float], ...],
+    rotations: tuple[QuaternionXYZW, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[JointResidualBlock, ...]:
+    pose_sigma = (options.pose_prior_translation_sigma_m,) * 3 + (
+        options.pose_prior_rotation_sigma_rad,
+    ) * 3
+    priors = tuple(
+        make_joint_prior_factor(
+            factor_id=f"xyz-pair-pose-prior-{index:03d}",
+            observation_group="tum-xyz-pair-regularization",
+            block=_pose_block(index, frame),
+            target=(0.0,) * 6,
+            sigma=pose_sigma,
+        )
+        for index, frame in enumerate(problem.query_frames)
+        if index > 0
+    )
+    return (
+        *priors,
+        make_joint_xyz_lattice_shape_factor(
+            factor_id="xyz-pair-lattice-shape",
+            observation_group="tum-xyz-pair-regularization",
+            block=_XYZ_LATTICE_BLOCK,
+            control_points_m=controls,
+            local_rotations_xyzw=rotations,
+            shape=_SPATIAL_LATTICE_SHAPE,
+            sigma_m=options.xyz_lattice_shape_sigma_m,
+        ),
+        make_joint_xyz_lattice_rigid_gauge_factor(
+            factor_id="xyz-pair-lattice-rigid-gauge",
+            observation_group="tum-xyz-pair-regularization",
+            block=_XYZ_LATTICE_BLOCK,
+            control_points_m=controls,
+            translation_sigma_m=options.xyz_lattice_translation_gauge_sigma_m,
+            rotation_sigma_rad=options.xyz_lattice_rotation_gauge_sigma_rad,
+        ),
+    )
+
+
+def _xyz_pair_data_only_observability(
+    problem: _TUMXYZPairProblem,
+    result: JointOptimizerResult,
+    *,
+    include_poses: bool,
+) -> JointObservabilityEvaluation:
+    blocks = tuple(
+        replace(
+            block,
+            initial_values=result.optimized_values[block.name],
+            fixed=(block.name != _XYZ_LATTICE_BLOCK and (not include_poses or block.fixed)),
+        )
+        for block in problem.parameter_blocks
+    )
+    train_groups = set(result.train_observation_groups)
+    train_factors = tuple(
+        factor for factor in problem.data_factors if factor.observation_group in train_groups
+    )
+    return evaluate_joint_observability(blocks, train_factors, result.optimized_values)
 
 
 def _xyz_data_factors(problem: _TUMJointProblem) -> tuple[JointResidualBlock, ...]:
@@ -609,9 +966,7 @@ def _xyz_train_only_factors(
     rotations: tuple[QuaternionXYZW, ...],
     options: TUMJointSlacOptions,
 ) -> tuple[JointResidualBlock, ...]:
-    priors = tuple(
-        factor for factor in problem.all_factors if factor.family == "diagonal_prior"
-    )
+    priors = tuple(factor for factor in problem.all_factors if factor.family == "diagonal_prior")
     shape = make_joint_xyz_lattice_shape_factor(
         factor_id="depth-xyz-lattice-shape",
         observation_group="depth-xyz-lattice-regularization",
@@ -726,9 +1081,7 @@ def _spatial_parameter_blocks(
 def _spatial_train_only_factors(
     problem: _TUMJointProblem, options: TUMJointSlacOptions
 ) -> tuple[JointResidualBlock, ...]:
-    priors = tuple(
-        factor for factor in problem.all_factors if factor.family == "diagonal_prior"
-    )
+    priors = tuple(factor for factor in problem.all_factors if factor.family == "diagonal_prior")
     smoothness = make_joint_lattice_smoothness_factor(
         factor_id="depth-lattice-smoothness",
         observation_group="depth-lattice-regularization",
@@ -787,9 +1140,7 @@ def _xyz_cross_window_transfers(
             if source.start_index == target.start_index:
                 continue
             holdout_ids = set(target.result.holdout_factor_ids)
-            factors = [
-                factor for factor in target.data_factors if factor.factor_id in holdout_ids
-            ]
+            factors = [factor for factor in target.data_factors if factor.factor_id in holdout_ids]
             values = dict(target.result.optimized_values)
             values[_EXTRINSIC_BLOCK] = source.result.optimized_values[_EXTRINSIC_BLOCK]
             values[_XYZ_LATTICE_BLOCK] = source.result.optimized_values[_XYZ_LATTICE_BLOCK]
@@ -820,12 +1171,8 @@ def _iterative_reassociation_runs(
 ) -> tuple[_TUMIterativeReassociationRun, ...]:
     output: list[_TUMIterativeReassociationRun] = []
     for run in runs:
-        plane_map = _build_map_planes(
-            root, run.source_problem.map_frames, intrinsics, options
-        )
-        initial_state = _initial_spatial_reassociation_state(
-            run, plane_map, options
-        )
+        plane_map = _build_map_planes(root, run.source_problem.map_frames, intrinsics, options)
+        initial_state = _initial_spatial_reassociation_state(run, plane_map, options)
         blocks = _spatial_parameter_blocks(run.source_problem, options)
         reassociate = partial(_reassociated_spatial_state, run, plane_map, options)
         result = BackendNeutralJointReassociation().refine(
@@ -837,12 +1184,8 @@ def _iterative_reassociation_runs(
             _joint_optimizer_options(config, options),
             JointReassociationOptions(
                 max_outer_iterations=options.reassociation_max_outer_iterations,
-                minimum_train_pair_jaccard=(
-                    options.reassociation_min_train_pair_jaccard
-                ),
-                minimum_train_retained_fraction=(
-                    options.reassociation_min_train_retained_fraction
-                ),
+                minimum_train_pair_jaccard=(options.reassociation_min_train_pair_jaccard),
+                minimum_train_retained_fraction=(options.reassociation_min_train_retained_fraction),
             ),
         )
         probe_evaluation = evaluate_joint_reassociation_probes(
@@ -851,13 +1194,9 @@ def _iterative_reassociation_runs(
             result,
             reassociate,
             JointReassociationProbeOptions(
-                unmatched_residual_penalty=(
-                    options.reassociation_unmatched_residual_penalty_m
-                ),
+                unmatched_residual_penalty=(options.reassociation_unmatched_residual_penalty_m),
                 known_bad_margin=options.known_bad_margin_m,
-                minimum_retained_fraction=(
-                    options.reassociation_min_train_retained_fraction
-                ),
+                minimum_retained_fraction=(options.reassociation_min_train_retained_fraction),
             ),
         )
         output.append(
@@ -888,9 +1227,7 @@ def _initial_spatial_reassociation_state(
             raise ValueError(
                 f"initial TUM target identity is unavailable for {measurement.measurement_id}"
             )
-        assignments.append(
-            CorrespondenceAssignment(measurement.measurement_id, match.target_id)
-        )
+        assignments.append(CorrespondenceAssignment(measurement.measurement_id, match.target_id))
     return JointReassociationState(run.data_factors, tuple(assignments))
 
 
@@ -915,9 +1252,7 @@ def _reassociated_spatial_state(
         if match is None:
             continue
         factors.append(_spatial_factor(run.source_problem, measurement, match))
-        assignments.append(
-            CorrespondenceAssignment(measurement.measurement_id, match.target_id)
-        )
+        assignments.append(CorrespondenceAssignment(measurement.measurement_id, match.target_id))
     return JointReassociationState(tuple(factors), tuple(assignments))
 
 
@@ -1154,9 +1489,7 @@ def _spatial_measurement_world_point(
     values = dict(run.result.optimized_values)
     values[_EXTRINSIC_BLOCK] = extrinsic
     values[_SPATIAL_BIAS_BLOCK] = (bias_m,)
-    return _spatial_measurement_world_point_from_values(
-        run.source_problem, measurement, values
-    )
+    return _spatial_measurement_world_point_from_values(run.source_problem, measurement, values)
 
 
 def _spatial_measurement_world_point_from_values(
@@ -1756,13 +2089,9 @@ def _xyz_ablation_metrics(
             if probe.block == _XYZ_LATTICE_BLOCK and probe.detectable is not None
         ]
         if probes:
-            field_probe_fractions.append(
-                sum(value is True for value in probes) / len(probes)
-            )
+            field_probe_fractions.append(sum(value is True for value in probes) / len(probes))
     offsets = [
-        value
-        for run in xyz_runs
-        for value in run.result.optimized_values[_XYZ_LATTICE_BLOCK]
+        value for run in xyz_runs for value in run.result.optimized_values[_XYZ_LATTICE_BLOCK]
     ]
     rotation_angles = [
         _quaternion_angle_deg(rotation)
@@ -1778,8 +2107,7 @@ def _xyz_ablation_metrics(
         if transfer["delta_rmse_m"] is not None
     ]
     nondegrading = sum(
-        delta <= options.cross_window_nondegradation_margin_m
-        for delta in transfer_deltas
+        delta <= options.cross_window_nondegradation_margin_m for delta in transfer_deltas
     )
     expected = len(scalar_runs)
     complete = len(xyz_runs) == expected
@@ -1838,9 +2166,7 @@ def _xyz_ablation_metrics(
         "tum_joint_xyz_known_bad_detectable_fraction_min": MetricResult(
             value=min(field_probe_fractions) if field_probe_fractions else None,
             grade=(
-                "pass"
-                if field_probe_fractions and min(field_probe_fractions) == 1.0
-                else "warn"
+                "pass" if field_probe_fractions and min(field_probe_fractions) == 1.0 else "warn"
             ),
             reason="minimum final frozen-factor detection over 48 signed XYZ control probes",
         ),
@@ -1857,15 +2183,145 @@ def _xyz_ablation_metrics(
         ),
         "tum_joint_xyz_cross_window_nondegrading_fraction": MetricResult(
             value=nondegrading / len(transfer_deltas) if transfer_deltas else None,
-            grade=(
-                "pass"
-                if transfer_deltas and nondegrading == len(transfer_deltas)
-                else "fail"
-            ),
+            grade=("pass" if transfer_deltas and nondegrading == len(transfer_deltas) else "fail"),
             reason=(
                 "ordered full-XYZ transfers within declared "
                 f"{options.cross_window_nondegradation_margin_m:g} m RMSE margin"
             ),
+        ),
+    }
+
+
+def _xyz_pair_ablation_metrics(
+    runs: tuple[_TUMXYZPairWindowRun, ...],
+    transfers: tuple[dict[str, float | int | None], ...],
+    options: TUMJointSlacOptions,
+) -> dict[str, MetricResult]:
+    expected = len(options.replication_start_indices)
+    initial_deltas: list[float] = []
+    probe_fractions: list[float] = []
+    for run in runs:
+        holdout_groups = set(run.result.holdout_observation_groups)
+        holdout = [
+            factor
+            for factor in run.problem.data_factors
+            if factor.observation_group in holdout_groups
+        ]
+        initial_values = {
+            block.name: block.initial_values for block in run.problem.parameter_blocks
+        }
+        initial_rmse = _factor_rmse(holdout, initial_values)
+        if initial_rmse is not None and run.result.holdout_rmse is not None:
+            initial_deltas.append(run.result.holdout_rmse - initial_rmse)
+        probes = [probe.detectable for probe in run.result.probes if probe.detectable is not None]
+        if probes:
+            probe_fractions.append(sum(detectable is True for detectable in probes) / len(probes))
+    field_ranks = [run.data_only_field_observability.information_rank for run in runs]
+    joint_ranks = [run.data_only_joint_observability.information_rank for run in runs]
+    augmented_ranks = [run.result.information_rank for run in runs]
+    correspondence_counts = [len(run.problem.measurements) for run in runs]
+    transfer_deltas = [
+        float(transfer["delta_rmse_m"])
+        for transfer in transfers
+        if transfer["delta_rmse_m"] is not None
+    ]
+    nondegrading = sum(
+        delta <= options.cross_window_nondegradation_margin_m for delta in transfer_deltas
+    )
+    expected_augmented_rank = 6 * (len(runs[0].problem.query_frames) - 1) + 24 if runs else None
+    complete = len(runs) == expected
+    return {
+        "tum_joint_xyz_pair_window_count": MetricResult(
+            value=float(len(runs)),
+            unit="windows",
+            grade="pass" if complete else "fail",
+            reason=f"two-sided Eq. (2) windows; expected {expected}",
+        ),
+        "tum_joint_xyz_pair_converged_fraction": MetricResult(
+            value=(
+                sum(run.result.status == "converged" for run in runs) / expected
+                if expected
+                else None
+            ),
+            grade=(
+                "pass"
+                if complete and all(run.result.status == "converged" for run in runs)
+                else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_correspondence_count_min": MetricResult(
+            value=float(min(correspondence_counts)) if correspondence_counts else None,
+            unit="correspondences",
+            grade=(
+                "pass"
+                if correspondence_counts
+                and min(correspondence_counts) >= _MIN_TOTAL_CORRESPONDENCES
+                else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_holdout_improved_fraction": MetricResult(
+            value=(
+                sum(delta < 0.0 for delta in initial_deltas) / len(initial_deltas)
+                if initial_deltas
+                else None
+            ),
+            grade=(
+                "pass"
+                if initial_deltas and all(delta <= 0.0 for delta in initial_deltas)
+                else "fail"
+            ),
+            reason="final versus initial fixed-correspondence pair holdout RMSE",
+        ),
+        "tum_joint_xyz_pair_worst_holdout_delta_rmse_m": MetricResult(
+            value=max(initial_deltas) if initial_deltas else None,
+            unit="m",
+            grade=("pass" if initial_deltas and max(initial_deltas) <= 0.0 else "fail"),
+        ),
+        "tum_joint_xyz_pair_data_only_field_rank_min": MetricResult(
+            value=float(min(field_ranks)) if field_ranks else None,
+            grade="pass" if field_ranks and min(field_ranks) == 24 else "fail",
+            reason="two-sided train data rank of 24 XYZ controls with poses fixed",
+        ),
+        "tum_joint_xyz_pair_data_only_joint_rank_min": MetricResult(
+            value=float(min(joint_ranks)) if joint_ranks else None,
+            grade=(
+                "pass"
+                if joint_ranks
+                and expected_augmented_rank is not None
+                and min(joint_ranks) == expected_augmented_rank
+                else "warn"
+            ),
+            reason="pair-data pose/field rank after fixing the first-pose world gauge",
+        ),
+        "tum_joint_xyz_pair_augmented_rank_min": MetricResult(
+            value=float(min(augmented_ranks)) if augmented_ranks else None,
+            grade=(
+                "pass"
+                if augmented_ranks
+                and expected_augmented_rank is not None
+                and min(augmented_ranks) == expected_augmented_rank
+                else "fail"
+            ),
+            reason="pair data plus train-only pose, shape, and rigid-field priors",
+        ),
+        "tum_joint_xyz_pair_known_bad_detectable_fraction_min": MetricResult(
+            value=min(probe_fractions) if probe_fractions else None,
+            grade=("pass" if probe_fractions and min(probe_fractions) == 1.0 else "warn"),
+            reason="signed non-gauge pose and XYZ-field perturbations on held-out pairs",
+        ),
+        "tum_joint_xyz_pair_cross_window_max_holdout_delta_rmse_m": MetricResult(
+            value=max(transfer_deltas) if transfer_deltas else None,
+            unit="m",
+            grade=(
+                "pass"
+                if transfer_deltas
+                and max(transfer_deltas) <= options.cross_window_nondegradation_margin_m
+                else "fail"
+            ),
+        ),
+        "tum_joint_xyz_pair_cross_window_nondegrading_fraction": MetricResult(
+            value=nondegrading / len(transfer_deltas) if transfer_deltas else None,
+            grade=("pass" if transfer_deltas and nondegrading == len(transfer_deltas) else "fail"),
         ),
     }
 
@@ -2020,9 +2476,7 @@ def _iterative_reassociation_metrics(
             if probe.detectable is not None
         ]
         if probes:
-            detectable_fractions.append(
-                sum(value is True for value in probes) / len(probes)
-            )
+            detectable_fractions.append(sum(value is True for value in probes) / len(probes))
         aware = run.probe_evaluation
         aware_baseline_retentions.append(aware.baseline_retained_fraction)
         valid = [probe for probe in aware.probes if probe.detectable is not None]
@@ -2033,9 +2487,7 @@ def _iterative_reassociation_metrics(
                 sum(probe.detectable is True for probe in valid) / len(valid)
             )
         support = [
-            probe.support_collapse
-            for probe in aware.probes
-            if probe.support_collapse is not None
+            probe.support_collapse for probe in aware.probes if probe.support_collapse is not None
         ]
         if support:
             aware_support_collapse_fractions.append(
@@ -2044,8 +2496,7 @@ def _iterative_reassociation_metrics(
         aware_pair_jaccards.extend(
             probe.stability.pair_jaccard
             for probe in aware.probes
-            if probe.stability is not None
-            and probe.stability.pair_jaccard is not None
+            if probe.stability is not None and probe.stability.pair_jaccard is not None
         )
     train_jaccard_min = min(train_jaccards) if train_jaccards else None
     train_retention_min = min(train_retentions) if train_retentions else None
@@ -2067,8 +2518,7 @@ def _iterative_reassociation_metrics(
             grade=(
                 "pass"
                 if train_jaccard_min is not None
-                and train_jaccard_min
-                >= options.reassociation_min_train_pair_jaccard
+                and train_jaccard_min >= options.reassociation_min_train_pair_jaccard
                 else "fail"
             ),
             reason="terminal train query/target pair Jaccard over temporal windows",
@@ -2078,8 +2528,7 @@ def _iterative_reassociation_metrics(
             grade=(
                 "pass"
                 if train_retention_min is not None
-                and train_retention_min
-                >= options.reassociation_min_train_retained_fraction
+                and train_retention_min >= options.reassociation_min_train_retained_fraction
                 else "fail"
             ),
             reason="terminal train query retention over temporal windows",
@@ -2103,26 +2552,17 @@ def _iterative_reassociation_metrics(
         ),
         "tum_joint_reassociation_known_bad_detectable_fraction_min": MetricResult(
             value=min(detectable_fractions) if detectable_fractions else None,
-            grade=(
-                "pass"
-                if detectable_fractions and min(detectable_fractions) == 1.0
-                else "warn"
-            ),
+            grade=("pass" if detectable_fractions and min(detectable_fractions) == 1.0 else "warn"),
             reason=(
                 "signed probes on final frozen correspondences; reported separately "
                 "from reassociation-aware probes"
             ),
         ),
         "tum_joint_reassociation_aware_known_bad_detectable_fraction_min": MetricResult(
-            value=(
-                min(aware_detectable_fractions)
-                if aware_detectable_fractions
-                else None
-            ),
+            value=(min(aware_detectable_fractions) if aware_detectable_fractions else None),
             grade=(
                 "pass"
-                if aware_detectable_fractions
-                and min(aware_detectable_fractions) == 1.0
+                if aware_detectable_fractions and min(aware_detectable_fractions) == 1.0
                 else "warn"
             ),
             reason="fixed-population holdout probes rebuild correspondences",
@@ -2130,22 +2570,17 @@ def _iterative_reassociation_metrics(
         "tum_joint_reassociation_aware_probe_valid_fraction_min": MetricResult(
             value=min(aware_valid_fractions) if aware_valid_fractions else None,
             grade=(
-                "pass"
-                if aware_valid_fractions and min(aware_valid_fractions) == 1.0
-                else "fail"
+                "pass" if aware_valid_fractions and min(aware_valid_fractions) == 1.0 else "fail"
             ),
             reason="fraction of declared probes with a valid reassociation evaluation",
         ),
         "tum_joint_reassociation_aware_support_collapse_fraction_max": MetricResult(
             value=(
-                max(aware_support_collapse_fractions)
-                if aware_support_collapse_fractions
-                else None
+                max(aware_support_collapse_fractions) if aware_support_collapse_fractions else None
             ),
             grade=(
                 "pass"
-                if aware_support_collapse_fractions
-                and max(aware_support_collapse_fractions) == 0.0
+                if aware_support_collapse_fractions and max(aware_support_collapse_fractions) == 0.0
                 else "warn"
             ),
             reason="probe retention below the declared fixed-population support gate",
@@ -2156,11 +2591,7 @@ def _iterative_reassociation_metrics(
             reason="minimum baseline/perturbed holdout query-target pair Jaccard",
         ),
         "tum_joint_reassociation_aware_baseline_retained_fraction_min": MetricResult(
-            value=(
-                min(aware_baseline_retentions)
-                if aware_baseline_retentions
-                else None
-            ),
+            value=(min(aware_baseline_retentions) if aware_baseline_retentions else None),
             grade=(
                 "pass"
                 if aware_baseline_retentions
@@ -2214,12 +2645,14 @@ def _provenance(
     spatial_transfers: tuple[dict[str, float | int | None], ...],
     xyz_runs: tuple[_TUMXYZWindowRun, ...],
     xyz_transfers: tuple[dict[str, float | int | None], ...],
+    xyz_pair_runs: tuple[_TUMXYZPairWindowRun, ...],
+    xyz_pair_transfers: tuple[dict[str, float | int | None], ...],
     reassociation_runs: tuple[_TUMIterativeReassociationRun, ...],
     rematching: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.2",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.3",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -2309,16 +2742,12 @@ def _provenance(
             "shape_sigma_m": options.xyz_lattice_shape_sigma_m,
             "local_rotation_updates": options.xyz_lattice_local_rotation_updates,
             "local_rotation_estimator": "per-node proper-rotation Procrustes fit",
-            "rigid_gauge": (
-                "train-only mean translation plus infinitesimal rotation moment"
-            ),
-            "translation_gauge_sigma_m": (
-                options.xyz_lattice_translation_gauge_sigma_m
-            ),
+            "rigid_gauge": ("train-only mean translation plus infinitesimal rotation moment"),
+            "translation_gauge_sigma_m": (options.xyz_lattice_translation_gauge_sigma_m),
             "rotation_gauge_sigma_rad": options.xyz_lattice_rotation_gauge_sigma_rad,
             "target_policy": (
-                "fixed disjoint map planes; this public adapter specializes equation 2 "
-                "rather than claiming pairwise calibration on both sides"
+                "the fixed-map ablation calibrates only the query side; the separate "
+                "xyz_pair model below calibrates both correspondence endpoints"
             ),
         },
         "native_tum_joint_slac_xyz_lattice_windows": [
@@ -2330,6 +2759,35 @@ def _provenance(
             "poses; local-rotation and gauge residuals are excluded"
         ),
         "native_tum_joint_slac_xyz_cross_window_transfers": list(xyz_transfers),
+        "native_tum_joint_slac_xyz_pair_model": {
+            "kind": "two_sided_query_query_full_xyz_trilinear_field",
+            "primary_source": "Zhou and Koltun, CVPR 2014, equation 2",
+            "residual": "(T_i C(p) - T_j C(q)) dot n_world",
+            "pair_stride": options.xyz_pair_stride,
+            "maximum_correspondences_per_pair": (options.xyz_pair_max_correspondences_per_pair),
+            "correspondence_policy": (
+                "source points transformed by initial T_target_source and associated "
+                "to target-local voxel-plane centroids; assignments remain frozen"
+            ),
+            "normal_policy": "target-local plane normal rotated to world by initial T_world_target",
+            "split_policy": (
+                "observation groups are complete directed frame-pair edges; held-out "
+                "edges are factor-disjoint but may share endpoint frames with train edges"
+            ),
+            "world_gauge": "first query pose correction fixed to zero",
+            "regularization": (
+                "train-only ground-truth pose priors, Eq. (4) frozen local rotations, "
+                "and full-XYZ rigid-field gauge"
+            ),
+        },
+        "native_tum_joint_slac_xyz_pair_windows": [
+            _xyz_pair_window_provenance(run) for run in xyz_pair_runs
+        ],
+        "native_tum_joint_slac_xyz_pair_cross_window_policy": (
+            "source 24-dimensional calibration field is evaluated on target held-out "
+            "pair edges while retaining target optimized pose corrections"
+        ),
+        "native_tum_joint_slac_xyz_pair_cross_window_transfers": list(xyz_pair_transfers),
         "native_tum_joint_slac_iterative_reassociation_policy": (
             "each spatial window alternates nearest voxel-plane reassociation and "
             "warm-start backend-neutral optimization; only train pair Jaccard and "
@@ -2340,9 +2798,7 @@ def _provenance(
                 "start_index": run.start_index,
                 "baseline_holdout_rmse_m": run.baseline.result.holdout_rmse,
                 "result": run.result.as_dict(),
-                "reassociation_aware_probe_evaluation": (
-                    run.probe_evaluation.as_dict()
-                ),
+                "reassociation_aware_probe_evaluation": (run.probe_evaluation.as_dict()),
             }
             for run in reassociation_runs
         ],
@@ -2434,15 +2890,42 @@ def _xyz_window_provenance(run: _TUMXYZWindowRun) -> dict[str, Any]:
         "xyz_control_offsets_m": vectors,
         "max_abs_offset_component_m": max(abs(value) for value in offsets),
         "local_rotation_history_xyzw": [
-            [list(rotation) for rotation in rotations]
-            for rotations in run.local_rotation_history
+            [list(rotation) for rotation in rotations] for rotations in run.local_rotation_history
         ],
-        "data_only_field_observability": (
-            run.data_only_field_observability.as_dict()
+        "data_only_field_observability": (run.data_only_field_observability.as_dict()),
+        "data_only_shared_observability": (run.data_only_shared_observability.as_dict()),
+        "optimizer_rounds": [result.as_dict() for result in run.results],
+    }
+
+
+def _xyz_pair_window_provenance(run: _TUMXYZPairWindowRun) -> dict[str, Any]:
+    offsets = run.result.optimized_values[_XYZ_LATTICE_BLOCK]
+    holdout_groups = set(run.result.holdout_observation_groups)
+    return {
+        "start_index": run.start_index,
+        "status": run.result.status,
+        "query_frame_ids": [
+            f"{frame.depth.timestamp_sec:.6f}" for frame in run.problem.query_frames
+        ],
+        "pair_correspondence_counts": dict(run.problem.pair_counts),
+        "fixed_associations": [association.as_dict() for association in run.problem.associations],
+        "train_pair_groups": list(run.result.train_observation_groups),
+        "holdout_pair_groups": sorted(holdout_groups),
+        "train_correspondence_count": sum(
+            count for group, count in run.problem.pair_counts if group not in holdout_groups
         ),
-        "data_only_shared_observability": (
-            run.data_only_shared_observability.as_dict()
+        "holdout_correspondence_count": sum(
+            count for group, count in run.problem.pair_counts if group in holdout_groups
         ),
+        "xyz_control_offsets_m": [
+            list(offsets[index : index + 3]) for index in range(0, len(offsets), 3)
+        ],
+        "max_abs_offset_component_m": max(abs(value) for value in offsets),
+        "local_rotation_history_xyzw": [
+            [list(rotation) for rotation in rotations] for rotations in run.local_rotation_history
+        ],
+        "data_only_field_observability": (run.data_only_field_observability.as_dict()),
+        "data_only_joint_observability": (run.data_only_joint_observability.as_dict()),
         "optimizer_rounds": [result.as_dict() for result in run.results],
     }
 
@@ -2596,6 +3079,16 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             values,
             "xyz_lattice_local_rotation_updates",
             defaults.xyz_lattice_local_rotation_updates,
+        ),
+        xyz_pair_max_correspondences_per_pair=_integer(
+            values,
+            "xyz_pair_max_correspondences_per_pair",
+            defaults.xyz_pair_max_correspondences_per_pair,
+        ),
+        xyz_pair_stride=_integer(
+            values,
+            "xyz_pair_stride",
+            defaults.xyz_pair_stride,
         ),
     )
 

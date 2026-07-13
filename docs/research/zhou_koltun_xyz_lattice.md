@@ -67,6 +67,13 @@ update. A global XYZ translation has exactly zero shape residual over all 24
 directed edges of a 2 by 2 by 2 lattice, while a single-node distortion is
 detected.
 
+The two-sided optimizer recovery test creates five complete synthetic capture
+groups whose target poses make the paper residual zero only at a declared
+24-dimensional field truth. A seeded group split holds out one whole capture
+group. The native optimizer recovers every control within `1e-8 m`, reaches
+rank 24/24, has holdout RMSE below `1e-9 m`, and detects all 48 signed field
+probes. This is distinct from the fixed-map recovery test below.
+
 The optimizer recovery test estimates all 24 XYZ control dimensions from five
 frame-level observation groups. The seeded split leaves one whole group for
 holdout. It recovers every control displacement within `1e-8 m`, obtains data
@@ -88,10 +95,35 @@ full-XYZ-minus-scalar change is +0.004047 m and FAILs. Maximum displacement is
 weakest frozen-factor probe detection is 11/48. The public result therefore
 does not claim useful lateral calibration despite full field-only rank.
 
-The adapter still uses fixed disjoint map planes, which is explicitly labelled
-as a specialization of Equation (2). Reassociation-aware probes lower
+The fixed-map branch still uses disjoint map planes and remains explicitly
+labelled as a specialization of Equation (2). Reassociation-aware probes lower
 the weakest detection fraction from 0.533 frozen to 0.433 with no support
 collapse. Ordered extrinsic/field transfer passes the unchanged 0.005 m margin
-in only 2/6 directions; the worst holdout increase is 0.011746 m. A public
-two-sided correspondence frontend remains the next missing paper-level
-evidence component.
+in only 2/6 directions; the worst holdout increase is 0.011746 m.
+
+A public two-sided branch now builds seven adjacent query-query edges per
+window. Source points are transformed by the initial `T_target_source`, matched
+to target-local voxel-plane centroids, and both endpoints pass through the same
+`C`. Target normals are rotated into world coordinates. Assignments remain
+fixed, so this is the paper's Eq. (2) residual rather than an undocumented
+rematching objective.
+
+The split holds out complete pair edges: five train and two holdout edges per
+window. It is factor-disjoint but honestly not frame-disjoint because adjacent
+edges share endpoint frames. With 60 deterministically distributed matches per
+edge, the three windows retain 414, 405, and 403 correspondences. Both frozen
+local-rotation rounds converge. Field-only rank is 24/24; data-only joint rank
+is 57/66 after fixing the first-pose world gauge, so it remains WARN. Train-only
+pose, shape, and rigid-field priors raise the augmented systems to 66/66 but do
+not replace that diagnostic.
+
+Only one of three pair holdouts improves over identity initialization; the
+worst increase is `3.85e-6 m`, hence FAIL under the unchanged zero-degradation
+comparison. The weakest signed pose/field probe detection is 39/132 (0.2955),
+also WARN. In contrast, all six ordered field-only transfers stay inside the
+unchanged 0.005 m margin; the worst increase is only `4.67e-8 m`. This
+establishes the missing public two-sided execution path while refusing to turn
+augmented rank or near-zero transfer deltas into a claim of strong calibration
+observability. Every fixed association retains its source sample index, pair
+group, stable target voxel ID, and initial centroid distance alongside the raw
+frame hashes and deterministic sampling policy.
