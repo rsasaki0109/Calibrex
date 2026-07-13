@@ -35,6 +35,7 @@ from calibrex.solvers.native_planar_board_solver import (
     NATIVE_PLANAR_BOARD_BACKEND,
     NativePlanarBoardSolver,
     read_acfr_vlp_plane_observations,
+    read_acfr_vlp_point_plane_observations,
 )
 from calibrex.solvers.native_registration_comparison_solver import (
     NATIVE_REGISTRATION_COMPARISON_BACKEND,
@@ -74,6 +75,15 @@ from calibrex.solvers.planar_board_line_plane_solver import (
     PlanarBoardLinePlaneResult,
     PlanarBoardLinePlaneSolver,
     evaluate_line_plane_observations,
+)
+from calibrex.solvers.point_plane_lidar_camera_solver import (
+    PointPlaneEvaluation,
+    PointPlaneLidarCameraResult,
+    PointPlaneLidarCameraSolver,
+    PointPlaneObservation,
+    PointPlaneProbe,
+    PointPlaneSolverOptions,
+    evaluate_point_plane_observations,
 )
 from calibrex.solvers.radar_ego_velocity_solver import (
     RadarDopplerObservation,
@@ -179,6 +189,12 @@ __all__ = [
     "PlanarBoardObservation",
     "PlanarBoardProbeResult",
     "PlanarBoardSolverOptions",
+    "PointPlaneEvaluation",
+    "PointPlaneLidarCameraResult",
+    "PointPlaneLidarCameraSolver",
+    "PointPlaneObservation",
+    "PointPlaneProbe",
+    "PointPlaneSolverOptions",
     "RadarDopplerObservation",
     "RadarEgoVelocityResult",
     "RadarEgoVelocitySolver",
@@ -209,12 +225,14 @@ __all__ = [
     "evaluate_icp_candidate",
     "evaluate_line_plane_observations",
     "evaluate_planar_board_observations",
+    "evaluate_point_plane_observations",
     "lidar_pair_dataset_files",
     "lidar_pair_solve_inputs",
     "load_lidar_pair",
     "radar_spatiotemporal_rmse",
     "radar_trajectory_yaw_rmse",
     "read_acfr_vlp_plane_observations",
+    "read_acfr_vlp_point_plane_observations",
     "split_icp_source_points",
     "voxel_downsample_icp_points",
 ]

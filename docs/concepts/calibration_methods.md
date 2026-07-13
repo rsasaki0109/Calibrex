@@ -19,6 +19,7 @@ holdout evaluation, and known-bad controls.
 | Radar-to-trajectory yaw | Radar extrinsic rotation from paired velocities | Native solver | deterministic holdout, direction diversity, four yaw controls |
 | Radar lever arm and clock offset | Translation/time from Radar and reference velocities | Native solver | profiled time grid, lever-arm spectrum, holdout, eight controls |
 | Planar-board LiDAR-camera plane alignment | LiDAR-to-camera 6-DoF extrinsic | Native solver | capture holdout, normal/offset closure, normal-span diagnostics |
+| Planar-board LiDAR-camera point+plane | Independent centre/normal 6-DoF baseline | Native solver | shared capture holdout, 6D joint spectrum, 12 known-bad controls, ACFR real data |
 | Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | plane/edge closure, separate rotation/translation spectra, edge-angle gate |
 | Robust point-to-point ICP | Generic local 3D registration | Native solver | spatial-block holdout, mutual/trimmed matches, 3D-spread and frozen-pair diagnostics |
 | Open3D Generalized ICP | Optional probabilistic registration baseline | MIT adapter | train-only source fit, common Calibrex spatial holdout/rematching metrics |
@@ -39,9 +40,9 @@ full 3D support.
 
 ## Next Native Methods
 
-1. Public-data adapter for Radar lever-arm and clock-offset evidence.
-2. Camera-LiDAR external baseline comparison with capture-time semantics.
-3. Backend-neutral joint SLAC factors and optimizer.
+1. Per-point Camera-LiDAR capture-time application on a public dataset that exposes firing times.
+2. Backend-neutral joint SLAC factor and optimizer extensions.
+3. Additional paper-independent baselines behind the common evidence contract.
 
 ## Optional Adapter Methods
 

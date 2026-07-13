@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import math
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -20,6 +21,11 @@ from calibrex.solvers.planar_board_lidar_camera_solver import (
     PlanarBoardLidarCameraSolver,
     PlanarBoardObservation,
     PlanarBoardSolverOptions,
+)
+from calibrex.solvers.point_plane_lidar_camera_solver import (
+    PointPlaneLidarCameraSolver,
+    PointPlaneObservation,
+    PointPlaneSolverOptions,
 )
 
 NATIVE_PLANAR_BOARD_BACKEND = "native_planar_board"
@@ -62,6 +68,7 @@ class NativePlanarBoardSolver(SolverAdapter):
             )
         try:
             observations = read_acfr_vlp_plane_observations(poses_path)
+            point_plane_observations = read_acfr_vlp_point_plane_observations(poses_path)
         except ValueError as exc:
             return SolverAdapterResult(
                 backend=self.backend,
@@ -82,6 +89,37 @@ class NativePlanarBoardSolver(SolverAdapter):
             observations,
             initial_transform=initial,
             options=solver_options,
+        )
+        point_plane_options = PointPlaneSolverOptions(
+            holdout_ratio=config.evaluation.holdout_ratio,
+            split_seed=config.solver.seed or 0,
+            normal_scale_m=_float_option(options, "point_plane_normal_scale_m", 1.0),
+            huber_delta_m=_float_option(options, "point_plane_huber_delta_m", 0.05),
+            max_iterations=config.solver.max_iterations,
+            convergence_tolerance=config.solver.convergence_tolerance,
+        )
+        point_plane = PointPlaneLidarCameraSolver().solve(
+            point_plane_observations,
+            point_plane_options,
+        )
+        point_plane_detectable = sum(probe.detectable is True for probe in point_plane.probes)
+        point_plane_probe_count = len(point_plane.probes)
+        point_plane_detectable_fraction = (
+            point_plane_detectable / point_plane_probe_count if point_plane_probe_count else None
+        )
+        point_plane_holdout = point_plane.holdout_evaluation
+        point_plane_pass = (
+            point_plane.status == "converged"
+            and point_plane.joint_rank == 6
+            and point_plane_holdout.center_rmse_m is not None
+            and point_plane_holdout.center_rmse_m
+            <= _float_option(options, "max_point_plane_holdout_center_rmse_m", 0.03)
+            and point_plane_holdout.normal_rmse_deg is not None
+            and point_plane_holdout.normal_rmse_deg
+            <= _float_option(options, "max_point_plane_holdout_normal_rmse_deg", 3.0)
+            and point_plane_detectable_fraction is not None
+            and point_plane_detectable_fraction
+            >= _float_option(options, "min_point_plane_known_bad_detectable_fraction", 0.8)
         )
         holdout = solved.holdout_evaluation
         detectable = sum(probe.detectable is True for probe in solved.probes)
@@ -121,8 +159,66 @@ class NativePlanarBoardSolver(SolverAdapter):
                 grade="pass" if evidence_pass else "warn",
                 reason=f"{detectable}/{probe_count} held-out 6-DoF controls detected",
             ),
+            "point_plane_center_rmse_m": MetricResult(
+                train=point_plane.train_evaluation.center_rmse_m,
+                holdout=point_plane_holdout.center_rmse_m,
+                unit="m",
+                grade="pass" if point_plane_pass else "warn",
+            ),
+            "point_plane_normal_rmse_deg": MetricResult(
+                train=point_plane.train_evaluation.normal_rmse_deg,
+                holdout=point_plane_holdout.normal_rmse_deg,
+                unit="deg",
+                grade="pass" if point_plane_pass else "warn",
+            ),
+            "point_plane_offset_rmse_m": MetricResult(
+                train=point_plane.train_evaluation.plane_offset_rmse_m,
+                holdout=point_plane_holdout.plane_offset_rmse_m,
+                unit="m",
+                grade="warn",
+                reason="induced plane-offset closure; no acceptance threshold is declared",
+            ),
+            "point_plane_known_bad_detectable_fraction": MetricResult(
+                value=point_plane_detectable_fraction,
+                unit="fraction",
+                grade="pass" if point_plane_pass else "warn",
+                reason=(
+                    f"{point_plane_detectable}/{point_plane_probe_count} held-out "
+                    "centre/normal 6-DoF controls detected"
+                ),
+            ),
+            "point_plane_joint_rank": MetricResult(
+                value=float(point_plane.joint_rank),
+                unit="rank",
+                grade="pass" if point_plane.joint_rank == 6 else "warn",
+            ),
+            "point_plane_joint_condition_number": MetricResult(
+                value=point_plane.joint_condition_number,
+                unit="ratio",
+                grade="pass" if point_plane_pass else "warn",
+            ),
         }
-        warnings = [] if evidence_pass else ["multi-plane evidence did not pass all default gates"]
+        comparison = _point_plane_comparison(
+            solved.transform_camera_lidar,
+            point_plane.transform_camera_lidar,
+        )
+        metrics["point_plane_vs_plane_translation_delta_m"] = MetricResult(
+            value=comparison["translation_delta_m"],
+            unit="m",
+            grade="warn",
+            reason="independent baseline delta; no metrology threshold is declared",
+        )
+        metrics["point_plane_vs_plane_rotation_delta_deg"] = MetricResult(
+            value=comparison["rotation_delta_deg"],
+            unit="deg",
+            grade="warn",
+            reason="independent baseline delta; no metrology threshold is declared",
+        )
+        warnings = []
+        if not evidence_pass:
+            warnings.append("multi-plane evidence did not pass all default gates")
+        if not point_plane_pass:
+            warnings.append("point+plane independent baseline did not pass all default gates")
         transforms = (
             {"T_camera0_lidar0": solved.transform_camera_lidar}
             if solved.transform_camera_lidar is not None
@@ -146,7 +242,7 @@ class NativePlanarBoardSolver(SolverAdapter):
                 "raw_input_files": [
                     {
                         "path": str(poses_path),
-                        "role": "extracted_plane_observations",
+                        "role": "extracted_board_center_normal_observations",
                         "sha256": sha256_path(poses_path),
                         "size_bytes": poses_path.stat().st_size,
                         "source_url": ACFR_VLP_SOURCE_URL,
@@ -160,6 +256,23 @@ class NativePlanarBoardSolver(SolverAdapter):
                     "extractor_license_spdx": "Apache-2.0",
                     "external_code_executed": False,
                 },
+                "native_point_plane_baseline": {
+                    "result": point_plane.as_dict(),
+                    "comparison_to_plane_only": comparison,
+                    "evidence_pass": point_plane_pass,
+                    "input_format": ACFR_VLP_FORMAT,
+                    "source_rows": {
+                        "camera_center": 0,
+                        "camera_normal": 1,
+                        "lidar_center": 6,
+                        "lidar_normal": 7,
+                        "rows_per_capture": 19,
+                    },
+                    "extractor": "acfr/cam_lidar_calibration upstream feature extractor",
+                    "extractor_commit": ACFR_VLP_SOURCE_COMMIT,
+                    "extractor_license_spdx": "Apache-2.0",
+                    "external_code_executed": False,
+                },
             },
             warnings=warnings,
         )
@@ -168,19 +281,7 @@ class NativePlanarBoardSolver(SolverAdapter):
 def read_acfr_vlp_plane_observations(path: str | Path) -> list[PlanarBoardObservation]:
     """Read ACFR's public VLP quick-start feature rows without importing ROS code."""
 
-    input_path = Path(path)
-    rows: list[tuple[float, float, float]] = []
-    with input_path.open(newline="", encoding="utf-8") as handle:
-        for line_number, row in enumerate(csv.reader(handle), start=1):
-            if len(row) != 3:
-                raise ValueError(f"{input_path}:{line_number}: expected three CSV values")
-            try:
-                rows.append((float(row[0]), float(row[1]), float(row[2])))
-            except ValueError as exc:
-                raise ValueError(f"{input_path}:{line_number}: non-numeric CSV value") from exc
-    if not rows or len(rows) % 19 != 0:
-        raise ValueError(f"{input_path}: ACFR poses must contain complete 19-row captures")
-
+    rows = _read_acfr_vlp_rows(path)
     observations: list[PlanarBoardObservation] = []
     for start in range(0, len(rows), 19):
         camera_center = np.asarray(rows[start], dtype=float) / 1000.0
@@ -193,12 +294,65 @@ def read_acfr_vlp_plane_observations(path: str | Path) -> list[PlanarBoardObserv
                 camera_plane=OrientedPlane(
                     tuple(camera_normal), -float(camera_normal @ camera_center)
                 ),
-                lidar_plane=OrientedPlane(
-                    tuple(lidar_normal), -float(lidar_normal @ lidar_center)
-                ),
+                lidar_plane=OrientedPlane(tuple(lidar_normal), -float(lidar_normal @ lidar_center)),
             )
         )
     return observations
+
+
+def read_acfr_vlp_point_plane_observations(
+    path: str | Path,
+) -> list[PointPlaneObservation]:
+    """Read ACFR checkerboard centre/normal pairs for an independent baseline."""
+
+    rows = _read_acfr_vlp_rows(path)
+    observations: list[PointPlaneObservation] = []
+    for start in range(0, len(rows), 19):
+        observations.append(
+            PointPlaneObservation(
+                frame_id=f"acfr-vlp-{start // 19 + 1:03d}",
+                camera_center_m=_millimetres_to_metres(rows[start]),
+                camera_normal=rows[start + 1],
+                lidar_center_m=_millimetres_to_metres(rows[start + 6]),
+                lidar_normal=rows[start + 7],
+            )
+        )
+    return observations
+
+
+def _read_acfr_vlp_rows(path: str | Path) -> list[tuple[float, float, float]]:
+    input_path = Path(path)
+    rows: list[tuple[float, float, float]] = []
+    with input_path.open(newline="", encoding="utf-8") as handle:
+        for line_number, row in enumerate(csv.reader(handle), start=1):
+            if len(row) != 3:
+                raise ValueError(f"{input_path}:{line_number}: expected three CSV values")
+            try:
+                rows.append((float(row[0]), float(row[1]), float(row[2])))
+            except ValueError as exc:
+                raise ValueError(f"{input_path}:{line_number}: non-numeric CSV value") from exc
+    if not rows or len(rows) % 19 != 0:
+        raise ValueError(f"{input_path}: ACFR poses must contain complete 19-row captures")
+    return rows
+
+
+def _millimetres_to_metres(value: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (value[0] / 1000.0, value[1] / 1000.0, value[2] / 1000.0)
+
+
+def _point_plane_comparison(
+    plane_only: SE3 | None,
+    point_plane: SE3 | None,
+) -> dict[str, float | None]:
+    if plane_only is None or point_plane is None:
+        return {"translation_delta_m": None, "rotation_delta_deg": None}
+    relative = plane_only.inverse().compose(point_plane)
+    translation_delta = math.sqrt(sum(value * value for value in relative.translation_m))
+    scalar = min(1.0, abs(relative.rotation_quat_xyzw[3]))
+    return {
+        "translation_delta_m": translation_delta,
+        "rotation_delta_deg": math.degrees(2.0 * math.acos(scalar)),
+    }
 
 
 def _factor(config: CalibrationConfig) -> FactorConfig | None:

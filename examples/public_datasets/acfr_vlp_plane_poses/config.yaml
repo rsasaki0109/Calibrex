@@ -45,6 +45,11 @@ pipeline:
         max_holdout_normal_rmse_deg: 3.0
         max_holdout_offset_rmse_m: 0.05
         min_known_bad_detectable_fraction: 0.8
+        point_plane_normal_scale_m: 1.0
+        point_plane_huber_delta_m: 0.05
+        max_point_plane_holdout_center_rmse_m: 0.03
+        max_point_plane_holdout_normal_rmse_deg: 3.0
+        min_point_plane_known_bad_detectable_fraction: 0.8
 
 solver:
   backend: native_planar_board
@@ -59,6 +64,14 @@ evaluation:
     - planar_board_normal_rmse_deg
     - planar_board_offset_rmse_m
     - planar_board_known_bad_detectable_fraction
+    - point_plane_center_rmse_m
+    - point_plane_normal_rmse_deg
+    - point_plane_offset_rmse_m
+    - point_plane_known_bad_detectable_fraction
+    - point_plane_joint_rank
+    - point_plane_joint_condition_number
+    - point_plane_vs_plane_translation_delta_m
+    - point_plane_vs_plane_rotation_delta_deg
 
 outputs:
   result: result.yaml

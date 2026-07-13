@@ -581,6 +581,10 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "lidar_camera_comparison_candidate_count" in names
     assert "lidar_camera_capture_time_policy_declared" in names
     assert "lidar_camera_capture_time_deskew_applied" in names
+    assert "point_plane_center_rmse_m" in names
+    assert "point_plane_known_bad_detectable_fraction" in names
+    assert "point_plane_joint_rank" in names
+    assert "point_plane_vs_plane_rotation_delta_deg" in names
     definition = get_metric_definition("autonomous_driving_dynamic_holdout")
     assert definition is not None
     assert definition.family == "autonomous_driving"

@@ -840,6 +840,52 @@ def _register_builtin_metrics() -> None:
         MetricDefinition("rgbd_fragment_count", "RGB-D fragment count", family="open3d"),
         MetricDefinition("pose_graph_edges", "Pose graph edge count", family="open3d"),
         MetricDefinition(
+            "point_plane_center_rmse_m",
+            "Board-centre closure RMSE for the independent Camera-LiDAR point+plane baseline",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_normal_rmse_deg",
+            "Board-normal closure RMSE for the independent Camera-LiDAR point+plane baseline",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_offset_rmse_m",
+            "Board-plane offset closure RMSE for the Camera-LiDAR point+plane baseline",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_known_bad_detectable_fraction",
+            "Fraction of held-out point+plane 6-DoF controls detected",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_joint_rank",
+            "Rank of the Camera-LiDAR centre/normal six-DoF Jacobian",
+            "rank",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_joint_condition_number",
+            "Condition number of the Camera-LiDAR centre/normal six-DoF Jacobian",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_vs_plane_translation_delta_m",
+            "Translation delta between point+plane and plane-only Camera-LiDAR baselines",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "point_plane_vs_plane_rotation_delta_deg",
+            "Rotation delta between point+plane and plane-only Camera-LiDAR baselines",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
             "koide_lidar_camera_adapter_available",
             "Koide-style targetless LiDAR-camera adapter availability",
             family="backend",

@@ -26,9 +26,15 @@ calibrex calibrate examples/public_datasets/acfr_vlp_plane_poses/config.yaml
 calibrex verify outputs/acfr_vlp_plane_poses/bundle.json
 ```
 
-The native solver consumes only extracted oriented-plane correspondences. The
-upstream ROS/PCL feature extractor stays outside the core and its pinned commit,
-Apache-2.0 license, input digest, and source URL are recorded as provenance.
+The run evaluates two independent native baselines on the same capture split:
+Zhang-Pless plane-only alignment and a Verma-style board-centre/normal robust
+Procrustes solver. The latter reports centre/normal/offset holdout closure, a
+six-DoF joint spectrum, and twelve known-bad controls. On the pinned real VLP-16
+poses its gates PASS (1.17 cm centre RMSE, 1.68° normal RMSE, 12/12 controls),
+while the 1.76 cm / 0.219° inter-method transform delta remains an ungated WARN
+diagnostic. The upstream ROS/PCL feature extractor stays outside the core and
+its pinned commit, Apache-2.0 license, input digest, and source URL are recorded
+as provenance.
 
 Three native hand-eye baselines on ETHZ ASL's real robot-arm pose streams:
 
