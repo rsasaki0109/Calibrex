@@ -2,7 +2,7 @@ schema_version: slac.config/v0.1
 
 project:
   name: ethz_real_hand_eye_comparison
-  description: Five native AX=XB and five absolute-pose AX=YB solvers on ETHZ ASL robot-arm poses.
+  description: Eight native AX=XB and five absolute-pose AX=YB solvers on ETHZ ASL robot-arm poses.
   output_dir: outputs/ethz_hand_eye_robot_arm_real
   domain: robotics
 
@@ -42,6 +42,11 @@ pipeline:
         max_holdout_rotation_rmse_deg: 2.0
         max_holdout_translation_rmse_m: 0.03
         min_known_bad_detectable_fraction: 0.75
+        min_shiu_ahmad_axis_separation_sine: 0.1
+        max_shiu_ahmad_rotation_condition_number: 100000000.0
+        max_shiu_ahmad_beta_unit_circle_error: 0.05
+        max_shiu_ahmad_two_rotation_solution_disagreement_deg: 5.0
+        max_shiu_ahmad_translation_condition_number: 100000000.0
         min_horaud_quaternion_normalized_eigengap: 0.001
         min_chou_kamel_rotation_nullspace_gap: 0.001
         max_chou_kamel_translation_condition_number: 1000000.0
@@ -87,6 +92,16 @@ evaluation:
     - hand_eye_tsai_lenz_holdout_rotation_rmse_deg
     - hand_eye_tsai_lenz_holdout_translation_rmse_m
     - hand_eye_tsai_lenz_known_bad_detectable_fraction
+    - hand_eye_shiu_ahmad_holdout_rotation_rmse_deg
+    - hand_eye_shiu_ahmad_holdout_translation_rmse_m
+    - hand_eye_shiu_ahmad_known_bad_detectable_fraction
+    - hand_eye_shiu_ahmad_axis_separation_sine
+    - hand_eye_shiu_ahmad_rotation_rank
+    - hand_eye_shiu_ahmad_rotation_condition_number
+    - hand_eye_shiu_ahmad_beta_unit_circle_error_max
+    - hand_eye_shiu_ahmad_two_rotation_solution_disagreement_deg
+    - hand_eye_shiu_ahmad_translation_rank
+    - hand_eye_shiu_ahmad_translation_condition_number
     - hand_eye_daniilidis_holdout_rotation_rmse_deg
     - hand_eye_daniilidis_holdout_translation_rmse_m
     - hand_eye_daniilidis_known_bad_detectable_fraction

@@ -222,6 +222,11 @@ from calibrex.solvers.shah_robot_world_hand_eye_solver import (
     evaluate_robot_world_hand_eye_known_bad_probes,
     evaluate_robot_world_hand_eye_poses,
 )
+from calibrex.solvers.shiu_ahmad_hand_eye_solver import (
+    ShiuAhmadHandEyeOptions,
+    ShiuAhmadHandEyeResult,
+    ShiuAhmadHandEyeSolver,
+)
 from calibrex.solvers.tsai_lenz_hand_eye_solver import (
     HandEyeProbeResult,
     TsaiLenzHandEyeOptions,
@@ -369,6 +374,9 @@ __all__ = [
     "ShahRobotWorldHandEyeOptions",
     "ShahRobotWorldHandEyeResult",
     "ShahRobotWorldHandEyeSolver",
+    "ShiuAhmadHandEyeOptions",
+    "ShiuAhmadHandEyeResult",
+    "ShiuAhmadHandEyeSolver",
     "SolverAdapter",
     "SolverAdapterResult",
     "TUMJointSlacOptions",

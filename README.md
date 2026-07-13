@@ -116,7 +116,7 @@ It records:
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
 | ICP/GICP/NDT registration comparison | Native Besl-McKay point-to-point and Chen-Medioni tangent-plane baselines with rematching diagnostics, plus MIT Open3D GICP and license-declared NDT boundaries; Livox common holdout honestly FAILs |
 | Multi-LiDAR fixed-rig and online evidence | Public A2D2 VLP-16 demo; TIERS LidarsCali (static + mixed spinning×solid-state) |
-| Hand-eye and robot-world/hand-eye calibration | Seven native `AX=XB` baselines plus Zhuang-Roth-Sudhakar, Shah, Li-Wang-Wu, and Dornaika-Horaud closed-form/nonlinear `AX=YB`; ETHZ common holdout and 24 controls per method |
+| Hand-eye and robot-world/hand-eye calibration | Eight native `AX=XB` baselines, including Shiu-Ahmad's two-motion geometric method, plus Zhuang-Roth-Sudhakar, Shah, Li-Wang-Wu, and Dornaika-Horaud closed-form/nonlinear `AX=YB`; ETHZ common holdout and signed controls |
 | Backend-neutral joint SLAC optimizer | Grouped holdout, robust LM, typed Schur pose elimination, TUM RGB-D 48→8 shared-calibration solve |
 | Radar extrinsic velocity-consistency check (nuScenes) | Experimental; `radar_lidar_velocity_consistency` scores static-target radial Doppler residuals against ego motion, not full radar calibration |
 

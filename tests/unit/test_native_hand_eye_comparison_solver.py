@@ -159,6 +159,10 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert result.metrics["hand_eye_chou_kamel_rotation_rank"].grade == "pass"
     assert result.metrics["hand_eye_chou_kamel_rotation_nullspace_gap"].grade == "pass"
     assert result.metrics["hand_eye_chou_kamel_translation_rank"].grade == "pass"
+    assert result.metrics["hand_eye_shiu_ahmad_axis_separation_sine"].grade == "pass"
+    assert result.metrics["hand_eye_shiu_ahmad_rotation_rank"].value == 4.0
+    assert result.metrics["hand_eye_shiu_ahmad_translation_rank"].value == 3.0
+    assert result.metrics["hand_eye_shiu_ahmad_beta_unit_circle_error_max"].grade == "pass"
     assert (
         result.metrics["hand_eye_horaud_dornaika_nonlinear_objective_nonincrease"].grade
         == "pass"
@@ -256,6 +260,7 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     for method in (
         "park_martin",
         "tsai_lenz",
+        "shiu_ahmad",
         "daniilidis",
         "horaud_dornaika",
         "chou_kamel",
@@ -272,6 +277,8 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert isinstance(results, dict)
     assert results["horaud_dornaika"]["paper_doi"] == "10.1177/027836499501400301"
     assert results["chou_kamel"]["paper_doi"] == "10.1177/027836499101000305"
+    assert results["shiu_ahmad"]["primary_paper"]["doi"] == "10.1109/70.88014"
+    assert len(results["shiu_ahmad"]["fit_pair_ids"]) == 2
     assert (
         results["horaud_dornaika_nonlinear"]["paper"]["doi"]
         == "10.1177/027836499501400301"

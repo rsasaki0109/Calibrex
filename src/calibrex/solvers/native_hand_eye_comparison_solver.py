@@ -72,6 +72,11 @@ from calibrex.solvers.shah_robot_world_hand_eye_solver import (
     ShahRobotWorldHandEyeResult,
     ShahRobotWorldHandEyeSolver,
 )
+from calibrex.solvers.shiu_ahmad_hand_eye_solver import (
+    ShiuAhmadHandEyeOptions,
+    ShiuAhmadHandEyeResult,
+    ShiuAhmadHandEyeSolver,
+)
 from calibrex.solvers.tsai_lenz_hand_eye_solver import (
     TsaiLenzHandEyeOptions,
     TsaiLenzHandEyeResult,
@@ -88,7 +93,7 @@ NATIVE_HAND_EYE_COMPARISON_BACKEND = "native_hand_eye_comparison"
 
 
 class NativeHandEyeComparisonSolver(SolverAdapter):
-    """Run seven AX=XB baselines plus five absolute-pose AX=YB baselines."""
+    """Run eight AX=XB baselines plus five absolute-pose AX=YB baselines."""
 
     backend = NATIVE_HAND_EYE_COMPARISON_BACKEND
 
@@ -133,6 +138,19 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         split_seed = config.solver.seed or 0
         park_options = ParkMartinHandEyeOptions(holdout_ratio=holdout_ratio, split_seed=split_seed)
         tsai_options = TsaiLenzHandEyeOptions(holdout_ratio=holdout_ratio, split_seed=split_seed)
+        shiu_options = ShiuAhmadHandEyeOptions(
+            holdout_ratio=holdout_ratio,
+            split_seed=split_seed,
+            minimum_axis_separation_sine=float(
+                options.get("min_shiu_ahmad_axis_separation_sine", 0.1)
+            ),
+            max_rotation_condition_number=float(
+                options.get("max_shiu_ahmad_rotation_condition_number", 1.0e8)
+            ),
+            max_translation_condition_number=float(
+                options.get("max_shiu_ahmad_translation_condition_number", 1.0e8)
+            ),
+        )
         dual_options = DaniilidisHandEyeOptions(holdout_ratio=holdout_ratio, split_seed=split_seed)
         horaud_options = HoraudDornaikaHandEyeOptions(
             holdout_ratio=holdout_ratio, split_seed=split_seed
@@ -239,6 +257,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
         )
         park = ParkMartinHandEyeSolver().solve(motions, park_options)
         tsai = TsaiLenzHandEyeSolver().solve(motions, tsai_options)
+        shiu = ShiuAhmadHandEyeSolver().solve(motions, shiu_options)
         dual = DaniilidisHandEyeSolver().solve(motions, dual_options)
         horaud = HoraudDornaikaHandEyeSolver().solve(motions, horaud_options)
         chou = ChouKamelHandEyeSolver().solve(motions, chou_options)
@@ -256,6 +275,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             motions,
             park,
             tsai,
+            shiu,
             dual,
             horaud,
             chou,
@@ -274,6 +294,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
             for transform in (
                 park.transform_x,
                 tsai.transform_x,
+                shiu.transform_x,
                 dual.transform_x,
                 horaud.transform_x,
                 chou.transform_x,
@@ -302,6 +323,18 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 "hand_eye_chou_kamel_rotation_nullspace_gap",
                 "hand_eye_chou_kamel_translation_rank",
                 "hand_eye_chou_kamel_translation_condition_number",
+            )
+        )
+        shiu_observable = all(
+            metrics[name].grade == "pass"
+            for name in (
+                "hand_eye_shiu_ahmad_axis_separation_sine",
+                "hand_eye_shiu_ahmad_rotation_rank",
+                "hand_eye_shiu_ahmad_rotation_condition_number",
+                "hand_eye_shiu_ahmad_beta_unit_circle_error_max",
+                "hand_eye_shiu_ahmad_two_rotation_solution_disagreement_deg",
+                "hand_eye_shiu_ahmad_translation_rank",
+                "hand_eye_shiu_ahmad_translation_condition_number",
             )
         )
         hand_eye_nonlinear_observable = all(
@@ -394,6 +427,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                 weak_directions=[
                     *([] if horaud_observable else ["horaud_quaternion_minimum_width"]),
                     *([] if chou_observable else ["chou_kamel_quaternion_observability"]),
+                    *([] if shiu_observable else ["shiu_ahmad_two_motion_observability"]),
                     *(
                         []
                         if hand_eye_nonlinear_observable
@@ -424,6 +458,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     if all_converged
                     and horaud_observable
                     and chou_observable
+                    and shiu_observable
                     and hand_eye_nonlinear_observable
                     and andreff_observable
                     and shah_observable
@@ -457,6 +492,7 @@ class NativeHandEyeComparisonSolver(SolverAdapter):
                     "results": {
                         "park_martin": park.as_dict(),
                         "tsai_lenz": tsai.as_dict(),
+                        "shiu_ahmad": shiu.as_dict(),
                         "daniilidis": dual.as_dict(),
                         "horaud_dornaika": horaud.as_dict(),
                         "chou_kamel": chou.as_dict(),
@@ -479,6 +515,7 @@ def _comparison_metrics(
     motions: tuple[HandEyeMotionPair, ...],
     park: ParkMartinHandEyeResult,
     tsai: TsaiLenzHandEyeResult,
+    shiu: ShiuAhmadHandEyeResult,
     dual: DaniilidisHandEyeResult,
     horaud: HoraudDornaikaHandEyeResult,
     chou: ChouKamelHandEyeResult,
@@ -499,6 +536,21 @@ def _comparison_metrics(
     min_chou_gap = float(factor_options.get("min_chou_kamel_rotation_nullspace_gap", 1.0e-3))
     max_chou_translation_condition = float(
         factor_options.get("max_chou_kamel_translation_condition_number", 1.0e6)
+    )
+    min_shiu_axis_separation = float(
+        factor_options.get("min_shiu_ahmad_axis_separation_sine", 0.1)
+    )
+    max_shiu_rotation_condition = float(
+        factor_options.get("max_shiu_ahmad_rotation_condition_number", 1.0e8)
+    )
+    max_shiu_translation_condition = float(
+        factor_options.get("max_shiu_ahmad_translation_condition_number", 1.0e8)
+    )
+    max_shiu_unit_circle_error = float(
+        factor_options.get("max_shiu_ahmad_beta_unit_circle_error", 0.05)
+    )
+    max_shiu_disagreement = float(
+        factor_options.get("max_shiu_ahmad_two_rotation_solution_disagreement_deg", 5.0)
     )
     max_hand_eye_nonlinear_condition = float(
         factor_options.get(
@@ -604,7 +656,16 @@ def _comparison_metrics(
         len(
             {
                 (result.train_pair_ids, result.holdout_pair_ids)
-                for result in (park, tsai, dual, horaud, chou, hand_eye_nonlinear, andreff)
+                for result in (
+                    park,
+                    tsai,
+                    shiu,
+                    dual,
+                    horaud,
+                    chou,
+                    hand_eye_nonlinear,
+                    andreff,
+                )
             }
         )
         == 1
@@ -618,6 +679,83 @@ def _comparison_metrics(
             unit="poses",
             grade="pass" if dataset.absolute_pose_reuse_count == 0 else "fail",
             reason="absolute poses must not leak between relative-motion pairs",
+        ),
+        "hand_eye_shiu_ahmad_axis_separation_sine": MetricResult(
+            value=shiu.selected_axis_separation_sine,
+            unit="sine",
+            grade=(
+                "pass"
+                if shiu.selected_axis_separation_sine is not None
+                and shiu.selected_axis_separation_sine >= min_shiu_axis_separation
+                else "fail"
+            ),
+            reason=(
+                "paper Theorem 4 selected-axis separation sine "
+                f">= {min_shiu_axis_separation:g}"
+            ),
+        ),
+        "hand_eye_shiu_ahmad_rotation_rank": MetricResult(
+            value=float(shiu.rotation_rank),
+            unit="rank",
+            grade="pass" if shiu.rotation_rank == 4 else "fail",
+            reason="paper Eq. (44) must constrain cos/sin for both free rotations",
+        ),
+        "hand_eye_shiu_ahmad_rotation_condition_number": MetricResult(
+            value=shiu.rotation_condition_number,
+            grade=(
+                "pass"
+                if shiu.rotation_condition_number is not None
+                and shiu.rotation_condition_number <= max_shiu_rotation_condition
+                else "fail"
+            ),
+            reason=f"paper Eq. (44) condition number <= {max_shiu_rotation_condition:g}",
+        ),
+        "hand_eye_shiu_ahmad_beta_unit_circle_error_max": MetricResult(
+            value=shiu.beta_unit_circle_error_max,
+            unit="absolute",
+            grade=(
+                "pass"
+                if shiu.beta_unit_circle_error_max is not None
+                and shiu.beta_unit_circle_error_max <= max_shiu_unit_circle_error
+                else "fail"
+            ),
+            reason=(
+                "least-squares cos/sin consistency error "
+                f"<= {max_shiu_unit_circle_error:g}"
+            ),
+        ),
+        "hand_eye_shiu_ahmad_two_rotation_solution_disagreement_deg": MetricResult(
+            value=shiu.two_rotation_solution_disagreement_deg,
+            unit="deg",
+            grade=(
+                "pass"
+                if shiu.two_rotation_solution_disagreement_deg is not None
+                and shiu.two_rotation_solution_disagreement_deg <= max_shiu_disagreement
+                else "fail"
+            ),
+            reason=(
+                "the two paper Eq. (42) rotation constructions must agree within "
+                f"{max_shiu_disagreement:g} deg"
+            ),
+        ),
+        "hand_eye_shiu_ahmad_translation_rank": MetricResult(
+            value=float(shiu.translation_rank),
+            unit="rank",
+            grade="pass" if shiu.translation_rank == 3 else "fail",
+            reason="paper Eq. (46) must constrain all three translation directions",
+        ),
+        "hand_eye_shiu_ahmad_translation_condition_number": MetricResult(
+            value=shiu.translation_condition_number,
+            grade=(
+                "pass"
+                if shiu.translation_condition_number is not None
+                and shiu.translation_condition_number <= max_shiu_translation_condition
+                else "fail"
+            ),
+            reason=(
+                "paper Eq. (46) condition number "
+                f"<= {max_shiu_translation_condition:g}"
+            ),
         ),
         "hand_eye_horaud_dornaika_rotation_axis_rank": MetricResult(
             value=float(horaud.rotation_axis_rank),
@@ -1208,6 +1346,7 @@ def _comparison_metrics(
     probes_by_method = {
         "park_martin": park_probes,
         "tsai_lenz": tsai.probes,
+        "shiu_ahmad": shiu.probes,
         "daniilidis": dual.probes,
         "horaud_dornaika": horaud.probes,
         "chou_kamel": chou.probes,
@@ -1217,6 +1356,7 @@ def _comparison_metrics(
     for name, result in (
         ("park_martin", park),
         ("tsai_lenz", tsai),
+        ("shiu_ahmad", shiu),
         ("daniilidis", dual),
         ("horaud_dornaika", horaud),
         ("chou_kamel", chou),

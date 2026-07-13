@@ -60,6 +60,28 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert detection.value == 1.0
     assert detection.grade == "pass"
     comparison = result.run.provenance["native_hand_eye_comparison"]
+    shiu = comparison["results"]["shiu_ahmad"]
+    assert shiu["status"] == "converged"
+    assert shiu["fit_pair_ids"] == ["ethz-00855-00915", "ethz-01335-01395"]
+    assert shiu["rotation_rank"] == 4
+    assert shiu["translation_rank"] == 3
+    assert shiu["primary_paper"]["doi"] == "10.1109/70.88014"
+    shiu_separation = result.metrics["hand_eye_shiu_ahmad_axis_separation_sine"]
+    assert shiu_separation.value is not None and 0.999 < shiu_separation.value <= 1.0
+    assert shiu_separation.grade == "pass"
+    shiu_disagreement = result.metrics[
+        "hand_eye_shiu_ahmad_two_rotation_solution_disagreement_deg"
+    ]
+    assert shiu_disagreement.value is not None and 1.4 < shiu_disagreement.value < 1.5
+    assert shiu_disagreement.grade == "pass"
+    shiu_rotation = result.metrics["hand_eye_shiu_ahmad_holdout_rotation_rmse_deg"]
+    shiu_translation = result.metrics["hand_eye_shiu_ahmad_holdout_translation_rmse_m"]
+    assert shiu_rotation.value is not None and 0.96 < shiu_rotation.value < 0.97
+    assert shiu_translation.value is not None and 0.019 < shiu_translation.value < 0.020
+    assert shiu_rotation.grade == shiu_translation.grade == "pass"
+    shiu_detection = result.metrics["hand_eye_shiu_ahmad_known_bad_detectable_fraction"]
+    assert shiu_detection.value == pytest.approx(7.0 / 12.0)
+    assert shiu_detection.grade == "warn"
     hand_eye_nonlinear = comparison["results"]["horaud_dornaika_nonlinear"]
     assert hand_eye_nonlinear["status"] == "converged"
     assert hand_eye_nonlinear["accepted_step_count"] == 8

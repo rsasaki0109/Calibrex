@@ -17,7 +17,45 @@ robot-world/hand-eye estimators
 deliberately use a separate absolute-pose contract, `A_j X = Y B_j` (the latter
 papers write `Z` for the shared `Y` role). All five estimate the hand-eye and
 robot-world transforms; their common absolute-pose train/holdout IDs are never
-presented as the relative-motion split used by the five `AX=XB` solvers.
+presented as the relative-motion split used by the eight `AX=XB` solvers.
+
+## Shiu and Ahmad two-motion geometric method
+
+Primary reference: Y. C. Shiu and S. Ahmad, *Calibration of Wrist-Mounted
+Robotic Sensors by Solving Homogeneous Transform Equations of the Form
+AX=XB*, IEEE Transactions on Robotics and Automation 5(1), 1989, pp. 16-29,
+DOI [`10.1109/70.88014`](https://doi.org/10.1109/70.88014). The
+[primary paper PDF](https://people.csail.mit.edu/tieu/stuff/Shiu1989.pdf)
+was read directly. Calibrex implements Section IV, equations (37)-(47).
+
+The paper proves that one equation has one free rotation and one free
+translation. Two motions give a unique solution only when their `A` rotation
+axes are neither parallel nor antiparallel and both rotation angles are
+strictly between zero and pi. For each motion, equations (37)-(39) construct a
+particular rotation `R_XPi` that maps `k_Bi` to `k_Ai`. Its complete rotation
+family is
+
+```text
+R_X = Rot(k_Ai, beta_i) R_XPi.
+```
+
+Equating the two families produces the paper's 9-by-4 linear system in
+`[cos(beta_1), sin(beta_1), cos(beta_2), sin(beta_2)]`. Calibrex evaluates the
+same equation (44) through Rodrigues' decomposition, solves its equation (45)
+least-squares form, and reconstructs both rotations. It records rank,
+condition number, linear residual, departure of each cos/sin pair from the
+unit circle, and disagreement between the two reconstructed rotations.
+Translation is then the paper's stacked 6-by-3 equations (46)-(47).
+
+The historical estimator fits exactly two motions. For a larger dataset,
+Calibrex deterministically chooses the common-train pair with maximum rotation
+axis separation; this selection wrapper is not attributed to the paper. The
+two fit IDs are recorded separately, all common train motions are evaluated,
+and the untouched common holdout remains comparable with every other `AX=XB`
+baseline. The paper's numerical Section V example is reproduced in a unit
+test, alongside synthetic truth, signed probes, and parallel-axis/zero/pi
+degeneracy tests. The implementation is typed ROS-independent NumPy and copies
+no publisher or third-party source code.
 
 ## Tsai and Lenz
 
@@ -447,13 +485,20 @@ split. The recorded absolute-pose reuse count is zero.
 | --- | ---: | ---: | ---: |
 | Park-Martin | 0.938° | 0.0172 m | 6/12 |
 | Tsai-Lenz | 0.945° | 0.0174 m | 6/12 |
+| Shiu-Ahmad two-motion | 0.966° | 0.0192 m | 7/12 |
 | Daniilidis | 0.939° | 0.0174 m | 6/12 |
 | Horaud-Dornaika | 0.985° | 0.0190 m | 6/12 |
 | Horaud-Dornaika nonlinear | 0.984° | 0.0190 m | 6/12 |
 | Chou-Kamel | 0.939° | 0.0172 m | 6/12 |
 | Andreff-Horaud-Espiau | 0.939° | 0.0172 m | 6/12 |
 
-All seven methods pass the declared closure gates of 2° and 3 cm. Horaud-
+All eight methods pass the declared closure gates of 2° and 3 cm. Shiu-Ahmad
+selects fit motions `ethz-00855-00915` and `ethz-01335-01395`; their axis
+separation sine is 0.99957. Equation (44) has rank 4/4 and condition number
+1.7322, the maximum cos/sin unit-circle error is 0.000304, and its two rotation
+constructions disagree by 1.4125°. Translation equation (46) has rank 3/3 and
+condition number 1.6089. These pass the predeclared 0.1 minimum-separation,
+`1e8` condition, 0.05 unit-circle-error, and 5° disagreement gates. Horaud-
 Dornaika has axis rank 3/3 and normalized quaternion eigengap 0.7758, passing
 the predeclared 0.001 minimum-width gate. Andreff has rotation rank 8/8,
 translation rank 3/3, normalized rotation width 0.4836, and SO(3) projection
@@ -468,7 +513,7 @@ and `1e6` maximum-condition gates. The simultaneous nonlinear method accepts
 eight LM steps and reduces equation (30) from 0.0232894701 to 0.0232891617.
 Its physical Jacobian has rank 6/6 and condition number 5.0003; quaternion unit
 error is `6.44e-9`, and mixed-unit data RMSE is 0.0278623. These pass the fixed
-`1e8` condition and `1e-5` unit-error gates. The seven methods share exactly the same
+`1e8` condition and `1e-5` unit-error gates. The eight methods share exactly the same
 train/holdout IDs. They do not reach the unchanged 0.75 known-bad
 detectable-fraction gate, so the public run
 is honestly **INCONCLUSIVE**, not PASS. This indicates limited falsification
@@ -485,8 +530,8 @@ maximum determinant-normalized SO(3) projection correction is
 0.00019355, below the unchanged 0.05 gate. Held-out closure is 0.5858 degrees
 and 0.01006 m, and all 24 signed `X/Y` controls are detected. Shah therefore
 passes its declared gates while the overall comparison remains honestly
-INCONCLUSIVE because the seven relative-motion baselines still detect only
-6/12 controls. The result and bundle are schema-valid, the pinned input digest
+INCONCLUSIVE because the relative-motion baselines detect only 6/12 or 7/12
+controls. The result and bundle are schema-valid, the pinned input digest
 is checked, and bundle verification reports zero issues.
 
 Li-Wang-Wu uses the same 1,350/338 absolute-pose split. Its simultaneous system
@@ -510,8 +555,8 @@ rank is 6/6 with condition number 8.187. Held-out closure is 0.5907 degrees and
 Dornaika-Horaud closed form, `X` differs by 0.2547 degrees / 0.00212 m and `Z`
 by 0.2616 degrees / 0.00254 m; these are comparison diagnostics, not
 ground-truth errors. Every Zhuang gate passes while the overall public run
-remains honestly **INCONCLUSIVE** because the seven relative-motion baselines
-still detect only 6/12 controls.
+remains honestly **INCONCLUSIVE** because the relative-motion baselines still
+detect only 6/12 or 7/12 controls.
 
 Dornaika-Horaud uses the same 1,350/338 split. Its quaternion sign preparation
 flips 405 train-pose representations and reaches weighted pairwise consistency
@@ -523,8 +568,8 @@ detected. Its result differs from Shah by about `1.13e-5` degrees / `4.90e-8` m
 for `X` and `1.16e-5` degrees / `1.49e-7` m for `Z/Y`; these remain ungated
 comparison diagnostics, not ground-truth errors. The closed-form method passes
 all declared gates while the overall comparison remains honestly
-**INCONCLUSIVE** because the seven relative-motion methods still detect only
-6/12 controls.
+**INCONCLUSIVE** because the relative-motion methods still detect only 6/12 or
+7/12 controls.
 
 The nonlinear Section III-B estimator starts from that closed-form result and
 accepts nine LM steps. Its objective decreases from 0.253684 to 0.253505 and
@@ -534,5 +579,5 @@ the final mixed-unit data RMSE is 0.005594. The final data Jacobian has rank
 closure is 0.5872 degrees and 0.01004 m with all 24 controls detected. Relative
 to the closed form, `X` changes by 0.0548 degrees / 0.000389 m and `Z` by
 0.0581 degrees / 0.000611 m. Every nonlinear gate passes; the overall run
-remains **INCONCLUSIVE** only because the unchanged seven relative-motion
-baselines still detect 6/12 controls.
+remains **INCONCLUSIVE** only because the relative-motion baselines still
+detect 6/12 or 7/12 controls.
