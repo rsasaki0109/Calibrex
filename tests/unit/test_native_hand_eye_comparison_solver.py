@@ -70,6 +70,7 @@ def _config(
     min_horaud_gap: float = 1.0e-3,
     min_andreff_width: float = 1.0e-4,
     min_shah_gap: float = 1.0e-3,
+    max_li_projection: float = 0.05,
 ) -> CalibrationConfig:
     return CalibrationConfig.model_validate(
         {
@@ -87,11 +88,10 @@ def _config(
                             "archive_file": "robot_arm_w_color_camera_real.zip",
                             "motion_stride": 1,
                             "maximum_time_delta_sec": 0.005,
-                            "min_horaud_quaternion_normalized_eigengap": (
-                                min_horaud_gap
-                            ),
+                            "min_horaud_quaternion_normalized_eigengap": (min_horaud_gap),
                             "min_andreff_rotation_width": min_andreff_width,
                             "min_shah_rotation_normalized_gap": min_shah_gap,
+                            "max_li_so3_projection_correction_frobenius": (max_li_projection),
                         },
                     }
                 }
@@ -131,25 +131,22 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     )
 
     assert result.status == "pass"
-    assert np.linalg.norm(
-        np.asarray(result.transforms["T_hand_eye"].translation_m) - truth.translation_m
-    ) < 1.0e-9
+    assert (
+        np.linalg.norm(
+            np.asarray(result.transforms["T_hand_eye"].translation_m) - truth.translation_m
+        )
+        < 1.0e-9
+    )
     assert result.metrics["hand_eye_absolute_pose_reuse_count"].value == 0.0
     assert result.metrics["hand_eye_horaud_dornaika_rotation_axis_rank"].grade == "pass"
-    assert (
-        result.metrics[
-            "hand_eye_horaud_dornaika_quaternion_normalized_eigengap"
-        ].grade
-        == "pass"
-    )
+    assert result.metrics["hand_eye_horaud_dornaika_quaternion_normalized_eigengap"].grade == "pass"
     assert result.metrics["hand_eye_common_split_consistent"].value == 1.0
     assert result.metrics["hand_eye_andreff_rotation_observable_rank"].grade == "pass"
     assert result.metrics["hand_eye_andreff_rotation_minimum_width"].grade == "pass"
     assert result.metrics["hand_eye_andreff_rotation_nullspace_ratio"].grade == "pass"
     assert result.metrics["robot_world_hand_eye_pose_pair_count"].value == 40.0
     assert (
-        result.metrics["robot_world_hand_eye_shah_rotation_dominant_multiplicity"].grade
-        == "pass"
+        result.metrics["robot_world_hand_eye_shah_rotation_dominant_multiplicity"].grade == "pass"
     )
     assert result.metrics["robot_world_hand_eye_shah_rotation_normalized_gap"].grade == "pass"
     assert result.metrics["robot_world_hand_eye_shah_translation_rank"].value == 6.0
@@ -157,6 +154,18 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert result.metrics["robot_world_hand_eye_shah_holdout_rotation_rmse_deg"].grade == "pass"
     assert result.metrics["robot_world_hand_eye_shah_holdout_translation_rmse_m"].grade == "pass"
     assert result.metrics["robot_world_hand_eye_shah_known_bad_detectable_fraction"].value == 1.0
+    assert result.metrics["robot_world_hand_eye_li_linear_rank"].value == 24.0
+    assert result.metrics["robot_world_hand_eye_li_linear_condition_number"].grade == "pass"
+    assert (
+        result.metrics["robot_world_hand_eye_li_so3_projection_correction_frobenius_max"].grade
+        == "pass"
+    )
+    assert result.metrics["robot_world_hand_eye_li_shah_common_split_consistent"].value == 1.0
+    assert result.metrics["robot_world_hand_eye_li_holdout_rotation_rmse_deg"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_li_holdout_translation_rmse_m"].grade == "pass"
+    assert result.metrics["robot_world_hand_eye_li_known_bad_detectable_fraction"].value == 1.0
+    assert result.metrics["robot_world_hand_eye_li_shah_x_rotation_delta_deg"].value is not None
+    assert result.metrics["robot_world_hand_eye_li_shah_z_translation_delta_m"].value is not None
     assert "T_robot_world" in result.transforms
     for method in (
         "park_martin",
@@ -166,10 +175,7 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
         "andreff",
     ):
         assert result.metrics[f"hand_eye_{method}_holdout_rotation_rmse_deg"].grade == "pass"
-        assert (
-            result.metrics[f"hand_eye_{method}_known_bad_detectable_fraction"].value
-            == 1.0
-        )
+        assert result.metrics[f"hand_eye_{method}_known_bad_detectable_fraction"].value == 1.0
     assert result.provenance["metrics_origin"] == "recomputed"
     assert result.provenance["data_verified"] is False
     comparison = result.provenance["native_hand_eye_comparison"]
@@ -179,6 +185,7 @@ def test_native_comparison_recovers_truth_with_common_metrics(tmp_path: Path) ->
     assert results["horaud_dornaika"]["paper_doi"] == "10.1177/027836499501400301"
     assert results["andreff"]["paper_doi"] == "10.1109/IM.1999.805374"
     assert results["shah_robot_world_hand_eye"]["paper"]["doi"] == "10.1115/1.4024473"
+    assert results["li_robot_world_hand_eye"]["paper"]["doi"] == "10.5897/IJPS.9000501"
 
 
 def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
@@ -189,9 +196,7 @@ def test_pipeline_replaces_generic_slac_degeneracy_with_hand_eye_evidence(
     config_path = tmp_path / "config.json"
     config_path.write_text(_config(tmp_path).model_dump_json(), encoding="utf-8")
 
-    result = run_calibration(
-        config_path, CalibrationRunOptions(output_dir=tmp_path / "output")
-    )
+    result = run_calibration(config_path, CalibrationRunOptions(output_dir=tmp_path / "output"))
 
     assert result is not None
     assert result.degeneracy.grade == "pass"
@@ -212,9 +217,7 @@ def test_declared_minimum_width_gate_cannot_be_weakened_by_convergence(
         DatasetInspection("filesystem", str(tmp_path), True),
     )
 
-    metric = result.metrics[
-        "hand_eye_horaud_dornaika_quaternion_normalized_eigengap"
-    ]
+    metric = result.metrics["hand_eye_horaud_dornaika_quaternion_normalized_eigengap"]
     assert metric.grade == "fail"
     assert result.status == "inconclusive"
     assert result.observability is not None
@@ -256,3 +259,22 @@ def test_shah_gap_gate_cannot_be_weakened_by_convergence(tmp_path: Path) -> None
     assert result.observability is not None
     assert result.observability.grade == "fail"
     assert "shah_robot_world_hand_eye_observability" in result.observability.weak_directions
+
+
+def test_li_projection_gate_cannot_be_weakened_by_convergence(tmp_path: Path) -> None:
+    archive = tmp_path / "robot_arm_w_color_camera_real.zip"
+    _write_synthetic_archive(archive)
+    config = _config(tmp_path, max_li_projection=1.0e-16)
+
+    result = NativeHandEyeComparisonSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        DatasetInspection("filesystem", str(tmp_path), True),
+    )
+
+    metric = result.metrics["robot_world_hand_eye_li_so3_projection_correction_frobenius_max"]
+    assert metric.grade == "fail"
+    assert result.status == "inconclusive"
+    assert result.observability is not None
+    assert result.observability.grade == "fail"
+    assert "li_robot_world_hand_eye_observability" in result.observability.weak_directions

@@ -488,6 +488,18 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "robot_world_hand_eye_shah_holdout_rotation_rmse_deg" in names
     assert "robot_world_hand_eye_shah_holdout_translation_rmse_m" in names
     assert "robot_world_hand_eye_shah_known_bad_detectable_fraction" in names
+    assert "robot_world_hand_eye_li_linear_rank" in names
+    assert "robot_world_hand_eye_li_linear_condition_number" in names
+    assert "robot_world_hand_eye_li_raw_linear_residual_rmse" in names
+    assert "robot_world_hand_eye_li_so3_projection_correction_frobenius_max" in names
+    assert "robot_world_hand_eye_li_shah_common_split_consistent" in names
+    assert "robot_world_hand_eye_li_holdout_rotation_rmse_deg" in names
+    assert "robot_world_hand_eye_li_holdout_translation_rmse_m" in names
+    assert "robot_world_hand_eye_li_known_bad_detectable_fraction" in names
+    assert "robot_world_hand_eye_li_shah_x_rotation_delta_deg" in names
+    assert "robot_world_hand_eye_li_shah_x_translation_delta_m" in names
+    assert "robot_world_hand_eye_li_shah_z_rotation_delta_deg" in names
+    assert "robot_world_hand_eye_li_shah_z_translation_delta_m" in names
     assert "tum_joint_data_only_extrinsic_rank" in names
     assert "tum_joint_data_only_shared_rank" in names
     assert "tum_joint_depth_scale" in names

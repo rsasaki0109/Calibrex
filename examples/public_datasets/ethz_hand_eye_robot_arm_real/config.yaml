@@ -49,6 +49,8 @@ pipeline:
         min_shah_rotation_normalized_gap: 0.001
         max_shah_translation_condition_number: 100000000.0
         max_shah_so3_projection_correction_frobenius: 0.05
+        max_li_linear_condition_number: 100000000.0
+        max_li_so3_projection_correction_frobenius: 0.05
 
 solver:
   backend: native_hand_eye_comparison
@@ -92,6 +94,18 @@ evaluation:
     - robot_world_hand_eye_shah_holdout_rotation_rmse_deg
     - robot_world_hand_eye_shah_holdout_translation_rmse_m
     - robot_world_hand_eye_shah_known_bad_detectable_fraction
+    - robot_world_hand_eye_li_linear_rank
+    - robot_world_hand_eye_li_linear_condition_number
+    - robot_world_hand_eye_li_raw_linear_residual_rmse
+    - robot_world_hand_eye_li_so3_projection_correction_frobenius_max
+    - robot_world_hand_eye_li_shah_common_split_consistent
+    - robot_world_hand_eye_li_holdout_rotation_rmse_deg
+    - robot_world_hand_eye_li_holdout_translation_rmse_m
+    - robot_world_hand_eye_li_known_bad_detectable_fraction
+    - robot_world_hand_eye_li_shah_x_rotation_delta_deg
+    - robot_world_hand_eye_li_shah_x_translation_delta_m
+    - robot_world_hand_eye_li_shah_z_rotation_delta_deg
+    - robot_world_hand_eye_li_shah_z_translation_delta_m
 
 outputs:
   result: result.yaml

@@ -36,8 +36,8 @@ diagnostic. The upstream ROS/PCL feature extractor stays outside the core and
 its pinned commit, Apache-2.0 license, input digest, and source URL are recorded
 as provenance.
 
-Five native hand-eye baselines plus Shah robot-world/hand-eye on ETHZ ASL's
-real robot-arm pose streams:
+Five native hand-eye baselines plus Shah and Li-Wang-Wu robot-world/hand-eye on
+ETHZ ASL's real robot-arm pose streams:
 
 ```bash
 python3 tools/download_public_dataset.py ethz_hand_eye_robot_arm_real \
@@ -49,10 +49,10 @@ calibrex verify outputs/ethz_hand_eye_robot_arm_real/bundle.json
 
 The comparison runs Park-Martin, Tsai-Lenz, Daniilidis, Horaud-Dornaika, and
 the incremental Andreff-Horaud-Espiau Kronecker method with one disjoint
-relative-motion protocol. Shah independently solves absolute-pose `AX=YB` for
-both hand-eye and robot-world transforms on its own leakage-safe split. Closure
-and all minimum-width gates pass on the public sample, while the default
-known-bad gate
+relative-motion protocol. Shah and Li-Wang-Wu independently solve absolute-pose
+`AX=YB` (`Z` in Li's notation) for both transforms on one common leakage-safe
+split. Closure
+and all minimum-width gates pass on the public sample, while the default known-bad gate
 remains INCONCLUSIVE; the documented negative result is not converted into a
 PASS by threshold tuning.
 

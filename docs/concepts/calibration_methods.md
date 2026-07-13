@@ -29,6 +29,7 @@ holdout evaluation, and known-bad controls.
 | Tsai-Lenz motion hand-eye | Independent separable `AX = XB` baseline | Native solver | shared motion holdout, two system spectra, 12 known-bad controls |
 | Daniilidis dual-quaternion hand-eye | Simultaneous `AX = XB` rotation/translation baseline | Native solver | shared holdout, 8D nullspace/Study diagnostics, 12 known-bad controls |
 | Shah robot-world/hand-eye | Absolute-pose `A_j X = Y B_j` hand-eye and robot-world transforms | Native solver | separate holdout, dominant Kronecker gap, 6D translation rank, 24 controls |
+| Li-Wang-Wu robot-world/hand-eye | Simultaneous absolute-pose `A_j X = Z B_j` 24-variable Kronecker baseline | Native solver | shared-with-Shah holdout, full rank/condition spectrum, SO(3) projection correction, 24 controls |
 | LiDAR-IMU rotation consistency | Supplied rotation evaluation | Implemented | held-out angular-rate and gravity evidence |
 | Anchored temporal offset | One-dimensional time calibration evidence | Implemented | injected offsets and adapted/anchored comparison |
 | Backend-neutral joint SLAC graph | Coupled trajectory/extrinsic/time optimization | Native graph core + typed Schur LM | grouped holdout, robust LM, 48→8 TUM pose elimination, joint spectrum, per-block controls |
@@ -208,4 +209,11 @@ absolute-pose robot-world/hand-eye equation `A_j X = Y B_j`. Its Kronecker SVD
 returns both `X` and `Y`, followed by a rank-six joint translation solve. The
 adapter preserves a separate absolute-pose split and reports dominant-singular
 width, SO(3) projection correction, held-out closure, and signed controls for
-both transforms; these are not relabeled as relative-motion `AX=XB` evidence.
+both estimated transforms. [Li, Wang, and
+Wu](https://doi.org/10.5897/IJPS.9000501) provide an independent simultaneous
+absolute-pose comparison: their equations (17)-(19) solve `vec(R_X)`,
+`vec(R_Z)`, `t_X`, and `t_Z` in one rank-gated 24-variable system. Calibrex
+preserves the paper method's non-recomputed translations after SO(3) projection
+and exposes the resulting correction and held-out closure rather than treating
+the linear estimate as automatically physical. Neither absolute-pose baseline
+is relabeled as relative-motion `AX=XB` evidence.

@@ -42,6 +42,11 @@ from calibrex.solvers.horn_point_lidar_camera_solver import (
     evaluate_horn_point_observations,
 )
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.solvers.li_robot_world_hand_eye_solver import (
+    LiRobotWorldHandEyeOptions,
+    LiRobotWorldHandEyeResult,
+    LiRobotWorldHandEyeSolver,
+)
 from calibrex.solvers.native_camera_lidar_capture_time_solver import (
     NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
     NativeCameraLidarCaptureTimeSolver,
@@ -181,6 +186,7 @@ from calibrex.solvers.shah_robot_world_hand_eye_solver import (
     RobotWorldHandEyeEvaluation,
     RobotWorldHandEyePosePair,
     RobotWorldHandEyeProbe,
+    RobotWorldHandEyeProbeOptions,
     ShahRobotWorldHandEyeOptions,
     ShahRobotWorldHandEyeResult,
     ShahRobotWorldHandEyeSolver,
@@ -241,6 +247,9 @@ __all__ = [
     "IcpPoint",
     "IcpRematchingDiagnostics",
     "KoideLidarCameraSolver",
+    "LiRobotWorldHandEyeOptions",
+    "LiRobotWorldHandEyeResult",
+    "LiRobotWorldHandEyeSolver",
     "LidarPairData",
     "LidarPairSolveInputs",
     "LinePlaneBoardObservation",
@@ -305,6 +314,7 @@ __all__ = [
     "RobotWorldHandEyeEvaluation",
     "RobotWorldHandEyePosePair",
     "RobotWorldHandEyeProbe",
+    "RobotWorldHandEyeProbeOptions",
     "RobustPointToPointIcpOptions",
     "RobustPointToPointIcpResult",
     "RobustPointToPointIcpSolver",

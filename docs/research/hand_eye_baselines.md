@@ -12,9 +12,10 @@ Every baseline uses the same deterministic pair-level split and is evaluated by
 unfitted `A X` versus `X B` rotation and translation closure. This common
 evaluation is deliberately separate from each method's estimator.
 
-The Shah robot-world/hand-eye baseline is deliberately a separate absolute-pose
-contract, `A_j X = Y B_j`. It estimates both hand-eye `X` and robot-world `Y`;
-its absolute-pose train/holdout IDs are never presented as the relative-motion
+The Shah and Li-Wang-Wu robot-world/hand-eye baselines deliberately use a
+separate absolute-pose contract, `A_j X = Y B_j` (Li writes `Z` for the shared
+`Y` role). Both estimate the hand-eye and robot-world transforms; their common
+absolute-pose train/holdout IDs are never presented as the relative-motion
 split used by the five `AX=XB` solvers.
 
 ## Tsai and Lenz
@@ -175,6 +176,41 @@ reject a repeated-pose family with a non-unique rotation solution. This is an
 independent typed NumPy implementation; no NIST, ASME, OpenCV, ROS, or GPL
 source implementation is copied into `src/calibrex`.
 
+## Li, Wang, and Wu simultaneous Kronecker method
+
+Primary reference: A. Li, L. Wang, and D. Wu, *Simultaneous robot-world and
+hand-eye calibration using dual-quaternions and Kronecker product*,
+International Journal of the Physical Sciences 5(10), 2010, pp. 1530-1536,
+DOI [`10.5897/IJPS.9000501`](https://doi.org/10.5897/IJPS.9000501). The
+[publisher article page](https://academicjournals.org/journal/IJPS/article-abstract/20DFAEA30999)
+links the primary paper. Calibrex implements the paper's Kronecker equations
+(17)-(19), not its separate dual-quaternion construction.
+
+For each synchronized absolute-pose pair satisfying `A_i X = Z B_i`, row-major
+vectorization contributes
+
+```text
+[R_Ai tensor I, -I tensor transpose(R_Bi), 0, 0] u = 0
+[0, I tensor transpose(t_Bi), -R_Ai, I]         u = t_Ai
+u = [vec(R_X), vec(R_Z), t_X, t_Z].
+```
+
+The native typed NumPy solver stacks this as one weighted least-squares system
+with 24 unknowns. It requires rank 24, reports the complete singular spectrum,
+condition number, raw residual, raw rotation determinants, and the Frobenius
+correction needed to project both rotations to SO(3). In fidelity to the
+selected paper method, translations are not recomputed after rotation
+projection. The resulting rotation/translation mismatch is preserved as a
+declared limitation and is tested through held-out closure rather than hidden.
+
+Li and Shah share identical absolute-pose split IDs and the same 24 signed
+`X`/robot-world falsification controls, but not an estimator. Their `X` and
+`Z/Y` transform deltas are diagnostic comparison metrics; without ground truth,
+agreement is not labeled accuracy. Synthetic truth is recovered to numerical
+precision, all controls are detected, and repeated poses are rejected with the
+rank and spectrum retained. No publisher or third-party source implementation
+is copied into `src/calibrex`.
+
 ## Falsification protocol
 
 - Whole relative-motion pairs are split into train and holdout.
@@ -185,8 +221,9 @@ source implementation is copied into `src/calibrex`.
   or translation closure rises by more than 5 mm.
 - Pure translation, sub-threshold rotation, a single rotation-axis family, and
   rank-deficient translation systems must not return `converged`.
-- Shah uses one-to-one absolute pose pairs and a separate deterministic split;
-  neither absolute pair nor pose ID may cross its train/holdout boundary.
+- Shah and Li use one-to-one absolute pose pairs and an identical separate
+  deterministic split; neither absolute pair nor pose ID may cross its
+  train/holdout boundary.
 
 All implementations are independent NumPy code. No paper or third-party source
 implementation is copied into `src/calibrex`.
@@ -248,3 +285,13 @@ passes its declared gates while the overall comparison remains honestly
 INCONCLUSIVE because the five relative-motion baselines still detect only
 6/12 controls. The result and bundle are schema-valid, the pinned input digest
 is checked, and bundle verification reports zero issues.
+
+Li-Wang-Wu uses the same 1,350/338 absolute-pose split. Its simultaneous system
+has rank 24/24 and condition number 28.40, below the predeclared `1e8` ceiling.
+The raw linear residual is 0.005544 and the maximum SO(3) projection correction
+is 0.02641, below the unchanged 0.05 gate. Held-out closure is 0.5873 degrees
+and 0.01746 m; all 24 signed `X/Z` controls are detected. Relative to Shah, the
+Li estimate differs by 0.0608 degrees / 0.01025 m for `X` and 0.0644 degrees /
+0.00671 m for `Z/Y`. These are comparison diagnostics, not ground-truth errors.
+Li passes every declared gate while the overall run remains honestly
+**INCONCLUSIVE** for the unchanged relative-motion falsification limitation.

@@ -1,4 +1,4 @@
-"""Public ETHZ evidence for Shah robot-world/hand-eye calibration."""
+"""Public ETHZ evidence for independent robot-world/hand-eye baselines."""
 
 from pathlib import Path
 
@@ -15,11 +15,7 @@ _ARCHIVE = (
     / "robot_arm_w_color_camera_real.zip"
 )
 _CONFIG = (
-    _REPO_ROOT
-    / "examples"
-    / "public_datasets"
-    / "ethz_hand_eye_robot_arm_real"
-    / "config.yaml"
+    _REPO_ROOT / "examples" / "public_datasets" / "ethz_hand_eye_robot_arm_real" / "config.yaml"
 )
 
 requires_ethz_hand_eye = pytest.mark.skipif(
@@ -32,7 +28,7 @@ requires_ethz_hand_eye = pytest.mark.skipif(
 
 
 @requires_ethz_hand_eye
-def test_public_ethz_shah_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
+def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     result = run_calibration(
         _CONFIG,
         CalibrationRunOptions(output_dir=tmp_path / "outputs"),
@@ -44,10 +40,7 @@ def test_public_ethz_shah_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert result.run.provenance["data_verified"] is True
     assert "T_hand_eye" in result.transforms
     assert result.metrics["robot_world_hand_eye_pose_pair_count"].value == 1688.0
-    assert (
-        result.metrics["robot_world_hand_eye_shah_rotation_dominant_multiplicity"].value
-        == 1.0
-    )
+    assert result.metrics["robot_world_hand_eye_shah_rotation_dominant_multiplicity"].value == 1.0
     gap = result.metrics["robot_world_hand_eye_shah_rotation_normalized_gap"]
     assert gap.value is not None and 0.029 < gap.value < 0.030
     assert gap.grade == "pass"
@@ -55,9 +48,7 @@ def test_public_ethz_shah_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     condition = result.metrics["robot_world_hand_eye_shah_translation_condition_number"]
     assert condition.value is not None and 8.1 < condition.value < 8.3
     assert condition.grade == "pass"
-    projection = result.metrics[
-        "robot_world_hand_eye_shah_so3_projection_correction_frobenius_max"
-    ]
+    projection = result.metrics["robot_world_hand_eye_shah_so3_projection_correction_frobenius_max"]
     assert projection.value is not None and projection.value < 2.0e-4
     assert projection.grade == "pass"
     rotation = result.metrics["robot_world_hand_eye_shah_holdout_rotation_rmse_deg"]
@@ -78,3 +69,41 @@ def test_public_ethz_shah_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert shah["transform_x"] is not None
     assert shah["transform_y"] is not None
     assert all(probe["detectable"] is True for probe in shah["known_bad_probes"])
+    li_rank = result.metrics["robot_world_hand_eye_li_linear_rank"]
+    assert li_rank.value == 24.0
+    assert li_rank.grade == "pass"
+    li_condition = result.metrics["robot_world_hand_eye_li_linear_condition_number"]
+    assert li_condition.value is not None and 28.3 < li_condition.value < 28.5
+    assert li_condition.grade == "pass"
+    li_residual = result.metrics["robot_world_hand_eye_li_raw_linear_residual_rmse"]
+    assert li_residual.value is not None and 0.0055 < li_residual.value < 0.0056
+    assert li_residual.grade == "warn"
+    li_projection = result.metrics[
+        "robot_world_hand_eye_li_so3_projection_correction_frobenius_max"
+    ]
+    assert li_projection.value is not None and 0.026 < li_projection.value < 0.027
+    assert li_projection.grade == "pass"
+    assert result.metrics["robot_world_hand_eye_li_shah_common_split_consistent"].value == 1.0
+    li_rotation = result.metrics["robot_world_hand_eye_li_holdout_rotation_rmse_deg"]
+    li_translation = result.metrics["robot_world_hand_eye_li_holdout_translation_rmse_m"]
+    assert li_rotation.value is not None and 0.58 < li_rotation.value < 0.60
+    assert li_translation.value is not None and 0.017 < li_translation.value < 0.018
+    assert li_rotation.grade == li_translation.grade == "pass"
+    li_detection = result.metrics["robot_world_hand_eye_li_known_bad_detectable_fraction"]
+    assert li_detection.value == 1.0
+    assert li_detection.grade == "pass"
+    assert result.metrics["robot_world_hand_eye_li_shah_x_rotation_delta_deg"].value is not None
+    assert result.metrics["robot_world_hand_eye_li_shah_x_translation_delta_m"].value is not None
+    assert result.metrics["robot_world_hand_eye_li_shah_z_rotation_delta_deg"].value is not None
+    assert result.metrics["robot_world_hand_eye_li_shah_z_translation_delta_m"].value is not None
+    li = comparison["results"]["li_robot_world_hand_eye"]
+    assert li["method"] == "li_wang_wu_simultaneous_robot_world_hand_eye_kronecker/v0.1"
+    assert li["paper"]["doi"] == "10.5897/IJPS.9000501"
+    assert len(li["train_pair_ids"]) == 1350
+    assert len(li["holdout_pair_ids"]) == 338
+    assert len(li["linear_singular_values"]) == 24
+    assert len(li["known_bad_probes"]) == 24
+    assert li["translation_recomputed_after_rotation_projection"] is False
+    assert li["transform_x"] is not None
+    assert li["transform_z"] is not None
+    assert all(probe["detectable"] is True for probe in li["known_bad_probes"])

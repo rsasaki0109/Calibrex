@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -22,6 +22,22 @@ RobotWorldHandEyeStatus = Literal[
 ]
 RobotWorldTransformName = Literal["X", "Y"]
 RobotWorldProbeUnit = Literal["m", "deg"]
+
+
+class RobotWorldHandEyeProbeOptions(Protocol):
+    """Structural options required by the shared AX=YB falsification protocol."""
+
+    @property
+    def known_bad_translation_m(self) -> float: ...
+
+    @property
+    def known_bad_rotation_deg(self) -> float: ...
+
+    @property
+    def known_bad_translation_margin_m(self) -> float: ...
+
+    @property
+    def known_bad_rotation_margin_deg(self) -> float: ...
 
 
 @dataclass(frozen=True)
@@ -202,9 +218,7 @@ class ShahRobotWorldHandEyeSolver:
         transform_y = _se3(rotation_y, translation_yx[:3])
         transform_x = _se3(rotation_x, translation_yx[3:])
         train_evaluation = evaluate_robot_world_hand_eye_poses(train, transform_x, transform_y)
-        holdout_evaluation = evaluate_robot_world_hand_eye_poses(
-            holdout, transform_x, transform_y
-        )
+        holdout_evaluation = evaluate_robot_world_hand_eye_poses(holdout, transform_x, transform_y)
         probes = evaluate_robot_world_hand_eye_known_bad_probes(
             holdout,
             transform_x,
@@ -261,7 +275,7 @@ def evaluate_robot_world_hand_eye_known_bad_probes(
     transform_x: SE3,
     transform_y: SE3,
     baseline: RobotWorldHandEyeEvaluation,
-    options: ShahRobotWorldHandEyeOptions,
+    options: RobotWorldHandEyeProbeOptions,
 ) -> tuple[RobotWorldHandEyeProbe, ...]:
     """Apply signed six-DoF falsification controls independently to X and Y."""
 
@@ -332,15 +346,11 @@ def _solve_rotations(
     dominant_multiplicity = int(np.count_nonzero(singular >= spectrum[0] - threshold))
     gap = (spectrum[0] - spectrum[1]) / spectrum[0]
     if dominant_multiplicity != 1 or gap < options.minimum_rotation_normalized_gap:
-        return _ShahRotationSolution(
-            None, None, spectrum, gap, dominant_multiplicity, None, None
-        )
+        return _ShahRotationSolution(None, None, spectrum, gap, dominant_multiplicity, None, None)
     normalized_y = _determinant_normalized(left[:, 0].reshape((3, 3), order="F"))
     normalized_x = _determinant_normalized(right_t[0].reshape((3, 3), order="F"))
     if normalized_x is None or normalized_y is None:
-        return _ShahRotationSolution(
-            None, None, spectrum, gap, dominant_multiplicity, None, None
-        )
+        return _ShahRotationSolution(None, None, spectrum, gap, dominant_multiplicity, None, None)
     rotation_x = _nearest_rotation(normalized_x)
     rotation_y = _nearest_rotation(normalized_y)
     correction_x = float(np.linalg.norm(normalized_x - rotation_x, ord="fro"))
@@ -408,7 +418,7 @@ def _probe(
     transform_x: SE3,
     transform_y: SE3,
     baseline: RobotWorldHandEyeEvaluation,
-    options: ShahRobotWorldHandEyeOptions,
+    options: RobotWorldHandEyeProbeOptions,
 ) -> RobotWorldHandEyeProbe:
     candidate_x = delta.compose(transform_x) if transform_name == "X" else transform_x
     candidate_y = delta.compose(transform_y) if transform_name == "Y" else transform_y
