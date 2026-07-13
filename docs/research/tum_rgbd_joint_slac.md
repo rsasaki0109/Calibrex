@@ -151,6 +151,14 @@ selection-dependent diagnostic rather than independent improvement. The low
 pair stability despite high retention demonstrates that the fixed-assignment
 linearization is not a stable surrogate for the rematched objective.
 
+Central-difference curvature over shared extrinsic plus constant bias confirms
+the mismatch. Fixed-correspondence Hessians are positive definite and rank 7/7
+in every window. Rematched Hessians remain full rank but contain 3, 6, and 6
+negative eigenvalues. The maximum normalized Frobenius difference between
+fixed and rematched Hessians is 10.68. Consequently, augmented rank and a
+positive fixed-assignment Hessian cannot be treated as evidence that the
+association-aware calibration objective is locally convex.
+
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8

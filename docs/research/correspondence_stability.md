@@ -57,3 +57,14 @@ condition number, physical perturbation steps, and exact objective-evaluation
 count. Synthetic tests recover a coupled convex quadratic Hessian within
 `1e-9`, detect one negative direction in a saddle, retain an independent flat
 direction, and reject non-finite probes.
+
+For public TUM, curvature is evaluated over the shared extrinsic tangent and
+constant depth bias (seven dimensions), with optimized poses and zero-mean
+lattice fixed. Unmatched probes receive the unchanged 0.15 m gate as a fixed
+population penalty. Each fixed and rematched Hessian uses 99 objective
+evaluations. All fixed-correspondence Hessians are positive definite and rank
+7/7. In contrast, the rematched Hessians have 3, 6, and 6 negative eigenvalues
+at starts 60, 180, and 300. Their Frobenius differences from the fixed Hessians,
+normalized by fixed-Hessian norm, are 1.92, 10.12, and 10.68. Thus full rank
+does not imply a locally convex rematched objective, and fixed `J^T J` curvature
+materially misrepresents the association-aware landscape.

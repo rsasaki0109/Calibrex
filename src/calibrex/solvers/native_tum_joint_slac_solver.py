@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, replace
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,10 @@ from calibrex.evaluation.correspondence import (
     CorrespondenceAssignment,
     CorrespondenceStabilityEvaluation,
     evaluate_correspondence_stability,
+)
+from calibrex.evaluation.numerical_curvature import (
+    NumericalCurvatureEvaluation,
+    evaluate_numerical_curvature,
 )
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
@@ -143,6 +148,9 @@ class _TUMRematchEvaluation:
     fixed_holdout_rmse_m: float | None
     rematched_holdout_rmse_m: float | None
     stability: CorrespondenceStabilityEvaluation
+    fixed_curvature: NumericalCurvatureEvaluation
+    rematched_curvature: NumericalCurvatureEvaluation
+    relative_hessian_difference: float
 
 
 class NativeTUMJointSlacSolver(SolverAdapter):
@@ -513,9 +521,11 @@ def _rematch_spatial_holdouts(
         fixed_residuals: list[float] = []
         rematched_residuals: list[float] = []
         values = run.result.optimized_values
+        holdout_measurements: list[JointDepthPointToPlaneMeasurement] = []
         for measurement in run.source_problem.measurements:
             if measurement.measurement_id not in holdout_ids:
                 continue
+            holdout_measurements.append(measurement)
             original = nearest_voxel_plane_match(
                 measurement.plane_point_world_m,
                 plane_map,
@@ -571,15 +581,129 @@ def _rematch_spatial_holdouts(
             rematched_residuals.append(
                 _point_plane_residual(point_world, match.centroid, match.normal)
             )
+        curvature_center = (
+            *values[_EXTRINSIC_BLOCK],
+            values[_SPATIAL_BIAS_BLOCK][0],
+        )
+        curvature_steps = (0.002,) * 3 + (math.radians(0.1),) * 3 + (0.002,)
+        fixed_curvature = evaluate_numerical_curvature(
+            partial(
+                _shared_holdout_objective,
+                run,
+                holdout_measurements,
+                plane_map,
+                options,
+                rematch=False,
+            ),
+            curvature_center,
+            curvature_steps,
+        )
+        rematched_curvature = evaluate_numerical_curvature(
+            partial(
+                _shared_holdout_objective,
+                run,
+                holdout_measurements,
+                plane_map,
+                options,
+                rematch=True,
+            ),
+            curvature_center,
+            curvature_steps,
+        )
         evaluations.append(
             _TUMRematchEvaluation(
                 run.start_index,
                 _rmse_values(fixed_residuals),
                 _rmse_values(rematched_residuals),
                 evaluate_correspondence_stability(tuple(reference), tuple(rematched)),
+                fixed_curvature,
+                rematched_curvature,
+                _relative_hessian_difference(fixed_curvature, rematched_curvature),
             )
         )
     return tuple(evaluations)
+
+
+def _shared_holdout_objective(
+    run: _TUMSpatialWindowRun,
+    measurements: list[JointDepthPointToPlaneMeasurement],
+    plane_map: dict[tuple[int, int, int], Any],
+    options: TUMJointSlacOptions,
+    candidate: tuple[float, ...],
+    *,
+    rematch: bool,
+) -> float:
+    extrinsic = candidate[:6]
+    bias_m = candidate[6]
+    squared_sum = 0.0
+    for measurement in measurements:
+        point_world = _spatial_measurement_world_point(run, measurement, extrinsic, bias_m)
+        if rematch:
+            match = nearest_voxel_plane_match(
+                point_world,
+                plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            residual = (
+                _point_plane_residual(point_world, match.centroid, match.normal)
+                if match is not None
+                else options.correspondence_gate_m
+            )
+        else:
+            residual = _point_plane_residual(
+                point_world,
+                measurement.plane_point_world_m,
+                measurement.plane_normal_world,
+            )
+        squared_sum += residual * residual
+    return squared_sum / len(measurements) if measurements else 0.0
+
+
+def _spatial_measurement_world_point(
+    run: _TUMSpatialWindowRun,
+    measurement: JointDepthPointToPlaneMeasurement,
+    extrinsic: tuple[float, ...],
+    bias_m: float,
+) -> tuple[float, float, float]:
+    values = run.result.optimized_values
+    frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
+    frame = run.source_problem.query_frames[frame_index]
+    weights = trilinear_lattice_weights(
+        _scale_ray(measurement.normalized_ray_sensor, measurement.nominal_depth_m),
+        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+        shape=_SPATIAL_LATTICE_SHAPE,
+    )
+    depth_m = (
+        measurement.nominal_depth_m
+        + bias_m
+        + sum(
+            weight * offset
+            for weight, offset in zip(weights, values[_SPATIAL_DEPTH_BLOCK], strict=True)
+        )
+    )
+    world_sensor = (
+        se3_from_tangent(values[_pose_block(frame_index, frame)])
+        .compose(frame.transform_world_camera)
+        .compose(se3_from_tangent(extrinsic))
+    )
+    return world_sensor.transform_point(_scale_ray(measurement.normalized_ray_sensor, depth_m))
+
+
+def _relative_hessian_difference(
+    fixed: NumericalCurvatureEvaluation,
+    rematched: NumericalCurvatureEvaluation,
+) -> float:
+    difference = math.sqrt(
+        sum(
+            (rematched.hessian[row][column] - fixed.hessian[row][column]) ** 2
+            for row in range(fixed.parameter_dimension)
+            for column in range(fixed.parameter_dimension)
+        )
+    )
+    fixed_norm = math.sqrt(sum(value * value for row in fixed.hessian for value in row))
+    return difference / fixed_norm if fixed_norm > 0.0 else math.inf
 
 
 def _build_map_planes(
@@ -1155,6 +1279,35 @@ def _rematching_metrics(
             grade="warn",
             reason="rematched minus fixed-assignment RMSE; selection-dependent diagnostic",
         ),
+        "tum_joint_rematched_curvature_rank_min": MetricResult(
+            value=(
+                float(min(item.rematched_curvature.rank for item in evaluations))
+                if evaluations
+                else None
+            ),
+            grade="warn",
+            reason="rank of shared extrinsic/bias rematched holdout objective Hessian",
+        ),
+        "tum_joint_rematched_negative_curvature_count_max": MetricResult(
+            value=(
+                float(
+                    max(item.rematched_curvature.negative_eigenvalue_count for item in evaluations)
+                )
+                if evaluations
+                else None
+            ),
+            grade="warn",
+            reason="negative eigenvalues expose local non-convex rematching directions",
+        ),
+        "tum_joint_curvature_relative_hessian_difference_max": MetricResult(
+            value=(
+                max(item.relative_hessian_difference for item in evaluations)
+                if evaluations
+                else None
+            ),
+            grade="warn",
+            reason="Frobenius difference between rematched and fixed Hessians / fixed norm",
+        ),
     }
 
 
@@ -1197,7 +1350,7 @@ def _provenance(
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.6",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.7",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -1284,6 +1437,18 @@ def _provenance(
                 "fixed_holdout_rmse_m": item.fixed_holdout_rmse_m,
                 "rematched_holdout_rmse_m": item.rematched_holdout_rmse_m,
                 "stability": item.stability.as_dict(),
+                "curvature_parameter_order": [
+                    "extrinsic_tx_m",
+                    "extrinsic_ty_m",
+                    "extrinsic_tz_m",
+                    "extrinsic_rx_rad",
+                    "extrinsic_ry_rad",
+                    "extrinsic_rz_rad",
+                    "constant_depth_bias_m",
+                ],
+                "fixed_curvature": item.fixed_curvature.as_dict(),
+                "rematched_curvature": item.rematched_curvature.as_dict(),
+                "relative_hessian_difference": item.relative_hessian_difference,
             }
             for item in rematching
         ],

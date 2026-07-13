@@ -665,6 +665,22 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.005,
         unit="m",
     ),
+    "tum_joint_rematched_curvature_rank_min": MetricThreshold(
+        metric="tum_joint_rematched_curvature_rank_min",
+        pass_value=7.0,
+        warn_value=6.0,
+        direction="higher_is_better",
+    ),
+    "tum_joint_rematched_negative_curvature_count_max": MetricThreshold(
+        metric="tum_joint_rematched_negative_curvature_count_max",
+        pass_value=0.0,
+        warn_value=1.0,
+    ),
+    "tum_joint_curvature_relative_hessian_difference_max": MetricThreshold(
+        metric="tum_joint_curvature_relative_hessian_difference_max",
+        pass_value=0.25,
+        warn_value=1.0,
+    ),
     "joint_slac_augmented_information_rank": MetricThreshold(
         metric="joint_slac_augmented_information_rank",
         pass_value=12.0,

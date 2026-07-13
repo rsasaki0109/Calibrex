@@ -768,6 +768,21 @@ def _register_builtin_metrics() -> None:
             "registration",
         ),
         MetricDefinition(
+            "tum_joint_rematched_curvature_rank_min",
+            "Minimum numerical rematched Hessian rank over TUM windows",
+            family="observability",
+        ),
+        MetricDefinition(
+            "tum_joint_rematched_negative_curvature_count_max",
+            "Maximum rematched-objective negative curvature directions",
+            family="observability",
+        ),
+        MetricDefinition(
+            "tum_joint_curvature_relative_hessian_difference_max",
+            "Maximum relative fixed/rematched Hessian Frobenius difference",
+            family="observability",
+        ),
+        MetricDefinition(
             "joint_slac_point_to_plane_rmse_m",
             "Joint pose-extrinsic point-to-plane RMSE excluding priors",
             "m",
