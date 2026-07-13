@@ -271,6 +271,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         spatial_runs = _spatial_ablation_runs(config, replication_runs, options)
         spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
         xyz_runs = _xyz_ablation_runs(config, replication_runs, options)
+        xyz_transfers = _xyz_cross_window_transfers(xyz_runs)
         reassociation_runs = _iterative_reassociation_runs(
             root, intrinsics, config, spatial_runs, options
         )
@@ -295,7 +296,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         metrics.update(
             _spatial_ablation_metrics(replication_runs, spatial_runs, spatial_transfers, options)
         )
-        metrics.update(_xyz_ablation_metrics(spatial_runs, xyz_runs))
+        metrics.update(_xyz_ablation_metrics(spatial_runs, xyz_runs, xyz_transfers, options))
         metrics.update(_rematching_metrics(rematching))
         metrics.update(_iterative_reassociation_metrics(reassociation_runs, options))
         warnings = _warnings(
@@ -334,6 +335,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 spatial_runs=spatial_runs,
                 spatial_transfers=spatial_transfers,
                 xyz_runs=xyz_runs,
+                xyz_transfers=xyz_transfers,
                 reassociation_runs=reassociation_runs,
                 rematching=rematching,
             ),
@@ -766,6 +768,39 @@ def _spatial_cross_window_transfers(
                     "target_start_index": target.start_index,
                     "target_spatial_holdout_rmse_m": baseline_rmse,
                     "transferred_spatial_holdout_rmse_m": transferred_rmse,
+                    "delta_rmse_m": (
+                        transferred_rmse - baseline_rmse
+                        if transferred_rmse is not None and baseline_rmse is not None
+                        else None
+                    ),
+                }
+            )
+    return tuple(transfers)
+
+
+def _xyz_cross_window_transfers(
+    runs: tuple[_TUMXYZWindowRun, ...],
+) -> tuple[dict[str, float | int | None], ...]:
+    transfers: list[dict[str, float | int | None]] = []
+    for source in runs:
+        for target in runs:
+            if source.start_index == target.start_index:
+                continue
+            holdout_ids = set(target.result.holdout_factor_ids)
+            factors = [
+                factor for factor in target.data_factors if factor.factor_id in holdout_ids
+            ]
+            values = dict(target.result.optimized_values)
+            values[_EXTRINSIC_BLOCK] = source.result.optimized_values[_EXTRINSIC_BLOCK]
+            values[_XYZ_LATTICE_BLOCK] = source.result.optimized_values[_XYZ_LATTICE_BLOCK]
+            transferred_rmse = _factor_rmse(factors, values)
+            baseline_rmse = target.result.holdout_rmse
+            transfers.append(
+                {
+                    "source_start_index": source.start_index,
+                    "target_start_index": target.start_index,
+                    "target_xyz_holdout_rmse_m": baseline_rmse,
+                    "transferred_xyz_holdout_rmse_m": transferred_rmse,
                     "delta_rmse_m": (
                         transferred_rmse - baseline_rmse
                         if transferred_rmse is not None and baseline_rmse is not None
@@ -1701,6 +1736,8 @@ def _spatial_ablation_metrics(
 def _xyz_ablation_metrics(
     scalar_runs: tuple[_TUMSpatialWindowRun, ...],
     xyz_runs: tuple[_TUMXYZWindowRun, ...],
+    transfers: tuple[dict[str, float | int | None], ...],
+    options: TUMJointSlacOptions,
 ) -> dict[str, MetricResult]:
     baselines = {run.start_index: run for run in scalar_runs}
     holdout_deltas: list[float] = []
@@ -1735,6 +1772,15 @@ def _xyz_ablation_metrics(
     ]
     field_ranks = [run.data_only_field_observability.information_rank for run in xyz_runs]
     shared_ranks = [run.data_only_shared_observability.information_rank for run in xyz_runs]
+    transfer_deltas = [
+        float(transfer["delta_rmse_m"])
+        for transfer in transfers
+        if transfer["delta_rmse_m"] is not None
+    ]
+    nondegrading = sum(
+        delta <= options.cross_window_nondegradation_margin_m
+        for delta in transfer_deltas
+    )
     expected = len(scalar_runs)
     complete = len(xyz_runs) == expected
     return {
@@ -1797,6 +1843,29 @@ def _xyz_ablation_metrics(
                 else "warn"
             ),
             reason="minimum final frozen-factor detection over 48 signed XYZ control probes",
+        ),
+        "tum_joint_xyz_cross_window_max_holdout_delta_rmse_m": MetricResult(
+            value=max(transfer_deltas) if transfer_deltas else None,
+            unit="m",
+            grade=(
+                "pass"
+                if transfer_deltas
+                and max(transfer_deltas) <= options.cross_window_nondegradation_margin_m
+                else "fail"
+            ),
+            reason="worst ordered shared-extrinsic/full-XYZ field transfer",
+        ),
+        "tum_joint_xyz_cross_window_nondegrading_fraction": MetricResult(
+            value=nondegrading / len(transfer_deltas) if transfer_deltas else None,
+            grade=(
+                "pass"
+                if transfer_deltas and nondegrading == len(transfer_deltas)
+                else "fail"
+            ),
+            reason=(
+                "ordered full-XYZ transfers within declared "
+                f"{options.cross_window_nondegradation_margin_m:g} m RMSE margin"
+            ),
         ),
     }
 
@@ -2144,12 +2213,13 @@ def _provenance(
     spatial_runs: tuple[_TUMSpatialWindowRun, ...],
     spatial_transfers: tuple[dict[str, float | int | None], ...],
     xyz_runs: tuple[_TUMXYZWindowRun, ...],
+    xyz_transfers: tuple[dict[str, float | int | None], ...],
     reassociation_runs: tuple[_TUMIterativeReassociationRun, ...],
     rematching: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.1",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v1.2",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -2254,6 +2324,12 @@ def _provenance(
         "native_tum_joint_slac_xyz_lattice_windows": [
             _xyz_window_provenance(run) for run in xyz_runs
         ],
+        "native_tum_joint_slac_xyz_cross_window_policy": (
+            "source shared extrinsic and 24-dimensional full-XYZ field are evaluated "
+            "on target final-round holdout factors while retaining target optimized "
+            "poses; local-rotation and gauge residuals are excluded"
+        ),
+        "native_tum_joint_slac_xyz_cross_window_transfers": list(xyz_transfers),
         "native_tum_joint_slac_iterative_reassociation_policy": (
             "each spatial window alternates nearest voxel-plane reassociation and "
             "warm-start backend-neutral optimization; only train pair Jaccard and "

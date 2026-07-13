@@ -141,4 +141,8 @@ converge and field-only rank is 24/24, but extrinsic plus field is rank 24/30
 and therefore WARN. Only one of three windows improves scalar-lattice holdout;
 the worst increase is 0.004047 m and the weakest control-probe detection is
 11/48. The full-XYZ ablation remains honestly FAIL rather than treating its
-gauge-augmented 78/78 rank as data observability.
+gauge-augmented 78/78 rank as data observability. Ordered transfer of the
+shared extrinsic and field passes the unchanged 0.005 m margin in only 2/6
+directions, with a worst +0.011746 m holdout increase. Local-rotation and gauge
+residuals are excluded from that score, so regularization cannot manufacture
+transfer success.

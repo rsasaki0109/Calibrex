@@ -177,6 +177,16 @@ rank, and data-only rank is retained in provenance. The fixed map remains an
 explicit specialization; the public run does not claim that both sides of the
 paper's pairwise objective were calibrated.
 
+The shared extrinsic and all 24 field components are also transferred in all
+six ordered directions while retaining each target window's optimized poses
+and final held-out data factors. Shape, local-rotation, and rigid-gauge
+residuals are excluded from transfer scoring. Only start 180 to 300 and start
+300 to 180 remain within the unchanged 0.005 m margin, with increases of
+0.000477 m and 0.003023 m. The other four directions increase RMSE by
+0.00763--0.01175 m; the worst is start 60 to 180 at +0.011746 m. The
+nondegrading fraction is therefore 2/6 and FAIL. The small fitted field and
+full field-only rank do not establish a sequence-wide calibration function.
+
 ### Optimized correspondence rematching
 
 Held-out optimized points are rematched to the same voxel-plane map under the
@@ -246,5 +256,5 @@ This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension will test full-XYZ cross-window transfer and then add a public
-two-sided correspondence frontend before increasing lattice resolution.
+next extension will add a public two-sided correspondence frontend before
+increasing lattice resolution.

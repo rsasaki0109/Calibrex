@@ -171,6 +171,17 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     xyz_detection = result.metrics["tum_joint_xyz_known_bad_detectable_fraction_min"]
     assert xyz_detection.value == pytest.approx(11.0 / 48.0)
     assert xyz_detection.grade == "warn"
+    xyz_transfer_delta = result.metrics[
+        "tum_joint_xyz_cross_window_max_holdout_delta_rmse_m"
+    ]
+    assert xyz_transfer_delta.value is not None
+    assert 0.0117 < xyz_transfer_delta.value < 0.0118
+    assert xyz_transfer_delta.grade == "fail"
+    xyz_transfer_fraction = result.metrics[
+        "tum_joint_xyz_cross_window_nondegrading_fraction"
+    ]
+    assert xyz_transfer_fraction.value == pytest.approx(1.0 / 3.0)
+    assert xyz_transfer_fraction.grade == "fail"
     xyz_windows = result.run.provenance["native_tum_joint_slac_xyz_lattice_windows"]
     assert [window["start_index"] for window in xyz_windows] == [60, 180, 300]
     assert all(
@@ -188,6 +199,18 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         == {"T_trajectory_camera_correction", "depth_full_xyz_lattice_offsets_m"}
         for window in xyz_windows
     )
+    xyz_transfers = result.run.provenance[
+        "native_tum_joint_slac_xyz_cross_window_transfers"
+    ]
+    assert len(xyz_transfers) == 6
+    assert {
+        (transfer["source_start_index"], transfer["target_start_index"])
+        for transfer in xyz_transfers
+        if transfer["delta_rmse_m"] <= 0.005
+    } == {(180, 300), (300, 180)}
+    assert "local-rotation and gauge residuals are excluded" in result.run.provenance[
+        "native_tum_joint_slac_xyz_cross_window_policy"
+    ]
     assert result.degeneracy.reason is not None
     assert "full-XYZ data-only" in result.degeneracy.reason
     reassociation_count = result.metrics["tum_joint_reassociation_window_count"]
@@ -326,7 +349,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v1.1"
+        "tum_multicapture_pose_extrinsic_depth/v1.2"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

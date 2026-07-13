@@ -796,6 +796,17 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_xyz_cross_window_max_holdout_delta_rmse_m",
+            "Worst ordered full-XYZ shared-parameter transfer RMSE change",
+            "m",
+            "joint_slac",
+        ),
+        MetricDefinition(
+            "tum_joint_xyz_cross_window_nondegrading_fraction",
+            "Fraction of ordered full-XYZ transfers within the RMSE margin",
+            family="joint_slac",
+        ),
+        MetricDefinition(
             "tum_joint_reassociation_window_count",
             "Number of TUM windows evaluated by iterative voxel-plane reassociation",
             "windows",

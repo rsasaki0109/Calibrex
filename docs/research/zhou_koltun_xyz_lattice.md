@@ -89,6 +89,9 @@ weakest frozen-factor probe detection is 11/48. The public result therefore
 does not claim useful lateral calibration despite full field-only rank.
 
 The adapter still uses fixed disjoint map planes, which is explicitly labelled
-as a specialization of Equation (2). Full-XYZ cross-window transfer,
-reassociation-aware probes, and a public two-sided correspondence frontend
-remain future evidence requirements.
+as a specialization of Equation (2). Reassociation-aware probes lower
+the weakest detection fraction from 0.533 frozen to 0.433 with no support
+collapse. Ordered extrinsic/field transfer passes the unchanged 0.005 m margin
+in only 2/6 directions; the worst holdout increase is 0.011746 m. A public
+two-sided correspondence frontend remains the next missing paper-level
+evidence component.
