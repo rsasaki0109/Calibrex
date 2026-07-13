@@ -95,6 +95,12 @@ frames:
         translation_m: 0.20
         rotation_deg: 5.0
 
+time_offsets:
+  radar_front:
+    estimate: true
+    initial_sec: 0.0
+    prior_sigma_sec: 0.05
+
 pipeline:
   type: multi_sensor_slac
   frontends:
@@ -108,6 +114,15 @@ pipeline:
       enabled: false
     radar_lidar_velocity_consistency:
       enabled: true
+    radar_spatiotemporal_velocity:
+      enabled: true
+      options:
+        sensor: radar_front
+        channel: RADAR_FRONT
+        max_frames: 64
+        max_abs_time_offset_sec: 0.10
+        time_offset_step_sec: 0.002
+        min_train_measurements: 12
 
 solver:
   backend: scipy
@@ -134,6 +149,11 @@ evaluation:
     - lidar_frame_coverage
     - lidar_world_map_point_to_plane_rmse_m
     - radar_lidar_velocity_consistency
+    - radar_spatiotemporal_available
+    - radar_spatiotemporal_holdout_rmse_mps
+    - radar_spatiotemporal_lever_arm_rank
+    - radar_spatiotemporal_time_curvature
+    - radar_spatiotemporal_known_bad_detectable_fraction
 
 outputs:
   result: result.yaml

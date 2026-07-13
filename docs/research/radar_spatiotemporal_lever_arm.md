@@ -59,10 +59,19 @@ declared detection margin. Synthetic tests prove exact truth recovery,
 train/holdout isolation, all eight perturbations, single-axis degeneracy, and
 clock-search boundary reporting.
 
-## Current limitation
+## nuScenes public-data adapter
 
-The native solver consumes already-estimated scan-wise Radar ego velocity and
-a reference kinematic trajectory. Connecting this contract to public nuScenes
-raw Radar/ego-pose tables, with raw-file digests and dataset-specific timing
-limitations, is the next adapter layer. Until that evaluation exists, this is
-synthetic algorithm evidence rather than a public-real-data calibration claim.
+The `radar_spatiotemporal_velocity` factor connects the native contract to an
+official, locally downloaded nuScenes mini tree without the nuScenes SDK. It
+re-estimates planar Radar ego velocity from static raw `vx`/`vy` returns rather
+than treating the dataset's ego-motion-compensated `vx_comp`/`vy_comp` as an
+independent measurement. Consecutive `ego_pose` positions and orientations
+provide body-frame linear and angular velocity. Every consumed PCD and metadata
+table receives a SHA-256 provenance record.
+
+nuScenes automotive Radar has essentially planar LOS support, while ordinary
+road motion is dominated by yaw. Consequently, full three-axis lever-arm rank
+is not assumed. The adapter publishes an honest `INCONCLUSIVE` result when the
+motion has rank two, retaining counts, spectrum, rejected scans, and raw input
+digests. A local dataset absence is likewise `unavailable`; the project does
+not redistribute nuScenes data or bypass its terms-of-use flow.

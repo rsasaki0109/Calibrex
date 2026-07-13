@@ -1085,6 +1085,17 @@ observability, and controls pass. Do not tune those limits on the reported
 holdout. Freeze them on predeclared development scenes, then evaluate once on
 untouched validation scenes and record negative results unchanged.
 
+The same config also runs `radar_spatiotemporal_velocity` for `RADAR_FRONT`.
+It recomputes planar scan ego velocity from static raw `vx`/`vy` Doppler
+returns, differentiates the corresponding `ego_pose` trajectory, and passes
+those timestamped signals to the native lever-arm/clock-offset solver. The
+factor declares `radar_time + dt_radar = reference_time`, a ±0.10 s search,
+and a 2 ms grid resolution. Full 3D translation is accepted only when the
+stacked angular-rate cross-product matrix has rank three. Normal road driving
+often supplies yaw-only motion and should therefore produce an honest
+`INCONCLUSIVE` lever-arm result rather than an invented vertical translation.
+All consumed PCD and metadata files are recorded with SHA-256 digests.
+
 `input_diagnostics` records missing extrinsics, insufficient records, missing
 ego poses, low-motion exclusions, missing or malformed PCD payloads, and frames
 without eligible static returns. Counts are complete, while example events are
