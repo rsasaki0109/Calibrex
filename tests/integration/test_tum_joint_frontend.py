@@ -166,6 +166,24 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         and item["rematched_curvature"]["evaluation_count"] == 99
         for item in rematching
     )
+    assert result.metrics["tum_joint_multistart_converged_fraction"].value == 1.0
+    basin_count = result.metrics["tum_joint_multistart_basin_count"]
+    assert basin_count.value == 2.0
+    assert basin_count.grade == "warn"
+    competitive = result.metrics["tum_joint_multistart_competitive_basin_count"]
+    assert competitive.value == 2.0
+    assert competitive.grade == "fail"
+    ambiguity = result.metrics["tum_joint_multistart_ambiguity"]
+    assert ambiguity.value == 1.0
+    assert ambiguity.grade == "fail"
+    primary_rematching = next(
+        item for item in rematching if item["multistart_evaluation"] is not None
+    )
+    multistart = primary_rematching["multistart_evaluation"]
+    assert multistart["ambiguous"] is True
+    assert 3.0e-6 < multistart["best_to_second_objective_gap"] < 4.0e-6
+    assert 1.9 < multistart["max_competitive_normalized_separation"] < 2.0
+    assert len(primary_rematching["multistart_searches"]) == 5
     translation = result.metrics["tum_joint_identity_reference_translation_error_m"]
     rotation = result.metrics["tum_joint_identity_reference_rotation_error_deg"]
     assert translation.value is not None and translation.value > 0.10
@@ -179,7 +197,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v0.7"
+        "tum_multicapture_pose_extrinsic_depth/v0.8"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

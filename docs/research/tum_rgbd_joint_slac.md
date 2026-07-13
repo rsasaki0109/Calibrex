@@ -159,6 +159,14 @@ fixed and rematched Hessians is 10.68. Consequently, augmented rank and a
 positive fixed-assignment Hessian cannot be treated as evidence that the
 association-aware calibration objective is locally convex.
 
+Five deterministic full-7D searches from the optimized center and signed
+extrinsic-z/depth-bias starts all converge, but form two competitive basins.
+Their best objectives differ by `3.73e-6` and their representatives are 1.92
+declared physical scales apart. The best basin trades roughly +0.03 m of
+extrinsic z against -0.03 m of constant depth bias relative to the competing
+basin. Multi-start evidence therefore confirms a genuine translation/depth
+ambiguity rather than mere failure of one optimizer trajectory.
+
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8

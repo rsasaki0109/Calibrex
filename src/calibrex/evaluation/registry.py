@@ -783,6 +783,28 @@ def _register_builtin_metrics() -> None:
             family="observability",
         ),
         MetricDefinition(
+            "tum_joint_multistart_converged_fraction",
+            "Fraction of public TUM rematched multi-start searches converged",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_multistart_basin_count",
+            "Distinct scale-normalized TUM rematched solution basins",
+            "basins",
+            "registration",
+        ),
+        MetricDefinition(
+            "tum_joint_multistart_competitive_basin_count",
+            "Objective-competitive TUM rematched solution basins",
+            "basins",
+            "registration",
+        ),
+        MetricDefinition(
+            "tum_joint_multistart_ambiguity",
+            "Binary separated competitive-basin ambiguity indicator",
+            family="registration",
+        ),
+        MetricDefinition(
             "joint_slac_point_to_plane_rmse_m",
             "Joint pose-extrinsic point-to-plane RMSE excluding priors",
             "m",

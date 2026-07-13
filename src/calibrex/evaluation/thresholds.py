@@ -681,6 +681,29 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         pass_value=0.25,
         warn_value=1.0,
     ),
+    "tum_joint_multistart_converged_fraction": MetricThreshold(
+        metric="tum_joint_multistart_converged_fraction",
+        pass_value=1.0,
+        warn_value=0.8,
+        direction="higher_is_better",
+    ),
+    "tum_joint_multistart_basin_count": MetricThreshold(
+        metric="tum_joint_multistart_basin_count",
+        pass_value=1.0,
+        warn_value=2.0,
+        unit="basins",
+    ),
+    "tum_joint_multistart_competitive_basin_count": MetricThreshold(
+        metric="tum_joint_multistart_competitive_basin_count",
+        pass_value=1.0,
+        warn_value=1.0,
+        unit="basins",
+    ),
+    "tum_joint_multistart_ambiguity": MetricThreshold(
+        metric="tum_joint_multistart_ambiguity",
+        pass_value=0.0,
+        warn_value=0.0,
+    ),
     "joint_slac_augmented_information_rank": MetricThreshold(
         metric="joint_slac_augmented_information_rank",
         pass_value=12.0,

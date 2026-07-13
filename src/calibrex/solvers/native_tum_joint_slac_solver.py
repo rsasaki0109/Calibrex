@@ -34,6 +34,13 @@ from calibrex.evaluation.correspondence import (
     CorrespondenceStabilityEvaluation,
     evaluate_correspondence_stability,
 )
+from calibrex.evaluation.multistart import (
+    MultiStartEvaluation,
+    PatternSearchOptions,
+    PatternSearchResult,
+    coordinate_pattern_search,
+    evaluate_multistart_solutions,
+)
 from calibrex.evaluation.numerical_curvature import (
     NumericalCurvatureEvaluation,
     evaluate_numerical_curvature,
@@ -151,6 +158,8 @@ class _TUMRematchEvaluation:
     fixed_curvature: NumericalCurvatureEvaluation
     rematched_curvature: NumericalCurvatureEvaluation
     relative_hessian_difference: float
+    multistart_searches: tuple[PatternSearchResult, ...]
+    multistart_evaluation: MultiStartEvaluation | None
 
 
 class NativeTUMJointSlacSolver(SolverAdapter):
@@ -610,6 +619,17 @@ def _rematch_spatial_holdouts(
             curvature_center,
             curvature_steps,
         )
+        multistart_searches, multistart_evaluation = (
+            _run_primary_multistart(
+                run,
+                holdout_measurements,
+                plane_map,
+                options,
+                curvature_center,
+            )
+            if run.start_index == options.frame_start_index
+            else ((), None)
+        )
         evaluations.append(
             _TUMRematchEvaluation(
                 run.start_index,
@@ -619,9 +639,64 @@ def _rematch_spatial_holdouts(
                 fixed_curvature,
                 rematched_curvature,
                 _relative_hessian_difference(fixed_curvature, rematched_curvature),
+                multistart_searches,
+                multistart_evaluation,
             )
         )
     return tuple(evaluations)
+
+
+def _run_primary_multistart(
+    run: _TUMSpatialWindowRun,
+    measurements: list[JointDepthPointToPlaneMeasurement],
+    plane_map: dict[tuple[int, int, int], Any],
+    options: TUMJointSlacOptions,
+    center: tuple[float, ...],
+) -> tuple[tuple[PatternSearchResult, ...], MultiStartEvaluation]:
+    objective = partial(
+        _shared_holdout_objective,
+        run,
+        measurements,
+        plane_map,
+        options,
+        rematch=True,
+    )
+    starts = [
+        ("optimized-center", center),
+        ("translation-z-positive", _shift_parameter(center, 2, 0.03)),
+        ("translation-z-negative", _shift_parameter(center, 2, -0.03)),
+        ("depth-bias-positive", _shift_parameter(center, 6, 0.02)),
+        ("depth-bias-negative", _shift_parameter(center, 6, -0.02)),
+    ]
+    initial_steps = (0.01,) * 3 + (math.radians(0.1),) * 3 + (0.01,)
+    searches = tuple(
+        coordinate_pattern_search(
+            objective,
+            start_id=start_id,
+            start=start,
+            options=PatternSearchOptions(
+                initial_steps=initial_steps,
+                minimum_steps=tuple(step * 0.5 for step in initial_steps),
+                max_sweeps=10,
+                improvement_tolerance=1.0e-8,
+            ),
+        )
+        for start_id, start in starts
+    )
+    evaluation = evaluate_multistart_solutions(
+        tuple(search.solution for search in searches),
+        parameter_scales=(0.03,) * 3 + (math.radians(0.5),) * 3 + (0.02,),
+        cluster_radius=1.0,
+        objective_absolute_tolerance=1.0e-6,
+        objective_relative_tolerance=0.01,
+    )
+    return searches, evaluation
+
+
+def _shift_parameter(values: tuple[float, ...], index: int, amount: float) -> tuple[float, ...]:
+    shifted = list(values)
+    shifted[index] += amount
+    return tuple(shifted)
 
 
 def _shared_holdout_objective(
@@ -1259,6 +1334,14 @@ def _rematching_metrics(
         for item in evaluations
         if item.rematched_holdout_rmse_m is not None and item.fixed_holdout_rmse_m is not None
     ]
+    multistart = next(
+        (
+            item.multistart_evaluation
+            for item in evaluations
+            if item.multistart_evaluation is not None
+        ),
+        None,
+    )
     return {
         "tum_joint_rematch_pair_jaccard_min": MetricResult(
             value=min(pair_jaccards) if pair_jaccards else None,
@@ -1308,6 +1391,33 @@ def _rematching_metrics(
             grade="warn",
             reason="Frobenius difference between rematched and fixed Hessians / fixed norm",
         ),
+        "tum_joint_multistart_converged_fraction": MetricResult(
+            value=(
+                multistart.converged_start_count / multistart.declared_start_count
+                if multistart is not None and multistart.declared_start_count
+                else None
+            ),
+            grade="warn",
+        ),
+        "tum_joint_multistart_basin_count": MetricResult(
+            value=float(multistart.cluster_count) if multistart is not None else None,
+            unit="basins",
+            grade="warn",
+        ),
+        "tum_joint_multistart_competitive_basin_count": MetricResult(
+            value=(float(multistart.competitive_cluster_count) if multistart is not None else None),
+            unit="basins",
+            grade=(
+                "pass"
+                if multistart is not None and multistart.competitive_cluster_count == 1
+                else "fail"
+            ),
+        ),
+        "tum_joint_multistart_ambiguity": MetricResult(
+            value=(1.0 if multistart is not None and multistart.ambiguous else 0.0),
+            grade=("fail" if multistart is not None and multistart.ambiguous else "pass"),
+            reason="one means separated objective-competitive solution basins exist",
+        ),
     }
 
 
@@ -1350,7 +1460,7 @@ def _provenance(
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.7",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.8",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -1449,6 +1559,12 @@ def _provenance(
                 "fixed_curvature": item.fixed_curvature.as_dict(),
                 "rematched_curvature": item.rematched_curvature.as_dict(),
                 "relative_hessian_difference": item.relative_hessian_difference,
+                "multistart_searches": [search.as_dict() for search in item.multistart_searches],
+                "multistart_evaluation": (
+                    item.multistart_evaluation.as_dict()
+                    if item.multistart_evaluation is not None
+                    else None
+                ),
             }
             for item in rematching
         ],

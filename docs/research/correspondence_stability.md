@@ -87,3 +87,15 @@ step-halving termination. Its output records every accepted objective value,
 final steps, sweeps, and exact evaluation count. Synthetic tests recover a
 coupled quadratic minimum from a distant start and preserve the two distinct
 minima of a symmetric double-well from positive and negative starts.
+
+The public TUM primary window declares five starts: the optimized center,
+signed 0.03 m extrinsic-z perturbations, and signed 0.02 m depth-bias
+perturbations. All searches optimize the full seven shared directions under
+the same rematched fixed-population objective. Five of five searches converge,
+but they form two objective-competitive basins. Their best objectives differ
+by only `3.73e-6`, while their representatives are separated by 1.92 declared
+physical scale units. Basin occupancy is 0.4 versus 0.6. The better basin
+couples an approximately +0.03 m extrinsic-z shift with an approximately
+-0.03 m depth-bias shift relative to the competing basin. This independently
+confirms the translation/depth ambiguity indicated by the negative rematched
+curvature, so the public multi-start ambiguity metric FAILs.
