@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -23,8 +24,7 @@ def _clouds(truth: SE3, count: int = 80) -> tuple[list[IcpPoint], list[IcpPoint]
         for index, point in enumerate(target_values)
     ]
     target = [
-        IcpPoint(f"target-{index:03d}", tuple(point))
-        for index, point in enumerate(target_values)
+        IcpPoint(f"target-{index:03d}", tuple(point)) for index, point in enumerate(target_values)
     ]
     return source, target
 
@@ -108,6 +108,9 @@ def test_ndt_precomputed_transform_gets_common_holdout_evaluation(
     assert result.raw_metrics == {"returncode": None}
     assert result.provenance["tool_name"] == "autoware_ndt"
     assert result.provenance["external_code_vendored"] is False
+    assert result.provenance["result_sha256"]
+    assert result.provenance["inputs"]["source_sha256"]
+    assert result.provenance["execution"]["status"] == "not_requested"
     assert result.warnings == ()
 
 
@@ -126,4 +129,67 @@ def test_ndt_result_without_declared_train_isolation_is_warned(tmp_path: Path) -
     )
 
     assert result.status == "result_loaded"
-    assert result.warnings == ("external NDT train/holdout isolation is not declared",)
+    assert result.warnings == (
+        "external NDT train/holdout isolation is not declared",
+        "external NDT license SPDX is unknown",
+    )
+
+
+def test_ndt_subprocess_records_bounded_output_evidence(tmp_path: Path, monkeypatch) -> None:
+    source, target = _clouds(SE3.identity())
+    result_path = tmp_path / "ndt_result.yaml"
+    result_path.write_text(
+        "transform_target_source:\n"
+        "  translation_m: [0.0, 0.0, 0.0]\n"
+        "  rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "calibrex.solvers.registration_adapters.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            ["mock-ndt"], 0, stdout=b"tool output", stderr=b"diagnostic"
+        ),
+    )
+
+    result = NdtSubprocessAdapter().solve(
+        source,
+        target,
+        NdtSubprocessOptions(
+            result_path=result_path,
+            command=("mock-ndt", "--output", "{result_path}"),
+            execute=True,
+            license_spdx="Apache-2.0",
+            training_isolation_declared=True,
+        ),
+    )
+
+    execution = result.provenance["execution"]
+    assert execution["status"] == "completed"
+    assert execution["returncode"] == 0
+    assert execution["stdout_size_bytes"] == 11
+    assert execution["stderr_size_bytes"] == 10
+    assert len(execution["stdout_sha256"]) == 64
+    assert "tool output" not in str(result.provenance)
+
+
+def test_ndt_subprocess_distinguishes_timeout(tmp_path: Path, monkeypatch) -> None:
+    source, target = _clouds(SE3.identity())
+
+    def raise_timeout(*_args, **_kwargs):
+        raise subprocess.TimeoutExpired(["mock-ndt"], 0.01, output=b"partial", stderr=b"late")
+
+    monkeypatch.setattr("calibrex.solvers.registration_adapters.subprocess.run", raise_timeout)
+    result = NdtSubprocessAdapter().solve(
+        source,
+        target,
+        NdtSubprocessOptions(
+            result_path=tmp_path / "missing.yaml",
+            command=("mock-ndt",),
+            execute=True,
+            timeout_sec=0.01,
+        ),
+    )
+
+    assert result.status == "failed"
+    assert result.provenance["execution"]["status"] == "timeout"
+    assert result.provenance["execution"]["stdout_size_bytes"] == 7

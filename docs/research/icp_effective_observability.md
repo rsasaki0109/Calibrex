@@ -81,6 +81,16 @@ inside Calibrex. Backend-specific fitness, probability, or inlier RMSE values
 remain raw provenance and are not compared as common metrics. GPL or
 license-uncertain implementations are not copied into `src/calibrex`.
 
+Adapter inputs are fingerprinted as ordered stable point IDs plus big-endian
+float64 XYZ values. GICP records full-input fingerprints, the train-source
+fingerprint, resolved options, and the MIT boundary even when Open3D is absent.
+NDT records the external result hash, declared SPDX license, train-isolation
+declaration, command, timeout, working directory, and input fingerprints.
+Subprocess evidence distinguishes completed, timeout, and OS-error states and
+retains return code, elapsed time, output byte counts, and SHA-256 hashes.
+Arbitrary stdout/stderr contents are not embedded in calibration results.
+Unknown NDT SPDX is an explicit warning rather than an implicit license claim.
+
 ## Public Livox Horizon-Horizon result
 
 The checked public-data protocol is
