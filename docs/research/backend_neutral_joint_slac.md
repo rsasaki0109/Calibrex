@@ -50,6 +50,16 @@ serialized as covariance. A fixed gauge is distinct from measured
 observability: fixing the world origin removes a coordinate freedom but does
 not create information about an extrinsic or clock offset.
 
+Rank uses a declared relative threshold, `tau * sigma_max`, and serializes the
+actual threshold beside the spectrum. Uniformly changing residual units can
+therefore scale the spectrum without changing rank. Condition numbers remain
+parameterization- and unit-dependent and are still labelled as diagnostics;
+the relative rank policy does not turn them into covariance or physical
+uncertainty. Weak-block attribution includes the full right nullspace when a
+graph has fewer residual dimensions than free parameters; a rank failure can
+therefore no longer serialize an empty weak-direction list merely because a
+thin SVD omitted structural null vectors.
+
 Each free block may declare per-dimension known-bad steps. Both signs are
 applied only after fitting and scored on unchanged holdout factors. Synthetic
 tests jointly recover two trajectory values, two extrinsic values, and one

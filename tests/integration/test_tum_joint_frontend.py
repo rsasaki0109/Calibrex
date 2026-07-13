@@ -67,6 +67,9 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     query_frames = set(result.run.provenance["native_tum_joint_slac_query_frame_ids"])
     assert map_frames.isdisjoint(query_frames)
     solver = result.run.provenance["native_tum_joint_slac_solver"]
+    assert solver["method"] == "backend_neutral_robust_joint_lm/v0.2"
+    assert solver["rank_tolerance_policy"] == "relative_to_largest_singular_value"
+    assert solver["information_rank_threshold"] > 0.0
     assert set(solver["train_observation_groups"]).isdisjoint(solver["holdout_observation_groups"])
     rmse = result.metrics["tum_joint_point_to_plane_rmse_m"]
     assert rmse.train is not None and rmse.train < 0.05

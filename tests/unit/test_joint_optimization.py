@@ -80,6 +80,8 @@ def test_joint_optimizer_recovers_coupled_trajectory_extrinsic_and_time() -> Non
     assert result.train_rmse is not None and result.train_rmse < 1e-8
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
     assert result.information_rank == 5
+    assert result.as_dict()["method"] == "backend_neutral_robust_joint_lm/v0.2"
+    assert result.information_rank_threshold is not None
     assert result.weak_parameter_blocks == ()
     assert len(result.probes) == 10
     assert all(probe.detectable is True for probe in result.probes)
@@ -269,5 +271,139 @@ def test_explicit_observability_evaluation_excludes_fixed_blocks() -> None:
     assert evaluation.parameter_dimension == 2
     assert evaluation.residual_dimension == 2
     assert evaluation.information_rank == 2
+    assert evaluation.information_rank_threshold == pytest.approx(1.0e-8)
     assert evaluation.condition_number == pytest.approx(1.0)
     assert evaluation.weak_parameter_blocks == ()
+
+
+@pytest.mark.parametrize("residual_scale", [1.0, 1.0e-12, 1.0e9])
+def test_joint_observability_rank_is_invariant_to_uniform_residual_scale(
+    residual_scale: float,
+) -> None:
+    blocks = [JointParameterBlock("state", (0.0, 0.0))]
+    factors = [
+        JointResidualBlock(
+            "x",
+            "capture",
+            ("state",),
+            lambda values: (residual_scale * values["state"][0],),
+        ),
+        JointResidualBlock(
+            "y",
+            "capture",
+            ("state",),
+            lambda values: (residual_scale * values["state"][1],),
+        ),
+    ]
+
+    evaluation = evaluate_joint_observability(blocks, factors, {"state": (0.0, 0.0)})
+
+    assert evaluation.information_rank == 2
+    assert evaluation.condition_number == pytest.approx(1.0)
+    assert evaluation.information_rank_threshold == pytest.approx(residual_scale * 1.0e-8)
+    assert evaluation.as_dict()["rank_tolerance_policy"] == ("relative_to_largest_singular_value")
+
+
+def test_joint_observability_relative_threshold_rejects_scaled_near_null_direction() -> None:
+    residual_scale = 1.0e9
+    blocks = [JointParameterBlock("state", (0.0, 0.0))]
+    factors = [
+        JointResidualBlock(
+            "strong",
+            "capture",
+            ("state",),
+            lambda values: (residual_scale * values["state"][0],),
+        ),
+        JointResidualBlock(
+            "near-null",
+            "capture",
+            ("state",),
+            lambda values: (residual_scale * 1.0e-10 * values["state"][1],),
+        ),
+    ]
+
+    evaluation = evaluate_joint_observability(blocks, factors, {"state": (0.0, 0.0)})
+
+    assert evaluation.information_rank == 1
+    assert evaluation.condition_number is None
+    assert evaluation.weak_parameter_blocks == ("state",)
+
+
+def test_joint_observability_attributes_structural_right_nullspace() -> None:
+    blocks = [
+        JointParameterBlock("extrinsic", (0.0,)),
+        JointParameterBlock("time", (0.0,)),
+    ]
+    factor = JointResidualBlock(
+        "coupled",
+        "capture",
+        ("extrinsic", "time"),
+        lambda values: (values["extrinsic"][0] + values["time"][0],),
+    )
+
+    evaluation = evaluate_joint_observability(
+        blocks,
+        [factor],
+        {"extrinsic": (0.0,), "time": (0.0,)},
+    )
+
+    assert evaluation.residual_dimension == 1
+    assert evaluation.parameter_dimension == 2
+    assert evaluation.information_rank == 1
+    assert evaluation.weak_parameter_blocks == ("extrinsic", "time")
+
+
+def test_joint_optimizer_rejects_unknown_factor_ownership_and_nonfinite_blocks() -> None:
+    with pytest.raises(ValueError, match="unknown parameter"):
+        BackendNeutralJointOptimizer().solve(
+            [JointParameterBlock("x", (0.0,))],
+            [
+                JointResidualBlock(
+                    "factor",
+                    "capture",
+                    ("missing",),
+                    lambda values: (values["missing"][0],),
+                )
+            ],
+        )
+
+    with pytest.raises(ValueError, match="finite"):
+        BackendNeutralJointOptimizer().solve(
+            [JointParameterBlock("x", (math.nan,))],
+            [],
+        )
+
+
+def test_joint_optimizer_rejects_nonfinite_factor_residuals_and_duplicate_ids() -> None:
+    block = JointParameterBlock("x", (0.0,))
+    with pytest.raises(ValueError, match="non-empty and finite"):
+        BackendNeutralJointOptimizer().solve(
+            [block],
+            [
+                JointResidualBlock(
+                    "non-finite",
+                    "capture",
+                    ("x",),
+                    lambda _values: (math.nan,),
+                )
+            ],
+            JointOptimizerOptions(holdout_ratio=0.0, minimum_train_factors=1),
+        )
+
+    duplicate = JointResidualBlock(
+        "duplicate",
+        "capture",
+        ("x",),
+        lambda values: (values["x"][0],),
+    )
+    with pytest.raises(ValueError, match="factor IDs"):
+        BackendNeutralJointOptimizer().solve([block], [duplicate, duplicate])
+
+
+def test_joint_optimizer_rejects_invalid_options() -> None:
+    with pytest.raises(ValueError, match="rank tolerance"):
+        BackendNeutralJointOptimizer().solve(
+            [JointParameterBlock("x", (0.0,))],
+            [],
+            JointOptimizerOptions(rank_tolerance=1.0),
+        )

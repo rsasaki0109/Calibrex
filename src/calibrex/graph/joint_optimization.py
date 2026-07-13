@@ -47,7 +47,10 @@ class JointResidualBlock:
 
     def residuals(self, values: ParameterValues) -> tuple[float, ...]:
         owned = {name: values[name] for name in self.variable_names}
-        return tuple(math.sqrt(self.weight) * float(value) for value in self.evaluator(owned))
+        residuals = tuple(math.sqrt(self.weight) * float(value) for value in self.evaluator(owned))
+        if not residuals or not all(math.isfinite(value) for value in residuals):
+            raise ValueError("joint factor residuals must be non-empty and finite")
+        return residuals
 
 
 @dataclass(frozen=True)
@@ -96,16 +99,19 @@ class JointObservabilityEvaluation:
     information_rank: int
     condition_number: float | None
     weak_parameter_blocks: tuple[str, ...]
+    information_rank_threshold: float | None = None
 
     def as_dict(self) -> dict[str, object]:
         return {
             "parameter_dimension": self.parameter_dimension,
             "residual_dimension": self.residual_dimension,
             "information_singular_values": self.information_singular_values,
+            "information_rank_threshold": self.information_rank_threshold,
             "information_rank": self.information_rank,
             "condition_number": self.condition_number,
             "weak_parameter_blocks": list(self.weak_parameter_blocks),
             "diagnostic_kind": "local_train_jacobian_not_covariance",
+            "rank_tolerance_policy": "relative_to_largest_singular_value",
         }
 
 
@@ -126,6 +132,7 @@ class JointOptimizerResult:
     weak_parameter_blocks: tuple[str, ...]
     probes: tuple[JointKnownBadProbe, ...]
     history: tuple[JointOptimizerIteration, ...]
+    information_rank_threshold: float | None = None
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -141,13 +148,15 @@ class JointOptimizerResult:
             "train_rmse": self.train_rmse,
             "holdout_rmse": self.holdout_rmse,
             "information_singular_values": self.information_singular_values,
+            "information_rank_threshold": self.information_rank_threshold,
             "information_rank": self.information_rank,
             "condition_number": self.condition_number,
             "weak_parameter_blocks": list(self.weak_parameter_blocks),
             "known_bad_probes": [probe.__dict__ for probe in self.probes],
             "history": [item.__dict__ for item in self.history],
-            "method": "backend_neutral_robust_joint_lm/v0.1",
+            "method": "backend_neutral_robust_joint_lm/v0.2",
             "information_policy": "train residual Jacobian; diagnostic, not covariance",
+            "rank_tolerance_policy": "relative_to_largest_singular_value",
         }
 
 
@@ -161,7 +170,9 @@ class BackendNeutralJointOptimizer:
         options: JointOptimizerOptions | None = None,
     ) -> JointOptimizerResult:
         solver_options = options or JointOptimizerOptions()
+        _validate_options(solver_options)
         blocks = _validate_blocks(parameter_blocks)
+        _validate_factors(factors, blocks)
         train, holdout, train_groups, holdout_groups = split_joint_factors(
             factors, solver_options.holdout_ratio, solver_options.split_seed
         )
@@ -245,13 +256,14 @@ class BackendNeutralJointOptimizer:
         values = _unpack(vector, initial, layout)
         residual, jacobian = _linearize(train, values, blocks, layout, solver_options)
         singular = np.linalg.svd(jacobian, compute_uv=False) if jacobian.size else np.asarray([])
-        rank = int(sum(value > solver_options.rank_tolerance for value in singular))
+        rank_threshold = _relative_rank_threshold(singular, solver_options.rank_tolerance)
+        rank = int(sum(value > rank_threshold for value in singular))
         condition = (
             float(singular[0] / singular[-1])
-            if len(singular) and singular[-1] > solver_options.rank_tolerance
+            if len(singular) and singular[-1] > rank_threshold
             else None
         )
-        weak = _weak_blocks(jacobian, layout, blocks, solver_options.rank_tolerance)
+        weak = _weak_blocks(jacobian, layout, blocks, rank_threshold)
         if (
             rank < len(vector)
             or condition is None
@@ -283,6 +295,7 @@ class BackendNeutralJointOptimizer:
             weak,
             probes,
             tuple(history),
+            rank_threshold if len(singular) else None,
         )
 
 
@@ -320,7 +333,9 @@ def evaluate_joint_observability(
     """Evaluate local rank/conditioning without taking an optimization step."""
 
     solver_options = options or JointOptimizerOptions()
+    _validate_options(solver_options)
     blocks = _validate_blocks(parameter_blocks)
+    _validate_factors(factors, blocks)
     expected_names = {block.name for block in blocks}
     if set(values) != expected_names:
         raise ValueError("joint observability values must match all parameter blocks")
@@ -334,10 +349,11 @@ def evaluate_joint_observability(
         factors, normalized, blocks, layout, solver_options
     )
     singular = np.linalg.svd(jacobian, compute_uv=False) if jacobian.size else np.asarray([])
-    rank = int(sum(value > solver_options.rank_tolerance for value in singular))
+    rank_threshold = _relative_rank_threshold(singular, solver_options.rank_tolerance)
+    rank = int(sum(value > rank_threshold for value in singular))
     condition = (
         float(singular[0] / singular[-1])
-        if len(singular) and singular[-1] > solver_options.rank_tolerance
+        if len(singular) and singular[-1] > rank_threshold
         else None
     )
     return JointObservabilityEvaluation(
@@ -346,9 +362,8 @@ def evaluate_joint_observability(
         information_singular_values=tuple(float(value) for value in singular),
         information_rank=rank,
         condition_number=condition,
-        weak_parameter_blocks=_weak_blocks(
-            jacobian, layout, blocks, solver_options.rank_tolerance
-        ),
+        weak_parameter_blocks=_weak_blocks(jacobian, layout, blocks, rank_threshold),
+        information_rank_threshold=rank_threshold if len(singular) else None,
     )
 
 
@@ -445,9 +460,70 @@ def _validate_blocks(
             raise ValueError("finite-difference step dimension mismatch")
         if block.known_bad_steps and len(block.known_bad_steps) != block.dimension:
             raise ValueError("known-bad step dimension mismatch")
+        if not all(math.isfinite(value) for value in block.initial_values):
+            raise ValueError("joint parameter initial values must be finite")
+        if block.finite_difference_steps and not all(
+            math.isfinite(value) and value > 0.0 for value in block.finite_difference_steps
+        ):
+            raise ValueError("finite-difference steps must be finite and positive")
+        if block.known_bad_steps and not all(
+            math.isfinite(value) and value > 0.0 for value in block.known_bad_steps
+        ):
+            raise ValueError("known-bad steps must be finite and positive")
         names.add(block.name)
         output.append(block)
     return tuple(output)
+
+
+def _validate_factors(
+    factors: Sequence[JointResidualBlock], blocks: Sequence[JointParameterBlock]
+) -> None:
+    known_blocks = {block.name for block in blocks}
+    factor_ids: set[str] = set()
+    for factor in factors:
+        if not factor.factor_id or factor.factor_id in factor_ids:
+            raise ValueError("joint factor IDs must be unique and non-empty")
+        if not factor.observation_group:
+            raise ValueError("joint factor observation groups must be non-empty")
+        if not factor.variable_names or len(set(factor.variable_names)) != len(
+            factor.variable_names
+        ):
+            raise ValueError("joint factor variable names must be unique and non-empty")
+        unknown = set(factor.variable_names) - known_blocks
+        if unknown:
+            raise ValueError(f"joint factor references unknown parameter blocks: {sorted(unknown)}")
+        if not math.isfinite(factor.weight) or factor.weight <= 0.0:
+            raise ValueError("joint factor weights must be finite and positive")
+        factor_ids.add(factor.factor_id)
+
+
+def _validate_options(options: JointOptimizerOptions) -> None:
+    positive = (
+        options.convergence_tolerance,
+        options.initial_damping,
+        options.huber_delta,
+        options.rank_tolerance,
+        options.max_condition_number,
+        options.default_finite_difference_step,
+    )
+    if options.max_iterations <= 0 or options.minimum_train_factors <= 0:
+        raise ValueError("joint iteration and minimum-factor counts must be positive")
+    if not 0.0 <= options.holdout_ratio < 1.0:
+        raise ValueError("joint holdout ratio must be in [0, 1)")
+    if not all(math.isfinite(value) and value > 0.0 for value in positive):
+        raise ValueError(
+            "joint optimizer scales, tolerances, and limits must be finite and positive"
+        )
+    if options.rank_tolerance >= 1.0 or options.max_condition_number <= 1.0:
+        raise ValueError("joint rank tolerance and maximum condition number are invalid")
+    if not math.isfinite(options.known_bad_margin) or options.known_bad_margin < 0.0:
+        raise ValueError("joint known-bad margin must be finite and non-negative")
+
+
+def _relative_rank_threshold(
+    singular_values: NDArray[np.float64], relative_tolerance: float
+) -> float:
+    return relative_tolerance * float(singular_values[0]) if len(singular_values) else 0.0
 
 
 def _variable_layout(blocks: Sequence[JointParameterBlock]) -> dict[str, slice]:
@@ -493,12 +569,18 @@ def _weak_blocks(
     jacobian: NDArray[np.float64],
     layout: Mapping[str, slice],
     blocks: Sequence[JointParameterBlock],
-    tolerance: float,
+    rank_threshold: float,
 ) -> tuple[str, ...]:
     if not jacobian.size:
         return tuple(layout)
-    _u, singular, vt = np.linalg.svd(jacobian, full_matrices=False)
-    weak_vectors = vt[singular <= tolerance]
+    # Full Vt is required only for an underdetermined m < n Jacobian. Keeping
+    # the usual tall case thin avoids materializing an m-by-m left basis.
+    underdetermined = jacobian.shape[0] < jacobian.shape[1]
+    _u, singular, vt = np.linalg.svd(jacobian, full_matrices=underdetermined)
+    weak_vectors = [
+        *(vt[index] for index, value in enumerate(singular) if value <= rank_threshold),
+        *vt[len(singular) :],
+    ]
     if not len(weak_vectors):
         return ()
     names: list[str] = []
@@ -566,4 +648,5 @@ def _empty(
         tuple(values),
         (),
         (),
+        None,
     )
