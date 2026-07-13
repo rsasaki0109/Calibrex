@@ -9,6 +9,8 @@ from calibrex.graph.joint_factors import (
     JointPointToPlaneMeasurement,
     JointRadarDopplerMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
+    JointTrilinearXYZPairMeasurement,
+    JointTrilinearXYZPointToPlaneMeasurement,
     make_joint_centered_trilinear_depth_point_to_plane_factor,
     make_joint_depth_point_to_plane_factor,
     make_joint_lattice_smoothness_factor,
@@ -17,6 +19,10 @@ from calibrex.graph.joint_factors import (
     make_joint_prior_factor,
     make_joint_radar_doppler_factor,
     make_joint_trilinear_depth_point_to_plane_factor,
+    make_joint_trilinear_xyz_pair_factor,
+    make_joint_trilinear_xyz_point_to_plane_factor,
+    make_joint_xyz_lattice_shape_factor,
+    regular_lattice_control_points,
     se3_from_tangent,
     trilinear_lattice_weights,
 )
@@ -208,6 +214,97 @@ def test_lattice_zero_mean_factor_is_train_only() -> None:
     assert factor.split_policy == "train_only"
 
 
+def test_trilinear_xyz_factor_and_shape_preserving_regularizer() -> None:
+    shape = (2, 2, 2)
+    controls = regular_lattice_control_points(
+        minimum=(0.0, 0.0, 1.0), maximum=(1.0, 1.0, 2.0), shape=shape
+    )
+    point = (0.5, 0.5, 1.5)
+    weights = trilinear_lattice_weights(
+        point, minimum=(0.0, 0.0, 1.0), maximum=(1.0, 1.0, 2.0), shape=shape
+    )
+    translation = (0.03, -0.02, 0.01)
+    offsets = translation * len(controls)
+    factor = make_joint_trilinear_xyz_point_to_plane_factor(
+        JointTrilinearXYZPointToPlaneMeasurement(
+            "xyz-alignment",
+            "capture",
+            point,
+            weights,
+            tuple(point[axis] + translation[axis] for axis in range(3)),
+            (0.2, -0.3, 0.9),
+            SE3.identity(),
+            SE3.identity(),
+        ),
+        pose_block="pose",
+        extrinsic_block="extrinsic",
+        xyz_lattice_block="xyz-lattice",
+    )
+    regularizer = make_joint_xyz_lattice_shape_factor(
+        factor_id="xyz-shape",
+        observation_group="regularization",
+        block="xyz-lattice",
+        control_points_m=controls,
+        local_rotations_xyzw=((0.0, 0.0, 0.0, 1.0),) * len(controls),
+        shape=shape,
+        sigma_m=0.1,
+    )
+
+    values = {
+        "pose": (0.0,) * 6,
+        "extrinsic": (0.0,) * 6,
+        "xyz-lattice": offsets,
+    }
+    assert factor.residuals(values) == pytest.approx((0.0,), abs=1e-12)
+    assert factor.family == "rgbd_trilinear_xyz_point_to_plane"
+    assert regularizer.residuals(values) == pytest.approx((0.0,) * 72, abs=1e-12)
+    assert regularizer.split_policy == "train_only"
+    distorted = (*offsets[:-1], offsets[-1] + 0.02)
+    assert max(abs(value) for value in regularizer.residuals({"xyz-lattice": distorted})) > 0.1
+
+
+def test_trilinear_xyz_pair_factor_calibrates_both_correspondence_sides() -> None:
+    shape = (2, 2, 2)
+    minimum = (0.0, 0.0, 1.0)
+    maximum = (1.0, 1.0, 2.0)
+    source = (0.0, 0.0, 1.0)
+    target = (1.0, 0.0, 1.0)
+    source_weights = trilinear_lattice_weights(
+        source, minimum=minimum, maximum=maximum, shape=shape
+    )
+    target_weights = trilinear_lattice_weights(
+        target, minimum=minimum, maximum=maximum, shape=shape
+    )
+    offsets = (0.03, -0.02, 0.01) * 8
+    factor = make_joint_trilinear_xyz_pair_factor(
+        JointTrilinearXYZPairMeasurement(
+            "xyz-pair",
+            "capture-pair",
+            source,
+            target,
+            source_weights,
+            target_weights,
+            (1.0, 0.0, 0.0),
+            SE3.identity(),
+            SE3((-1.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)),
+        ),
+        source_pose_block="source-pose",
+        target_pose_block="target-pose",
+        xyz_lattice_block="xyz-lattice",
+    )
+
+    values = {
+        "source-pose": (0.0,) * 6,
+        "target-pose": (0.0,) * 6,
+        "xyz-lattice": offsets,
+    }
+    assert factor.residuals(values) == pytest.approx((0.0,), abs=1e-12)
+    assert factor.residuals({**values, "source-pose": (0.01, 0.0, 0.0, 0.0, 0.0, 0.0)}) == (
+        pytest.approx(0.01),
+    )
+    assert factor.family == "rgbd_trilinear_xyz_pair_point_to_plane"
+
+
 def test_se3_tangent_requires_six_values() -> None:
     with pytest.raises(ValueError, match="six"):
         se3_from_tangent((0.0, 0.0))
@@ -375,4 +472,68 @@ def test_trilinear_depth_lattice_recovers_synthetic_control_truth() -> None:
     assert result.information_rank == 9
     assert result.holdout_rmse is not None and result.holdout_rmse < 1e-8
     assert len(result.probes) == 18
+    assert all(probe.detectable is True for probe in result.probes)
+
+
+def test_trilinear_xyz_lattice_recovers_synthetic_truth_and_probes() -> None:
+    shape = (2, 2, 2)
+    minimum = (-0.5, -0.4, 1.0)
+    maximum = (0.5, 0.4, 2.0)
+    controls = regular_lattice_control_points(
+        minimum=minimum, maximum=maximum, shape=shape
+    )
+    truth = tuple(
+        component
+        for index in range(len(controls))
+        for component in (
+            0.003 * (index - 3.5),
+            -0.002 * (index % 3 - 1),
+            0.004 * ((index + 1) % 4 - 1.5),
+        )
+    )
+    blocks = (
+        JointParameterBlock("pose", (0.0,) * 6, fixed=True),
+        JointParameterBlock("extrinsic", (0.0,) * 6, fixed=True),
+        JointParameterBlock(
+            "xyz-lattice", (0.0,) * len(truth), known_bad_steps=(0.02,) * len(truth)
+        ),
+    )
+    factors = []
+    normals = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+    for capture in range(5):
+        for index, point in enumerate(controls):
+            weights = trilinear_lattice_weights(
+                point, minimum=minimum, maximum=maximum, shape=shape
+            )
+            calibrated = tuple(point[axis] + truth[3 * index + axis] for axis in range(3))
+            for axis, normal in enumerate(normals):
+                factors.append(
+                    make_joint_trilinear_xyz_point_to_plane_factor(
+                        JointTrilinearXYZPointToPlaneMeasurement(
+                            f"xyz-{capture}-{index}-{axis}",
+                            f"capture-{capture}",
+                            point,
+                            weights,
+                            calibrated,
+                            normal,
+                            SE3.identity(),
+                            SE3.identity(),
+                        ),
+                        pose_block="pose",
+                        extrinsic_block="extrinsic",
+                        xyz_lattice_block="xyz-lattice",
+                    )
+                )
+
+    result = BackendNeutralJointOptimizer().solve(
+        blocks,
+        factors,
+        JointOptimizerOptions(holdout_ratio=0.2, split_seed=13),
+    )
+
+    assert result.status == "converged"
+    assert result.optimized_values["xyz-lattice"] == pytest.approx(truth, abs=1e-8)
+    assert result.information_rank == 24
+    assert result.holdout_rmse is not None and result.holdout_rmse < 1e-9
+    assert len(result.probes) == 48
     assert all(probe.detectable is True for probe in result.probes)
