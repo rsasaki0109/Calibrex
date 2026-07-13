@@ -21,6 +21,11 @@ from calibrex.data.downloads import (
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.livox import read_livox_binary_pcd
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+from calibrex.solvers.chen_medioni_point_to_plane_icp_solver import (
+    ChenMedioniPointToPlaneIcpSolver,
+    ChenMedioniPointToPlaneOptions,
+    ChenMedioniPointToPlaneResult,
+)
 from calibrex.solvers.registration_adapters import (
     NdtSubprocessAdapter,
     NdtSubprocessOptions,
@@ -29,6 +34,7 @@ from calibrex.solvers.registration_adapters import (
     RegistrationAdapterResult,
 )
 from calibrex.solvers.robust_point_to_point_icp_solver import (
+    IcpCandidateEvaluation,
     IcpPoint,
     RobustPointToPointIcpOptions,
     RobustPointToPointIcpResult,
@@ -85,6 +91,24 @@ class NativeRegistrationComparisonSolver(SolverAdapter):
         native = RobustPointToPointIcpSolver().solve(
             source, target, initial_transform=initial, options=common_options
         )
+        point_to_plane = ChenMedioniPointToPlaneIcpSolver().solve(
+            source,
+            target,
+            initial_transform=initial,
+            common_options=common_options,
+            options=ChenMedioniPointToPlaneOptions(
+                normal_neighbor_count=int(factor_options.get("normal_neighbor_count", 12)),
+                minimum_normal_eigengap=float(
+                    factor_options.get("minimum_normal_eigengap", 0.02)
+                ),
+                max_condition_number=float(
+                    factor_options.get("max_point_to_plane_condition_number", 1.0e8)
+                ),
+                known_bad_residual_margin_m=float(
+                    factor_options.get("point_to_plane_probe_margin_m", 0.005)
+                ),
+            ),
+        )
         gicp = Open3DGeneralizedIcpAdapter().solve(
             source,
             target,
@@ -96,8 +120,8 @@ class NativeRegistrationComparisonSolver(SolverAdapter):
             ),
         )
         ndt = _run_ndt(source, target, common_options, factor_options)
-        metrics = _metrics(native, gicp, ndt, factor_options)
-        warnings = _warnings(native, gicp, ndt, metrics)
+        metrics = _metrics(native, point_to_plane, gicp, ndt, factor_options)
+        warnings = _warnings(native, point_to_plane, gicp, ndt, metrics)
         transform = native.transform_target_source
         status = "pass" if transform is not None and not warnings else "inconclusive"
         weak = (
@@ -107,6 +131,8 @@ class NativeRegistrationComparisonSolver(SolverAdapter):
         )
         if native.symmetry_ambiguous:
             weak.append("multi_start_symmetry")
+        if point_to_plane.tangent_rank < 6:
+            weak.append("chen_medioni_tangent_geometry")
         return SolverAdapterResult(
             backend=self.backend,
             available=True,
@@ -139,6 +165,7 @@ class NativeRegistrationComparisonSolver(SolverAdapter):
                         "target_count": len(target),
                     },
                     "native_icp": native.as_dict(),
+                    "native_chen_medioni_point_to_plane": point_to_plane.as_dict(),
                     "open3d_gicp": gicp.as_dict(),
                     "external_ndt": ndt.as_dict(),
                     "external_code_vendored": False,
@@ -231,6 +258,7 @@ def _run_ndt(
 
 def _metrics(
     native: RobustPointToPointIcpResult,
+    point_to_plane: ChenMedioniPointToPlaneResult,
     gicp: RegistrationAdapterResult,
     ndt: RegistrationAdapterResult,
     options: dict[str, Any],
@@ -238,6 +266,13 @@ def _metrics(
     max_rmse = float(options.get("max_holdout_rmse_m", 0.75))
     min_inlier = float(options.get("min_inlier_fraction", 0.25))
     min_jaccard = float(options.get("min_correspondence_jaccard", 0.5))
+    max_point_to_plane_rmse = float(options.get("max_point_to_plane_holdout_rmse_m", 0.5))
+    min_normal_fraction = float(options.get("min_valid_target_normal_fraction", 0.5))
+    min_normal_gap = float(options.get("minimum_normal_eigengap", 0.02))
+    max_point_to_plane_condition = float(
+        options.get("max_point_to_plane_condition_number", 1.0e8)
+    )
+    min_detectable = float(options.get("min_point_to_plane_probe_detectable_fraction", 0.75))
     holdout_pass = native.holdout_rmse_m is not None and native.holdout_rmse_m <= max_rmse
     weak_count = (
         len(native.rematching_diagnostics.weak_directions) if native.rematching_diagnostics else 6
@@ -279,7 +314,88 @@ def _metrics(
             unit="bool",
             grade="warn" if native.symmetry_ambiguous else "pass",
         ),
+        "registration_chen_medioni_valid_target_normal_fraction": MetricResult(
+            value=point_to_plane.target_normal_fraction,
+            unit="fraction",
+            grade=(
+                "pass"
+                if point_to_plane.target_normal_fraction >= min_normal_fraction
+                else "fail"
+            ),
+            reason=f"valid PCA target-normal fraction >= {min_normal_fraction:g}",
+        ),
+        "registration_chen_medioni_target_normal_eigengap_minimum": MetricResult(
+            value=point_to_plane.target_normal_eigengap_minimum,
+            unit="ratio",
+            grade=(
+                "pass"
+                if point_to_plane.target_normal_eigengap_minimum is not None
+                and point_to_plane.target_normal_eigengap_minimum >= min_normal_gap
+                else "fail"
+            ),
+            reason=f"every accepted target tangent has PCA eigengap >= {min_normal_gap:g}",
+        ),
+        "registration_chen_medioni_tangent_rank": MetricResult(
+            value=float(point_to_plane.tangent_rank),
+            unit="rank",
+            grade="pass" if point_to_plane.tangent_rank == 6 else "fail",
+            reason="point-to-plane tangent system must constrain all six directions",
+        ),
+        "registration_chen_medioni_tangent_condition_number": MetricResult(
+            value=point_to_plane.tangent_condition_number,
+            grade=(
+                "pass"
+                if point_to_plane.tangent_condition_number is not None
+                and point_to_plane.tangent_condition_number <= max_point_to_plane_condition
+                else "fail"
+            ),
+            reason=f"point-to-plane tangent condition number <= {max_point_to_plane_condition:g}",
+        ),
+        "registration_chen_medioni_train_point_to_plane_rmse_m": MetricResult(
+            value=point_to_plane.train_point_to_plane_rmse_m,
+            unit="m",
+            grade=("pass" if point_to_plane.train_point_to_plane_rmse_m is not None else "fail"),
+        ),
+        "registration_chen_medioni_holdout_point_to_plane_rmse_m": MetricResult(
+            value=point_to_plane.holdout_point_to_plane_rmse_m,
+            unit="m",
+            grade=(
+                "pass"
+                if point_to_plane.holdout_point_to_plane_rmse_m is not None
+                and point_to_plane.holdout_point_to_plane_rmse_m <= max_point_to_plane_rmse
+                else "fail"
+            ),
+            reason=f"point-to-plane spatial-holdout gate <= {max_point_to_plane_rmse:g} m",
+        ),
+        "registration_chen_medioni_known_bad_detectable_fraction": MetricResult(
+            value=(
+                sum(probe.detectable is True for probe in point_to_plane.probes)
+                / len(point_to_plane.probes)
+                if point_to_plane.probes
+                else None
+            ),
+            unit="fraction",
+            grade=(
+                "pass"
+                if point_to_plane.probes
+                and sum(probe.detectable is True for probe in point_to_plane.probes)
+                / len(point_to_plane.probes)
+                >= min_detectable
+                else "warn"
+            ),
+            reason=f"signed point-to-plane controls detectable fraction >= {min_detectable:g}",
+        ),
     }
+    point_to_plane_common = point_to_plane.common_evaluation
+    metrics.update(
+        _candidate_common_metrics(
+            "registration_chen_medioni_common",
+            point_to_plane_common,
+            max_rmse=max_rmse,
+            min_inlier=min_inlier,
+            min_jaccard=min_jaccard,
+        )
+    )
     metrics.update(
         _adapter_common_metrics(
             "registration_open3d_gicp",
@@ -298,11 +414,14 @@ def _metrics(
             min_jaccard=min_jaccard,
         )
     )
-    evaluated = [
+    evaluated: list[IcpCandidateEvaluation] = []
+    if point_to_plane_common is not None:
+        evaluated.append(point_to_plane_common)
+    evaluated.extend(
         result.common_evaluation
         for result in (gicp, ndt)
         if result.common_evaluation is not None
-    ]
+    )
     split_consistent = all(
         evaluation.train_source_ids == native.train_source_ids
         and evaluation.holdout_source_ids == native.holdout_source_ids
@@ -413,6 +532,66 @@ def _adapter_common_metrics(
     }
 
 
+def _candidate_common_metrics(
+    prefix: str,
+    evaluation: IcpCandidateEvaluation | None,
+    *,
+    max_rmse: float,
+    min_inlier: float,
+    min_jaccard: float,
+) -> dict[str, MetricResult]:
+    """Expose a native candidate through the same rematching-aware gates."""
+
+    rematching = evaluation.rematching_diagnostics if evaluation is not None else None
+    jaccard = rematching.minimum_correspondence_jaccard if rematching is not None else None
+    weak_count = len(rematching.weak_directions) if rematching is not None else None
+    return {
+        f"{prefix}_train_rmse_m": MetricResult(
+            value=evaluation.train_rmse_m if evaluation is not None else None,
+            unit="m",
+            grade=(
+                "pass"
+                if evaluation is not None and evaluation.train_rmse_m is not None
+                else "fail"
+            ),
+        ),
+        f"{prefix}_holdout_rmse_m": MetricResult(
+            value=evaluation.holdout_rmse_m if evaluation is not None else None,
+            unit="m",
+            grade=(
+                "pass"
+                if evaluation is not None
+                and evaluation.holdout_rmse_m is not None
+                and evaluation.holdout_rmse_m <= max_rmse
+                else "fail"
+            ),
+            reason=f"common spatial-holdout gate <= {max_rmse:g} m",
+        ),
+        f"{prefix}_inlier_fraction": MetricResult(
+            value=evaluation.inlier_fraction if evaluation is not None else None,
+            unit="fraction",
+            grade=(
+                "pass"
+                if evaluation is not None and evaluation.inlier_fraction >= min_inlier
+                else "fail"
+            ),
+            reason=f"common train inlier fraction >= {min_inlier:g}",
+        ),
+        f"{prefix}_min_correspondence_jaccard": MetricResult(
+            value=jaccard,
+            unit="fraction",
+            grade="pass" if jaccard is not None and jaccard >= min_jaccard else "warn",
+            reason=f"common rematched correspondence Jaccard >= {min_jaccard:g}",
+        ),
+        f"{prefix}_weak_direction_count": MetricResult(
+            value=float(weak_count) if weak_count is not None else None,
+            unit="dof",
+            grade="pass" if weak_count == 0 else "warn",
+            reason="common rematching curvature must constrain all six directions",
+        ),
+    }
+
+
 def _transform_delta(left: SE3 | None, right: SE3 | None) -> tuple[float | None, float | None]:
     if left is None or right is None:
         return None, None
@@ -425,6 +604,7 @@ def _transform_delta(left: SE3 | None, right: SE3 | None) -> tuple[float | None,
 
 def _warnings(
     native: RobustPointToPointIcpResult,
+    point_to_plane: ChenMedioniPointToPlaneResult,
     gicp: RegistrationAdapterResult,
     ndt: RegistrationAdapterResult,
     metrics: dict[str, MetricResult],
@@ -432,6 +612,11 @@ def _warnings(
     warnings: list[str] = []
     if native.status != "converged":
         warnings.append(f"native ICP status is {native.status}: {native.reason}")
+    if point_to_plane.status != "converged":
+        warnings.append(
+            f"Chen-Medioni point-to-plane status is {point_to_plane.status}: "
+            f"{point_to_plane.reason}"
+        )
     if any(metric.grade == "fail" for metric in metrics.values()):
         warnings.append("registration public-data evidence did not satisfy all fixed gates")
     if not gicp.available:

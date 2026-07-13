@@ -17,6 +17,13 @@ from calibrex.solvers.camera_lidar_capture_time_solver import (
     CameraLidarTimeProbe,
     evaluate_camera_lidar_capture_times,
 )
+from calibrex.solvers.chen_medioni_point_to_plane_icp_solver import (
+    ChenMedioniIteration,
+    ChenMedioniPointToPlaneIcpSolver,
+    ChenMedioniPointToPlaneOptions,
+    ChenMedioniPointToPlaneResult,
+    ChenMedioniProbe,
+)
 from calibrex.solvers.chou_kamel_hand_eye_solver import (
     ChouKamelHandEyeOptions,
     ChouKamelHandEyeResult,
@@ -245,6 +252,11 @@ __all__ = [
     "CameraLidarCaptureTimeSolver",
     "CameraLidarTimeProbe",
     "CameraLidarTimedCapture",
+    "ChenMedioniIteration",
+    "ChenMedioniPointToPlaneIcpSolver",
+    "ChenMedioniPointToPlaneOptions",
+    "ChenMedioniPointToPlaneResult",
+    "ChenMedioniProbe",
     "ChouKamelHandEyeOptions",
     "ChouKamelHandEyeResult",
     "ChouKamelHandEyeSolver",

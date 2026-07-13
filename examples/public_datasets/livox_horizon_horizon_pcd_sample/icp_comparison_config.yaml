@@ -2,7 +2,7 @@ schema_version: slac.config/v0.1
 
 project:
   name: livox_horizon_horizon_registration_comparison
-  description: Public Livox pair evaluated with native ICP and optional GICP/NDT adapters.
+  description: Public Livox pair evaluated with native point/plane ICP and GICP/NDT adapters.
   output_dir: outputs/livox_horizon_horizon_icp_comparison
   domain: robotics
 
@@ -49,6 +49,13 @@ pipeline:
         max_holdout_rmse_m: 0.75
         min_inlier_fraction: 0.25
         min_correspondence_jaccard: 0.5
+        normal_neighbor_count: 12
+        minimum_normal_eigengap: 0.02
+        min_valid_target_normal_fraction: 0.5
+        max_point_to_plane_condition_number: 100000000.0
+        max_point_to_plane_holdout_rmse_m: 0.5
+        point_to_plane_probe_margin_m: 0.005
+        min_point_to_plane_probe_detectable_fraction: 0.75
 
 solver:
   backend: native_registration_comparison
@@ -67,6 +74,18 @@ evaluation:
     - registration_native_icp_min_correspondence_jaccard
     - registration_native_icp_weak_direction_count
     - registration_native_icp_symmetry_ambiguous
+    - registration_chen_medioni_valid_target_normal_fraction
+    - registration_chen_medioni_target_normal_eigengap_minimum
+    - registration_chen_medioni_tangent_rank
+    - registration_chen_medioni_tangent_condition_number
+    - registration_chen_medioni_train_point_to_plane_rmse_m
+    - registration_chen_medioni_holdout_point_to_plane_rmse_m
+    - registration_chen_medioni_known_bad_detectable_fraction
+    - registration_chen_medioni_common_train_rmse_m
+    - registration_chen_medioni_common_holdout_rmse_m
+    - registration_chen_medioni_common_inlier_fraction
+    - registration_chen_medioni_common_min_correspondence_jaccard
+    - registration_chen_medioni_common_weak_direction_count
     - registration_open3d_gicp_available
     - registration_open3d_gicp_train_rmse_m
     - registration_open3d_gicp_holdout_rmse_m

@@ -54,11 +54,30 @@ def test_public_livox_open3d_gicp_common_rematching_evidence() -> None:
     assert weak.value == 3.0
     assert weak.grade == "warn"
     assert result.metrics["registration_backend_common_split_consistent"].value == 1.0
+    tangent_rank = result.metrics["registration_chen_medioni_tangent_rank"]
+    tangent_condition = result.metrics["registration_chen_medioni_tangent_condition_number"]
+    surface_holdout = result.metrics[
+        "registration_chen_medioni_holdout_point_to_plane_rmse_m"
+    ]
+    common_holdout = result.metrics["registration_chen_medioni_common_holdout_rmse_m"]
+    assert tangent_rank.value == 6.0
+    assert tangent_rank.grade == "pass"
+    assert tangent_condition.value is not None and 90.0 < tangent_condition.value < 90.5
+    assert surface_holdout.value is not None and 0.27 < surface_holdout.value < 0.29
+    assert surface_holdout.grade == "pass"
+    assert common_holdout.value is not None and 5.2 < common_holdout.value < 5.3
+    assert common_holdout.grade == "fail"
     rotation_delta = result.metrics["registration_open3d_gicp_native_rotation_delta_deg"]
     translation_delta = result.metrics["registration_open3d_gicp_native_translation_delta_m"]
     assert rotation_delta.value is not None and 18.6 < rotation_delta.value < 18.8
     assert translation_delta.value is not None and 0.85 < translation_delta.value < 0.86
     comparison = result.provenance["native_registration_comparison"]
+    point_to_plane = comparison["native_chen_medioni_point_to_plane"]
+    assert point_to_plane["status"] == "converged"
+    assert point_to_plane["valid_target_normal_count"] == 499
+    assert len(point_to_plane["known_bad_probes"]) == 12
+    assert point_to_plane["paper"]["conference_doi"] == "10.1109/ROBOT.1991.132043"
+    assert "approximates" in point_to_plane["surface_specialization"]
     gicp = comparison["open3d_gicp"]
     assert gicp["status"] == "converged"
     assert gicp["provenance"]["tool_name"] == "Open3D"

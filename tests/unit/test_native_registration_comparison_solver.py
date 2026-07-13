@@ -6,6 +6,9 @@ from calibrex.core.config import load_config
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
 from calibrex.data.inspect import inspect_dataset
+from calibrex.solvers.chen_medioni_point_to_plane_icp_solver import (
+    ChenMedioniPointToPlaneIcpSolver,
+)
 from calibrex.solvers.native_registration_comparison_solver import (
     NativeRegistrationComparisonSolver,
     _metrics,
@@ -96,6 +99,12 @@ def test_registration_adapters_expose_common_rematching_metrics(
     native = RobustPointToPointIcpSolver().solve(
         source, target, initial_transform=SE3.identity(), options=options
     )
+    point_to_plane = ChenMedioniPointToPlaneIcpSolver().solve(
+        source,
+        target,
+        initial_transform=SE3.identity(),
+        common_options=options,
+    )
     result_path = tmp_path / "ndt_result.yaml"
     result_path.write_text(
         "transform_target_source:\n"
@@ -121,6 +130,7 @@ def test_registration_adapters_expose_common_rematching_metrics(
 
     metrics = _metrics(
         native,
+        point_to_plane,
         gicp,
         ndt,
         {
@@ -131,6 +141,8 @@ def test_registration_adapters_expose_common_rematching_metrics(
     )
 
     assert metrics["registration_open3d_gicp_train_rmse_m"].grade == "warn"
+    assert metrics["registration_chen_medioni_tangent_rank"].value == 6.0
+    assert metrics["registration_chen_medioni_common_holdout_rmse_m"].grade == "pass"
     assert metrics["registration_external_ndt_train_rmse_m"].value is not None
     assert metrics["registration_external_ndt_train_rmse_m"].value < 1.0e-12
     assert metrics["registration_external_ndt_holdout_rmse_m"].grade == "pass"

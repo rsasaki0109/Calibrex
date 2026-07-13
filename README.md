@@ -114,7 +114,7 @@ It records:
 | Temporal time-offset probes + 1D holdout-RMSE estimator | Anchored (`time_offset_anchor: initial`) and adapted dual-mode evaluation; selftest injection tracked exactly in anchored mode; cross-sensor separability degenerate on Indoor02 |
 | LiDAR-IMU rotation evidence | Evaluated `lidar_imu` family (holdout rotation-rate RMSE 3.56 deg/s, gravity support 4.42°); yaw probes weak under z-dominated excitation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |
-| ICP/GICP/NDT registration comparison | Native rematching curvature/Jaccard/multi-start plus MIT Open3D GICP and license-declared NDT boundaries; Livox GICP honestly FAILs holdout |
+| ICP/GICP/NDT registration comparison | Native Besl-McKay point-to-point and Chen-Medioni tangent-plane baselines with rematching diagnostics, plus MIT Open3D GICP and license-declared NDT boundaries; Livox common holdout honestly FAILs |
 | Multi-LiDAR fixed-rig and online evidence | Public A2D2 VLP-16 demo; TIERS LidarsCali (static + mixed spinning×solid-state) |
 | Hand-eye and robot-world/hand-eye calibration | Seven native `AX=XB` baselines plus Zhuang-Roth-Sudhakar, Shah, Li-Wang-Wu, and Dornaika-Horaud closed-form/nonlinear `AX=YB`; ETHZ common holdout and 24 controls per method |
 | Backend-neutral joint SLAC optimizer | Grouped holdout, robust LM, typed Schur pose elimination, TUM RGB-D 48→8 shared-calibration solve |
