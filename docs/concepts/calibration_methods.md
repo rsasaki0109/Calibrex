@@ -20,6 +20,7 @@ holdout evaluation, and known-bad controls.
 | Radar lever arm and clock offset | Translation/time from Radar and reference velocities | Native solver | profiled time grid, lever-arm spectrum, holdout, eight controls |
 | Planar-board LiDAR-camera plane alignment | LiDAR-to-camera 6-DoF extrinsic | Native solver | capture holdout, normal/offset closure, normal-span diagnostics |
 | Planar-board LiDAR-camera point+plane | Independent centre/normal 6-DoF baseline | Native solver | shared capture holdout, 6D joint spectrum, 12 known-bad controls, ACFR real data |
+| Horn point-only Camera-LiDAR alignment | Normal-free centre-correspondence 6-DoF baseline | Native solver | shared capture holdout, quaternion eigengap, 6D spectrum, 12 controls, ACFR real data |
 | Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | plane/edge closure, separate rotation/translation spectra, edge-angle gate |
 | Robust point-to-point ICP | Generic local 3D registration | Native solver | spatial-block holdout, mutual/trimmed matches, 3D-spread and frozen-pair diagnostics |
 | Open3D Generalized ICP | Optional probabilistic registration baseline | MIT adapter | train-only source fit, common Calibrex spatial holdout/rematching metrics |
@@ -93,6 +94,15 @@ three-pose plane/centre method evaluated by
 [Verma et al.](https://doi.org/10.1109/ITSC.2019.8917108). Calibrex therefore
 reports the singular spectrum, rank, condition number, capture split, and every
 normal sign selected using the supplied initial transform.
+
+An additional normal-free baseline follows
+[Horn's unit-quaternion absolute orientation method](https://doi.org/10.1364/JOSAA.4.000629).
+It aligns corresponding 3D board centres with scale fixed to one, reports the
+quaternion maximum eigengap and a local six-DoF Jacobian spectrum, and rejects
+collinear centre geometry. The RMS scale ratio is retained only as a unit
+diagnostic. It uses the exact same ACFR capture IDs and train/holdout split as
+the plane-only and centre+normal methods, so their transform deltas are
+comparable without split leakage.
 
 Plane-only calibration does not claim one-shot observability. A finite board's
 boundary lines supply the missing in-plane constraints. The implemented

@@ -1014,6 +1014,62 @@ def _register_builtin_metrics() -> None:
             "lidar_camera",
         ),
         MetricDefinition(
+            "horn_point_rmse_m",
+            "Board-centre closure RMSE for the normal-free Horn Camera-LiDAR baseline",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_known_bad_detectable_fraction",
+            "Fraction of held-out Horn point-only 6-DoF controls detected",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_joint_rank",
+            "Rank of the Horn point-only Camera-LiDAR six-DoF Jacobian",
+            "rank",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_joint_condition_number",
+            "Condition number of the Horn point-only six-DoF Jacobian",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_quaternion_normalized_eigengap",
+            "Normalized maximum-eigenvalue separation of Horn's quaternion objective",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_rms_scale_ratio",
+            "Camera/LiDAR centred RMS scale ratio diagnostic with rigid scale fixed to one",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_vs_plane_translation_delta_m",
+            "Translation delta between Horn point-only and plane-only baselines",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_vs_plane_rotation_delta_deg",
+            "Rotation delta between Horn point-only and plane-only baselines",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_vs_point_plane_translation_delta_m",
+            "Translation delta between Horn point-only and centre+normal baselines",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "horn_point_vs_point_plane_rotation_delta_deg",
+            "Rotation delta between Horn point-only and centre+normal baselines",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
             "koide_lidar_camera_adapter_available",
             "Koide-style targetless LiDAR-camera adapter availability",
             family="backend",

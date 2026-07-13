@@ -15,6 +15,10 @@ an independent centre+normal baseline in
 duplicate: board centres constrain tangential displacement that plane equations
 alone do not measure. The two transforms are retained separately and compared;
 the independent baseline does not silently replace the configured output.
+The same capture centres also feed a normal-free Horn absolute-orientation
+baseline in `src/calibrex/solvers/horn_point_lidar_camera_solver.py`. This third
+estimate isolates what the 3D centre correspondences constrain without using
+any plane-normal information.
 
 ## Primary literature
 
@@ -29,6 +33,11 @@ the independent baseline does not silently replace the configured output.
   Lidar using 3D point and plane correspondences*, ITSC 2019, DOI
   `10.1109/ITSC.2019.8917108`. This is an independent multi-pose plane/centre
   comparison baseline.
+- [Horn, *Closed-form solution of absolute orientation using unit
+  quaternions*](https://doi.org/10.1364/JOSAA.4.000629), JOSA A 4(4), 1987.
+  The [author-hosted paper](https://people.csail.mit.edu/bkph/papers/Absolute_Orientation_Scanned.pdf)
+  derives a symmetric closed-form least-squares solution for corresponding 3D
+  points using the maximum eigenvector of a symmetric quaternion objective.
 - Zhou, Li, and Kaess, *Automatic Extrinsic Calibration of a Camera and a 3D
   LiDAR using Line and Plane Correspondences*, IROS 2018. It demonstrates why
   plane-only calibration needs diverse poses and why boundary lines can restore
@@ -69,6 +78,40 @@ corner rows are not treated as line correspondences: their discrete ordering is
 not declared by the adapter, and a naive ordering produced a clear real-data
 failure. Calibrex records the rows it consumes and does not invent corner
 identities.
+
+## Independent Horn point-only baseline
+
+For corresponding board centres, Calibrex minimizes
+
+```text
+sum_i w_i ||c_camera_i - (R_camera_lidar c_lidar_i + t_camera_lidar)||^2.
+```
+
+Weighted centroids remove translation. With centred LiDAR-to-camera
+cross-covariance `S`, Horn's symmetric `4 x 4` matrix `N(S)` turns the rotation
+problem into `max_(||q||=1) q^T N q`; the unit eigenvector associated with the
+largest eigenvalue gives `R`, and
+`t = mean(c_camera) - R mean(c_lidar)`. Calibrex uses the rigid specialization:
+extrinsic scale is fixed to exactly one. Horn's centred RMS scale ratio is
+serialized only as a unit-consistency diagnostic and is never applied to the
+transform.
+
+The native implementation is an independent NumPy derivation with
+capture-level Huber IRLS. It consumes only rows 0 and 6 of each ACFR capture;
+normals and corners are not passed to the solver. Fit and evaluation use the
+same deterministic capture split as the plane-only and centre+normal methods.
+The reported diagnostics include centred-point singular values and rank,
+quaternion maximum eigengap and normalized eigengap, and the singular spectrum,
+rank, condition number, and weakest direction of the local six-column point
+Jacobian `[-R[c_lidar]_x, I]`. Collinear centres are rejected. Non-collinear
+planar centres remain valid because three corresponding points can constrain a
+rigid 3D transform even when their centred covariance has rank two.
+
+Unchanged holdout centres report metric RMSE. Twelve falsification controls
+apply both signs of ±5 cm x/y/z and ±5° roll/pitch/yaw in the camera frame; a
+control is detected only when held-out RMSE rises by more than 5 mm. The solver
+also has an explicit forward/reverse correspondence symmetry test, as required
+by Horn's coordinate-frame symmetry argument.
 
 ## Mathematical contract
 
@@ -145,6 +188,26 @@ and 0.219°. Those deltas remain WARN diagnostics because no independent
 metrology threshold was predeclared. Consequently the method-specific gates
 PASS while the combined run is honestly WARN rather than promoting agreement
 to ground truth.
+
+The normal-free Horn point-only baseline, again on the exact same capture
+split, produced:
+
+| Evidence | Train | Holdout | Gate | Verdict |
+| --- | ---: | ---: | ---: | --- |
+| Board-centre RMSE | 0.00877 m | 0.00867 m | ≤ 0.03 m | PASS |
+| Known-bad detectable fraction | — | 12/12 (1.0) | ≥ 0.8 | PASS |
+| Centred geometry rank / condition | — | 3 / 9.368 | rank ≥ 2 | PASS |
+| Joint rank / condition | — | 6 / 15.696 | rank 6 | PASS |
+| Quaternion normalized eigengap | — | 0.6801 | ≥ 1e-4 | PASS |
+| RMS camera/LiDAR scale ratio | — | 1.0029 | diagnostic | recorded |
+
+Its rigid translation is approximately `[0.0100, -0.1412, -0.0848] m`.
+Relative to the configured plane-only output it differs by 0.0277 m and
+1.280°; relative to the centre+normal baseline it differs by 0.0424 m and
+1.071°. These are retained as WARN comparison diagnostics because the dataset
+does not provide independent metrology and no acceptance threshold was
+predeclared. The Horn method-specific gates nevertheless PASS without weakening
+the configured defaults.
 
 The configured plane-only output `T_camera0_lidar0` translation is approximately
 `[0.0220, -0.1661, -0.0842] m`. Its method-specific evidence gates PASS. The

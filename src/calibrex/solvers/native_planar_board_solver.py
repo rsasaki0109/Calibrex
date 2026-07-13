@@ -16,6 +16,11 @@ from calibrex.core.provenance import sha256_path
 from calibrex.core.result import MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+from calibrex.solvers.horn_point_lidar_camera_solver import (
+    HornPointLidarCameraSolver,
+    HornPointObservation,
+    HornPointSolverOptions,
+)
 from calibrex.solvers.planar_board_lidar_camera_solver import (
     OrientedPlane,
     PlanarBoardLidarCameraSolver,
@@ -69,6 +74,7 @@ class NativePlanarBoardSolver(SolverAdapter):
         try:
             observations = read_acfr_vlp_plane_observations(poses_path)
             point_plane_observations = read_acfr_vlp_point_plane_observations(poses_path)
+            horn_observations = read_acfr_vlp_horn_point_observations(poses_path)
         except ValueError as exc:
             return SolverAdapterResult(
                 backend=self.backend,
@@ -102,6 +108,16 @@ class NativePlanarBoardSolver(SolverAdapter):
             point_plane_observations,
             point_plane_options,
         )
+        horn = HornPointLidarCameraSolver().solve(
+            horn_observations,
+            HornPointSolverOptions(
+                holdout_ratio=config.evaluation.holdout_ratio,
+                split_seed=config.solver.seed or 0,
+                huber_delta_m=_float_option(options, "horn_point_huber_delta_m", 0.05),
+                max_iterations=config.solver.max_iterations,
+                convergence_tolerance=config.solver.convergence_tolerance,
+            ),
+        )
         point_plane_detectable = sum(probe.detectable is True for probe in point_plane.probes)
         point_plane_probe_count = len(point_plane.probes)
         point_plane_detectable_fraction = (
@@ -120,6 +136,25 @@ class NativePlanarBoardSolver(SolverAdapter):
             and point_plane_detectable_fraction is not None
             and point_plane_detectable_fraction
             >= _float_option(options, "min_point_plane_known_bad_detectable_fraction", 0.8)
+        )
+        horn_detectable = sum(probe.detectable is True for probe in horn.probes)
+        horn_probe_count = len(horn.probes)
+        horn_detectable_fraction = horn_detectable / horn_probe_count if horn_probe_count else None
+        horn_holdout = horn.holdout_evaluation
+        horn_pass = (
+            horn.status == "converged"
+            and horn.transform_camera_lidar is not None
+            and horn.centered_geometry_rank >= 2
+            and horn.joint_rank == 6
+            and horn_holdout.point_rmse_m is not None
+            and horn_holdout.point_rmse_m
+            <= _float_option(options, "max_horn_point_holdout_rmse_m", 0.03)
+            and horn_detectable_fraction is not None
+            and horn_detectable_fraction
+            >= _float_option(options, "min_horn_point_known_bad_detectable_fraction", 0.8)
+            and horn.quaternion_normalized_eigengap is not None
+            and horn.quaternion_normalized_eigengap
+            >= _float_option(options, "min_horn_point_normalized_eigengap", 1.0e-4)
         )
         holdout = solved.holdout_evaluation
         detectable = sum(probe.detectable is True for probe in solved.probes)
@@ -197,8 +232,44 @@ class NativePlanarBoardSolver(SolverAdapter):
                 unit="ratio",
                 grade="pass" if point_plane_pass else "warn",
             ),
+            "horn_point_rmse_m": MetricResult(
+                train=horn.train_evaluation.point_rmse_m,
+                holdout=horn_holdout.point_rmse_m,
+                unit="m",
+                grade="pass" if horn_pass else "warn",
+            ),
+            "horn_point_known_bad_detectable_fraction": MetricResult(
+                value=horn_detectable_fraction,
+                unit="fraction",
+                grade="pass" if horn_pass else "warn",
+                reason=(
+                    f"{horn_detectable}/{horn_probe_count} held-out point-only "
+                    "6-DoF controls detected"
+                ),
+            ),
+            "horn_point_joint_rank": MetricResult(
+                value=float(horn.joint_rank),
+                unit="rank",
+                grade="pass" if horn.joint_rank == 6 else "warn",
+            ),
+            "horn_point_joint_condition_number": MetricResult(
+                value=horn.joint_condition_number,
+                unit="ratio",
+                grade="pass" if horn_pass else "warn",
+            ),
+            "horn_point_quaternion_normalized_eigengap": MetricResult(
+                value=horn.quaternion_normalized_eigengap,
+                unit="ratio",
+                grade="pass" if horn_pass else "warn",
+            ),
+            "horn_point_rms_scale_ratio": MetricResult(
+                value=horn.rms_scale_ratio_camera_over_lidar,
+                unit="ratio",
+                grade="warn",
+                reason="unit-consistency diagnostic; rigid extrinsic scale remains fixed to one",
+            ),
         }
-        comparison = _point_plane_comparison(
+        comparison = _transform_comparison(
             solved.transform_camera_lidar,
             point_plane.transform_camera_lidar,
         )
@@ -214,11 +285,45 @@ class NativePlanarBoardSolver(SolverAdapter):
             grade="warn",
             reason="independent baseline delta; no metrology threshold is declared",
         )
+        horn_vs_plane = _transform_comparison(
+            solved.transform_camera_lidar,
+            horn.transform_camera_lidar,
+        )
+        horn_vs_point_plane = _transform_comparison(
+            point_plane.transform_camera_lidar,
+            horn.transform_camera_lidar,
+        )
+        metrics["horn_point_vs_plane_translation_delta_m"] = MetricResult(
+            value=horn_vs_plane["translation_delta_m"],
+            unit="m",
+            grade="warn",
+            reason="normal-free baseline delta; no metrology threshold is declared",
+        )
+        metrics["horn_point_vs_plane_rotation_delta_deg"] = MetricResult(
+            value=horn_vs_plane["rotation_delta_deg"],
+            unit="deg",
+            grade="warn",
+            reason="normal-free baseline delta; no metrology threshold is declared",
+        )
+        metrics["horn_point_vs_point_plane_translation_delta_m"] = MetricResult(
+            value=horn_vs_point_plane["translation_delta_m"],
+            unit="m",
+            grade="warn",
+            reason="normal-free versus centre+normal delta; no threshold is declared",
+        )
+        metrics["horn_point_vs_point_plane_rotation_delta_deg"] = MetricResult(
+            value=horn_vs_point_plane["rotation_delta_deg"],
+            unit="deg",
+            grade="warn",
+            reason="normal-free versus centre+normal delta; no threshold is declared",
+        )
         warnings = []
         if not evidence_pass:
             warnings.append("multi-plane evidence did not pass all default gates")
         if not point_plane_pass:
             warnings.append("point+plane independent baseline did not pass all default gates")
+        if not horn_pass:
+            warnings.append("Horn point-only independent baseline did not pass all default gates")
         transforms = (
             {"T_camera0_lidar0": solved.transform_camera_lidar}
             if solved.transform_camera_lidar is not None
@@ -273,6 +378,32 @@ class NativePlanarBoardSolver(SolverAdapter):
                     "extractor_license_spdx": "Apache-2.0",
                     "external_code_executed": False,
                 },
+                "native_horn_point_baseline": {
+                    "result": horn.as_dict(),
+                    "comparison_to_plane_only": horn_vs_plane,
+                    "comparison_to_point_plane": horn_vs_point_plane,
+                    "evidence_pass": horn_pass,
+                    "common_capture_split": {
+                        "matches_plane_only": (
+                            list(horn.train_frame_ids) == list(solved.train_frame_ids)
+                            and list(horn.holdout_frame_ids) == list(solved.holdout_frame_ids)
+                        ),
+                        "matches_point_plane": (
+                            horn.train_frame_ids == point_plane.train_frame_ids
+                            and horn.holdout_frame_ids == point_plane.holdout_frame_ids
+                        ),
+                    },
+                    "input_format": ACFR_VLP_FORMAT,
+                    "source_rows": {
+                        "camera_center": 0,
+                        "lidar_center": 6,
+                        "rows_per_capture": 19,
+                    },
+                    "extractor": "acfr/cam_lidar_calibration upstream feature extractor",
+                    "extractor_commit": ACFR_VLP_SOURCE_COMMIT,
+                    "extractor_license_spdx": "Apache-2.0",
+                    "external_code_executed": False,
+                },
             },
             warnings=warnings,
         )
@@ -320,6 +451,24 @@ def read_acfr_vlp_point_plane_observations(
     return observations
 
 
+def read_acfr_vlp_horn_point_observations(
+    path: str | Path,
+) -> list[HornPointObservation]:
+    """Read only ACFR checkerboard centre correspondences for Horn alignment."""
+
+    rows = _read_acfr_vlp_rows(path)
+    observations: list[HornPointObservation] = []
+    for start in range(0, len(rows), 19):
+        observations.append(
+            HornPointObservation(
+                frame_id=f"acfr-vlp-{start // 19 + 1:03d}",
+                camera_point_m=_millimetres_to_metres(rows[start]),
+                lidar_point_m=_millimetres_to_metres(rows[start + 6]),
+            )
+        )
+    return observations
+
+
 def _read_acfr_vlp_rows(path: str | Path) -> list[tuple[float, float, float]]:
     input_path = Path(path)
     rows: list[tuple[float, float, float]] = []
@@ -340,13 +489,13 @@ def _millimetres_to_metres(value: tuple[float, float, float]) -> tuple[float, fl
     return (value[0] / 1000.0, value[1] / 1000.0, value[2] / 1000.0)
 
 
-def _point_plane_comparison(
-    plane_only: SE3 | None,
-    point_plane: SE3 | None,
+def _transform_comparison(
+    reference: SE3 | None,
+    candidate: SE3 | None,
 ) -> dict[str, float | None]:
-    if plane_only is None or point_plane is None:
+    if reference is None or candidate is None:
         return {"translation_delta_m": None, "rotation_delta_deg": None}
-    relative = plane_only.inverse().compose(point_plane)
+    relative = reference.inverse().compose(candidate)
     translation_delta = math.sqrt(sum(value * value for value in relative.translation_m))
     scalar = min(1.0, abs(relative.rotation_quat_xyzw[3]))
     return {

@@ -9,6 +9,7 @@ from calibrex.core.geometry import SE3, rotate_vector_xyzw
 from calibrex.data.inspect import DatasetInspection
 from calibrex.solvers.native_planar_board_solver import (
     NativePlanarBoardSolver,
+    read_acfr_vlp_horn_point_observations,
     read_acfr_vlp_plane_observations,
     read_acfr_vlp_point_plane_observations,
 )
@@ -103,12 +104,22 @@ def test_native_adapter_recovers_plane_transform_and_falsifies_controls(
     assert result.metrics["point_plane_center_rmse_m"].holdout < 1.0e-5
     assert result.metrics["point_plane_known_bad_detectable_fraction"].value == 1.0
     assert result.metrics["point_plane_joint_rank"].value == 6.0
+    assert result.metrics["horn_point_rmse_m"].holdout is not None
+    assert result.metrics["horn_point_rmse_m"].holdout < 1.0e-5
+    assert result.metrics["horn_point_known_bad_detectable_fraction"].value == 1.0
+    assert result.metrics["horn_point_joint_rank"].value == 6.0
+    assert result.metrics["horn_point_quaternion_normalized_eigengap"].value is not None
     point_plane = result.provenance["native_point_plane_baseline"]
     assert point_plane["result"]["method"] == "verma_center_normal_procrustes_irls/v0.1"
     assert (
         point_plane["result"]["train_frame_ids"]
         == result.provenance["native_planar_board"]["result"]["train_frame_ids"]
     )
+    horn = result.provenance["native_horn_point_baseline"]
+    assert horn["result"]["method"] == "horn_unit_quaternion_point_alignment_irls/v0.1"
+    assert horn["evidence_pass"] is True
+    assert horn["common_capture_split"]["matches_plane_only"] is True
+    assert horn["common_capture_split"]["matches_point_plane"] is True
     estimated = result.transforms["T_camera0_lidar0"]
     assert np.linalg.norm(np.asarray(estimated.translation_m) - truth.translation_m) < 1.0e-8
     assert result.provenance["metrics_origin"] == "recomputed"
@@ -132,3 +143,10 @@ def test_acfr_reader_rejects_incomplete_capture(tmp_path: Path) -> None:
         assert "complete 19-row captures" in str(exc)
     else:
         raise AssertionError("incomplete ACFR point+plane capture was accepted")
+
+    try:
+        read_acfr_vlp_horn_point_observations(path)
+    except ValueError as exc:
+        assert "complete 19-row captures" in str(exc)
+    else:
+        raise AssertionError("incomplete ACFR Horn point capture was accepted")

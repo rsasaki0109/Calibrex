@@ -23,6 +23,15 @@ from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
     HoraudDornaikaHandEyeResult,
     HoraudDornaikaHandEyeSolver,
 )
+from calibrex.solvers.horn_point_lidar_camera_solver import (
+    HornPointEvaluation,
+    HornPointLidarCameraResult,
+    HornPointLidarCameraSolver,
+    HornPointObservation,
+    HornPointProbe,
+    HornPointSolverOptions,
+    evaluate_horn_point_observations,
+)
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 from calibrex.solvers.native_hand_eye_comparison_solver import (
     NATIVE_HAND_EYE_COMPARISON_BACKEND,
@@ -46,6 +55,7 @@ from calibrex.solvers.native_planar_board_solver import (
     ACFR_VLP_SOURCE_URL,
     NATIVE_PLANAR_BOARD_BACKEND,
     NativePlanarBoardSolver,
+    read_acfr_vlp_horn_point_observations,
     read_acfr_vlp_plane_observations,
     read_acfr_vlp_point_plane_observations,
 )
@@ -189,6 +199,12 @@ __all__ = [
     "HoraudDornaikaHandEyeOptions",
     "HoraudDornaikaHandEyeResult",
     "HoraudDornaikaHandEyeSolver",
+    "HornPointEvaluation",
+    "HornPointLidarCameraResult",
+    "HornPointLidarCameraSolver",
+    "HornPointObservation",
+    "HornPointProbe",
+    "HornPointSolverOptions",
     "IcpCandidateEvaluation",
     "IcpIteration",
     "IcpMultiStartTrial",
@@ -266,6 +282,7 @@ __all__ = [
     "TsaiLenzHandEyeSolver",
     "evaluate_hand_eye_known_bad_probes",
     "evaluate_hand_eye_motions",
+    "evaluate_horn_point_observations",
     "evaluate_icp_candidate",
     "evaluate_line_plane_observations",
     "evaluate_planar_board_observations",
@@ -277,6 +294,7 @@ __all__ = [
     "radar_spatiotemporal_rmse",
     "radar_trajectory_rotation_rmse",
     "radar_trajectory_yaw_rmse",
+    "read_acfr_vlp_horn_point_observations",
     "read_acfr_vlp_plane_observations",
     "read_acfr_vlp_point_plane_observations",
     "split_icp_source_points",

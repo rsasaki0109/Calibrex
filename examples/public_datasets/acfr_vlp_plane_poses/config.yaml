@@ -50,6 +50,10 @@ pipeline:
         max_point_plane_holdout_center_rmse_m: 0.03
         max_point_plane_holdout_normal_rmse_deg: 3.0
         min_point_plane_known_bad_detectable_fraction: 0.8
+        horn_point_huber_delta_m: 0.05
+        max_horn_point_holdout_rmse_m: 0.03
+        min_horn_point_known_bad_detectable_fraction: 0.8
+        min_horn_point_normalized_eigengap: 1.0e-4
 
 solver:
   backend: native_planar_board
@@ -72,6 +76,16 @@ evaluation:
     - point_plane_joint_condition_number
     - point_plane_vs_plane_translation_delta_m
     - point_plane_vs_plane_rotation_delta_deg
+    - horn_point_rmse_m
+    - horn_point_known_bad_detectable_fraction
+    - horn_point_joint_rank
+    - horn_point_joint_condition_number
+    - horn_point_quaternion_normalized_eigengap
+    - horn_point_rms_scale_ratio
+    - horn_point_vs_plane_translation_delta_m
+    - horn_point_vs_plane_rotation_delta_deg
+    - horn_point_vs_point_plane_translation_delta_m
+    - horn_point_vs_point_plane_rotation_delta_deg
 
 outputs:
   result: result.yaml
