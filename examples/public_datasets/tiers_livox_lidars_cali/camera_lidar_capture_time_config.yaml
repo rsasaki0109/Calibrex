@@ -1,0 +1,98 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: tiers_camera_lidar_capture_time_evidence
+  description: >
+    Public TIERS LidarsCali application of measured Velodyne firing times at
+    paired RealSense color-image exposure timestamps. VRPN UWBTest poses provide
+    a local motion proxy. The dataset does not publish cross-modal point identities,
+    so this run evaluates capture-time observability and deskew displacement but
+    deliberately does not estimate a Camera-LiDAR clock offset or extrinsic.
+  output_dir: outputs/tiers_camera_lidar_capture_time
+  domain: robotics
+
+dataset:
+  type: rosbag1
+  path: data/public/tiers_lidars_cali/LidarsCali.bag
+  time_base: ros_time
+
+sensors:
+  camera0:
+    type: camera
+    model: realsense_l515
+    topic: /cam_1/color/image_raw
+    frame_id: cam_1_color_optical_frame
+  lidar0:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points
+    frame_id: velodyne
+    fields: [x, y, z, intensity, ring, time]
+    point_time_field: time
+
+frames:
+  camera0:
+    root: true
+  lidar0:
+    parent: camera0
+    transform:
+      estimate: false
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+pipeline:
+  type: camera_lidar_capture_time_evidence
+  frontends:
+    - rosbag1_camera_header_reader
+    - rosbag1_velodyne_point_time_reader
+    - rosbag1_vrpn_pose_reader
+  factors:
+    camera_lidar_capture_time:
+      enabled: true
+      options:
+        camera_topic: /cam_1/color/image_raw
+        lidar_topic: /velodyne_points
+        pose_topic: /vrpn_client_node/UWBTest/pose
+        point_time_field: time
+        max_captures: 24
+        max_points_per_capture: 128
+        min_point_range_m: 0.5
+        max_point_range_m: 30.0
+        max_camera_lidar_stamp_delta_sec: 0.06
+        twist_window_sec: 0.04
+        min_train_captures: 8
+        min_holdout_captures: 3
+        min_point_time_span_sec: 0.08
+        max_point_time_span_sec: 0.12
+        sensitivity_step_sec: 0.001
+        min_time_sensitivity_mps: 0.05
+        known_bad_margin_m: 0.001
+        min_known_bad_detectable_fraction: 0.8
+
+solver:
+  backend: native_camera_lidar_capture_time
+  max_iterations: 80
+  robust_loss: huber
+  convergence_tolerance: 1.0e-8
+  seed: 0
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - camera_lidar_capture_time_input_available
+    - camera_lidar_capture_pair_count
+    - camera_lidar_capture_point_count
+    - camera_lidar_point_time_span_s
+    - camera_lidar_camera_stamp_delta_ms
+    - camera_lidar_point_to_exposure_delta_ms
+    - camera_lidar_deskew_displacement_rmse_m
+    - camera_lidar_time_sensitivity_mps
+    - camera_lidar_time_observability_rank
+    - camera_lidar_time_known_bad_detectable_fraction
+    - camera_lidar_time_offset_estimated
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

@@ -112,6 +112,16 @@ def test_config_schema_validates_kitti_lidar_camera_evidence_example() -> None:
     jsonschema.validate(config, schema)
 
 
+def test_config_schema_validates_tiers_camera_lidar_capture_time_example() -> None:
+    schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
+    config = yaml.safe_load(
+        Path(
+            "examples/public_datasets/tiers_livox_lidars_cali/camera_lidar_capture_time_config.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    jsonschema.validate(config, schema)
+
+
 def test_result_schema_validates_precomputed_example() -> None:
     schema = json.loads(Path("schemas/result.schema.json").read_text(encoding="utf-8"))
     result = yaml.safe_load(Path("examples/precomputed/result.yaml").read_text(encoding="utf-8"))

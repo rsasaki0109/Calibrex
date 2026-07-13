@@ -65,6 +65,10 @@ from calibrex.solvers.koide_lidar_camera_solver import (
     ADAPTER_FACTOR_NAMES as KOIDE_LIDAR_CAMERA_FACTOR_NAMES,
 )
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.solvers.native_camera_lidar_capture_time_solver import (
+    NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
+    NativeCameraLidarCaptureTimeSolver,
+)
 from calibrex.solvers.native_hand_eye_comparison_solver import (
     NATIVE_HAND_EYE_COMPARISON_BACKEND,
     NativeHandEyeComparisonSolver,
@@ -190,6 +194,8 @@ def _apply_pipeline_adapter(
         )
     elif config.solver.backend == NATIVE_TUM_JOINT_SLAC_BACKEND:
         adapter_result = NativeTUMJointSlacSolver().solve(config, frame_graph, inspection)
+    elif config.solver.backend == NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND:
+        adapter_result = NativeCameraLidarCaptureTimeSolver().solve(config, frame_graph, inspection)
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -199,6 +205,9 @@ def _apply_pipeline_adapter(
     result.run.provenance["solver_adapter"] = adapter_result.backend
     result.run.provenance["solver_adapter_status"] = adapter_result.status
     _apply_adapter_transforms(result, adapter_result)
+    if adapter_result.backend == NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND:
+        result.transforms.clear()
+        result.candidate_extrinsics.clear()
     if (
         adapter_result.backend
         in {
@@ -208,6 +217,7 @@ def _apply_pipeline_adapter(
             NATIVE_HAND_EYE_COMPARISON_BACKEND,
             NATIVE_REGISTRATION_COMPARISON_BACKEND,
             NATIVE_TUM_JOINT_SLAC_BACKEND,
+            NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
         }
         and adapter_result.transforms
     ):
@@ -215,6 +225,18 @@ def _apply_pipeline_adapter(
             value=1.0,
             grade="pass",
             reason=f"native solver {adapter_result.backend} produced an output transform",
+        )
+    elif (
+        adapter_result.backend == NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND
+        and adapter_result.status in {"pass", "inconclusive"}
+    ):
+        result.metrics["prototype_solver"] = MetricResult(
+            value=1.0,
+            grade="pass",
+            reason=(
+                "native capture-time solver executed and materialized timing evidence; "
+                "this metric does not claim a spatial transform or clock estimate"
+            ),
         )
     if adapter_result.observability is not None:
         result.observability = adapter_result.observability

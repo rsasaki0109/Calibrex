@@ -110,6 +110,7 @@ It records:
 | Fixed-trajectory and motion-compensated SE(3) LiDAR extrinsic solver | Native prototype |
 | Koide-style LiDAR-camera result import / subprocess boundary | Adapter-only |
 | Camera-LiDAR projection / edge-alignment evidence | Evaluated ADR-0004 protocol rows (holdout, known-bad probes, policy gates); not standalone camera calibration |
+| Camera-LiDAR per-point capture-time solver | Native fixed-twist scalar offset solver; 17 ms synthetic truth and authenticated TIERS public application (honest weak-motion INCONCLUSIVE) |
 | Temporal time-offset probes + 1D holdout-RMSE estimator | Anchored (`time_offset_anchor: initial`) and adapted dual-mode evaluation; selftest injection tracked exactly in anchored mode; cross-sensor separability degenerate on Indoor02 |
 | LiDAR-IMU rotation evidence | Evaluated `lidar_imu` family (holdout rotation-rate RMSE 3.56 deg/s, gravity support 4.42°); yaw probes weak under z-dominated excitation |
 | Solid-state LiDAR-to-LiDAR evidence visualization | Public Livox Horizon-Horizon PCD demo |

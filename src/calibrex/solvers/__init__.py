@@ -8,6 +8,15 @@ from calibrex.solvers.andreff_hand_eye_solver import (
     AndreffKroneckerAccumulator,
 )
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+from calibrex.solvers.camera_lidar_capture_time_solver import (
+    CameraLidarCaptureTimeEvaluation,
+    CameraLidarCaptureTimeOptions,
+    CameraLidarCaptureTimeResult,
+    CameraLidarCaptureTimeSolver,
+    CameraLidarTimedCapture,
+    CameraLidarTimeProbe,
+    evaluate_camera_lidar_capture_times,
+)
 from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeOptions,
     DaniilidisHandEyeResult,
@@ -33,6 +42,10 @@ from calibrex.solvers.horn_point_lidar_camera_solver import (
     evaluate_horn_point_observations,
 )
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+from calibrex.solvers.native_camera_lidar_capture_time_solver import (
+    NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
+    NativeCameraLidarCaptureTimeSolver,
+)
 from calibrex.solvers.native_hand_eye_comparison_solver import (
     NATIVE_HAND_EYE_COMPARISON_BACKEND,
     NativeHandEyeComparisonSolver,
@@ -175,6 +188,7 @@ from calibrex.solvers.tsai_lenz_hand_eye_solver import (
 __all__ = [
     "ACFR_VLP_FORMAT",
     "ACFR_VLP_SOURCE_URL",
+    "NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND",
     "NATIVE_HAND_EYE_COMPARISON_BACKEND",
     "NATIVE_JOINT_SLAC_BACKEND",
     "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
@@ -187,6 +201,12 @@ __all__ = [
     "AndreffIncrementalUpdate",
     "AndreffKroneckerAccumulator",
     "BoardBoundaryCorrespondence",
+    "CameraLidarCaptureTimeEvaluation",
+    "CameraLidarCaptureTimeOptions",
+    "CameraLidarCaptureTimeResult",
+    "CameraLidarCaptureTimeSolver",
+    "CameraLidarTimeProbe",
+    "CameraLidarTimedCapture",
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",
     "DaniilidisHandEyeSolver",
@@ -216,6 +236,7 @@ __all__ = [
     "LinePlaneBoardObservation",
     "LinePlaneEvaluation",
     "LinePlaneSolverOptions",
+    "NativeCameraLidarCaptureTimeSolver",
     "NativeHandEyeComparisonSolver",
     "NativeJointSlacSolver",
     "NativeLidarPointToPlaneSolver",
@@ -280,6 +301,7 @@ __all__ = [
     "TsaiLenzHandEyeOptions",
     "TsaiLenzHandEyeResult",
     "TsaiLenzHandEyeSolver",
+    "evaluate_camera_lidar_capture_times",
     "evaluate_hand_eye_known_bad_probes",
     "evaluate_hand_eye_motions",
     "evaluate_horn_point_observations",

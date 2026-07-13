@@ -13,7 +13,7 @@ holdout evaluation, and known-bad controls.
 | Online motion-compensated LiDAR point-to-plane | Streaming LiDAR extrinsic refinement | Implemented | rolling holdout and adoption gates |
 | Open3D RGB-D SLAC | External RGB-D trajectory/calibration adapter | Adapter boundary | Calibrex result/report metrics |
 | Koide-style direct LiDAR-camera | External targetless baseline | Adapter boundary | projection, edge, depth-edge, and controls |
-| Per-point Camera-LiDAR capture time | Asynchronous projection/deskew contract | Native primitive | clock convention, constant-twist truth, mount composition |
+| Per-point Camera-LiDAR capture time | Asynchronous projection/deskew and scalar clock-offset evidence | Native solver + public adapter | 17 ms synthetic truth, disjoint capture holdout, six time controls, TIERS real-data INCONCLUSIVE |
 | Radar Doppler candidate consistency | Radar yaw evidence | Implemented | frame holdout, four yaw controls, sensor policy |
 | Robust Radar ego velocity | Scan-wise motion estimation from Doppler | Native solver | synthetic truth, outliers, LOS rank diagnostics |
 | Radar-to-trajectory yaw | Radar extrinsic rotation from paired velocities | Native solver | deterministic holdout, direction diversity, four yaw controls |
@@ -41,9 +41,9 @@ full 3D support.
 
 ## Next Native Methods
 
-1. Per-point Camera-LiDAR capture-time application on a public dataset that exposes firing times.
-2. Backend-neutral joint SLAC factor and optimizer extensions.
-3. Additional paper-independent baselines behind the common evidence contract.
+1. Backend-neutral joint SLAC factor and optimizer extensions.
+2. Additional primary-paper baselines behind the common evidence contract.
+3. Continuous-time motion adapters that preserve the native capture-time schema.
 
 ## Optional Adapter Methods
 

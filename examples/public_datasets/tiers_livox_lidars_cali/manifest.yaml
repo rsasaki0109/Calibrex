@@ -1,8 +1,27 @@
 schema_version: slac.dataset_manifest/v0.1
 name: tiers_livox_lidars_cali
-description: TIERS LidarsCali public calibration sequence with Livox Horizon and Livox Avia solid-state LiDARs.
+description: TIERS LidarsCali public calibration sequence with camera, timed Velodyne, Livox LiDARs, and VRPN pose.
 time_base: ros_time
 streams:
+  camera_color:
+    kind: image
+    path: LidarsCali.bag
+    topic: /cam_1/color/image_raw
+    sensor: realsense_l515
+    frame_id: cam_1_color_optical_frame
+  velodyne_points:
+    kind: pointcloud
+    path: LidarsCali.bag
+    topic: /velodyne_points
+    sensor: velodyne_vlp16
+    frame_id: velodyne
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+      - ring
+      - time
   livox_horizon_points:
     kind: pointcloud
     path: LidarsCali.bag
@@ -29,10 +48,20 @@ streams:
       - intensity
       - offset_time
       - line
+  vrpn_uwbtest_pose:
+    kind: trajectory
+    path: LidarsCali.bag
+    topic: /vrpn_client_node/UWBTest/pose
+    sensor: rig_motion_proxy
+    frame_id: world
 provenance:
   source: TIERS multi-modal lidars dataset LidarsCali sequence
   official_url: https://github.com/TIERS/tiers-lidars-dataset
   download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT
-  lidar_models: Livox Horizon, Livox Avia
-  scan_pattern: non-repetitive solid-state
+  lidar_models: Velodyne VLP-16, Livox Horizon, Livox Avia
+  camera_model: Intel RealSense L515
+  scan_pattern: spinning Velodyne and non-repetitive solid-state Livox
+  velodyne_time_semantics: measured PointCloud2 time offsets relative to scan-end stamp
+  expected_size_bytes: "7178470523"
+  expected_sha256_first_mib: aa1f477d43e1d24236aed0f0860eadf4886efbf1f129c31b0a477eb54ab780f8
   license: MIT for academic purpose

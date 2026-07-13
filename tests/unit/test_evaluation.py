@@ -569,6 +569,17 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "vehicle_motion_duration_s" in names
     assert "vehicle_yaw_excitation_deg" in names
     assert "camera_lidar_timestamp_alignment_ms" in names
+    assert "camera_lidar_capture_time_input_available" in names
+    assert "camera_lidar_capture_pair_count" in names
+    assert "camera_lidar_capture_point_count" in names
+    assert "camera_lidar_point_time_span_s" in names
+    assert "camera_lidar_camera_stamp_delta_ms" in names
+    assert "camera_lidar_point_to_exposure_delta_ms" in names
+    assert "camera_lidar_deskew_displacement_rmse_m" in names
+    assert "camera_lidar_time_sensitivity_mps" in names
+    assert "camera_lidar_time_observability_rank" in names
+    assert "camera_lidar_time_known_bad_detectable_fraction" in names
+    assert "camera_lidar_time_offset_estimated" in names
     assert "lidar_oxts_timestamp_alignment_ms" in names
     assert "koide_lidar_camera_adapter_available" in names
     assert "koide_lidar_camera_execution_success" in names

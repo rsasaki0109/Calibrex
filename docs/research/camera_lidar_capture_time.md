@@ -10,9 +10,16 @@ construct each cross-modal observation.
 
 The contract is informed by:
 
+- Taylor and Nieto, *Motion-Based Calibration of Multimodal Sensor Extrinsics
+  and Timing Offset Estimation*, IEEE Transactions on Robotics 32(5), 2016,
+  DOI [`10.1109/TRO.2016.2596771`](https://doi.org/10.1109/TRO.2016.2596771),
+  which makes temporal offset part of a motion-based multimodal calibration
+  state and emphasizes excitation.
 - Park et al., *Spatiotemporal Camera-LiDAR Calibration: A Targetless and
-  Structureless Approach*, arXiv `2001.06175`, which estimates spatial and
-  temporal registration jointly from continuous sensor motion.
+  Structureless Approach*, RA-L 5(2), 2020, DOI
+  [`10.1109/LRA.2020.2969164`](https://doi.org/10.1109/LRA.2020.2969164),
+  arXiv `2001.06175`, which estimates spatial and temporal registration jointly
+  from continuous sensor motion.
 - Lv et al., *Targetless Intrinsics and Extrinsic Calibration of Multiple
   LiDARs and Cameras with IMU using Continuous-Time Estimation*, arXiv
   `2501.02821`, which evaluates asynchronous LiDAR and camera observations on a
@@ -48,6 +55,79 @@ maximum capture times, maximum deskew duration, point IDs, policy, body twist,
 `T_body_lidar`, and method. Policy mappings reject unknown units, unknown stamp
 references, and non-finite clock offsets before evidence is produced.
 
+## Implemented fixed-twist specialization
+
+The typed `CameraLidarTimedCapture` input contains one LiDAR message stamp
+`t_L`, one camera exposure `t_C`, measured signed point offsets `delta_k`, a
+local body twist `xi`, `T_body_lidar`, and optional cross-modal reference point
+positions. With Calibrex's clock convention, point `k` is captured at
+
+```text
+t_k(dt_L) = t_L + delta_k + dt_L
+Delta_k   = t_C - t_k(dt_L).
+```
+
+The fixed-twist specialization moves the return into the body frame, applies
+the implemented first-order translational and exact constant-angular-velocity
+motion over `Delta_k`, and moves it back into the LiDAR frame at camera time:
+
+```text
+p_B,k(t_C) = R(-omega Delta_k) p_B,k(t_k) - v Delta_k
+p_L,k(t_C) = T_body_lidar^-1 p_B,k(t_C).
+```
+
+This is an independent, ROS-free specialization of the timing state used by
+Taylor--Nieto and the continuous-time projection used by Park et al.; it is not
+a reproduction of either complete joint spatial-temporal optimizer. When every
+capture supplies reference positions, the native solver minimizes train point
+RMSE over a bounded scalar `dt_L` grid followed by golden-section refinement.
+The unchanged holdout is evaluated once. When references are absent, it applies
+measured firing times and reports `evidence_only`; it cannot claim an estimated
+clock offset.
+
+Observability is not inferred from sample count. A centered finite difference
+in `dt_L` produces the RMS point sensitivity in m/s. The scalar rank is one only
+when that sensitivity meets the predeclared threshold. Six held-out controls
+inject `-20`, `-10`, `-5`, `+5`, `+10`, and `+20` ms and must move held-out
+points by the declared margin. Static or weak-motion captures return
+`degenerate_motion`, rank zero, a `time_offset` weak direction, and materialized
+failed controls rather than an empty probe list.
+
+Synthetic truth uses independently generated reference positions and recovers
+a `+17 ms` LiDAR offset to numerical tolerance with disjoint capture IDs. Tests
+also cover evidence-only operation, static-motion degeneracy, input ordering,
+mixed reference availability, invalid options, and measured firing-time endpoint
+retention in the ROS 1 adapter.
+
+## Public TIERS LidarsCali application
+
+`camera_lidar_capture_time_config.yaml` reads the 7,178,470,523-byte TIERS
+`LidarsCali.bag` directly. It pairs `/cam_1/color/image_raw` header timestamps
+with `/velodyne_points`, decodes the measured PointCloud2 `time` field, and
+derives local constant twists from `/vrpn_client_node/UWBTest/pose`. The raw bag
+is authenticated by expected size and first-MiB digest before `data_verified`
+is set; the evidence bundle additionally records and verifies the full SHA-256.
+
+The public run retains 23 pairs: 18 train captures (2,304 points) and five
+holdout captures (640 points). Mean firing-time span is 100.82 ms on train and
+100.81 ms on holdout. Mean camera-to-LiDAR stamp delta is 11.52/8.48 ms and mean
+point-to-exposure delta is 46.91/47.20 ms. The resulting deskew displacement is
+0.91 mm train RMS and 1.90 mm holdout RMS; it is a motion-correction magnitude,
+not an alignment error.
+
+The predeclared minimum time sensitivity is `0.05 m/s`. Measured sensitivity is
+only `0.01562 m/s`, giving rank zero, and none of the six signed controls exceeds
+the 1 mm detection margin (the largest, at 20 ms, moves held-out points by about
+0.557 mm). The public verdict is therefore **INCONCLUSIVE**, without weakening
+the gate. TIERS does not publish cross-modal point identities for this sequence,
+so `camera_lidar_time_offset_estimated=0`. VRPN `UWBTest` is also only a motion
+proxy because its constant alignment to the `velodyne` message frame is
+unpublished. The run
+does not claim clock accuracy, spatial extrinsic accuracy, or metrology truth.
+The config's identity `T_camera0_lidar0` only connects the required frame graph;
+provenance marks it as an unused, unestimated placeholder and the backend removes
+it from both output and candidate transform collections.
+
 ## Evidence boundary
 
 Constant twist is a transparent baseline, not a claim that arbitrary vehicle
@@ -58,7 +138,7 @@ per-point times, Calibrex must report that limitation rather than inventing
 timestamps from point order unless an explicit sensor firing model is
 configured.
 
-Synthetic tests cover seconds/nanoseconds, sensor clock offset, translation,
+Primitive tests cover seconds/nanoseconds, sensor clock offset, translation,
 rotation, non-identity LiDAR mounting, independent per-point capture times,
 invalid policy values, and empty scans. The comparison layer evaluates external
 and dataset-reference Camera-LiDAR transforms under the exact same frame split

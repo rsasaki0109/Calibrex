@@ -122,6 +122,40 @@ calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag --type rosbag1 --j
 calibrex calibrate examples/public_datasets/tiers_livox_lidars_cali/config.yaml
 ```
 
+### Camera-LiDAR measured capture-time evidence
+
+The same bag contains RealSense color images, Velodyne VLP-16 PointCloud2
+messages with a measured `time` field, and a VRPN pose stream. Run the native,
+ROS-independent capture-time adapter with:
+
+```bash
+calibrex calibrate \
+  examples/public_datasets/tiers_livox_lidars_cali/camera_lidar_capture_time_config.yaml
+calibrex validate outputs/tiers_camera_lidar_capture_time/result.yaml --kind result
+calibrex verify outputs/tiers_camera_lidar_capture_time/bundle.json
+```
+
+This example deliberately does not estimate an extrinsic or clock offset. The
+bag has no declared camera-to-LiDAR point identities, and the constant transform
+between the VRPN `UWBTest` rigid body and Velodyne is unpublished. It instead
+tests whether measured per-point firing times can be applied at real camera
+exposures and whether the sequence makes a scalar clock perturbation observable.
+
+| Evidence | Train | Holdout | Verdict |
+| --- | ---: | ---: | --- |
+| Paired captures / points | 18 / 2,304 | 5 / 640 | disjoint split |
+| Mean point-time span | 100.82 ms | 100.81 ms | expected VLP-16 scan duration |
+| Mean camera/LiDAR stamp delta | 11.52 ms | 8.48 ms | within 60 ms pairing gate |
+| Deskew displacement RMS | 0.91 mm | 1.90 mm | diagnostic only |
+| Time sensitivity | 0.01562 m/s | shared train diagnostic | rank 0; below 0.05 m/s gate |
+| Signed ±5/10/20 ms controls | — | 0 / 6 detected | below 1 mm margin |
+
+The result is **INCONCLUSIVE**, not PASS: the firing-time data are present and
+authenticated, but this short sequence has insufficient motion excitation for
+the declared timing gate. `camera_lidar_time_offset_estimated=0` records the
+separate correspondence limitation. Bundle verification recomputes the full
+7.18 GB bag SHA-256 and reports zero issues.
+
 Online/streaming Horizon-to-Avia calibration replays the same bag without loading
 it into memory. Early Horizon messages build the fixed source voxel map; Avia
 messages stream in time order as target batches. The bounded replay window and
