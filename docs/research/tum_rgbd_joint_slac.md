@@ -140,11 +140,20 @@ margin, and the worst transfer increases holdout RMSE by 0.01511 m. Thus the
 extra spatial degrees of freedom do not resolve temporal instability; the
 spatial ablation remains honestly FAIL.
 
+### Optimized correspondence rematching
+
+Held-out optimized points are rematched to the same voxel-plane map under the
+unchanged 0.15 m gate. Query retention remains above 98 percent in all three
+windows, yet exact query/voxel pair Jaccard drops from 0.769 at start 60 to
+0.529 and 0.478 at starts 180 and 300. The minimum same-target fraction is
+0.653. Rematched RMSE is up to 0.00292 m lower, but this is a
+selection-dependent diagnostic rather than independent improvement. The low
+pair stability despite high retention demonstrates that the fixed-assignment
+linearization is not a stable surrogate for the rematched objective.
+
 This is independently trajectory-supported joint refinement, not
 trajectory-from-scratch SLAM: the 56-dimensional rank includes measured-pose
 priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
-next extension evaluates a rematching frontend, since constant/zero-mean
-separation shows the remaining failure is dominated by the window-dependent
-offset and fixed map/correspondence construction rather than coarse spatial
-distortion.
+next extension iterates reassociation and compares rematched numerical
+curvature with the fixed-correspondence Hessian approximation.

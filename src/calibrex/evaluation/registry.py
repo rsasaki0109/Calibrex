@@ -747,6 +747,27 @@ def _register_builtin_metrics() -> None:
             family="joint_slac",
         ),
         MetricDefinition(
+            "tum_joint_rematch_pair_jaccard_min",
+            "Minimum fixed/rematched query-voxel pair Jaccard over TUM windows",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_rematch_retained_query_fraction_min",
+            "Minimum fraction of fixed holdout queries retained after rematching",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_rematch_same_target_fraction_min",
+            "Minimum same-voxel fraction among retained TUM holdout queries",
+            family="registration",
+        ),
+        MetricDefinition(
+            "tum_joint_rematch_best_holdout_delta_rmse_m",
+            "Best rematched-minus-fixed TUM holdout RMSE change",
+            "m",
+            "registration",
+        ),
+        MetricDefinition(
             "joint_slac_point_to_plane_rmse_m",
             "Joint pose-extrinsic point-to-plane RMSE excluding priors",
             "m",

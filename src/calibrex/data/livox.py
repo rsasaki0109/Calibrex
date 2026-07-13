@@ -23,6 +23,22 @@ class LivoxPointRecord:
 
 
 @dataclass(frozen=True)
+class VoxelPlaneMatch:
+    """Stable identity and geometry for one nearest voxel-plane association."""
+
+    voxel_key: tuple[int, int, int]
+    centroid: Vector3
+    normal: Vector3
+    centroid_distance_m: float
+
+    @property
+    def target_id(self) -> str:
+        """Return a deterministic target identifier independent of float formatting."""
+
+        return f"voxel:{self.voxel_key[0]}:{self.voxel_key[1]}:{self.voxel_key[2]}"
+
+
+@dataclass(frozen=True)
 class LivoxPCDSampleStats:
     """Point statistics for one Livox PCD frame."""
 
@@ -207,9 +223,7 @@ class _VoxelPlane:
     @property
     def normal(self) -> Vector3 | None:
         if self.normal_count:
-            return _normalized3(
-                (self.normal_x_sum, self.normal_y_sum, self.normal_z_sum)
-            )
+            return _normalized3((self.normal_x_sum, self.normal_y_sum, self.normal_z_sum))
         return _fallback_plane_normal(self.fallback_points or [])
 
 
@@ -515,9 +529,7 @@ def summarize_livox_pair_point_to_plane(
     plane_map = _voxel_plane_map(source_records, voxel_size_m)
     train_frame_ids = (_frame_id(files[0]),)
     holdout_frame_ids = (_frame_id(files[1]),)
-    query_points = [
-        _transformed_point(record.point, target_transform) for record in target_records
-    ]
+    query_points = [_transformed_point(record.point, target_transform) for record in target_records]
     eligible_count = len(target_records)
     considered_count = len(query_points)
     residuals, unmatched_count = _point_to_plane_residuals(
@@ -618,6 +630,23 @@ def nearest_voxel_plane(
     """Return the nearest voxel plane within ``correspondence_gate_m`` or ``None``."""
 
     return _nearest_plane(
+        point,
+        plane_map=plane_map,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+    )
+
+
+def nearest_voxel_plane_match(
+    point: Vector3,
+    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    *,
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> VoxelPlaneMatch | None:
+    """Return nearest plane geometry plus its stable voxel-map identity."""
+
+    return _nearest_plane_match(
         point,
         plane_map=plane_map,
         voxel_size_m=voxel_size_m,
@@ -777,9 +806,7 @@ def _summarize_voxel_pair(
         sx, sy, sz = source_voxels[key].centroid
         tx, ty, tz = target_voxels[key].centroid
         squared_distances.append(
-            (tx - sx) * (tx - sx)
-            + (ty - sy) * (ty - sy)
-            + (tz - sz) * (tz - sz)
+            (tx - sx) * (tx - sx) + (ty - sy) * (ty - sy) + (tz - sz) * (tz - sz)
         )
     rmse = math.sqrt(sum(squared_distances) / len(squared_distances)) if squared_distances else None
     source_voxel_count = len(source_voxels)
@@ -850,8 +877,25 @@ def _nearest_plane(
     voxel_size_m: float,
     correspondence_gate_m: float,
 ) -> _VoxelPlane | None:
+    match = _nearest_plane_match(
+        point,
+        plane_map=plane_map,
+        voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+    )
+    return plane_map[match.voxel_key] if match is not None else None
+
+
+def _nearest_plane_match(
+    point: Vector3,
+    *,
+    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> VoxelPlaneMatch | None:
     key = _voxel_key((point[0], point[1], point[2], 0.0), voxel_size_m)
     best_plane: _VoxelPlane | None = None
+    best_key: tuple[int, int, int] | None = None
     best_distance = float("inf")
     for neighbor_key in _neighbor_keys(key):
         plane = plane_map.get(neighbor_key)
@@ -861,9 +905,20 @@ def _nearest_plane(
         if distance < best_distance:
             best_distance = distance
             best_plane = plane
-    if best_plane is None or best_distance > correspondence_gate_m:
+            best_key = neighbor_key
+    if (
+        best_plane is None
+        or best_key is None
+        or best_plane.normal is None
+        or best_distance > correspondence_gate_m
+    ):
         return None
-    return best_plane
+    return VoxelPlaneMatch(
+        best_key,
+        best_plane.centroid,
+        best_plane.normal,
+        best_distance,
+    )
 
 
 def _neighbor_keys(key: tuple[int, int, int]) -> Iterable[tuple[int, int, int]]:
@@ -914,9 +969,7 @@ def _fallback_plane_normal(points: list[Vector3]) -> Vector3 | None:
     first = max(points[1:], key=lambda point: _norm3(_sub3(point, origin)))
     second = max(
         points[1:],
-        key=lambda point: _norm3(
-            _cross3(_sub3(first, origin), _sub3(point, origin))
-        ),
+        key=lambda point: _norm3(_cross3(_sub3(first, origin), _sub3(point, origin))),
     )
     return _normalized3(_cross3(_sub3(first, origin), _sub3(second, origin)))
 

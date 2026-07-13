@@ -137,6 +137,21 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
         for window in spatial_windows
     )
     assert len(result.run.provenance["native_tum_joint_slac_spatial_cross_window_transfers"]) == 6
+    rematch_jaccard = result.metrics["tum_joint_rematch_pair_jaccard_min"]
+    assert rematch_jaccard.value is not None and 0.47 < rematch_jaccard.value < 0.49
+    assert rematch_jaccard.grade == "fail"
+    rematch_retention = result.metrics["tum_joint_rematch_retained_query_fraction_min"]
+    assert rematch_retention.value is not None and rematch_retention.value > 0.98
+    assert rematch_retention.grade == "pass"
+    same_target = result.metrics["tum_joint_rematch_same_target_fraction_min"]
+    assert same_target.value is not None and 0.65 < same_target.value < 0.66
+    assert same_target.grade == "warn"
+    rematch_delta = result.metrics["tum_joint_rematch_best_holdout_delta_rmse_m"]
+    assert rematch_delta.value is not None and -0.003 < rematch_delta.value < -0.0028
+    assert rematch_delta.grade == "pass"
+    rematching = result.run.provenance["native_tum_joint_slac_rematching"]
+    assert [item["start_index"] for item in rematching] == [60, 180, 300]
+    assert all(item["stability"]["reassigned_query_ids"] for item in rematching)
     translation = result.metrics["tum_joint_identity_reference_translation_error_m"]
     rotation = result.metrics["tum_joint_identity_reference_rotation_error_deg"]
     assert translation.value is not None and translation.value > 0.10
@@ -150,7 +165,7 @@ def test_public_tum_multicapture_joint_pipeline(tmp_path: Path) -> None:
     assert transform.provenance.tool_name == "native_tum_joint_slac"
     saved = load_result(output_dir / "result.yaml")
     assert saved.run.provenance["native_tum_joint_slac_method"] == (
-        "tum_multicapture_pose_extrinsic_depth/v0.5"
+        "tum_multicapture_pose_extrinsic_depth/v0.6"
     )
     assert (
         saved.run.provenance["native_tum_joint_slac_data_only_shared_observability"][

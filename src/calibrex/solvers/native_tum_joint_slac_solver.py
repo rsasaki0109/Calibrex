@@ -17,6 +17,7 @@ from calibrex.data.livox import (
     LivoxPointRecord,
     build_voxel_plane_map,
     nearest_voxel_plane,
+    nearest_voxel_plane_match,
 )
 from calibrex.data.tum_rgbd import (
     TUMDepthIntrinsics,
@@ -26,6 +27,11 @@ from calibrex.data.tum_rgbd import (
     read_image_index,
     read_tum_depth_png,
     sample_tum_depth_points,
+)
+from calibrex.evaluation.correspondence import (
+    CorrespondenceAssignment,
+    CorrespondenceStabilityEvaluation,
+    evaluate_correspondence_stability,
 )
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
@@ -131,6 +137,14 @@ class _TUMSpatialWindowRun:
     result: JointOptimizerResult
 
 
+@dataclass(frozen=True)
+class _TUMRematchEvaluation:
+    start_index: int
+    fixed_holdout_rmse_m: float | None
+    rematched_holdout_rmse_m: float | None
+    stability: CorrespondenceStabilityEvaluation
+
+
 class NativeTUMJointSlacSolver(SolverAdapter):
     """Jointly refine per-frame TUM poses and a shared camera mounting transform."""
 
@@ -190,6 +204,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         transfers = _cross_window_transfers(replication_runs)
         spatial_runs = _spatial_ablation_runs(config, replication_runs, options)
         spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
+        rematching = _rematch_spatial_holdouts(root, intrinsics, spatial_runs, options)
         extrinsic = se3_from_tangent(result.optimized_values[_EXTRINSIC_BLOCK])
         variable = f"T_{camera_node.parent}_{camera}"
         extrinsic_observability = _data_only_shared_observability(
@@ -210,6 +225,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
         metrics.update(
             _spatial_ablation_metrics(replication_runs, spatial_runs, spatial_transfers, options)
         )
+        metrics.update(_rematching_metrics(rematching))
         warnings = _warnings(
             result,
             extrinsic_observability.information_rank,
@@ -237,6 +253,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 transfers=transfers,
                 spatial_runs=spatial_runs,
                 spatial_transfers=spatial_transfers,
+                rematching=rematching,
             ),
             warnings=warnings,
             observability=ObservabilityResult(
@@ -479,6 +496,121 @@ def _spatial_cross_window_transfers(
 
 def _scale_ray(ray: tuple[float, float, float], depth_m: float) -> tuple[float, float, float]:
     return (ray[0] * depth_m, ray[1] * depth_m, ray[2] * depth_m)
+
+
+def _rematch_spatial_holdouts(
+    root: Path,
+    intrinsics: TUMDepthIntrinsics,
+    runs: tuple[_TUMSpatialWindowRun, ...],
+    options: TUMJointSlacOptions,
+) -> tuple[_TUMRematchEvaluation, ...]:
+    evaluations: list[_TUMRematchEvaluation] = []
+    for run in runs:
+        plane_map = _build_map_planes(root, run.source_problem.map_frames, intrinsics, options)
+        holdout_ids = set(run.result.holdout_factor_ids)
+        reference: list[CorrespondenceAssignment] = []
+        rematched: list[CorrespondenceAssignment] = []
+        fixed_residuals: list[float] = []
+        rematched_residuals: list[float] = []
+        values = run.result.optimized_values
+        for measurement in run.source_problem.measurements:
+            if measurement.measurement_id not in holdout_ids:
+                continue
+            original = nearest_voxel_plane_match(
+                measurement.plane_point_world_m,
+                plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            if original is not None:
+                reference.append(
+                    CorrespondenceAssignment(measurement.measurement_id, original.target_id)
+                )
+            frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
+            frame = run.source_problem.query_frames[frame_index]
+            weights = trilinear_lattice_weights(
+                _scale_ray(
+                    measurement.normalized_ray_sensor,
+                    measurement.nominal_depth_m,
+                ),
+                minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                shape=_SPATIAL_LATTICE_SHAPE,
+            )
+            depth_m = (
+                measurement.nominal_depth_m
+                + values[_SPATIAL_BIAS_BLOCK][0]
+                + sum(
+                    weight * offset
+                    for weight, offset in zip(weights, values[_SPATIAL_DEPTH_BLOCK], strict=True)
+                )
+            )
+            point_sensor = _scale_ray(measurement.normalized_ray_sensor, depth_m)
+            world_sensor = (
+                se3_from_tangent(values[_pose_block(frame_index, frame)])
+                .compose(frame.transform_world_camera)
+                .compose(se3_from_tangent(values[_EXTRINSIC_BLOCK]))
+            )
+            point_world = world_sensor.transform_point(point_sensor)
+            fixed_residuals.append(
+                _point_plane_residual(
+                    point_world,
+                    measurement.plane_point_world_m,
+                    measurement.plane_normal_world,
+                )
+            )
+            match = nearest_voxel_plane_match(
+                point_world,
+                plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            if match is None:
+                continue
+            rematched.append(CorrespondenceAssignment(measurement.measurement_id, match.target_id))
+            rematched_residuals.append(
+                _point_plane_residual(point_world, match.centroid, match.normal)
+            )
+        evaluations.append(
+            _TUMRematchEvaluation(
+                run.start_index,
+                _rmse_values(fixed_residuals),
+                _rmse_values(rematched_residuals),
+                evaluate_correspondence_stability(tuple(reference), tuple(rematched)),
+            )
+        )
+    return tuple(evaluations)
+
+
+def _build_map_planes(
+    root: Path,
+    frames: tuple[TUMDepthPoseEntry, ...],
+    intrinsics: TUMDepthIntrinsics,
+    options: TUMJointSlacOptions,
+) -> dict[tuple[int, int, int], Any]:
+    records: list[LivoxPointRecord] = []
+    for frame in frames:
+        image = read_tum_depth_png(root / frame.depth.path)
+        for point in sample_tum_depth_points(
+            image, intrinsics, max_points=options.map_points_per_frame
+        ):
+            records.append(
+                LivoxPointRecord((*frame.transform_world_camera.transform_point(point), 0.0))
+            )
+    return build_voxel_plane_map(records, options.voxel_size_m)
+
+
+def _point_plane_residual(
+    point: tuple[float, float, float],
+    centroid: tuple[float, float, float],
+    normal: tuple[float, float, float],
+) -> float:
+    norm = math.sqrt(sum(value * value for value in normal))
+    return sum(normal[index] * (point[index] - centroid[index]) / norm for index in range(3))
+
+
+def _rmse_values(values: list[float]) -> float | None:
+    return math.sqrt(sum(value * value for value in values) / len(values)) if values else None
 
 
 def _build_problem(
@@ -980,6 +1112,52 @@ def _spatial_ablation_metrics(
     }
 
 
+def _rematching_metrics(
+    evaluations: tuple[_TUMRematchEvaluation, ...],
+) -> dict[str, MetricResult]:
+    pair_jaccards = [
+        item.stability.pair_jaccard
+        for item in evaluations
+        if item.stability.pair_jaccard is not None
+    ]
+    retentions = [
+        item.stability.retained_query_fraction
+        for item in evaluations
+        if item.stability.retained_query_fraction is not None
+    ]
+    same_targets = [
+        item.stability.same_target_fraction
+        for item in evaluations
+        if item.stability.same_target_fraction is not None
+    ]
+    deltas = [
+        item.rematched_holdout_rmse_m - item.fixed_holdout_rmse_m
+        for item in evaluations
+        if item.rematched_holdout_rmse_m is not None and item.fixed_holdout_rmse_m is not None
+    ]
+    return {
+        "tum_joint_rematch_pair_jaccard_min": MetricResult(
+            value=min(pair_jaccards) if pair_jaccards else None,
+            grade="warn",
+            reason="minimum exact query/voxel-plane pair Jaccard over temporal windows",
+        ),
+        "tum_joint_rematch_retained_query_fraction_min": MetricResult(
+            value=min(retentions) if retentions else None,
+            grade="warn",
+        ),
+        "tum_joint_rematch_same_target_fraction_min": MetricResult(
+            value=min(same_targets) if same_targets else None,
+            grade="warn",
+        ),
+        "tum_joint_rematch_best_holdout_delta_rmse_m": MetricResult(
+            value=min(deltas) if deltas else None,
+            unit="m",
+            grade="warn",
+            reason="rematched minus fixed-assignment RMSE; selection-dependent diagnostic",
+        ),
+    }
+
+
 def _rotation_angle_deg(transform: SE3) -> float:
     return math.degrees(2.0 * math.acos(min(1.0, abs(transform.rotation_quat_xyzw[3]))))
 
@@ -1015,10 +1193,11 @@ def _provenance(
     transfers: tuple[dict[str, float | int | None], ...],
     spatial_runs: tuple[_TUMSpatialWindowRun, ...],
     spatial_transfers: tuple[dict[str, float | int | None], ...],
+    rematching: tuple[_TUMRematchEvaluation, ...],
 ) -> dict[str, Any]:
     selected = [*problem.map_frames, *problem.query_frames]
     return {
-        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.5",
+        "native_tum_joint_slac_method": "tum_multicapture_pose_extrinsic_depth/v0.6",
         "native_tum_joint_slac_status": result.status,
         "native_tum_joint_slac_variable": variable,
         "native_tum_joint_slac_depth_index_path": str(depth_index),
@@ -1095,6 +1274,19 @@ def _provenance(
             "poses and target spatial holdout factors"
         ),
         "native_tum_joint_slac_spatial_cross_window_transfers": list(spatial_transfers),
+        "native_tum_joint_slac_rematching_policy": (
+            "held-out optimized points are reassociated to the nearest voxel plane "
+            "under the unchanged gate; target identity is the integer voxel key"
+        ),
+        "native_tum_joint_slac_rematching": [
+            {
+                "start_index": item.start_index,
+                "fixed_holdout_rmse_m": item.fixed_holdout_rmse_m,
+                "rematched_holdout_rmse_m": item.rematched_holdout_rmse_m,
+                "stability": item.stability.as_dict(),
+            }
+            for item in rematching
+        ],
     }
 
 

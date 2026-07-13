@@ -1,5 +1,10 @@
 import pytest
 
+from calibrex.data.livox import (
+    LivoxPointRecord,
+    build_voxel_plane_map,
+    nearest_voxel_plane_match,
+)
 from calibrex.evaluation.correspondence import (
     CorrespondenceAssignment,
     evaluate_correspondence_stability,
@@ -51,3 +56,23 @@ def test_empty_correspondence_stability_is_explicitly_undefined() -> None:
 def test_correspondence_stability_rejects_duplicate_query_ids() -> None:
     with pytest.raises(ValueError, match=r"reference.*unique"):
         evaluate_correspondence_stability((_assignment("q0", "a"), _assignment("q0", "b")), ())
+
+
+def test_voxel_plane_match_exposes_stable_target_identity() -> None:
+    records = [
+        LivoxPointRecord((0.01 * index, 0.0, 1.0, 0.0), (0.0, 0.0, 1.0)) for index in range(8)
+    ]
+    plane_map = build_voxel_plane_map(records, 0.5)
+
+    match = nearest_voxel_plane_match(
+        (0.04, 0.02, 1.01),
+        plane_map,
+        voxel_size_m=0.5,
+        correspondence_gate_m=0.1,
+    )
+
+    assert match is not None
+    assert match.voxel_key == (0, 0, 2)
+    assert match.target_id == "voxel:0:0:2"
+    assert match.normal == pytest.approx((0.0, 0.0, 1.0))
+    assert match.centroid_distance_m < 0.03

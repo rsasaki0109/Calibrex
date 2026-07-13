@@ -27,5 +27,22 @@ fraction separately. It also records the exact dropped, added, and reassigned
 query IDs. Empty comparisons remain explicitly undefined rather than being
 reported as perfect stability, and duplicate query IDs are rejected.
 
-The next integration rematches optimized public TUM factors against their voxel
-plane maps and records these diagnostics alongside fixed-versus-rematched RMSE.
+## Public TUM optimized rematching
+
+Each held-out query is transformed with its optimized pose, extrinsic,
+constant depth bias, and zero-mean spatial lattice, then reassociated to the
+nearest voxel plane under the unchanged 0.15 m gate. Integer voxel coordinates
+provide deterministic target IDs. The start-60, 180, and 300 windows retain
+99.86, 99.56, and 98.05 percent of fixed-assignment queries, respectively, but
+their exact pair Jaccards are only 0.769, 0.529, and 0.478. Same-target
+fractions fall to 0.870, 0.694, and 0.653.
+
+Rematching lowers held-out RMSE by 0.99, 2.12, and 2.92 mm. This decrease is
+selection-dependent and is not presented as independent accuracy improvement.
+Instead, high retention combined with low pair Jaccard shows that most points
+remain inside the gate while many select different local planes. The minimum
+pair-Jaccard metric therefore FAILs its 0.5 WARN threshold. Every per-query
+drop, addition, and reassignment is retained in provenance.
+
+The next step uses repeated reassociation during optimization and compares its
+numerical curvature against the fixed-correspondence Hessian approximation.

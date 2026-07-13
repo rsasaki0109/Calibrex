@@ -641,6 +641,30 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.5,
         direction="higher_is_better",
     ),
+    "tum_joint_rematch_pair_jaccard_min": MetricThreshold(
+        metric="tum_joint_rematch_pair_jaccard_min",
+        pass_value=0.9,
+        warn_value=0.5,
+        direction="higher_is_better",
+    ),
+    "tum_joint_rematch_retained_query_fraction_min": MetricThreshold(
+        metric="tum_joint_rematch_retained_query_fraction_min",
+        pass_value=0.9,
+        warn_value=0.5,
+        direction="higher_is_better",
+    ),
+    "tum_joint_rematch_same_target_fraction_min": MetricThreshold(
+        metric="tum_joint_rematch_same_target_fraction_min",
+        pass_value=0.9,
+        warn_value=0.5,
+        direction="higher_is_better",
+    ),
+    "tum_joint_rematch_best_holdout_delta_rmse_m": MetricThreshold(
+        metric="tum_joint_rematch_best_holdout_delta_rmse_m",
+        pass_value=0.0,
+        warn_value=0.005,
+        unit="m",
+    ),
     "joint_slac_augmented_information_rank": MetricThreshold(
         metric="joint_slac_augmented_information_rank",
         pass_value=12.0,
