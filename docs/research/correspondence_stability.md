@@ -46,3 +46,14 @@ drop, addition, and reassignment is retained in provenance.
 
 The next step uses repeated reassociation during optimization and compares its
 numerical curvature against the fixed-correspondence Hessian approximation.
+
+## Numerical-curvature contract
+
+`evaluate_numerical_curvature` evaluates the objective itself at symmetric
+finite-difference probes. It does not freeze correspondences and does not label
+the result covariance. The serialized result includes the full Hessian,
+eigenvalues, positive/negative/near-zero counts, numerical rank, positive
+condition number, physical perturbation steps, and exact objective-evaluation
+count. Synthetic tests recover a coupled convex quadratic Hessian within
+`1e-9`, detect one negative direction in a saddle, retain an independent flat
+direction, and reject non-finite probes.
