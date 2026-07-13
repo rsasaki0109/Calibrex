@@ -3,7 +3,7 @@ from dataclasses import replace
 
 import pytest
 
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, rotate_vector_xyzw
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointPointToPlaneMeasurement,
@@ -11,6 +11,7 @@ from calibrex.graph.joint_factors import (
     JointTrilinearDepthPointToPlaneMeasurement,
     JointTrilinearXYZPairMeasurement,
     JointTrilinearXYZPointToPlaneMeasurement,
+    estimate_xyz_lattice_local_rotations,
     make_joint_centered_trilinear_depth_point_to_plane_factor,
     make_joint_depth_point_to_plane_factor,
     make_joint_lattice_smoothness_factor,
@@ -21,6 +22,7 @@ from calibrex.graph.joint_factors import (
     make_joint_trilinear_depth_point_to_plane_factor,
     make_joint_trilinear_xyz_pair_factor,
     make_joint_trilinear_xyz_point_to_plane_factor,
+    make_joint_xyz_lattice_rigid_gauge_factor,
     make_joint_xyz_lattice_shape_factor,
     regular_lattice_control_points,
     se3_from_tangent,
@@ -303,6 +305,71 @@ def test_trilinear_xyz_pair_factor_calibrates_both_correspondence_sides() -> Non
         pytest.approx(0.01),
     )
     assert factor.family == "rgbd_trilinear_xyz_pair_point_to_plane"
+
+
+def test_xyz_lattice_rigid_gauge_separates_translation_and_rotation() -> None:
+    controls = regular_lattice_control_points(
+        minimum=(-1.0, -1.0, -1.0), maximum=(1.0, 1.0, 1.0), shape=(2, 2, 2)
+    )
+    gauge = make_joint_xyz_lattice_rigid_gauge_factor(
+        factor_id="xyz-gauge",
+        observation_group="regularization",
+        block="xyz-lattice",
+        control_points_m=controls,
+        translation_sigma_m=0.1,
+        rotation_sigma_rad=0.1,
+    )
+    translation = (0.03, -0.02, 0.01) * len(controls)
+    translated = gauge.residuals({"xyz-lattice": translation})
+    assert translated[:3] == pytest.approx((0.3, -0.2, 0.1))
+    assert translated[3:] == pytest.approx((0.0, 0.0, 0.0), abs=1e-12)
+
+    omega = (0.0, 0.0, 0.01)
+    rotational = tuple(
+        component
+        for point in controls
+        for component in (
+            -omega[2] * point[1],
+            omega[2] * point[0],
+            0.0,
+        )
+    )
+    rotated = gauge.residuals({"xyz-lattice": rotational})
+    assert rotated[:3] == pytest.approx((0.0, 0.0, 0.0), abs=1e-12)
+    assert rotated[3:] == pytest.approx((0.0, 0.0, 0.1), abs=1e-12)
+    assert gauge.split_policy == "train_only"
+
+
+def test_xyz_lattice_local_rotation_fit_recovers_rigid_field() -> None:
+    shape = (2, 2, 2)
+    controls = regular_lattice_control_points(
+        minimum=(-1.0, -0.5, 1.0), maximum=(1.0, 0.5, 2.0), shape=shape
+    )
+    angle = 0.12
+    cosine = math.cos(angle)
+    sine = math.sin(angle)
+    translation = (0.03, -0.02, 0.01)
+    offsets = tuple(
+        component
+        for x, y, z in controls
+        for component in (
+            cosine * x - sine * y + translation[0] - x,
+            sine * x + cosine * y + translation[1] - y,
+            translation[2],
+        )
+    )
+
+    rotations = estimate_xyz_lattice_local_rotations(
+        control_points_m=controls, offsets_m=offsets, shape=shape
+    )
+
+    expected = (cosine, sine, 0.0)
+    assert len(rotations) == 8
+    assert all(
+        rotate_vector_xyzw(rotation, (1.0, 0.0, 0.0))
+        == pytest.approx(expected, abs=1e-12)
+        for rotation in rotations
+    )
 
 
 def test_se3_tangent_requires_six_values() -> None:

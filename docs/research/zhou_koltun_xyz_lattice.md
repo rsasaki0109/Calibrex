@@ -44,12 +44,28 @@ round, matching the paper's policy of freezing local linearizations inside a
 round and updating them between rounds. The factor is always train-only. It
 does not silently estimate rotations from holdout data.
 
+`estimate_xyz_lattice_local_rotations` performs an independent proper-rotation
+Procrustes fit at every node from its current calibrated neighbor edges. A
+frontend can therefore rebuild Equation (4) between optimizer rounds without
+embedding mutable state in a residual callback. A synthetic rigid field
+recovers the same 0.12 rad rotation at all eight nodes to numerical precision.
+
+The full field also has six rigid modes that can be exchanged with camera
+poses or a separately estimated extrinsic. Calibrex does not hide this behind
+the elastic term, which correctly assigns zero cost to rigid deformation.
+`make_joint_xyz_lattice_rigid_gauge_factor` explicitly constrains mean field
+translation and the best infinitesimal rotation moment with separately
+declared metric/radian sigmas. Tests isolate all three translation and all
+three rotation modes. This factor is train-only, and data-only field rank must
+be reported separately from gauge-augmented rank.
+
 ## Synthetic evidence
 
 Tests cover regular-node ordering, dense trilinear weights, the fixed-map XYZ
-factor, the two-sided pair factor, and the shape term. A global XYZ translation
-has exactly zero shape residual over all 24 directed edges of a 2 by 2 by 2
-lattice, while a single-node distortion is detected.
+factor, the two-sided pair factor, shape term, rigid gauge, and local-rotation
+update. A global XYZ translation has exactly zero shape residual over all 24
+directed edges of a 2 by 2 by 2 lattice, while a single-node distortion is
+detected.
 
 The optimizer recovery test estimates all 24 XYZ control dimensions from five
 frame-level observation groups. The seeded split leaves one whole group for

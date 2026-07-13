@@ -5,18 +5,25 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TypeAlias
+
+import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.geometry import (
     SE3,
     QuaternionXYZW,
     Vector3,
     quaternion_conjugate_xyzw,
+    quaternion_xyzw_from_rotation_matrix,
     rotate_vector_xyzw,
 )
 from calibrex.graph.joint_optimization import (
     JointResidualBlock,
     ParameterValues,
 )
+
+FloatArray: TypeAlias = NDArray[np.float64]
 
 
 @dataclass(frozen=True)
@@ -410,6 +417,101 @@ def make_joint_xyz_lattice_shape_factor(
         family="trilinear_xyz_lattice_shape_preserving",
         split_policy="train_only",
     )
+
+
+def make_joint_xyz_lattice_rigid_gauge_factor(
+    *,
+    factor_id: str,
+    observation_group: str,
+    block: str,
+    control_points_m: Sequence[Vector3],
+    translation_sigma_m: float,
+    rotation_sigma_rad: float,
+) -> JointResidualBlock:
+    """Remove the field's mean-translation and infinitesimal-rotation gauges."""
+
+    controls = tuple(control_points_m)
+    if len(controls) < 4:
+        raise ValueError("XYZ lattice rigid gauge requires at least four controls")
+    if (
+        translation_sigma_m <= 0.0
+        or rotation_sigma_rad <= 0.0
+        or not math.isfinite(translation_sigma_m)
+        or not math.isfinite(rotation_sigma_rad)
+    ):
+        raise ValueError("XYZ lattice rigid gauge sigmas must be finite positive")
+    reference = np.asarray(controls, dtype=np.float64)
+    centered = reference - np.mean(reference, axis=0)
+    inertia: FloatArray = sum(
+        (
+            float(np.dot(position, position)) * np.eye(3, dtype=np.float64)
+            - np.outer(position, position)
+            for position in centered
+        ),
+        start=np.zeros((3, 3), dtype=np.float64),
+    )
+    if int(np.linalg.matrix_rank(inertia)) != 3:
+        raise ValueError("XYZ lattice rigid gauge controls must span three dimensions")
+    inertia_inverse: FloatArray = np.linalg.inv(inertia)
+
+    def evaluator(values: ParameterValues) -> tuple[float, ...]:
+        raw = values[block]
+        if len(raw) != 3 * len(controls):
+            raise ValueError("joint XYZ lattice rigid gauge block dimension mismatch")
+        offsets = np.asarray(raw, dtype=np.float64).reshape((-1, 3))
+        mean = np.mean(offsets, axis=0)
+        centered_offsets = offsets - mean
+        moment = sum(
+            (np.cross(position, displacement) for position, displacement in zip(
+                centered, centered_offsets, strict=True
+            )),
+            start=np.zeros(3, dtype=np.float64),
+        )
+        rotation = inertia_inverse @ moment
+        return (
+            *(float(value) / translation_sigma_m for value in mean),
+            *(float(value) / rotation_sigma_rad for value in rotation),
+        )
+
+    return JointResidualBlock(
+        factor_id=factor_id,
+        observation_group=observation_group,
+        variable_names=(block,),
+        evaluator=evaluator,
+        family="trilinear_xyz_lattice_rigid_gauge",
+        split_policy="train_only",
+    )
+
+
+def estimate_xyz_lattice_local_rotations(
+    *,
+    control_points_m: Sequence[Vector3],
+    offsets_m: Sequence[float],
+    shape: tuple[int, int, int],
+) -> tuple[QuaternionXYZW, ...]:
+    """Fit each Eq. (4) local rotation from the current calibrated controls."""
+
+    controls = tuple(control_points_m)
+    size = math.prod(shape)
+    if min(shape) < 2 or len(controls) != size or len(offsets_m) != 3 * size:
+        raise ValueError("XYZ lattice rotation inputs must match a valid 3D lattice")
+    reference = np.asarray(controls, dtype=np.float64)
+    calibrated = reference + np.asarray(offsets_m, dtype=np.float64).reshape((-1, 3))
+    neighbors: list[list[int]] = [[] for _ in range(size)]
+    for center, neighbor in _directed_lattice_edges(shape):
+        neighbors[center].append(neighbor)
+    rotations: list[QuaternionXYZW] = []
+    for center, adjacent in enumerate(neighbors):
+        source = reference[adjacent] - reference[center]
+        target = calibrated[adjacent] - calibrated[center]
+        covariance: FloatArray = source.T @ target
+        left, _singular, right_transpose = np.linalg.svd(covariance)
+        rotation: FloatArray = right_transpose.T @ left.T
+        if float(np.linalg.det(rotation)) < 0.0:
+            right_transpose[-1, :] *= -1.0
+            rotation = right_transpose.T @ left.T
+        rotations.append(quaternion_xyzw_from_rotation_matrix(rotation.reshape(-1)))
+    return tuple(rotations)
 
 
 def make_joint_lattice_zero_mean_factor(
