@@ -61,13 +61,15 @@ def test_planar_scan_velocity_rejects_single_los_geometry() -> None:
 
 
 def test_nuscenes_adapter_reports_missing_public_download(tmp_path: Path) -> None:
+    rotation = (0.0, 0.0, 0.0, 1.0)
     evidence = summarize_nuscenes_radar_spatiotemporal(
         dataset_path=tmp_path,
         channel="RADAR_FRONT",
-        rotation_ego_radar_xyzw=(0.0, 0.0, 0.0, 1.0),
+        rotation_ego_radar_xyzw=rotation,
         options=RadarSpatiotemporalLeverArmOptions(),
     )
 
     assert evidence.status == "unavailable"
     assert evidence.result is None
     assert evidence.raw_input_files == ()
+    assert evidence.as_dict()["rotation_ego_radar_xyzw"] == list(rotation)

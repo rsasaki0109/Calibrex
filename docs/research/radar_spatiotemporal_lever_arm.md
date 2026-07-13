@@ -14,6 +14,10 @@ The measurement contract follows the velocity formulations used by:
   Calibration*, IEEE ICRA 2021, arXiv `2103.07505`. The work uses Radar
   velocity measurements, a continuous-time platform trajectory, and derives
   observability properties for targetless extrinsic calibration.
+- Wise, Cheng, and Kelly, *Spatiotemporal Calibration of 3D
+  Millimetre-Wavelength Radar-Camera Pairs*, IEEE T-RO 2023, arXiv
+  `2211.01871`. It analyzes joint spatial/temporal identifiability and the
+  motions needed for infrastructure-free calibration.
 - Chen et al., *RIs-Calib: An Open-Source Spatiotemporal Calibrator for
   Multiple 3D Radars and IMUs Based on Continuous-Time Estimation*, arXiv
   `2408.02444`. It motivates joint spatial/temporal Radar-inertial calibration
@@ -52,12 +56,25 @@ The profiled clock objective reports a central finite-difference curvature;
 zero curvature is evidence that the trajectory lacks temporal excitation, not
 a covariance estimate.
 
+Lever-arm rank alone is insufficient: a time perturbation can be reproduced by
+a linear combination of translation perturbations. Calibrex therefore also
+forms a four-column local Jacobian ordered as `(tx, ty, tz, dt)`. Translation
+columns are scaled by the declared 0.10 m known-bad probe and the time column
+by the declared 20 ms probe, so its spectrum and condition number are
+dimensionless with an explicit scale convention. The reported
+`time_translation_subspace_coupling` is the fraction of the scaled time column
+explained by the translation-column subspace. A value of one and joint rank
+three means complete local compensation; the numerical candidate is retained
+for diagnosis but is not applied as a calibration result.
+
 Train and unchanged holdout scan IDs are serialized. Known-bad probes apply
 both signs of 0.10 m perturbations independently to x/y/z and both signs of a
 20 ms clock perturbation. Each probe records the holdout RMSE increase and a
 declared detection margin. Synthetic tests prove exact truth recovery,
 train/holdout isolation, all eight perturbations, single-axis degeneracy, and
-clock-search boundary reporting.
+clock-search boundary reporting. A separate adversarial trajectory has
+full-rank lever-arm excitation but an exactly confounded time column; it proves
+that the joint-rank gate rejects a near-zero-residual false convergence.
 
 ## nuScenes public-data adapter
 
@@ -73,5 +90,8 @@ nuScenes automotive Radar has essentially planar LOS support, while ordinary
 road motion is dominated by yaw. Consequently, full three-axis lever-arm rank
 is not assumed. The adapter publishes an honest `INCONCLUSIVE` result when the
 motion has rank two, retaining counts, spectrum, rejected scans, and raw input
-digests. A local dataset absence is likewise `unavailable`; the project does
-not redistribute nuScenes data or bypass its terms-of-use flow.
+digests. Even with rank-three angular motion, the scaled joint lever-arm/time
+Jacobian must have rank four and remain below the configured condition limit.
+The fixed Radar rotation and every solver threshold are serialized with the
+input digests. A local dataset absence is likewise `unavailable`; the project
+does not redistribute nuScenes data or bypass its terms-of-use flow.

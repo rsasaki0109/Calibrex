@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from itertools import pairwise
 from typing import Literal
 
@@ -47,6 +47,8 @@ class RadarSpatiotemporalLeverArmOptions:
     min_train_measurements: int = 12
     rank_tolerance: float = 1.0e-8
     max_condition_number: float = 1.0e6
+    joint_rank_tolerance: float = 1.0e-8
+    max_joint_condition_number: float = 1.0e6
     known_bad_translation_m: float = 0.1
     known_bad_time_offset_sec: float = 0.02
     known_bad_margin_mps: float = 0.02
@@ -76,7 +78,13 @@ class RadarSpatiotemporalLeverArmResult:
     lever_arm_rank: int
     lever_arm_condition_number: float | None
     time_objective_curvature_mps2_per_sec2: float | None
+    joint_scaled_singular_values: tuple[float, float, float, float] | None
+    joint_rank: int
+    joint_condition_number: float | None
+    time_translation_subspace_coupling: float | None
+    weak_joint_direction: tuple[float, float, float, float] | None
     probes: tuple[RadarSpatiotemporalProbe, ...]
+    solver_options: RadarSpatiotemporalLeverArmOptions
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -96,8 +104,19 @@ class RadarSpatiotemporalLeverArmResult:
             "lever_arm_rank": self.lever_arm_rank,
             "lever_arm_condition_number": self.lever_arm_condition_number,
             "time_objective_curvature_mps2_per_sec2": (self.time_objective_curvature_mps2_per_sec2),
+            "joint_scaled_singular_values": self.joint_scaled_singular_values,
+            "joint_rank": self.joint_rank,
+            "joint_condition_number": self.joint_condition_number,
+            "time_translation_subspace_coupling": (self.time_translation_subspace_coupling),
+            "weak_joint_direction": self.weak_joint_direction,
+            "joint_parameter_order": ["translation_x", "translation_y", "translation_z", "time"],
+            "joint_parameter_scales": {
+                "translation_m": self.solver_options.known_bad_translation_m,
+                "time_sec": self.solver_options.known_bad_time_offset_sec,
+            },
             "known_bad_probes": [probe.__dict__ for probe in self.probes],
-            "method": "profiled_velocity_lever_arm_and_clock_offset/v0.1",
+            "solver_options": asdict(self.solver_options),
+            "method": "profiled_velocity_lever_arm_and_clock_offset/v0.2",
             "measurement_model": (
                 "R_body_radar v_radar(t) = v_body(t+dt) + omega_body(t+dt) cross t_body_radar"
             ),
@@ -136,7 +155,7 @@ class RadarSpatiotemporalLeverArmSolver:
         train_ids = tuple(item.measurement_id for item in train)
         holdout_ids = tuple(item.measurement_id for item in holdout)
         if len(train) < solver_options.min_train_measurements or len(reference) < 2:
-            return _empty("insufficient_measurements", train_ids, holdout_ids)
+            return _empty("insufficient_measurements", train_ids, holdout_ids, solver_options)
 
         offsets = _offset_grid(solver_options)
         candidates = [
@@ -145,7 +164,7 @@ class RadarSpatiotemporalLeverArmSolver:
         ]
         valid = [(index, candidate) for index, candidate in enumerate(candidates) if candidate]
         if not valid:
-            return _empty("degenerate_motion", train_ids, holdout_ids)
+            return _empty("degenerate_motion", train_ids, holdout_ids, solver_options)
         best_index, best = min(valid, key=lambda item: item[1][1])
         translation_array, train_mse, singular_values = best
         rank = int(sum(value > solver_options.rank_tolerance for value in singular_values))
@@ -159,6 +178,7 @@ class RadarSpatiotemporalLeverArmSolver:
                 "degenerate_motion",
                 train_ids,
                 holdout_ids,
+                solver_options,
                 singular_values=_array3(singular_values),
                 rank=rank,
                 condition=condition,
@@ -170,6 +190,13 @@ class RadarSpatiotemporalLeverArmSolver:
         )
         train_rmse = math.sqrt(train_mse)
         curvature = _time_curvature(candidates, best_index, solver_options.time_offset_step_sec)
+        joint = _joint_observability(
+            train,
+            reference,
+            translation,
+            offset,
+            solver_options,
+        )
         probes = _known_bad_probes(
             holdout,
             reference,
@@ -180,10 +207,23 @@ class RadarSpatiotemporalLeverArmSolver:
             solver_options,
         )
         at_boundary = best_index in {0, len(offsets) - 1}
+        jointly_degenerate = (
+            joint.rank < 4
+            or joint.condition_number is None
+            or joint.condition_number > solver_options.max_joint_condition_number
+        )
         return RadarSpatiotemporalLeverArmResult(
-            status="offset_at_boundary" if at_boundary else "converged",
+            status=(
+                "degenerate_motion"
+                if jointly_degenerate
+                else "offset_at_boundary"
+                if at_boundary
+                else "converged"
+            ),
             reason=(
-                "best clock offset lies on the declared search boundary"
+                "joint lever-arm/time Jacobian is rank deficient or ill-conditioned"
+                if jointly_degenerate
+                else "best clock offset lies on the declared search boundary"
                 if at_boundary
                 else "profiled lever arm and clock offset converged"
             ),
@@ -197,7 +237,13 @@ class RadarSpatiotemporalLeverArmSolver:
             lever_arm_rank=rank,
             lever_arm_condition_number=condition,
             time_objective_curvature_mps2_per_sec2=curvature,
+            joint_scaled_singular_values=joint.singular_values,
+            joint_rank=joint.rank,
+            joint_condition_number=joint.condition_number,
+            time_translation_subspace_coupling=joint.time_translation_coupling,
+            weak_joint_direction=joint.weak_direction,
             probes=probes,
+            solver_options=solver_options,
         )
 
 
@@ -227,6 +273,15 @@ def radar_spatiotemporal_rmse(
 ProfileCandidate = tuple[NDArray[np.float64], float, NDArray[np.float64]]
 
 
+@dataclass(frozen=True)
+class _JointObservability:
+    singular_values: tuple[float, float, float, float]
+    rank: int
+    condition_number: float | None
+    time_translation_coupling: float | None
+    weak_direction: tuple[float, float, float, float]
+
+
 def _profile_candidate(
     measurements: Sequence[RadarVelocityMeasurement],
     reference: Sequence[ReferenceKinematicSample],
@@ -252,6 +307,82 @@ def _profile_candidate(
     residual = matrix @ translation - vector
     mse = float(np.dot(residual, residual) / len(measurements))
     return translation, mse, singular_values
+
+
+def _joint_observability(
+    measurements: Sequence[RadarVelocityMeasurement],
+    reference: Sequence[ReferenceKinematicSample],
+    translation: Vector3,
+    offset: float,
+    options: RadarSpatiotemporalLeverArmOptions,
+) -> _JointObservability:
+    """Diagnose the coupled lever-arm/time tangent system in probe-scaled units."""
+
+    rows: list[list[float]] = []
+    derivative_step = min(
+        options.time_offset_step_sec,
+        options.known_bad_time_offset_sec,
+    )
+    for measurement in measurements:
+        timestamp = measurement.timestamp_sec + offset
+        center = _interpolate(reference, timestamp)
+        before = _interpolate(reference, timestamp - derivative_step)
+        after = _interpolate(reference, timestamp + derivative_step)
+        if center is None or before is None or after is None:
+            continue
+        predicted_before = _predicted_velocity(before, translation)
+        predicted_after = _predicted_velocity(after, translation)
+        time_derivative = tuple(
+            (right - left) / (2.0 * derivative_step)
+            for left, right in zip(predicted_before, predicted_after, strict=True)
+        )
+        root_weight = math.sqrt(measurement.weight)
+        translation_jacobian = _skew(center.angular_velocity_body_radps)
+        for row_index in range(3):
+            rows.append(
+                [
+                    *(
+                        root_weight * options.known_bad_translation_m * value
+                        for value in translation_jacobian[row_index]
+                    ),
+                    root_weight * options.known_bad_time_offset_sec * time_derivative[row_index],
+                ]
+            )
+    matrix = np.asarray(rows, dtype=np.float64)
+    if matrix.shape[0] < 4:
+        return _JointObservability((0.0, 0.0, 0.0, 0.0), 0, None, None, (0.0,) * 4)
+    _u, singular_values, vh = np.linalg.svd(matrix, full_matrices=False)
+    values = (
+        float(singular_values[0]),
+        float(singular_values[1]),
+        float(singular_values[2]),
+        float(singular_values[3]),
+    )
+    rank = int(sum(value > options.joint_rank_tolerance for value in singular_values))
+    condition = (
+        float(singular_values[0] / singular_values[-1])
+        if singular_values[-1] > options.joint_rank_tolerance
+        else None
+    )
+    translation_columns = matrix[:, :3]
+    time_column = matrix[:, 3]
+    time_norm = float(np.linalg.norm(time_column))
+    coupling: float | None = None
+    if time_norm > options.joint_rank_tolerance:
+        coefficients, _residuals, _rank, _spectrum = np.linalg.lstsq(
+            translation_columns, time_column, rcond=None
+        )
+        projection = translation_columns @ coefficients
+        coupling = min(1.0, float(np.linalg.norm(projection) / time_norm))
+    weak = (float(vh[-1, 0]), float(vh[-1, 1]), float(vh[-1, 2]), float(vh[-1, 3]))
+    return _JointObservability(values, rank, condition, coupling, weak)
+
+
+def _predicted_velocity(sample: ReferenceKinematicSample, translation: Vector3) -> Vector3:
+    return _add(
+        sample.linear_velocity_body_mps,
+        _cross(sample.angular_velocity_body_radps, translation),
+    )
 
 
 def _known_bad_probes(
@@ -351,6 +482,10 @@ def _validate_options(options: RadarSpatiotemporalLeverArmOptions) -> None:
         raise ValueError("time-offset range and step must be positive")
     if options.time_offset_step_sec > 2.0 * options.max_abs_time_offset_sec:
         raise ValueError("time-offset step exceeds the search interval")
+    if options.known_bad_translation_m <= 0.0 or options.known_bad_time_offset_sec <= 0.0:
+        raise ValueError("known-bad perturbation scales must be positive")
+    if options.joint_rank_tolerance <= 0.0 or options.max_joint_condition_number <= 1.0:
+        raise ValueError("joint observability thresholds must be positive")
 
 
 def _skew(value: Vector3) -> tuple[Vector3, Vector3, Vector3]:
@@ -394,6 +529,7 @@ def _empty(
     status: Literal["insufficient_measurements", "degenerate_motion"],
     train_ids: tuple[str, ...],
     holdout_ids: tuple[str, ...],
+    options: RadarSpatiotemporalLeverArmOptions,
     *,
     singular_values: tuple[float, float, float] | None = None,
     rank: int = 0,
@@ -416,5 +552,11 @@ def _empty(
         lever_arm_rank=rank,
         lever_arm_condition_number=condition,
         time_objective_curvature_mps2_per_sec2=None,
+        joint_scaled_singular_values=None,
+        joint_rank=0,
+        joint_condition_number=None,
+        time_translation_subspace_coupling=None,
+        weak_joint_direction=None,
         probes=(),
+        solver_options=options,
     )

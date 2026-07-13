@@ -123,6 +123,11 @@ pipeline:
         max_abs_time_offset_sec: 0.10
         time_offset_step_sec: 0.002
         min_train_measurements: 12
+        joint_rank_tolerance: 1.0e-8
+        max_joint_condition_number: 1.0e6
+        known_bad_translation_m: 0.10
+        known_bad_time_offset_sec: 0.020
+        known_bad_margin_mps: 0.020
 
 solver:
   backend: scipy
@@ -152,6 +157,9 @@ evaluation:
     - radar_spatiotemporal_available
     - radar_spatiotemporal_holdout_rmse_mps
     - radar_spatiotemporal_lever_arm_rank
+    - radar_spatiotemporal_joint_rank
+    - radar_spatiotemporal_joint_condition_number
+    - radar_spatiotemporal_time_translation_coupling
     - radar_spatiotemporal_time_curvature
     - radar_spatiotemporal_known_bad_detectable_fraction
 

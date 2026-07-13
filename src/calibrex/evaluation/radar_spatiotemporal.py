@@ -51,6 +51,7 @@ class NuScenesRadarSpatiotemporalEvidence:
     reason: str
     result: RadarSpatiotemporalLeverArmResult | None
     channel: str
+    rotation_ego_radar_xyzw: QuaternionXYZW
     measurement_count: int
     reference_sample_count: int
     rejected_scan_count: int
@@ -61,6 +62,7 @@ class NuScenesRadarSpatiotemporalEvidence:
             "status": self.status,
             "reason": self.reason,
             "channel": self.channel,
+            "rotation_ego_radar_xyzw": list(self.rotation_ego_radar_xyzw),
             "measurement_count": self.measurement_count,
             "reference_sample_count": self.reference_sample_count,
             "rejected_scan_count": self.rejected_scan_count,
@@ -109,6 +111,13 @@ def radar_spatiotemporal_metrics_from_result(
             holdout_ratio=config.evaluation.holdout_ratio,
             split_seed=config.solver.seed or 0,
             min_train_measurements=int(options.get("min_train_measurements", 12)),
+            rank_tolerance=float(options.get("rank_tolerance", 1.0e-8)),
+            max_condition_number=float(options.get("max_condition_number", 1.0e6)),
+            joint_rank_tolerance=float(options.get("joint_rank_tolerance", 1.0e-8)),
+            max_joint_condition_number=float(options.get("max_joint_condition_number", 1.0e6)),
+            known_bad_translation_m=float(options.get("known_bad_translation_m", 0.1)),
+            known_bad_time_offset_sec=float(options.get("known_bad_time_offset_sec", 0.02)),
+            known_bad_margin_mps=float(options.get("known_bad_margin_mps", 0.02)),
         ),
         max_frames=int(options.get("max_frames", 64)),
     )
@@ -117,11 +126,16 @@ def radar_spatiotemporal_metrics_from_result(
         result.run.provenance.setdefault("raw_input_files", []).extend(evidence.raw_input_files)
     solved = evidence.result
     if solved is not None:
+        weak_directions: list[str] = []
+        if solved.lever_arm_rank < 3:
+            weak_directions.append("radar_lever_arm")
+        if solved.joint_rank < 4:
+            weak_directions.append("radar_clock_lever_arm_coupling")
         result.observability = ObservabilityResult(
-            rank=solved.lever_arm_rank,
-            condition_number=solved.lever_arm_condition_number,
-            weak_directions=([] if solved.lever_arm_rank == 3 else ["radar_lever_arm"]),
-            grade="pass" if solved.lever_arm_rank == 3 else "warn",
+            rank=solved.joint_rank,
+            condition_number=solved.joint_condition_number,
+            weak_directions=weak_directions,
+            grade="pass" if solved.status == "converged" else "warn",
         )
         if solved.status == "converged" and solved.translation_body_radar_m is not None:
             if transform_name in result.transforms:
@@ -156,6 +170,7 @@ def summarize_nuscenes_radar_spatiotemporal(
             "nuScenes metadata, ego poses, or Radar records are unavailable",
             None,
             channel,
+            rotation_ego_radar_xyzw,
             0,
             0,
             0,
@@ -204,6 +219,7 @@ def summarize_nuscenes_radar_spatiotemporal(
         solved.reason,
         solved,
         channel,
+        rotation_ego_radar_xyzw,
         len(measurements),
         len(reference),
         rejected,
@@ -300,6 +316,31 @@ def _evidence_metrics(evidence: NuScenesRadarSpatiotemporalEvidence) -> dict[str
             value=float(solved.lever_arm_rank),
             unit="rank",
             grade="pass" if solved.lever_arm_rank == 3 else "warn",
+        ),
+        "radar_spatiotemporal_joint_rank": MetricResult(
+            value=float(solved.joint_rank),
+            unit="rank",
+            grade="pass" if solved.joint_rank == 4 else "warn",
+            reason=solved.reason,
+        ),
+        "radar_spatiotemporal_joint_condition_number": MetricResult(
+            value=solved.joint_condition_number,
+            unit="ratio",
+            grade="pass" if converged and solved.joint_condition_number is not None else "warn",
+            reason=solved.reason,
+        ),
+        "radar_spatiotemporal_time_translation_coupling": MetricResult(
+            value=solved.time_translation_subspace_coupling,
+            unit="fraction",
+            grade=(
+                "pass"
+                if converged and solved.time_translation_subspace_coupling is not None
+                else "warn"
+            ),
+            reason=(
+                "fraction of the scaled time Jacobian explained by the translation subspace; "
+                "one indicates complete local confounding"
+            ),
         ),
         "radar_spatiotemporal_time_curvature": MetricResult(
             value=solved.time_objective_curvature_mps2_per_sec2,

@@ -1094,7 +1094,12 @@ and a 2 ms grid resolution. Full 3D translation is accepted only when the
 stacked angular-rate cross-product matrix has rank three. Normal road driving
 often supplies yaw-only motion and should therefore produce an honest
 `INCONCLUSIVE` lever-arm result rather than an invented vertical translation.
-All consumed PCD and metadata files are recorded with SHA-256 digests.
+The accepted solution must also have rank four in the probe-scaled joint
+`(tx, ty, tz, dt)` Jacobian. Its condition number and the fraction of the time
+column explained by the translation subspace expose lever-arm/clock
+compensation that a low residual or positive one-dimensional curvature can
+miss. All consumed PCD and metadata files are recorded with SHA-256 digests;
+the supplied Radar rotation and solver options are stored in provenance.
 
 `input_diagnostics` records missing extrinsics, insufficient records, missing
 ego poses, low-motion exclusions, missing or malformed PCD payloads, and frames
