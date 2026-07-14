@@ -1,0 +1,85 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: a2d2_levinson_thrun_online_monitor
+  description: Levinson-Thrun local-optimum camera-LiDAR monitor on real A2D2 pairs
+  output_dir: outputs/a2d2_levinson_thrun_online
+  domain: autonomous_driving
+
+dataset:
+  type: a2d2_lidar
+  path: data/public/a2d2_pandey_mutual_information
+  sample_limit: 2
+
+sensors:
+  camera0:
+    type: camera
+    model: a2d2_front_left_fisheye
+    frame_id: camera0
+  lidar0:
+    type: lidar
+    model: a2d2_preregistered_camera_view_cloud
+    frame_id: lidar0
+
+frames:
+  base_link:
+    root: true
+  camera0:
+    parent: base_link
+    transform:
+      estimate: false
+  lidar0:
+    parent: base_link
+    transform:
+      estimate: true
+      prior_sigma:
+        translation_m: 0.1
+        rotation_deg: 2.0
+
+pipeline:
+  type: multi_sensor_slac
+  factors:
+    lidar_camera_depth_edge_alignment:
+      enabled: true
+      options:
+        camera_name: front_left
+        window_size: 1
+        min_train_frames: 1
+        min_holdout_frames: 1
+        tracking_enabled: false
+        image_downsample: 4
+        edge_gamma: 0.98
+        edge_max_radius_downsampled: 32
+        max_boundary_points_per_frame: 2000
+        translation_grid_step_m: 0.01
+        rotation_grid_step_deg: 0.05
+        min_projected_points: 128
+        initial_translation_m: [0.0, 0.0, 0.0]
+        initial_rotation_rpy_deg: [0.0, 0.0, 0.0]
+        known_bad_translation_m: 0.1
+        known_bad_rotation_deg: 0.25
+
+solver:
+  backend: native_levinson_thrun_online
+  max_iterations: 1
+  robust_loss: none
+  convergence_tolerance: 1.0e-6
+  seed: 7
+
+evaluation:
+  holdout_ratio: 0.5
+  metrics:
+    - levinson_edge_objective
+    - levinson_projected_boundary_point_count
+    - levinson_worsening_fraction
+    - levinson_calibrated_probability
+    - levinson_known_bad_detectable_fraction
+    - levinson_objective_curvature_rank
+    - levinson_default_window_complete
+    - levinson_equation_2_recomputed
+    - levinson_public_accuracy_independent
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

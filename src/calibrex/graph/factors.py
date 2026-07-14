@@ -170,6 +170,27 @@ class LidarCameraMutualInformationFactor(FactorPlugin):
         ]
 
 
+@register_factor("lidar_camera_depth_edge_alignment")
+class LidarCameraDepthEdgeAlignmentFactor(FactorPlugin):
+    """Descriptor for targetless image/depth-discontinuity edge alignment."""
+
+    required_streams: ClassVar[list[str]] = ["camera.image", "lidar.points"]
+
+    def build(self, context: dict[str, Any]) -> list[FactorDescriptor]:
+        root = str(context.get("root", "base"))
+        camera = str(context.get("camera", "camera0"))
+        lidar = str(context.get("lidar", "lidar0"))
+        return [
+            FactorDescriptor(
+                name="lidar_camera_depth_edge_alignment",
+                variables=[f"T_{root}_{camera}", f"T_{root}_{lidar}"],
+                residual="weighted_depth_discontinuity_image_edge_response",
+                sensor_streams=self.required_streams,
+                options=dict(context.get("options", {})),
+            )
+        ]
+
+
 @register_factor("fixed_lidar_mount_prior")
 class FixedLidarMountPriorFactor(FactorPlugin):
     """Descriptor for fixed-mounted LiDAR extrinsic stability."""

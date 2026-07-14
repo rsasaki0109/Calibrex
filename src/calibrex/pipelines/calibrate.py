@@ -77,6 +77,10 @@ from calibrex.solvers.native_joint_slac_solver import (
     NATIVE_JOINT_SLAC_BACKEND,
     NativeJointSlacSolver,
 )
+from calibrex.solvers.native_levinson_thrun_online_solver import (
+    NATIVE_LEVINSON_THRUN_ONLINE_BACKEND,
+    NativeLevinsonThrunOnlineSolver,
+)
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
     NativeLidarPointToPlaneSolver,
@@ -204,6 +208,10 @@ def _apply_pipeline_adapter(
         adapter_result = NativePandeyMutualInformationSolver().solve(
             config, frame_graph, inspection
         )
+    elif config.solver.backend == NATIVE_LEVINSON_THRUN_ONLINE_BACKEND:
+        adapter_result = NativeLevinsonThrunOnlineSolver().solve(
+            config, frame_graph, inspection
+        )
     elif _uses_koide_lidar_camera_adapter(config):
         adapter_result = KoideLidarCameraSolver().solve(config, frame_graph, inspection)
     if adapter_result is None:
@@ -227,6 +235,7 @@ def _apply_pipeline_adapter(
             NATIVE_TUM_JOINT_SLAC_BACKEND,
             NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
             NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
+            NATIVE_LEVINSON_THRUN_ONLINE_BACKEND,
         }
         and adapter_result.transforms
     ):
@@ -467,6 +476,7 @@ def _adapter_output_provenance(
         NATIVE_REGISTRATION_COMPARISON_BACKEND,
         NATIVE_TUM_JOINT_SLAC_BACKEND,
         NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
+        NATIVE_LEVINSON_THRUN_ONLINE_BACKEND,
     }:
         return TransformEstimateProvenance(
             producer="slac_native",
@@ -487,6 +497,9 @@ def _adapter_output_provenance(
                 NATIVE_TUM_JOINT_SLAC_BACKEND: "native_tum_joint_slac_solver",
                 NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND: (
                     "native_pandey_mutual_information_solver"
+                ),
+                NATIVE_LEVINSON_THRUN_ONLINE_BACKEND: (
+                    "native_levinson_thrun_online_solver"
                 ),
             }[backend],
             notes=[note],

@@ -308,6 +308,45 @@ def read_a2d2_lidar_points_reflectivity(
     return [item[0] for item in sampled], [item[1] for item in sampled]
 
 
+def read_a2d2_lidar_boundary_points(
+    path: str | Path,
+    *,
+    max_points: int | None = None,
+) -> list[tuple[float, float, float]]:
+    """Return valid camera-view points flagged as boundaries by A2D2.
+
+    The public sensor-fusion NPZ files do not preserve the original organized
+    per-beam neighborhood required to recompute Levinson--Thrun Eq.2 exactly.
+    This adapter therefore exposes A2D2's upstream binary ``boundary`` field;
+    callers must record that it is a public-data specialization rather than an
+    independently recomputed near-side depth discontinuity.
+    """
+
+    sample_path = Path(path)
+    with zipfile.ZipFile(sample_path) as archive:
+        points_header, points = read_npy_array(archive, "pcloud_points.npy")
+        _valid_header, valid = read_npy_array(archive, "pcloud_attr.valid.npy")
+        _boundary_header, boundary = read_npy_array(
+            archive, "pcloud_attr.boundary.npy"
+        )
+    shape = points_header.get("shape")
+    if not isinstance(shape, tuple) or len(shape) != 2 or shape[1] != 3:
+        raise ValueError("pcloud_points.npy must have shape Nx3")
+    point_count = int(shape[0])
+    if len(valid) != point_count or len(boundary) != point_count:
+        raise ValueError("valid and boundary arrays must match point count")
+    selected = [
+        (
+            cast(float, points[index * 3]),
+            cast(float, points[index * 3 + 1]),
+            cast(float, points[index * 3 + 2]),
+        )
+        for index in range(point_count)
+        if cast(bool, valid[index]) and bool(cast(int, boundary[index]))
+    ]
+    return _stride_sample(selected, max_points)
+
+
 def _stride_sample(
     points: list[SampleT],
     max_points: int | None,

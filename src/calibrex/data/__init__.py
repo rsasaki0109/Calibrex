@@ -1,6 +1,10 @@
 """Dataset abstractions."""
 
-from calibrex.data.a2d2 import A2D2LidarDataset, read_a2d2_lidar_points_reflectivity
+from calibrex.data.a2d2 import (
+    A2D2LidarDataset,
+    read_a2d2_lidar_boundary_points,
+    read_a2d2_lidar_points_reflectivity,
+)
 from calibrex.data.base import DatasetReader, StreamSummary, TimestampedRecord
 from calibrex.data.ethz_hand_eye import (
     ETHZ_HAND_EYE_COMMIT,
@@ -58,6 +62,7 @@ __all__ = [
     "associate_depth_groundtruth",
     "inspect_dataset",
     "load_manifest",
+    "read_a2d2_lidar_boundary_points",
     "read_a2d2_lidar_points_reflectivity",
     "read_ethz_robot_arm_hand_eye_motions",
     "read_png_luminance",
