@@ -88,6 +88,8 @@ from calibrex.export.ros_tf import export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.visualization.comparison_table import write_comparison_table
+from calibrex.visualization.evidence_card import write_evidence_card
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import (
     evidence_artifact_from_result,
@@ -339,12 +341,13 @@ def _build_parser() -> argparse.ArgumentParser:
     render.add_argument("result", type=Path)
     render.add_argument(
         "--format",
-        choices=["html"],
+        choices=["html", "evidence-card"],
         default="html",
-        help="rendered artifact format; only html is supported in v0.1",
+        help="rendered artifact format",
     )
     render.add_argument("--output-dir", type=Path)
     render.add_argument("--html", type=Path, help="HTML report path or filename")
+    render.add_argument("--output", type=Path, help="evidence-card SVG path or filename")
     render.add_argument("--json", action="store_true")
     render.set_defaults(func=_cmd_render)
 
@@ -361,7 +364,15 @@ def _build_parser() -> argparse.ArgumentParser:
     compare = subcommands.add_parser("compare", help="compare two result files")
     compare.add_argument("left_result", type=Path)
     compare.add_argument("right_result", type=Path)
-    compare.add_argument("--output", type=Path, help="write comparison as YAML/JSON")
+    compare.add_argument(
+        "--format",
+        choices=["data", "evidence-table"],
+        default="data",
+        help="machine-readable comparison data or a provenance-bound SVG table",
+    )
+    compare.add_argument("--output", type=Path, help="write comparison data or SVG")
+    compare.add_argument("--left-label", default="baseline", help="left SVG column label")
+    compare.add_argument("--right-label", default="candidate", help="right SVG column label")
     compare.add_argument(
         "--enforce-compatible",
         action="store_true",
@@ -879,8 +890,28 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
 
 
 def _cmd_render(args: argparse.Namespace) -> int:
-    if args.format != "html":
-        _die(f"unsupported render format: {args.format}")
+    if args.format == "evidence-card":
+        if args.html is not None:
+            _die("--html cannot be used with --format evidence-card")
+        result = load_result(args.result)
+        output_path = _evidence_card_output_path(args.result, args.output_dir, args.output)
+        write_evidence_card(result, output_path, source_path=args.result)
+        _emit(
+            {
+                "status": "ok",
+                "command": "render",
+                "render_only": True,
+                "recomputed_metrics": False,
+                "source_result": str(args.result),
+                "output_format": "evidence-card",
+                "evidence_card": str(output_path),
+                "source_sha256_bound": True,
+            },
+            args.json,
+        )
+        return 0
+    if args.output is not None:
+        _die("--output is only supported with --format evidence-card")
     return _render_result_report(args, command="render", deprecated_alias=None)
 
 
@@ -953,13 +984,60 @@ def _report_html_filename(html_path: Path | None) -> str | Path:
     return html_path.name
 
 
+def _evidence_card_output_path(
+    result_path: Path,
+    output_dir: Path | None,
+    output_path: Path | None,
+) -> Path:
+    if output_path is not None and (
+        output_path.is_absolute() or output_path.parent != Path(".")
+    ):
+        return output_path
+    base = output_dir or result_path.parent
+    if output_path is None:
+        return base / "evidence-card.svg"
+    return base / output_path
+
+
 def _cmd_compare(args: argparse.Namespace) -> int:
+    left_result = load_result(args.left_result)
+    right_result = load_result(args.right_result)
     comparison = compare_results(
-        load_result(args.left_result),
-        load_result(args.right_result),
+        left_result,
+        right_result,
         left_path=args.left_result,
         right_path=args.right_result,
     )
+    if args.format == "evidence-table":
+        output_path = args.output or Path("comparison-table.svg")
+        write_comparison_table(
+            left_result,
+            right_result,
+            output_path,
+            left_path=args.left_result,
+            right_path=args.right_result,
+            left_label=args.left_label,
+            right_label=args.right_label,
+        )
+        _emit(
+            {
+                "status": "ok",
+                "command": "compare",
+                "output_format": "evidence-table",
+                "comparison_table": str(output_path),
+                "left_source": str(args.left_result),
+                "right_source": str(args.right_result),
+                "source_sha256_bound": True,
+                "protocol_compatibility": comparison.protocol_compatibility.status,
+            },
+            args.json,
+        )
+        if (
+            args.enforce_compatible
+            and comparison.protocol_compatibility.status != "compatible"
+        ):
+            return 1
+        return 0
     payload = comparison.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)

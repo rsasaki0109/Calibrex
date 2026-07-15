@@ -1,0 +1,83 @@
+schema_version: slac.result/v0.1
+run:
+  id: known_bad_5deg_example
+  slac_version: 0.3.0
+  status: warning
+  domain: robotics
+  provenance:
+    pipeline: example_known_bad_control
+    source_result: examples/precomputed/result.yaml
+    perturbation: left-multiplied lidar yaw +5 deg and translation +0.15 m
+frame_graph:
+  root: base
+  convention: T_parent_child
+  frames:
+    base: null
+    camera0: base
+    lidar0: base
+transforms:
+  T_base_camera0:
+    convention: T_parent_child
+    parent: base
+    child: camera0
+    translation_m: [0.3, 0.0, 0.2]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: pass
+    provenance:
+      producer: human
+      execution_mode: imported
+      role_in_comparison: comparison_baseline
+      evidence_level: synthetic_truth
+      source: examples/precomputed/result.yaml
+  T_base_lidar0:
+    convention: T_parent_child
+    parent: base
+    child: lidar0
+    translation_m: [0.15, 0.0, 0.4]
+    rotation_quat_xyzw: [0.0, 0.0, 0.043619, 0.999048]
+    quality:
+      grade: fail
+    provenance:
+      producer: human
+      execution_mode: manual
+      role_in_comparison: candidate
+      evidence_level: synthetic_truth
+      source: examples/precomputed/result.yaml
+      notes:
+        - deterministic known-bad control for documentation and comparison tests
+time_offsets:
+  dt_camera0:
+    seconds: -0.0032
+    std_seconds: 0.0008
+    quality:
+      grade: pass
+metrics:
+  reprojection_rmse_px:
+    train: 1.9
+    holdout: 3.4
+    grade: fail
+    unit: px
+    reason: known-bad LiDAR perturbation degrades the illustrative joint score
+  lidar_point_to_plane_rmse_m:
+    train: 0.061
+    holdout: 0.089
+    grade: fail
+    unit: m
+    reason: deterministic known-bad transform
+observability:
+  rank: 42
+  condition_number: 120000.0
+  weak_directions: []
+  grade: pass
+degeneracy:
+  grade: pass
+quality:
+  grade: fail
+  blocking_failures:
+    - known-bad control exceeds the illustrative holdout thresholds
+  warnings: []
+  recommendation:
+    - reject this deliberately perturbed candidate
+artifacts: {}
+export: {}
