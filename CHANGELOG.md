@@ -5,6 +5,13 @@
 - Restored the Calibrex product, Python distribution/package, CLI, and source
   path. Existing `slac.*` schema IDs, `slac_version`, `slac_native`, and
   versioned protocol/policy IDs remain the stable legacy wire namespace.
+- Added provenance-bound SVG evidence cards via
+  `calibrex render --format evidence-card` and schema-source comparison tables
+  via `calibrex compare --format evidence-table`, with deterministic README
+  artifacts and drift tests.
+- Reworked the README around a concise evidence-first story, generated visual
+  summaries, an honest accepted-vs-known-bad comparison, public-data demos, and
+  a compact calibration coverage matrix.
 
 ## 0.3.0
 
