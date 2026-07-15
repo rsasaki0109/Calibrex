@@ -16,6 +16,7 @@ Start with:
 - `docs/concepts/frame_conventions.md`
 - `docs/concepts/license_boundaries.md`
 - `docs/concepts/problem_builder.md`
+- `docs/development_roadmap.md`
 - `docs/tutorials/public_datasets.md`
 - `docs/tutorials/open3d_slac.md`
 - `docs/tutorials/lidar_camera_adapter.md`
@@ -29,7 +30,7 @@ Start with:
 - `docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`
 - `docs/adr/0005-v0-2-motion-camera-temporal-direction.md`
 - `docs/adr/0006-rename-to-slac.md`
-- `docs/adr/0007-v0-3-Calibrex-direction.md`
+- `docs/adr/0007-v0-3-slac-direction.md`
 - `docs/adr/0008-v0-4-scale-and-absolute-time.md`
 
 Regenerate committed schemas with `calibrex schema all --output-dir schemas`.
