@@ -20,6 +20,25 @@ Calibrex also asks:
 4. Review [frame conventions](concepts/frame_conventions.md) before integrating
    transforms.
 
+## Public real-data benchmark
+
+Five `AX=YB` methods were recomputed on the
+[ETHZ ASL real robot-arm dataset](https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/)
+with one shared 80/20 split.
+
+| Method | Rotation holdout RMSE ↓ | Translation holdout RMSE ↓ |
+|---|---:|---:|
+| Shah | **0.585795°** | 10.062827 mm |
+| Li–Wang–Wu | 0.587280° | 17.457974 mm |
+| Dornaika–Horaud | 0.585795° | 10.062824 mm |
+| Zhuang–Roth–Sudhakar | 0.590747° | 10.131954 mm |
+| **Calibrex nonlinear refinement** | 0.587210° | **10.039379 mm** |
+
+Calibrex's nonlinear refinement is best on translation in this benchmark;
+Shah is marginally best on rotation. These are held-out closure errors, not
+ground-truth extrinsic errors. Read the [benchmark protocol and
+provenance](benchmarks/ethz_robot_world_hand_eye.md).
+
 ## Integration paths
 
 - [Open3D SLAC adapter](tutorials/open3d_slac.md)

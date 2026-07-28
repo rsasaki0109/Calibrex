@@ -84,6 +84,26 @@ calibrex demo livox-evidence \
   <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
 </p>
 
+## Public real-data benchmark
+
+On the [ETHZ ASL real robot-arm dataset](https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/),
+Calibrex's nonlinear `AX=YB` refinement records the **lowest translation
+holdout error** among five methods evaluated with the same 80/20 split.
+
+| `AX=YB` method | Rotation holdout RMSE ↓ | Translation holdout RMSE ↓ | Known-bad controls detected |
+|---|---:|---:|---:|
+| Shah | **0.585795°** | 10.062827 mm | 24 / 24 |
+| Li–Wang–Wu | 0.587280° | 17.457974 mm | 24 / 24 |
+| Dornaika–Horaud | 0.585795° | 10.062824 mm | 24 / 24 |
+| Zhuang–Roth–Sudhakar | 0.590747° | 10.131954 mm | 24 / 24 |
+| **Calibrex nonlinear refinement** | 0.587210° | **10.039379 mm** | 24 / 24 |
+
+This is a scoped result, not a blanket accuracy claim: Shah is marginally
+best on rotation, and the dataset does not provide ground-truth extrinsics for
+this run. The values are closure RMSE on 338 held-out pose pairs after fitting
+1,350 pairs. See the [full protocol, citations, and reproducible
+provenance](docs/benchmarks/ethz_robot_world_hand_eye.md).
+
 <details>
 <summary><b>What is implemented in the current alpha?</b></summary>
 

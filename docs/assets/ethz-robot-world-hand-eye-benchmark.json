@@ -1,0 +1,89 @@
+{
+  "schema_version": "calibrex.benchmark/v0.1",
+  "benchmark_id": "ethz-real-robot-world-hand-eye-2026-07-28",
+  "title": "ETHZ real robot-world hand-eye shared-split benchmark",
+  "claim": {
+    "metric": "translation_holdout_rmse_m",
+    "scope": "Five native AX=YB methods on one shared ETHZ real-data split",
+    "winner": "calibrex_dornaika_horaud_nonlinear",
+    "value": 0.010039379464848725
+  },
+  "protocol": {
+    "dataset": "ETHZ ASL hand_eye_calibration robot_arm_w_color_camera_real",
+    "dataset_doi": "10.3929/ethz-c-000788527",
+    "dataset_source_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+    "dataset_tree_sha256": "20387c5fa1d09b4afd3c1084f9eb4ef87d1082b1635168ae72634cec5077e8d1",
+    "split": "seeded shared 80/20 fit/holdout",
+    "seed": 0,
+    "fit_pair_count": 1350,
+    "holdout_pair_count": 338,
+    "known_bad_case_count_per_method": 24,
+    "rotation_gate_deg": 2.0,
+    "translation_gate_m": 0.03,
+    "known_bad_detection_gate": 0.75
+  },
+  "results": [
+    {
+      "method_id": "shah",
+      "label": "Shah",
+      "paper_doi": "10.1115/1.4024473",
+      "calibrex_refinement": false,
+      "rotation_holdout_rmse_deg": 0.5857954291251657,
+      "translation_holdout_rmse_m": 0.010062826541860718,
+      "known_bad_detectable_fraction": 1.0
+    },
+    {
+      "method_id": "li_wang_wu",
+      "label": "Li-Wang-Wu",
+      "paper_doi": "10.5897/IJPS.9000501",
+      "calibrex_refinement": false,
+      "rotation_holdout_rmse_deg": 0.5872803691491544,
+      "translation_holdout_rmse_m": 0.017457973946244116,
+      "known_bad_detectable_fraction": 1.0
+    },
+    {
+      "method_id": "dornaika_horaud",
+      "label": "Dornaika-Horaud",
+      "paper_doi": "10.1109/70.704233",
+      "calibrex_refinement": false,
+      "rotation_holdout_rmse_deg": 0.5857954898023418,
+      "translation_holdout_rmse_m": 0.010062823952047838,
+      "known_bad_detectable_fraction": 1.0
+    },
+    {
+      "method_id": "zhuang_roth_sudhakar",
+      "label": "Zhuang-Roth-Sudhakar",
+      "paper_doi": "10.1109/70.313105",
+      "calibrex_refinement": false,
+      "rotation_holdout_rmse_deg": 0.590747409793904,
+      "translation_holdout_rmse_m": 0.010131954148362734,
+      "known_bad_detectable_fraction": 1.0
+    },
+    {
+      "method_id": "calibrex_dornaika_horaud_nonlinear",
+      "label": "Calibrex nonlinear refinement",
+      "paper_doi": "10.1109/70.704233",
+      "calibrex_refinement": true,
+      "rotation_holdout_rmse_deg": 0.5872095552781275,
+      "translation_holdout_rmse_m": 0.010039379464848725,
+      "known_bad_detectable_fraction": 1.0
+    }
+  ],
+  "limitations": [
+    "Metrics are closure errors on held-out pose pairs, not ground-truth extrinsic errors.",
+    "The scoped win is translation holdout RMSE on this dataset and split; Shah has the lowest rotation holdout RMSE.",
+    "All compared solvers are independent native Calibrex implementations of the cited methods."
+  ],
+  "provenance": {
+    "generated_at": "2026-07-28T07:51:55.319815+00:00",
+    "calibrex_git_commit": "9744eae",
+    "run_id": "2026-07-28T07-51-55Z_ethz_real_hand_eye_comparison",
+    "config_path": "examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml",
+    "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+    "result_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+    "metrics_sha256": "1e38d4d553c8f9e172c66ed688f172187c59db8595f5c19e12ce1b112c8175f8",
+    "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+    "data_verified": true,
+    "bundle_verified": true
+  }
+}

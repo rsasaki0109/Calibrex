@@ -1,5 +1,6 @@
 """Public ETHZ evidence for independent robot-world/hand-eye baselines."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -69,9 +70,7 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     shiu_separation = result.metrics["hand_eye_shiu_ahmad_axis_separation_sine"]
     assert shiu_separation.value is not None and 0.999 < shiu_separation.value <= 1.0
     assert shiu_separation.grade == "pass"
-    shiu_disagreement = result.metrics[
-        "hand_eye_shiu_ahmad_two_rotation_solution_disagreement_deg"
-    ]
+    shiu_disagreement = result.metrics["hand_eye_shiu_ahmad_two_rotation_solution_disagreement_deg"]
     assert shiu_disagreement.value is not None and 1.4 < shiu_disagreement.value < 1.5
     assert shiu_disagreement.grade == "pass"
     shiu_rotation = result.metrics["hand_eye_shiu_ahmad_holdout_rotation_rmse_deg"]
@@ -312,3 +311,27 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
     assert nonlinear["external_code_executed"] is False
     assert nonlinear["transform_x"] is not None
     assert nonlinear["transform_z"] is not None
+
+    benchmark = json.loads(
+        (_REPO_ROOT / "docs" / "assets" / "ethz-robot-world-hand-eye-benchmark.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    metric_prefixes = {
+        "shah": "robot_world_hand_eye_shah",
+        "li_wang_wu": "robot_world_hand_eye_li",
+        "dornaika_horaud": "robot_world_hand_eye_dornaika_horaud",
+        "zhuang_roth_sudhakar": "robot_world_hand_eye_zhuang_roth_sudhakar",
+        "calibrex_dornaika_horaud_nonlinear": ("robot_world_hand_eye_dornaika_horaud_nonlinear"),
+    }
+    for row in benchmark["results"]:
+        prefix = metric_prefixes[row["method_id"]]
+        assert row["rotation_holdout_rmse_deg"] == pytest.approx(
+            result.metrics[f"{prefix}_holdout_rotation_rmse_deg"].value
+        )
+        assert row["translation_holdout_rmse_m"] == pytest.approx(
+            result.metrics[f"{prefix}_holdout_translation_rmse_m"].value
+        )
+        assert row["known_bad_detectable_fraction"] == pytest.approx(
+            result.metrics[f"{prefix}_known_bad_detectable_fraction"].value
+        )
