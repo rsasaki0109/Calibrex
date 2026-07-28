@@ -7,6 +7,10 @@ import jsonschema
 import yaml
 
 from calibrex.core.assessment import assessment_json_schema
+from calibrex.core.benchmark import (
+    benchmark_definition_json_schema,
+    benchmark_json_schema,
+)
 from calibrex.core.config import config_json_schema
 from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
@@ -35,6 +39,8 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "comparison.schema.json": comparison_json_schema,
         "report_comparison.schema.json": report_comparison_json_schema,
         "assessment.schema.json": assessment_json_schema,
+        "benchmark.schema.json": benchmark_json_schema,
+        "benchmark_definition.schema.json": benchmark_definition_json_schema,
         "policy.schema.json": policy_json_schema,
         "protocol.schema.json": protocol_json_schema,
         "transforms.schema.json": transform_artifact_json_schema,
@@ -48,9 +54,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "report_observability.schema.json": lambda: report_artifact_json_schema(
             "report-observability"
         ),
-        "report_degeneracy.schema.json": lambda: report_artifact_json_schema(
-            "report-degeneracy"
-        ),
+        "report_degeneracy.schema.json": lambda: report_artifact_json_schema("report-degeneracy"),
         "report_evidence.schema.json": lambda: report_artifact_json_schema("report-evidence"),
     }
     for filename, generate_schema in generators.items():
@@ -76,9 +80,9 @@ def test_config_schema_validates_kitti_example() -> None:
 
 def test_config_schema_validates_nuscenes_example() -> None:
     schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
-    config = yaml.safe_load(Path("examples/public_datasets/nuscenes_mini/config.yaml").read_text(
-        encoding="utf-8"
-    ))
+    config = yaml.safe_load(
+        Path("examples/public_datasets/nuscenes_mini/config.yaml").read_text(encoding="utf-8")
+    )
     jsonschema.validate(config, schema)
 
 
@@ -156,9 +160,7 @@ def test_comparison_schema_validates_generated_comparison() -> None:
 
 
 def test_report_comparison_schema_validates_generated_report_comparison() -> None:
-    schema = json.loads(
-        Path("schemas/report_comparison.schema.json").read_text(encoding="utf-8")
-    )
+    schema = json.loads(Path("schemas/report_comparison.schema.json").read_text(encoding="utf-8"))
     reference = load_result("examples/precomputed/result.yaml")
     candidate = load_result("examples/precomputed/result.yaml")
     candidate.run.id = "candidate_variant"

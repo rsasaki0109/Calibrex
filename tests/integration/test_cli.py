@@ -167,10 +167,7 @@ def _write_livox_binary_pcd_with_normals(
 def _write_png(path: Path, *, width: int, height: int) -> None:
     raw_rows = b"".join(
         b"\x00"
-        + b"".join(
-            b"\x00\x00\x00" if x < width // 2 else b"\xff\xff\xff"
-            for x in range(width)
-        )
+        + b"".join(b"\x00\x00\x00" if x < width // 2 else b"\xff\xff\xff" for x in range(width))
         for _ in range(height)
     )
     compressed = zlib.compress(raw_rows)
@@ -487,9 +484,7 @@ def test_calibrate_evaluate_visualize_export(
         "raw_recomputation",
         "protocol_declared",
     ]
-    status_on_failure = {
-        gate.rule_id: gate.status_on_failure for gate in policy_model.gates
-    }
+    status_on_failure = {gate.rule_id: gate.status_on_failure for gate in policy_model.gates}
     assert status_on_failure["raw_recomputation"] == "inconclusive"
     assert status_on_failure["protocol_declared"] == "fail"
     protocol = json.loads((tmp_path / "protocol.json").read_text(encoding="utf-8"))
@@ -530,10 +525,7 @@ def test_calibrate_evaluate_visualize_export(
     assert main(["validate", str(tmp_path / "protocol.json")]) == 0
     assert main(["validate", str(tmp_path / "transforms.json")]) == 0
     assert main(["validate", str(tmp_path / "bundle.json")]) == 0
-    assert (
-        main(["validate", str(tmp_path / "summary.json"), "--kind", "report-summary"])
-        == 0
-    )
+    assert main(["validate", str(tmp_path / "summary.json"), "--kind", "report-summary"]) == 0
     assert main(["validate", str(tmp_path / "assessment.json"), "--kind", "assessment"]) == 0
     assert main(["validate", str(tmp_path / "policy.json"), "--kind", "policy"]) == 0
     assert main(["validate", str(tmp_path / "protocol.json"), "--kind", "protocol"]) == 0
@@ -603,9 +595,7 @@ def test_calibrate_evaluate_visualize_export(
         "schema_version": "slac.evidence_bundle/v0.1",
         "run_id": evidence["run"]["id"],
     }
-    assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == (
-        "recomputed"
-    )
+    assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == ("recomputed")
     assert verify_payload["verification_summary"]["total"] == len(
         verify_payload["verification_claims"]
     )
@@ -901,8 +891,7 @@ def test_evaluate_cached_result_reports_materialization_warning(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     result = Path(
-        "examples/public_datasets/livox_horizon_horizon_pcd_sample/"
-        "cached_evidence_result.yaml"
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml"
     )
     output_dir = tmp_path / "cached_eval"
 
@@ -942,10 +931,7 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert assessment["status"] == "inconclusive"
     assert assessment["source_evidence"]["path"] == "evidence.json"
     assert assessment["source_evidence"]["metrics_origin"] == "cached"
-    assert {
-        (rule["rule_id"], rule["status"])
-        for rule in assessment["rules"]
-    } >= {
+    assert {(rule["rule_id"], rule["status"]) for rule in assessment["rules"]} >= {
         ("raw_recomputation", "inconclusive"),
         ("holdout_support_gate", "pass"),
         ("holdout_independence", "inconclusive"),
@@ -959,10 +945,7 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert assessed["status"] == "inconclusive"
     assert assessed["enforced"] is False
     assert assessed["would_fail_enforcement"] is True
-    assert (
-        main(["assess", str(output_dir / "evidence.json"), "--enforce", "--json"])
-        == 1
-    )
+    assert main(["assess", str(output_dir / "evidence.json"), "--enforce", "--json"]) == 1
     enforced_assessed = json.loads(capsys.readouterr().out)
     assert enforced_assessed["status"] == "inconclusive"
     assert enforced_assessed["enforced"] is True
@@ -982,8 +965,7 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert gated_verify["raw_recomputed_required"] is True
     assert gated_verify["valid"] is False
     assert any(
-        claim["scope"] == "raw_recomputed_requirement"
-        and claim["status"] == "failed"
+        claim["scope"] == "raw_recomputed_requirement" and claim["status"] == "failed"
         for claim in gated_verify["verification_claims"]
     )
     assert any("metrics_origin is 'cached'" in issue for issue in gated_verify["issues"])
@@ -1000,13 +982,11 @@ def test_evaluate_cached_result_reports_materialization_warning(
     )
     gated_saved_verify = json.loads(capsys.readouterr().out)
     assert any(
-        claim["scope"] == "raw_recomputed_requirement"
-        and claim["status"] == "failed"
+        claim["scope"] == "raw_recomputed_requirement" and claim["status"] == "failed"
         for claim in gated_saved_verify["verification_claims"]
     )
     assert not any(
-        claim["scope"] == "verification_record"
-        and claim["status"] == "failed"
+        claim["scope"] == "verification_record" and claim["status"] == "failed"
         for claim in gated_saved_verify["verification_claims"]
     )
     plain_dir = tmp_path / "cached_eval_plain"
@@ -1135,9 +1115,7 @@ def test_report_compare_command_assembles_nway_artifact(
     assert payload["entries"]["reference"]["is_reference"] is True
     assert payload["entries"]["reference"]["side"]["run_id"] == "precomputed_example"
     assert payload["entries"]["perturbed"]["side"]["run_id"] == "perturbed_candidate"
-    assert payload["entries"]["native"]["provenance"]["dominant_producer"] == (
-        "slac_native"
-    )
+    assert payload["entries"]["native"]["provenance"]["dominant_producer"] == ("slac_native")
     assert payload["entries"]["native"]["provenance"]["dominant_role"] == "output"
     pairwise = payload["pairwise"]["reference__perturbed"]["comparison"]
     assert pairwise["metrics"]["lidar_point_to_plane_rmse_m"]["winner"] == "left"
@@ -1162,10 +1140,7 @@ def test_report_compare_command_assembles_nway_artifact(
         == 1
     )
     enforced_payload = json.loads(capsys.readouterr().out)
-    assert (
-        enforced_payload["summary"]["protocol_compatibility_status"]
-        == "not_comparable"
-    )
+    assert enforced_payload["summary"]["protocol_compatibility_status"] == "not_comparable"
 
     assert (
         main(
@@ -1256,6 +1231,8 @@ def test_schema_commands(tmp_path: Path) -> None:
     config_schema = tmp_path / "config.schema.json"
     result_schema = tmp_path / "result.schema.json"
     comparison_schema = tmp_path / "comparison.schema.json"
+    benchmark_schema = tmp_path / "benchmark.schema.json"
+    benchmark_definition_schema = tmp_path / "benchmark_definition.schema.json"
     assessment_schema = tmp_path / "assessment.schema.json"
     policy_schema = tmp_path / "policy.schema.json"
     protocol_schema = tmp_path / "protocol.schema.json"
@@ -1267,14 +1244,24 @@ def test_schema_commands(tmp_path: Path) -> None:
     report_degeneracy_schema = tmp_path / "report_degeneracy.schema.json"
     report_evidence_schema = tmp_path / "report_evidence.schema.json"
     evidence_bundle_schema = tmp_path / "evidence_bundle.schema.json"
-    evidence_bundle_verification_schema = (
-        tmp_path / "evidence_bundle_verification.schema.json"
-    )
+    evidence_bundle_verification_schema = tmp_path / "evidence_bundle_verification.schema.json"
     online_timeline_schema = tmp_path / "online_timeline.schema.json"
     assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
     assert main(["schema", "comparison", "--output", str(comparison_schema)]) == 0
+    assert main(["schema", "benchmark", "--output", str(benchmark_schema)]) == 0
+    assert (
+        main(
+            [
+                "schema",
+                "benchmark-definition",
+                "--output",
+                str(benchmark_definition_schema),
+            ]
+        )
+        == 0
+    )
     assert main(["schema", "assessment", "--output", str(assessment_schema)]) == 0
     assert main(["schema", "policy", "--output", str(policy_schema)]) == 0
     assert main(["schema", "protocol", "--output", str(protocol_schema)]) == 0
@@ -1283,8 +1270,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert main(["schema", "report-summary", "--output", str(report_summary_schema)]) == 0
     assert main(["schema", "report-metrics", "--output", str(report_metrics_schema)]) == 0
     assert (
-        main(["schema", "report-observability", "--output", str(report_observability_schema)])
-        == 0
+        main(["schema", "report-observability", "--output", str(report_observability_schema)]) == 0
     )
     assert main(["schema", "report-degeneracy", "--output", str(report_degeneracy_schema)]) == 0
     assert main(["schema", "report-evidence", "--output", str(report_evidence_schema)]) == 0
@@ -1304,6 +1290,8 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert config_schema.exists()
     assert result_schema.exists()
     assert comparison_schema.exists()
+    assert benchmark_schema.exists()
+    assert benchmark_definition_schema.exists()
     assert assessment_schema.exists()
     assert policy_schema.exists()
     assert protocol_schema.exists()
@@ -1321,6 +1309,8 @@ def test_schema_commands(tmp_path: Path) -> None:
         "config.schema.json",
         "result.schema.json",
         "comparison.schema.json",
+        "benchmark.schema.json",
+        "benchmark_definition.schema.json",
         "assessment.schema.json",
         "policy.schema.json",
         "protocol.schema.json",
@@ -1338,6 +1328,10 @@ def test_schema_commands(tmp_path: Path) -> None:
         assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
     comparison_schema_payload = json.loads(comparison_schema.read_text(encoding="utf-8"))
+    benchmark_schema_payload = json.loads(benchmark_schema.read_text(encoding="utf-8"))
+    benchmark_definition_schema_payload = json.loads(
+        benchmark_definition_schema.read_text(encoding="utf-8")
+    )
     assessment_schema_payload = json.loads(assessment_schema.read_text(encoding="utf-8"))
     policy_schema_payload = json.loads(policy_schema.read_text(encoding="utf-8"))
     protocol_schema_payload = json.loads(protocol_schema.read_text(encoding="utf-8"))
@@ -1348,39 +1342,73 @@ def test_schema_commands(tmp_path: Path) -> None:
     bundle_verification_schema = json.loads(
         evidence_bundle_verification_schema.read_text(encoding="utf-8")
     )
-    assert summary_schema["properties"]["schema_version"]["const"] == (
-        "slac.report.summary/v0.1"
-    )
+    assert summary_schema["properties"]["schema_version"]["const"] == ("slac.report.summary/v0.1")
     assert comparison_schema_payload["properties"]["schema_version"]["const"] == (
         "slac.comparison/v0.1"
+    )
+    assert benchmark_schema_payload["properties"]["schema_version"]["const"] == (
+        "slac.benchmark/v0.1"
+    )
+    assert benchmark_definition_schema_payload["properties"]["schema_version"]["const"] == (
+        "slac.benchmark_definition/v0.1"
     )
     assert assessment_schema_payload["properties"]["schema_version"]["const"] == (
         "slac.assessment/v0.1"
     )
-    assert policy_schema_payload["properties"]["schema_version"]["const"] == (
-        "slac.policy/v0.1"
-    )
+    assert policy_schema_payload["properties"]["schema_version"]["const"] == ("slac.policy/v0.1")
     assert protocol_schema_payload["properties"]["schema_version"]["const"] == (
         "slac.protocol/v0.1"
     )
     assert transforms_schema_payload["properties"]["schema_version"]["const"] == (
         "slac.transforms/v0.1"
     )
-    assert metrics_schema["properties"]["schema_version"]["const"] == (
-        "slac.report.metrics/v0.1"
-    )
-    assert evidence_schema["properties"]["schema_version"]["const"] == (
-        "slac.report.evidence/v0.1"
-    )
-    assert bundle_schema["properties"]["schema_version"]["const"] == (
-        "slac.evidence_bundle/v0.1"
-    )
+    assert metrics_schema["properties"]["schema_version"]["const"] == ("slac.report.metrics/v0.1")
+    assert evidence_schema["properties"]["schema_version"]["const"] == ("slac.report.evidence/v0.1")
+    assert bundle_schema["properties"]["schema_version"]["const"] == ("slac.evidence_bundle/v0.1")
     assert bundle_verification_schema["properties"]["schema_version"]["const"] == (
         "slac.evidence_bundle.verification/v0.1"
     )
     assert json.loads((all_schema_dir / "comparison.schema.json").read_text(encoding="utf-8")) == (
         comparison_schema_payload
     )
+
+
+def test_benchmark_command_regenerates_committed_ethz_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    definition = Path("docs/assets/ethz-robot-world-hand-eye-benchmark.definition.json")
+    output = tmp_path / "benchmark.json"
+    markdown = tmp_path / "benchmark.md"
+
+    assert (
+        main(
+            [
+                "benchmark",
+                str(definition),
+                "--output",
+                str(output),
+                "--markdown-output",
+                str(markdown),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["method_count"] == 5
+    assert payload["split_count"] == 1
+    assert payload["trial_count"] == 5
+    assert (
+        output.read_bytes()
+        == Path("docs/assets/ethz-robot-world-hand-eye-benchmark.json").read_bytes()
+    )
+    assert (
+        markdown.read_bytes()
+        == Path("docs/assets/ethz-robot-world-hand-eye-benchmark.md").read_bytes()
+    )
+    assert main(["validate", str(output), "--kind", "benchmark"]) == 0
 
 
 def test_metrics_command() -> None:
@@ -1549,27 +1577,33 @@ candidate_extrinsics:
         encoding="utf-8",
     )
     candidate_output_dir = tmp_path / "candidate_outputs"
-    assert main(
-        [
-            "calibrate",
-            str(config),
-            "--dry-run",
-            "--candidate-extrinsics",
-            str(candidate_path),
-            "--json",
-        ]
-    ) == 0
-    assert main(
-        [
-            "calibrate",
-            str(config),
-            "--output-dir",
-            str(candidate_output_dir),
-            "--candidate-extrinsics",
-            str(candidate_path),
-            "--json",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "calibrate",
+                str(config),
+                "--dry-run",
+                "--candidate-extrinsics",
+                str(candidate_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "calibrate",
+                str(config),
+                "--output-dir",
+                str(candidate_output_dir),
+                "--candidate-extrinsics",
+                str(candidate_path),
+                "--json",
+            ]
+        )
+        == 0
+    )
     candidate_result = load_result(candidate_output_dir / "result.yaml")
     assert candidate_result.metrics["candidate_extrinsic_import_count"].value == 3.0
     assert candidate_result.metrics["extrinsic_reference_translation_delta_max_m"].value == 0.0
@@ -1660,18 +1694,15 @@ outputs:
     assert metric.holdout is not None and metric.holdout < 0.05
     assert metric.grade == "warn"
 
-    evidence = ReportEvidenceArtifact.model_validate(
-        read_mapping(output_dir / "evidence.json")
-    )
+    evidence = ReportEvidenceArtifact.model_validate(read_mapping(output_dir / "evidence.json"))
     protocol = next(item for item in evidence.protocols if item.family == "radar_lidar")
     assert protocol.protocol_id == "radar_lidar_seeded_holdout_doppler_yaw/v0.1"
     assert protocol.known_bad_case_count == 4
     assert len([item for item in evidence.cases if item.family == "radar_lidar"]) == 4
-    assessment = AssessmentArtifact.model_validate(
-        read_mapping(output_dir / "assessment.json")
-    )
+    assessment = AssessmentArtifact.model_validate(read_mapping(output_dir / "assessment.json"))
     assert assessment.status == "inconclusive"
     assert assessment.policy.policy_id == "slac.falsification.radar_lidar_yaw/v0.1"
+
 
 def test_kitti_inspect_human_output_includes_lidar_diagnostics(
     tmp_path: Path,
@@ -2150,9 +2181,7 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
         "transforms.json",
     }
     verification = EvidenceBundleVerification.model_validate(
-        json.loads(
-            (evidence_contract_dir / "verification.json").read_text(encoding="utf-8")
-        )
+        json.loads((evidence_contract_dir / "verification.json").read_text(encoding="utf-8"))
     )
     assert verification.valid is True
     assert verification.source_bundle.path == "bundle.json"
@@ -2273,10 +2302,7 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert evidence_comparisons[0]["family"] == "lidar_pair"
     assert evidence_comparisons[0]["check"] == "Candidate Support"
     assert evidence_comparisons[0]["winner"] == "tie"
-    assert (
-        main(["compare", str(result), str(result), "--enforce-compatible", "--json"])
-        == 0
-    )
+    assert main(["compare", str(result), str(result), "--enforce-compatible", "--json"]) == 0
     enforced_comparison = json.loads(capsys.readouterr().out)
     assert enforced_comparison["protocol_compatibility"]["status"] == "compatible"
     assert main(["compare", str(result), str(result)]) == 0
@@ -2291,9 +2317,9 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     ) in compare_text
     mismatch = load_result(result)
     mismatch.run.id = "support_mismatch"
-    mismatch.run.provenance["livox_pair_evidence"]["holdout_geometry"][
-        "support_population_id"
-    ] = "livox_pair_support:changed_for_text_output"
+    mismatch.run.provenance["livox_pair_evidence"]["holdout_geometry"]["support_population_id"] = (
+        "livox_pair_support:changed_for_text_output"
+    )
     mismatch_path = tmp_path / "support_mismatch.yaml"
     mismatch.save(mismatch_path)
     assert main(["compare", str(result), str(mismatch_path)]) == 0
@@ -2301,10 +2327,7 @@ def test_livox_cached_evidence_result_reports_and_visualizes(
     assert "not_comparable_reasons:" in mismatch_text
     assert "LiDAR pair evidence protocol is warning" in mismatch_text
     assert "support population differs" in mismatch_text
-    assert (
-        main(["compare", str(result), str(mismatch_path), "--enforce-compatible", "--json"])
-        == 1
-    )
+    assert main(["compare", str(result), str(mismatch_path), "--enforce-compatible", "--json"]) == 1
     enforced_mismatch = json.loads(capsys.readouterr().out)
     assert enforced_mismatch["protocol_compatibility"]["status"] == "warning"
 
@@ -2372,18 +2395,8 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
         "livox_pair_mandatory_6dof_large_controls/v0.1"
     )
     assert evidence["protocols"][0]["parameters"]["mandatory_case_count"] == 12
-    assert (
-        evidence["protocols"][0]["parameters"][
-            "mandatory_supported_detection_count"
-        ]
-        == 12
-    )
-    assert (
-        evidence["protocols"][0]["parameters"][
-            "mandatory_supported_detection_fraction"
-        ]
-        == 1.0
-    )
+    assert evidence["protocols"][0]["parameters"]["mandatory_supported_detection_count"] == 12
+    assert evidence["protocols"][0]["parameters"]["mandatory_supported_detection_fraction"] == 1.0
     mandatory_detection_by_dof = evidence["protocols"][0]["parameters"][
         "mandatory_detection_by_dof"
     ]
@@ -2396,8 +2409,7 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
         "z_m",
     }
     assert all(
-        dof_summary["case_count"] == 2
-        for dof_summary in mandatory_detection_by_dof.values()
+        dof_summary["case_count"] == 2 for dof_summary in mandatory_detection_by_dof.values()
     )
     assert all(
         dof_summary["supported_detection_count"] == 2
@@ -2405,10 +2417,7 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     )
     assert mandatory_detection_by_dof["x_m"]["amounts"] == [0.1, -0.1]
     assert mandatory_detection_by_dof["roll_deg"]["amounts"] == [1.0, -1.0]
-    assert (
-        evidence["protocols"][0]["parameters"]["mandatory_support_collapse_count"]
-        == 0
-    )
+    assert evidence["protocols"][0]["parameters"]["mandatory_support_collapse_count"] == 0
     assert "single source/target PCD pair" in evidence["protocols"][0]["limitations"][0]
     assert len(evidence["summaries"]) == 4
     assert {summary["check"] for summary in evidence["summaries"]} == {
@@ -2432,16 +2441,11 @@ def test_livox_public_dataset_calibrate_writes_evidence_cases(tmp_path: Path) ->
     assert "lidar_pair_holdout_point_to_plane_support_ratio" in metrics["metrics"]
     assert "lidar_pair_known_bad_point_to_plane_p90_delta_max_m" in metrics["metrics"]
     assert (
-        metrics["metrics"][
-            "lidar_pair_known_bad_mandatory_supported_detection_count"
-        ]["value"]
+        metrics["metrics"]["lidar_pair_known_bad_mandatory_supported_detection_count"]["value"]
         == 12.0
     )
     assert (
-        metrics["metrics"][
-            "lidar_pair_known_bad_mandatory_support_collapse_count"
-        ]["value"]
-        == 0.0
+        metrics["metrics"]["lidar_pair_known_bad_mandatory_support_collapse_count"]["value"] == 0.0
     )
     assert any(
         "lidar_pair_holdout_point_to_plane_p90_abs_m" in case["metric_values"]
@@ -2502,9 +2506,7 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     )
     capsys.readouterr()
     evidence = json.loads(Path(payload["evidence"]).read_text(encoding="utf-8"))
-    saved_verification = json.loads(
-        Path(payload["verification"]).read_text(encoding="utf-8")
-    )
+    saved_verification = json.loads(Path(payload["verification"]).read_text(encoding="utf-8"))
     assert saved_verification["raw_recomputed_required"] is True
     assert saved_verification["valid"] is True
     assert evidence["materialization"]["data_verified"] is True
@@ -2516,9 +2518,7 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert verify_payload["input_file_count"] == 2
     assert verify_payload["checked_input_file_count"] == 2
     assert len(verify_payload["checked_input_files"]) == 2
-    assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == (
-        "recomputed"
-    )
+    assert verify_payload["primary_evidence_materialization"]["metrics_origin"] == ("recomputed")
     assert verify_payload["primary_evidence_materialization"]["data_verified"] is True
     input_claims = [
         claim
@@ -2541,8 +2541,7 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     gated_verify = json.loads(capsys.readouterr().out)
     assert gated_verify["raw_recomputed_required"] is True
     assert any(
-        claim["scope"] == "raw_recomputed_requirement"
-        and claim["status"] == "ok"
+        claim["scope"] == "raw_recomputed_requirement" and claim["status"] == "ok"
         for claim in gated_verify["verification_claims"]
     )
 
@@ -2618,9 +2617,7 @@ def test_kitti_lidar_camera_demo_command_produces_evidence_artifacts(
     assert lidar_transform.provenance.execution_mode == "dataset_reference"
     assert lidar_transform.provenance.role_in_comparison == "output"
     assert lidar_transform.provenance.evidence_level == "dataset_provided"
-    assert lidar_transform.provenance.source == (
-        "kitti_raw.calib_cam_to_cam_and_calib_velo_to_cam"
-    )
+    assert lidar_transform.provenance.source == ("kitti_raw.calib_cam_to_cam_and_calib_velo_to_cam")
 
     dataset_initialization = result.run.provenance.get("dataset_initialization")
     assert isinstance(dataset_initialization, dict)

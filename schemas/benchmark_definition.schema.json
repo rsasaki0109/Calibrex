@@ -1,0 +1,564 @@
+{
+  "$defs": {
+    "BenchmarkMethodDefinition": {
+      "additionalProperties": false,
+      "description": "Method identity and implementation provenance.",
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "implementation": {
+          "enum": [
+            "calibrex_native",
+            "adapter",
+            "subprocess",
+            "imported"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "method_id": {
+          "title": "Method Id",
+          "type": "string"
+        },
+        "paper_doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paper Doi"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "tool_name": {
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "method_id",
+        "label",
+        "implementation",
+        "tool_name"
+      ],
+      "title": "BenchmarkMethodDefinition",
+      "type": "object"
+    },
+    "BenchmarkMetricDefinition": {
+      "additionalProperties": false,
+      "description": "One metric that every successful benchmark trial must report.",
+      "properties": {
+        "direction": {
+          "enum": [
+            "lower",
+            "higher"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "display_scale": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Display Scale",
+          "type": "number"
+        },
+        "display_unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Display Unit"
+        },
+        "interpretation": {
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "primary": {
+          "default": false,
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "unit",
+        "direction",
+        "interpretation"
+      ],
+      "title": "BenchmarkMetricDefinition",
+      "type": "object"
+    },
+    "BenchmarkProtocol": {
+      "additionalProperties": false,
+      "description": "Dataset and split contract for an N-way benchmark.",
+      "properties": {
+        "data_license": {
+          "title": "Data License",
+          "type": "string"
+        },
+        "dataset_doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Doi"
+        },
+        "dataset_id": {
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dataset_source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Dataset Source Sha256",
+          "type": "string"
+        },
+        "dataset_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Version"
+        },
+        "failure_policy": {
+          "title": "Failure Policy",
+          "type": "string"
+        },
+        "initial_estimate_policy": {
+          "title": "Initial Estimate Policy",
+          "type": "string"
+        },
+        "protocol_id": {
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "split_policy": {
+          "title": "Split Policy",
+          "type": "string"
+        },
+        "splits": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkSplit"
+          },
+          "minItems": 1,
+          "title": "Splits",
+          "type": "array"
+        },
+        "tuning_policy": {
+          "title": "Tuning Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_id",
+        "dataset_id",
+        "dataset_source_sha256",
+        "data_license",
+        "split_policy",
+        "splits",
+        "initial_estimate_policy",
+        "tuning_policy",
+        "failure_policy"
+      ],
+      "title": "BenchmarkProtocol",
+      "type": "object"
+    },
+    "BenchmarkProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for the generated benchmark artifact.",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "data_verified": {
+          "title": "Data Verified",
+          "type": "boolean"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_artifacts": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Artifacts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "command",
+        "data_verified"
+      ],
+      "title": "BenchmarkProvenance",
+      "type": "object"
+    },
+    "BenchmarkSplit": {
+      "additionalProperties": false,
+      "description": "One prespecified fit/holdout split shared by every method.",
+      "properties": {
+        "fit_count": {
+          "minimum": 1,
+          "title": "Fit Count",
+          "type": "integer"
+        },
+        "fit_ids_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fit Ids Sha256",
+          "type": "string"
+        },
+        "holdout_count": {
+          "minimum": 1,
+          "title": "Holdout Count",
+          "type": "integer"
+        },
+        "holdout_ids_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Holdout Ids Sha256",
+          "type": "string"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "split_id": {
+          "title": "Split Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "split_id",
+        "seed",
+        "fit_count",
+        "holdout_count",
+        "fit_ids_sha256",
+        "holdout_ids_sha256"
+      ],
+      "title": "BenchmarkSplit",
+      "type": "object"
+    },
+    "BenchmarkTrial": {
+      "additionalProperties": false,
+      "description": "One method execution on one shared split.",
+      "properties": {
+        "failure_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Reason"
+        },
+        "method_id": {
+          "title": "Method Id",
+          "type": "string"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "peak_memory_mb": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peak Memory Mb"
+        },
+        "provenance": {
+          "$ref": "#/$defs/BenchmarkTrialProvenance"
+        },
+        "runtime_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime Seconds"
+        },
+        "split_id": {
+          "title": "Split Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method_id",
+        "split_id",
+        "status",
+        "provenance"
+      ],
+      "title": "BenchmarkTrial",
+      "type": "object"
+    },
+    "BenchmarkTrialProvenance": {
+      "additionalProperties": false,
+      "description": "Execution provenance for one method on one split.",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "config_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Config Sha256",
+          "type": "string"
+        },
+        "execution_host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Execution Host"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Sha256"
+        }
+      },
+      "required": [
+        "command",
+        "config_sha256",
+        "input_sha256"
+      ],
+      "title": "BenchmarkTrialProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Raw shared trial matrix consumed by the benchmark aggregator.",
+  "properties": {
+    "benchmark_id": {
+      "title": "Benchmark Id",
+      "type": "string"
+    },
+    "bootstrap_samples": {
+      "default": 2000,
+      "minimum": 1,
+      "title": "Bootstrap Samples",
+      "type": "integer"
+    },
+    "bootstrap_seed": {
+      "default": 0,
+      "title": "Bootstrap Seed",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "methods": {
+      "items": {
+        "$ref": "#/$defs/BenchmarkMethodDefinition"
+      },
+      "minItems": 2,
+      "title": "Methods",
+      "type": "array"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/BenchmarkMetricDefinition"
+      },
+      "minItems": 1,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "protocol": {
+      "$ref": "#/$defs/BenchmarkProtocol"
+    },
+    "provenance": {
+      "$ref": "#/$defs/BenchmarkProvenance"
+    },
+    "reference_method_id": {
+      "title": "Reference Method Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.benchmark_definition/v0.1",
+      "default": "slac.benchmark_definition/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "trials": {
+      "items": {
+        "$ref": "#/$defs/BenchmarkTrial"
+      },
+      "minItems": 2,
+      "title": "Trials",
+      "type": "array"
+    }
+  },
+  "required": [
+    "benchmark_id",
+    "title",
+    "protocol",
+    "metrics",
+    "methods",
+    "trials",
+    "reference_method_id",
+    "limitations",
+    "provenance"
+  ],
+  "title": "BenchmarkDefinition",
+  "type": "object"
+}

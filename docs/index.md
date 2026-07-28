@@ -26,13 +26,15 @@ Five `AX=YB` methods were recomputed on the
 [ETHZ ASL real robot-arm dataset](https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/)
 with one shared 80/20 split.
 
-| Method | Rotation holdout RMSE ↓ | Translation holdout RMSE ↓ |
-|---|---:|---:|
-| Shah | **0.585795°** | 10.062827 mm |
-| Li–Wang–Wu | 0.587280° | 17.457974 mm |
-| Dornaika–Horaud | 0.585795° | 10.062824 mm |
-| Zhuang–Roth–Sudhakar | 0.590747° | 10.131954 mm |
-| **Calibrex nonlinear refinement** | 0.587210° | **10.039379 mm** |
+<!-- calibrex-benchmark:ethz-real-robot-world-hand-eye-2026-07-28:start -->
+| Method | Rotation holdout RMSE deg ↓ | Translation holdout RMSE mm ↓ | Known-bad detection fraction ↑ | Failure rate | Runtime s |
+|---|---:|---:|---:|---:|---:|
+| Shah | **0.585795** | 10.0628 | **1** | 0.0% | — |
+| Li-Wang-Wu | 0.58728 | 17.458 | **1** | 0.0% | — |
+| Dornaika-Horaud | 0.585795 | 10.0628 | **1** | 0.0% | — |
+| Zhuang-Roth-Sudhakar | 0.590747 | 10.132 | **1** | 0.0% | — |
+| Calibrex nonlinear refinement | 0.58721 | **10.0394** | **1** | 0.0% | — |
+<!-- calibrex-benchmark:ethz-real-robot-world-hand-eye-2026-07-28:end -->
 
 Calibrex's nonlinear refinement is best on translation in this benchmark;
 Shah is marginally best on rotation. These are held-out closure errors, not

@@ -12,6 +12,8 @@ calibrex schema all --output-dir schemas
 |---|---|
 | [`assessment.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/assessment.schema.json) | `AssessmentArtifact` — machine-readable falsification assessment (`assessment.json`). |
 | [`comparison.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/comparison.schema.json) | `ResultComparison` — machine-readable comparison between two Calibrex results (`comparison.json`). |
+| [`benchmark_definition.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/benchmark_definition.schema.json) | `BenchmarkDefinition` — shared method × split trial matrix before aggregation. |
+| [`benchmark.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/benchmark.schema.json) | `BenchmarkArtifact` — N-way failure rates, distributions, rankings, paired bootstrap comparisons, and provenance. |
 | [`config.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/config.schema.json) | `CalibrationConfig` — schema for `calibrex calibrate` configuration files. |
 | [`dataset_manifest.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/dataset_manifest.schema.json) | `DatasetManifest` — portable dataset manifest independent of ROS message classes. |
 | [`evidence_bundle.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/evidence_bundle.schema.json) | `EvidenceBundleManifest` — digest manifest for report and evidence artifacts (`bundle.json`). |

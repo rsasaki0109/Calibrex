@@ -324,14 +324,14 @@ def test_public_ethz_robot_world_hand_eye_pipeline(tmp_path: Path) -> None:
         "zhuang_roth_sudhakar": "robot_world_hand_eye_zhuang_roth_sudhakar",
         "calibrex_dornaika_horaud_nonlinear": ("robot_world_hand_eye_dornaika_horaud_nonlinear"),
     }
-    for row in benchmark["results"]:
-        prefix = metric_prefixes[row["method_id"]]
-        assert row["rotation_holdout_rmse_deg"] == pytest.approx(
+    for trial in benchmark["trials"]:
+        prefix = metric_prefixes[trial["method_id"]]
+        assert trial["metrics"]["rotation_holdout_rmse_deg"] == pytest.approx(
             result.metrics[f"{prefix}_holdout_rotation_rmse_deg"].value
         )
-        assert row["translation_holdout_rmse_m"] == pytest.approx(
+        assert trial["metrics"]["translation_holdout_rmse_m"] == pytest.approx(
             result.metrics[f"{prefix}_holdout_translation_rmse_m"].value
         )
-        assert row["known_bad_detectable_fraction"] == pytest.approx(
+        assert trial["metrics"]["known_bad_detectable_fraction"] == pytest.approx(
             result.metrics[f"{prefix}_known_bad_detectable_fraction"].value
         )

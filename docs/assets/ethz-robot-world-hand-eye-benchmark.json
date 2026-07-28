@@ -1,89 +1,651 @@
 {
-  "schema_version": "calibrex.benchmark/v0.1",
   "benchmark_id": "ethz-real-robot-world-hand-eye-2026-07-28",
-  "title": "ETHZ real robot-world hand-eye shared-split benchmark",
-  "claim": {
-    "metric": "translation_holdout_rmse_m",
-    "scope": "Five native AX=YB methods on one shared ETHZ real-data split",
-    "winner": "calibrex_dornaika_horaud_nonlinear",
-    "value": 0.010039379464848725
-  },
-  "protocol": {
-    "dataset": "ETHZ ASL hand_eye_calibration robot_arm_w_color_camera_real",
-    "dataset_doi": "10.3929/ethz-c-000788527",
-    "dataset_source_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
-    "dataset_tree_sha256": "20387c5fa1d09b4afd3c1084f9eb4ef87d1082b1635168ae72634cec5077e8d1",
-    "split": "seeded shared 80/20 fit/holdout",
-    "seed": 0,
-    "fit_pair_count": 1350,
-    "holdout_pair_count": 338,
-    "known_bad_case_count_per_method": 24,
-    "rotation_gate_deg": 2.0,
-    "translation_gate_m": 0.03,
-    "known_bad_detection_gate": 0.75
-  },
-  "results": [
-    {
-      "method_id": "shah",
-      "label": "Shah",
-      "paper_doi": "10.1115/1.4024473",
-      "calibrex_refinement": false,
-      "rotation_holdout_rmse_deg": 0.5857954291251657,
-      "translation_holdout_rmse_m": 0.010062826541860718,
-      "known_bad_detectable_fraction": 1.0
-    },
-    {
-      "method_id": "li_wang_wu",
-      "label": "Li-Wang-Wu",
-      "paper_doi": "10.5897/IJPS.9000501",
-      "calibrex_refinement": false,
-      "rotation_holdout_rmse_deg": 0.5872803691491544,
-      "translation_holdout_rmse_m": 0.017457973946244116,
-      "known_bad_detectable_fraction": 1.0
-    },
-    {
-      "method_id": "dornaika_horaud",
-      "label": "Dornaika-Horaud",
-      "paper_doi": "10.1109/70.704233",
-      "calibrex_refinement": false,
-      "rotation_holdout_rmse_deg": 0.5857954898023418,
-      "translation_holdout_rmse_m": 0.010062823952047838,
-      "known_bad_detectable_fraction": 1.0
-    },
-    {
-      "method_id": "zhuang_roth_sudhakar",
-      "label": "Zhuang-Roth-Sudhakar",
-      "paper_doi": "10.1109/70.313105",
-      "calibrex_refinement": false,
-      "rotation_holdout_rmse_deg": 0.590747409793904,
-      "translation_holdout_rmse_m": 0.010131954148362734,
-      "known_bad_detectable_fraction": 1.0
-    },
-    {
-      "method_id": "calibrex_dornaika_horaud_nonlinear",
-      "label": "Calibrex nonlinear refinement",
-      "paper_doi": "10.1109/70.704233",
-      "calibrex_refinement": true,
-      "rotation_holdout_rmse_deg": 0.5872095552781275,
-      "translation_holdout_rmse_m": 0.010039379464848725,
-      "known_bad_detectable_fraction": 1.0
-    }
-  ],
+  "bootstrap_samples": 2000,
+  "bootstrap_seed": 0,
   "limitations": [
     "Metrics are closure errors on held-out pose pairs, not ground-truth extrinsic errors.",
+    "This historical run contains one shared split, so its bootstrap interval cannot measure split-to-split uncertainty.",
+    "Per-method runtime and peak memory were not recorded by the original combined run and remain explicitly unavailable.",
     "The scoped win is translation holdout RMSE on this dataset and split; Shah has the lowest rotation holdout RMSE.",
     "All compared solvers are independent native Calibrex implementations of the cited methods."
   ],
+  "method_summaries": {
+    "calibrex_dornaika_horaud_nonlinear": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "calibrex_dornaika_horaud_nonlinear",
+      "metrics": {
+        "known_bad_detectable_fraction": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "known_bad_detectable_fraction",
+          "rank": 1
+        },
+        "rotation_holdout_rmse_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.5872095552781275,
+            "mean": 0.5872095552781275,
+            "mean_ci95_high": 0.5872095552781275,
+            "mean_ci95_low": 0.5872095552781275,
+            "median": 0.5872095552781275,
+            "minimum": 0.5872095552781275,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_holdout_rmse_deg",
+          "rank": 3
+        },
+        "translation_holdout_rmse_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.010039379464848725,
+            "mean": 0.010039379464848725,
+            "mean_ci95_high": 0.010039379464848725,
+            "mean_ci95_low": 0.010039379464848725,
+            "median": 0.010039379464848725,
+            "minimum": 0.010039379464848725,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_holdout_rmse_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "dornaika_horaud": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "dornaika_horaud",
+      "metrics": {
+        "known_bad_detectable_fraction": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "known_bad_detectable_fraction",
+          "rank": 1
+        },
+        "rotation_holdout_rmse_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.5857954898023418,
+            "mean": 0.5857954898023418,
+            "mean_ci95_high": 0.5857954898023418,
+            "mean_ci95_low": 0.5857954898023418,
+            "median": 0.5857954898023418,
+            "minimum": 0.5857954898023418,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_holdout_rmse_deg",
+          "rank": 2
+        },
+        "translation_holdout_rmse_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.010062823952047838,
+            "mean": 0.010062823952047838,
+            "mean_ci95_high": 0.010062823952047838,
+            "mean_ci95_low": 0.010062823952047838,
+            "median": 0.010062823952047838,
+            "minimum": 0.010062823952047838,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_holdout_rmse_m",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "li_wang_wu": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "li_wang_wu",
+      "metrics": {
+        "known_bad_detectable_fraction": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "known_bad_detectable_fraction",
+          "rank": 1
+        },
+        "rotation_holdout_rmse_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.5872803691491544,
+            "mean": 0.5872803691491544,
+            "mean_ci95_high": 0.5872803691491544,
+            "mean_ci95_low": 0.5872803691491544,
+            "median": 0.5872803691491544,
+            "minimum": 0.5872803691491544,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_holdout_rmse_deg",
+          "rank": 4
+        },
+        "translation_holdout_rmse_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.017457973946244116,
+            "mean": 0.017457973946244116,
+            "mean_ci95_high": 0.017457973946244116,
+            "mean_ci95_low": 0.017457973946244116,
+            "median": 0.017457973946244116,
+            "minimum": 0.017457973946244116,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_holdout_rmse_m",
+          "rank": 5
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "shah": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "shah",
+      "metrics": {
+        "known_bad_detectable_fraction": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "known_bad_detectable_fraction",
+          "rank": 1
+        },
+        "rotation_holdout_rmse_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.5857954291251657,
+            "mean": 0.5857954291251657,
+            "mean_ci95_high": 0.5857954291251657,
+            "mean_ci95_low": 0.5857954291251657,
+            "median": 0.5857954291251657,
+            "minimum": 0.5857954291251657,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_holdout_rmse_deg",
+          "rank": 1
+        },
+        "translation_holdout_rmse_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.010062826541860718,
+            "mean": 0.010062826541860718,
+            "mean_ci95_high": 0.010062826541860718,
+            "mean_ci95_low": 0.010062826541860718,
+            "median": 0.010062826541860718,
+            "minimum": 0.010062826541860718,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_holdout_rmse_m",
+          "rank": 3
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "zhuang_roth_sudhakar": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "zhuang_roth_sudhakar",
+      "metrics": {
+        "known_bad_detectable_fraction": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "known_bad_detectable_fraction",
+          "rank": 1
+        },
+        "rotation_holdout_rmse_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.590747409793904,
+            "mean": 0.590747409793904,
+            "mean_ci95_high": 0.590747409793904,
+            "mean_ci95_low": 0.590747409793904,
+            "median": 0.590747409793904,
+            "minimum": 0.590747409793904,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_holdout_rmse_deg",
+          "rank": 5
+        },
+        "translation_holdout_rmse_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.010131954148362734,
+            "mean": 0.010131954148362734,
+            "mean_ci95_high": 0.010131954148362734,
+            "mean_ci95_low": 0.010131954148362734,
+            "median": 0.010131954148362734,
+            "minimum": 0.010131954148362734,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_holdout_rmse_m",
+          "rank": 4
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "Shah",
+      "license_spdx": "Apache-2.0",
+      "method_id": "shah",
+      "paper_doi": "10.1115/1.4024473",
+      "source_commit": "9744eae",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Li-Wang-Wu",
+      "license_spdx": "Apache-2.0",
+      "method_id": "li_wang_wu",
+      "paper_doi": "10.5897/IJPS.9000501",
+      "source_commit": "9744eae",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Dornaika-Horaud",
+      "license_spdx": "Apache-2.0",
+      "method_id": "dornaika_horaud",
+      "paper_doi": "10.1109/70.704233",
+      "source_commit": "9744eae",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Zhuang-Roth-Sudhakar",
+      "license_spdx": "Apache-2.0",
+      "method_id": "zhuang_roth_sudhakar",
+      "paper_doi": "10.1109/70.313105",
+      "source_commit": "9744eae",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex nonlinear refinement",
+      "license_spdx": "Apache-2.0",
+      "method_id": "calibrex_dornaika_horaud_nonlinear",
+      "paper_doi": "10.1109/70.704233",
+      "source_commit": "9744eae",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Rotation closure RMSE on pose pairs excluded from fitting; not ground-truth extrinsic error.",
+      "label": "Rotation holdout RMSE",
+      "name": "rotation_holdout_rmse_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1000.0,
+      "display_unit": "mm",
+      "interpretation": "Translation closure RMSE on pose pairs excluded from fitting; not ground-truth extrinsic error.",
+      "label": "Translation holdout RMSE",
+      "name": "translation_holdout_rmse_m",
+      "primary": true,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Fraction of 24 declared perturbation controls detected by the holdout evidence.",
+      "label": "Known-bad detection",
+      "name": "known_bad_detectable_fraction",
+      "primary": false,
+      "unit": "fraction"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "shah",
+      "direction": "lower",
+      "improvement_ci95_high": 6.067717606139666e-08,
+      "improvement_ci95_low": 6.067717606139666e-08,
+      "improvement_mean": 6.067717606139666e-08,
+      "metric": "rotation_holdout_rmse_deg",
+      "paired_count": 1,
+      "raw_delta_mean": -6.067717606139666e-08,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "shah",
+      "direction": "lower",
+      "improvement_ci95_high": -2.5898128797746667e-09,
+      "improvement_ci95_low": -2.5898128797746667e-09,
+      "improvement_mean": -2.5898128797746667e-09,
+      "metric": "translation_holdout_rmse_m",
+      "paired_count": 1,
+      "raw_delta_mean": 2.5898128797746667e-09,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "shah",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "known_bad_detectable_fraction",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "li_wang_wu",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0014848793468126287,
+      "improvement_ci95_low": -0.0014848793468126287,
+      "improvement_mean": -0.0014848793468126287,
+      "metric": "rotation_holdout_rmse_deg",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0014848793468126287,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "li_wang_wu",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0073951499941962776,
+      "improvement_ci95_low": -0.0073951499941962776,
+      "improvement_mean": -0.0073951499941962776,
+      "metric": "translation_holdout_rmse_m",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0073951499941962776,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "li_wang_wu",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "known_bad_detectable_fraction",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "zhuang_roth_sudhakar",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0049519199915623036,
+      "improvement_ci95_low": -0.0049519199915623036,
+      "improvement_mean": -0.0049519199915623036,
+      "metric": "rotation_holdout_rmse_deg",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0049519199915623036,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "zhuang_roth_sudhakar",
+      "direction": "lower",
+      "improvement_ci95_high": -6.913019631489548e-05,
+      "improvement_ci95_low": -6.913019631489548e-05,
+      "improvement_mean": -6.913019631489548e-05,
+      "metric": "translation_holdout_rmse_m",
+      "paired_count": 1,
+      "raw_delta_mean": 6.913019631489548e-05,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "zhuang_roth_sudhakar",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "known_bad_detectable_fraction",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "calibrex_dornaika_horaud_nonlinear",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0014140654757857085,
+      "improvement_ci95_low": -0.0014140654757857085,
+      "improvement_mean": -0.0014140654757857085,
+      "metric": "rotation_holdout_rmse_deg",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0014140654757857085,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "calibrex_dornaika_horaud_nonlinear",
+      "direction": "lower",
+      "improvement_ci95_high": 2.3444487199113587e-05,
+      "improvement_ci95_low": 2.3444487199113587e-05,
+      "improvement_mean": 2.3444487199113587e-05,
+      "metric": "translation_holdout_rmse_m",
+      "paired_count": 1,
+      "raw_delta_mean": -2.3444487199113587e-05,
+      "reference_method_id": "dornaika_horaud"
+    },
+    {
+      "candidate_method_id": "calibrex_dornaika_horaud_nonlinear",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "known_bad_detectable_fraction",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "dornaika_horaud"
+    }
+  ],
+  "protocol": {
+    "data_license": "In Copyright - Non-Commercial Use Permitted",
+    "dataset_doi": "10.3929/ethz-c-000788527",
+    "dataset_id": "ethz_hand_eye_robot_arm_real",
+    "dataset_source_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+    "dataset_version": "966cd92518f24aa7dfdacc8ba9c5fa4a441270cd",
+    "failure_policy": "Every attempted method/split trial is retained and failures count toward failure rate.",
+    "initial_estimate_policy": "Closed-form methods do not share an initial estimate; the nonlinear method starts from its declared Dornaika-Horaud closed-form estimate.",
+    "protocol_id": "ethz-real-robot-world-hand-eye/shared-split/v0.1",
+    "split_policy": "Seeded shared 80/20 split; ID digests are SHA-256 of compact JSON arrays in preserved order.",
+    "splits": [
+      {
+        "fit_count": 1350,
+        "fit_ids_sha256": "96ece4f6c83df57b4a087480507e7a0cb0bccdab870d5e5e7544994a8a28637f",
+        "holdout_count": 338,
+        "holdout_ids_sha256": "0a5f650eb71f91f4960cf5f99068d1d1c4ce78857f0bb7904d71d098bea9b837",
+        "seed": 0,
+        "split_id": "seed-0"
+      }
+    ],
+    "tuning_policy": "All options are fixed in the committed config; holdout metrics are not used to select or tune a method."
+  },
   "provenance": {
-    "generated_at": "2026-07-28T07:51:55.319815+00:00",
-    "calibrex_git_commit": "9744eae",
-    "run_id": "2026-07-28T07-51-55Z_ethz_real_hand_eye_comparison",
-    "config_path": "examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml",
-    "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
-    "result_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
-    "metrics_sha256": "1e38d4d553c8f9e172c66ed688f172187c59db8595f5c19e12ce1b112c8175f8",
-    "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+    "command": ".venv/bin/calibrex benchmark docs/assets/ethz-robot-world-hand-eye-benchmark.definition.json --output docs/assets/ethz-robot-world-hand-eye-benchmark.json --markdown-output docs/assets/ethz-robot-world-hand-eye-benchmark.md --update-markdown README.md --update-markdown docs/index.md",
     "data_verified": true,
-    "bundle_verified": true
-  }
+    "generated_at": "2026-07-28T08:12:08.707874+00:00",
+    "generator": "calibrex benchmark",
+    "generator_version": "0.3.0",
+    "git_commit": "69d177c",
+    "source_artifacts": {
+      "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+      "metrics_sha256": "1e38d4d553c8f9e172c66ed688f172187c59db8595f5c19e12ce1b112c8175f8",
+      "result_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+      "run_id": "2026-07-28T07-51-55Z_ethz_real_hand_eye_comparison"
+    }
+  },
+  "reference_method_id": "dornaika_horaud",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "ETHZ real robot-world hand-eye shared-split benchmark",
+  "trials": [
+    {
+      "method_id": "shah",
+      "metrics": {
+        "known_bad_detectable_fraction": 1.0,
+        "rotation_holdout_rmse_deg": 0.5857954291251657,
+        "translation_holdout_rmse_m": 0.010062826541860718
+      },
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "notes": [
+          "The original combined run did not record per-method runtime or peak memory."
+        ],
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756"
+      },
+      "split_id": "seed-0",
+      "status": "success"
+    },
+    {
+      "method_id": "li_wang_wu",
+      "metrics": {
+        "known_bad_detectable_fraction": 1.0,
+        "rotation_holdout_rmse_deg": 0.5872803691491544,
+        "translation_holdout_rmse_m": 0.017457973946244116
+      },
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "notes": [
+          "The original combined run did not record per-method runtime or peak memory."
+        ],
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756"
+      },
+      "split_id": "seed-0",
+      "status": "success"
+    },
+    {
+      "method_id": "dornaika_horaud",
+      "metrics": {
+        "known_bad_detectable_fraction": 1.0,
+        "rotation_holdout_rmse_deg": 0.5857954898023418,
+        "translation_holdout_rmse_m": 0.010062823952047838
+      },
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "notes": [
+          "The original combined run did not record per-method runtime or peak memory."
+        ],
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756"
+      },
+      "split_id": "seed-0",
+      "status": "success"
+    },
+    {
+      "method_id": "zhuang_roth_sudhakar",
+      "metrics": {
+        "known_bad_detectable_fraction": 1.0,
+        "rotation_holdout_rmse_deg": 0.590747409793904,
+        "translation_holdout_rmse_m": 0.010131954148362734
+      },
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "notes": [
+          "The original combined run did not record per-method runtime or peak memory."
+        ],
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756"
+      },
+      "split_id": "seed-0",
+      "status": "success"
+    },
+    {
+      "method_id": "calibrex_dornaika_horaud_nonlinear",
+      "metrics": {
+        "known_bad_detectable_fraction": 1.0,
+        "rotation_holdout_rmse_deg": 0.5872095552781275,
+        "translation_holdout_rmse_m": 0.010039379464848725
+      },
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "notes": [
+          "The original combined run did not record per-method runtime or peak memory."
+        ],
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756"
+      },
+      "split_id": "seed-0",
+      "status": "success"
+    }
+  ]
 }

@@ -17,6 +17,14 @@ from calibrex.core.assessment import (
     assess_evidence_file,
     assessment_json_schema,
 )
+from calibrex.core.benchmark import (
+    aggregate_benchmark_definition,
+    benchmark_definition_json_schema,
+    benchmark_json_schema,
+    load_benchmark_definition,
+    render_benchmark_markdown,
+    update_benchmark_table_in_markdown,
+)
 from calibrex.core.config import (
     CalibrationConfig,
     DatasetConfig,
@@ -37,9 +45,9 @@ from calibrex.core.evidence_contract import (
     policy_json_schema,
     protocol_json_schema,
 )
-from calibrex.core.exceptions import CalibrexError
+from calibrex.core.exceptions import BenchmarkError, CalibrexError
 from calibrex.core.frames import FrameGraph
-from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.io import read_mapping, write_mapping, write_text
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.report_artifacts import (
     report_artifact_json_schema,
@@ -165,6 +173,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "comparison",
             "report-comparison",
             "assessment",
+            "benchmark",
+            "benchmark-definition",
             "policy",
             "protocol",
             "transforms",
@@ -190,6 +200,23 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     validate.set_defaults(func=_cmd_validate)
+
+    benchmark = subcommands.add_parser(
+        "benchmark",
+        help="aggregate a shared N-way trial matrix",
+    )
+    benchmark.add_argument("definition", type=Path)
+    benchmark.add_argument("--output", type=Path, required=True)
+    benchmark.add_argument("--markdown-output", type=Path)
+    benchmark.add_argument(
+        "--update-markdown",
+        action="append",
+        type=Path,
+        default=[],
+        help="replace the matching marker-delimited table; may be repeated",
+    )
+    benchmark.add_argument("--json", action="store_true", help="emit machine-readable summary")
+    benchmark.set_defaults(func=_cmd_benchmark)
 
     verify = subcommands.add_parser(
         "verify",
@@ -611,6 +638,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "comparison": comparison_json_schema,
         "report-comparison": report_comparison_json_schema,
         "assessment": assessment_json_schema,
+        "benchmark": benchmark_json_schema,
+        "benchmark-definition": benchmark_definition_json_schema,
         "policy": policy_json_schema,
         "protocol": protocol_json_schema,
         "transforms": transform_artifact_json_schema,
@@ -639,6 +668,33 @@ def _schema_filename(kind: str) -> str:
 def _cmd_validate(args: argparse.Namespace) -> int:
     report = validate_file(args.path, cast(ValidationKind, args.kind))
     payload = report.model_dump(mode="json")
+    _emit(payload, args.json)
+    return 0
+
+
+def _cmd_benchmark(args: argparse.Namespace) -> int:
+    definition = load_benchmark_definition(args.definition)
+    try:
+        benchmark = aggregate_benchmark_definition(definition)
+    except ValueError as exc:
+        raise BenchmarkError(str(exc)) from exc
+    benchmark.save(args.output)
+    payload: dict[str, Any] = {
+        "benchmark": str(args.output),
+        "benchmark_id": benchmark.benchmark_id,
+        "method_count": len(benchmark.methods),
+        "split_count": len(benchmark.protocol.splits),
+        "trial_count": len(benchmark.trials),
+    }
+    if args.markdown_output is not None:
+        write_text(args.markdown_output, render_benchmark_markdown(benchmark))
+        payload["markdown"] = str(args.markdown_output)
+    updated_markdown: list[str] = []
+    for markdown_path in args.update_markdown:
+        update_benchmark_table_in_markdown(markdown_path, benchmark)
+        updated_markdown.append(str(markdown_path))
+    if updated_markdown:
+        payload["updated_markdown"] = updated_markdown
     _emit(payload, args.json)
     return 0
 
@@ -989,9 +1045,7 @@ def _evidence_card_output_path(
     output_dir: Path | None,
     output_path: Path | None,
 ) -> Path:
-    if output_path is not None and (
-        output_path.is_absolute() or output_path.parent != Path(".")
-    ):
+    if output_path is not None and (output_path.is_absolute() or output_path.parent != Path(".")):
         return output_path
     base = output_dir or result_path.parent
     if output_path is None:
@@ -1032,10 +1086,7 @@ def _cmd_compare(args: argparse.Namespace) -> int:
             },
             args.json,
         )
-        if (
-            args.enforce_compatible
-            and comparison.protocol_compatibility.status != "compatible"
-        ):
+        if args.enforce_compatible and comparison.protocol_compatibility.status != "compatible":
             return 1
         return 0
     payload = comparison.model_dump(mode="json", exclude_none=True)
@@ -1048,10 +1099,7 @@ def _cmd_compare(args: argparse.Namespace) -> int:
             comparison,
             enforce_compatible=args.enforce_compatible,
         )
-    if (
-        args.enforce_compatible
-        and comparison.protocol_compatibility.status != "compatible"
-    ):
+    if args.enforce_compatible and comparison.protocol_compatibility.status != "compatible":
         return 1
     return 0
 
@@ -1075,10 +1123,7 @@ def _cmd_report_compare(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif not args.output:
         _emit_report_comparison(report, enforce_compatible=args.enforce_compatible)
-    if (
-        args.enforce_compatible
-        and report.summary.protocol_compatibility_status != "compatible"
-    ):
+    if args.enforce_compatible and report.summary.protocol_compatibility_status != "compatible":
         return 1
     return 0
 
@@ -1088,10 +1133,7 @@ def _parse_labeled_results(entries: list[str]) -> list[tuple[str, Path]]:
     for entry in entries:
         label, separator, path = entry.partition("=")
         if not separator or not label or not path:
-            _die(
-                "report-compare entries must use LABEL=RESULT syntax, "
-                f"got: {entry}"
-            )
+            _die(f"report-compare entries must use LABEL=RESULT syntax, got: {entry}")
         labeled.append((label, Path(path)))
     if len(labeled) < 2:
         _die("report-compare requires at least two LABEL=RESULT entries")
@@ -1570,10 +1612,7 @@ def _emit_verification(verification: EvidenceBundleVerification) -> None:
             f"data_verified={_format_optional_bool(materialization.data_verified)}"
         )
     print(f"artifacts: {len(verification.checked_artifacts)}/{verification.artifact_count}")
-    print(
-        "input_files: "
-        f"{verification.checked_input_file_count}/{verification.input_file_count}"
-    )
+    print(f"input_files: {verification.checked_input_file_count}/{verification.input_file_count}")
     print(
         "claims: "
         f"total={summary.total}, "
@@ -1848,9 +1887,7 @@ def _comparison_not_comparable_reasons(
     counts: dict[str, int] = {}
     for metric in comparison.metrics.values():
         if metric.winner == "not_comparable" and metric.not_comparable_reason:
-            counts[metric.not_comparable_reason] = (
-                counts.get(metric.not_comparable_reason, 0) + 1
-            )
+            counts[metric.not_comparable_reason] = counts.get(metric.not_comparable_reason, 0) + 1
     for evidence in comparison.evidence_comparisons:
         if evidence.winner == "not_comparable" and evidence.not_comparable_reason:
             counts[evidence.not_comparable_reason] = (
