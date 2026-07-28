@@ -67,6 +67,40 @@ calibrex demo livox-evidence \
   --output-dir outputs/livox_horizon_horizon_pcd_sample
 ```
 
+## Calibration coverage
+
+| Calibration path | Native solve | Evidence | Public example | Maturity |
+|---|:---:|:---:|:---:|:---:|
+| LiDAR ↔ LiDAR | ✅ | ✅ | ✅ | 🟢 Alpha |
+| Camera ↔ LiDAR | ✅ | ✅ | ✅ | 🟡 Experimental |
+| Hand-eye `AX=XB` | ✅ | ✅ | ✅ | 🟢 Alpha |
+| Robot-world `AX=YB` | ✅ | ✅ | ✅ | 🟢 Alpha |
+| LiDAR ↔ IMU | — | ✅ | ✅ | 🟡 Evidence |
+| Radar extrinsic | ✅ | ✅ | ✅ | 🟡 Experimental |
+| RGB-D joint SLAC | ✅ | ✅ | ✅ | 🟡 Experimental |
+| Open3D / external tools | Adapter | ✅ | ✅ | 🔵 Adapter |
+
+<p align="center">
+  <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
+</p>
+
+<details>
+<summary><b>What is implemented in the current alpha?</b></summary>
+
+- typed config, result, comparison, protocol, policy, and evidence schemas
+- offline and online/streaming LiDAR calibration for rosbag1, rosbag2, and MCAP
+- motion compensation, per-point deskew, and trajectory evidence
+- targetless camera-LiDAR mutual information and online monitoring
+- native point-to-point, point-to-plane, hand-eye, and robot-world baselines
+- backend-neutral joint SLAC with typed Schur pose elimination
+- radar velocity, LiDAR-IMU rotation, and temporal-offset evidence
+- Open3D, Kalibr-style, Koide-style, ROS, and Autoware adapter boundaries
+
+See the [calibration methods](docs/concepts/calibration_methods.md) and
+[changelog](CHANGELOG.md) for solver-level detail and limitations.
+
+</details>
+
 ## See the evidence at a glance
 
 The card below is not a hand-authored mockup. It is rendered from a
@@ -176,40 +210,6 @@ data cannot falsify.
   protocol, parameters, and digests are recorded in
   <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
 </p>
-
-## Calibration coverage
-
-| Calibration path | Native solve | Evidence | Public example | Maturity |
-|---|:---:|:---:|:---:|:---:|
-| LiDAR ↔ LiDAR | ✅ | ✅ | ✅ | 🟢 Alpha |
-| Camera ↔ LiDAR | ✅ | ✅ | ✅ | 🟡 Experimental |
-| Hand-eye `AX=XB` | ✅ | ✅ | ✅ | 🟢 Alpha |
-| Robot-world `AX=YB` | ✅ | ✅ | ✅ | 🟢 Alpha |
-| LiDAR ↔ IMU | — | ✅ | ✅ | 🟡 Evidence |
-| Radar extrinsic | ✅ | ✅ | ✅ | 🟡 Experimental |
-| RGB-D joint SLAC | ✅ | ✅ | ✅ | 🟡 Experimental |
-| Open3D / external tools | Adapter | ✅ | ✅ | 🔵 Adapter |
-
-<p align="center">
-  <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
-</p>
-
-<details>
-<summary><b>What is implemented in the current alpha?</b></summary>
-
-- typed config, result, comparison, protocol, policy, and evidence schemas
-- offline and online/streaming LiDAR calibration for rosbag1, rosbag2, and MCAP
-- motion compensation, per-point deskew, and trajectory evidence
-- targetless camera-LiDAR mutual information and online monitoring
-- native point-to-point, point-to-plane, hand-eye, and robot-world baselines
-- backend-neutral joint SLAC with typed Schur pose elimination
-- radar velocity, LiDAR-IMU rotation, and temporal-offset evidence
-- Open3D, Kalibr-style, Koide-style, ROS, and Autoware adapter boundaries
-
-See the [calibration methods](docs/concepts/calibration_methods.md) and
-[changelog](CHANGELOG.md) for solver-level detail and limitations.
-
-</details>
 
 ## Install
 
