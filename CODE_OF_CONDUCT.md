@@ -1,6 +1,6 @@
 # Code of Conduct
 
-slac contributors are expected to keep discussions technical, respectful,
+Calibrex contributors are expected to keep discussions technical, respectful,
 and focused on building reliable robotics calibration infrastructure.
 
 ## Expected Behavior

@@ -1,36 +1,39 @@
 # Calibrex Docs
 
-Calibrex is a universal sensor calibration framework for robotics and
-autonomous-driving systems. v0.3 extends the v0.2 moving-platform stack (ADR
-0005) with trajectory evidence, anchored temporal estimation, and LiDAR-IMU
-rotation evidence (ADR 0007): schema-validated `trajectory.json` with
-ground-truth-free gates, native-deskew KISS-ICP odometry at bag conversion,
-`time_offset_anchor` dual-mode temporal evaluation with joint separability
-reporting, and `lidar_imu` rotation-rate consistency on TIERS Indoor02. Full
-radar extrinsic calibration remains experimental.
+Calibrex is a ROS-independent calibration evidence framework for robotics and
+autonomous-driving systems. It turns candidate extrinsics, time offsets, and
+trajectories into reproducible **PASS / WARN / FAIL** evidence.
 
-Start with:
+Most calibration tools answer “what transform did the optimizer return?”
+Calibrex also asks:
 
-- `docs/concepts/slac.md`
-- `docs/concepts/lidar_slac.md`
-- `docs/concepts/frame_conventions.md`
-- `docs/concepts/license_boundaries.md`
-- `docs/concepts/problem_builder.md`
-- `docs/development_roadmap.md`
-- `docs/tutorials/public_datasets.md`
-- `docs/tutorials/open3d_slac.md`
-- `docs/tutorials/lidar_camera_adapter.md`
-- `schemas/assessment.schema.json`
-- `schemas/comparison.schema.json`
-- `schemas/evidence_bundle.schema.json`
-- `schemas/transforms.schema.json`
-- `schemas/report_evidence.schema.json`
-- `schemas/dataset_manifest.schema.json`
-- `docs/adr/0001-core-is-ros-independent.md`
-- `docs/adr/0004-lidar-main-v0-1-evaluation-protocol.md`
-- `docs/adr/0005-v0-2-motion-camera-temporal-direction.md`
-- `docs/adr/0006-rename-to-slac.md`
-- `docs/adr/0007-v0-3-slac-direction.md`
-- `docs/adr/0008-v0-4-scale-and-absolute-time.md`
+- Does it generalize to held-out measurements?
+- Can the available data detect a deliberately wrong calibration?
+- Which degrees of freedom are weak or unobservable?
+- Can the result and every generated report be traced to their inputs?
+
+## Start here
+
+1. Run the [five-minute quickstart](https://github.com/rsasaki0109/Calibrex#five-minute-quickstart).
+2. Choose a path from [calibration methods](concepts/calibration_methods.md).
+3. Reproduce an evaluation from [public datasets](tutorials/public_datasets.md).
+4. Review [frame conventions](concepts/frame_conventions.md) before integrating
+   transforms.
+
+## Integration paths
+
+- [Open3D SLAC adapter](tutorials/open3d_slac.md)
+- [Targetless LiDAR-camera adapter](tutorials/lidar_camera_adapter.md)
+- [Problem builder](concepts/problem_builder.md)
+- [Schema reference](reference/schemas.md)
+- [License boundaries](concepts/license_boundaries.md)
+
+## Current status
+
+Calibrex is alpha research software. LiDAR-LiDAR and hand-eye paths have native
+solvers, evaluation, and public examples. Camera-LiDAR, radar, RGB-D, and some
+online paths remain experimental. Failed controls are reported rather than
+hidden; see the [changelog](changelog.md) and
+[development roadmap](development_roadmap.md) for current limitations.
 
 Regenerate committed schemas with `calibrex schema all --output-dir schemas`.

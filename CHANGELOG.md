@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Prepared the public launch surface with a concrete five-minute quickstart,
+  an approachable documentation home, a repository social preview, citation
+  metadata, and corrected issue links.
+- Added guarded PyPI trusted publishing after a GitHub release is published,
+  including tag-to-package-version checks and clean wheel smoke tests.
+- Replaced the abbreviated license notice with the complete Apache-2.0 text and
+  added a distributable `NOTICE`.
 - Restored the Calibrex product, Python distribution/package, CLI, and source
   path. Existing `slac.*` schema IDs, `slac_version`, `slac_native`, and
   versioned protocol/policy IDs remain the stable legacy wire namespace.

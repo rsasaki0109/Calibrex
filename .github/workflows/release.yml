@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,6 +18,12 @@ jobs:
           python-version: "3.12"
       - name: Local release smoke
         run: python tools/local_release_smoke.py
+      - name: Verify tag matches package version
+        run: |
+          package_version="$(
+            python -c 'from pathlib import Path; import tomllib; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])'
+          )"
+          test "${GITHUB_REF_NAME}" = "v${package_version}"
       - name: Create draft GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -31,5 +36,6 @@ jobs:
           gh release create "$tag" dist/* \
             --draft \
             --prerelease \
+            --generate-notes \
             --title "$tag" \
-            --notes "Draft Calibrex release. Review CHANGELOG.md, wheel smoke results, and release artifacts before publishing."
+            --notes "Calibration evidence, not just a matrix. Review CHANGELOG.md, wheel smoke results, license boundaries, and public dataset notes before publishing this draft."
