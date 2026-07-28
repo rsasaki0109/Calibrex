@@ -333,7 +333,7 @@ def _solve_rotations(
     poses: Sequence[RobotWorldHandEyePosePair],
     options: ShahRobotWorldHandEyeOptions,
 ) -> _ShahRotationSolution:
-    cross_covariance = np.zeros((9, 9), dtype=np.float64)
+    cross_covariance: FloatArray = np.zeros((9, 9), dtype=np.float64)
     for pair in poses:
         cross_covariance += pair.weight * np.kron(
             _rotation_matrix(pair.pose_b), _rotation_matrix(pair.pose_a)
@@ -383,7 +383,7 @@ def _solve_translations(
 ) -> tuple[FloatArray | None, FloatArray, tuple[float, ...], int, float]:
     rows: list[FloatArray] = []
     rhs: list[FloatArray] = []
-    identity = np.eye(3, dtype=np.float64)
+    identity: FloatArray = np.eye(3, dtype=np.float64)
     for pair in poses:
         root_weight = math.sqrt(pair.weight)
         rotation_a = _rotation_matrix(pair.pose_a)
@@ -495,7 +495,7 @@ def _determinant_normalized(matrix: FloatArray) -> FloatArray | None:
 
 def _nearest_rotation(matrix: FloatArray) -> FloatArray:
     left, _singular, right_t = np.linalg.svd(matrix)
-    correction = np.eye(3, dtype=np.float64)
+    correction: FloatArray = np.eye(3, dtype=np.float64)
     correction[2, 2] = np.linalg.det(left @ right_t)
     return left @ correction @ right_t
 

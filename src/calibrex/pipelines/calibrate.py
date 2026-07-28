@@ -17,6 +17,7 @@ from typing import Any, Literal, cast
 from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, load_config
 from calibrex.core.exceptions import ConfigError
+from calibrex.core.external_run import ExternalCalibrationRunArtifact
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3, normalize_quaternion_xyzw
 from calibrex.core.io import read_mapping
@@ -151,7 +152,7 @@ def run_calibration(
     _apply_external_candidate_extrinsics(options.candidate_extrinsics, result)
     _apply_livox_pair_candidate_evidence(config, result)
     _apply_extrinsic_reference_comparisons(result)
-    _apply_pipeline_adapter(config, frame_graph, inspection, result)
+    _apply_pipeline_adapter(config, frame_graph, inspection, result, output_dir)
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
     result.metrics.update(
         lidar_camera_comparison_metrics_from_result(config, result, inspection)
@@ -182,6 +183,7 @@ def _apply_pipeline_adapter(
     frame_graph: FrameGraph,
     inspection: DatasetInspection,
     result: CalibrationResult,
+    output_dir: Path,
 ) -> None:
     adapter_result: SolverAdapterResult | None = None
     if config.pipeline.type == "rgbd_open3d_slac" or config.solver.backend == "open3d_slac":
@@ -220,6 +222,10 @@ def _apply_pipeline_adapter(
     result.run.provenance.update(adapter_result.provenance)
     result.run.provenance["solver_adapter"] = adapter_result.backend
     result.run.provenance["solver_adapter_status"] = adapter_result.status
+    if adapter_result.external_run is not None:
+        external_run_path = output_dir / "external-run.json"
+        adapter_result.external_run.save(external_run_path)
+        result.run.provenance["external_calibration_run_path"] = str(external_run_path)
     _apply_adapter_transforms(result, adapter_result)
     if adapter_result.backend == NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND:
         result.transforms.clear()
@@ -504,6 +510,32 @@ def _adapter_output_provenance(
             }[backend],
             notes=[note],
         )
+    external_run_payload = (
+        adapter_provenance.get("external_calibration_run")
+        if adapter_provenance is not None
+        else None
+    )
+    if isinstance(external_run_payload, dict):
+        try:
+            external_run = ExternalCalibrationRunArtifact.model_validate(external_run_payload)
+        except ValueError:
+            external_run = None
+        if external_run is not None:
+            provenance = external_run.transform_provenance("adapter-output")
+            provenance.notes.append(note)
+            if backend == "koide_lidar_camera":
+                output_digest = next(
+                    (
+                        artifact.sha256
+                        for artifact in external_run.artifacts
+                        if artifact.role == "output"
+                    ),
+                    None,
+                )
+                if output_digest is not None:
+                    provenance.notes.append(f"result_sha256={output_digest}")
+            return provenance
+
     identity = (
         adapter_provenance.get("koide_lidar_camera_tool_identity")
         if adapter_provenance is not None

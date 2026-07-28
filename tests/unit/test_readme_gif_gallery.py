@@ -31,13 +31,13 @@ def test_readme_gallery_jobs_match_readme_gifs() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     readme_gifs = set(re.findall(r'docs/assets/[^"]+\.gif', readme))
-    gallery_gifs = {str(job.output) for job in tool.README_GIF_JOBS}
+    gallery_gifs = {job.output.as_posix() for job in tool.README_GIF_JOBS}
 
     assert readme_gifs <= gallery_gifs
     assert "docs/assets/calibrex-motion-calibration-loop.gif" in readme_gifs
     hero_jobs = [job for job in tool.README_GIF_JOBS if job.readme_role == "hero"]
     assert len(hero_jobs) == 1
-    assert str(hero_jobs[0].output) in readme_gifs
+    assert hero_jobs[0].output.as_posix() in readme_gifs
 
 
 def test_readme_gallery_manifest_matches_assets() -> None:
@@ -55,8 +55,8 @@ def test_readme_gallery_manifest_matches_assets() -> None:
         "frames": tool.README_HERO_FRAME_COUNT,
     }
 
-    job_outputs = {str(job.output) for job in tool.README_GIF_JOBS}
-    jobs_by_output = {str(job.output): job for job in tool.README_GIF_JOBS}
+    job_outputs = {job.output.as_posix() for job in tool.README_GIF_JOBS}
+    jobs_by_output = {job.output.as_posix(): job for job in tool.README_GIF_JOBS}
     asset_outputs = {asset["output"] for asset in manifest["assets"]}
     assert asset_outputs == job_outputs
 

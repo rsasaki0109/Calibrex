@@ -430,7 +430,7 @@ def _soft_histogram2d(paired: FloatArray, bins: int) -> FloatArray:
     lower = np.floor(coordinates).astype(int)
     upper = np.minimum(lower + 1, bins - 1)
     fraction = coordinates - lower
-    histogram = np.zeros((bins, bins), dtype=float)
+    histogram: FloatArray = np.zeros((bins, bins), dtype=float)
     for choose_x, choose_y in ((0, 0), (0, 1), (1, 0), (1, 1)):
         indices_x = upper[:, 0] if choose_x else lower[:, 0]
         indices_y = upper[:, 1] if choose_y else lower[:, 1]
@@ -447,7 +447,9 @@ def _convolve_gaussian(histogram: FloatArray, covariance: FloatArray) -> FloatAr
         7,
         max(1, math.ceil(3.0 * math.sqrt(max(float(eigenvalues[-1]), 0.25)))),
     )
-    offsets = np.arange(-radius, radius + 1, dtype=float)
+    offsets: FloatArray = np.arange(-radius, radius + 1, dtype=float)
+    xx: FloatArray
+    yy: FloatArray
     xx, yy = np.meshgrid(offsets, offsets, indexing="ij")
     coordinates = np.stack((xx, yy), axis=-1)
     inverse = np.linalg.pinv(covariance)
@@ -480,7 +482,7 @@ def _numerical_gradient(
     parameters: FloatArray,
     options: PandeyMutualInformationOptions,
 ) -> FloatArray:
-    gradient = np.zeros(6, dtype=float)
+    gradient: FloatArray = np.zeros(6, dtype=float)
     for index, increment in enumerate(options.gradient_steps):
         plus = parameters.copy()
         minus = parameters.copy()

@@ -223,9 +223,9 @@ def _linear_system(
 ) -> tuple[FloatArray, FloatArray]:
     rows: list[FloatArray] = []
     rhs: list[FloatArray] = []
-    identity_3 = np.eye(3, dtype=np.float64)
-    zeros_rotation_translation = np.zeros((9, 6), dtype=np.float64)
-    zeros_translation_rotation = np.zeros((3, 9), dtype=np.float64)
+    identity_3: FloatArray = np.eye(3, dtype=np.float64)
+    zeros_rotation_translation: FloatArray = np.zeros((9, 6), dtype=np.float64)
+    zeros_translation_rotation: FloatArray = np.zeros((3, 9), dtype=np.float64)
     for pair in poses:
         root_weight = math.sqrt(pair.weight)
         rotation_a = _rotation_matrix(pair.pose_a)
@@ -291,7 +291,7 @@ def _validate_options(options: LiRobotWorldHandEyeOptions) -> None:
 
 def _nearest_rotation(matrix: FloatArray) -> FloatArray:
     left, _singular, right_t = np.linalg.svd(matrix)
-    correction = np.eye(3, dtype=np.float64)
+    correction: FloatArray = np.eye(3, dtype=np.float64)
     correction[2, 2] = np.linalg.det(left @ right_t)
     return left @ correction @ right_t
 

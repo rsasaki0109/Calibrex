@@ -461,7 +461,7 @@ def make_joint_xyz_lattice_rigid_gauge_factor(
         offsets = np.asarray(raw, dtype=np.float64).reshape((-1, 3))
         mean = np.mean(offsets, axis=0)
         centered_offsets = offsets - mean
-        moment = sum(
+        moment: FloatArray = sum(
             (np.cross(position, displacement) for position, displacement in zip(
                 centered, centered_offsets, strict=True
             )),

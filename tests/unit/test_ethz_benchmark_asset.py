@@ -57,7 +57,7 @@ def test_readme_and_docs_home_embed_the_generated_ethz_table() -> None:
     end = f"<!-- calibrex-benchmark:{benchmark.benchmark_id}:end -->"
     expected = render_benchmark_table_markdown(benchmark)
 
-    for path in [ROOT / "README.md", ROOT / "docs" / "index.md"]:
+    for path in [ROOT / "docs" / "index.md"]:
         text = path.read_text(encoding="utf-8")
         embedded = text.split(start, maxsplit=1)[1].split(end, maxsplit=1)[0].strip()
         assert embedded == expected

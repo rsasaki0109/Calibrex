@@ -1,0 +1,406 @@
+{
+  "$defs": {
+    "CalibrationCIArtifacts": {
+      "additionalProperties": false,
+      "description": "Files materialized by a CI run.",
+      "properties": {
+        "assessment": {
+          "title": "Assessment",
+          "type": "string"
+        },
+        "bundle": {
+          "title": "Bundle",
+          "type": "string"
+        },
+        "ci_policy": {
+          "title": "Ci Policy",
+          "type": "string"
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparison"
+        },
+        "comparison_table": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparison Table"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "evidence_card": {
+          "title": "Evidence Card",
+          "type": "string"
+        },
+        "evidence_policy": {
+          "title": "Evidence Policy",
+          "type": "string"
+        },
+        "markdown_summary": {
+          "title": "Markdown Summary",
+          "type": "string"
+        },
+        "protocol": {
+          "title": "Protocol",
+          "type": "string"
+        },
+        "transforms": {
+          "title": "Transforms",
+          "type": "string"
+        },
+        "verification": {
+          "title": "Verification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence",
+        "assessment",
+        "protocol",
+        "evidence_policy",
+        "ci_policy",
+        "transforms",
+        "bundle",
+        "verification",
+        "evidence_card",
+        "markdown_summary"
+      ],
+      "title": "CalibrationCIArtifacts",
+      "type": "object"
+    },
+    "CalibrationCICheck": {
+      "additionalProperties": false,
+      "description": "One independently inspectable CI gate.",
+      "properties": {
+        "artifact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact"
+        },
+        "check_id": {
+          "title": "Check Id",
+          "type": "string"
+        },
+        "enforced": {
+          "default": true,
+          "title": "Enforced",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "reason"
+      ],
+      "title": "CalibrationCICheck",
+      "type": "object"
+    },
+    "CalibrationCIInput": {
+      "additionalProperties": false,
+      "description": "One digest-bound result consumed by a CI decision.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "candidate",
+            "baseline"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "schema_version",
+        "run_id"
+      ],
+      "title": "CalibrationCIInput",
+      "type": "object"
+    },
+    "CalibrationCIPolicyInput": {
+      "additionalProperties": false,
+      "description": "Digest-bound policy used for the CI assessment.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "policy_id": {
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "schema_version",
+        "policy_id"
+      ],
+      "title": "CalibrationCIPolicyInput",
+      "type": "object"
+    },
+    "CalibrationCIProvenance": {
+      "additionalProperties": false,
+      "description": "Execution lineage for a CI decision.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "github_action_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Action Ref"
+        },
+        "github_action_repository": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Action Repository"
+        },
+        "github_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Ref"
+        },
+        "github_repository": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Repository"
+        },
+        "github_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Run Id"
+        },
+        "github_sha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Sha"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calibrex_version"
+      ],
+      "title": "CalibrationCIProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Portable decision emitted by ``calibrex ci`` and the GitHub Action.",
+  "properties": {
+    "artifacts": {
+      "$ref": "#/$defs/CalibrationCIArtifacts"
+    },
+    "assessment_status": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Assessment Status",
+      "type": "string"
+    },
+    "baseline": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalibrationCIInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate": {
+      "$ref": "#/$defs/CalibrationCIInput"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/CalibrationCICheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "policy": {
+      "$ref": "#/$defs/CalibrationCIPolicyInput"
+    },
+    "protocol_compatibility": {
+      "anyOf": [
+        {
+          "enum": [
+            "compatible",
+            "warning",
+            "not_comparable"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Protocol Compatibility"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CalibrationCIProvenance"
+    },
+    "schema_version": {
+      "const": "slac.calibration_ci/v0.1",
+      "default": "slac.calibration_ci/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "candidate",
+    "policy",
+    "assessment_status",
+    "artifacts",
+    "provenance"
+  ],
+  "title": "CalibrationCIArtifact",
+  "type": "object"
+}

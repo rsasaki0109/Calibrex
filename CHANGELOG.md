@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-07-29
+
+- Extended `calibrex doctor` from an environment check into an optional
+  dataset-readiness workflow with type inference, quality and degeneracy
+  diagnostics, compatible-workflow suggestions, a versioned
+  `slac.doctor/v0.1` artifact, generation provenance, and validation support.
+- Added local and GitHub-hosted Calibration CI with `calibrex ci`, a composite
+  action, Step Summary rendering, enforced falsification and protocol gates,
+  digest-bound inputs and custom policies, provenance-bound SVGs, and the
+  versioned `slac.calibration_ci/v0.1` decision artifact.
+- Added the schema-versioned `slac.external_calibration_run/v0.1` contract for
+  digest-bound subprocess, container, precomputed, and imported calibration
+  results; migrated the Koide adapter to it and added a ROS-free Kalibr
+  camchain importer with explicit frame/time conventions and failure states.
+- Added a reproducible full-scale KITTI raw Camera-LiDAR falsification runner
+  with a frozen reference/known-bad protocol, selected-frame and raw-input
+  SHA-256 provenance, independently verified evidence bundles, an honest
+  PASS/FAIL/INCONCLUSIVE decision artifact, and an opt-in official-data test.
 - Prepared the public launch surface with a concrete five-minute quickstart,
   an approachable documentation home, a repository social preview, citation
   metadata, and corrected issue links.

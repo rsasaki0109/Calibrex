@@ -186,7 +186,7 @@ class DaniilidisHandEyeSolver:
 
 def _dual_quaternion_system(motions: Sequence[HandEyeMotionPair]) -> FloatArray:
     blocks: list[FloatArray] = []
-    zero = np.zeros((4, 4), dtype=np.float64)
+    zero: FloatArray = np.zeros((4, 4), dtype=np.float64)
     for pair in motions:
         real_a, dual_a = _dual_quaternion(pair.motion_a)
         real_b, dual_b = _dual_quaternion(pair.motion_b)

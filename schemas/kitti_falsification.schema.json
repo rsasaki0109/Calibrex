@@ -1,0 +1,262 @@
+{
+  "$defs": {
+    "KITTIBenchmarkArtifactDigest": {
+      "additionalProperties": false,
+      "description": "Digest-bound file used or produced by one benchmark trial.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "KITTIBenchmarkArtifactDigest",
+      "type": "object"
+    },
+    "KITTIBenchmarkTrial": {
+      "additionalProperties": false,
+      "description": "One frozen candidate evaluated by the KITTI protocol.",
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/KITTIBenchmarkArtifactDigest"
+          },
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "assessment_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Assessment Status",
+          "type": "string"
+        },
+        "bundle_valid": {
+          "title": "Bundle Valid",
+          "type": "boolean"
+        },
+        "candidate_id": {
+          "enum": [
+            "dataset_reference",
+            "known_bad"
+          ],
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "expected_assessment": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Expected Assessment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "expected_assessment",
+        "assessment_status",
+        "bundle_valid",
+        "artifacts"
+      ],
+      "title": "KITTIBenchmarkTrial",
+      "type": "object"
+    },
+    "KITTIFalsificationProvenance": {
+      "additionalProperties": false,
+      "description": "Benchmark generation lineage.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "source_config": {
+          "title": "Source Config",
+          "type": "string"
+        },
+        "source_config_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Config Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calibrex_version",
+        "source_config",
+        "source_config_sha256"
+      ],
+      "title": "KITTIFalsificationProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Decision artifact for the full-scale KITTI falsification run.",
+  "properties": {
+    "benchmark_id": {
+      "const": "kitti_raw_2011_09_26_drive_0005_camera_lidar",
+      "default": "kitti_raw_2011_09_26_drive_0005_camera_lidar",
+      "title": "Benchmark Id",
+      "type": "string"
+    },
+    "dataset_path": {
+      "title": "Dataset Path",
+      "type": "string"
+    },
+    "dataset_sequence": {
+      "const": "2011_09_26_drive_0005_sync",
+      "default": "2011_09_26_drive_0005_sync",
+      "title": "Dataset Sequence",
+      "type": "string"
+    },
+    "holdout_ratio": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Holdout Ratio",
+      "type": "number"
+    },
+    "input_artifacts": {
+      "items": {
+        "$ref": "#/$defs/KITTIBenchmarkArtifactDigest"
+      },
+      "minItems": 2,
+      "title": "Input Artifacts",
+      "type": "array"
+    },
+    "known_bad_declaration": {
+      "title": "Known Bad Declaration",
+      "type": "string"
+    },
+    "known_bad_transform_camera_lidar": {
+      "additionalProperties": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Known Bad Transform Camera Lidar",
+      "type": "object"
+    },
+    "projection_sample_points": {
+      "exclusiveMinimum": 0,
+      "title": "Projection Sample Points",
+      "type": "integer"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KITTIFalsificationProvenance"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.kitti_lidar_camera_falsification/v0.1",
+      "default": "slac.kitti_lidar_camera_falsification/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Selected Frame Ids",
+      "type": "array"
+    },
+    "source_note": {
+      "title": "Source Note",
+      "type": "string"
+    },
+    "source_url": {
+      "title": "Source Url",
+      "type": "string"
+    },
+    "split_seed": {
+      "title": "Split Seed",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trials": {
+      "items": {
+        "$ref": "#/$defs/KITTIBenchmarkTrial"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Trials",
+      "type": "array"
+    }
+  },
+  "required": [
+    "dataset_path",
+    "source_url",
+    "source_note",
+    "selected_frame_ids",
+    "split_seed",
+    "holdout_ratio",
+    "projection_sample_points",
+    "protocol_id",
+    "known_bad_declaration",
+    "known_bad_transform_camera_lidar",
+    "status",
+    "reason",
+    "trials",
+    "input_artifacts",
+    "provenance"
+  ],
+  "title": "KITTIFalsificationBenchmarkArtifact",
+  "type": "object"
+}

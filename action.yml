@@ -1,0 +1,75 @@
+name: Calibrex Calibration CI
+description: Validate, assess, compare, and summarize robotics calibration evidence.
+author: Calibrex Contributors
+
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  candidate:
+    description: Path to the candidate Calibrex result YAML or JSON.
+    required: true
+  baseline:
+    description: Optional path to the baseline Calibrex result.
+    required: false
+    default: ""
+  policy:
+    description: Optional schema-valid Calibrex policy artifact.
+    required: false
+    default: ""
+  output_dir:
+    description: Directory for schema-valid CI and evidence artifacts.
+    required: false
+    default: calibrex-ci
+  enforce:
+    description: Fail the action unless the final assessment is PASS.
+    required: false
+    default: "true"
+  enforce_protocol:
+    description: Fail when candidate and baseline evidence protocols are incompatible.
+    required: false
+    default: "true"
+  python_version:
+    description: Python version used to run Calibrex.
+    required: false
+    default: "3.12"
+
+outputs:
+  status:
+    description: Final PASS, FAIL, or INCONCLUSIVE status in lowercase.
+    value: ${{ steps.calibration_ci.outputs.status }}
+  artifact:
+    description: Path to the schema-valid calibration-ci.json artifact.
+    value: ${{ steps.calibration_ci.outputs.artifact }}
+  summary:
+    description: Path to the generated Markdown summary.
+    value: ${{ steps.calibration_ci.outputs.summary }}
+  evidence_card:
+    description: Path to the provenance-bound SVG evidence card.
+    value: ${{ steps.calibration_ci.outputs.evidence_card }}
+  comparison:
+    description: Path to comparison.json when a baseline was supplied.
+    value: ${{ steps.calibration_ci.outputs.comparison }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+    - name: Install Calibrex action revision
+      shell: bash
+      run: python -m pip install "${{ github.action_path }}"
+    - name: Run Calibration CI
+      id: calibration_ci
+      shell: bash
+      env:
+        CALIBREX_ACTION_CANDIDATE: ${{ inputs.candidate }}
+        CALIBREX_ACTION_BASELINE: ${{ inputs.baseline }}
+        CALIBREX_ACTION_POLICY: ${{ inputs.policy }}
+        CALIBREX_ACTION_OUTPUT_DIR: ${{ inputs.output_dir }}
+        CALIBREX_ACTION_ENFORCE: ${{ inputs.enforce }}
+        CALIBREX_ACTION_ENFORCE_PROTOCOL: ${{ inputs.enforce_protocol }}
+      run: python "${{ github.action_path }}/tools/run_calibration_ci_action.py"

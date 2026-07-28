@@ -7,6 +7,10 @@ from typing import Final, Literal
 
 from pydantic import BaseModel
 
+from calibrex.calibration_ci import (
+    CALIBRATION_CI_SCHEMA_VERSION,
+    CalibrationCIArtifact,
+)
 from calibrex.core.assessment import ASSESSMENT_SCHEMA_VERSION, AssessmentArtifact
 from calibrex.core.benchmark import (
     BENCHMARK_DEFINITION_SCHEMA_VERSION,
@@ -28,6 +32,10 @@ from calibrex.core.evidence_contract import (
     ProtocolArtifact,
 )
 from calibrex.core.exceptions import CalibrexError
+from calibrex.core.external_run import (
+    EXTERNAL_RUN_SCHEMA_VERSION,
+    ExternalCalibrationRunArtifact,
+)
 from calibrex.core.io import read_mapping
 from calibrex.core.online_timeline import (
     ONLINE_TIMELINE_SCHEMA_VERSION,
@@ -52,7 +60,12 @@ from calibrex.core.transform_artifacts import (
     TransformArtifact,
 )
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
+from calibrex.diagnostics import DOCTOR_SCHEMA_VERSION, DoctorArtifact
 from calibrex.evaluation.compare import COMPARISON_SCHEMA_VERSION, ResultComparison
+from calibrex.evaluation.kitti_falsification_benchmark import (
+    KITTI_FALSIFICATION_SCHEMA_VERSION,
+    KITTIFalsificationBenchmarkArtifact,
+)
 from calibrex.evaluation.report_compare import (
     REPORT_COMPARISON_SCHEMA_VERSION,
     ReportComparison,
@@ -71,6 +84,10 @@ ValidationKind = Literal[
     "protocol",
     "transforms",
     "dataset-manifest",
+    "doctor",
+    "calibration-ci",
+    "external-run",
+    "kitti-falsification",
     "report-summary",
     "report-metrics",
     "report-observability",
@@ -94,6 +111,10 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "protocol": ProtocolArtifact,
     "transforms": TransformArtifact,
     "dataset-manifest": DatasetManifest,
+    "doctor": DoctorArtifact,
+    "calibration-ci": CalibrationCIArtifact,
+    "external-run": ExternalCalibrationRunArtifact,
+    "kitti-falsification": KITTIFalsificationBenchmarkArtifact,
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
     "report-observability": ReportObservabilityArtifact,
@@ -117,6 +138,10 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     PROTOCOL_SCHEMA_VERSION: "protocol",
     TRANSFORMS_SCHEMA_VERSION: "transforms",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
+    DOCTOR_SCHEMA_VERSION: "doctor",
+    CALIBRATION_CI_SCHEMA_VERSION: "calibration-ci",
+    EXTERNAL_RUN_SCHEMA_VERSION: "external-run",
+    KITTI_FALSIFICATION_SCHEMA_VERSION: "kitti-falsification",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",
     REPORT_OBSERVABILITY_SCHEMA_VERSION: "report-observability",
@@ -160,7 +185,7 @@ def validate_file(path: str | Path, kind: ValidationKind = "auto") -> Validation
     validated = model.model_validate(payload)
     schema_version = _schema_version(validated)
     return ValidationReport(
-        path=str(artifact_path),
+        path=artifact_path.as_posix(),
         kind=detected_kind,
         schema_version=schema_version,
     )

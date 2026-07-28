@@ -336,7 +336,7 @@ def _rotation_system(
 ) -> tuple[FloatArray, FloatArray]:
     rows: list[FloatArray] = []
     rhs: list[FloatArray] = []
-    identity = np.eye(3, dtype=np.float64)
+    identity: FloatArray = np.eye(3, dtype=np.float64)
     for index, pair in enumerate(poses):
         quaternion_a = _scalar_first_quaternion(pair.pose_a)
         quaternion_b = signs[index] * _scalar_first_quaternion(pair.pose_b)
@@ -364,7 +364,7 @@ def _reconstructed_x_scalars(
     scaled_x: FloatArray,
     scaled_z: FloatArray,
 ) -> FloatArray:
-    values = np.empty(len(poses), dtype=np.float64)
+    values: FloatArray = np.empty(len(poses), dtype=np.float64)
     for index, pair in enumerate(poses):
         quaternion_a = _scalar_first_quaternion(pair.pose_a)
         quaternion_b = signs[index] * _scalar_first_quaternion(pair.pose_b)
@@ -383,7 +383,7 @@ def _solve_translations(
 ) -> _TranslationSolution:
     rows: list[FloatArray] = []
     rhs: list[FloatArray] = []
-    identity = np.eye(3, dtype=np.float64)
+    identity: FloatArray = np.eye(3, dtype=np.float64)
     for pair in poses:
         root_weight = math.sqrt(pair.weight)
         rotation_a = _rotation_matrix(pair.pose_a)
@@ -415,11 +415,11 @@ def _quaternion_signs(
     quaternions_b = np.vstack([_scalar_first_quaternion(pair.pose_b) for pair in poses])
     scores = (quaternions_a @ quaternions_a.T) * (quaternions_b @ quaternions_b.T)
     count = len(poses)
-    signs = np.ones(count, dtype=np.float64)
-    selected = np.zeros(count, dtype=np.bool_)
+    signs: FloatArray = np.ones(count, dtype=np.float64)
+    selected: NDArray[np.bool_] = np.zeros(count, dtype=np.bool_)
     selected[0] = True
     best_strength = np.abs(scores[0]).copy()
-    best_parent = np.zeros(count, dtype=np.int64)
+    best_parent: NDArray[np.int64] = np.zeros(count, dtype=np.int64)
     best_strength[0] = -1.0
     for _index in range(1, count):
         child = int(np.argmax(best_strength))

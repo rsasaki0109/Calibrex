@@ -6,6 +6,7 @@ from typing import Any
 import jsonschema
 import yaml
 
+from calibrex.calibration_ci import calibration_ci_json_schema
 from calibrex.core.assessment import assessment_json_schema
 from calibrex.core.benchmark import (
     benchmark_definition_json_schema,
@@ -18,13 +19,18 @@ from calibrex.core.evidence_bundle import (
     verify_evidence_bundle,
 )
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
+from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
 from calibrex.core.trajectory import trajectory_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.manifest import manifest_json_schema
+from calibrex.diagnostics import doctor_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
+from calibrex.evaluation.kitti_falsification_benchmark import (
+    kitti_falsification_json_schema,
+)
 from calibrex.evaluation.report_compare import (
     compare_reports,
     report_comparison_json_schema,
@@ -45,6 +51,10 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "protocol.schema.json": protocol_json_schema,
         "transforms.schema.json": transform_artifact_json_schema,
         "dataset_manifest.schema.json": manifest_json_schema,
+        "doctor.schema.json": doctor_json_schema,
+        "calibration_ci.schema.json": calibration_ci_json_schema,
+        "external_run.schema.json": external_run_json_schema,
+        "kitti_falsification.schema.json": kitti_falsification_json_schema,
         "evidence_bundle.schema.json": evidence_bundle_json_schema,
         "evidence_bundle_verification.schema.json": evidence_bundle_verification_json_schema,
         "online_timeline.schema.json": online_timeline_json_schema,

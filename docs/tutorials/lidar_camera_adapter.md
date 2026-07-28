@@ -1,9 +1,57 @@
-# Targetless LiDAR-Camera Adapter
+# External Calibration Adapters
+
+Calibrex records imported and externally executed calibration outputs in a
+shared `slac.external_calibration_run/v0.1` artifact. The contract captures
+tool/version/commit/license identity, the process or import boundary, bounded
+stdout/stderr digests, input/output digests, frame and time conventions,
+training-data isolation, typed outputs, warnings, and provenance. External
+fitness values are always marked non-comparable; Calibrex recomputes its own
+holdout and known-bad evidence after applying a candidate.
+
+Validate any such artifact with:
+
+```bash
+calibrex validate external-run.json --kind external-run
+```
+
+## Import a Kalibr camchain
+
+The importer reads a completed Kalibr camchain without importing Kalibr, ROS,
+or any Kalibr runtime dependency:
+
+```bash
+calibrex external-run import-kalibr camchain-imucam.yaml \
+  --output external-run.json \
+  --input-artifact recording.bag \
+  --tool-version 0.3.2 \
+  --source-commit <kalibr-commit> \
+  --training-isolation-declared
+```
+
+Repeat `--input-artifact` for every fitting input. Add
+`--expected-source-sha256` when an upstream pipeline supplies an expected
+camchain digest; a mismatch is materialized as `digest_mismatch`, not silently
+accepted.
+
+The importer preserves Kalibr's documented conventions:
+
+- `T_cam_imu` maps IMU coordinates into the camera;
+- `T_cn_cnm1` maps the previous camera into the current camera;
+- `timeshift_cam_imu` uses `t_imu = t_cam + timeshift_cam_imu`.
+
+See Kalibr's official
+[YAML format documentation](https://github.com/ethz-asl/kalibr/wiki/Yaml-formats)
+and [top-level license](https://github.com/ethz-asl/kalibr/blob/master/LICENSE).
+The default SPDX declaration is `BSD-4-Clause`; override it explicitly if the
+exact external distribution being recorded has a different audited license.
+
+## Koide-style targetless LiDAR-camera execution
 
 Calibrex treats Koide-style targetless LiDAR-camera calibration as an external
 baseline first. The core does not vendor external calibration code. It records
 adapter readiness, input streams, optional command availability, loaded
-transforms, and license boundary in `result.yaml`.
+transforms, and license boundary in `result.yaml`, and writes the typed
+`external-run.json` beside it.
 
 Enable the adapter from a pipeline factor:
 
@@ -146,10 +194,38 @@ The demo:
   calibration result;
 - writes `result.yaml`, `evidence.json`, `assessment.json`, `protocol.json`,
   `policy.json`, `transforms.json`, and `bundle.json`, and verifies the
-  bundle (KITTI raw does not yet populate per-frame raw-input-file hashes the
-  way the Livox pair demo does, so verification does not gate on raw
-  recomputation here).
+  selected camera, Velodyne, and calibration input SHA-256 digests with the
+  raw-recomputation gate enabled.
 
 A cached example result for report rendering without rerunning the pipeline is
 available at
 `examples/public_datasets/kitti_lidar_camera_evidence/cached_evidence_result.yaml`.
+
+## Full-scale KITTI falsification benchmark
+
+After downloading the official KITTI raw
+`2011_09_26_drive_0005_sync` sequence through KITTI's login-gated flow, run:
+
+```bash
+calibrex demo kitti-falsification-benchmark \
+  /data/2011_09_26/2011_09_26_drive_0005_sync \
+  --output-dir outputs/kitti_falsification \
+  --enforce
+```
+
+The default frozen protocol selects the first 50 time-matched frame pairs,
+samples 4,000 LiDAR points per frame, uses seed `20260729`, and evaluates two
+predeclared candidates: the dataset calibration and that calibration
+right-composed with +5° camera-frame yaw and +0.25 m camera-frame x. Both trials
+use the same config, holdout split, gates, and perturbation controls.
+
+Each trial materializes `result.yaml`, `evidence.json`, `policy.json`,
+`assessment.json`, `observability.json`, `protocol.json`, `transforms.json`,
+`bundle.json`, and `verification.json`. The top-level `benchmark.json` pins the
+selected frame IDs, source metadata, calibration/image/scan digests, candidates,
+trial artifact digests, and generation provenance.
+
+`--enforce` succeeds only if the dataset reference assessment is PASS, the
+declared known-bad assessment is FAIL, and both raw-recomputed bundles verify.
+Otherwise the frozen run remains a useful FAIL or INCONCLUSIVE result; do not
+retune gates after observing it.

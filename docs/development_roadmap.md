@@ -74,7 +74,8 @@ accuracy.
 | Planar-board line+plane | Native solver | Rotation/translation spectra and edge-angle gate | Synthetic/unit evidence; no CLI-wired public extractor | Research | Core Apache-2.0; extractor must remain an adapter |
 | Pandey mutual-information Camera-LiDAR | Native CLI backend | Frame holdout, 12 probes, objective curvature | Real A2D2 image/reflectivity run FAILs; inputs are already camera-registered and are not independent accuracy evidence | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Levinson-Thrun online edge Camera-LiDAR | Native CLI backend | Temporal holdout, online window diagnostics, curvature | Two-pair A2D2 run is WARN/INCONCLUSIVE | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
-| Koide-style direct visual-LiDAR | Executable/precomputed adapter | Input readiness, tool identity, result digest, common Camera-LiDAR evidence | Boundary is implemented; no maintained full-scale comparison result | Adapter | Upstream toolbox MIT; ROS/PCL/GTSAM/Ceres remain external |
+| Koide-style direct visual-LiDAR | Executable/precomputed adapter | Generic external-run artifact, input readiness, tool identity, result digest, common Camera-LiDAR evidence | Boundary is implemented; no maintained full-scale comparison result | Adapter | Upstream toolbox MIT; ROS/PCL/GTSAM/Ceres remain external |
+| Kalibr Camera-IMU/camera chain | YAML importer | Generic external-run artifact with transforms, intrinsics, time shifts, digests, conventions, and isolation declaration | Import boundary is implemented; no maintained Calibrex comparison result | Adapter | Top-level BSD-4-Clause; ROS/Kalibr runtime stays external |
 | Per-point Camera-LiDAR capture time | Native solver plus TIERS adapter | Disjoint capture holdout, six time controls, timing observability | Synthetic 17 ms recovery; TIERS real-data result INCONCLUSIVE | Experimental | Core Apache-2.0; TIERS dataset terms |
 | Anchored moving-platform time offset | Native online evidence | Injection controls, adapted/anchored comparison, separability row | TIERS shared-clock/injection evidence; absolute convention is not yet closed | Evidence only | Core Apache-2.0 |
 | LiDAR-IMU rotation consistency | Native evaluator | Angular-rate holdout, gravity support, per-axis excitation, bad-rotation probes | TIERS Indoor02 evidence; no translation/time native solve | Evidence only | Core Apache-2.0 |
@@ -90,9 +91,9 @@ accuracy.
 
 1. **Evidence scale:** Camera-LiDAR has several native methods but lacks a
    reproducible, raw, unregistered, full-scale public PASS/known-bad FAIL pair.
-2. **Common external execution:** `SolverAdapterResult` and the Koide-specific
-   execution path exist, but there is no schema-versioned external-run artifact
-   shared by Kalibr, Koide, iKalibr, RIs-Calib, Open3D, and NDT.
+2. **Common external execution adoption:** the schema-versioned external-run
+   artifact is implemented and proven by Koide and Kalibr. Remaining adapters
+   such as iKalibr, RIs-Calib, Open3D, and NDT should migrate incrementally.
 3. **Empirical uncertainty:** spectra and black-box curvature are carefully not
    called covariance, but results do not yet report empirically calibrated
    SE(3) intervals or coverage.
@@ -123,6 +124,25 @@ core.
 | [Uncertainty-aware online extrinsic calibration, 2025](https://arxiv.org/abs/2501.06878) | Conformal prediction intervals evaluated by coverage and width on KITTI and DSEC | Motivation for solver-neutral empirical coverage evidence | Implement statistical evidence independently; neural estimator is optional and external |
 
 ## Priority order
+
+### Adoption track — Calibration CI
+
+This track packages existing evidence capabilities into a low-friction public
+workflow without weakening the research priorities below:
+
+1. extend `calibrex doctor` into a schema-versioned environment and dataset
+   readiness artifact with path-based type inference, provisional quality
+   evidence, workflow suggestions, and provenance;
+2. publish a reusable GitHub Action that validates, compares, and assesses
+   calibration artifacts in pull requests;
+3. complete the generic external-run contract and prove it with Koide and
+   Kalibr producers;
+4. finish the full-scale KITTI falsification benchmark; and
+5. cut an installable release only after clean-wheel, schema-drift, and
+   quickstart checks pass.
+
+The adoption track reuses the core models and adapters. It must not add ROS,
+GPL, visualization-server, or external-solver dependencies to `src/calibrex`.
 
 ### P0 — Evidence and integration hardening
 
@@ -157,7 +177,7 @@ These are the committed next issues in order. Scope may be split into smaller
 PRs, but their acceptance conditions must not be weakened to force green
 results.
 
-### 1. Full-scale KITTI Camera-LiDAR falsification benchmark
+### 1. Full-scale KITTI Camera-LiDAR falsification benchmark — implemented
 
 **Outcome:** establish whether the existing Camera-LiDAR evidence has power on
 real, raw, unregistered data at useful scale.
@@ -179,12 +199,24 @@ real, raw, unregistered data at useful scale.
 - Add an opt-in integration test that runs when the official dataset is locally
   available, plus fixture tests for the missing-data path and artifact schemas.
 
-### 2. Schema-versioned generic external calibration run
+### 2. Schema-versioned generic external calibration run — implemented
 
 **Outcome:** replace one-off external provenance dictionaries with a reusable
 adapter artifact while keeping the core ROS-independent and GPL-free.
 
 **Acceptance conditions:**
+
+The runner, versioned decision artifact, frozen reference/known-bad candidates,
+SHA-bound selected inputs, raw-recomputed bundle verification, fixture failure
+test, and opt-in official-data integration test are implemented. An official
+run remains an empirical result: if the frozen gates cannot accept the
+reference and reject the known-bad candidate, the artifact records FAIL or
+INCONCLUSIVE without retuning.
+
+The v0.1 contract, Koide migration, Kalibr importer, independent-metric marker,
+failure-state tests, schema generation, and CLI validation are implemented.
+Further external adapters can adopt the same model without changing the wire
+schema.
 
 - Define a schema-valid external-run model containing tool/version/commit,
   SPDX license, adapter version, execution mode, command, container digest,

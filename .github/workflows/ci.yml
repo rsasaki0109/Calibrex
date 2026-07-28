@@ -20,7 +20,7 @@ jobs:
       - name: Schema generation
         run: |
           calibrex schema all --output-dir /tmp/calibrex-schemas
-          test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 20
+          test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 24
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \
@@ -55,3 +55,24 @@ jobs:
         run: python -m pip install -e ".[dev,opencv]"
       - name: Test OpenCV hand-eye conventions
         run: pytest tests/unit/test_opencv_hand_eye_adapters.py
+
+  calibration-action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise local Calibration CI action
+        id: calibration
+        uses: ./
+        with:
+          candidate: examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
+          baseline: examples/public_datasets/livox_horizon_horizon_pcd_sample/cached_evidence_result.yaml
+          enforce: "false"
+      - name: Verify action outputs
+        env:
+          CALIBRATION_STATUS: ${{ steps.calibration.outputs.status }}
+          CALIBRATION_ARTIFACT: ${{ steps.calibration.outputs.artifact }}
+          CALIBRATION_SUMMARY: ${{ steps.calibration.outputs.summary }}
+        run: |
+          test "${CALIBRATION_STATUS}" = "inconclusive"
+          test -f "${CALIBRATION_ARTIFACT}"
+          test -f "${CALIBRATION_SUMMARY}"

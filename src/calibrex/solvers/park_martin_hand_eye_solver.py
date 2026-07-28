@@ -179,7 +179,7 @@ def evaluate_hand_eye_motions(
 def _solve_rotation(
     motions: Sequence[HandEyeMotionPair], options: ParkMartinHandEyeOptions
 ) -> tuple[FloatArray | None, tuple[float, float, float], int]:
-    covariance = np.zeros((3, 3), dtype=np.float64)
+    covariance: FloatArray = np.zeros((3, 3), dtype=np.float64)
     beta_rows: list[FloatArray] = []
     for pair in motions:
         alpha = _rotation_vector(pair.motion_a)

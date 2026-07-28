@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
-import platform
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, NoReturn, cast
 
 from calibrex import __version__
+from calibrex.calibration_ci import (
+    calibration_ci_json_schema,
+    run_calibration_ci,
+)
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assess_evidence_file,
@@ -46,6 +48,7 @@ from calibrex.core.evidence_contract import (
     protocol_json_schema,
 )
 from calibrex.core.exceptions import BenchmarkError, CalibrexError
+from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
 from calibrex.core.online_timeline import online_timeline_json_schema
@@ -71,6 +74,10 @@ from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
+from calibrex.diagnostics import (
+    build_doctor_artifact,
+    doctor_json_schema,
+)
 from calibrex.evaluation.compare import (
     ComparisonSide,
     ResultComparison,
@@ -79,6 +86,10 @@ from calibrex.evaluation.compare import (
 )
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.evidence_summary import evidence_cases_from_result
+from calibrex.evaluation.kitti_falsification_benchmark import (
+    kitti_falsification_json_schema,
+    run_kitti_falsification_benchmark,
+)
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
@@ -94,6 +105,7 @@ from calibrex.evaluation.timing import timing_metrics_from_inspection
 from calibrex.export.autoware import export_autoware_yaml
 from calibrex.export.ros_tf import export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
+from calibrex.importers.kalibr import import_kalibr_camchain
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
 from calibrex.visualization.comparison_table import write_comparison_table
@@ -160,7 +172,34 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"Calibrex {__version__}")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    doctor = subcommands.add_parser("doctor", help="check local Calibrex environment")
+    doctor = subcommands.add_parser(
+        "doctor",
+        help="check the environment and optionally diagnose a dataset",
+    )
+    doctor.add_argument("path", type=Path, nargs="?")
+    doctor.add_argument(
+        "--type",
+        choices=[
+            "auto",
+            "a2d2-lidar",
+            "a2d2_lidar",
+            "filesystem",
+            "kitti-raw",
+            "kitti_raw",
+            "livox-pcd",
+            "livox_pcd",
+            "mcap",
+            "nuscenes",
+            "rosbag1",
+            "rosbag2",
+            "tum-rgbd",
+            "tum_rgbd",
+        ],
+        default="auto",
+        help="dataset type; defaults to path-based inference",
+    )
+    doctor.add_argument("--sample-limit", type=_positive_int)
+    doctor.add_argument("--output", type=Path, help="write a doctor YAML/JSON artifact")
     doctor.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     doctor.set_defaults(func=_cmd_doctor)
 
@@ -179,6 +218,10 @@ def _build_parser() -> argparse.ArgumentParser:
             "protocol",
             "transforms",
             "dataset-manifest",
+            "doctor",
+            "calibration-ci",
+            "external-run",
+            "kitti-falsification",
             "evidence-bundle",
             "evidence-bundle-verification",
             "online-timeline",
@@ -217,6 +260,31 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     benchmark.add_argument("--json", action="store_true", help="emit machine-readable summary")
     benchmark.set_defaults(func=_cmd_benchmark)
+
+    calibration_ci = subcommands.add_parser(
+        "ci",
+        help="validate and assess a calibration result for continuous integration",
+    )
+    calibration_ci.add_argument("candidate", type=Path)
+    calibration_ci.add_argument("--baseline", type=Path)
+    calibration_ci.add_argument("--policy", type=Path)
+    calibration_ci.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("calibrex-ci"),
+    )
+    calibration_ci.add_argument(
+        "--allow-incompatible-protocol",
+        action="store_true",
+        help="report protocol incompatibility without failing the CI decision",
+    )
+    calibration_ci.add_argument(
+        "--enforce",
+        action="store_true",
+        help="return non-zero unless the final CI status is pass",
+    )
+    calibration_ci.add_argument("--json", action="store_true")
+    calibration_ci.set_defaults(func=_cmd_calibration_ci)
 
     verify = subcommands.add_parser(
         "verify",
@@ -515,6 +583,39 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_demo.add_argument("--seed", type=int)
     kitti_demo.add_argument("--json", action="store_true")
     kitti_demo.set_defaults(func=_cmd_demo_kitti_lidar_camera_evidence)
+    kitti_benchmark = demo_subcommands.add_parser(
+        "kitti-falsification-benchmark",
+        help="run the pinned full-scale KITTI reference vs known-bad benchmark",
+    )
+    kitti_benchmark.add_argument("dataset_path", type=Path)
+    kitti_benchmark.add_argument(
+        "--config",
+        type=Path,
+        default=Path("examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml"),
+    )
+    kitti_benchmark.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/kitti_falsification_benchmark"),
+    )
+    kitti_benchmark.add_argument("--max-frames", type=_positive_int, default=50)
+    kitti_benchmark.add_argument("--projection-sample-points", type=_positive_int, default=4000)
+    kitti_benchmark.add_argument("--seed", type=int, default=20260729)
+    kitti_benchmark.add_argument(
+        "--source-url",
+        default="https://www.cvlibs.net/datasets/kitti/raw_data.php",
+    )
+    kitti_benchmark.add_argument(
+        "--source-note",
+        default="official KITTI raw download; user-supplied local copy",
+    )
+    kitti_benchmark.add_argument(
+        "--enforce",
+        action="store_true",
+        help="return non-zero unless reference PASSes and known-bad FAILs",
+    )
+    kitti_benchmark.add_argument("--json", action="store_true")
+    kitti_benchmark.set_defaults(func=_cmd_demo_kitti_falsification_benchmark)
 
     kitti = subcommands.add_parser("kitti", help="KITTI raw utilities")
     kitti_subcommands = kitti.add_subparsers(dest="kitti_command", required=True)
@@ -526,6 +627,40 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_import.add_argument("--output", type=Path)
     kitti_import.add_argument("--json", action="store_true")
     kitti_import.set_defaults(func=_cmd_kitti_import_calib)
+
+    external_run = subcommands.add_parser(
+        "external-run",
+        help="import or inspect external calibration run artifacts",
+    )
+    external_run_subcommands = external_run.add_subparsers(
+        dest="external_run_command",
+        required=True,
+    )
+    kalibr_import = external_run_subcommands.add_parser(
+        "import-kalibr",
+        help="import a Kalibr camchain YAML as a generic external-run artifact",
+    )
+    kalibr_import.add_argument("source", type=Path)
+    kalibr_import.add_argument("--output", type=Path, required=True)
+    kalibr_import.add_argument(
+        "--input-artifact",
+        type=Path,
+        action="append",
+        default=[],
+        help="digest-bound Kalibr fitting input; may be repeated",
+    )
+    kalibr_import.add_argument("--expected-source-sha256")
+    kalibr_import.add_argument("--tool-version")
+    kalibr_import.add_argument("--source-commit")
+    kalibr_import.add_argument(
+        "--license-spdx",
+        default="BSD-4-Clause",
+        help="SPDX ID for the imported tool, or 'unknown'",
+    )
+    kalibr_import.add_argument("--training-isolation-declared", action="store_true")
+    kalibr_import.add_argument("--training-isolation-evidence")
+    kalibr_import.add_argument("--json", action="store_true")
+    kalibr_import.set_defaults(func=_cmd_external_run_import_kalibr)
 
     visualize = subcommands.add_parser("visualize", help="render result visualizations")
     visualize.add_argument("result", type=Path)
@@ -581,30 +716,53 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
-    dependencies: dict[str, bool] = {
-        "pydantic": _has_module("pydantic"),
-        "yaml": _has_module("yaml"),
-        "jsonschema": _has_module("jsonschema"),
-        "mcap_optional": _has_module("mcap"),
-        "open3d_optional": _has_module("open3d"),
-    }
-    checks: dict[str, Any] = {
-        "calibrex_version": __version__,
-        "python": platform.python_version(),
-        "platform": platform.platform(),
-        "dependencies": dependencies,
-        "core_ros_independent": True,
-    }
+    explicit_type = None
+    if args.path is not None and args.type != "auto":
+        explicit_type = cast(DatasetType, str(args.type).replace("-", "_"))
+    artifact = build_doctor_artifact(
+        calibrex_version=__version__,
+        command=_doctor_command(args),
+        path=args.path,
+        dataset_type=explicit_type,
+        sample_limit=args.sample_limit,
+    )
+    payload = artifact.model_dump(mode="json")
+    if args.output is not None:
+        write_mapping(args.output, payload)
     if args.json:
-        print(json.dumps(checks, indent=2, sort_keys=True))
+        _emit(payload, as_json=True)
     else:
-        print(f"Calibrex {__version__}")
-        print(f"Python {checks['python']}")
-        for name, available in dependencies.items():
-            state = "ok" if available else "missing"
-            optional = " (optional)" if name.endswith("_optional") else ""
+        print(f"Calibrex {artifact.environment.calibrex_version}")
+        print(f"Python {artifact.environment.python}")
+        for name, dependency in artifact.environment.dependencies.items():
+            state = "ok" if dependency.available else "missing"
+            optional = " (optional)" if dependency.optional else ""
             print(f"{name}: {state}{optional}")
-    return 0
+        if artifact.dataset is not None:
+            print(f"Dataset: {artifact.dataset.dataset_type} ({artifact.status.upper()})")
+            print(f"  path: {artifact.dataset.path}")
+            if artifact.quality is not None:
+                print(f"  degeneracy: {artifact.quality.degeneracy.grade.upper()}")
+                for recommendation in artifact.quality.recommendations:
+                    print(f"  recommendation: {recommendation}")
+            for workflow in artifact.workflows:
+                print(f"  workflow: {workflow.workflow_id} ({workflow.status})")
+    return 1 if artifact.status == "fail" else 0
+
+
+def _doctor_command(args: argparse.Namespace) -> list[str]:
+    command = ["calibrex", "doctor"]
+    if args.path is not None:
+        command.append(str(args.path))
+    if args.type != "auto":
+        command.extend(["--type", str(args.type)])
+    if args.sample_limit is not None:
+        command.extend(["--sample-limit", str(args.sample_limit)])
+    if args.output is not None:
+        command.extend(["--output", str(args.output)])
+    if args.json:
+        command.append("--json")
+    return command
 
 
 def _cmd_schema(args: argparse.Namespace) -> int:
@@ -644,6 +802,10 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "protocol": protocol_json_schema,
         "transforms": transform_artifact_json_schema,
         "dataset-manifest": manifest_json_schema,
+        "doctor": doctor_json_schema,
+        "calibration-ci": calibration_ci_json_schema,
+        "external-run": external_run_json_schema,
+        "kitti-falsification": kitti_falsification_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,
         "online-timeline": online_timeline_json_schema,
@@ -697,6 +859,34 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
         payload["updated_markdown"] = updated_markdown
     _emit(payload, args.json)
     return 0
+
+
+def _cmd_calibration_ci(args: argparse.Namespace) -> int:
+    command = ["calibrex", "ci", str(args.candidate)]
+    if args.baseline is not None:
+        command.extend(["--baseline", str(args.baseline)])
+    if args.policy is not None:
+        command.extend(["--policy", str(args.policy)])
+    command.extend(["--output-dir", str(args.output_dir)])
+    if args.allow_incompatible_protocol:
+        command.append("--allow-incompatible-protocol")
+    if args.enforce:
+        command.append("--enforce")
+    if args.json:
+        command.append("--json")
+    artifact = run_calibration_ci(
+        args.candidate,
+        output_dir=args.output_dir,
+        calibrex_version=__version__,
+        command=command,
+        baseline_path=args.baseline,
+        policy_path=args.policy,
+        enforce_protocol=not args.allow_incompatible_protocol,
+    )
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    payload["ci_artifact"] = str(args.output_dir / "calibration-ci.json")
+    _emit(payload, args.json)
+    return 1 if args.enforce and artifact.status != "pass" else 0
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
@@ -1323,11 +1513,7 @@ def _cmd_demo_kitti_lidar_camera_evidence(args: argparse.Namespace) -> int:
     assessment_path = output_dir / "assessment.json"
     bundle_path = output_dir / "bundle.json"
     assessment = AssessmentArtifact.model_validate(read_mapping(assessment_path))
-    # Unlike the Livox pair demo, the KITTI raw pipeline does not yet populate
-    # per-frame raw input file hashes, so raw-recomputation cannot be gated on
-    # here; verification still checks that bundle artifacts are internally
-    # consistent and unmodified.
-    verification = verify_evidence_bundle(bundle_path, require_raw_recomputed=False)
+    verification = verify_evidence_bundle(bundle_path, require_raw_recomputed=True)
     verification_path = output_dir / "verification.json"
     verification = write_evidence_bundle_verification(
         verification_path,
@@ -1353,8 +1539,8 @@ def _cmd_demo_kitti_lidar_camera_evidence(args: argparse.Namespace) -> int:
             "camera-LiDAR metrics are diagnostic overlay evidence on the LiDAR "
             "candidate extrinsic, scored against the calib_velo_to_cam.txt "
             "dataset reference; this is not a standalone camera calibration. "
-            "Raw-recomputation input hashing is not yet implemented for KITTI "
-            "raw, so verification does not gate on it here."
+            "Selected camera, Velodyne, and calibration inputs are SHA-256 "
+            "bound and raw-recomputation verification is enforced."
         ),
     }
     _emit(payload, args.json)
@@ -1399,6 +1585,73 @@ def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:
     elif not args.output:
         _emit(payload, as_json=False)
     return 0
+
+
+def _cmd_demo_kitti_falsification_benchmark(args: argparse.Namespace) -> int:
+    try:
+        benchmark = run_kitti_falsification_benchmark(
+            args.dataset_path,
+            config_path=args.config,
+            output_dir=args.output_dir,
+            max_frames=args.max_frames,
+            projection_sample_points=args.projection_sample_points,
+            seed=args.seed,
+            source_url=args.source_url,
+            source_note=args.source_note,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        _die(str(exc))
+    payload = {
+        "status": benchmark.status,
+        "reason": benchmark.reason,
+        "benchmark": str(Path(args.output_dir) / "benchmark.json"),
+        "dataset": benchmark.dataset_path,
+        "selected_frame_count": len(benchmark.selected_frame_ids),
+        "trials": {
+            trial.candidate_id: {
+                "assessment_status": trial.assessment_status,
+                "bundle_valid": trial.bundle_valid,
+            }
+            for trial in benchmark.trials
+        },
+    }
+    _emit(payload, args.json)
+    return 1 if args.enforce and benchmark.status != "pass" else 0
+
+
+def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
+    if args.source.resolve() == args.output.resolve():
+        _die("external-run output must not overwrite the Kalibr source artifact")
+    license_spdx = (
+        None
+        if str(args.license_spdx).strip().lower() == "unknown"
+        else str(args.license_spdx).strip()
+    )
+    artifact = import_kalibr_camchain(
+        args.source,
+        input_artifacts=tuple(args.input_artifact),
+        expected_source_sha256=args.expected_source_sha256,
+        tool_version=args.tool_version,
+        source_commit=args.source_commit,
+        license_spdx=license_spdx,
+        training_isolation_declared=args.training_isolation_declared,
+        training_isolation_evidence=args.training_isolation_evidence,
+    )
+    artifact.save(args.output)
+    _emit(
+        {
+            "status": artifact.status,
+            "external_run": str(args.output),
+            "source": str(args.source),
+            "source_sha256": artifact.provenance.source_artifact_sha256,
+            "transform_count": len(artifact.parsed_outputs.transforms),
+            "time_offset_count": len(artifact.parsed_outputs.time_offsets_seconds),
+            "camera_count": len(artifact.parsed_outputs.intrinsics),
+            "warnings": artifact.warnings,
+        },
+        args.json,
+    )
+    return 0 if artifact.status == "success" else 1
 
 
 def _cmd_visualize(args: argparse.Namespace) -> int:
@@ -1910,10 +2163,6 @@ def _format_value(value: object) -> str:
     if isinstance(value, list | tuple):
         return "[" + ", ".join(_format_value(item) for item in value) + "]"
     return str(value)
-
-
-def _has_module(name: str) -> bool:
-    return importlib.util.find_spec(name) is not None
 
 
 def _die(message: str) -> NoReturn:

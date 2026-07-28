@@ -64,7 +64,7 @@ def evaluate_numerical_curvature(
     if any(step <= 0.0 for step in increments) or rank_tolerance <= 0.0:
         raise ValueError("curvature steps and rank_tolerance must be positive")
     dimension = len(point)
-    hessian = np.zeros((dimension, dimension), dtype=float)
+    hessian: NDArray[np.float64] = np.zeros((dimension, dimension), dtype=float)
     center_value = _finite_objective(objective, point)
     evaluation_count = 1
     for index, step in enumerate(increments):
