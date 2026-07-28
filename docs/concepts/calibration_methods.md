@@ -12,6 +12,7 @@ holdout evaluation, and known-bad controls.
 | Native fixed-trajectory LiDAR point-to-plane | LiDAR extrinsic refinement | Implemented | voxel-plane holdout and 6-DoF controls |
 | Online motion-compensated LiDAR point-to-plane | Streaming LiDAR extrinsic refinement | Implemented | rolling holdout and adoption gates |
 | Open3D RGB-D SLAC | External RGB-D trajectory/calibration adapter | Adapter boundary | Calibrex result/report metrics |
+| OpenCV hand-eye / robot-world | External Tsai, Park, Horaud, Andreff, Daniilidis, Shah, and Li implementations | Apache-2.0 optional adapter | shared absolute-pose split and Calibrex holdout closure |
 | Koide-style direct LiDAR-camera | External targetless baseline | Adapter boundary | projection, edge, depth-edge, and controls |
 | Per-point Camera-LiDAR capture time | Asynchronous projection/deskew and scalar clock-offset evidence | Native solver + public adapter | 17 ms synthetic truth, disjoint capture holdout, six time controls, TIERS real-data INCONCLUSIVE |
 | Radar Doppler candidate consistency | Radar yaw evidence | Implemented | frame holdout, four yaw controls, sensor policy |

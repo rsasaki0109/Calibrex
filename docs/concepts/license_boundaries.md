@@ -62,7 +62,13 @@ Optional integrations should use extras, adapters, or user-installed tools:
 
 ```bash
 pip install -e ".[dev,open3d]"
+pip install -e ".[dev,opencv]"
 ```
+
+The OpenCV hand-eye comparison uses `opencv-python-headless` through a runtime
+import. OpenCV code is not copied into `src/calibrex`; the adapter records the
+installed version, upstream source, Apache-2.0 license, input transform
+directions, and whether external code executed.
 
 Default installation should remain small and portable. ROS, Autoware, proprietary
 SDKs, GPU models, and GPL tools should not be required for `calibrex doctor`,

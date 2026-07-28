@@ -84,27 +84,52 @@ calibrex demo livox-evidence \
   <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
 </p>
 
-## Public real-data benchmark
+## Public real-data benchmarks
 
-On the [ETHZ ASL real robot-arm dataset](https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/),
-Calibrex's nonlinear `AX=YB` refinement records the **lowest translation
-holdout error** among five methods evaluated with the same 80/20 split.
+Calibrex evaluates all 13 native hand-eye methods and seven OpenCV 4 variants
+on the [ETHZ ASL real robot-arm dataset](https://projects.asl.ethz.ch/datasets/hand-eye-calibration-2017/).
+Every method sees the same five digest-locked absolute-pose splits. `AX=XB` and
+`AX=YB` are separate equation families and are never ranked together.
 
-<!-- calibrex-benchmark:ethz-real-robot-world-hand-eye-2026-07-28:start -->
-| Method | Rotation holdout RMSE deg ↓ | Translation holdout RMSE mm ↓ | Known-bad detection fraction ↑ | Failure rate | Runtime s |
-|---|---:|---:|---:|---:|---:|
-| Shah | **0.585795** | 10.0628 | **1** | 0.0% | — |
-| Li-Wang-Wu | 0.58728 | 17.458 | **1** | 0.0% | — |
-| Dornaika-Horaud | 0.585795 | 10.0628 | **1** | 0.0% | — |
-| Zhuang-Roth-Sudhakar | 0.590747 | 10.132 | **1** | 0.0% | — |
-| Calibrex nonlinear refinement | 0.58721 | **10.0394** | **1** | 0.0% | — |
-<!-- calibrex-benchmark:ethz-real-robot-world-hand-eye-2026-07-28:end -->
+### Hand-eye `AX=XB`
 
-This is a scoped result, not a blanket accuracy claim: Shah is marginally
-best on rotation, and the dataset does not provide ground-truth extrinsics for
-this run. The values are closure RMSE on 338 held-out pose pairs after fitting
-1,350 pairs. See the [full protocol, citations, and reproducible
-provenance](docs/benchmarks/ethz_robot_world_hand_eye.md).
+<!-- calibrex-benchmark:ethz-real-hand-eye-ax-xb-multiseed-2026-07-28:start -->
+| Method | Holdout rotation RMSE deg ↓ | Holdout translation RMSE mm ↓ | Failure rate | Runtime s |
+|---|---:|---:|---:|---:|
+| Calibrex Park-Martin | 0.867227 [0.759962, 0.958155] | 13.8759 [11.7678, 15.8266] | 0.0% | 0.153451 |
+| Calibrex Tsai-Lenz | 0.875291 [0.77004, 0.967317] | 13.8652 [11.7326, 15.8293] | 0.0% | 0.126921 |
+| Calibrex Daniilidis | 0.868969 [0.761845, 0.960775] | **13.8212 [11.9121, 15.6887]** | 0.0% | 0.322403 |
+| Calibrex Andreff | **0.867199 [0.759958, 0.958223]** | 13.879 [11.7674, 15.8309] | 0.0% | 0.334728 |
+| Calibrex Shiu-Ahmad | 1.6191 [0.787831, 3.10277] | 31.9219 [12.7334, 52.761] | 0.0% | 14.1537 |
+| Calibrex Chou-Kamel | 0.867205 [0.759953, 0.958241] | 13.8795 [11.7684, 15.8315] | 0.0% | 0.129661 |
+| Calibrex Horaud-Dornaika | 0.890804 [0.782116, 0.996268] | 14.1434 [11.8641, 16.1088] | 0.0% | 0.139859 |
+| Calibrex H-D nonlinear | 0.885789 [0.777979, 0.991045] | 14.0634 [11.8408, 16.0027] | 0.0% | 19.4512 |
+| OpenCV Tsai | 0.871872 [0.769051, 0.961725] | 13.8681 [11.8255, 15.6992] | 0.0% | 0.0368567 |
+| OpenCV Park | 0.867225 [0.759969, 0.958144] | 13.8754 [11.7667, 15.8261] | 0.0% | 0.0280751 |
+| OpenCV Horaud | 0.867203 [0.759961, 0.958229] | 13.879 [11.7674, 15.831] | 0.0% | 0.0248639 |
+| OpenCV Andreff | 0.868623 [0.763653, 0.959819] | 15.4855 [13.6068, 17.338] | 0.0% | 0.0327896 |
+| OpenCV Daniilidis | 0.871005 [0.764385, 0.963618] | 13.9265 [11.9635, 15.6961] | 0.0% | 0.0284915 |
+<!-- calibrex-benchmark:ethz-real-hand-eye-ax-xb-multiseed-2026-07-28:end -->
+
+### Robot-world hand-eye `AX=YB`
+
+<!-- calibrex-benchmark:ethz-real-robot-world-hand-eye-ax-yb-multiseed-2026-07-28:start -->
+| Method | Holdout rotation RMSE deg ↓ | Holdout translation RMSE mm ↓ | Failure rate | Runtime s |
+|---|---:|---:|---:|---:|
+| Calibrex Shah | 0.624739 [0.559308, 0.688861] | 10.7793 [9.53397, 11.9952] | 0.0% | 0.0206115 |
+| Calibrex Li-Wang-Wu | 0.627131 [0.561467, 0.692796] | 19.651 [15.2668, 23.3423] | 0.0% | 0.0321106 |
+| Calibrex Dornaika-Horaud | 0.624742 [0.559311, 0.688865] | 10.7793 [9.53399, 11.9952] | 0.0% | 0.0286939 |
+| Calibrex Zhuang-Roth-Sudhakar | 0.651861 [0.569557, 0.733996] | 10.961 [9.65144, 12.1956] | 0.0% | 0.0213057 |
+| Calibrex D-H nonlinear | 0.6265 [0.560987, 0.692012] | **10.7752 [9.52577, 12.0161]** | 0.0% | 0.217955 |
+| OpenCV Shah | **0.624739 [0.559308, 0.688861]** | 10.7793 [9.53397, 11.9952] | 0.0% | 0.00343018 |
+| OpenCV Li | 0.627131 [0.561467, 0.692796] | 19.651 [15.2668, 23.3423] | 0.0% | 0.00570322 |
+<!-- calibrex-benchmark:ethz-real-robot-world-hand-eye-ax-yb-multiseed-2026-07-28:end -->
+
+These are scoped consistency results, not blanket accuracy claims: the archive
+does not provide an accepted ground-truth extrinsic. The tables report closure
+RMSE on untouched holdout poses, retain failures in the denominator, and show
+95% bootstrap intervals across splits. See the [full protocol, citations,
+limitations, and reproducible provenance](docs/benchmarks/ethz_hand_eye_opencv.md).
 
 <details>
 <summary><b>What is implemented in the current alpha?</b></summary>

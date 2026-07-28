@@ -1,0 +1,2534 @@
+{
+  "benchmark_id": "ethz-real-hand-eye-ax-xb-multiseed-2026-07-28",
+  "bootstrap_samples": 5000,
+  "bootstrap_seed": 20260728,
+  "limitations": [
+    "The dataset has no accepted ground-truth extrinsic; closure is consistency, not absolute accuracy.",
+    "Pairwise relative motions share absolute poses and therefore are not independent samples.",
+    "Runtime is single-process wall time on the recorded host; Python peak memory excludes native allocator visibility."
+  ],
+  "method_summaries": {
+    "andreff": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9924186201797499,
+            "mean": 0.8671986592685735,
+            "mean_ci95_high": 0.9582234160521297,
+            "mean_ci95_low": 0.7599578096575114,
+            "median": 0.8888235494400315,
+            "minimum": 0.6725189607822353,
+            "standard_deviation": 0.11343255945931904
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 1
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016722710521377637,
+            "mean": 0.01387900043683327,
+            "mean_ci95_high": 0.01583089865376302,
+            "mean_ci95_low": 0.011767350268200225,
+            "median": 0.013705687601686355,
+            "minimum": 0.009935073639949386,
+            "standard_deviation": 0.002318100002271354
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 6
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.2709484100341797,
+        "mean": 0.1942272186279297,
+        "mean_ci95_high": 0.24439048767089844,
+        "mean_ci95_low": 0.1455242156982422,
+        "median": 0.1455516815185547,
+        "minimum": 0.1455059051513672,
+        "standard_deviation": 0.05968838368224787
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.3419996160082519,
+        "mean": 0.3347275831270963,
+        "mean_ci95_high": 0.3395913927350193,
+        "mean_ci95_low": 0.32949848668649795,
+        "median": 0.33739333995617926,
+        "minimum": 0.3247650268021971,
+        "standard_deviation": 0.00607184214877176
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "chou_kamel": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "chou_kamel",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9924606995579747,
+            "mean": 0.867205175434056,
+            "mean_ci95_high": 0.9582406001180127,
+            "mean_ci95_low": 0.7599525104373666,
+            "median": 0.8888237156074767,
+            "minimum": 0.6725105450910019,
+            "standard_deviation": 0.11344503208316732
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 3
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016722635131784392,
+            "mean": 0.013879451707322221,
+            "mean_ci95_high": 0.01583148409439164,
+            "mean_ci95_low": 0.011768372334634642,
+            "median": 0.013705792084013986,
+            "minimum": 0.009936515176180246,
+            "standard_deviation": 0.002317700059973753
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 8
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.6155776977539062,
+        "mean": 0.6122207641601562,
+        "mean_ci95_high": 0.6141464233398437,
+        "mean_ci95_low": 0.61053466796875,
+        "median": 0.6119537353515625,
+        "minimum": 0.6095733642578125,
+        "standard_deviation": 0.002068334345175324
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.1331651529762894,
+        "mean": 0.1296613495796919,
+        "mean_ci95_high": 0.13203249075450002,
+        "mean_ci95_low": 0.12650150982663036,
+        "median": 0.13071097689680755,
+        "minimum": 0.12366098607890308,
+        "standard_deviation": 0.0031873895472156366
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "daniilidis": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 1.0064226561130123,
+            "mean": 0.8689692805030231,
+            "mean_ci95_high": 0.9607752487446832,
+            "mean_ci95_low": 0.7618445549774472,
+            "median": 0.8844211839666472,
+            "minimum": 0.6776101062258896,
+            "standard_deviation": 0.11398960292494242
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 7
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016707578048616303,
+            "mean": 0.013821176846996058,
+            "mean_ci95_high": 0.01568867879782255,
+            "mean_ci95_low": 0.01191207379068156,
+            "median": 0.013368669969859125,
+            "minimum": 0.010265366368451467,
+            "standard_deviation": 0.0021918876400420723
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.9962692260742188,
+        "mean": 0.9906906127929688,
+        "mean_ci95_high": 0.9938858032226563,
+        "mean_ci95_low": 0.9878936767578125,
+        "median": 0.990264892578125,
+        "minimum": 0.986297607421875,
+        "standard_deviation": 0.0034334153865710733
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.33319571521133184,
+        "mean": 0.3224027870688587,
+        "mean_ci95_high": 0.32810189938172696,
+        "mean_ci95_low": 0.3170347514562309,
+        "median": 0.3206591329071671,
+        "minimum": 0.3135073350276798,
+        "standard_deviation": 0.006480720884244726
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "horaud_dornaika": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "horaud_dornaika",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 1.0547931794914704,
+            "mean": 0.890804089049527,
+            "mean_ci95_high": 0.9962681928990775,
+            "mean_ci95_low": 0.7821156224529647,
+            "median": 0.8930122628556795,
+            "minimum": 0.7024038870587982,
+            "standard_deviation": 0.12485102018437629
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 12
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016754952706071486,
+            "mean": 0.014143415715158241,
+            "mean_ci95_high": 0.01610881185996465,
+            "mean_ci95_low": 0.011864106180748412,
+            "median": 0.014235743353769852,
+            "minimum": 0.009797074193896095,
+            "standard_deviation": 0.0024973615432369025
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 11
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.4352149963378906,
+        "mean": 0.4329811096191406,
+        "mean_ci95_high": 0.43427505493164065,
+        "mean_ci95_low": 0.4318504333496094,
+        "median": 0.4327507019042969,
+        "minimum": 0.4312095642089844,
+        "standard_deviation": 0.001383219117656859
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.14537208108231425,
+        "mean": 0.13985860804095865,
+        "mean_ci95_high": 0.14427321385592223,
+        "mean_ci95_low": 0.13544400222599506,
+        "median": 0.1408401490189135,
+        "minimum": 0.1338509579654783,
+        "standard_deviation": 0.004964751526078599
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "horaud_dornaika_nonlinear": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "horaud_dornaika_nonlinear",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 1.0532862823190579,
+            "mean": 0.8857887402460811,
+            "mean_ci95_high": 0.991044965249143,
+            "mean_ci95_low": 0.7779792482149412,
+            "median": 0.8818508161356073,
+            "minimum": 0.6984406234871993,
+            "standard_deviation": 0.12457658142811773
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 11
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016717561919393602,
+            "mean": 0.01406337347257253,
+            "mean_ci95_high": 0.0160026537689389,
+            "mean_ci95_low": 0.01184083879988909,
+            "median": 0.01397735245986392,
+            "minimum": 0.009791120507920163,
+            "standard_deviation": 0.0024735623890750984
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 10
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.61053466796875,
+        "mean": 0.6075408935546875,
+        "mean_ci95_high": 0.6094253540039063,
+        "mean_ci95_low": 0.6057998657226562,
+        "median": 0.6068496704101562,
+        "minimum": 0.60479736328125,
+        "standard_deviation": 0.0020721334420632977
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 20.2281295589637,
+        "mean": 19.451187035581096,
+        "mean_ci95_high": 20.043947930959984,
+        "mean_ci95_low": 18.763642651587723,
+        "median": 19.39969898108393,
+        "minimum": 18.092755659949034,
+        "standard_deviation": 0.765450964235717
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "opencv_andreff": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "opencv_andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 1.000427317028479,
+            "mean": 0.8686232157386113,
+            "mean_ci95_high": 0.9598186546783094,
+            "mean_ci95_low": 0.7636526767553413,
+            "median": 0.8840491673606529,
+            "minimum": 0.6798118947363906,
+            "standard_deviation": 0.11250413475190968
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 6
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.017862405230545126,
+            "mean": 0.015485503439822437,
+            "mean_ci95_high": 0.017337960902686633,
+            "mean_ci95_low": 0.013606810977674836,
+            "median": 0.01563370858050372,
+            "minimum": 0.012306061929917834,
+            "standard_deviation": 0.0021613094743954116
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 12
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.0395355224609375,
+        "mean": 0.03944854736328125,
+        "mean_ci95_high": 0.03950042724609375,
+        "mean_ci95_low": 0.03939666748046875,
+        "median": 0.03945159912109375,
+        "minimum": 0.03936004638671875,
+        "standard_deviation": 6.152906846208481e-05
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.03939306712709367,
+        "mean": 0.032789649860933426,
+        "mean_ci95_high": 0.03693022970110178,
+        "mean_ci95_low": 0.028898505261167884,
+        "median": 0.02977656596340239,
+        "minimum": 0.02830666908994317,
+        "standard_deviation": 0.004651926925634148
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "opencv_daniilidis": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "opencv_daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 1.007567485593428,
+            "mean": 0.8710051473615511,
+            "mean_ci95_high": 0.9636178063386591,
+            "mean_ci95_low": 0.7643851856516428,
+            "median": 0.8816144123371996,
+            "minimum": 0.6780410446905429,
+            "standard_deviation": 0.11485773446804305
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 8
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016721324834627023,
+            "mean": 0.013926483860877437,
+            "mean_ci95_high": 0.01569607613390507,
+            "mean_ci95_low": 0.011963488643698405,
+            "median": 0.013720330654426403,
+            "minimum": 0.010313339701579136,
+            "standard_deviation": 0.002165059407909615
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 9
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.03952789306640625,
+        "mean": 0.03944091796875,
+        "mean_ci95_high": 0.0394927978515625,
+        "mean_ci95_low": 0.0393890380859375,
+        "median": 0.0394439697265625,
+        "minimum": 0.0393524169921875,
+        "standard_deviation": 6.152906846208481e-05
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.03249631100334227,
+        "mean": 0.028491489589214325,
+        "mean_ci95_high": 0.030549133801832794,
+        "mean_ci95_low": 0.027068595634773374,
+        "median": 0.02738679596222937,
+        "minimum": 0.02666048612445593,
+        "standard_deviation": 0.0020976413442949666
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "opencv_horaud": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "opencv_horaud",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9924325129974791,
+            "mean": 0.8672025479561027,
+            "mean_ci95_high": 0.9582290996945486,
+            "mean_ci95_low": 0.7599605474505176,
+            "median": 0.8888243504380957,
+            "minimum": 0.6725234304538247,
+            "standard_deviation": 0.11343408154242746
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 2
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016722710805415486,
+            "mean": 0.013879027916167885,
+            "mean_ci95_high": 0.015830985351251887,
+            "mean_ci95_low": 0.011767350148659955,
+            "median": 0.013705747407682215,
+            "minimum": 0.009935034687779022,
+            "standard_deviation": 0.0023181282748828713
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 7
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.03954315185546875,
+        "mean": 0.03945770263671875,
+        "mean_ci95_high": 0.039508056640625,
+        "mean_ci95_low": 0.0394073486328125,
+        "median": 0.039459228515625,
+        "minimum": 0.03937530517578125,
+        "standard_deviation": 5.9372181574535274e-05
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.02767097088508308,
+        "mean": 0.02486391137354076,
+        "mean_ci95_high": 0.026386074954643846,
+        "mean_ci95_low": 0.023346700938418508,
+        "median": 0.024458731058984995,
+        "minimum": 0.022134858882054687,
+        "standard_deviation": 0.0018420252966426626
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "opencv_park": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "opencv_park",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9921875199089311,
+            "mean": 0.8672246073264265,
+            "mean_ci95_high": 0.9581437085854763,
+            "mean_ci95_low": 0.7599693426342646,
+            "median": 0.8886981441707138,
+            "minimum": 0.6723046703094174,
+            "standard_deviation": 0.11341930909143057
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 4
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016722643810363154,
+            "mean": 0.013875431914895103,
+            "mean_ci95_high": 0.015826128446573003,
+            "mean_ci95_low": 0.01176673874241856,
+            "median": 0.013694449458794682,
+            "minimum": 0.009936813703387557,
+            "standard_deviation": 0.0023168684953572896
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 4
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.03955078125,
+        "mean": 0.03946685791015625,
+        "mean_ci95_high": 0.0395172119140625,
+        "mean_ci95_low": 0.03941497802734375,
+        "median": 0.03946685791015625,
+        "minimum": 0.0393829345703125,
+        "standard_deviation": 6.046024400683273e-05
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.03753866394981742,
+        "mean": 0.028075111750513315,
+        "mean_ci95_high": 0.03295869175344705,
+        "mean_ci95_low": 0.024980422109365463,
+        "median": 0.025803667027503252,
+        "minimum": 0.02469346090219915,
+        "standard_deviation": 0.004834614151739492
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "opencv_tsai": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "opencv_tsai",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9854988113078332,
+            "mean": 0.8718718779073132,
+            "mean_ci95_high": 0.9617246291223344,
+            "mean_ci95_low": 0.7690514970090091,
+            "median": 0.8871056629955836,
+            "minimum": 0.6792512849059482,
+            "standard_deviation": 0.11180815965234439
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 9
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.01676570213088912,
+            "mean": 0.013868080583301906,
+            "mean_ci95_high": 0.015699183143615937,
+            "mean_ci95_low": 0.011825549306255994,
+            "median": 0.013644924054511813,
+            "minimum": 0.010098984900085681,
+            "standard_deviation": 0.002250351908828428
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 3
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 1.283595085144043,
+        "mean": 0.28828182220458987,
+        "mean_ci95_high": 0.7859392166137695,
+        "mean_ci95_low": 0.039422607421875,
+        "median": 0.0394744873046875,
+        "minimum": 0.03939056396484375,
+        "standard_deviation": 0.4976566333733075
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.08609357988461852,
+        "mean": 0.036856678780168295,
+        "mean_ci95_high": 0.06148408353328705,
+        "mean_ci95_low": 0.023965551005676388,
+        "median": 0.02506419108249247,
+        "minimum": 0.023395837051793933,
+        "standard_deviation": 0.02463201336056454
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "park_martin": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "park_martin",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9922144482790227,
+            "mean": 0.8672271149217015,
+            "mean_ci95_high": 0.9581547184354273,
+            "mean_ci95_low": 0.7599616475080122,
+            "median": 0.8886975608908042,
+            "minimum": 0.6722923360506907,
+            "standard_deviation": 0.1134297834623932
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 5
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016722569155049286,
+            "mean": 0.013875853527607701,
+            "mean_ci95_high": 0.015826620295460093,
+            "mean_ci95_low": 0.011767757532479675,
+            "median": 0.01369449464663831,
+            "minimum": 0.009938291913023733,
+            "standard_deviation": 0.002316440292538355
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 5
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.4352903366088867,
+        "mean": 0.4333322525024414,
+        "mean_ci95_high": 0.43473262786865235,
+        "mean_ci95_low": 0.4319318771362305,
+        "median": 0.43285655975341797,
+        "minimum": 0.43126964569091797,
+        "standard_deviation": 0.001607904445488615
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.168468952877447,
+        "mean": 0.1534510667901486,
+        "mean_ci95_high": 0.1620569043327123,
+        "mean_ci95_low": 0.14568436816334723,
+        "median": 0.1535345681477338,
+        "minimum": 0.14037414989434183,
+        "standard_deviation": 0.008967891366075266
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "shiu_ahmad": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "shiu_ahmad",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 4.549779087869906,
+            "mean": 1.6191010612275476,
+            "mean_ci95_high": 3.1027733851260875,
+            "mean_ci95_low": 0.7878306948902587,
+            "median": 0.9425893713989734,
+            "minimum": 0.668008313791217,
+            "standard_deviation": 1.4699852149303088
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 13
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.06489265909830266,
+            "mean": 0.031921897505234956,
+            "mean_ci95_high": 0.05276102424920183,
+            "mean_ci95_low": 0.012733353507349518,
+            "median": 0.014906073075240753,
+            "minimum": 0.010683611401530237,
+            "standard_deviation": 0.023291546909605203
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 13
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.14797592163085938,
+        "mean": 0.07760391235351563,
+        "mean_ci95_high": 0.11406707763671875,
+        "mean_ci95_low": 0.056679916381835935,
+        "median": 0.05696678161621094,
+        "minimum": 0.05654716491699219,
+        "standard_deviation": 0.03555198799849123
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 14.741421296959743,
+        "mean": 14.153749924199655,
+        "mean_ci95_high": 14.508371362183244,
+        "mean_ci95_low": 13.853157918853686,
+        "median": 13.902795823989436,
+        "minimum": 13.806939580012113,
+        "standard_deviation": 0.37155019768626035
+      },
+      "success_count": 5,
+      "trial_count": 5
+    },
+    "tsai_lenz": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "tsai_lenz",
+      "metrics": {
+        "rotation_closure_rmse_deg": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.9990839706593505,
+            "mean": 0.8752908056620295,
+            "mean_ci95_high": 0.9673165289589513,
+            "mean_ci95_low": 0.7700396850825285,
+            "median": 0.8881206038369566,
+            "minimum": 0.6804744857994012,
+            "standard_deviation": 0.11414886385367741
+          },
+          "metric": "rotation_closure_rmse_deg",
+          "rank": 10
+        },
+        "translation_closure_rmse_m": {
+          "distribution": {
+            "count": 5,
+            "maximum": 0.016769263474323875,
+            "mean": 0.013865241540503597,
+            "mean_ci95_high": 0.015829284389521206,
+            "mean_ci95_low": 0.011732560447507506,
+            "median": 0.013653819714655823,
+            "minimum": 0.00987983886199962,
+            "standard_deviation": 0.0023469722831090255
+          },
+          "metric": "translation_closure_rmse_m",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 5,
+        "maximum": 0.4351844787597656,
+        "mean": 0.4329383850097656,
+        "mean_ci95_high": 0.43422927856445315,
+        "mean_ci95_low": 0.4318077087402344,
+        "median": 0.4327507019042969,
+        "minimum": 0.4311637878417969,
+        "standard_deviation": 0.0013858189820294704
+      },
+      "runtime_seconds": {
+        "count": 5,
+        "maximum": 0.1314947281498462,
+        "mean": 0.12692092903889715,
+        "mean_ci95_high": 0.12950858408585192,
+        "mean_ci95_low": 0.1244823063723743,
+        "median": 0.1272024589125067,
+        "minimum": 0.12257894594222307,
+        "standard_deviation": 0.0028736435689799018
+      },
+      "success_count": 5,
+      "trial_count": 5
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Park-Martin",
+      "license_spdx": "Apache-2.0",
+      "method_id": "park_martin",
+      "paper_doi": "10.1109/70.326576",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Tsai-Lenz",
+      "license_spdx": "Apache-2.0",
+      "method_id": "tsai_lenz",
+      "paper_doi": "10.1109/70.34770",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Daniilidis",
+      "license_spdx": "Apache-2.0",
+      "method_id": "daniilidis",
+      "paper_doi": "10.1177/027836499801700107",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Andreff",
+      "license_spdx": "Apache-2.0",
+      "method_id": "andreff",
+      "paper_doi": "10.1023/A:1008192712159",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Shiu-Ahmad",
+      "license_spdx": "Apache-2.0",
+      "method_id": "shiu_ahmad",
+      "paper_doi": "10.1109/70.88052",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Chou-Kamel",
+      "license_spdx": "Apache-2.0",
+      "method_id": "chou_kamel",
+      "paper_doi": "10.1109/70.313098",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex Horaud-Dornaika",
+      "license_spdx": "Apache-2.0",
+      "method_id": "horaud_dornaika",
+      "paper_doi": "10.1177/027836499501400301",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Calibrex H-D nonlinear",
+      "license_spdx": "Apache-2.0",
+      "method_id": "horaud_dornaika_nonlinear",
+      "paper_doi": "10.1177/027836499501400301",
+      "source_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+      "tool_name": "calibrex"
+    },
+    {
+      "adapter_version": "opencv-hand-eye/v0.1",
+      "implementation": "adapter",
+      "label": "OpenCV Tsai",
+      "license_spdx": "Apache-2.0",
+      "method_id": "opencv_tsai",
+      "paper_doi": "10.1109/70.34770",
+      "tool_name": "opencv",
+      "tool_version": "4.13.0.92"
+    },
+    {
+      "adapter_version": "opencv-hand-eye/v0.1",
+      "implementation": "adapter",
+      "label": "OpenCV Park",
+      "license_spdx": "Apache-2.0",
+      "method_id": "opencv_park",
+      "paper_doi": "10.1109/70.326576",
+      "tool_name": "opencv",
+      "tool_version": "4.13.0.92"
+    },
+    {
+      "adapter_version": "opencv-hand-eye/v0.1",
+      "implementation": "adapter",
+      "label": "OpenCV Horaud",
+      "license_spdx": "Apache-2.0",
+      "method_id": "opencv_horaud",
+      "paper_doi": "10.1177/027836499501400301",
+      "tool_name": "opencv",
+      "tool_version": "4.13.0.92"
+    },
+    {
+      "adapter_version": "opencv-hand-eye/v0.1",
+      "implementation": "adapter",
+      "label": "OpenCV Andreff",
+      "license_spdx": "Apache-2.0",
+      "method_id": "opencv_andreff",
+      "paper_doi": "10.1023/A:1008192712159",
+      "tool_name": "opencv",
+      "tool_version": "4.13.0.92"
+    },
+    {
+      "adapter_version": "opencv-hand-eye/v0.1",
+      "implementation": "adapter",
+      "label": "OpenCV Daniilidis",
+      "license_spdx": "Apache-2.0",
+      "method_id": "opencv_daniilidis",
+      "paper_doi": "10.1177/027836499801700107",
+      "tool_name": "opencv",
+      "tool_version": "4.13.0.92"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "SE(3) equation closure rotation RMSE on untouched holdout poses",
+      "label": "Holdout rotation RMSE",
+      "name": "rotation_closure_rmse_deg",
+      "primary": true,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1000.0,
+      "display_unit": "mm",
+      "interpretation": "SE(3) equation closure translation RMSE on untouched holdout poses",
+      "label": "Holdout translation RMSE",
+      "name": "translation_closure_rmse_m",
+      "primary": true,
+      "unit": "m"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "park_martin",
+      "direction": "lower",
+      "improvement_ci95_high": 0.04011770607791918,
+      "improvement_ci95_low": -0.002450581834053578,
+      "improvement_mean": 0.018561625324379816,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.018561625324379816,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "park_martin",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0004488199649189242,
+      "improvement_ci95_low": -3.9179982193389655e-05,
+      "improvement_mean": 0.00018751994496482883,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00018751994496482883,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "tsai_lenz",
+      "direction": "lower",
+      "improvement_ci95_high": 0.03259331306802247,
+      "improvement_ci95_low": -0.009683774075652818,
+      "improvement_mean": 0.010497934584051617,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.010497934584051617,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "tsai_lenz",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0004765623090053187,
+      "improvement_ci95_low": -3.587992971486355e-05,
+      "improvement_mean": 0.00019813193206893212,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00019813193206893212,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "daniilidis",
+      "direction": "lower",
+      "improvement_ci95_high": 0.03430019158128665,
+      "improvement_ci95_low": -0.0006612720951708173,
+      "improvement_mean": 0.01681945974305792,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.01681945974305792,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "daniilidis",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0006377448004937145,
+      "improvement_ci95_low": -0.00018370802174614217,
+      "improvement_mean": 0.00024219662557647126,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00024219662557647126,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "andreff",
+      "direction": "lower",
+      "improvement_ci95_high": 0.03990006247870157,
+      "improvement_ci95_low": -0.0021589197020759785,
+      "improvement_mean": 0.018590080977507605,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.018590080977507605,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "andreff",
+      "direction": "lower",
+      "improvement_ci95_high": 0.00044101269692706295,
+      "improvement_ci95_low": -3.84044222298266e-05,
+      "improvement_mean": 0.00018437303573926034,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00018437303573926034,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "shiu_ahmad",
+      "direction": "lower",
+      "improvement_ci95_high": 0.005109577289930538,
+      "improvement_ci95_low": -2.116325749297984,
+      "improvement_mean": -0.7333123209814667,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": 0.7333123209814667,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "shiu_ahmad",
+      "direction": "lower",
+      "improvement_ci95_high": -0.000609260331143359,
+      "improvement_ci95_low": -0.037076425114387475,
+      "improvement_mean": -0.017858524032662432,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": 0.017858524032662432,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "chou_kamel",
+      "direction": "lower",
+      "improvement_ci95_high": 0.039888280142151664,
+      "improvement_ci95_low": -0.0021560417594477022,
+      "improvement_mean": 0.018583564812025145,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.018583564812025145,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "chou_kamel",
+      "direction": "lower",
+      "improvement_ci95_high": 0.00044025310430491246,
+      "improvement_ci95_low": -3.896603289752055e-05,
+      "improvement_mean": 0.00018392176525030939,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00018392176525030939,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "horaud_dornaika",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0018635953187686905,
+      "improvement_ci95_low": -0.008517188155824784,
+      "improvement_mean": -0.005015348803445829,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": 0.005015348803445829,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "horaud_dornaika",
+      "direction": "lower",
+      "improvement_ci95_high": -9.726372700065434e-06,
+      "improvement_ci95_low": -0.00017472970561732243,
+      "improvement_mean": -8.004224258571259e-05,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": 8.004224258571259e-05,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_tsai",
+      "direction": "lower",
+      "improvement_ci95_high": 0.04092482081107509,
+      "improvement_ci95_low": -0.008405615007947564,
+      "improvement_mean": 0.013916862338767943,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.013916862338767943,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_tsai",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0005465941937008837,
+      "improvement_ci95_low": -0.0001279604598128962,
+      "improvement_mean": 0.00019529288927062314,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00019529288927062314,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_park",
+      "direction": "lower",
+      "improvement_ci95_high": 0.04012107687071982,
+      "improvement_ci95_low": -0.0024545817916739486,
+      "improvement_mean": 0.018564132919654575,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.018564132919654575,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_park",
+      "direction": "lower",
+      "improvement_ci95_high": 0.00044910046760003423,
+      "improvement_ci95_low": -3.860512433890477e-05,
+      "improvement_mean": 0.00018794155767742627,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00018794155767742627,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_horaud",
+      "direction": "lower",
+      "improvement_ci95_high": 0.03989182354865624,
+      "improvement_ci95_low": -0.002160192332592592,
+      "improvement_mean": 0.018586192289978487,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.018586192289978487,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_horaud",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0004409435456509906,
+      "improvement_ci95_low": -3.8390388757004144e-05,
+      "improvement_mean": 0.00018434555640464353,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00018434555640464353,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_andreff",
+      "direction": "lower",
+      "improvement_ci95_high": 0.03595262525318406,
+      "improvement_ci95_low": -0.0004109756094221595,
+      "improvement_mean": 0.01716552450746973,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.01716552450746973,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_andreff",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0005996783962904786,
+      "improvement_ci95_low": -0.0021585879909969967,
+      "improvement_mean": -0.0014221299672499063,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": 0.0014221299672499063,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_daniilidis",
+      "direction": "lower",
+      "improvement_ci95_high": 0.03155847455439072,
+      "improvement_ci95_low": -0.0038574656980523425,
+      "improvement_mean": 0.014783592884529972,
+      "metric": "rotation_closure_rmse_deg",
+      "paired_count": 5,
+      "raw_delta_mean": -0.014783592884529972,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    },
+    {
+      "candidate_method_id": "opencv_daniilidis",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0005840620127058913,
+      "improvement_ci95_low": -0.000309836893960401,
+      "improvement_mean": 0.00013688961169509468,
+      "metric": "translation_closure_rmse_m",
+      "paired_count": 5,
+      "raw_delta_mean": -0.00013688961169509468,
+      "reference_method_id": "horaud_dornaika_nonlinear"
+    }
+  ],
+  "protocol": {
+    "data_license": "upstream research dataset; terms documented on dataset page",
+    "dataset_doi": "10.3929/ethz-c-000788527",
+    "dataset_id": "ethz_hand_eye_robot_arm_real",
+    "dataset_source_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+    "dataset_version": "ethz-asl-hand-eye@966cd925",
+    "failure_policy": "retain every method-by-split failure in the failure-rate denominator",
+    "initial_estimate_policy": "method default; nonlinear methods initialize only from their native closed form",
+    "protocol_id": "ethz-real-hand-eye/ax-xb/absolute-pose-split/v0.1",
+    "split_policy": "seeded disjoint absolute-pose sampling before fit/holdout relative-pair construction; bounded pose counts; sorted IDs and SHA-256 digests recorded",
+    "splits": [
+      {
+        "fit_count": 32,
+        "fit_ids_sha256": "78a5cd778252909beb5149c8b948aa2ab6025f0eed0e6fdb32c602e55fc23a3a",
+        "holdout_count": 16,
+        "holdout_ids_sha256": "8cee6d51cf5ba8b4f317e095ebdba5bfed6fe076c8aace643e8fec892a72b3bc",
+        "seed": 0,
+        "split_id": "seed-000"
+      },
+      {
+        "fit_count": 32,
+        "fit_ids_sha256": "f8a9c316c5dc7d0c398ee06457d33a311bb0ae467398cb5d145f8875f2aacebc",
+        "holdout_count": 16,
+        "holdout_ids_sha256": "e9a769cc52bfef3dfabaae3fce743d02bb6cf6ff0a1a156f9798a26ae67083d3",
+        "seed": 1,
+        "split_id": "seed-001"
+      },
+      {
+        "fit_count": 32,
+        "fit_ids_sha256": "b028e440183e8e34c1fb63796a51f4f91ec951357db78d2afd279e258fe35b18",
+        "holdout_count": 16,
+        "holdout_ids_sha256": "439b2a2caac4b254a4908a379f695f447cfa7303a586b92d4c8adbf54b546583",
+        "seed": 2,
+        "split_id": "seed-002"
+      },
+      {
+        "fit_count": 32,
+        "fit_ids_sha256": "0aaad5b3d5ee50966a2859bb06fbb73a8ec6dbdb66c7d7f9c4ecd4722ea97080",
+        "holdout_count": 16,
+        "holdout_ids_sha256": "a67486cdd474b36d230129ee42b73969d4da017dd9cf06d8be34c9f361a63181",
+        "seed": 3,
+        "split_id": "seed-003"
+      },
+      {
+        "fit_count": 32,
+        "fit_ids_sha256": "cb8a6787756c4736d71451c3691275f91adfd54cab1056866d55771ec6c43d8f",
+        "holdout_count": 16,
+        "holdout_ids_sha256": "76c3dbde991c912a3f0118c3af1dab768b9b19f8dd7d0f90b99becf304ade969",
+        "seed": 4,
+        "split_id": "seed-004"
+      }
+    ],
+    "tuning_policy": "fixed defaults selected before execution; holdout is evaluation-only"
+  },
+  "provenance": {
+    "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --output-dir docs/assets --seeds 0,1,2,3,4 --fit-count 32 --holdout-count 16",
+    "data_verified": true,
+    "generated_at": "2026-07-28T08:51:48.903406+00:00",
+    "generator": "tools/generate_ethz_hand_eye_benchmarks.py",
+    "generator_version": "0.1",
+    "git_commit": "c1dd189c2210673fd2150b25dd23dd173cdd86e5",
+    "source_artifacts": {
+      "dataset_archive": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3"
+    }
+  },
+  "reference_method_id": "horaud_dornaika_nonlinear",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "ETHZ real hand-eye AX=XB native and OpenCV shared-split benchmark",
+  "trials": [
+    {
+      "method_id": "park_martin",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9588235673641432,
+        "translation_closure_rmse_m": 0.016722569155049286
+      },
+      "peak_memory_mb": 0.43511295318603516,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "3c85b823b480c6d6b8968ca512afd822c27cd7c5334a13216eb9f7e8a2bf437a",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "rotation and translation hand-eye systems solved"
+        ],
+        "output_sha256": "57209f495c5f264bca2ae54e06e14258882fb9071bcb99786bc2298300faabc8"
+      },
+      "runtime_seconds": 0.14037414989434183,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "tsai_lenz",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9751470498195491,
+        "translation_closure_rmse_m": 0.016769263474323875
+      },
+      "peak_memory_mb": 0.4336128234863281,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "63709e6cdce1bcdb85f27c4e6f9645fdef4119d791376449ecb2e35b0b2c7495",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "Tsai-Lenz rotation and translation systems solved"
+        ],
+        "output_sha256": "88ffada116f84fc0376c55320941c13ec6a6946fdc0ccefeabbb0d171effec37"
+      },
+      "runtime_seconds": 0.12257894594222307,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9533048737653724,
+        "translation_closure_rmse_m": 0.016707578048616303
+      },
+      "peak_memory_mb": 0.9923171997070312,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "15b0ca8cd2fb68bcfcbc79e583b97d0c593ac2f9290de7489f36134d59859008",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "dual-quaternion nullspace and Study constraints solved"
+        ],
+        "output_sha256": "8448209a9ca3346d1a6d0911b43f403953a5488174575bb939af530d2fc1e9f6"
+      },
+      "runtime_seconds": 0.33319571521133184,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9587281452305585,
+        "translation_closure_rmse_m": 0.016722710521377637
+      },
+      "peak_memory_mb": 0.2709484100341797,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "832bd864efdfea53d52b389bb1b7baf01a8312ec07394c84e6ef80a80de52f56",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "incremental Kronecker rotation and conditional translation systems solved"
+        ],
+        "output_sha256": "21e2550993a5975b6e416a5cbe0e7df0f8b72cba23a195fc101fbb4725809a1d"
+      },
+      "runtime_seconds": 0.33119773701764643,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "shiu_ahmad",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9425893713989734,
+        "translation_closure_rmse_m": 0.055430408121877967
+      },
+      "peak_memory_mb": 0.14797592163085938,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "0741ca8855b01b4cab8152189a2f9743f32eb3bab27205b649ab22253d17f83a",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "Shiu-Ahmad Section IV two-motion systems solved"
+        ],
+        "output_sha256": "451639e2bfc667e28ce2808075ec00b2166d207c8b71d7dd2af2aac8113a2d7e"
+      },
+      "runtime_seconds": 13.902795823989436,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "chou_kamel",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9587289429333186,
+        "translation_closure_rmse_m": 0.016722635131784392
+      },
+      "peak_memory_mb": 0.6132125854492188,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "ab412ed9474eedea23d7135d556c8c9b83289cdcaa65ec299f1f776c2b63b6c5",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "normalized-quaternion and conditional translation systems solved"
+        ],
+        "output_sha256": "9386ba2a66ba8dabac19f9dd5f4ed6a9e317b17777bf7ae85bf3a6bcf6d7b8d8"
+      },
+      "runtime_seconds": 0.12366098607890308,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9893711713283836,
+        "translation_closure_rmse_m": 0.016754952706071486
+      },
+      "peak_memory_mb": 0.4336891174316406,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "79c477a60fb8a73e620367926368cd6c530b0363ce0e01a7772b59b94f44450c",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "axis-quaternion eigenproblem and linear translation system solved"
+        ],
+        "output_sha256": "8a5e70cef38e9a36d68c5c3322f88d9b4bf0fa6e7ad68472ee691b242154c824"
+      },
+      "runtime_seconds": 0.1338509579654783,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika_nonlinear",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9817764678818887,
+        "translation_closure_rmse_m": 0.016717561919393602
+      },
+      "peak_memory_mb": 0.6092453002929688,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "a6a93c4294863e7dcf72255eba2c0313205adb2717008080490c863e0c25531f",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "paper Section 5.2 simultaneous nonlinear objective converged"
+        ],
+        "output_sha256": "06263b477db0ba1e84ca3641bcd5c8be542d92f4e072fd597d22ecaf69823f3f"
+      },
+      "runtime_seconds": 18.092755659949034,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_tsai",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9752599300002108,
+        "translation_closure_rmse_m": 0.01676570213088912
+      },
+      "peak_memory_mb": 1.283595085144043,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "125457fceecea0fb97ca5f2321ac664023e59915a0e1685a8aaebf4c00caf0c3",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "b5ee2895a71356a75d2009cae57fbac381599c380504924a687074e9c0b02d83"
+      },
+      "runtime_seconds": 0.08609357988461852,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_park",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9588226794694029,
+        "translation_closure_rmse_m": 0.016722643810363154
+      },
+      "peak_memory_mb": 0.03955078125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "6e37fcb1bb6a6a462ecb9f82c6400ec1fae4e0b49d9a8cdfe2820de6052a0fd7",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "7df71823487b1ce262bcfb25f805a864e86be7cedfa5a1fdc7aa2e894abd056f"
+      },
+      "runtime_seconds": 0.03753866394981742,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_horaud",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9587280610198448,
+        "translation_closure_rmse_m": 0.016722710805415486
+      },
+      "peak_memory_mb": 0.03954315185546875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "d9bd6c84fb777ef0f1b119a0f844b528fe24334380c706d159d4020046c3e587",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "e65e355061f3fad4541454e4f9b17fa0242ef3743a1ebf69099314172cd54b79"
+      },
+      "runtime_seconds": 0.022134858882054687,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9570947359869678,
+        "translation_closure_rmse_m": 0.017862405230545126
+      },
+      "peak_memory_mb": 0.0395355224609375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "9d600dacfc040bda8181c230c0ab3827aa2766780e3987e252b525e2bf7583bb",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "79a2e0f4fd925139fd987f9c240d9a96a5ec71504c336bbb322608ccc0597d42"
+      },
+      "runtime_seconds": 0.02977656596340239,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.96066982408462,
+        "translation_closure_rmse_m": 0.016721324834627023
+      },
+      "peak_memory_mb": 0.03952789306640625,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 0 --fit-count 32 --holdout-count 16",
+        "config_sha256": "08730b1dec966028c400b8eee05018b8063beb3ce75bf4d4b87a34e32d0ecbeb",
+        "input_sha256": "e4c220251cafc1c0bd1fb14376e8318f9a07942822064122a346d2ce5f7bb0de",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "272b3be8721d134fb80ca1f346efc5111c10c47a0553a27bc43c6f7350f4799b"
+      },
+      "runtime_seconds": 0.02666048612445593,
+      "split_id": "seed-000",
+      "status": "success"
+    },
+    {
+      "method_id": "park_martin",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8241076620238458,
+        "translation_closure_rmse_m": 0.013421278842764383
+      },
+      "peak_memory_mb": 0.4321317672729492,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "7e1eea720f6df33b4ade6a8e754ae7dfe0f9448848c0a6d550bf113964c10e80",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "rotation and translation hand-eye systems solved"
+        ],
+        "output_sha256": "23df81fd99a89d850b62b6465052e7a67508c7e877e0fe5e73886b042f4774ac"
+      },
+      "runtime_seconds": 0.1535345681477338,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "tsai_lenz",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8336279181948902,
+        "translation_closure_rmse_m": 0.013428996033218133
+      },
+      "peak_memory_mb": 0.4319801330566406,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "c4d4ba62ce9c47347aa911c720e0322dd280a28549ff787a6ebcfda5556449dc",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "Tsai-Lenz rotation and translation systems solved"
+        ],
+        "output_sha256": "933c2148bba8a5eb187386e237d09e1cb9053db4ea91135a94a76893dc4b3217"
+      },
+      "runtime_seconds": 0.12585627706721425,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8230875824441947,
+        "translation_closure_rmse_m": 0.013368669969859125
+      },
+      "peak_memory_mb": 0.9883041381835938,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "c7908123e970f2addb294b11430fce3acf79cd77f0c8d965992863f255819f67",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "dual-quaternion nullspace and Study constraints solved"
+        ],
+        "output_sha256": "9860837c40265ba6fbf2d888aaf81647a732984121277b0894c5e9443bcec70f"
+      },
+      "runtime_seconds": 0.3135073350276798,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8235040207102925,
+        "translation_closure_rmse_m": 0.013423584734293604
+      },
+      "peak_memory_mb": 0.26360130310058594,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "c8aafe72ec866fab3ecdac89a2f7e921f6ce15daa9d990c90538bba27c3a8890",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "incremental Kronecker rotation and conditional translation systems solved"
+        ],
+        "output_sha256": "b7c4e0c5ddd5b385bd3a6233c79e5384b843edcf7418a51358d3810fa5245258"
+      },
+      "runtime_seconds": 0.3247650268021971,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "shiu_ahmad",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9219402906217457,
+        "translation_closure_rmse_m": 0.013696735829223181
+      },
+      "peak_memory_mb": 0.06986045837402344,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "9c1c385786a87805c9a8f924977be31e2ad4e6d10ee2b8176564781c7b2932dc",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "Shiu-Ahmad Section IV two-motion systems solved"
+        ],
+        "output_sha256": "5fb7a5aa145753148b71f5a63dc4b4201bfefb2495f245bd886088fc4b6013e4"
+      },
+      "runtime_seconds": 13.874557305127382,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "chou_kamel",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8235019739805081,
+        "translation_closure_rmse_m": 0.013423619809589026
+      },
+      "peak_memory_mb": 0.6107864379882812,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "ae4245afdaa9ed0cc16e18fab5621b5c54ac796d3fdd30101e622feeabf3f411",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "normalized-quaternion and conditional translation systems solved"
+        ],
+        "output_sha256": "caa540847cd00502aef8d38adf7c38b143bffcba5fc343b689307cdae442c432"
+      },
+      "runtime_seconds": 0.12995601794682443,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8144399445133031,
+        "translation_closure_rmse_m": 0.013530103055098565
+      },
+      "peak_memory_mb": 0.4320411682128906,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "a9d75db03536324e4e920fbeb1cbdac37fca6528a9918ad9ceaa0b4bf31585d3",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "axis-quaternion eigenproblem and linear translation system solved"
+        ],
+        "output_sha256": "5f8e33f141f0e1fb94bd18735536c56814119b1812a6e30a3c207e0293665e9a"
+      },
+      "runtime_seconds": 0.14489087904803455,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika_nonlinear",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8135895114066526,
+        "translation_closure_rmse_m": 0.013530436202663275
+      },
+      "peak_memory_mb": 0.6062774658203125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "505b890fef9d43760dee1955ebb4bef64fa170103cf7ae892983ce744afd6754",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "paper Section 5.2 simultaneous nonlinear objective converged"
+        ],
+        "output_sha256": "7c9b9faf458b8c63260ceefaaa65b08bf5d3570f820fdaafed11fded2c23ae31"
+      },
+      "runtime_seconds": 20.2281295589637,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_tsai",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8322437003269901,
+        "translation_closure_rmse_m": 0.013398238434225279
+      },
+      "peak_memory_mb": 0.039520263671875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "3af686c9b136590cd35d4a20fb2006ad70d2aa77a9a5496945cd19b120a20d44",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "119b6b24e1e7a9ed9517f469e5632401387c3a87e3e958d34cda195f2719ef78"
+      },
+      "runtime_seconds": 0.025743840960785747,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_park",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8241100227736676,
+        "translation_closure_rmse_m": 0.013421252996304664
+      },
+      "peak_memory_mb": 0.03951263427734375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "2c5d02516b67671402bd05402bb82d227a507c46d16249bf40d9a132446528d9",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "ee64b9ea186df0da42a7ba48cba83fbbdb9b428dd138ac4d5d8ff893bce2b549"
+      },
+      "runtime_seconds": 0.025803667027503252,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_horaud",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.823504384871269,
+        "translation_closure_rmse_m": 0.013423592692251721
+      },
+      "peak_memory_mb": 0.03949737548828125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "72e6ac25b56af697ab3c3b98baaf671c983bfa360a385a3d3871e92e7056ba8e",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "698352dd1a87a2dde55ad659cff7693687daed0fa85691b5fac19cc6cc239a67"
+      },
+      "runtime_seconds": 0.025870196986943483,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8217329635805668,
+        "translation_closure_rmse_m": 0.01563370858050372
+      },
+      "peak_memory_mb": 0.03948974609375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "41a11cf80046d124f6cc9a4ec540972867407e5d1a2784f0157f0703efac71b2",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "b72b39b0b89f4fcef453aac67de8fda298ae360401952ed078b6d6e1376c1f18"
+      },
+      "runtime_seconds": 0.03939306712709367,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8271329701019653,
+        "translation_closure_rmse_m": 0.013720330654426403
+      },
+      "peak_memory_mb": 0.03948211669921875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 1 --fit-count 32 --holdout-count 16",
+        "config_sha256": "24712e10e6016698f6f05035b0ba63a53743e03fa4cdc055884a9ba23aae49fa",
+        "input_sha256": "7c222f4515601a18974aedd9ef1bd4ddac5fb412453847ada5dc1c470d8dfca7",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "4efcece4a19fa7849bda2b2016b1446532aa9b856747fb6fce5d38a95c1ecc97"
+      },
+      "runtime_seconds": 0.028596249874681234,
+      "split_id": "seed-001",
+      "status": "success"
+    },
+    {
+      "method_id": "park_martin",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6722923360506907,
+        "translation_closure_rmse_m": 0.009938291913023733
+      },
+      "peak_memory_mb": 0.43126964569091797,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "ccf45801fa45e2e6c2155c802c35ceb2462d28900db64c63e0b7b500e7654890",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "rotation and translation hand-eye systems solved"
+        ],
+        "output_sha256": "fc5a99fb256952e0bfd5592bec283c192a03691cdabc1d2b9b6a62f5f2d6b274"
+      },
+      "runtime_seconds": 0.1511128400452435,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "tsai_lenz",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6804744857994012,
+        "translation_closure_rmse_m": 0.00987983886199962
+      },
+      "peak_memory_mb": 0.4311637878417969,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "30275d0460f45eaa0eb28813f4f6378d863f588eed1614a74e2a1667a7d3d829",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "Tsai-Lenz rotation and translation systems solved"
+        ],
+        "output_sha256": "680156fac04d4a1255bb9ca9247ab93c81c18fe3690d1edd8140bd19f2181f79"
+      },
+      "runtime_seconds": 0.12747223512269557,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6776101062258896,
+        "translation_closure_rmse_m": 0.010265366368451467
+      },
+      "peak_memory_mb": 0.986297607421875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "cf980a8c5e2bc104e3d44e4f56f7128ed3fba0589be077958b2b6fabd2dcb0de",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "dual-quaternion nullspace and Study constraints solved"
+        ],
+        "output_sha256": "238afafdd5bcf3d95fcda13f7281fd9f3d4503f58772ba13b7a5af95714a6a4c"
+      },
+      "runtime_seconds": 0.3206591329071671,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6725189607822353,
+        "translation_closure_rmse_m": 0.009935073639949386
+      },
+      "peak_memory_mb": 0.1455516815185547,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "5b4a30f4a0ce4b8e80c5ba98ace94f5534a40e95921f22699ace770fcd3865f6",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "incremental Kronecker rotation and conditional translation systems solved"
+        ],
+        "output_sha256": "55010ee6323592bf115ae4978f5cd4ecd468c5a2a6a6fbc79ca6c6b2ff02f8d5"
+      },
+      "runtime_seconds": 0.3382821958512068,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "shiu_ahmad",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.668008313791217,
+        "translation_closure_rmse_m": 0.010683611401530237
+      },
+      "peak_memory_mb": 0.05654716491699219,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "1167265acea5abf136e45cc18819f75865abf9aa52638157f265b68d781b4b41",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "Shiu-Ahmad Section IV two-motion systems solved"
+        ],
+        "output_sha256": "333118574a123cbc22d6d5cfb97b3133fc857c21a9d2bdcb16079203789cb013"
+      },
+      "runtime_seconds": 13.806939580012113,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "chou_kamel",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6725105450910019,
+        "translation_closure_rmse_m": 0.009936515176180246
+      },
+      "peak_memory_mb": 0.6095733642578125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "e04b391b9271cec39df1ff1dc4621bf20133f7a28d6015dabc5c4a7edc2402f0",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "normalized-quaternion and conditional translation systems solved"
+        ],
+        "output_sha256": "2972c072946e1480d6e5e4d2721dcd5f9902a43c58e098c510c7040ff8e50e52"
+      },
+      "runtime_seconds": 0.1331651529762894,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.7024038870587982,
+        "translation_closure_rmse_m": 0.009797074193896095
+      },
+      "peak_memory_mb": 0.4312095642089844,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "aaa8451010537b75d8ae18aa7885a270a12995e067a7c6dbb40ee3c0f1da7dd4",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "axis-quaternion eigenproblem and linear translation system solved"
+        ],
+        "output_sha256": "c4117a9d9ce9379b11c0286470cf3b3ced0371a788f3958b4c4fbc098bae2238"
+      },
+      "runtime_seconds": 0.1343389730900526,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika_nonlinear",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6984406234871993,
+        "translation_closure_rmse_m": 0.009791120507920163
+      },
+      "peak_memory_mb": 0.60479736328125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "029ce7a0cb32ff2a03ffeb96073dfa0ea3f5e07f4994fcb0a49a8e729961e841",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "paper Section 5.2 simultaneous nonlinear objective converged"
+        ],
+        "output_sha256": "f40f0c89786b9549a2dbfc53c6d47a8eb6dc2050bb083c217c533a9d05d4b42f"
+      },
+      "runtime_seconds": 19.39969898108393,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_tsai",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6792512849059482,
+        "translation_closure_rmse_m": 0.010098984900085681
+      },
+      "peak_memory_mb": 0.0394744873046875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "813044f175405843fd7e8916ba12571b43178139ed9bbc166439ce1b7bf4bb21",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "bbc1e0b6ec8e85a8ca01805e0686e0827ea219bfb9d3ecd453e279946dfdfa42"
+      },
+      "runtime_seconds": 0.023395837051793933,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_park",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6723046703094174,
+        "translation_closure_rmse_m": 0.009936813703387557
+      },
+      "peak_memory_mb": 0.03946685791015625,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "f1790a32e939cf2967699d94bb81334a334ec69f61d9b75833fc74903f6f0992",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "27e5a14c4902a70e9ec9ecb81ecfd3c6b2e2e870fc1304e9d9cf454da4e56092"
+      },
+      "runtime_seconds": 0.024855760857462883,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_horaud",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6725234304538247,
+        "translation_closure_rmse_m": 0.009935034687779022
+      },
+      "peak_memory_mb": 0.039459228515625,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "98b152f953aeb97311abf056ac537cc0e729e04e43bb15c25a97cc2cbf7acc6b",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "5e06e38a01448dffecefc05a98a98d767fdc0b90bc9695fe09f37aeb4afb83d7"
+      },
+      "runtime_seconds": 0.024458731058984995,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6798118947363906,
+        "translation_closure_rmse_m": 0.012306061929917834
+      },
+      "peak_memory_mb": 0.03945159912109375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "cfc3f5504e3b2bb040f09a1cf44280016e35d9882a2bd46d150869ac9bf812d1",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "11e6049e52b5109a0533c0d068a27a9c225bda897e14d1a4e51bb770d6a04795"
+      },
+      "runtime_seconds": 0.02830666908994317,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.6780410446905429,
+        "translation_closure_rmse_m": 0.010313339701579136
+      },
+      "peak_memory_mb": 0.0394439697265625,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 2 --fit-count 32 --holdout-count 16",
+        "config_sha256": "abbeb28cb61e2eff0d05a940c118c3335f4647cb36c71d5e56c9cc2df0c03470",
+        "input_sha256": "329bf857f209bccfd69f5e1b4e95352ff8f35299d38f454939e4fa311633e80b",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "295e336515bd95bec54bae3ff6c12048198ce444e74af5ce2b276cda3e6fa9a2"
+      },
+      "runtime_seconds": 0.02738679596222937,
+      "split_id": "seed-002",
+      "status": "success"
+    },
+    {
+      "method_id": "park_martin",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9922144482790227,
+        "translation_closure_rmse_m": 0.015602633080562794
+      },
+      "peak_memory_mb": 0.4352903366088867,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "749a7831de144988cb64e09aa2ecbd58f7dafe4bf6c9fdedbbf984efdc570232",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "rotation and translation hand-eye systems solved"
+        ],
+        "output_sha256": "f42a2a3a7c85e905a161582a121533b5ec32c84ec90b9c6c539b4df9ed031a07"
+      },
+      "runtime_seconds": 0.15376482298597693,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "tsai_lenz",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9990839706593505,
+        "translation_closure_rmse_m": 0.015594289618320538
+      },
+      "peak_memory_mb": 0.4351844787597656,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "ae9e165e27cdb0ab904db52fd8675c9459ffea5792d71491eac00fda1b1c01c2",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "Tsai-Lenz rotation and translation systems solved"
+        ],
+        "output_sha256": "ff53a3e558fa0a982b13edf7a610c0cba0674d0d7d8c5cdd3eebab987b31dec7"
+      },
+      "runtime_seconds": 0.1314947281498462,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 1.0064226561130123,
+        "translation_closure_rmse_m": 0.01543395398512411
+      },
+      "peak_memory_mb": 0.9962692260742188,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "163b737fd644d04757d343acc79dc658da559924b07bd6023b597b4e51dedb8a",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "dual-quaternion nullspace and Study constraints solved"
+        ],
+        "output_sha256": "b60654640d56d71081dc85cd14aedac265ae7d8e860b37ac9f3eb43d27ecd994"
+      },
+      "runtime_seconds": 0.3247060221619904,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9924186201797499,
+        "translation_closure_rmse_m": 0.015607945686859366
+      },
+      "peak_memory_mb": 0.14552879333496094,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "6e26de8cab23a75a1163e602308dbd2dc21af08810d2e32555f8b3d8e5b5e053",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "incremental Kronecker rotation and conditional translation systems solved"
+        ],
+        "output_sha256": "7f31c283323bd00ce28499c31935a4038474bc35c92823f9831559fef1fd441a"
+      },
+      "runtime_seconds": 0.33739333995617926,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "shiu_ahmad",
+      "metrics": {
+        "rotation_closure_rmse_deg": 4.549779087869906,
+        "translation_closure_rmse_m": 0.06489265909830266
+      },
+      "peak_memory_mb": 0.05696678161621094,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "e56934fcee5c6a2b81d5bb137cd361c87b338d055116800d8325105cb56503a3",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "Shiu-Ahmad Section IV two-motion systems solved"
+        ],
+        "output_sha256": "c78c13aab70d547713db7fbfff486eeb15329073f5cdc95a99d95c57c5f22e30"
+      },
+      "runtime_seconds": 14.741421296959743,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "chou_kamel",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9924606995579747,
+        "translation_closure_rmse_m": 0.015608696335043453
+      },
+      "peak_memory_mb": 0.6155776977539062,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "6ace826400cf4f887bdf0346a155a3005ac98c077a0233a3030dbc8ed272f719",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "normalized-quaternion and conditional translation systems solved"
+        ],
+        "output_sha256": "ef2d7c5ac08e66ed26cb0023377c2da5afa962e95c4bbdc138b2805280beffe2"
+      },
+      "runtime_seconds": 0.13071097689680755,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika",
+      "metrics": {
+        "rotation_closure_rmse_deg": 1.0547931794914704,
+        "translation_closure_rmse_m": 0.016399205266955215
+      },
+      "peak_memory_mb": 0.4352149963378906,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "14c4664c4159c55aa1b92c47db95bbbdf8d2ba4890afd0ecead0a5aea105ab48",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "axis-quaternion eigenproblem and linear translation system solved"
+        ],
+        "output_sha256": "f6f63bd7a43a3fe211cb2df8429c96c53ad476b0e075bb713f0157f2f828e249"
+      },
+      "runtime_seconds": 0.1408401490189135,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika_nonlinear",
+      "metrics": {
+        "rotation_closure_rmse_deg": 1.0532862823190579,
+        "translation_closure_rmse_m": 0.01630039627302169
+      },
+      "peak_memory_mb": 0.61053466796875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "d3cb6125ef33aaef01831775516f9a785bf34779a31ab8cec08dd1782a17dea5",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "paper Section 5.2 simultaneous nonlinear objective converged"
+        ],
+        "output_sha256": "4fe27458b33c5061d4dc66409c763b6e86ce3bba6cc2fa54dab2c3a73224ff39"
+      },
+      "runtime_seconds": 20.14024729700759,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_tsai",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9854988113078332,
+        "translation_closure_rmse_m": 0.015432553396797642
+      },
+      "peak_memory_mb": 0.0394287109375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "d6e8e4e90bef54986786aef7747f986fe5c9a662dd1fd8ef52ec304da289c1b8",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "c6769ce3b21c8f4021632a2e3c7fa00560473742470bc96ab6aff524f7cb515b"
+      },
+      "runtime_seconds": 0.02506419108249247,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_park",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9921875199089311,
+        "translation_closure_rmse_m": 0.015601999605625461
+      },
+      "peak_memory_mb": 0.03942108154296875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "dd514fd69f59eefa1b2c7fdc384292d262a46b5c29a5f075a1e5ad621c6e11fb",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "dde7f2b73cd2ea369bc2cc77caddbdcb6f278ffe992c8c1cd6d8c75d42a3e1b8"
+      },
+      "runtime_seconds": 0.027484006015583873,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_horaud",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.9924325129974791,
+        "translation_closure_rmse_m": 0.015608053987710988
+      },
+      "peak_memory_mb": 0.0394134521484375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "a193c11cf46a063bfe753a4436a25663af6bf27c202322029a31b540f36350fa",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "daf4f9fa98dd8ee7d00b84d9350c7b031c953416c151941e161e1a433b46f2d9"
+      },
+      "runtime_seconds": 0.02767097088508308,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 1.000427317028479,
+        "translation_closure_rmse_m": 0.017731230234128106
+      },
+      "peak_memory_mb": 0.03940582275390625,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "13f041d168b391057ff1db53a25c5c23d2aae3db66a920cb6b846b408742b88b",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "0657d1abd5827b3fb64aaceebc36999db5747dd465677cd53d6626ba131e2570"
+      },
+      "runtime_seconds": 0.03742063604295254,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 1.007567485593428,
+        "translation_closure_rmse_m": 0.015439763958724583
+      },
+      "peak_memory_mb": 0.039398193359375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 3 --fit-count 32 --holdout-count 16",
+        "config_sha256": "5c52dd9efe2ed5edc8c69d82263f934b982160bf02d936d34d8eb6e73485b9c7",
+        "input_sha256": "c56bd0a2beb16a968cd207e272afbcb0e7414fc306144e77d1fa9ff40ad29a01",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "2a9ba9fd45588e173084f878e839a0a2afdde150544d2b47b9a372d7ad6d3ffc"
+      },
+      "runtime_seconds": 0.03249631100334227,
+      "split_id": "seed-003",
+      "status": "success"
+    },
+    {
+      "method_id": "park_martin",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8886975608908042,
+        "translation_closure_rmse_m": 0.01369449464663831
+      },
+      "peak_memory_mb": 0.43285655975341797,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "fea21611a08909818a663b93e94010c52f7addf52b4ba674d6998a3a42a2cbda",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "rotation and translation hand-eye systems solved"
+        ],
+        "output_sha256": "b2aad06670164a6cd80e3fa038ecd39ef000c8d85f9ca339b2d6a7a8af37314d"
+      },
+      "runtime_seconds": 0.168468952877447,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "tsai_lenz",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8881206038369566,
+        "translation_closure_rmse_m": 0.013653819714655823
+      },
+      "peak_memory_mb": 0.4327507019042969,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "48f46f12cebb521005ae06797f140c796d2500b89741d7728ec66da8d60ebc55",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "Tsai-Lenz rotation and translation systems solved"
+        ],
+        "output_sha256": "3ed280edb5dd36da9a2b0e63f22f9440f109e9a929ec18ed65e63764d1a5a62b"
+      },
+      "runtime_seconds": 0.1272024589125067,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8844211839666472,
+        "translation_closure_rmse_m": 0.01333031586292929
+      },
+      "peak_memory_mb": 0.990264892578125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "cf6e228a68262a492f83e034bd6118d5e733080dadad38cbe4b8b59df5834219",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "dual-quaternion nullspace and Study constraints solved"
+        ],
+        "output_sha256": "b80307c7c363885068ddbd1218d24bea8ad415d6da9379b2513f02c578a30ea6"
+      },
+      "runtime_seconds": 0.3199457300361246,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8888235494400315,
+        "translation_closure_rmse_m": 0.013705687601686355
+      },
+      "peak_memory_mb": 0.1455059051513672,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "5c9f67cb1f123dcf051472df05f7b3e9d91dfd556e917718d3324195d432beac",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "incremental Kronecker rotation and conditional translation systems solved"
+        ],
+        "output_sha256": "c3b3053d805d04fe86be52c86bb34b9704d1730a5107d50098c78b84e36f9994"
+      },
+      "runtime_seconds": 0.3419996160082519,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "shiu_ahmad",
+      "metrics": {
+        "rotation_closure_rmse_deg": 1.0131882424558971,
+        "translation_closure_rmse_m": 0.014906073075240753
+      },
+      "peak_memory_mb": 0.05666923522949219,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "b6855cf8b00a0d560fb2946b73f0d76505ac1969eb6c9fa2acf9e3db8b0dc4ad",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "Shiu-Ahmad Section IV two-motion systems solved"
+        ],
+        "output_sha256": "3c613f260daaac0b697ae885a38b41c3b9d001c74eae1b6a12bb157e9d47eaa0"
+      },
+      "runtime_seconds": 14.443035614909604,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "chou_kamel",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8888237156074767,
+        "translation_closure_rmse_m": 0.013705792084013986
+      },
+      "peak_memory_mb": 0.6119537353515625,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "b11287496a43f4cdb7a1858dcd77d3a342f49e366fc15f3344e55699ec19df54",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "normalized-quaternion and conditional translation systems solved"
+        ],
+        "output_sha256": "0b1c227db1972de08d0f4164f8a09fd918f03d029dfdfc7a543735350fc4a92a"
+      },
+      "runtime_seconds": 0.13081361399963498,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8930122628556795,
+        "translation_closure_rmse_m": 0.014235743353769852
+      },
+      "peak_memory_mb": 0.4327507019042969,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "97e265399ff84931a868c47d482592909e455fa3653ee6b2c1e4b8a5dc0afa89",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "axis-quaternion eigenproblem and linear translation system solved"
+        ],
+        "output_sha256": "dfde6c04750efd131832255cebbd4f001a83287c016f47a19ace04eaf52ea6cb"
+      },
+      "runtime_seconds": 0.14537208108231425,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "horaud_dornaika_nonlinear",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8818508161356073,
+        "translation_closure_rmse_m": 0.01397735245986392
+      },
+      "peak_memory_mb": 0.6068496704101562,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "6bacb5849c9709ab6b82aebe0f8d4790957f9faef8c02bc0197afdb0c869402a",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "paper Section 5.2 simultaneous nonlinear objective converged"
+        ],
+        "output_sha256": "ee1891ab387fda79be91e6c862ade171febaf6141be22d2b4a6e186980c0b3d5"
+      },
+      "runtime_seconds": 19.39510368090123,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_tsai",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8871056629955836,
+        "translation_closure_rmse_m": 0.013644924054511813
+      },
+      "peak_memory_mb": 0.03939056396484375,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "cca8d3961253fbee9a4b4891aecf09949b262cb77b98ea38578481e1f1f8e467",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "1c67a39577ddb0d1437561bb82f3ac84406d371a746764cd89f64fcfc24904c9"
+      },
+      "runtime_seconds": 0.023985944921150804,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_park",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8886981441707138,
+        "translation_closure_rmse_m": 0.013694449458794682
+      },
+      "peak_memory_mb": 0.0393829345703125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "3604e34f268d58d20724ebcf42c31c5732393aab197339661b9afc2a395d627c",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "f7a2b42921341cdcc5d03023764f1c60f6a36699a8e9b01e3161d6b94aaed616"
+      },
+      "runtime_seconds": 0.02469346090219915,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_horaud",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8888243504380957,
+        "translation_closure_rmse_m": 0.013705747407682215
+      },
+      "peak_memory_mb": 0.03937530517578125,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "b4a1f8b40250b1a998ecf63ffbe8e13303290c47dc450d710d541d26b826cd04",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "67cb6294783671920a2fe7cdf553b17bb5e34e6239e11fde6472058a74a0fc46"
+      },
+      "runtime_seconds": 0.02418479905463755,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_andreff",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8840491673606529,
+        "translation_closure_rmse_m": 0.013894111224017394
+      },
+      "peak_memory_mb": 0.03936004638671875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "bd69d20a1bf3b03c589efb0c1c4c413ce5c1ac95678a890a3514ad86e3ed7b56",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "f5ba340c6ff12bc3e782badc6d30734df8ab63dd4c49a5bdb77a7da8db387f3e"
+      },
+      "runtime_seconds": 0.029051311081275344,
+      "split_id": "seed-004",
+      "status": "success"
+    },
+    {
+      "method_id": "opencv_daniilidis",
+      "metrics": {
+        "rotation_closure_rmse_deg": 0.8816144123371996,
+        "translation_closure_rmse_m": 0.013437660155030031
+      },
+      "peak_memory_mb": 0.0393524169921875,
+      "provenance": {
+        "command": "python3 tools/generate_ethz_hand_eye_benchmarks.py data/public/ethz_hand_eye_robot_arm_real/robot_arm_w_color_camera_real.zip --seeds 4 --fit-count 32 --holdout-count 16",
+        "config_sha256": "40b7c5a86770c1af17cd1d78eebf2a8cd1cd8cb6d00f70eb427c448cabef9fda",
+        "input_sha256": "fd1c0ab26b3f5dc4f1b359649c24d533c2bcfd81d10608d7502572680174c198",
+        "notes": [
+          "OpenCV hand-eye method converged"
+        ],
+        "output_sha256": "f751bd898ec8a2a7fac2720bd4633b8d26ce97b97c52e9e55b3fae37abd0b93f"
+      },
+      "runtime_seconds": 0.02731760498136282,
+      "split_id": "seed-004",
+      "status": "success"
+    }
+  ]
+}
