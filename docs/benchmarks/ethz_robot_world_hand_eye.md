@@ -4,15 +4,7 @@ Calibrex recomputes five `AX=YB` methods on the public ETHZ ASL real
 robot-arm pose streams. Every method uses the same 1,350 fit pairs and 338
 held-out pairs.
 
-## Result
-
-| Method | Rotation holdout RMSE ↓ | Translation holdout RMSE ↓ | Known-bad controls |
-|---|---:|---:|---:|
-| Shah | **0.585795°** | 10.062827 mm | 24 / 24 |
-| Li–Wang–Wu | 0.587280° | 17.457974 mm | 24 / 24 |
-| Dornaika–Horaud | 0.585795° | 10.062824 mm | 24 / 24 |
-| Zhuang–Roth–Sudhakar | 0.590747° | 10.131954 mm | 24 / 24 |
-| **Calibrex nonlinear refinement** | 0.587210° | **10.039379 mm** | 24 / 24 |
+{% include-markdown "../assets/ethz-robot-world-hand-eye-benchmark.md" %}
 
 The nonlinear refinement reduces translation holdout RMSE from the
 Dornaika–Horaud closed-form initialization by **0.23%**. Shah has the lowest
@@ -73,7 +65,14 @@ calibrex calibrate \
 calibrex verify outputs/ethz_hand_eye_robot_arm_real/bundle.json
 ```
 
-The committed
+The committed raw
+[`benchmark definition`](../assets/ethz-robot-world-hand-eye-benchmark.definition.json)
+is aggregated into
 [`ethz-robot-world-hand-eye-benchmark.json`](../assets/ethz-robot-world-hand-eye-benchmark.json)
-records the exact values, source digests, run identity, method citations, and
-reproduction command. It validates against the adjacent JSON Schema.
+and the table included above by `calibrex benchmark`. Both artifacts record
+the exact values, source digests, run identity, method citations, and
+reproduction command. They validate against the generated
+[`benchmark_definition`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/benchmark_definition.schema.json)
+and
+[`benchmark`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/benchmark.schema.json)
+JSON Schemas.

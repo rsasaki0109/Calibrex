@@ -8,6 +8,12 @@ from typing import Final, Literal
 from pydantic import BaseModel
 
 from calibrex.core.assessment import ASSESSMENT_SCHEMA_VERSION, AssessmentArtifact
+from calibrex.core.benchmark import (
+    BENCHMARK_DEFINITION_SCHEMA_VERSION,
+    BENCHMARK_SCHEMA_VERSION,
+    BenchmarkArtifact,
+    BenchmarkDefinition,
+)
 from calibrex.core.config import CONFIG_SCHEMA_VERSION, CalibrationConfig
 from calibrex.core.evidence_bundle import (
     EVIDENCE_BUNDLE_SCHEMA_VERSION,
@@ -59,6 +65,8 @@ ValidationKind = Literal[
     "comparison",
     "report-comparison",
     "assessment",
+    "benchmark",
+    "benchmark-definition",
     "policy",
     "protocol",
     "transforms",
@@ -80,6 +88,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "comparison": ResultComparison,
     "report-comparison": ReportComparison,
     "assessment": AssessmentArtifact,
+    "benchmark": BenchmarkArtifact,
+    "benchmark-definition": BenchmarkDefinition,
     "policy": PolicyArtifact,
     "protocol": ProtocolArtifact,
     "transforms": TransformArtifact,
@@ -101,6 +111,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     COMPARISON_SCHEMA_VERSION: "comparison",
     REPORT_COMPARISON_SCHEMA_VERSION: "report-comparison",
     ASSESSMENT_SCHEMA_VERSION: "assessment",
+    BENCHMARK_SCHEMA_VERSION: "benchmark",
+    BENCHMARK_DEFINITION_SCHEMA_VERSION: "benchmark-definition",
     POLICY_SCHEMA_VERSION: "policy",
     PROTOCOL_SCHEMA_VERSION: "protocol",
     TRANSFORMS_SCHEMA_VERSION: "transforms",

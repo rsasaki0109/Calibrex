@@ -1,0 +1,223 @@
+{
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "benchmark_id": "ethz-real-robot-world-hand-eye-2026-07-28",
+  "title": "ETHZ real robot-world hand-eye shared-split benchmark",
+  "protocol": {
+    "protocol_id": "ethz-real-robot-world-hand-eye/shared-split/v0.1",
+    "dataset_id": "ethz_hand_eye_robot_arm_real",
+    "dataset_version": "966cd92518f24aa7dfdacc8ba9c5fa4a441270cd",
+    "dataset_doi": "10.3929/ethz-c-000788527",
+    "dataset_source_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+    "data_license": "In Copyright - Non-Commercial Use Permitted",
+    "split_policy": "Seeded shared 80/20 split; ID digests are SHA-256 of compact JSON arrays in preserved order.",
+    "splits": [
+      {
+        "split_id": "seed-0",
+        "seed": 0,
+        "fit_count": 1350,
+        "holdout_count": 338,
+        "fit_ids_sha256": "96ece4f6c83df57b4a087480507e7a0cb0bccdab870d5e5e7544994a8a28637f",
+        "holdout_ids_sha256": "0a5f650eb71f91f4960cf5f99068d1d1c4ce78857f0bb7904d71d098bea9b837"
+      }
+    ],
+    "initial_estimate_policy": "Closed-form methods do not share an initial estimate; the nonlinear method starts from its declared Dornaika-Horaud closed-form estimate.",
+    "tuning_policy": "All options are fixed in the committed config; holdout metrics are not used to select or tune a method.",
+    "failure_policy": "Every attempted method/split trial is retained and failures count toward failure rate."
+  },
+  "metrics": [
+    {
+      "name": "rotation_holdout_rmse_deg",
+      "label": "Rotation holdout RMSE",
+      "unit": "deg",
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Rotation closure RMSE on pose pairs excluded from fitting; not ground-truth extrinsic error."
+    },
+    {
+      "name": "translation_holdout_rmse_m",
+      "label": "Translation holdout RMSE",
+      "unit": "m",
+      "display_unit": "mm",
+      "display_scale": 1000.0,
+      "direction": "lower",
+      "primary": true,
+      "interpretation": "Translation closure RMSE on pose pairs excluded from fitting; not ground-truth extrinsic error."
+    },
+    {
+      "name": "known_bad_detectable_fraction",
+      "label": "Known-bad detection",
+      "unit": "fraction",
+      "direction": "higher",
+      "primary": false,
+      "interpretation": "Fraction of 24 declared perturbation controls detected by the holdout evidence."
+    }
+  ],
+  "methods": [
+    {
+      "method_id": "shah",
+      "label": "Shah",
+      "implementation": "calibrex_native",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0",
+      "source_commit": "9744eae",
+      "paper_doi": "10.1115/1.4024473",
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "method_id": "li_wang_wu",
+      "label": "Li-Wang-Wu",
+      "implementation": "calibrex_native",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0",
+      "source_commit": "9744eae",
+      "paper_doi": "10.5897/IJPS.9000501",
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "method_id": "dornaika_horaud",
+      "label": "Dornaika-Horaud",
+      "implementation": "calibrex_native",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0",
+      "source_commit": "9744eae",
+      "paper_doi": "10.1109/70.704233",
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "method_id": "zhuang_roth_sudhakar",
+      "label": "Zhuang-Roth-Sudhakar",
+      "implementation": "calibrex_native",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0",
+      "source_commit": "9744eae",
+      "paper_doi": "10.1109/70.313105",
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "method_id": "calibrex_dornaika_horaud_nonlinear",
+      "label": "Calibrex nonlinear refinement",
+      "implementation": "calibrex_native",
+      "tool_name": "calibrex",
+      "tool_version": "0.3.0",
+      "source_commit": "9744eae",
+      "paper_doi": "10.1109/70.704233",
+      "license_spdx": "Apache-2.0"
+    }
+  ],
+  "trials": [
+    {
+      "method_id": "shah",
+      "split_id": "seed-0",
+      "status": "success",
+      "metrics": {
+        "rotation_holdout_rmse_deg": 0.5857954291251657,
+        "translation_holdout_rmse_m": 0.010062826541860718,
+        "known_bad_detectable_fraction": 1.0
+      },
+      "peak_memory_mb": null,
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+        "notes": ["The original combined run did not record per-method runtime or peak memory."]
+      }
+    },
+    {
+      "method_id": "li_wang_wu",
+      "split_id": "seed-0",
+      "status": "success",
+      "metrics": {
+        "rotation_holdout_rmse_deg": 0.5872803691491544,
+        "translation_holdout_rmse_m": 0.017457973946244116,
+        "known_bad_detectable_fraction": 1.0
+      },
+      "peak_memory_mb": null,
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+        "notes": ["The original combined run did not record per-method runtime or peak memory."]
+      }
+    },
+    {
+      "method_id": "dornaika_horaud",
+      "split_id": "seed-0",
+      "status": "success",
+      "metrics": {
+        "rotation_holdout_rmse_deg": 0.5857954898023418,
+        "translation_holdout_rmse_m": 0.010062823952047838,
+        "known_bad_detectable_fraction": 1.0
+      },
+      "peak_memory_mb": null,
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+        "notes": ["The original combined run did not record per-method runtime or peak memory."]
+      }
+    },
+    {
+      "method_id": "zhuang_roth_sudhakar",
+      "split_id": "seed-0",
+      "status": "success",
+      "metrics": {
+        "rotation_holdout_rmse_deg": 0.590747409793904,
+        "translation_holdout_rmse_m": 0.010131954148362734,
+        "known_bad_detectable_fraction": 1.0
+      },
+      "peak_memory_mb": null,
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+        "notes": ["The original combined run did not record per-method runtime or peak memory."]
+      }
+    },
+    {
+      "method_id": "calibrex_dornaika_horaud_nonlinear",
+      "split_id": "seed-0",
+      "status": "success",
+      "metrics": {
+        "rotation_holdout_rmse_deg": 0.5872095552781275,
+        "translation_holdout_rmse_m": 0.010039379464848725,
+        "known_bad_detectable_fraction": 1.0
+      },
+      "peak_memory_mb": null,
+      "provenance": {
+        "command": ".venv/bin/calibrex calibrate examples/public_datasets/ethz_hand_eye_robot_arm_real/config.yaml --output-dir /tmp/calibrex-benchmark-qmrS5MCk --json",
+        "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+        "input_sha256": "2454578f731e656a940ddf51017b56e8d535c58d16a50629b85326005dedd6c3",
+        "output_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+        "notes": ["The original combined run did not record per-method runtime or peak memory."]
+      }
+    }
+  ],
+  "reference_method_id": "dornaika_horaud",
+  "bootstrap_samples": 2000,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Metrics are closure errors on held-out pose pairs, not ground-truth extrinsic errors.",
+    "This historical run contains one shared split, so its bootstrap interval cannot measure split-to-split uncertainty.",
+    "Per-method runtime and peak memory were not recorded by the original combined run and remain explicitly unavailable.",
+    "The scoped win is translation holdout RMSE on this dataset and split; Shah has the lowest rotation holdout RMSE.",
+    "All compared solvers are independent native Calibrex implementations of the cited methods."
+  ],
+  "provenance": {
+    "generator": "calibrex benchmark",
+    "generator_version": "0.3.0",
+    "generated_at": "2026-07-28T08:12:08.707874+00:00",
+    "git_commit": "69d177c",
+    "command": ".venv/bin/calibrex benchmark docs/assets/ethz-robot-world-hand-eye-benchmark.definition.json --output docs/assets/ethz-robot-world-hand-eye-benchmark.json --markdown-output docs/assets/ethz-robot-world-hand-eye-benchmark.md --update-markdown README.md --update-markdown docs/index.md",
+    "source_artifacts": {
+      "config_sha256": "ce2e82b59e03338326f6d4f2774b650a58d870bef60b783cf641b47f6f1ef2fb",
+      "metrics_sha256": "1e38d4d553c8f9e172c66ed688f172187c59db8595f5c19e12ce1b112c8175f8",
+      "result_sha256": "b2650812bc5e59d53bdc321e9fb9e964325d8da1142a1558b55a5a811a94b756",
+      "run_id": "2026-07-28T07-51-55Z_ethz_real_hand_eye_comparison"
+    },
+    "data_verified": true
+  }
+}

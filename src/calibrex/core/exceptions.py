@@ -13,6 +13,10 @@ class ResultError(CalibrexError):
     """Raised when a result file is invalid."""
 
 
+class BenchmarkError(CalibrexError):
+    """Raised when a benchmark definition or artifact is invalid."""
+
+
 class FrameGraphError(CalibrexError):
     """Raised when a frame graph is malformed."""
 
