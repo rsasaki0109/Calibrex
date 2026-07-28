@@ -168,7 +168,7 @@ class PointPlaneLidarCameraSolver:
         if len(train) < solver_options.min_train_observations:
             return _empty("insufficient_observations", train_ids, holdout_ids, solver_options)
 
-        robust_weights = np.ones(len(train), dtype=np.float64)
+        robust_weights: FloatArray = np.ones(len(train), dtype=np.float64)
         transform: SE3 | None = None
         iterations = 0
         status: PointPlaneStatus = "max_iterations"
@@ -298,7 +298,7 @@ def _weighted_fit(
     lidar_centers = np.asarray([item.lidar_center_m for item in observations])
     camera_mean = np.sum(camera_centers * weights[:, None], axis=0) / total
     lidar_mean = np.sum(lidar_centers * weights[:, None], axis=0) / total
-    covariance = np.zeros((3, 3), dtype=np.float64)
+    covariance: FloatArray = np.zeros((3, 3), dtype=np.float64)
     for index, item in enumerate(observations):
         covariance += weights[index] * np.outer(
             camera_centers[index] - camera_mean,

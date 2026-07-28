@@ -67,6 +67,34 @@ calibrex demo livox-evidence \
   --output-dir outputs/livox_horizon_horizon_pcd_sample
 ```
 
+Before configuring a solve, diagnose a recording and save the result for
+review or CI:
+
+```bash
+calibrex doctor recording.mcap \
+  --output outputs/doctor.json \
+  --json
+calibrex validate outputs/doctor.json
+```
+
+`doctor` infers supported dataset types, reports missing optional dependencies,
+data coverage and degeneracy warnings, and suggests compatible evidence
+workflows. Running it without a path retains the lightweight environment check.
+
+Run the same evidence gates on every calibration change:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: rsasaki0109/Calibrex@v0.4.0
+  with:
+    candidate: calibration/candidate.yaml
+    baseline: calibration/baseline.yaml
+```
+
+The action writes a GitHub Step Summary, fails on `FAIL` or `INCONCLUSIVE` by
+default, and exposes schema-valid evidence, comparison, SVG, and
+`calibration-ci.json` artifacts. See [Calibration CI](docs/tutorials/calibration_ci.md).
+
 ## Calibration coverage
 
 | Calibration path | Native solve | Evidence | Public example | Maturity |
@@ -141,7 +169,9 @@ limitations, and reproducible provenance](docs/benchmarks/ethz_hand_eye_opencv.m
 - native point-to-point, point-to-plane, hand-eye, and robot-world baselines
 - backend-neutral joint SLAC with typed Schur pose elimination
 - radar velocity, LiDAR-IMU rotation, and temporal-offset evidence
-- Open3D, Kalibr-style, Koide-style, ROS, and Autoware adapter boundaries
+- typed external-run artifacts, a Kalibr camchain importer, and Koide/Open3D,
+  ROS, and Autoware adapter boundaries
+- a frozen, SHA-bound full-scale KITTI reference-vs-known-bad falsification runner
 
 See the [calibration methods](docs/concepts/calibration_methods.md) and
 [changelog](CHANGELOG.md) for solver-level detail and limitations.

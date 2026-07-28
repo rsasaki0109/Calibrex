@@ -398,7 +398,7 @@ def _linearize(
     rotation_z = parameters[9:18].reshape((3, 3))
     translation_x = parameters[18:21]
     translation_z = parameters[21:24]
-    identity = np.eye(3, dtype=np.float64)
+    identity: FloatArray = np.eye(3, dtype=np.float64)
     residual_rows: list[FloatArray] = []
     jacobian_rows: list[FloatArray] = []
     for pair in poses:
@@ -408,7 +408,7 @@ def _linearize(
         translation_b = np.asarray(pair.pose_b.translation_m)
         root_rotation = math.sqrt(pair.weight * options.rotation_weight)
         rotation_residual = root_rotation * (rotation_a @ rotation_x - rotation_z @ rotation_b)
-        rotation_jacobian = np.zeros((9, 24), dtype=np.float64)
+        rotation_jacobian: FloatArray = np.zeros((9, 24), dtype=np.float64)
         rotation_jacobian[:, :9] = root_rotation * np.kron(rotation_a, identity)
         rotation_jacobian[:, 9:18] = -root_rotation * np.kron(identity, rotation_b.T)
         residual_rows.append(rotation_residual.reshape(-1))
@@ -418,7 +418,7 @@ def _linearize(
         translation_residual = root_translation * (
             rotation_a @ translation_x + translation_a - rotation_z @ translation_b - translation_z
         )
-        translation_jacobian = np.zeros((3, 24), dtype=np.float64)
+        translation_jacobian: FloatArray = np.zeros((3, 24), dtype=np.float64)
         translation_jacobian[:, 9:18] = -root_translation * np.kron(
             identity, translation_b.reshape((1, 3))
         )
@@ -430,7 +430,7 @@ def _linearize(
     root_penalty = math.sqrt(options.orthogonality_penalty)
     for offset, rotation in ((0, rotation_x), (9, rotation_z)):
         penalty_residual = root_penalty * (rotation @ rotation.T - identity)
-        penalty_jacobian = np.zeros((9, 24), dtype=np.float64)
+        penalty_jacobian: FloatArray = np.zeros((9, 24), dtype=np.float64)
         penalty_jacobian[:, offset : offset + 9] = root_penalty * _orthogonality_jacobian(rotation)
         residual_rows.append(penalty_residual.reshape(-1))
         jacobian_rows.append(penalty_jacobian)
@@ -470,7 +470,7 @@ def _diagnostics(
 
 
 def _orthogonality_jacobian(rotation: FloatArray) -> FloatArray:
-    jacobian = np.zeros((9, 9), dtype=np.float64)
+    jacobian: FloatArray = np.zeros((9, 9), dtype=np.float64)
     for row in range(3):
         for column in range(3):
             residual_index = 3 * row + column
@@ -499,7 +499,7 @@ def _parameters(transform_x: SE3, transform_z: SE3) -> FloatArray:
 
 def _nearest_rotation(matrix: FloatArray) -> FloatArray:
     left, _singular, right_t = np.linalg.svd(matrix)
-    correction = np.eye(3, dtype=np.float64)
+    correction: FloatArray = np.eye(3, dtype=np.float64)
     correction[2, 2] = np.linalg.det(left @ right_t)
     return left @ correction @ right_t
 

@@ -503,14 +503,14 @@ def _artifact_by_kind(
 
 def _portable_path(base_dir: Path, path: Path) -> str:
     try:
-        return str(path.relative_to(base_dir))
+        return path.relative_to(base_dir).as_posix()
     except ValueError:
         if path.is_absolute() and base_dir.is_absolute():
             try:
-                return os.path.relpath(path, base_dir)
+                return Path(os.path.relpath(path, base_dir)).as_posix()
             except ValueError:
                 pass
-        return str(path)
+        return path.as_posix()
 
 
 def _resolve_artifact_path(base_dir: Path, path: str) -> Path:

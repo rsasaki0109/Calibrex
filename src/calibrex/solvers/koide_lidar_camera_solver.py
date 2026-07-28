@@ -7,18 +7,35 @@ Calibrex result schema so strong external baselines can be compared safely.
 
 from __future__ import annotations
 
+import hashlib
 import shlex
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
+from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, FactorConfig
+from calibrex.core.external_run import (
+    ExternalArtifactDigest,
+    ExternalCalibrationRunArtifact,
+    ExternalDataIsolation,
+    ExternalExecution,
+    ExternalExecutionMode,
+    ExternalParsedOutputs,
+    ExternalRunProvenance,
+    ExternalRunStatus,
+    ExternalTransformOutput,
+)
+from calibrex.core.external_run import (
+    ExternalToolIdentity as ExternalRunToolIdentity,
+)
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
 from calibrex.core.io import read_mapping
-from calibrex.core.provenance import sha256_path
+from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import MetricResult
 from calibrex.data.base import StreamSummary
 from calibrex.data.inspect import DatasetInspection
@@ -69,6 +86,9 @@ class AdapterExecutionResult:
     timed_out: bool = False
     stdout_tail: str | None = None
     stderr_tail: str | None = None
+    stdout_sha256: str | None = None
+    stderr_sha256: str | None = None
+    duration_seconds: float | None = None
     error: str | None = None
 
     @property
@@ -85,6 +105,9 @@ class AdapterExecutionResult:
             "timed_out": self.timed_out,
             "stdout_tail": self.stdout_tail,
             "stderr_tail": self.stderr_tail,
+            "stdout_sha256": self.stdout_sha256,
+            "stderr_sha256": self.stderr_sha256,
+            "duration_seconds": self.duration_seconds,
             "error": self.error,
         }
 
@@ -157,7 +180,11 @@ class KoideLidarCameraSolver(SolverAdapter):
         del frame_graph
         inputs = _summarize_inputs(config, inspection)
         execution = _execute_command(config, inputs) if inputs.execute else AdapterExecutionResult()
-        transforms = _load_transforms(inputs.result_path)
+        try:
+            transforms = _load_transforms(inputs.result_path)
+        except (OSError, ValueError) as exc:
+            transforms = {}
+            execution = _with_output_error(execution, exc)
         result_exists = _path_exists(inputs.result_path)
         identity = _external_tool_identity(config, inputs)
         metrics = {
@@ -201,7 +228,17 @@ class KoideLidarCameraSolver(SolverAdapter):
             ),
         }
         warnings = _warnings(inputs, transforms, execution, result_exists)
-        status = _status(inputs, transforms, execution)
+        status = _status(inputs, transforms, execution, result_exists)
+        external_run = _external_run_artifact(
+            config=config,
+            inspection=inspection,
+            inputs=inputs,
+            execution=execution,
+            identity=identity,
+            transforms=transforms,
+            status=status,
+            warnings=warnings,
+        )
         return SolverAdapterResult(
             backend=self.backend,
             available=inputs.command_available or result_exists,
@@ -229,12 +266,18 @@ class KoideLidarCameraSolver(SolverAdapter):
                     for name, transform in sorted(transforms.items())
                 },
                 "koide_lidar_camera_tool_identity": identity.as_dict(),
+                "external_calibration_run": external_run.model_dump(
+                    mode="json",
+                    exclude_none=True,
+                ),
+                "external_calibration_run_schema_version": external_run.schema_version,
                 "license_boundary": (
                     "external subprocess/precomputed-result adapter; no external "
                     "calibration code is copied into Calibrex core"
                 ),
             },
-            warnings=warnings,
+            warnings=list(external_run.warnings),
+            external_run=external_run,
         )
 
 
@@ -297,6 +340,152 @@ def _external_tool_identity(
         ),
         training_isolation_evidence=_text_option(options, "training_isolation_evidence"),
     )
+
+
+def _external_run_artifact(
+    *,
+    config: CalibrationConfig,
+    inspection: DatasetInspection,
+    inputs: KoideLidarCameraInputs,
+    execution: AdapterExecutionResult,
+    identity: KoideExternalToolIdentity,
+    transforms: dict[str, SE3],
+    status: str,
+    warnings: list[str],
+) -> ExternalCalibrationRunArtifact:
+    result_path = Path(inputs.result_path) if inputs.result_path is not None else None
+    artifacts: list[ExternalArtifactDigest] = []
+    if inspection.manifest is not None:
+        manifest_digest = _external_artifact_digest(
+            "input",
+            Path(inspection.manifest),
+            media_type="application/yaml",
+        )
+        if manifest_digest is not None:
+            artifacts.append(manifest_digest)
+    if result_path is not None:
+        output_digest = _external_artifact_digest(
+            "output",
+            result_path,
+            media_type="application/yaml",
+        )
+        if output_digest is not None:
+            artifacts.append(output_digest)
+    run_warnings = list(warnings)
+    if not any(artifact.role == "input" for artifact in artifacts):
+        run_warnings.append("external run has no digest-bound input artifact")
+
+    mode: ExternalExecutionMode = (
+        "subprocess"
+        if inputs.command is not None
+        else "precomputed"
+        if result_path is not None
+        else "imported"
+    )
+    command = (
+        shlex.split(_format_command(inputs.command, config, inputs))
+        if inputs.command is not None
+        else []
+    )
+    status_by_legacy: dict[str, ExternalRunStatus] = {
+        "result_loaded": "success",
+        "executed_no_result": "invalid_output",
+        "execution_failed": "timeout" if execution.timed_out else "failed",
+        "execution_blocked": "unavailable",
+        "ready": "not_executed",
+        "not_executed": "not_executed",
+    }
+    external_status = status_by_legacy.get(status, "failed")
+    parsed_transforms = {
+        name: ExternalTransformOutput(
+            parent=frames[0],
+            child=frames[1],
+            translation_m=list(transform.translation_m),
+            rotation_quat_xyzw=list(transform.rotation_quat_xyzw),
+        )
+        for name, transform in sorted(transforms.items())
+        if (frames := _transform_frames(name, config)) is not None
+    }
+    output_sha256 = sha256_path(result_path) if result_path is not None else None
+    return ExternalCalibrationRunArtifact(
+        run_id=f"{config.project.name}:koide_lidar_camera",
+        adapter_name="koide_lidar_camera",
+        adapter_version=identity.adapter_version,
+        tool=ExternalRunToolIdentity(
+            name=identity.tool_name,
+            version=identity.tool_version,
+            source_repository=identity.source_repository,
+            source_commit=identity.source_commit,
+            license_spdx=identity.license_spdx,
+            license_boundary="subprocess" if inputs.command is not None else "imported",
+        ),
+        execution=ExternalExecution(
+            mode=mode,
+            command=command,
+            working_directory=inputs.working_dir,
+            timeout_seconds=inputs.timeout_sec if inputs.command is not None else None,
+            attempted=execution.attempted,
+            return_code=execution.returncode,
+            timed_out=execution.timed_out,
+            duration_seconds=execution.duration_seconds,
+            stdout_sha256=execution.stdout_sha256,
+            stderr_sha256=execution.stderr_sha256,
+            stdout_tail=execution.stdout_tail,
+            stderr_tail=execution.stderr_tail,
+            error=execution.error,
+        ),
+        artifacts=artifacts,
+        frame_convention="T_parent_child",
+        time_convention=(
+            f"{config.dataset.time_base}; Koide adapter imports no clock-offset estimate"
+        ),
+        train_data_isolation=ExternalDataIsolation(
+            declared=identity.training_isolation_declared,
+            evidence=identity.training_isolation_evidence,
+        ),
+        status=external_status,
+        warnings=run_warnings,
+        parsed_outputs=ExternalParsedOutputs(transforms=parsed_transforms),
+        provenance=ExternalRunProvenance(
+            calibrex_version=__version__,
+            git_commit=git_commit(),
+            source_artifact=str(result_path) if result_path is not None else None,
+            source_artifact_sha256=output_sha256,
+        ),
+    )
+
+
+def _external_artifact_digest(
+    role: Literal["input", "output"],
+    path: Path,
+    *,
+    media_type: str,
+) -> ExternalArtifactDigest | None:
+    digest = sha256_path(path)
+    if digest is None or not path.is_file():
+        return None
+    return ExternalArtifactDigest(
+        role=role,
+        path=str(path),
+        sha256=digest,
+        size_bytes=path.stat().st_size,
+        media_type=media_type,
+    )
+
+
+def _transform_frames(
+    name: str,
+    config: CalibrationConfig,
+) -> tuple[str, str] | None:
+    frame_names = sorted(config.frames, key=len, reverse=True)
+    for parent in frame_names:
+        prefix = f"T_{parent}_"
+        if not name.startswith(prefix):
+            continue
+        child = name[len(prefix) :]
+        if child in config.frames:
+            return parent, child
+    return None
 
 
 def _text_option(options: dict[str, Any], key: str) -> str | None:
@@ -397,6 +586,7 @@ def _execute_command(
         )
 
     command = _format_command(inputs.command, config, inputs)
+    started = time.perf_counter()
     try:
         completed = subprocess.run(
             shlex.split(command),
@@ -407,26 +597,37 @@ def _execute_command(
             timeout=inputs.timeout_sec,
         )
     except subprocess.TimeoutExpired as exc:
+        stdout = _to_text(exc.stdout)
+        stderr = _to_text(exc.stderr)
         return AdapterExecutionResult(
             requested=True,
             attempted=True,
             timed_out=True,
-            stdout_tail=_tail(_to_text(exc.stdout)),
-            stderr_tail=_tail(_to_text(exc.stderr)),
+            stdout_tail=_tail(stdout),
+            stderr_tail=_tail(stderr),
+            stdout_sha256=_sha256_text(stdout),
+            stderr_sha256=_sha256_text(stderr),
+            duration_seconds=time.perf_counter() - started,
             error=f"external command timed out after {inputs.timeout_sec:g} seconds",
         )
     except OSError as exc:
         return AdapterExecutionResult(
             requested=True,
             attempted=True,
+            duration_seconds=time.perf_counter() - started,
             error=str(exc),
         )
+    stdout = completed.stdout or ""
+    stderr = completed.stderr or ""
     return AdapterExecutionResult(
         requested=True,
         attempted=True,
         returncode=completed.returncode,
-        stdout_tail=_tail(completed.stdout),
-        stderr_tail=_tail(completed.stderr),
+        stdout_tail=_tail(stdout),
+        stderr_tail=_tail(stderr),
+        stdout_sha256=_sha256_text(stdout),
+        stderr_sha256=_sha256_text(stderr),
+        duration_seconds=time.perf_counter() - started,
         error=None if completed.returncode == 0 else "external command returned non-zero status",
     )
 
@@ -460,6 +661,12 @@ def _to_text(value: str | bytes | None) -> str | None:
     if isinstance(value, bytes):
         return value.decode("utf-8", errors="replace")
     return value
+
+
+def _sha256_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _load_transforms(result_path: str | None) -> dict[str, SE3]:
@@ -539,6 +746,26 @@ def _execution_metric(execution: AdapterExecutionResult) -> MetricResult:
     )
 
 
+def _with_output_error(
+    execution: AdapterExecutionResult,
+    error: OSError | ValueError,
+) -> AdapterExecutionResult:
+    """Preserve execution facts while recording an unreadable output."""
+
+    return AdapterExecutionResult(
+        requested=execution.requested,
+        attempted=execution.attempted,
+        returncode=execution.returncode,
+        timed_out=execution.timed_out,
+        stdout_tail=execution.stdout_tail,
+        stderr_tail=execution.stderr_tail,
+        stdout_sha256=execution.stdout_sha256,
+        stderr_sha256=execution.stderr_sha256,
+        duration_seconds=execution.duration_seconds,
+        error=f"external result could not be parsed: {error}",
+    )
+
+
 def _warnings(
     inputs: KoideLidarCameraInputs,
     transforms: dict[str, SE3],
@@ -567,9 +794,12 @@ def _status(
     inputs: KoideLidarCameraInputs,
     transforms: dict[str, SE3],
     execution: AdapterExecutionResult,
+    result_exists: bool,
 ) -> str:
     if transforms:
         return "result_loaded"
+    if result_exists:
+        return "executed_no_result"
     if execution.requested:
         if execution.success:
             return "executed_no_result"

@@ -238,7 +238,7 @@ def evaluate_line_plane_observations(
 def _solve_rotation(
     observations: Sequence[LinePlaneBoardObservation], options: LinePlaneSolverOptions
 ) -> tuple[FloatArray | None, tuple[float, float, float], int]:
-    covariance = np.zeros((3, 3), dtype=np.float64)
+    covariance: FloatArray = np.zeros((3, 3), dtype=np.float64)
     for item in observations:
         covariance += item.weight * np.outer(item.camera_plane.normal, item.lidar_plane.normal)
         for boundary in item.boundaries:

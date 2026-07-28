@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from calibrex.core.config import CalibrationConfig
+from calibrex.core.external_run import ExternalCalibrationRunArtifact
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
 from calibrex.core.result import MetricResult, ObservabilityResult
@@ -25,6 +26,7 @@ class SolverAdapterResult:
     provenance: dict[str, Any] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     observability: ObservabilityResult | None = None
+    external_run: ExternalCalibrationRunArtifact | None = None
 
 
 class SolverAdapter(ABC):

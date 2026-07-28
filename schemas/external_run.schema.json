@@ -1,0 +1,608 @@
+{
+  "$defs": {
+    "ExternalArtifactDigest": {
+      "additionalProperties": false,
+      "description": "Digest and role of one external-run input or output.",
+      "properties": {
+        "media_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Media Type"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "ExternalArtifactDigest",
+      "type": "object"
+    },
+    "ExternalDataIsolation": {
+      "additionalProperties": false,
+      "description": "Declaration that Calibrex holdout data was isolated from external fitting.",
+      "properties": {
+        "declared": {
+          "title": "Declared",
+          "type": "boolean"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        },
+        "holdout_data_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Data Ids Sha256"
+        },
+        "training_data_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Training Data Ids Sha256"
+        }
+      },
+      "required": [
+        "declared"
+      ],
+      "title": "ExternalDataIsolation",
+      "type": "object"
+    },
+    "ExternalExecution": {
+      "additionalProperties": false,
+      "description": "Bounded execution facts without unbounded external process output.",
+      "properties": {
+        "attempted": {
+          "default": false,
+          "title": "Attempted",
+          "type": "boolean"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "container_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Digest"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "mode": {
+          "enum": [
+            "subprocess",
+            "container",
+            "precomputed",
+            "imported"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "return_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Return Code"
+        },
+        "stderr_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stderr Sha256"
+        },
+        "stderr_tail": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stderr Tail"
+        },
+        "stdout_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stdout Sha256"
+        },
+        "stdout_tail": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stdout Tail"
+        },
+        "timed_out": {
+          "default": false,
+          "title": "Timed Out",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        },
+        "working_directory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Working Directory"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "ExternalExecution",
+      "type": "object"
+    },
+    "ExternalParsedOutputs": {
+      "additionalProperties": false,
+      "description": "Typed outputs parsed independently of external fitness metrics.",
+      "properties": {
+        "external_metrics": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "External Metrics",
+          "type": "object"
+        },
+        "external_metrics_comparable": {
+          "const": false,
+          "default": false,
+          "title": "External Metrics Comparable",
+          "type": "boolean"
+        },
+        "intrinsics": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "type": "object"
+          },
+          "title": "Intrinsics",
+          "type": "object"
+        },
+        "time_offsets_seconds": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Time Offsets Seconds",
+          "type": "object"
+        },
+        "transforms": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ExternalTransformOutput"
+          },
+          "title": "Transforms",
+          "type": "object"
+        }
+      },
+      "title": "ExternalParsedOutputs",
+      "type": "object"
+    },
+    "ExternalRunProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage of the adapter artifact itself.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "source_artifact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Artifact"
+        },
+        "source_artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Artifact Sha256"
+        }
+      },
+      "required": [
+        "calibrex_version"
+      ],
+      "title": "ExternalRunProvenance",
+      "type": "object"
+    },
+    "ExternalToolIdentity": {
+      "additionalProperties": false,
+      "description": "External tool identity and legal boundary declaration.",
+      "properties": {
+        "license_boundary": {
+          "enum": [
+            "in_process",
+            "subprocess",
+            "container",
+            "imported"
+          ],
+          "title": "License Boundary",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_repository": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Repository"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "name",
+        "license_boundary"
+      ],
+      "title": "ExternalToolIdentity",
+      "type": "object"
+    },
+    "ExternalTransformOutput": {
+      "additionalProperties": false,
+      "description": "One parsed transform emitted by an external tool.",
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "ExternalTransformOutput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generic, reusable record of an external calibration run or import.",
+  "properties": {
+    "adapter_name": {
+      "title": "Adapter Name",
+      "type": "string"
+    },
+    "adapter_version": {
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ExternalArtifactDigest"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "execution": {
+      "$ref": "#/$defs/ExternalExecution"
+    },
+    "frame_convention": {
+      "title": "Frame Convention",
+      "type": "string"
+    },
+    "parsed_outputs": {
+      "$ref": "#/$defs/ExternalParsedOutputs"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ExternalRunProvenance"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.external_calibration_run/v0.1",
+      "default": "slac.external_calibration_run/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "success",
+        "not_executed",
+        "unavailable",
+        "failed",
+        "timeout",
+        "invalid_output",
+        "digest_mismatch"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "time_convention": {
+      "title": "Time Convention",
+      "type": "string"
+    },
+    "tool": {
+      "$ref": "#/$defs/ExternalToolIdentity"
+    },
+    "train_data_isolation": {
+      "$ref": "#/$defs/ExternalDataIsolation"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "adapter_name",
+    "adapter_version",
+    "tool",
+    "execution",
+    "frame_convention",
+    "time_convention",
+    "train_data_isolation",
+    "status",
+    "provenance"
+  ],
+  "title": "ExternalCalibrationRunArtifact",
+  "type": "object"
+}

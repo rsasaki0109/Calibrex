@@ -188,7 +188,7 @@ class PlanarBoardLidarCameraSolver:
                 normal_sign_policy=solver_options.normal_sign_policy,
             )
 
-        robust = np.ones(len(train), dtype=float)
+        robust: FloatArray = np.ones(len(train), dtype=float)
         transform: SE3 | None = None
         iterations = 0
         for iteration in range(solver_options.max_iterations):
@@ -283,7 +283,7 @@ def _fit_transform(
     observations: Sequence[PlanarBoardObservation], robust: FloatArray
 ) -> SE3 | None:
     weights = np.asarray([item.weight for item in observations]) * robust
-    covariance = np.zeros((3, 3), dtype=float)
+    covariance: FloatArray = np.zeros((3, 3), dtype=float)
     for item, weight in zip(observations, weights, strict=True):
         covariance += weight * np.outer(item.camera_plane.normal, item.lidar_plane.normal)
     left, _singular, right_t = np.linalg.svd(covariance)

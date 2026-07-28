@@ -8,7 +8,7 @@ clean.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from calibrex.core.exceptions import DatasetError
 
@@ -225,4 +225,4 @@ def decode_point_time_offsets(
             "nanoseconds"
         )
         raise DatasetError(msg)
-    return offsets_s
+    return cast("np.ndarray", offsets_s)

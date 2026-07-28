@@ -1,0 +1,448 @@
+{
+  "$defs": {
+    "DegeneracyResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "title": "DegeneracyResult",
+      "type": "object"
+    },
+    "DoctorDataset": {
+      "additionalProperties": false,
+      "description": "Dataset inspection embedded in the doctor artifact.",
+      "properties": {
+        "dataset_type": {
+          "enum": [
+            "a2d2_lidar",
+            "filesystem",
+            "kitti_raw",
+            "livox_pcd",
+            "mcap",
+            "nuscenes",
+            "rosbag1",
+            "rosbag2",
+            "tum_rgbd"
+          ],
+          "title": "Dataset Type",
+          "type": "string"
+        },
+        "diagnostics": {
+          "additionalProperties": true,
+          "title": "Diagnostics",
+          "type": "object"
+        },
+        "exists": {
+          "title": "Exists",
+          "type": "boolean"
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manifest"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "streams": {
+          "items": {
+            "additionalProperties": {
+              "anyOf": [
+                {},
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object"
+          },
+          "title": "Streams",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "dataset_type",
+        "path",
+        "exists"
+      ],
+      "title": "DoctorDataset",
+      "type": "object"
+    },
+    "DoctorDependency": {
+      "additionalProperties": false,
+      "description": "Availability of one runtime dependency.",
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "optional": {
+          "default": false,
+          "title": "Optional",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "title": "DoctorDependency",
+      "type": "object"
+    },
+    "DoctorEnvironment": {
+      "additionalProperties": false,
+      "description": "Runtime environment recorded by a doctor run.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "core_ros_independent": {
+          "default": true,
+          "title": "Core Ros Independent",
+          "type": "boolean"
+        },
+        "dependencies": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DoctorDependency"
+          },
+          "title": "Dependencies",
+          "type": "object"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "python": {
+          "title": "Python",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calibrex_version",
+        "python",
+        "platform",
+        "dependencies"
+      ],
+      "title": "DoctorEnvironment",
+      "type": "object"
+    },
+    "DoctorProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage of a generated doctor artifact.",
+      "properties": {
+        "calibrex_version": {
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "dataset_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Digest"
+        },
+        "dataset_digest_status": {
+          "default": "not_applicable",
+          "enum": [
+            "not_applicable",
+            "not_computed"
+          ],
+          "title": "Dataset Digest Status",
+          "type": "string"
+        },
+        "dataset_type_source": {
+          "default": "none",
+          "enum": [
+            "none",
+            "explicit",
+            "inferred"
+          ],
+          "title": "Dataset Type Source",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calibrex_version"
+      ],
+      "title": "DoctorProvenance",
+      "type": "object"
+    },
+    "DoctorQuality": {
+      "additionalProperties": false,
+      "description": "Provisional quality evidence derived without running a solver.",
+      "properties": {
+        "degeneracy": {
+          "$ref": "#/$defs/DegeneracyResult"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MetricResult"
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "recommendations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommendations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "degeneracy"
+      ],
+      "title": "DoctorQuality",
+      "type": "object"
+    },
+    "DoctorWorkflow": {
+      "additionalProperties": false,
+      "description": "A workflow that the inspected inputs can support.",
+      "properties": {
+        "next_command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Command"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "conditional"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "workflow_id": {
+          "title": "Workflow Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workflow_id",
+        "status",
+        "reason"
+      ],
+      "title": "DoctorWorkflow",
+      "type": "object"
+    },
+    "MetricResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "train": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "MetricResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Portable environment and input-readiness diagnosis.",
+  "properties": {
+    "dataset": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DoctorDataset"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "environment": {
+      "$ref": "#/$defs/DoctorEnvironment"
+    },
+    "provenance": {
+      "$ref": "#/$defs/DoctorProvenance"
+    },
+    "quality": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DoctorQuality"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "slac.doctor/v0.1",
+      "default": "slac.doctor/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "workflows": {
+      "items": {
+        "$ref": "#/$defs/DoctorWorkflow"
+      },
+      "title": "Workflows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "environment",
+    "provenance"
+  ],
+  "title": "DoctorArtifact",
+  "type": "object"
+}

@@ -1415,6 +1415,93 @@ def test_metrics_command() -> None:
     assert main(["metrics", "--json"]) == 0
 
 
+def test_doctor_writes_schema_valid_dataset_artifact(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    dataset = tmp_path / "recording"
+    dataset.mkdir()
+    output = tmp_path / "doctor.json"
+
+    assert (
+        main(
+            [
+                "doctor",
+                str(dataset),
+                "--type",
+                "filesystem",
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["schema_version"] == "slac.doctor/v0.1"
+    assert payload["dataset"]["dataset_type"] == "filesystem"
+    assert payload["provenance"]["dataset_type_source"] == "explicit"
+    assert payload["provenance"]["command"][0:2] == ["calibrex", "doctor"]
+    assert main(["validate", str(output), "--kind", "doctor", "--json"]) == 0
+
+
+def test_calibration_ci_writes_valid_artifacts_and_enforces_status(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    candidate = Path(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/"
+        "cached_evidence_result.yaml"
+    )
+    output_dir = tmp_path / "calibration-ci"
+
+    assert (
+        main(
+            [
+                "ci",
+                str(candidate),
+                "--baseline",
+                str(candidate),
+                "--output-dir",
+                str(output_dir),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["schema_version"] == "slac.calibration_ci/v0.1"
+    assert payload["status"] == "inconclusive"
+    assert payload["protocol_compatibility"] == "compatible"
+    assert payload["candidate"]["sha256"] == payload["baseline"]["sha256"]
+    assert (output_dir / "summary.md").is_file()
+    assert (output_dir / "evidence-card.svg").is_file()
+    assert (output_dir / "comparison-table.svg").is_file()
+    assert main(["validate", str(output_dir / "calibration-ci.json")]) == 0
+    capsys.readouterr()
+
+    enforced_dir = tmp_path / "calibration-ci-enforced"
+    assert (
+        main(
+            [
+                "ci",
+                str(candidate),
+                "--policy",
+                str(output_dir / "policy.json"),
+                "--output-dir",
+                str(enforced_dir),
+                "--enforce",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    enforced = json.loads(capsys.readouterr().out)
+    assert enforced["status"] == "inconclusive"
+    assert enforced["policy"]["path"] == str(output_dir / "policy.json")
+    assert enforced["policy"]["sha256"]
+
+
 def test_public_datasets_commands() -> None:
     assert main(["public-datasets", "list", "--json"]) == 0
     assert main(["public-datasets", "show", "tum_rgbd_freiburg1_xyz", "--json"]) == 0
@@ -1774,6 +1861,59 @@ def test_kitti_import_calib_command(tmp_path: Path) -> None:
     assert main(["kitti", "import-calib", str(tmp_path), "--json"]) == 0
 
 
+def test_external_run_import_kalibr_cli_is_schema_valid(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = tmp_path / "camchain.yaml"
+    source.write_text(
+        """
+cam0:
+  camera_model: pinhole
+  intrinsics: [400.0, 401.0, 320.0, 240.0]
+  distortion_model: radtan
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  T_cam_imu:
+    - [1.0, 0.0, 0.0, 0.1]
+    - [0.0, 1.0, 0.0, 0.2]
+    - [0.0, 0.0, 1.0, 0.3]
+    - [0.0, 0.0, 0.0, 1.0]
+  timeshift_cam_imu: 0.001
+  resolution: [640, 480]
+""".strip(),
+        encoding="utf-8",
+    )
+    fitting_input = tmp_path / "recording.bag"
+    fitting_input.write_bytes(b"fixture")
+    output = tmp_path / "external-run.json"
+
+    assert (
+        main(
+            [
+                "external-run",
+                "import-kalibr",
+                str(source),
+                "--output",
+                str(output),
+                "--input-artifact",
+                str(fitting_input),
+                "--tool-version",
+                "test",
+                "--source-commit",
+                "0123456789abcdef",
+                "--training-isolation-declared",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "success"
+    assert payload["transform_count"] == 1
+    assert payload["time_offset_count"] == 1
+    assert main(["validate", str(output), "--kind", "external-run", "--json"]) == 0
+
+
 def test_kitti_fixed_lidar_calibrate_result_includes_public_dataset_diagnostics(
     tmp_path: Path,
 ) -> None:
@@ -1948,6 +2088,12 @@ outputs:
     assert output_provenance.source_path == str(external_result)
     result_digest, _result_size = _sha256_file_for_test(external_result)
     assert f"result_sha256={result_digest}" in output_provenance.notes
+    external_run = json.loads((output_dir / "external-run.json").read_text(encoding="utf-8"))
+    assert external_run["schema_version"] == "slac.external_calibration_run/v0.1"
+    assert external_run["status"] == "success"
+    assert result.run.provenance["external_calibration_run_path"] == str(
+        output_dir / "external-run.json"
+    )
     assert result.metrics["koide_lidar_camera_provenance_complete"].grade == "pass"
     assert "lidar_point_to_plane_rmse_m" in result.metrics
     assert "lidar_world_map_point_to_plane_rmse_m" in result.metrics
