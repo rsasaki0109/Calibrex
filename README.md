@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Calibration evidence, not just a matrix.</strong><br>
-  Decide whether a robotics sensor calibration can actually be trusted.
+  Validate robotics sensor calibration with reproducible PASS / WARN / FAIL evidence.
 </p>
 
 <p align="center">
@@ -14,9 +14,13 @@
   <img alt="Provenance" src="https://img.shields.io/badge/provenance-recorded-818cf8">
 </p>
 
-Calibrex turns candidate extrinsics, time offsets, and trajectories into
-**PASS / WARN / FAIL evidence** backed by holdout metrics, known-bad controls,
-observability checks, and reproducible provenance.
+Calibrex is a ROS-independent Python toolkit that turns candidate extrinsics,
+time offsets, and trajectories into evidence backed by **holdout metrics,
+known-bad controls, observability checks, and reproducible provenance**.
+
+Use it to evaluate native or adapter-produced LiDAR, camera, IMU, radar, RGB-D,
+hand-eye, and robot-world calibration without reducing the verdict to optimizer
+convergence or a single training residual.
 
 <p align="center">
   <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
@@ -28,10 +32,39 @@ observability checks, and reproducible provenance.
   holdout gates.</sub>
 </p>
 
+<p align="center">
+  <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
+  ·
+  <a href="#five-minute-quickstart"><strong>Five-minute quickstart</strong></a>
+  ·
+  <a href="docs/concepts/calibration_methods.md"><strong>Calibration methods</strong></a>
+  ·
+  <a href="docs/tutorials/public_datasets.md"><strong>Public-data demos</strong></a>
+</p>
+
+## Five-minute quickstart
+
+Render and validate a committed result without ROS or a dataset download:
+
 ```bash
-calibrex calibrate config.yaml
-calibrex evaluate outputs/result.yaml
-calibrex render outputs/result.yaml --format html
+git clone https://github.com/rsasaki0109/Calibrex.git
+cd Calibrex
+python -m pip install .
+
+calibrex validate examples/precomputed/result.yaml --json
+calibrex render examples/precomputed/result.yaml \
+  --format evidence-card \
+  --output outputs/quickstart/evidence-card.svg
+calibrex render examples/precomputed/result.yaml \
+  --output-dir outputs/quickstart
+```
+
+Open `outputs/quickstart/report.html`, then inspect or verify the
+schema-valid sidecars. To recompute evidence from a declared public sample:
+
+```bash
+calibrex demo livox-evidence \
+  --output-dir outputs/livox_horizon_horizon_pcd_sample
 ```
 
 ## See the evidence at a glance
@@ -180,15 +213,8 @@ See the [calibration methods](docs/concepts/calibration_methods.md) and
 
 ## Install
 
-Calibrex is currently distributed from source:
-
-```bash
-git clone https://github.com/rsasaki0109/Calibrex.git
-cd Calibrex
-python -m pip install -e .
-```
-
-Development and optional backends remain explicit:
+Calibrex is currently distributed from source. The quickstart above installs
+the core package; development and optional backends remain explicit:
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -198,31 +224,6 @@ python -m pip install -e ".[open3d]"
 The core package stays ROS-independent. ROS bags are read through typed data
 adapters, and GPL or ecosystem-specific tools stay behind optional adapter or
 subprocess boundaries.
-
-## Five-minute quickstart
-
-Render and validate the committed example without downloading a dataset:
-
-```bash
-calibrex doctor
-calibrex validate examples/precomputed/result.yaml --json
-calibrex render examples/precomputed/result.yaml \
-  --format evidence-card \
-  --output outputs/quickstart/evidence-card.svg
-calibrex render examples/precomputed/result.yaml \
-  --output-dir outputs/quickstart
-```
-
-Then run a public raw-data evidence demo:
-
-```bash
-calibrex public-datasets list
-calibrex demo livox-evidence \
-  --output-dir outputs/livox_horizon_horizon_pcd_sample
-```
-
-The demo downloads the declared public sample, recomputes its evidence, and
-writes a verifiable bundle rather than silently reusing README numbers.
 
 ## Outputs you can inspect and verify
 
@@ -289,6 +290,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 
 ## Documentation
 
+- [Documentation site](https://rsasaki0109.github.io/Calibrex/)
 - [SLAC concept](docs/concepts/slac.md)
 - [Calibration methods](docs/concepts/calibration_methods.md)
 - [Frame conventions](docs/concepts/frame_conventions.md)
@@ -300,4 +302,5 @@ Tests fail if the committed evidence card drifts from its validated source.
 
 ## License
 
-Apache-2.0.
+[Apache-2.0](LICENSE). If you use Calibrex in research, see
+[`CITATION.cff`](CITATION.cff).

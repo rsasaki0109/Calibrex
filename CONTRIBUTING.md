@@ -24,7 +24,7 @@ If a PR changes config, result, comparison, dataset manifest, or report sidecar
 shape, regenerate committed schemas:
 
 ```bash
-Calibrex schema all --output-dir schemas
+calibrex schema all --output-dir schemas
 pytest tests/unit/test_schemas.py
 ```
 
@@ -62,7 +62,7 @@ pytest
 
 Release tags use `v*`, for example `v0.1.0-alpha.1`. A tag or manual release
 workflow builds wheel/sdist artifacts, installs the wheel in a clean virtual
-environment, runs `Calibrex doctor --json`, regenerates schemas, and creates a
+environment, runs `calibrex doctor --json`, regenerates schemas, and creates a
 draft prerelease on GitHub.
 
 Before tagging, run the local release smoke when GitHub Actions is unavailable
@@ -72,6 +72,8 @@ or when package metadata changed:
 python3 tools/local_release_smoke.py
 ```
 
-The release workflow does not publish to PyPI. Publish release artifacts only
-after reviewing the draft release, `CHANGELOG.md`, wheel smoke results, license
-boundaries, and public dataset notes.
+The tag workflow creates a draft GitHub prerelease. After reviewing the draft,
+`CHANGELOG.md`, wheel smoke results, license boundaries, and public dataset
+notes, publishing the GitHub release triggers the PyPI trusted-publishing
+workflow. The `pypi` GitHub environment and PyPI trusted publisher must be
+configured before publishing the first release.
