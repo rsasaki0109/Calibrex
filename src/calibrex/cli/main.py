@@ -27,12 +27,27 @@ from calibrex.core.benchmark import (
     render_benchmark_markdown,
     update_benchmark_table_in_markdown,
 )
+from calibrex.core.camera_lidar_artifacts import (
+    bullseye_plot_json_schema,
+    calibration_candidate_trace_json_schema,
+    camera_lidar_benchmark_protocol_json_schema,
+    camera_lidar_problem_json_schema,
+    load_camera_lidar_problem,
+)
+from calibrex.core.camera_lidar_sota_audit import (
+    camera_lidar_sota_audit_protocol_json_schema,
+    camera_lidar_sota_audit_result_json_schema,
+)
 from calibrex.core.config import (
     CalibrationConfig,
     DatasetConfig,
     DatasetType,
     config_json_schema,
     load_config,
+)
+from calibrex.core.continuous_time_camera_lidar_artifacts import (
+    continuous_time_camera_lidar_problem_json_schema,
+    continuous_time_camera_lidar_result_json_schema,
 )
 from calibrex.core.evidence_bundle import (
     EvidenceBundleVerification,
@@ -52,6 +67,12 @@ from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
 from calibrex.core.online_timeline import online_timeline_json_schema
+from calibrex.core.probabilistic_correspondence import (
+    probabilistic_correspondence_json_schema,
+    probabilistic_pnp_result_json_schema,
+    probabilistic_refinement_result_json_schema,
+)
+from calibrex.core.provenance import sha256_path
 from calibrex.core.report_artifacts import (
     report_artifact_json_schema,
     report_artifact_schema_kinds,
@@ -64,6 +85,10 @@ from calibrex.core.validation import (
     validate_file,
     validation_kind_choices,
 )
+from calibrex.data.a2d2_camera_lidar_problem import (
+    build_a2d2_camera_lidar_problem,
+)
+from calibrex.data.depth import depth_provider_json_schema
 from calibrex.data.downloads import (
     LIVOX_BASE_PCD_NAME,
     LIVOX_TARGET_PCD_NAME,
@@ -72,17 +97,47 @@ from calibrex.data.downloads import (
 )
 from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
+from calibrex.data.kitti360_camera_lidar_problem import (
+    build_kitti360_camera_lidar_problem,
+)
+from calibrex.data.kitti_benchmark import (
+    build_kitti_raw_0005_benchmark_input,
+    kitti_benchmark_input_json_schema,
+)
+from calibrex.data.kitti_camera_lidar_problem import (
+    build_kitti_raw_camera_lidar_problem,
+)
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
 from calibrex.diagnostics import (
     build_doctor_artifact,
     doctor_json_schema,
 )
+from calibrex.evaluation.borer_rotation_benchmark import (
+    build_borer_rotation_protocol,
+    build_borer_six_dof_protocol,
+    run_borer_rotation_benchmark,
+)
+from calibrex.evaluation.borer_six_dof_benchmark import (
+    run_borer_six_dof_benchmark,
+)
+from calibrex.evaluation.camera_lidar_sota_audit import (
+    audit_camera_lidar_sota_claim,
+)
 from calibrex.evaluation.compare import (
     ComparisonSide,
     ResultComparison,
     compare_results,
     comparison_json_schema,
+)
+from calibrex.evaluation.continuous_time_camera_lidar_ablation import (
+    run_continuous_time_camera_lidar_ablation,
+)
+from calibrex.evaluation.continuous_time_camera_lidar_run import (
+    run_continuous_time_camera_lidar_problem,
+)
+from calibrex.evaluation.continuous_time_trajectory_adapter import (
+    attach_recorded_body_trajectory,
 )
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.evidence_summary import evidence_cases_from_result
@@ -93,6 +148,16 @@ from calibrex.evaluation.kitti_falsification_benchmark import (
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
+from calibrex.evaluation.pandey_recovery_benchmark import (
+    load_kitti_i2i_benchmark_data,
+    run_kitti_i2i_recovery_benchmark,
+)
+from calibrex.evaluation.probabilistic_camera_lidar_run import (
+    run_probabilistic_camera_lidar_refinement,
+)
+from calibrex.evaluation.probabilistic_refinement_ablation import (
+    run_probabilistic_refinement_ablation,
+)
 from calibrex.evaluation.recommendations import build_inspection_recommendations
 from calibrex.evaluation.registry import list_metric_definitions
 from calibrex.evaluation.report_compare import (
@@ -108,6 +173,14 @@ from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
+    OpenCvProbabilisticPnpAdapter,
+    OpenCvProbabilisticPnpOptions,
+)
+from calibrex.solvers.probabilistic_camera_lidar_refiner import (
+    ProbabilisticCameraLidarRefinementOptions,
+)
+from calibrex.visualization.bullseye import write_bullseye_plot
 from calibrex.visualization.comparison_table import write_comparison_table
 from calibrex.visualization.evidence_card import write_evidence_card
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
@@ -222,6 +295,19 @@ def _build_parser() -> argparse.ArgumentParser:
             "calibration-ci",
             "external-run",
             "kitti-falsification",
+            "kitti-benchmark-input",
+            "depth-provider",
+            "continuous-time-camera-lidar-problem",
+            "continuous-time-camera-lidar-result",
+            "probabilistic-correspondence",
+            "probabilistic-pnp-result",
+            "probabilistic-refinement-result",
+            "camera-lidar-problem",
+            "camera-lidar-sota-audit-protocol",
+            "camera-lidar-sota-audit-result",
+            "camera-lidar-benchmark-protocol",
+            "calibration-candidate-trace",
+            "bullseye-plot",
             "evidence-bundle",
             "evidence-bundle-verification",
             "online-timeline",
@@ -627,6 +713,371 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_import.add_argument("--output", type=Path)
     kitti_import.add_argument("--json", action="store_true")
     kitti_import.set_defaults(func=_cmd_kitti_import_calib)
+    kitti_lock = kitti_subcommands.add_parser(
+        "lock-benchmark-input",
+        help="inspect and digest-lock the fixed KITTI raw 0005 benchmark inputs",
+    )
+    kitti_lock.add_argument(
+        "path",
+        type=Path,
+        help="2011_09_26_drive_0005_sync sequence directory",
+    )
+    kitti_lock.add_argument("--output", type=Path, required=True)
+    kitti_lock.add_argument("--json", action="store_true")
+    kitti_lock.set_defaults(func=_cmd_kitti_lock_benchmark_input)
+    kitti_i2i = kitti_subcommands.add_parser(
+        "benchmark-i2i",
+        help="benchmark baseline versus coarse native I2I recovery on locked KITTI inputs",
+    )
+    kitti_i2i.add_argument("input_manifest", type=Path)
+    kitti_i2i.add_argument("--sequence-path", type=Path)
+    kitti_i2i.add_argument("--definition-output", type=Path, required=True)
+    kitti_i2i.add_argument("--output", type=Path, required=True)
+    kitti_i2i.add_argument("--max-points-per-frame", type=_positive_int, default=2_000)
+    kitti_i2i.add_argument("--max-iterations", type=int, default=20)
+    kitti_i2i.add_argument("--json", action="store_true")
+    kitti_i2i.set_defaults(func=_cmd_kitti_benchmark_i2i)
+
+    camera_lidar = subcommands.add_parser(
+        "camera-lidar",
+        help="schema-valid camera-LiDAR research benchmark utilities",
+    )
+    camera_lidar_subcommands = camera_lidar.add_subparsers(
+        dest="camera_lidar_command",
+        required=True,
+    )
+    build_kitti_problem = camera_lidar_subcommands.add_parser(
+        "build-kitti-problem",
+        help="bind a frozen depth-provider artifact to KITTI raw Velodyne scans",
+    )
+    build_kitti_problem.add_argument(
+        "sequence_path",
+        type=Path,
+        help="KITTI *_sync sequence directory",
+    )
+    build_kitti_problem.add_argument("depth_provider", type=Path)
+    build_kitti_problem.add_argument("--output", type=Path, required=True)
+    build_kitti_problem.add_argument("--camera-stream", default="image_02")
+    build_kitti_problem.add_argument("--dataset-id")
+    build_kitti_problem.add_argument("--problem-id")
+    build_kitti_problem.add_argument("--rotation-bound-deg", type=float, default=20.0)
+    build_kitti_problem.add_argument(
+        "--translation-bound-m",
+        type=float,
+        default=0.0,
+    )
+    build_kitti_problem.add_argument("--json", action="store_true")
+    build_kitti_problem.set_defaults(func=_cmd_camera_lidar_build_kitti_problem)
+    build_kitti360_problem = camera_lidar_subcommands.add_parser(
+        "build-kitti360-problem",
+        help="bind a frozen depth-provider artifact to KITTI-360 raw scans",
+    )
+    build_kitti360_problem.add_argument("sequence_path", type=Path)
+    build_kitti360_problem.add_argument("depth_provider", type=Path)
+    build_kitti360_problem.add_argument("--output", type=Path, required=True)
+    build_kitti360_problem.add_argument("--calibration-root", type=Path)
+    build_kitti360_problem.add_argument("--lidar-directory", type=Path)
+    build_kitti360_problem.add_argument("--lidar-manifest", type=Path)
+    build_kitti360_problem.add_argument("--camera-stream", default="image_03")
+    build_kitti360_problem.add_argument("--dataset-id")
+    build_kitti360_problem.add_argument("--problem-id")
+    build_kitti360_problem.add_argument(
+        "--rotation-bound-deg", type=float, default=20.0
+    )
+    build_kitti360_problem.add_argument(
+        "--translation-bound-m",
+        type=float,
+        default=0.0,
+    )
+    build_kitti360_problem.add_argument("--json", action="store_true")
+    build_kitti360_problem.set_defaults(
+        func=_cmd_camera_lidar_build_kitti360_problem
+    )
+    build_a2d2_problem = camera_lidar_subcommands.add_parser(
+        "build-a2d2-problem",
+        help="build the pre-registered A2D2 cross-family D2D smoke problem",
+    )
+    build_a2d2_problem.add_argument("data_directory", type=Path)
+    build_a2d2_problem.add_argument("depth_provider", type=Path)
+    build_a2d2_problem.add_argument(
+        "--lidar-output-directory", type=Path, required=True
+    )
+    build_a2d2_problem.add_argument(
+        "--lidar-manifest-output", type=Path, required=True
+    )
+    build_a2d2_problem.add_argument("--output", type=Path, required=True)
+    build_a2d2_problem.add_argument("--problem-id")
+    build_a2d2_problem.add_argument(
+        "--rotation-bound-deg", type=float, default=20.0
+    )
+    build_a2d2_problem.add_argument("--json", action="store_true")
+    build_a2d2_problem.set_defaults(
+        func=_cmd_camera_lidar_build_a2d2_problem
+    )
+    freeze_rotation = camera_lidar_subcommands.add_parser(
+        "freeze-rotation-protocol",
+        help="freeze the explicit Borer Fibonacci-sphere rotation protocol",
+    )
+    freeze_rotation.add_argument("problem", type=Path)
+    freeze_rotation.add_argument("--output", type=Path, required=True)
+    freeze_rotation.add_argument("--perturbation-count", type=_positive_int, default=200)
+    freeze_rotation.add_argument("--rotation-deg", type=float, default=10.0)
+    freeze_rotation.add_argument("--histogram-bins", type=_positive_int, default=32)
+    freeze_rotation.add_argument("--min-visible-points", type=_positive_int, default=64)
+    freeze_rotation.add_argument("--bound-deg", type=float, default=20.0)
+    freeze_rotation.add_argument("--initial-step-deg", type=float, default=4.0)
+    freeze_rotation.add_argument("--minimum-step-deg", type=float, default=0.05)
+    freeze_rotation.add_argument("--max-evaluations", type=_positive_int, default=400)
+    freeze_rotation.add_argument("--json", action="store_true")
+    freeze_rotation.set_defaults(func=_cmd_camera_lidar_freeze_rotation_protocol)
+    freeze_six_dof = camera_lidar_subcommands.add_parser(
+        "freeze-six-dof-protocol",
+        help="freeze paired rotation/translation Fibonacci perturbations",
+    )
+    freeze_six_dof.add_argument("problem", type=Path)
+    freeze_six_dof.add_argument("--output", type=Path, required=True)
+    freeze_six_dof.add_argument(
+        "--perturbation-count", type=_positive_int, default=200
+    )
+    freeze_six_dof.add_argument("--rotation-deg", type=float, default=0.5)
+    freeze_six_dof.add_argument("--translation-m", type=float, default=0.5)
+    freeze_six_dof.add_argument("--histogram-bins", type=_positive_int, default=32)
+    freeze_six_dof.add_argument(
+        "--min-visible-points", type=_positive_int, default=64
+    )
+    freeze_six_dof.add_argument("--rotation-bound-deg", type=float, default=2.0)
+    freeze_six_dof.add_argument("--translation-bound-m", type=float, default=1.0)
+    freeze_six_dof.add_argument(
+        "--initial-rotation-step-deg", type=float, default=0.25
+    )
+    freeze_six_dof.add_argument(
+        "--initial-translation-step-m", type=float, default=0.10
+    )
+    freeze_six_dof.add_argument(
+        "--minimum-rotation-step-deg", type=float, default=0.01
+    )
+    freeze_six_dof.add_argument(
+        "--minimum-translation-step-m", type=float, default=0.005
+    )
+    freeze_six_dof.add_argument(
+        "--max-evaluations", type=_positive_int, default=800
+    )
+    freeze_six_dof.add_argument("--json", action="store_true")
+    freeze_six_dof.set_defaults(
+        func=_cmd_camera_lidar_freeze_six_dof_protocol
+    )
+    benchmark_rotation = camera_lidar_subcommands.add_parser(
+        "benchmark-rotation",
+        help="execute a frozen native D2D rotation recovery protocol",
+    )
+    benchmark_rotation.add_argument("problem", type=Path)
+    benchmark_rotation.add_argument("protocol", type=Path)
+    benchmark_rotation.add_argument("--trace-dir", type=Path, required=True)
+    benchmark_rotation.add_argument("--definition-output", type=Path, required=True)
+    benchmark_rotation.add_argument("--output", type=Path, required=True)
+    benchmark_rotation.add_argument("--bullseye-output", type=Path)
+    benchmark_rotation.add_argument("--bullseye-artifact-output", type=Path)
+    benchmark_rotation.add_argument("--bootstrap-samples", type=_positive_int, default=2000)
+    benchmark_rotation.add_argument("--workers", type=_positive_int, default=1)
+    benchmark_rotation.add_argument(
+        "--resume",
+        action="store_true",
+        help="reuse only digest-compatible completed traces in --trace-dir",
+    )
+    benchmark_rotation.add_argument("--required-hit-rate", type=float)
+    benchmark_rotation.add_argument("--json", action="store_true")
+    benchmark_rotation.set_defaults(func=_cmd_camera_lidar_benchmark_rotation)
+    benchmark_six_dof = camera_lidar_subcommands.add_parser(
+        "benchmark-six-dof",
+        help="execute a frozen native D2D six-DoF recovery protocol",
+    )
+    benchmark_six_dof.add_argument("problem", type=Path)
+    benchmark_six_dof.add_argument("protocol", type=Path)
+    benchmark_six_dof.add_argument("--trace-dir", type=Path, required=True)
+    benchmark_six_dof.add_argument(
+        "--definition-output", type=Path, required=True
+    )
+    benchmark_six_dof.add_argument("--output", type=Path, required=True)
+    benchmark_six_dof.add_argument(
+        "--bootstrap-samples", type=_positive_int, default=2000
+    )
+    benchmark_six_dof.add_argument("--workers", type=_positive_int, default=1)
+    benchmark_six_dof.add_argument("--resume", action="store_true")
+    benchmark_six_dof.add_argument("--required-hit-rate", type=float)
+    benchmark_six_dof.add_argument("--json", action="store_true")
+    benchmark_six_dof.set_defaults(
+        func=_cmd_camera_lidar_benchmark_six_dof
+    )
+    probabilistic_pnp = camera_lidar_subcommands.add_parser(
+        "refine-probabilistic-pnp",
+        help="solve a schema-valid probabilistic 2D-3D correspondence frame",
+    )
+    probabilistic_pnp.add_argument("correspondence_artifact", type=Path)
+    probabilistic_pnp.add_argument("frame_id")
+    probabilistic_pnp.add_argument("--output", type=Path, required=True)
+    probabilistic_pnp.add_argument("--result-id")
+    probabilistic_pnp.add_argument(
+        "--initial-problem",
+        type=Path,
+        help="camera-LiDAR problem whose D2D output/initial pose seeds PnP",
+    )
+    probabilistic_pnp.add_argument(
+        "--minimum-confidence", type=float, default=0.25
+    )
+    probabilistic_pnp.add_argument(
+        "--minimum-correspondences", type=_positive_int, default=6
+    )
+    probabilistic_pnp.add_argument(
+        "--ransac-reprojection-threshold-px", type=float, default=4.0
+    )
+    probabilistic_pnp.add_argument(
+        "--ransac-confidence", type=float, default=0.999
+    )
+    probabilistic_pnp.add_argument(
+        "--ransac-iterations", type=_positive_int, default=1000
+    )
+    probabilistic_pnp.add_argument(
+        "--mahalanobis-inlier-threshold", type=float, default=3.0
+    )
+    probabilistic_pnp.add_argument("--random-seed", type=int, default=0)
+    probabilistic_pnp.add_argument("--json", action="store_true")
+    probabilistic_pnp.set_defaults(
+        func=_cmd_camera_lidar_refine_probabilistic_pnp
+    )
+    probabilistic_multiframe = camera_lidar_subcommands.add_parser(
+        "refine-probabilistic-multiframe",
+        help="refine one shared D2D pose from all probabilistic frames",
+    )
+    probabilistic_multiframe.add_argument(
+        "correspondence_artifact", type=Path
+    )
+    probabilistic_multiframe.add_argument("initial_problem", type=Path)
+    probabilistic_multiframe.add_argument(
+        "--initial-trace",
+        type=Path,
+        help="schema-valid D2D candidate trace whose output pose initializes refinement",
+    )
+    probabilistic_multiframe.add_argument("--output", type=Path, required=True)
+    probabilistic_multiframe.add_argument("--result-id")
+    probabilistic_multiframe.add_argument(
+        "--minimum-confidence", type=float, default=0.25
+    )
+    probabilistic_multiframe.add_argument(
+        "--holdout-ratio", type=float, default=0.25
+    )
+    probabilistic_multiframe.add_argument("--split-seed", type=int, default=0)
+    probabilistic_multiframe.add_argument(
+        "--minimum-train-correspondences", type=_positive_int, default=24
+    )
+    probabilistic_multiframe.add_argument(
+        "--minimum-holdout-correspondences", type=_positive_int, default=8
+    )
+    probabilistic_multiframe.add_argument(
+        "--max-evaluations", type=_positive_int, default=400
+    )
+    probabilistic_multiframe.add_argument(
+        "--without-covariance", action="store_true"
+    )
+    probabilistic_multiframe.add_argument(
+        "--without-outlier-probability", action="store_true"
+    )
+    probabilistic_multiframe.add_argument(
+        "--without-reliability", action="store_true"
+    )
+    probabilistic_multiframe.add_argument("--json", action="store_true")
+    probabilistic_multiframe.set_defaults(
+        func=_cmd_camera_lidar_refine_probabilistic_multiframe
+    )
+    probabilistic_ablation = camera_lidar_subcommands.add_parser(
+        "benchmark-probabilistic-ablation",
+        help="run paired covariance/outlier/reliability ablations",
+    )
+    probabilistic_ablation.add_argument(
+        "correspondence_artifact", type=Path
+    )
+    probabilistic_ablation.add_argument("initial_problem", type=Path)
+    probabilistic_ablation.add_argument(
+        "--initial-trace",
+        type=Path,
+        help="use one digest-pinned D2D output for every paired ablation",
+    )
+    probabilistic_ablation.add_argument(
+        "--result-dir", type=Path, required=True
+    )
+    probabilistic_ablation.add_argument(
+        "--definition-output", type=Path, required=True
+    )
+    probabilistic_ablation.add_argument("--output", type=Path, required=True)
+    probabilistic_ablation.add_argument(
+        "--split-seeds",
+        default="0,1,2,3,4",
+        help="comma-separated deterministic frame-split seeds",
+    )
+    probabilistic_ablation.add_argument(
+        "--bootstrap-samples", type=_positive_int, default=2000
+    )
+    probabilistic_ablation.add_argument("--json", action="store_true")
+    probabilistic_ablation.set_defaults(
+        func=_cmd_camera_lidar_benchmark_probabilistic_ablation
+    )
+    continuous_time = camera_lidar_subcommands.add_parser(
+        "refine-continuous-time",
+        help="jointly refine extrinsic and clock offset from a frozen problem",
+    )
+    continuous_time.add_argument("problem", type=Path)
+    continuous_time.add_argument("--output", type=Path, required=True)
+    continuous_time.add_argument("--result-id")
+    continuous_time.add_argument("--json", action="store_true")
+    continuous_time.set_defaults(
+        func=_cmd_camera_lidar_refine_continuous_time
+    )
+    attach_continuous_trajectory = camera_lidar_subcommands.add_parser(
+        "attach-continuous-trajectory",
+        help="attach a recorded T_world_body trajectory to a frozen problem",
+    )
+    attach_continuous_trajectory.add_argument("problem", type=Path)
+    attach_continuous_trajectory.add_argument("trajectory", type=Path)
+    attach_continuous_trajectory.add_argument(
+        "--output", type=Path, required=True
+    )
+    attach_continuous_trajectory.add_argument("--problem-id")
+    attach_continuous_trajectory.add_argument("--json", action="store_true")
+    attach_continuous_trajectory.set_defaults(
+        func=_cmd_camera_lidar_attach_continuous_trajectory
+    )
+    continuous_time_ablation = camera_lidar_subcommands.add_parser(
+        "benchmark-continuous-time-ablation",
+        help="run paired clock/per-point-time/covariance ablations",
+    )
+    continuous_time_ablation.add_argument("problem", type=Path)
+    continuous_time_ablation.add_argument(
+        "--result-dir", type=Path, required=True
+    )
+    continuous_time_ablation.add_argument(
+        "--definition-output", type=Path, required=True
+    )
+    continuous_time_ablation.add_argument(
+        "--output", type=Path, required=True
+    )
+    continuous_time_ablation.add_argument(
+        "--split-seeds", default="0,1,2,3,4"
+    )
+    continuous_time_ablation.add_argument(
+        "--bootstrap-samples", type=_positive_int, default=2000
+    )
+    continuous_time_ablation.add_argument("--json", action="store_true")
+    continuous_time_ablation.set_defaults(
+        func=_cmd_camera_lidar_benchmark_continuous_time_ablation
+    )
+    sota_audit = camera_lidar_subcommands.add_parser(
+        "audit-sota",
+        help="evaluate a digest-frozen Camera-LiDAR SOTA claim protocol",
+    )
+    sota_audit.add_argument("protocol", type=Path)
+    sota_audit.add_argument("--output", type=Path, required=True)
+    sota_audit.add_argument("--audit-id")
+    sota_audit.add_argument("--json", action="store_true")
+    sota_audit.set_defaults(func=_cmd_camera_lidar_audit_sota)
 
     external_run = subcommands.add_parser(
         "external-run",
@@ -806,6 +1257,31 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "calibration-ci": calibration_ci_json_schema,
         "external-run": external_run_json_schema,
         "kitti-falsification": kitti_falsification_json_schema,
+        "kitti-benchmark-input": kitti_benchmark_input_json_schema,
+        "depth-provider": depth_provider_json_schema,
+        "continuous-time-camera-lidar-problem": (
+            continuous_time_camera_lidar_problem_json_schema
+        ),
+        "continuous-time-camera-lidar-result": (
+            continuous_time_camera_lidar_result_json_schema
+        ),
+        "probabilistic-correspondence": probabilistic_correspondence_json_schema,
+        "probabilistic-pnp-result": probabilistic_pnp_result_json_schema,
+        "probabilistic-refinement-result": (
+            probabilistic_refinement_result_json_schema
+        ),
+        "camera-lidar-problem": camera_lidar_problem_json_schema,
+        "camera-lidar-sota-audit-protocol": (
+            camera_lidar_sota_audit_protocol_json_schema
+        ),
+        "camera-lidar-sota-audit-result": (
+            camera_lidar_sota_audit_result_json_schema
+        ),
+        "camera-lidar-benchmark-protocol": (
+            camera_lidar_benchmark_protocol_json_schema
+        ),
+        "calibration-candidate-trace": calibration_candidate_trace_json_schema,
+        "bullseye-plot": bullseye_plot_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,
         "online-timeline": online_timeline_json_schema,
@@ -1652,6 +2128,805 @@ def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
         args.json,
     )
     return 0 if artifact.status == "success" else 1
+
+
+def _cmd_kitti_lock_benchmark_input(args: argparse.Namespace) -> int:
+    command = f"calibrex kitti lock-benchmark-input {args.path} --output {args.output}"
+    manifest = build_kitti_raw_0005_benchmark_input(args.path, command=command)
+    manifest.save(args.output)
+    payload = {
+        "status": "ok",
+        "dataset_id": manifest.dataset_id,
+        "sequence_id": manifest.sequence_id,
+        "frame_count": len(manifest.frame_ids),
+        "file_count": len(manifest.files),
+        "input_sha256": manifest.input_sha256,
+        "output": str(args.output),
+    }
+    _emit(payload, args.json)
+    return 0
+
+
+def _cmd_kitti_benchmark_i2i(args: argparse.Namespace) -> int:
+    if args.max_iterations < 0:
+        _die("--max-iterations must be non-negative")
+    command = (
+        f"calibrex kitti benchmark-i2i {args.input_manifest} "
+        f"--definition-output {args.definition_output} --output {args.output}"
+    )
+    data = load_kitti_i2i_benchmark_data(
+        args.input_manifest,
+        sequence_path=args.sequence_path,
+        max_points_per_frame=args.max_points_per_frame,
+    )
+    definition, benchmark = run_kitti_i2i_recovery_benchmark(
+        data,
+        command=command,
+        max_iterations=args.max_iterations,
+    )
+    definition.save(args.definition_output)
+    benchmark.save(args.output)
+    coarse = benchmark.method_summaries["pandey_i2i_vectorized_safe_coarse_bb_v03"]
+    baseline = benchmark.method_summaries["pandey_i2i_scalar_bb_v01"]
+    baseline_runtime = baseline.runtime_seconds.mean
+    coarse_runtime = coarse.runtime_seconds.mean
+    runtime_speedup = (
+        baseline_runtime / coarse_runtime
+        if baseline_runtime is not None and coarse_runtime is not None and coarse_runtime > 0.0
+        else None
+    )
+    baseline_trials = {
+        trial.split_id: trial
+        for trial in benchmark.trials
+        if trial.method_id == "pandey_i2i_scalar_bb_v01"
+    }
+    coarse_trials = {
+        trial.split_id: trial
+        for trial in benchmark.trials
+        if trial.method_id == "pandey_i2i_vectorized_safe_coarse_bb_v03"
+    }
+    accuracy_non_degraded = all(
+        split_id in coarse_trials
+        and baseline_trial.status == coarse_trials[split_id].status == "success"
+        and coarse_trials[split_id].metrics["translation_error_m"]
+        <= baseline_trial.metrics["translation_error_m"] + 1.0e-12
+        and coarse_trials[split_id].metrics["rotation_error_deg"]
+        <= baseline_trial.metrics["rotation_error_deg"] + 1.0e-12
+        and coarse_trials[split_id].metrics["holdout_normalized_mutual_information"] + 1.0e-12
+        >= baseline_trial.metrics["holdout_normalized_mutual_information"]
+        and coarse_trials[split_id].metrics["recovered"] + 1.0e-12
+        >= baseline_trial.metrics["recovered"]
+        for split_id, baseline_trial in baseline_trials.items()
+    )
+    runtime_improved = runtime_speedup is not None and runtime_speedup > 1.0
+    payload = {
+        "status": "ok",
+        "definition": str(args.definition_output),
+        "benchmark": str(args.output),
+        "input_sha256": data.manifest.input_sha256,
+        "trial_count": len(benchmark.trials),
+        "baseline_failure_rate": baseline.failure_rate,
+        "coarse_failure_rate": coarse.failure_rate,
+        "baseline_runtime_mean_s": baseline_runtime,
+        "coarse_runtime_mean_s": coarse_runtime,
+        "runtime_speedup": runtime_speedup,
+        "accuracy_non_degraded": accuracy_non_degraded,
+        "runtime_improved": runtime_improved,
+        "performance_gate_passed": accuracy_non_degraded and runtime_improved,
+    }
+    _emit(payload, args.json)
+    return 0
+
+
+def _cmd_camera_lidar_freeze_rotation_protocol(args: argparse.Namespace) -> int:
+    command = (
+        f"calibrex camera-lidar freeze-rotation-protocol {args.problem} "
+        f"--output {args.output}"
+    )
+    try:
+        protocol = build_borer_rotation_protocol(
+            args.problem,
+            perturbation_count=args.perturbation_count,
+            rotation_magnitude_deg=args.rotation_deg,
+            histogram_bins=args.histogram_bins,
+            min_visible_points=args.min_visible_points,
+            bound_deg=args.bound_deg,
+            initial_step_deg=args.initial_step_deg,
+            minimum_step_deg=args.minimum_step_deg,
+            max_evaluations=args.max_evaluations,
+            command=tuple(command.split()),
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    protocol.save(args.output)
+    _emit(
+        {
+            "status": "ok",
+            "protocol_id": protocol.protocol_id,
+            "problem_sha256": protocol.problem_sha256,
+            "frame_count": len(protocol.frame_ids),
+            "perturbation_count": protocol.perturbation_count,
+            "rotation_magnitude_deg": protocol.rotation_magnitude_deg,
+            "output": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_freeze_six_dof_protocol(args: argparse.Namespace) -> int:
+    command = (
+        f"calibrex camera-lidar freeze-six-dof-protocol {args.problem} "
+        f"--output {args.output} --rotation-deg {args.rotation_deg} "
+        f"--translation-m {args.translation_m}"
+    )
+    try:
+        protocol = build_borer_six_dof_protocol(
+            args.problem,
+            perturbation_count=args.perturbation_count,
+            rotation_magnitude_deg=args.rotation_deg,
+            translation_magnitude_m=args.translation_m,
+            histogram_bins=args.histogram_bins,
+            min_visible_points=args.min_visible_points,
+            rotation_bound_deg=args.rotation_bound_deg,
+            translation_bound_m=args.translation_bound_m,
+            initial_rotation_step_deg=args.initial_rotation_step_deg,
+            initial_translation_step_m=args.initial_translation_step_m,
+            minimum_rotation_step_deg=args.minimum_rotation_step_deg,
+            minimum_translation_step_m=args.minimum_translation_step_m,
+            max_evaluations=args.max_evaluations,
+            command=tuple(command.split()),
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    protocol.save(args.output)
+    _emit(
+        {
+            "status": "ok",
+            "protocol_id": protocol.protocol_id,
+            "problem_sha256": protocol.problem_sha256,
+            "frame_count": len(protocol.frame_ids),
+            "perturbation_count": protocol.perturbation_count,
+            "rotation_magnitude_deg": protocol.rotation_magnitude_deg,
+            "translation_magnitude_m": protocol.translation_magnitude_m,
+            "output": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_build_kitti_problem(args: argparse.Namespace) -> int:
+    command = (
+        "calibrex camera-lidar build-kitti-problem "
+        f"{args.sequence_path} {args.depth_provider} --output {args.output} "
+        f"--camera-stream {args.camera_stream}"
+    )
+    try:
+        problem = build_kitti_raw_camera_lidar_problem(
+            args.sequence_path,
+            args.depth_provider,
+            camera_stream=args.camera_stream,
+            dataset_id=args.dataset_id,
+            problem_id=args.problem_id,
+            rotation_bound_deg=args.rotation_bound_deg,
+            translation_bound_m=args.translation_bound_m,
+            command=tuple(command.split()),
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    problem.save(args.output)
+    _emit(
+        {
+            "status": "ok",
+            "problem_id": problem.problem_id,
+            "dataset_id": problem.dataset_id,
+            "sequence_id": problem.sequence_id,
+            "frame_count": len(problem.observations),
+            "depth_provider_sha256": problem.depth_provider_sha256,
+            "output": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "build-kitti360-problem",
+        str(args.sequence_path),
+        str(args.depth_provider),
+        "--output",
+        str(args.output),
+        "--camera-stream",
+        args.camera_stream,
+    ]
+    if args.calibration_root is not None:
+        command.extend(["--calibration-root", str(args.calibration_root)])
+    if args.lidar_directory is not None:
+        command.extend(["--lidar-directory", str(args.lidar_directory)])
+    if args.lidar_manifest is not None:
+        command.extend(["--lidar-manifest", str(args.lidar_manifest)])
+    try:
+        problem = build_kitti360_camera_lidar_problem(
+            args.sequence_path,
+            args.depth_provider,
+            calibration_root=args.calibration_root,
+            lidar_directory=args.lidar_directory,
+            lidar_manifest_path=args.lidar_manifest,
+            camera_stream=args.camera_stream,
+            dataset_id=args.dataset_id,
+            problem_id=args.problem_id,
+            rotation_bound_deg=args.rotation_bound_deg,
+            translation_bound_m=args.translation_bound_m,
+            command=tuple(command),
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    problem.save(args.output)
+    _emit(
+        {
+            "status": "ok",
+            "problem_id": problem.problem_id,
+            "dataset_id": problem.dataset_id,
+            "sequence_id": problem.sequence_id,
+            "frame_count": len(problem.observations),
+            "depth_provider_sha256": problem.depth_provider_sha256,
+            "output": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_build_a2d2_problem(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "build-a2d2-problem",
+        str(args.data_directory),
+        str(args.depth_provider),
+        "--lidar-output-directory",
+        str(args.lidar_output_directory),
+        "--lidar-manifest-output",
+        str(args.lidar_manifest_output),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        problem = build_a2d2_camera_lidar_problem(
+            args.data_directory,
+            args.depth_provider,
+            output_lidar_directory=args.lidar_output_directory,
+            generated_manifest_path=args.lidar_manifest_output,
+            command=command,
+            problem_id=(
+                args.problem_id or "a2d2-frontleft-preregistered-d2d"
+            ),
+            rotation_bound_deg=args.rotation_bound_deg,
+        )
+        problem.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "problem_id": problem.problem_id,
+            "dataset_id": problem.dataset_id,
+            "frame_count": len(problem.observations),
+            "depth_provider_sha256": problem.depth_provider_sha256,
+            "lidar_manifest": str(args.lidar_manifest_output),
+            "output": str(args.output),
+            "accuracy_limitation": (
+                "A2D2 source points are pre-registered into the camera view"
+            ),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_benchmark_rotation(args: argparse.Namespace) -> int:
+    if args.required_hit_rate is not None and not 0.0 <= args.required_hit_rate <= 1.0:
+        _die("--required-hit-rate must be in [0, 1]")
+    command = (
+        f"calibrex camera-lidar benchmark-rotation {args.problem} {args.protocol} "
+        f"--trace-dir {args.trace_dir} --definition-output "
+        f"{args.definition_output} --output {args.output} --workers {args.workers}"
+    )
+    if args.resume:
+        command += " --resume"
+    try:
+        definition, benchmark = run_borer_rotation_benchmark(
+            args.problem,
+            args.protocol,
+            trace_directory=args.trace_dir,
+            command=command,
+            bootstrap_samples=args.bootstrap_samples,
+            workers=args.workers,
+            resume=args.resume,
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    definition.save(args.definition_output)
+    benchmark.save(args.output)
+    bullseye_output = args.bullseye_output or args.output.with_name(
+        f"{args.output.stem}_bullseye.svg"
+    )
+    bullseye_artifact_output = (
+        args.bullseye_artifact_output
+        or args.output.with_name(f"{args.output.stem}_bullseye.json")
+    )
+    try:
+        write_bullseye_plot(
+            args.problem,
+            args.protocol,
+            args.trace_dir,
+            svg_path=bullseye_output,
+            artifact_path=bullseye_artifact_output,
+            command=tuple(command.split()),
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    summary = benchmark.method_summaries["native_borer_d2d_rotation"]
+    hit_rate = summary.metrics["hit"].distribution.mean
+    gate_passed = (
+        hit_rate is not None
+        and args.required_hit_rate is not None
+        and hit_rate >= args.required_hit_rate
+    )
+    _emit(
+        {
+            "status": "ok",
+            "definition": str(args.definition_output),
+            "benchmark": str(args.output),
+            "trace_directory": str(args.trace_dir),
+            "bullseye": str(bullseye_output),
+            "bullseye_artifact": str(bullseye_artifact_output),
+            "trial_count": summary.trial_count,
+            "success_count": summary.success_count,
+            "failure_count": summary.failure_count,
+            "failure_rate": summary.failure_rate,
+            "hit_rate": hit_rate,
+            "required_hit_rate": args.required_hit_rate,
+            "gate_evaluated": args.required_hit_rate is not None,
+            "gate_passed": gate_passed,
+        },
+        args.json,
+    )
+    if args.required_hit_rate is not None and not gate_passed:
+        return 2
+    return 0
+
+
+def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
+    if args.required_hit_rate is not None and not 0.0 <= args.required_hit_rate <= 1.0:
+        _die("--required-hit-rate must be in [0, 1]")
+    command = (
+        f"calibrex camera-lidar benchmark-six-dof {args.problem} {args.protocol} "
+        f"--trace-dir {args.trace_dir} --definition-output "
+        f"{args.definition_output} --output {args.output} --workers {args.workers}"
+    )
+    if args.resume:
+        command += " --resume"
+    try:
+        definition, benchmark = run_borer_six_dof_benchmark(
+            args.problem,
+            args.protocol,
+            trace_directory=args.trace_dir,
+            command=command,
+            bootstrap_samples=args.bootstrap_samples,
+            workers=args.workers,
+            resume=args.resume,
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    definition.save(args.definition_output)
+    benchmark.save(args.output)
+    summary = benchmark.method_summaries["native_borer_d2d_six_dof"]
+    hit_rate = summary.metrics["hit"].distribution.mean
+    gate_passed = (
+        hit_rate is not None
+        and args.required_hit_rate is not None
+        and hit_rate >= args.required_hit_rate
+    )
+    _emit(
+        {
+            "status": "ok",
+            "definition": str(args.definition_output),
+            "benchmark": str(args.output),
+            "trace_directory": str(args.trace_dir),
+            "trial_count": summary.trial_count,
+            "success_count": summary.success_count,
+            "failure_count": summary.failure_count,
+            "failure_rate": summary.failure_rate,
+            "hit_rate": hit_rate,
+            "required_hit_rate": args.required_hit_rate,
+            "gate_evaluated": args.required_hit_rate is not None,
+            "gate_passed": gate_passed,
+        },
+        args.json,
+    )
+    if args.required_hit_rate is not None and not gate_passed:
+        return 2
+    return 0
+
+
+def _cmd_camera_lidar_refine_probabilistic_pnp(
+    args: argparse.Namespace,
+) -> int:
+    options = OpenCvProbabilisticPnpOptions(
+        minimum_confidence=args.minimum_confidence,
+        minimum_correspondences=args.minimum_correspondences,
+        ransac_reprojection_threshold_px=(
+            args.ransac_reprojection_threshold_px
+        ),
+        ransac_confidence=args.ransac_confidence,
+        ransac_iterations=args.ransac_iterations,
+        mahalanobis_inlier_threshold=args.mahalanobis_inlier_threshold,
+        random_seed=args.random_seed,
+    )
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "refine-probabilistic-pnp",
+        str(args.correspondence_artifact),
+        args.frame_id,
+        "--output",
+        str(args.output),
+    ]
+    initial_transform = None
+    initialization_digest = None
+    if args.initial_problem is not None:
+        try:
+            problem = load_camera_lidar_problem(args.initial_problem)
+        except (OSError, ValueError) as exc:
+            raise CalibrexError(str(exc)) from exc
+        initial_transform = problem.initial_transform_camera_lidar.as_se3()
+        initialization_digest = sha256_path(args.initial_problem)
+        if initialization_digest is None:
+            raise CalibrexError(
+                f"initialization problem is not readable: {args.initial_problem}"
+            )
+        command.extend(["--initial-problem", str(args.initial_problem)])
+    try:
+        result = OpenCvProbabilisticPnpAdapter().solve_artifact(
+            args.correspondence_artifact,
+            args.frame_id,
+            options,
+            initial_transform_camera_lidar=initial_transform,
+            initialization_artifact_sha256=initialization_digest,
+        )
+        artifact = result.to_artifact(
+            result_id=(
+                args.result_id
+                or f"{result.artifact_id}-{args.frame_id}-opencv-pnp"
+            ),
+            options=options,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": result.status,
+            "result": str(args.output),
+            "frame_id": args.frame_id,
+            "selected_correspondence_count": (
+                result.selected_correspondence_count
+            ),
+            "ransac_inlier_count": result.ransac_inlier_count,
+            "probabilistic_inlier_count": (
+                result.probabilistic_inlier_count
+            ),
+            "weighted_reprojection_rmse_px": (
+                result.weighted_reprojection_rmse_px
+            ),
+            "mean_mahalanobis_error": result.mean_mahalanobis_error,
+        },
+        args.json,
+    )
+    return 0 if result.status == "converged" else 2
+
+
+def _cmd_camera_lidar_refine_probabilistic_multiframe(
+    args: argparse.Namespace,
+) -> int:
+    try:
+        options = ProbabilisticCameraLidarRefinementOptions(
+            holdout_ratio=args.holdout_ratio,
+            split_seed=args.split_seed,
+            minimum_confidence=args.minimum_confidence,
+            minimum_train_correspondences=(
+                args.minimum_train_correspondences
+            ),
+            minimum_holdout_correspondences=(
+                args.minimum_holdout_correspondences
+            ),
+            max_evaluations=args.max_evaluations,
+            use_covariance=not args.without_covariance,
+            use_outlier_probability=not args.without_outlier_probability,
+            use_reliability=not args.without_reliability,
+        )
+        command = [
+            "calibrex",
+            "camera-lidar",
+            "refine-probabilistic-multiframe",
+            str(args.correspondence_artifact),
+            str(args.initial_problem),
+            "--output",
+            str(args.output),
+        ]
+        if args.initial_trace is not None:
+            command.extend(["--initial-trace", str(args.initial_trace)])
+        result = run_probabilistic_camera_lidar_refinement(
+            args.correspondence_artifact,
+            args.initial_problem,
+            initialization_trace_path=args.initial_trace,
+            result_id=args.result_id,
+            options=options,
+            command=command,
+        )
+        result.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": result.status,
+            "result": str(args.output),
+            "initialization_source": result.initialization_source,
+            "initialization_trace_id": result.initialization_trace_id,
+            "initialization_trace_status": result.initialization_trace_status,
+            "initialization_trace_hit": result.initialization_trace_hit,
+            "train_frame_count": len(result.train_frame_ids),
+            "holdout_frame_count": len(result.holdout_frame_ids),
+            "initial_holdout_rmse_px": (
+                result.initial_holdout_evaluation.weighted_reprojection_rmse_px
+            ),
+            "final_holdout_rmse_px": (
+                result.final_holdout_evaluation.weighted_reprojection_rmse_px
+            ),
+            "final_rotation_error_deg": result.final_rotation_error_deg,
+            "final_translation_error_m": result.final_translation_error_m,
+            "use_covariance": result.options["use_covariance"],
+            "use_outlier_probability": (
+                result.options["use_outlier_probability"]
+            ),
+            "use_reliability": result.options["use_reliability"],
+        },
+        args.json,
+    )
+    return 0 if result.status == "converged" else 2
+
+
+def _cmd_camera_lidar_benchmark_probabilistic_ablation(
+    args: argparse.Namespace,
+) -> int:
+    try:
+        seeds = tuple(
+            int(value.strip())
+            for value in args.split_seeds.split(",")
+            if value.strip()
+        )
+    except ValueError as exc:
+        raise CalibrexError("--split-seeds must contain integers") from exc
+    command = (
+        "calibrex camera-lidar benchmark-probabilistic-ablation "
+        f"{args.correspondence_artifact} {args.initial_problem} "
+        f"--result-dir {args.result_dir} --definition-output "
+        f"{args.definition_output} --output {args.output} "
+        f"--split-seeds {args.split_seeds}"
+    )
+    if args.initial_trace is not None:
+        command += f" --initial-trace {args.initial_trace}"
+    try:
+        definition, benchmark = run_probabilistic_refinement_ablation(
+            args.correspondence_artifact,
+            args.initial_problem,
+            initialization_trace_path=args.initial_trace,
+            result_directory=args.result_dir,
+            command=command,
+            split_seeds=seeds,
+            bootstrap_samples=args.bootstrap_samples,
+        )
+        definition.save(args.definition_output)
+        benchmark.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "definition": str(args.definition_output),
+            "benchmark": str(args.output),
+            "result_directory": str(args.result_dir),
+            "split_count": len(definition.protocol.splits),
+            "method_count": len(definition.methods),
+            "trial_count": len(definition.trials),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_refine_continuous_time(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "refine-continuous-time",
+        str(args.problem),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        result = run_continuous_time_camera_lidar_problem(
+            args.problem,
+            result_id=args.result_id,
+            command=command,
+        )
+        result.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": result.status,
+            "result": str(args.output),
+            "estimated_time_offset_sec": result.estimated_time_offset_sec,
+            "final_rotation_error_deg": result.final_rotation_error_deg,
+            "final_translation_error_m": result.final_translation_error_m,
+            "final_time_offset_error_sec": (
+                result.final_time_offset_error_sec
+            ),
+            "time_observability_rank": result.time_observability_rank,
+            "trajectory_model": result.trajectory_model,
+            "train_correspondence_count": (
+                result.final_train_evaluation.valid_correspondence_count
+            ),
+            "holdout_correspondence_count": (
+                result.final_holdout_evaluation.valid_correspondence_count
+            ),
+            "initial_holdout_rmse_px": (
+                result.initial_holdout_evaluation.weighted_reprojection_rmse_px
+            ),
+            "final_holdout_rmse_px": (
+                result.final_holdout_evaluation.weighted_reprojection_rmse_px
+            ),
+        },
+        args.json,
+    )
+    return 0 if result.status == "converged" else 2
+
+
+def _cmd_camera_lidar_attach_continuous_trajectory(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "attach-continuous-trajectory",
+        str(args.problem),
+        str(args.trajectory),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        problem = attach_recorded_body_trajectory(
+            args.problem,
+            args.trajectory,
+            problem_id=args.problem_id,
+            command=command,
+        )
+        problem.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "problem": str(args.output),
+            "problem_id": problem.problem_id,
+            "trajectory_pose_count": (
+                len(problem.body_trajectory.poses)
+                if problem.body_trajectory is not None
+                else 0
+            ),
+            "trajectory_source_sha256": (
+                problem.body_trajectory.source_sha256
+                if problem.body_trajectory is not None
+                else None
+            ),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_benchmark_continuous_time_ablation(
+    args: argparse.Namespace,
+) -> int:
+    try:
+        seeds = tuple(
+            int(value.strip())
+            for value in args.split_seeds.split(",")
+            if value.strip()
+        )
+    except ValueError as exc:
+        raise CalibrexError("--split-seeds must contain integers") from exc
+    command = (
+        "calibrex camera-lidar benchmark-continuous-time-ablation "
+        f"{args.problem} --result-dir {args.result_dir} "
+        f"--definition-output {args.definition_output} --output "
+        f"{args.output} --split-seeds {args.split_seeds}"
+    )
+    try:
+        definition, benchmark = run_continuous_time_camera_lidar_ablation(
+            args.problem,
+            result_directory=args.result_dir,
+            command=command,
+            split_seeds=seeds,
+            bootstrap_samples=args.bootstrap_samples,
+        )
+        definition.save(args.definition_output)
+        benchmark.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "definition": str(args.definition_output),
+            "benchmark": str(args.output),
+            "result_directory": str(args.result_dir),
+            "split_count": len(definition.protocol.splits),
+            "method_count": len(definition.methods),
+            "trial_count": len(definition.trials),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_audit_sota(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "audit-sota",
+        str(args.protocol),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        audit = audit_camera_lidar_sota_claim(
+            args.protocol,
+            audit_id=args.audit_id,
+            command=command,
+        )
+        audit.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "audit": str(args.output),
+            "verdict": audit.verdict,
+            "achieved_dataset_families": (
+                audit.achieved_dataset_families
+            ),
+            "achieved_independent_rig_count": (
+                audit.achieved_independent_rig_count
+            ),
+            "requirement_status": {
+                item.requirement_id: item.status
+                for item in audit.requirements
+            },
+        },
+        args.json,
+    )
+    return 0 if audit.verdict == "supported" else 2
 
 
 def _cmd_visualize(args: argparse.Namespace) -> int:

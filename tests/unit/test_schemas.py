@@ -12,7 +12,21 @@ from calibrex.core.benchmark import (
     benchmark_definition_json_schema,
     benchmark_json_schema,
 )
+from calibrex.core.camera_lidar_artifacts import (
+    bullseye_plot_json_schema,
+    calibration_candidate_trace_json_schema,
+    camera_lidar_benchmark_protocol_json_schema,
+    camera_lidar_problem_json_schema,
+)
+from calibrex.core.camera_lidar_sota_audit import (
+    camera_lidar_sota_audit_protocol_json_schema,
+    camera_lidar_sota_audit_result_json_schema,
+)
 from calibrex.core.config import config_json_schema
+from calibrex.core.continuous_time_camera_lidar_artifacts import (
+    continuous_time_camera_lidar_problem_json_schema,
+    continuous_time_camera_lidar_result_json_schema,
+)
 from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
@@ -21,10 +35,17 @@ from calibrex.core.evidence_bundle import (
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
 from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
+from calibrex.core.probabilistic_correspondence import (
+    probabilistic_correspondence_json_schema,
+    probabilistic_pnp_result_json_schema,
+    probabilistic_refinement_result_json_schema,
+)
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
 from calibrex.core.trajectory import trajectory_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
+from calibrex.data.depth import depth_provider_json_schema
+from calibrex.data.kitti_benchmark import kitti_benchmark_input_json_schema
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.diagnostics import doctor_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
@@ -55,6 +76,35 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "calibration_ci.schema.json": calibration_ci_json_schema,
         "external_run.schema.json": external_run_json_schema,
         "kitti_falsification.schema.json": kitti_falsification_json_schema,
+        "kitti_benchmark_input.schema.json": kitti_benchmark_input_json_schema,
+        "depth_provider.schema.json": depth_provider_json_schema,
+        "continuous_time_camera_lidar_problem.schema.json": (
+            continuous_time_camera_lidar_problem_json_schema
+        ),
+        "continuous_time_camera_lidar_result.schema.json": (
+            continuous_time_camera_lidar_result_json_schema
+        ),
+        "probabilistic_correspondence.schema.json": (
+            probabilistic_correspondence_json_schema
+        ),
+        "probabilistic_pnp_result.schema.json": probabilistic_pnp_result_json_schema,
+        "probabilistic_refinement_result.schema.json": (
+            probabilistic_refinement_result_json_schema
+        ),
+        "camera_lidar_problem.schema.json": camera_lidar_problem_json_schema,
+        "camera_lidar_sota_audit_protocol.schema.json": (
+            camera_lidar_sota_audit_protocol_json_schema
+        ),
+        "camera_lidar_sota_audit_result.schema.json": (
+            camera_lidar_sota_audit_result_json_schema
+        ),
+        "camera_lidar_benchmark_protocol.schema.json": (
+            camera_lidar_benchmark_protocol_json_schema
+        ),
+        "calibration_candidate_trace.schema.json": (
+            calibration_candidate_trace_json_schema
+        ),
+        "bullseye_plot.schema.json": bullseye_plot_json_schema,
         "evidence_bundle.schema.json": evidence_bundle_json_schema,
         "evidence_bundle_verification.schema.json": evidence_bundle_verification_json_schema,
         "online_timeline.schema.json": online_timeline_json_schema,

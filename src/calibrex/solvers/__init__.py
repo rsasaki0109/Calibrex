@@ -29,6 +29,16 @@ from calibrex.solvers.chou_kamel_hand_eye_solver import (
     ChouKamelHandEyeResult,
     ChouKamelHandEyeSolver,
 )
+from calibrex.solvers.continuous_time_camera_lidar_solver import (
+    ContinuousTimeCameraLidarCapture,
+    ContinuousTimeCameraLidarOptions,
+    ContinuousTimeCameraLidarResult,
+    ContinuousTimeCameraLidarSolver,
+    ContinuousTimeEvaluation,
+    ContinuousTimeIteration,
+    TimedProbabilisticImageCorrespondence,
+    evaluate_continuous_time_camera_lidar,
+)
 from calibrex.solvers.daniilidis_hand_eye_solver import (
     DaniilidisHandEyeOptions,
     DaniilidisHandEyeResult,
@@ -187,6 +197,14 @@ from calibrex.solvers.point_plane_lidar_camera_solver import (
     PointPlaneSolverOptions,
     evaluate_point_plane_observations,
 )
+from calibrex.solvers.probabilistic_camera_lidar_refiner import (
+    ProbabilisticCameraLidarRefinementOptions,
+    ProbabilisticCameraLidarRefinementResult,
+    ProbabilisticCameraLidarRefiner,
+    ProbabilisticPoseEvaluation,
+    ProbabilisticPoseIteration,
+    evaluate_probabilistic_camera_lidar_pose,
+)
 from calibrex.solvers.radar_ego_velocity_solver import (
     RadarDopplerObservation,
     RadarEgoVelocityResult,
@@ -267,6 +285,7 @@ from calibrex.solvers.tsai_lenz_hand_eye_solver import (
     TsaiLenzHandEyeSolver,
     evaluate_hand_eye_known_bad_probes,
 )
+from calibrex.solvers.unicalib_lidar_camera_solver import UniCalibLidarCameraSolver
 
 __all__ = [
     "ACFR_VLP_FORMAT",
@@ -300,6 +319,12 @@ __all__ = [
     "ChouKamelHandEyeOptions",
     "ChouKamelHandEyeResult",
     "ChouKamelHandEyeSolver",
+    "ContinuousTimeCameraLidarCapture",
+    "ContinuousTimeCameraLidarOptions",
+    "ContinuousTimeCameraLidarResult",
+    "ContinuousTimeCameraLidarSolver",
+    "ContinuousTimeEvaluation",
+    "ContinuousTimeIteration",
     "DaniilidisHandEyeOptions",
     "DaniilidisHandEyeResult",
     "DaniilidisHandEyeSolver",
@@ -392,6 +417,11 @@ __all__ = [
     "PointPlaneObservation",
     "PointPlaneProbe",
     "PointPlaneSolverOptions",
+    "ProbabilisticCameraLidarRefinementOptions",
+    "ProbabilisticCameraLidarRefinementResult",
+    "ProbabilisticCameraLidarRefiner",
+    "ProbabilisticPoseEvaluation",
+    "ProbabilisticPoseIteration",
     "RadarDopplerObservation",
     "RadarEgoVelocityResult",
     "RadarEgoVelocitySolver",
@@ -433,11 +463,14 @@ __all__ = [
     "SolverAdapter",
     "SolverAdapterResult",
     "TUMJointSlacOptions",
+    "TimedProbabilisticImageCorrespondence",
     "TsaiLenzHandEyeOptions",
     "TsaiLenzHandEyeResult",
     "TsaiLenzHandEyeSolver",
+    "UniCalibLidarCameraSolver",
     "calibrated_probability",
     "evaluate_camera_lidar_capture_times",
+    "evaluate_continuous_time_camera_lidar",
     "evaluate_hand_eye_known_bad_probes",
     "evaluate_hand_eye_motions",
     "evaluate_horn_point_observations",
@@ -447,6 +480,7 @@ __all__ = [
     "evaluate_mutual_information",
     "evaluate_planar_board_observations",
     "evaluate_point_plane_observations",
+    "evaluate_probabilistic_camera_lidar_pose",
     "evaluate_robot_world_hand_eye_known_bad_probes",
     "evaluate_robot_world_hand_eye_poses",
     "extract_near_depth_discontinuities",

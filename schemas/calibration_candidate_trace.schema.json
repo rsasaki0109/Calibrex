@@ -1,0 +1,544 @@
+{
+  "$defs": {
+    "CalibrationCandidateEvaluation": {
+      "additionalProperties": false,
+      "description": "One objective evaluation in an optimizer trace.",
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "evaluated_frame_count": {
+          "minimum": 0,
+          "title": "Evaluated Frame Count",
+          "type": "integer"
+        },
+        "evaluation": {
+          "exclusiveMinimum": 0,
+          "title": "Evaluation",
+          "type": "integer"
+        },
+        "mutual_information": {
+          "title": "Mutual Information",
+          "type": "number"
+        },
+        "normalized_mutual_information": {
+          "title": "Normalized Mutual Information",
+          "type": "number"
+        },
+        "objective": {
+          "title": "Objective",
+          "type": "number"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "evaluation",
+        "parameters",
+        "objective",
+        "mutual_information",
+        "normalized_mutual_information",
+        "evaluated_frame_count",
+        "accepted"
+      ],
+      "title": "CalibrationCandidateEvaluation",
+      "type": "object"
+    },
+    "CalibrationCandidateOutcome": {
+      "additionalProperties": false,
+      "description": "Independent error and hit decision for one candidate.",
+      "properties": {
+        "hit": {
+          "title": "Hit",
+          "type": "boolean"
+        },
+        "hit_reason": {
+          "title": "Hit Reason",
+          "type": "string"
+        },
+        "rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Rotation Error Deg",
+          "type": "number"
+        },
+        "translation_error_m": {
+          "minimum": 0.0,
+          "title": "Translation Error M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rotation_error_deg",
+        "translation_error_m",
+        "hit",
+        "hit_reason"
+      ],
+      "title": "CalibrationCandidateOutcome",
+      "type": "object"
+    },
+    "CameraLidarArtifactProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and source digests shared by camera--LiDAR artifacts.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "CameraLidarArtifactProvenance",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid complete optimizer trace for one perturbation trial.",
+  "properties": {
+    "evaluations": {
+      "items": {
+        "$ref": "#/$defs/CalibrationCandidateEvaluation"
+      },
+      "title": "Evaluations",
+      "type": "array"
+    },
+    "initial_transform_camera_lidar": {
+      "$ref": "#/$defs/TransformResult"
+    },
+    "outcome": {
+      "$ref": "#/$defs/CalibrationCandidateOutcome"
+    },
+    "output_transform_camera_lidar": {
+      "$ref": "#/$defs/TransformResult"
+    },
+    "problem_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Problem Sha256",
+      "type": "string"
+    },
+    "protocol_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarArtifactProvenance"
+    },
+    "runtime_seconds": {
+      "minimum": 0.0,
+      "title": "Runtime Seconds",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "slac.calibration_candidate_trace/v0.1",
+      "default": "slac.calibration_candidate_trace/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solver": {
+      "title": "Solver",
+      "type": "string"
+    },
+    "solver_version": {
+      "title": "Solver Version",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "stopping_reason": {
+      "title": "Stopping Reason",
+      "type": "string"
+    },
+    "trace_id": {
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "trial_id": {
+      "title": "Trial Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "trace_id",
+    "trial_id",
+    "problem_sha256",
+    "protocol_sha256",
+    "solver",
+    "solver_version",
+    "status",
+    "initial_transform_camera_lidar",
+    "output_transform_camera_lidar",
+    "evaluations",
+    "stopping_reason",
+    "runtime_seconds",
+    "outcome",
+    "provenance"
+  ],
+  "title": "CalibrationCandidateTrace",
+  "type": "object"
+}

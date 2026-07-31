@@ -109,7 +109,11 @@ class BenchmarkTrial(StrictModel):
 
 
 class DistributionSummary(StrictModel):
-    """Descriptive distribution and deterministic bootstrap mean interval."""
+    """Descriptive distribution and deterministic bootstrap mean interval.
+
+    ``p90`` and ``p95`` use linear interpolation between adjacent values in
+    the sorted empirical sample, matching :func:`_percentile`.
+    """
 
     count: int = Field(ge=0)
     mean: float | None = None
@@ -117,6 +121,8 @@ class DistributionSummary(StrictModel):
     standard_deviation: float | None = None
     minimum: float | None = None
     maximum: float | None = None
+    p90: float | None = None
+    p95: float | None = None
     mean_ci95_low: float | None = None
     mean_ci95_high: float | None = None
 
@@ -572,6 +578,7 @@ def _distribution(
         bootstrap_samples=bootstrap_samples,
         bootstrap_seed=bootstrap_seed,
     )
+    ordered = sorted(values)
     return DistributionSummary(
         count=len(values),
         mean=statistics.fmean(values),
@@ -579,6 +586,8 @@ def _distribution(
         standard_deviation=statistics.pstdev(values),
         minimum=min(values),
         maximum=max(values),
+        p90=_percentile(ordered, 0.90),
+        p95=_percentile(ordered, 0.95),
         mean_ci95_low=ci_low,
         mean_ci95_high=ci_high,
     )

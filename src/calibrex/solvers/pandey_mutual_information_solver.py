@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -29,6 +29,7 @@ PandeyStatus = Literal[
 ]
 CameraProjectionKind = Literal["pinhole", "opencv_fisheye"]
 CameraAxes = Literal["optical_z", "forward_x_left_y_up_z"]
+HistogramSmoothingBackend = Literal["scalar", "vectorized"]
 DOF_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 
 
@@ -116,6 +117,10 @@ class PandeyMutualInformationOptions:
     known_bad_translation_m: float = 0.05
     known_bad_rotation_deg: float = 5.0
     rank_tolerance: float = 1.0e-6
+    histogram_smoothing_backend: HistogramSmoothingBackend = "vectorized"
+    coarse_search_translation_steps_m: tuple[float, ...] = ()
+    coarse_search_rotation_steps_deg: tuple[float, ...] = ()
+    coarse_search_sweeps_per_level: int = 1
 
     def __post_init__(self) -> None:
         if self.histogram_bins < 8 or self.min_projected_points < 4:
@@ -124,6 +129,21 @@ class PandeyMutualInformationOptions:
             raise ValueError("gradient_steps and curvature_steps must have six values")
         if any(value <= 0.0 for value in self.gradient_steps + self.curvature_steps):
             raise ValueError("finite-difference steps must be positive")
+        if len(self.coarse_search_translation_steps_m) != len(
+            self.coarse_search_rotation_steps_deg
+        ):
+            raise ValueError("coarse-search translation and rotation levels must match")
+        if any(
+            value <= 0.0
+            for value in (
+                self.coarse_search_translation_steps_m + self.coarse_search_rotation_steps_deg
+            )
+        ):
+            raise ValueError("coarse-search steps must be positive")
+        if self.coarse_search_sweeps_per_level < 1:
+            raise ValueError("coarse_search_sweeps_per_level must be positive")
+        if self.histogram_smoothing_backend not in ("scalar", "vectorized"):
+            raise ValueError("unsupported histogram_smoothing_backend")
 
 
 @dataclass(frozen=True)
@@ -161,6 +181,90 @@ class PandeyMutualInformationProbe:
 
 
 @dataclass(frozen=True)
+class PandeyMutualInformationCoarseLevel:
+    """One deterministic coordinate-search resolution."""
+
+    level: int
+    translation_step_m: float
+    rotation_step_deg: float
+    start_raw_mutual_information: float
+    final_raw_mutual_information: float
+    accepted_move_count: int
+    evaluation_count: int
+
+
+@dataclass(frozen=True)
+class PandeyMutualInformationFinalSelection:
+    """Training-only safety gate between local and coarse-started endpoints."""
+
+    baseline_transform_camera_lidar: SE3
+    candidate_transform_camera_lidar: SE3
+    selected_transform_camera_lidar: SE3
+    candidate_accepted: bool
+    baseline_train_raw_mutual_information: float
+    candidate_train_raw_mutual_information: float
+    minimum_per_frame_raw_mutual_information_delta: float
+    criterion: str = "candidate aggregate and every per-frame training raw MI must not decrease"
+
+    def as_dict(self) -> dict[str, object]:
+        """Return a schema-safe endpoint-selection record."""
+
+        return {
+            "baseline_transform_camera_lidar": (self.baseline_transform_camera_lidar.as_dict()),
+            "candidate_transform_camera_lidar": (self.candidate_transform_camera_lidar.as_dict()),
+            "selected_transform_camera_lidar": (self.selected_transform_camera_lidar.as_dict()),
+            "candidate_accepted": self.candidate_accepted,
+            "baseline_train_raw_mutual_information": (self.baseline_train_raw_mutual_information),
+            "candidate_train_raw_mutual_information": (self.candidate_train_raw_mutual_information),
+            "minimum_per_frame_raw_mutual_information_delta": (
+                self.minimum_per_frame_raw_mutual_information_delta
+            ),
+            "criterion": self.criterion,
+        }
+
+
+@dataclass(frozen=True)
+class PandeyMutualInformationCoarseSearch:
+    """Recorded coarse-to-fine initialization evidence."""
+
+    start_transform_camera_lidar: SE3
+    candidate_transform_camera_lidar: SE3
+    selected_transform_camera_lidar: SE3
+    accepted: bool
+    start_raw_mutual_information: float
+    candidate_raw_mutual_information: float
+    selected_raw_mutual_information: float
+    start_validation_raw_mutual_information: float
+    candidate_validation_raw_mutual_information: float
+    levels: tuple[PandeyMutualInformationCoarseLevel, ...]
+    final_selection: PandeyMutualInformationFinalSelection | None = None
+
+    def as_dict(self) -> dict[str, object]:
+        """Return a schema-safe coarse-search record."""
+
+        return {
+            "method": "deterministic_axis_coordinate_search/v0.1",
+            "start_transform_camera_lidar": self.start_transform_camera_lidar.as_dict(),
+            "candidate_transform_camera_lidar": (self.candidate_transform_camera_lidar.as_dict()),
+            "selected_transform_camera_lidar": self.selected_transform_camera_lidar.as_dict(),
+            "accepted": self.accepted,
+            "start_raw_mutual_information": self.start_raw_mutual_information,
+            "candidate_raw_mutual_information": self.candidate_raw_mutual_information,
+            "selected_raw_mutual_information": self.selected_raw_mutual_information,
+            "start_validation_raw_mutual_information": (
+                self.start_validation_raw_mutual_information
+            ),
+            "candidate_validation_raw_mutual_information": (
+                self.candidate_validation_raw_mutual_information
+            ),
+            "levels": [item.__dict__ for item in self.levels],
+            "final_selection": (
+                self.final_selection.as_dict() if self.final_selection is not None else None
+            ),
+        }
+
+
+@dataclass(frozen=True)
 class PandeyMutualInformationResult:
     """Transform estimate plus independent validation and observability evidence."""
 
@@ -174,6 +278,7 @@ class PandeyMutualInformationResult:
     iterations: tuple[PandeyMutualInformationIteration, ...]
     probes: tuple[PandeyMutualInformationProbe, ...]
     curvature: NumericalCurvatureEvaluation | None
+    coarse_search: PandeyMutualInformationCoarseSearch | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return a schema-safe payload with primary-paper provenance."""
@@ -193,12 +298,22 @@ class PandeyMutualInformationResult:
             "iterations": [item.__dict__ for item in self.iterations],
             "known_bad_probes": [item.__dict__ for item in self.probes],
             "curvature": self.curvature.as_dict() if self.curvature is not None else None,
-            "method": "pandey_mutual_information_bb_ascent/v0.1",
+            "coarse_search": (
+                self.coarse_search.as_dict() if self.coarse_search is not None else None
+            ),
+            "method": (
+                "pandey_mutual_information_coarse_bb_ascent/v0.3"
+                if self.coarse_search is not None
+                else "pandey_mutual_information_bb_ascent/v0.1"
+            ),
             "paper_doi": "10.1609/aaai.v26i1.8379",
             "paper_url": "https://robots.engin.umich.edu/publications/gpandey-2012a.pdf",
             "frame_convention": "p_camera = R_camera_lidar p_lidar + t_camera_lidar",
             "objective": "raw mutual information; equations 1--8",
-            "optimizer": "numerical gradient and Barzilai--Borwein ascent; equations 9--11",
+            "optimizer": (
+                "optional deterministic coarse-to-fine coordinate search followed by "
+                "numerical gradient and Barzilai--Borwein ascent; equations 9--11"
+            ),
             "kde_specialization": (
                 "finite 2D histogram convolved with covariance-derived Gaussian kernel"
             ),
@@ -226,70 +341,50 @@ class PandeyMutualInformationSolver:
         if len(train) < solver_options.min_train_observations:
             return _empty_result(train, holdout)
 
-        parameters = np.asarray(_parameters_from_transform(initial_transform), dtype=float)
-        score = evaluate_mutual_information(
-            train, _transform_from_parameters(parameters), solver_options
-        ).raw_mutual_information
-        history: list[PandeyMutualInformationIteration] = []
-        previous_parameters: FloatArray | None = None
-        previous_gradient: FloatArray | None = None
-        status: PandeyStatus = "max_iterations"
-        reason = "maximum iteration budget reached"
-        for iteration in range(solver_options.max_iterations):
-            gradient = _numerical_gradient(train, parameters, solver_options)
-            gradient_norm = float(np.linalg.norm(gradient))
-            if not math.isfinite(gradient_norm):
-                status = "numerical_failure"
-                reason = "mutual-information numerical gradient became non-finite"
-                break
-            if gradient_norm <= 1.0e-14:
-                status = "converged"
-                reason = "mutual-information numerical gradient reached zero"
-                break
-            step_size = solver_options.initial_step_size
-            if previous_parameters is not None and previous_gradient is not None:
-                parameter_delta = parameters - previous_parameters
-                gradient_delta = gradient - previous_gradient
-                denominator = float(parameter_delta @ gradient_delta)
-                if abs(denominator) > 1.0e-14:
-                    step_size = abs(float(parameter_delta @ parameter_delta) / denominator)
-            step_size = min(
-                solver_options.max_step_size,
-                max(solver_options.min_step_size, step_size),
+        initial_parameters = np.asarray(
+            _parameters_from_transform(initial_transform),
+            dtype=float,
+        )
+        parameters, score, coarse_search = _coarse_to_fine_search(
+            train,
+            initial_parameters,
+            solver_options,
+        )
+        outcome = _optimize(train, parameters, score, solver_options)
+        if coarse_search is not None and not np.array_equal(parameters, initial_parameters):
+            baseline_score = _raw_score(train, initial_parameters, solver_options)
+            baseline_outcome = _optimize(
+                train,
+                initial_parameters,
+                baseline_score,
+                solver_options,
             )
-            direction = gradient / gradient_norm
-            candidate = parameters + step_size * direction
-            candidate_score = _raw_score(train, candidate, solver_options)
-            backtracks = 0
-            while candidate_score < score and backtracks < solver_options.max_backtracks:
-                step_size *= 0.5
-                candidate = parameters + step_size * direction
-                candidate_score = _raw_score(train, candidate, solver_options)
-                backtracks += 1
-            if candidate_score < score or not math.isfinite(candidate_score):
-                status = "converged"
-                reason = "no improving step remained after monotonic backtracking"
-                break
-            delta_norm = float(np.linalg.norm(candidate - parameters))
-            history.append(
-                PandeyMutualInformationIteration(
-                    iteration=iteration + 1,
-                    raw_mutual_information=candidate_score,
-                    gradient_norm=gradient_norm,
-                    step_size=step_size,
-                    parameter_delta_norm=delta_norm,
-                    backtrack_count=backtracks,
-                )
+            candidate_accepted, minimum_delta = _coarse_endpoint_is_safe(
+                train,
+                baseline_outcome.parameters,
+                outcome.parameters,
+                solver_options,
             )
-            previous_parameters = parameters.copy()
-            previous_gradient = gradient.copy()
-            parameters = candidate
-            score = candidate_score
-            if delta_norm <= solver_options.convergence_tolerance:
-                status = "converged"
-                reason = "parameter update reached the convergence tolerance"
-                break
+            candidate_outcome = outcome
+            outcome = candidate_outcome if candidate_accepted else baseline_outcome
+            coarse_search = replace(
+                coarse_search,
+                final_selection=PandeyMutualInformationFinalSelection(
+                    baseline_transform_camera_lidar=_transform_from_parameters(
+                        baseline_outcome.parameters
+                    ),
+                    candidate_transform_camera_lidar=_transform_from_parameters(
+                        candidate_outcome.parameters
+                    ),
+                    selected_transform_camera_lidar=_transform_from_parameters(outcome.parameters),
+                    candidate_accepted=candidate_accepted,
+                    baseline_train_raw_mutual_information=baseline_outcome.score,
+                    candidate_train_raw_mutual_information=candidate_outcome.score,
+                    minimum_per_frame_raw_mutual_information_delta=minimum_delta,
+                ),
+            )
 
+        parameters = outcome.parameters
         transform = _transform_from_parameters(parameters)
         train_evaluation = evaluate_mutual_information(train, transform, solver_options)
         validation = holdout if holdout else train
@@ -302,17 +397,122 @@ class PandeyMutualInformationSolver:
             rank_tolerance=solver_options.rank_tolerance,
         )
         return PandeyMutualInformationResult(
-            status=status,
-            reason=reason,
+            status=outcome.status,
+            reason=outcome.reason,
             transform_camera_lidar=transform,
             train_frame_ids=tuple(item.frame_id for item in train),
             holdout_frame_ids=tuple(item.frame_id for item in holdout),
             train_evaluation=train_evaluation,
             holdout_evaluation=holdout_evaluation,
-            iterations=tuple(history),
+            iterations=outcome.iterations,
             probes=probes,
             curvature=curvature,
+            coarse_search=coarse_search,
         )
+
+
+@dataclass(frozen=True)
+class _OptimizationOutcome:
+    parameters: FloatArray
+    score: float
+    iterations: tuple[PandeyMutualInformationIteration, ...]
+    status: PandeyStatus
+    reason: str
+
+
+def _optimize(
+    observations: Sequence[MutualInformationObservation],
+    initial_parameters: FloatArray,
+    initial_score: float,
+    options: PandeyMutualInformationOptions,
+) -> _OptimizationOutcome:
+    parameters = initial_parameters.copy()
+    score = initial_score
+    history: list[PandeyMutualInformationIteration] = []
+    previous_parameters: FloatArray | None = None
+    previous_gradient: FloatArray | None = None
+    status: PandeyStatus = "max_iterations"
+    reason = "maximum iteration budget reached"
+    for iteration in range(options.max_iterations):
+        gradient = _numerical_gradient(observations, parameters, options)
+        gradient_norm = float(np.linalg.norm(gradient))
+        if not math.isfinite(gradient_norm):
+            status = "numerical_failure"
+            reason = "mutual-information numerical gradient became non-finite"
+            break
+        if gradient_norm <= 1.0e-14:
+            status = "converged"
+            reason = "mutual-information numerical gradient reached zero"
+            break
+        step_size = options.initial_step_size
+        if previous_parameters is not None and previous_gradient is not None:
+            parameter_delta = parameters - previous_parameters
+            gradient_delta = gradient - previous_gradient
+            denominator = float(parameter_delta @ gradient_delta)
+            if abs(denominator) > 1.0e-14:
+                step_size = abs(float(parameter_delta @ parameter_delta) / denominator)
+        step_size = min(
+            options.max_step_size,
+            max(options.min_step_size, step_size),
+        )
+        direction = gradient / gradient_norm
+        candidate = parameters + step_size * direction
+        candidate_score = _raw_score(observations, candidate, options)
+        backtracks = 0
+        while candidate_score < score and backtracks < options.max_backtracks:
+            step_size *= 0.5
+            candidate = parameters + step_size * direction
+            candidate_score = _raw_score(observations, candidate, options)
+            backtracks += 1
+        if candidate_score < score or not math.isfinite(candidate_score):
+            status = "converged"
+            reason = "no improving step remained after monotonic backtracking"
+            break
+        delta_norm = float(np.linalg.norm(candidate - parameters))
+        history.append(
+            PandeyMutualInformationIteration(
+                iteration=iteration + 1,
+                raw_mutual_information=candidate_score,
+                gradient_norm=gradient_norm,
+                step_size=step_size,
+                parameter_delta_norm=delta_norm,
+                backtrack_count=backtracks,
+            )
+        )
+        previous_parameters = parameters.copy()
+        previous_gradient = gradient.copy()
+        parameters = candidate
+        score = candidate_score
+        if delta_norm <= options.convergence_tolerance:
+            status = "converged"
+            reason = "parameter update reached the convergence tolerance"
+            break
+    return _OptimizationOutcome(parameters, score, tuple(history), status, reason)
+
+
+def _coarse_endpoint_is_safe(
+    observations: Sequence[MutualInformationObservation],
+    baseline_parameters: FloatArray,
+    candidate_parameters: FloatArray,
+    options: PandeyMutualInformationOptions,
+) -> tuple[bool, float]:
+    """Select a coarse endpoint without consulting the untouched holdout."""
+
+    tolerance = 1.0e-12
+    baseline_score = _raw_score(observations, baseline_parameters, options)
+    candidate_score = _raw_score(observations, candidate_parameters, options)
+    per_frame_deltas = [
+        _raw_score((observation,), candidate_parameters, options)
+        - _raw_score((observation,), baseline_parameters, options)
+        for observation in observations
+    ]
+    minimum_delta = min(per_frame_deltas, default=0.0)
+    accepted = (
+        math.isfinite(candidate_score)
+        and candidate_score + tolerance >= baseline_score
+        and minimum_delta + tolerance >= 0.0
+    )
+    return accepted, minimum_delta
 
 
 def evaluate_mutual_information(
@@ -336,7 +536,10 @@ def evaluate_mutual_information(
     luminance = np.concatenate(luminance_parts)
     reflectivity = np.concatenate(reflectivity_parts)
     raw, normalized = _mutual_information_kde(
-        reflectivity, luminance, solver_options.histogram_bins
+        reflectivity,
+        luminance,
+        solver_options.histogram_bins,
+        smoothing_backend=solver_options.histogram_smoothing_backend,
     )
     return MutualInformationEvaluation(raw, normalized, count, len(observations))
 
@@ -400,14 +603,22 @@ def _project_samples(
 
 
 def _mutual_information_kde(
-    reflectivity: FloatArray, luminance: FloatArray, bins: int
+    reflectivity: FloatArray,
+    luminance: FloatArray,
+    bins: int,
+    *,
+    smoothing_backend: HistogramSmoothingBackend = "vectorized",
 ) -> tuple[float, float]:
     paired = np.column_stack((_unit_interval(reflectivity), _unit_interval(luminance)))
     histogram = _soft_histogram2d(paired, bins)
     covariance = np.cov(paired, rowvar=False)
     bandwidth = covariance * max(float(paired.shape[0]) ** (-1.0 / 3.0), 1.0e-4)
     bandwidth_bins = bandwidth * float(bins * bins)
-    smoothed = _convolve_gaussian(histogram, bandwidth_bins)
+    smoothed = (
+        _convolve_gaussian_scalar(histogram, bandwidth_bins)
+        if smoothing_backend == "scalar"
+        else _convolve_gaussian(histogram, bandwidth_bins)
+    )
     probability = smoothed / max(float(np.sum(smoothed)), 1.0)
     marginal_x = np.sum(probability, axis=1)
     marginal_y = np.sum(probability, axis=0)
@@ -420,7 +631,10 @@ def _mutual_information_kde(
     entropy_y = _entropy(marginal_y)
     denominator = math.sqrt(max(entropy_x * entropy_y, 0.0))
     normalized = mutual_information / denominator if denominator > 1.0e-12 else 0.0
-    return mutual_information, normalized
+    # Scalar and vectorized reductions may differ in their final few binary
+    # digits. Canonicalizing far below the optimizer's tolerance prevents those
+    # non-semantic differences from changing BB/backtracking decisions.
+    return round(mutual_information, 12), round(normalized, 12)
 
 
 def _soft_histogram2d(paired: FloatArray, bins: int) -> FloatArray:
@@ -441,6 +655,32 @@ def _soft_histogram2d(paired: FloatArray, bins: int) -> FloatArray:
 
 
 def _convolve_gaussian(histogram: FloatArray, covariance: FloatArray) -> FloatArray:
+    """Convolve a histogram with the finite Gaussian kernel using NumPy."""
+
+    kernel, radius = _gaussian_kernel(covariance)
+    padded = np.pad(histogram, radius)
+    windows = np.lib.stride_tricks.sliding_window_view(padded, kernel.shape)
+    return np.einsum("ijkl,kl->ij", windows, kernel, optimize=True)
+
+
+def _convolve_gaussian_scalar(
+    histogram: FloatArray,
+    covariance: FloatArray,
+) -> FloatArray:
+    """Reference implementation retained for reproducible runtime baselines."""
+
+    kernel, radius = _gaussian_kernel(covariance)
+    padded = np.pad(histogram, radius)
+    output = np.empty_like(histogram)
+    kernel_width = kernel.shape[0]
+    for row in range(histogram.shape[0]):
+        for column in range(histogram.shape[1]):
+            window = padded[row : row + kernel_width, column : column + kernel_width]
+            output[row, column] = float(np.sum(window * kernel))
+    return output
+
+
+def _gaussian_kernel(covariance: FloatArray) -> tuple[FloatArray, int]:
     covariance = np.asarray(covariance, dtype=float) + np.eye(2) * 0.25
     eigenvalues = np.linalg.eigvalsh(covariance)
     radius = min(
@@ -456,13 +696,7 @@ def _convolve_gaussian(histogram: FloatArray, covariance: FloatArray) -> FloatAr
     exponent = np.einsum("...i,ij,...j->...", coordinates, inverse, coordinates)
     kernel = np.exp(-0.5 * exponent)
     kernel /= np.sum(kernel)
-    padded = np.pad(histogram, radius)
-    result = np.zeros_like(histogram)
-    for row in range(histogram.shape[0]):
-        for column in range(histogram.shape[1]):
-            window = padded[row : row + kernel.shape[0], column : column + kernel.shape[1]]
-            result[row, column] = float(np.sum(window * kernel))
-    return result
+    return kernel, radius
 
 
 def _unit_interval(values: FloatArray) -> FloatArray:
@@ -502,6 +736,111 @@ def _raw_score(
     return evaluate_mutual_information(
         observations, _transform_from_parameters(parameters), options
     ).raw_mutual_information
+
+
+def _coarse_to_fine_search(
+    observations: Sequence[MutualInformationObservation],
+    initial_parameters: FloatArray,
+    options: PandeyMutualInformationOptions,
+) -> tuple[FloatArray, float, PandeyMutualInformationCoarseSearch | None]:
+    parameters = initial_parameters.copy()
+    score = _raw_score(observations, parameters, options)
+    if not options.coarse_search_translation_steps_m:
+        return parameters, score, None
+
+    start_score = score
+    start_transform = _transform_from_parameters(parameters)
+    validation_count = max(1, round(len(observations) * 0.2))
+    search_observations = observations[:-validation_count]
+    validation_observations = observations[-validation_count:]
+    if not search_observations:
+        search_observations = observations
+    search_score = _raw_score(search_observations, parameters, options)
+    levels: list[PandeyMutualInformationCoarseLevel] = []
+    for level_index, (translation_step, rotation_step_deg) in enumerate(
+        zip(
+            options.coarse_search_translation_steps_m,
+            options.coarse_search_rotation_steps_deg,
+            strict=True,
+        ),
+        start=1,
+    ):
+        level_start_score = search_score
+        accepted_moves = 0
+        evaluation_count = 0
+        increments = (
+            translation_step,
+            translation_step,
+            translation_step,
+            math.radians(rotation_step_deg),
+            math.radians(rotation_step_deg),
+            math.radians(rotation_step_deg),
+        )
+        for _sweep in range(options.coarse_search_sweeps_per_level):
+            for parameter_index, increment in enumerate(increments):
+                candidates: list[tuple[float, FloatArray]] = []
+                for sign in (-1.0, 1.0):
+                    candidate = parameters.copy()
+                    candidate[parameter_index] += sign * increment
+                    candidates.append(
+                        (_raw_score(search_observations, candidate, options), candidate)
+                    )
+                    evaluation_count += 1
+                candidate_score, candidate_parameters = max(
+                    candidates,
+                    key=lambda item: item[0],
+                )
+                if math.isfinite(candidate_score) and candidate_score > search_score:
+                    parameters = candidate_parameters
+                    search_score = candidate_score
+                    accepted_moves += 1
+        levels.append(
+            PandeyMutualInformationCoarseLevel(
+                level=level_index,
+                translation_step_m=translation_step,
+                rotation_step_deg=rotation_step_deg,
+                start_raw_mutual_information=level_start_score,
+                final_raw_mutual_information=search_score,
+                accepted_move_count=accepted_moves,
+                evaluation_count=evaluation_count,
+            )
+        )
+    candidate_parameters = parameters
+    candidate_score = _raw_score(observations, candidate_parameters, options)
+    start_validation_score = _raw_score(
+        validation_observations,
+        initial_parameters,
+        options,
+    )
+    candidate_validation_score = _raw_score(
+        validation_observations,
+        candidate_parameters,
+        options,
+    )
+    accepted = (
+        math.isfinite(candidate_score)
+        and candidate_score >= start_score
+        and math.isfinite(candidate_validation_score)
+        and candidate_validation_score >= start_validation_score
+    )
+    selected_parameters = candidate_parameters if accepted else initial_parameters.copy()
+    selected_score = candidate_score if accepted else start_score
+    return (
+        selected_parameters,
+        selected_score,
+        PandeyMutualInformationCoarseSearch(
+            start_transform_camera_lidar=start_transform,
+            candidate_transform_camera_lidar=_transform_from_parameters(candidate_parameters),
+            selected_transform_camera_lidar=_transform_from_parameters(selected_parameters),
+            accepted=accepted,
+            start_raw_mutual_information=start_score,
+            candidate_raw_mutual_information=candidate_score,
+            selected_raw_mutual_information=selected_score,
+            start_validation_raw_mutual_information=start_validation_score,
+            candidate_validation_raw_mutual_information=candidate_validation_score,
+            levels=tuple(levels),
+        ),
+    )
 
 
 def _known_bad_probes(

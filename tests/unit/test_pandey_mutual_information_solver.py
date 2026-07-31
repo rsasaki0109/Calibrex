@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 
 import numpy as np
 from numpy.typing import NDArray
@@ -11,6 +12,9 @@ from calibrex.solvers.pandey_mutual_information_solver import (
     MutualInformationObservation,
     PandeyMutualInformationOptions,
     PandeyMutualInformationSolver,
+    _coarse_endpoint_is_safe,
+    _convolve_gaussian,
+    _parameters_from_transform,
     evaluate_mutual_information,
 )
 
@@ -32,9 +36,7 @@ def test_pandey_mutual_information_truth_scores_above_known_bad_pose() -> None:
 
 def test_pandey_mutual_information_solver_improves_train_and_keeps_holdout() -> None:
     observations, truth = _synthetic_observations()
-    initial_rotation = _euler_matrix(
-        math.radians(1.3), math.radians(-1.7), math.radians(2.25)
-    )
+    initial_rotation = _euler_matrix(math.radians(1.3), math.radians(-1.7), math.radians(2.25))
     initial = SE3(
         (truth.translation_m[0] + 0.01, truth.translation_m[1] - 0.01, truth.translation_m[2]),
         quaternion_xyzw_from_rotation_matrix(initial_rotation.reshape(-1)),
@@ -53,9 +55,7 @@ def test_pandey_mutual_information_solver_improves_train_and_keeps_holdout() -> 
     assert sum(probe.detectable for probe in result.probes) >= 6
     assert result.curvature is not None
     assert result.curvature.parameter_dimension == 6
-    assert math.dist(
-        result.transform_camera_lidar.translation_m, truth.translation_m
-    ) < 0.011
+    assert math.dist(result.transform_camera_lidar.translation_m, truth.translation_m) < 0.011
     assert _rotation_error_deg(result.transform_camera_lidar, truth) < 0.1
     payload = result.as_dict()
     assert payload["paper_doi"] == "10.1609/aaai.v26i1.8379"
@@ -73,6 +73,85 @@ def test_pandey_mutual_information_rejects_too_few_training_frames() -> None:
     assert result.status == "insufficient_observations"
     assert result.transform_camera_lidar is None
     assert result.curvature is None
+
+
+def test_vectorized_gaussian_convolution_matches_scalar_reference() -> None:
+    rng = np.random.default_rng(9021)
+    histogram = rng.random((24, 24))
+    covariance = np.asarray(((2.2, 0.4), (0.4, 1.3)))
+
+    actual = _convolve_gaussian(histogram, covariance)
+    expected = _scalar_gaussian_convolution(histogram, covariance)
+
+    np.testing.assert_allclose(actual, expected, rtol=1.0e-13, atol=1.0e-13)
+
+
+def test_scalar_and_vectorized_objectives_are_canonicalized_identically() -> None:
+    observations, truth = _synthetic_observations()
+    vectorized = _options(max_iterations=0)
+    scalar = replace(vectorized, histogram_smoothing_backend="scalar")
+
+    assert evaluate_mutual_information(observations, truth, vectorized) == (
+        evaluate_mutual_information(observations, truth, scalar)
+    )
+
+
+def test_coarse_endpoint_gate_rejects_a_per_frame_regression() -> None:
+    observations, truth = _synthetic_observations()
+    regressed = SE3(
+        (truth.translation_m[0] + 0.08, *truth.translation_m[1:]),
+        truth.rotation_quat_xyzw,
+    )
+
+    accepted, minimum_delta = _coarse_endpoint_is_safe(
+        observations,
+        np.asarray(_parameters_from_transform(truth)),
+        np.asarray(_parameters_from_transform(regressed)),
+        _options(max_iterations=0),
+    )
+
+    assert not accepted
+    assert minimum_delta < 0.0
+
+
+def test_deterministic_coarse_search_improves_large_initial_error() -> None:
+    observations, truth = _synthetic_observations()
+    initial = SE3(
+        (truth.translation_m[0] + 0.04, truth.translation_m[1], truth.translation_m[2]),
+        quaternion_xyzw_from_rotation_matrix(
+            _euler_matrix(
+                math.radians(1.0),
+                math.radians(-1.5),
+                math.radians(8.0),
+            ).reshape(-1)
+        ),
+    )
+    options = PandeyMutualInformationOptions(
+        holdout_ratio=0.2,
+        split_seed=3,
+        histogram_bins=24,
+        min_projected_points=80,
+        max_iterations=0,
+        coarse_search_translation_steps_m=(0.04, 0.02, 0.01),
+        coarse_search_rotation_steps_deg=(6.0, 3.0, 1.0),
+        coarse_search_sweeps_per_level=2,
+    )
+
+    first = PandeyMutualInformationSolver().solve(observations, initial, options)
+    second = PandeyMutualInformationSolver().solve(observations, initial, options)
+
+    assert first.coarse_search is not None
+    assert first.coarse_search.accepted
+    assert first.coarse_search.final_selection is not None
+    assert first.coarse_search.final_selection.candidate_accepted
+    assert first.coarse_search.selected_raw_mutual_information > (
+        first.coarse_search.start_raw_mutual_information
+    )
+    assert first.coarse_search.as_dict() == second.coarse_search.as_dict()
+    assert first.transform_camera_lidar is not None
+    assert _rotation_error_deg(first.transform_camera_lidar, truth) < (
+        _rotation_error_deg(initial, truth)
+    )
 
 
 def _options(*, max_iterations: int) -> PandeyMutualInformationOptions:
@@ -142,17 +221,18 @@ def _synthetic_observations(
     return observations, truth
 
 
-def _smooth_random_image(
-    rng: np.random.Generator, height: int, width: int
-) -> NDArray[np.float64]:
+def _smooth_random_image(rng: np.random.Generator, height: int, width: int) -> NDArray[np.float64]:
     image = rng.random((height, width))
     for _ in range(4):
         padded = np.pad(image, 1, mode="reflect")
-        image = sum(
-            padded[row : row + height, column : column + width]
-            for row in range(3)
-            for column in range(3)
-        ) / 9.0
+        image = (
+            sum(
+                padded[row : row + height, column : column + width]
+                for row in range(3)
+                for column in range(3)
+            )
+            / 9.0
+        )
     return image
 
 
@@ -187,3 +267,29 @@ def _euler_matrix(roll: float, pitch: float, yaw: float) -> NDArray[np.float64]:
 def _rotation_error_deg(left: SE3, right: SE3) -> float:
     dot = abs(float(np.dot(left.rotation_quat_xyzw, right.rotation_quat_xyzw)))
     return math.degrees(2.0 * math.acos(min(1.0, dot)))
+
+
+def _scalar_gaussian_convolution(
+    histogram: NDArray[np.float64],
+    covariance: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    stabilized = covariance + np.eye(2) * 0.25
+    eigenvalues = np.linalg.eigvalsh(stabilized)
+    radius = min(
+        7,
+        max(1, math.ceil(3.0 * math.sqrt(max(float(eigenvalues[-1]), 0.25)))),
+    )
+    offsets = np.arange(-radius, radius + 1, dtype=float)
+    xx, yy = np.meshgrid(offsets, offsets, indexing="ij")
+    coordinates = np.stack((xx, yy), axis=-1)
+    inverse = np.linalg.pinv(stabilized)
+    exponent = np.einsum("...i,ij,...j->...", coordinates, inverse, coordinates)
+    kernel = np.exp(-0.5 * exponent)
+    kernel /= np.sum(kernel)
+    padded = np.pad(histogram, radius)
+    result = np.zeros_like(histogram)
+    for row in range(histogram.shape[0]):
+        for column in range(histogram.shape[1]):
+            window = padded[row : row + kernel.shape[0], column : column + kernel.shape[1]]
+            result[row, column] = float(np.sum(window * kernel))
+    return result

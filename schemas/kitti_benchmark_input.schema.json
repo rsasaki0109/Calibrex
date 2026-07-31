@@ -1,0 +1,194 @@
+{
+  "$defs": {
+    "KITTIBenchmarkInputFile": {
+      "additionalProperties": false,
+      "description": "One digest-locked file used by the KITTI benchmark.",
+      "properties": {
+        "frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Id"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "camera",
+            "lidar",
+            "timestamp",
+            "calibration"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "KITTIBenchmarkInputFile",
+      "type": "object"
+    },
+    "KITTIBenchmarkInputProvenance": {
+      "additionalProperties": false,
+      "description": "Producer and source identity for a generated input lock.",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "generator": {
+          "default": "calibrex.data.kitti_benchmark",
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "default": "0.4.0",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "official_url": {
+          "default": "https://www.cvlibs.net/datasets/kitti/raw_data.php",
+          "title": "Official Url",
+          "type": "string"
+        },
+        "redistribution": {
+          "default": "raw data not redistributed; obtain it from the official KITTI source",
+          "title": "Redistribution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "KITTIBenchmarkInputProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid inventory of every raw input selected for the benchmark.",
+  "properties": {
+    "calibration_files": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Calibration Files",
+      "type": "array"
+    },
+    "camera_stream": {
+      "default": "image_02",
+      "title": "Camera Stream",
+      "type": "string"
+    },
+    "dataset_id": {
+      "default": "kitti_raw_2011_09_26_drive_0005",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/KITTIBenchmarkInputFile"
+      },
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    },
+    "frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Frame Ids",
+      "type": "array"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "lidar_stream": {
+      "default": "velodyne_points",
+      "title": "Lidar Stream",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KITTIBenchmarkInputProvenance"
+    },
+    "schema_version": {
+      "const": "slac.kitti_benchmark_input/v0.1",
+      "default": "slac.kitti_benchmark_input/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selection_policy": {
+      "default": "20 prespecified pairs at frame indices 0:154:8",
+      "title": "Selection Policy",
+      "type": "string"
+    },
+    "sequence_id": {
+      "default": "2011_09_26_drive_0005_sync",
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "source_sequence_path": {
+      "title": "Source Sequence Path",
+      "type": "string"
+    },
+    "timestamp_line_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Timestamp Line Counts",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_sequence_path",
+    "frame_ids",
+    "timestamp_line_counts",
+    "calibration_files",
+    "files",
+    "input_sha256",
+    "provenance"
+  ],
+  "title": "KITTIBenchmarkInputManifest",
+  "type": "object"
+}

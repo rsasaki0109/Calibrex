@@ -1,6 +1,7 @@
 import hashlib
 import json
 import math
+import os
 import struct
 import zlib
 from pathlib import Path
@@ -24,6 +25,11 @@ from calibrex.core.report_artifacts import (
 )
 from calibrex.core.result import load_result
 from calibrex.core.transform_artifacts import TransformArtifact
+from calibrex.data.kitti_benchmark import (
+    KITTI_RAW_0005_BENCHMARK_FRAME_IDS,
+    KITTI_RAW_0005_SEQUENCE_ID,
+    KITTIBenchmarkInputManifest,
+)
 from calibrex.data.nuscenes_radar import write_nuscenes_radar_pcd
 
 
@@ -120,6 +126,37 @@ P_rect_02: 10 0 10 0 0 10 10 0 0 0 1 0
 """.strip(),
         encoding="utf-8",
     )
+
+
+def _write_kitti_benchmark_lock_fixture(root: Path) -> Path:
+    sequence = root / KITTI_RAW_0005_SEQUENCE_ID
+    camera_dir = sequence / "image_02" / "data"
+    lidar_dir = sequence / "velodyne_points" / "data"
+    camera_dir.mkdir(parents=True)
+    lidar_dir.mkdir(parents=True)
+    points = [
+        (x * 0.1, y * 0.1, 5.0 + ((x + y) % 3), float((x * 7 + y * 11) % 255))
+        for x in range(-8, 9)
+        for y in range(-5, 6)
+    ]
+    for frame_id in KITTI_RAW_0005_BENCHMARK_FRAME_IDS:
+        _write_png(camera_dir / f"{frame_id}.png", width=64, height=48)
+        _write_velodyne_points(lidar_dir / f"{frame_id}.bin", points)
+    timestamps = "".join(f"timestamp {index}\n" for index in range(154))
+    (sequence / "image_02" / "timestamps.txt").write_text(timestamps)
+    (sequence / "velodyne_points" / "timestamps.txt").write_text(timestamps)
+    (root / "calib_cam_to_cam.txt").write_text(
+        "\n".join(
+            (
+                "S_rect_02: 64 48",
+                "R_rect_00: 1 0 0 0 1 0 0 0 1",
+                "P_rect_02: 45 0 31.5 0 0 45 23.5 0 0 0 1 0",
+            )
+        )
+        + "\n"
+    )
+    (root / "calib_velo_to_cam.txt").write_text("R: 1 0 0 0 1 0 0 0 1\nT: 0 0 0\n")
+    return sequence
 
 
 def _write_livox_demo_pair(path: Path) -> None:
@@ -1238,6 +1275,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     protocol_schema = tmp_path / "protocol.schema.json"
     transforms_schema = tmp_path / "transforms.schema.json"
     manifest_schema = tmp_path / "dataset_manifest.schema.json"
+    kitti_benchmark_input_schema = tmp_path / "kitti_benchmark_input.schema.json"
     report_summary_schema = tmp_path / "report_summary.schema.json"
     report_metrics_schema = tmp_path / "report_metrics.schema.json"
     report_observability_schema = tmp_path / "report_observability.schema.json"
@@ -1267,6 +1305,17 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert main(["schema", "protocol", "--output", str(protocol_schema)]) == 0
     assert main(["schema", "transforms", "--output", str(transforms_schema)]) == 0
     assert main(["schema", "dataset-manifest", "--output", str(manifest_schema)]) == 0
+    assert (
+        main(
+            [
+                "schema",
+                "kitti-benchmark-input",
+                "--output",
+                str(kitti_benchmark_input_schema),
+            ]
+        )
+        == 0
+    )
     assert main(["schema", "report-summary", "--output", str(report_summary_schema)]) == 0
     assert main(["schema", "report-metrics", "--output", str(report_metrics_schema)]) == 0
     assert (
@@ -1297,6 +1346,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert protocol_schema.exists()
     assert transforms_schema.exists()
     assert manifest_schema.exists()
+    assert kitti_benchmark_input_schema.exists()
     assert report_summary_schema.exists()
     assert report_metrics_schema.exists()
     assert report_observability_schema.exists()
@@ -1316,6 +1366,7 @@ def test_schema_commands(tmp_path: Path) -> None:
         "protocol.schema.json",
         "transforms.schema.json",
         "dataset_manifest.schema.json",
+        "kitti_benchmark_input.schema.json",
         "report_summary.schema.json",
         "report_metrics.schema.json",
         "report_observability.schema.json",
@@ -1336,6 +1387,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     policy_schema_payload = json.loads(policy_schema.read_text(encoding="utf-8"))
     protocol_schema_payload = json.loads(protocol_schema.read_text(encoding="utf-8"))
     transforms_schema_payload = json.loads(transforms_schema.read_text(encoding="utf-8"))
+    kitti_benchmark_input_schema_payload = json.loads(
+        kitti_benchmark_input_schema.read_text(encoding="utf-8")
+    )
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
     evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
     bundle_schema = json.loads(evidence_bundle_schema.read_text(encoding="utf-8"))
@@ -1361,6 +1415,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     )
     assert transforms_schema_payload["properties"]["schema_version"]["const"] == (
         "slac.transforms/v0.1"
+    )
+    assert kitti_benchmark_input_schema_payload["properties"]["schema_version"]["const"] == (
+        "slac.kitti_benchmark_input/v0.1"
     )
     assert metrics_schema["properties"]["schema_version"]["const"] == ("slac.report.metrics/v0.1")
     assert evidence_schema["properties"]["schema_version"]["const"] == ("slac.report.evidence/v0.1")
@@ -1912,6 +1969,150 @@ cam0:
     assert payload["transform_count"] == 1
     assert payload["time_offset_count"] == 1
     assert main(["validate", str(output), "--kind", "external-run", "--json"]) == 0
+
+
+def test_kitti_lock_benchmark_input_command(tmp_path: Path, capsys) -> None:
+    sequence = _write_kitti_benchmark_lock_fixture(tmp_path)
+    output = tmp_path / "kitti-benchmark-input.yaml"
+
+    assert (
+        main(
+            [
+                "kitti",
+                "lock-benchmark-input",
+                str(sequence),
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    manifest = KITTIBenchmarkInputManifest.model_validate(read_mapping(output))
+    assert payload["frame_count"] == len(KITTI_RAW_0005_BENCHMARK_FRAME_IDS)
+    assert payload["file_count"] == len(manifest.files)
+    assert payload["input_sha256"] == manifest.input_sha256
+    assert main(["validate", str(output), "--json"]) == 0
+    validation = json.loads(capsys.readouterr().out)
+    assert validation["kind"] == "kitti-benchmark-input"
+    assert validation["valid"] is True
+
+
+def test_kitti_i2i_benchmark_command_writes_schema_valid_artifacts(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    sequence = _write_kitti_benchmark_lock_fixture(tmp_path)
+    input_manifest = tmp_path / "kitti-input.json"
+    definition = tmp_path / "i2i-definition.json"
+    benchmark = tmp_path / "i2i-benchmark.json"
+    assert (
+        main(
+            [
+                "kitti",
+                "lock-benchmark-input",
+                str(sequence),
+                "--output",
+                str(input_manifest),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    assert (
+        main(
+            [
+                "kitti",
+                "benchmark-i2i",
+                str(input_manifest),
+                "--definition-output",
+                str(definition),
+                "--output",
+                str(benchmark),
+                "--max-points-per-frame",
+                "64",
+                "--max-iterations",
+                "0",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["trial_count"] == 12
+    assert isinstance(payload["accuracy_non_degraded"], bool)
+    assert isinstance(payload["runtime_improved"], bool)
+    assert isinstance(payload["performance_gate_passed"], bool)
+    definition_payload = json.loads(definition.read_text(encoding="utf-8"))
+    assert [item["method_id"] for item in definition_payload["methods"]] == [
+        "pandey_i2i_scalar_bb_v01",
+        "pandey_i2i_vectorized_safe_coarse_bb_v03",
+    ]
+    trial_notes = [
+        note for trial in definition_payload["trials"] for note in trial["provenance"]["notes"]
+    ]
+    assert "histogram_smoothing_backend=scalar" in trial_notes
+    assert "histogram_smoothing_backend=vectorized" in trial_notes
+    assert main(["validate", str(definition), "--json"]) == 0
+    definition_validation = json.loads(capsys.readouterr().out)
+    assert definition_validation["kind"] == "benchmark-definition"
+    assert main(["validate", str(benchmark), "--json"]) == 0
+    benchmark_validation = json.loads(capsys.readouterr().out)
+    assert benchmark_validation["kind"] == "benchmark"
+
+
+def test_kitti_lock_benchmark_input_reports_missing_data(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    sequence = tmp_path / KITTI_RAW_0005_SEQUENCE_ID
+    sequence.mkdir()
+
+    assert (
+        main(
+            [
+                "kitti",
+                "lock-benchmark-input",
+                str(sequence),
+                "--output",
+                str(tmp_path / "unused.yaml"),
+            ]
+        )
+        == 2
+    )
+    assert "KITTI benchmark inputs are missing" in capsys.readouterr().err
+
+
+@pytest.mark.skipif(
+    not os.environ.get("CALIBREX_KITTI_RAW_0005"),
+    reason="set CALIBREX_KITTI_RAW_0005 to the official sequence directory",
+)
+def test_kitti_lock_benchmark_input_on_official_data(tmp_path: Path) -> None:
+    sequence = Path(os.environ["CALIBREX_KITTI_RAW_0005"])
+    output = tmp_path / "official-kitti-benchmark-input.json"
+
+    assert (
+        main(
+            [
+                "kitti",
+                "lock-benchmark-input",
+                str(sequence),
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    manifest = KITTIBenchmarkInputManifest.model_validate(read_mapping(output))
+    assert manifest.sequence_id == KITTI_RAW_0005_SEQUENCE_ID
+    assert len(manifest.frame_ids) == len(KITTI_RAW_0005_BENCHMARK_FRAME_IDS)
+    assert all(item.size_bytes > 0 for item in manifest.files)
+
+
 
 
 def test_kitti_fixed_lidar_calibrate_result_includes_public_dataset_diagnostics(

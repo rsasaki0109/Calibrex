@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "BullseyeTrialPoint": {
+      "additionalProperties": false,
+      "description": "Initial-to-output rotation vector for one Bull's Eye trial.",
+      "properties": {
+        "hit": {
+          "title": "Hit",
+          "type": "boolean"
+        },
+        "initial_rotation_deg_xyz": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Initial Rotation Deg Xyz",
+          "type": "array"
+        },
+        "output_rotation_error_deg_xyz": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Output Rotation Error Deg Xyz",
+          "type": "array"
+        },
+        "trial_id": {
+          "title": "Trial Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trial_id",
+        "initial_rotation_deg_xyz",
+        "output_rotation_error_deg_xyz",
+        "hit"
+      ],
+      "title": "BullseyeTrialPoint",
+      "type": "object"
+    },
+    "CameraLidarArtifactProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and source digests shared by camera--LiDAR artifacts.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "CameraLidarArtifactProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable source of a deterministic Bull's Eye SVG.",
+  "properties": {
+    "hit_radius_deg": {
+      "exclusiveMinimum": 0.0,
+      "title": "Hit Radius Deg",
+      "type": "number"
+    },
+    "panels": {
+      "items": {
+        "enum": [
+          "roll_pitch",
+          "roll_yaw",
+          "pitch_yaw"
+        ],
+        "type": "string"
+      },
+      "title": "Panels",
+      "type": "array"
+    },
+    "plot_id": {
+      "title": "Plot Id",
+      "type": "string"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/BullseyeTrialPoint"
+      },
+      "minItems": 1,
+      "title": "Points",
+      "type": "array"
+    },
+    "problem_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Problem Sha256",
+      "type": "string"
+    },
+    "protocol_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarArtifactProvenance"
+    },
+    "schema_version": {
+      "const": "slac.bullseye_plot/v0.1",
+      "default": "slac.bullseye_plot/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "svg_path": {
+      "title": "Svg Path",
+      "type": "string"
+    },
+    "svg_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Svg Sha256",
+      "type": "string"
+    },
+    "trace_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Trace Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "plot_id",
+    "problem_sha256",
+    "protocol_sha256",
+    "trace_sha256",
+    "svg_path",
+    "svg_sha256",
+    "panels",
+    "hit_radius_deg",
+    "points",
+    "provenance"
+  ],
+  "title": "BullseyePlotArtifact",
+  "type": "object"
+}

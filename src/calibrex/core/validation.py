@@ -18,7 +18,29 @@ from calibrex.core.benchmark import (
     BenchmarkArtifact,
     BenchmarkDefinition,
 )
+from calibrex.core.camera_lidar_artifacts import (
+    BULLSEYE_PLOT_SCHEMA_VERSION,
+    CALIBRATION_CANDIDATE_TRACE_SCHEMA_VERSION,
+    CAMERA_LIDAR_BENCHMARK_PROTOCOL_SCHEMA_VERSION,
+    CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION,
+    BullseyePlotArtifact,
+    CalibrationCandidateTrace,
+    CameraLidarBenchmarkProtocol,
+    CameraLidarCalibrationProblem,
+)
+from calibrex.core.camera_lidar_sota_audit import (
+    CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION,
+    CAMERA_LIDAR_SOTA_AUDIT_RESULT_SCHEMA_VERSION,
+    CameraLidarSotaAuditProtocol,
+    CameraLidarSotaAuditResult,
+)
 from calibrex.core.config import CONFIG_SCHEMA_VERSION, CalibrationConfig
+from calibrex.core.continuous_time_camera_lidar_artifacts import (
+    CONTINUOUS_TIME_CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION,
+    CONTINUOUS_TIME_CAMERA_LIDAR_RESULT_SCHEMA_VERSION,
+    ContinuousTimeCameraLidarProblemArtifact,
+    ContinuousTimeCameraLidarResultArtifact,
+)
 from calibrex.core.evidence_bundle import (
     EVIDENCE_BUNDLE_SCHEMA_VERSION,
     EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION,
@@ -41,6 +63,14 @@ from calibrex.core.online_timeline import (
     ONLINE_TIMELINE_SCHEMA_VERSION,
     OnlineCalibrationTimelineArtifact,
 )
+from calibrex.core.probabilistic_correspondence import (
+    PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION,
+    PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION,
+    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION,
+    ProbabilisticCorrespondenceArtifact,
+    ProbabilisticPnpResultArtifact,
+    ProbabilisticRefinementResultArtifact,
+)
 from calibrex.core.report_artifacts import (
     REPORT_DEGENERACY_SCHEMA_VERSION,
     REPORT_EVIDENCE_SCHEMA_VERSION,
@@ -58,6 +88,11 @@ from calibrex.core.trajectory import TRAJECTORY_SCHEMA_VERSION, TrajectoryArtifa
 from calibrex.core.transform_artifacts import (
     TRANSFORMS_SCHEMA_VERSION,
     TransformArtifact,
+)
+from calibrex.data.depth import DEPTH_PROVIDER_SCHEMA_VERSION, DepthProviderArtifact
+from calibrex.data.kitti_benchmark import (
+    KITTI_BENCHMARK_INPUT_SCHEMA_VERSION,
+    KITTIBenchmarkInputManifest,
 )
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
 from calibrex.diagnostics import DOCTOR_SCHEMA_VERSION, DoctorArtifact
@@ -88,6 +123,19 @@ ValidationKind = Literal[
     "calibration-ci",
     "external-run",
     "kitti-falsification",
+    "kitti-benchmark-input",
+    "depth-provider",
+    "continuous-time-camera-lidar-problem",
+    "continuous-time-camera-lidar-result",
+    "probabilistic-correspondence",
+    "probabilistic-pnp-result",
+    "probabilistic-refinement-result",
+    "camera-lidar-problem",
+    "camera-lidar-sota-audit-protocol",
+    "camera-lidar-sota-audit-result",
+    "camera-lidar-benchmark-protocol",
+    "calibration-candidate-trace",
+    "bullseye-plot",
     "report-summary",
     "report-metrics",
     "report-observability",
@@ -115,6 +163,23 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "calibration-ci": CalibrationCIArtifact,
     "external-run": ExternalCalibrationRunArtifact,
     "kitti-falsification": KITTIFalsificationBenchmarkArtifact,
+    "kitti-benchmark-input": KITTIBenchmarkInputManifest,
+    "depth-provider": DepthProviderArtifact,
+    "continuous-time-camera-lidar-problem": (
+        ContinuousTimeCameraLidarProblemArtifact
+    ),
+    "continuous-time-camera-lidar-result": (
+        ContinuousTimeCameraLidarResultArtifact
+    ),
+    "probabilistic-correspondence": ProbabilisticCorrespondenceArtifact,
+    "probabilistic-pnp-result": ProbabilisticPnpResultArtifact,
+    "probabilistic-refinement-result": ProbabilisticRefinementResultArtifact,
+    "camera-lidar-problem": CameraLidarCalibrationProblem,
+    "camera-lidar-sota-audit-protocol": CameraLidarSotaAuditProtocol,
+    "camera-lidar-sota-audit-result": CameraLidarSotaAuditResult,
+    "camera-lidar-benchmark-protocol": CameraLidarBenchmarkProtocol,
+    "calibration-candidate-trace": CalibrationCandidateTrace,
+    "bullseye-plot": BullseyePlotArtifact,
     "report-summary": ReportSummaryArtifact,
     "report-metrics": ReportMetricsArtifact,
     "report-observability": ReportObservabilityArtifact,
@@ -142,6 +207,31 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CALIBRATION_CI_SCHEMA_VERSION: "calibration-ci",
     EXTERNAL_RUN_SCHEMA_VERSION: "external-run",
     KITTI_FALSIFICATION_SCHEMA_VERSION: "kitti-falsification",
+    KITTI_BENCHMARK_INPUT_SCHEMA_VERSION: "kitti-benchmark-input",
+    DEPTH_PROVIDER_SCHEMA_VERSION: "depth-provider",
+    CONTINUOUS_TIME_CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: (
+        "continuous-time-camera-lidar-problem"
+    ),
+    CONTINUOUS_TIME_CAMERA_LIDAR_RESULT_SCHEMA_VERSION: (
+        "continuous-time-camera-lidar-result"
+    ),
+    PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION: "probabilistic-correspondence",
+    PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION: "probabilistic-pnp-result",
+    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: (
+        "probabilistic-refinement-result"
+    ),
+    CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: "camera-lidar-problem",
+    CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION: (
+        "camera-lidar-sota-audit-protocol"
+    ),
+    CAMERA_LIDAR_SOTA_AUDIT_RESULT_SCHEMA_VERSION: (
+        "camera-lidar-sota-audit-result"
+    ),
+    CAMERA_LIDAR_BENCHMARK_PROTOCOL_SCHEMA_VERSION: (
+        "camera-lidar-benchmark-protocol"
+    ),
+    CALIBRATION_CANDIDATE_TRACE_SCHEMA_VERSION: "calibration-candidate-trace",
+    BULLSEYE_PLOT_SCHEMA_VERSION: "bullseye-plot",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
     REPORT_METRICS_SCHEMA_VERSION: "report-metrics",
     REPORT_OBSERVABILITY_SCHEMA_VERSION: "report-observability",

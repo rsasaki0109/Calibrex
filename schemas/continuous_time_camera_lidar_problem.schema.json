@@ -1,0 +1,1000 @@
+{
+  "$defs": {
+    "ContinuousTimeArtifactProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and immutable input lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "ContinuousTimeArtifactProvenance",
+      "type": "object"
+    },
+    "ContinuousTimeBodyTwist": {
+      "additionalProperties": false,
+      "description": "Body twist expressed in the declared body frame.",
+      "properties": {
+        "angular_velocity_body_radps": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Angular Velocity Body Radps",
+          "type": "array"
+        },
+        "linear_velocity_body_mps": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Linear Velocity Body Mps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "linear_velocity_body_mps",
+        "angular_velocity_body_radps"
+      ],
+      "title": "ContinuousTimeBodyTwist",
+      "type": "object"
+    },
+    "ContinuousTimeCaptureArtifact": {
+      "additionalProperties": false,
+      "description": "One camera exposure with timed LiDAR points and supplied motion.",
+      "properties": {
+        "body_frame": {
+          "title": "Body Frame",
+          "type": "string"
+        },
+        "camera": {
+          "$ref": "#/$defs/DepthCameraIntrinsics"
+        },
+        "camera_exposure_time_sec": {
+          "title": "Camera Exposure Time Sec",
+          "type": "number"
+        },
+        "camera_frame": {
+          "title": "Camera Frame",
+          "type": "string"
+        },
+        "capture_id": {
+          "title": "Capture Id",
+          "type": "string"
+        },
+        "correspondences": {
+          "items": {
+            "$ref": "#/$defs/ContinuousTimeImageCorrespondence"
+          },
+          "minItems": 4,
+          "title": "Correspondences",
+          "type": "array"
+        },
+        "lidar_frame": {
+          "title": "Lidar Frame",
+          "type": "string"
+        },
+        "lidar_message_stamp_sec": {
+          "title": "Lidar Message Stamp Sec",
+          "type": "number"
+        },
+        "rolling_shutter_direction": {
+          "default": "top_to_bottom",
+          "enum": [
+            "top_to_bottom",
+            "bottom_to_top"
+          ],
+          "title": "Rolling Shutter Direction",
+          "type": "string"
+        },
+        "rolling_shutter_readout_sec": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Rolling Shutter Readout Sec",
+          "type": "number"
+        },
+        "transform_body_lidar": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "twist": {
+          "$ref": "#/$defs/ContinuousTimeBodyTwist"
+        }
+      },
+      "required": [
+        "capture_id",
+        "lidar_message_stamp_sec",
+        "camera_exposure_time_sec",
+        "camera_frame",
+        "lidar_frame",
+        "body_frame",
+        "camera",
+        "transform_body_lidar",
+        "twist",
+        "correspondences"
+      ],
+      "title": "ContinuousTimeCaptureArtifact",
+      "type": "object"
+    },
+    "ContinuousTimeCapturePolicyArtifact": {
+      "additionalProperties": false,
+      "description": "Explicit per-point timestamp and clock convention.",
+      "properties": {
+        "point_offset_unit": {
+          "const": "seconds",
+          "title": "Point Offset Unit",
+          "type": "string"
+        },
+        "sensor_time_offset_sec": {
+          "title": "Sensor Time Offset Sec",
+          "type": "number"
+        },
+        "stamp_reference": {
+          "enum": [
+            "scan_start",
+            "scan_midpoint",
+            "scan_end"
+          ],
+          "title": "Stamp Reference",
+          "type": "string"
+        },
+        "time_convention": {
+          "const": "lidar_sensor_time + dt_lidar = camera_reference_time",
+          "default": "lidar_sensor_time + dt_lidar = camera_reference_time",
+          "title": "Time Convention",
+          "type": "string"
+        }
+      },
+      "required": [
+        "point_offset_unit",
+        "stamp_reference",
+        "sensor_time_offset_sec"
+      ],
+      "title": "ContinuousTimeCapturePolicyArtifact",
+      "type": "object"
+    },
+    "ContinuousTimeImageCorrespondence": {
+      "additionalProperties": false,
+      "description": "One per-point firing time and probabilistic image observation.",
+      "properties": {
+        "capture_offset_sec": {
+          "title": "Capture Offset Sec",
+          "type": "number"
+        },
+        "correspondence_id": {
+          "title": "Correspondence Id",
+          "type": "string"
+        },
+        "image_covariance_px2": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Image Covariance Px2",
+          "type": "array"
+        },
+        "image_mean_px": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Image Mean Px",
+          "type": "array"
+        },
+        "outlier_probability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Outlier Probability",
+          "type": "number"
+        },
+        "point_lidar_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Point Lidar M",
+          "type": "array"
+        },
+        "reliability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Reliability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "correspondence_id",
+        "point_lidar_m",
+        "capture_offset_sec",
+        "image_mean_px",
+        "image_covariance_px2",
+        "outlier_probability",
+        "reliability"
+      ],
+      "title": "ContinuousTimeImageCorrespondence",
+      "type": "object"
+    },
+    "ContinuousTimeTrajectoryArtifact": {
+      "additionalProperties": false,
+      "description": "Provenance-pinned adapter input for non-constant body motion.",
+      "properties": {
+        "adapter": {
+          "const": "piecewise_se3_linear_slerp/v0.1",
+          "default": "piecewise_se3_linear_slerp/v0.1",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "body_frame": {
+          "title": "Body Frame",
+          "type": "string"
+        },
+        "extrapolation": {
+          "const": "reject",
+          "default": "reject",
+          "title": "Extrapolation",
+          "type": "string"
+        },
+        "interpolation": {
+          "const": "linear_translation_shortest_arc_slerp",
+          "default": "linear_translation_shortest_arc_slerp",
+          "title": "Interpolation",
+          "type": "string"
+        },
+        "poses": {
+          "items": {
+            "$ref": "#/$defs/ContinuousTimeTrajectoryPoseArtifact"
+          },
+          "minItems": 2,
+          "title": "Poses",
+          "type": "array"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "world_frame": {
+          "title": "World Frame",
+          "type": "string"
+        }
+      },
+      "required": [
+        "world_frame",
+        "body_frame",
+        "source_sha256",
+        "poses"
+      ],
+      "title": "ContinuousTimeTrajectoryArtifact",
+      "type": "object"
+    },
+    "ContinuousTimeTrajectoryPoseArtifact": {
+      "additionalProperties": false,
+      "description": "One timestamped ``T_world_body`` trajectory knot.",
+      "properties": {
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "transform_world_body": {
+          "$ref": "#/$defs/TransformResult"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "transform_world_body"
+      ],
+      "title": "ContinuousTimeTrajectoryPoseArtifact",
+      "type": "object"
+    },
+    "CorrespondenceProviderIdentity": {
+      "additionalProperties": false,
+      "description": "Identity and redistribution boundary of the external provider.",
+      "properties": {
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DepthFileReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checkpoint_redistribution": {
+          "title": "Checkpoint Redistribution",
+          "type": "string"
+        },
+        "license_spdx": {
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "source_commit": {
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_repository": {
+          "title": "Source Repository",
+          "type": "string"
+        },
+        "training": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrespondenceTrainingDeclaration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "version",
+        "source_repository",
+        "source_commit",
+        "license_spdx",
+        "checkpoint_redistribution"
+      ],
+      "title": "CorrespondenceProviderIdentity",
+      "type": "object"
+    },
+    "CorrespondenceTrainingDeclaration": {
+      "additionalProperties": false,
+      "description": "Training-corpus relationship for a learned correspondence provider.",
+      "properties": {
+        "evaluation_overlap": {
+          "enum": [
+            "none",
+            "possible",
+            "confirmed",
+            "unknown"
+          ],
+          "title": "Evaluation Overlap",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "test_data_used_for_online_refinement": {
+          "title": "Test Data Used For Online Refinement",
+          "type": "boolean"
+        },
+        "training_datasets": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Training Datasets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "training_datasets",
+        "evaluation_overlap",
+        "test_data_used_for_online_refinement",
+        "evidence"
+      ],
+      "title": "CorrespondenceTrainingDeclaration",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "DepthCameraIntrinsics": {
+      "additionalProperties": false,
+      "description": "Camera intrinsics aligned with the depth grid.",
+      "properties": {
+        "alpha": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1.0,
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alpha"
+        },
+        "cx": {
+          "title": "Cx",
+          "type": "number"
+        },
+        "cy": {
+          "title": "Cy",
+          "type": "number"
+        },
+        "distortion": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Distortion",
+          "type": "array"
+        },
+        "distortion_model": {
+          "default": "none",
+          "title": "Distortion Model",
+          "type": "string"
+        },
+        "fx": {
+          "exclusiveMinimum": 0.0,
+          "title": "Fx",
+          "type": "number"
+        },
+        "fy": {
+          "exclusiveMinimum": 0.0,
+          "title": "Fy",
+          "type": "number"
+        },
+        "height": {
+          "exclusiveMinimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "projection": {
+          "default": "pinhole",
+          "enum": [
+            "pinhole",
+            "double_sphere",
+            "mei"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "xi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Xi"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "fx",
+        "fy",
+        "cx",
+        "cy"
+      ],
+      "title": "DepthCameraIntrinsics",
+      "type": "object"
+    },
+    "DepthFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed depth-provider input or output file.",
+      "properties": {
+        "encoding": {
+          "title": "Encoding",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "encoding"
+      ],
+      "title": "DepthFileReference",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-pinned joint extrinsic/clock-refinement input.",
+  "properties": {
+    "body_trajectory": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContinuousTimeTrajectoryArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "capture_time_policy": {
+      "$ref": "#/$defs/ContinuousTimeCapturePolicyArtifact"
+    },
+    "captures": {
+      "items": {
+        "$ref": "#/$defs/ContinuousTimeCaptureArtifact"
+      },
+      "minItems": 2,
+      "title": "Captures",
+      "type": "array"
+    },
+    "correspondence_provider": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CorrespondenceProviderIdentity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_license_spdx": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset License Spdx"
+    },
+    "initial_transform_camera_lidar": {
+      "$ref": "#/$defs/TransformResult"
+    },
+    "options": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "title": "Options",
+      "type": "object"
+    },
+    "problem_id": {
+      "title": "Problem Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeArtifactProvenance"
+    },
+    "reference_time_offset_sec": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Time Offset Sec"
+    },
+    "reference_transform_camera_lidar": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TransformResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_camera_lidar_problem/v0.1",
+      "default": "slac.continuous_time_camera_lidar_problem/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split_id": {
+      "title": "Split Id",
+      "type": "string"
+    },
+    "split_policy": {
+      "const": "deterministic_disjoint_holdout",
+      "title": "Split Policy",
+      "type": "string"
+    }
+  },
+  "required": [
+    "problem_id",
+    "dataset_id",
+    "split_id",
+    "initial_transform_camera_lidar",
+    "capture_time_policy",
+    "captures",
+    "split_policy",
+    "options",
+    "provenance"
+  ],
+  "title": "ContinuousTimeCameraLidarProblemArtifact",
+  "type": "object"
+}

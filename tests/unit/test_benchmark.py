@@ -129,6 +129,8 @@ def test_aggregate_benchmark_computes_failure_rate_ranks_and_paired_ci() -> None
     candidate = benchmark.method_summaries["candidate"]
     assert candidate.failure_rate == 0.0
     assert candidate.metrics["error_m"].distribution.mean == 2.0
+    assert candidate.metrics["error_m"].distribution.p90 == pytest.approx(2.8)
+    assert candidate.metrics["error_m"].distribution.p95 == pytest.approx(2.9)
     assert candidate.metrics["error_m"].rank == 1
     comparison = benchmark.paired_comparisons[0]
     assert comparison.paired_count == 2

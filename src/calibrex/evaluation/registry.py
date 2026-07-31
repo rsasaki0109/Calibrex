@@ -1215,6 +1215,31 @@ def _register_builtin_metrics() -> None:
             family="provenance",
         ),
         MetricDefinition(
+            "unicalib_adapter_available",
+            "UniCalib external adapter availability",
+            family="backend",
+        ),
+        MetricDefinition(
+            "unicalib_input_ready",
+            "Camera and LiDAR stream readiness for UniCalib",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "unicalib_result_available",
+            "Readable UniCalib transform availability",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "unicalib_execution_success",
+            "UniCalib external command execution status",
+            family="backend",
+        ),
+        MetricDefinition(
+            "unicalib_provenance_complete",
+            "UniCalib identity, license, commit, and digest completeness",
+            family="provenance",
+        ),
+        MetricDefinition(
             "lidar_camera_transform_pairs",
             "Number of camera-LiDAR transform pairs available for overlay evaluation",
             "pairs",
