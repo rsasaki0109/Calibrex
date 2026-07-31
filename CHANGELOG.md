@@ -2,6 +2,116 @@
 
 ## Unreleased
 
+- Added the Phase 3 provider-neutral probabilistic 2D--3D correspondence
+  artifact and an optional Apache-2.0 OpenCV PnP-RANSAC adapter with
+  confidence filtering, covariance-aware diagnostics, tests, and complete
+  provider/input provenance. The correspondence contract now distinguishes
+  dataset-license provenance from the provider's code/model license; ablation
+  evidence is marked unverified when the dataset license or source digests
+  are undeclared.
+- Added a D2D-initialized native multi-frame probabilistic pose refiner with
+  covariance/outlier/reliability weighting, robust loss, bounded SE(3)
+  correction, disjoint frame holdout, complete candidate traces, and explicit
+  uncertainty ablation switches.
+- Added explicit D2D candidate-trace initialization for probabilistic
+  multi-frame refinement and its paired ablations. The trace must pin the same
+  problem digest and frame pair; results record its ID, digest, solver status,
+  and hit decision. Runs without a trace declare `problem_initial_transform`
+  and are not mislabeled as solved-D2D initialization evidence. The generic
+  method ID is now
+  `probabilistic_multiframe_refinement/v0.2`; the old v0.1 ID remains accepted
+  for artifact compatibility.
+- Added a paired probabilistic-refinement ablation benchmark that executes the
+  full estimator and three one-factor removals over fixed frame-split seeds,
+  retains every schema-valid result, and reports failure-aware paired
+  bootstrap comparisons with both input digests. Results and ablations now
+  include translation distance and quaternion-geodesic rotation error to the
+  problem's digest-pinned reference, making the planned cm/deg gates directly
+  auditable alongside held-out reprojection.
+- Added a ROS-independent joint camera--LiDAR continuous-time solver boundary
+  using per-point firing times, supplied body twists, probabilistic image
+  residuals, bounded extrinsic/clock refinement, disjoint holdout evidence,
+  and an explicit weak-motion rejection gate.
+- Added rolling-shutter row-time deskew plus fixed-clock, no-per-point-time,
+  no-rolling-shutter, and no-covariance temporal ablations. The paired
+  multi-split benchmark retains every result, failure, source digest, and
+  bootstrap comparison. Optional frozen extrinsic/time references now produce
+  initial/final rotation, translation, and clock errors in each result and
+  paired ablation, making injected-recovery gates directly auditable.
+  Continuous-time problems separately declare their dataset license; absent
+  license provenance marks the ablation benchmark unverified.
+- Added a ROS-independent, provenance-pinned piecewise SE(3) body-trajectory
+  adapter with linear translation, shortest-arc quaternion interpolation, and
+  strict no-extrapolation behavior. Continuous-time camera--LiDAR refinement
+  now uses this non-constant motion model when supplied while retaining the
+  constant-twist input as a backward-compatible fallback. A CLI adapter
+  attaches existing schema-valid `T_world_body` trajectory artifacts while
+  preserving both input digests and frame semantics.
+- Added a digest-frozen Camera-LiDAR SOTA audit protocol/result and CLI. It
+  evaluates every numerical/integrity gate, dataset-family and independent-rig
+  coverage, and can emit only supported, refuted, or incomplete verdicts;
+  schema validation prevents an unsupported success label.
+- Extended benchmark distributions with p90 and p95 and made mean, median,
+  p90, p95, maximum, and failure rate individually addressable by frozen SOTA
+  audit requirements, so tail failures cannot be hidden behind a mean. Paired
+  bootstrap improvement confidence bounds can also be frozen against an
+  explicit reference/candidate method pair, while runtime and peak-memory
+  mean/p95 statistics are directly auditable. Evidence whose benchmark
+  provenance declares `data_verified: false` is rejected, and result
+  validation now enforces the semantics of all three verdicts rather than
+  guarding only `supported`. Optional smoke requirements cannot inflate the
+  achieved dataset-family or independent-rig coverage counts.
+- Added a schema-valid Camera-LiDAR D2D research pipeline with frozen
+  Fibonacci-sphere protocols, complete candidate traces, Bull's Eye artifacts,
+  an external FeatDepth provider adapter, rectified KITTI problem construction,
+  deterministic parallel execution, and a 200/200-hit KITTI raw 0018
+  rotation-only reproduction gate.
+- Completed the frozen KITTI raw 0018 rotation matrix at `1, 2, 10, 20 deg`
+  with 200 deterministic directions per level. The `1, 2, 10 deg` levels
+  recovered 200/200; `20 deg` recovered 178/200 with zero computational
+  failures, while its `17.0067 deg` p90 and `28.4920 deg` p95 retain the
+  direction-dependent capture failures that its `0.2425 deg` median would
+  otherwise hide. All new traces and aggregate artifacts are schema- and
+  digest-validated.
+- Added the KITTI-360 half of the D2D reproduction path: a pinned external
+  MiDaS v3.1 provider, official MEI fisheye projection, official
+  pose/azimuth-based Velodyne motion compensation with a schema-valid
+  provenance manifest, KITTI-360 problem construction, and CLI support. The
+  frozen `10 deg` gate completed at 200/200 hits with zero failures (mean
+  `0.3812 deg`, maximum `0.4676 deg`), matching the paper's 100% target.
+- Completed the frozen KITTI-360 rotation matrix at `1, 2, 10, 20 deg` with
+  200 deterministic directions per level. The `1, 2, 10 deg` levels recovered
+  200/200; `20 deg` recovered 184/200 with zero computational failures. Its
+  `0.3882 deg` median contrasts with a `28.4409 deg` p95 and `45.4505 deg`
+  maximum, retaining the direction-dependent capture failures. All new trace,
+  benchmark, and Bull's Eye artifacts are schema- and digest-validated.
+- Added a digest-pinned A2D2 MiDaS/provider and pre-registered camera-view D2D
+  smoke path. The frozen five-direction `10 deg` run completed 5/5 trials but
+  failed recovery at 0/5 hits; the two-frame/pre-registration limitation and
+  negative result are retained rather than weakening the gate.
+- Added digest-checked resumable Camera-LiDAR trial execution plus a bounded
+  six-DoF D2D solver, paired Fibonacci rotation/translation protocols,
+  schema-valid candidate traces, benchmark aggregation, and CLI commands. The
+  first real KITTI-360 `(0.5 deg, 0.5 m)` smoke converged to
+  `0.2505 deg / 2.08e-17 m` and passed the frozen hit gate.
+- Completed the first full six-DoF matrix cell on KITTI raw 0018 at the frozen
+  `(0.5 deg, 0.25 m)` perturbation. All 200 trials converged with zero
+  computational failures, but only 84/200 passed the strict
+  `<0.5 deg / <0.20 m` accuracy gate. Rotation error was `0.5230 deg` mean,
+  `0.5239 deg` median, and `0.7228 deg` p95; translation error was `0.1447 m`
+  mean, `0.1421 m` median, and `0.1803 m` p95. The negative 42% hit-rate result,
+  all trace identities/digests, and schema-valid aggregate provenance are
+  retained without weakening the gate.
+- Corrected the UniCalib adapter's default provenance URL to the official WACV
+  2026 `han-15/UniCalib` repository and locked it with a unit assertion. Updated
+  the SOTA evidence review for TLC-Calib's May 2026 code/data release while
+  retaining its non-commercial, external-process-only license boundary.
+
+- Added a digest-locked fixed-frame KITTI raw Camera-LiDAR input artifact and
+  recovery benchmark comparing a scalar-reference Pandey I2I optimizer with a
+  vectorized, safety-gated deterministic coarse-to-fine path. On the fixed
+  official KITTI raw 0005 input, all paired accuracy metrics were identical
+  while mean trial runtime improved by 1.719x.
 ## 0.4.0 - 2026-07-29
 
 - Extended `calibrex doctor` from an environment check into an optional

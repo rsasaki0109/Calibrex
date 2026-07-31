@@ -757,6 +757,30 @@ DEFAULT_THRESHOLDS: dict[str, MetricThreshold] = {
         warn_value=0.0,
         direction="higher_is_better",
     ),
+    "unicalib_adapter_available": MetricThreshold(
+        metric="unicalib_adapter_available",
+        pass_value=1.0,
+        warn_value=0.0,
+        direction="higher_is_better",
+    ),
+    "unicalib_input_ready": MetricThreshold(
+        metric="unicalib_input_ready",
+        pass_value=1.0,
+        warn_value=0.0,
+        direction="higher_is_better",
+    ),
+    "unicalib_result_available": MetricThreshold(
+        metric="unicalib_result_available",
+        pass_value=1.0,
+        warn_value=0.0,
+        direction="higher_is_better",
+    ),
+    "unicalib_execution_success": MetricThreshold(
+        metric="unicalib_execution_success",
+        pass_value=1.0,
+        warn_value=0.0,
+        direction="higher_is_better",
+    ),
     "lidar_camera_transform_pairs": MetricThreshold(
         metric="lidar_camera_transform_pairs",
         pass_value=1.0,

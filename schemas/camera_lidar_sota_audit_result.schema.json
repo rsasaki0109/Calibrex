@@ -1,0 +1,233 @@
+{
+  "$defs": {
+    "CameraLidarClaimRequirementResult": {
+      "additionalProperties": false,
+      "description": "Observed result for one frozen requirement.",
+      "properties": {
+        "evidence_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Path"
+        },
+        "evidence_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Sha256"
+        },
+        "observed_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Value"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "requirement_id": {
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "achieved",
+            "contradicted",
+            "incomplete",
+            "missing"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "required",
+        "status",
+        "reason"
+      ],
+      "title": "CameraLidarClaimRequirementResult",
+      "type": "object"
+    },
+    "CameraLidarSotaAuditProvenance": {
+      "additionalProperties": false,
+      "description": "Generator/command lineage for a claim protocol or result.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "CameraLidarSotaAuditProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable support/refutation decision for a SOTA claim.",
+  "properties": {
+    "achieved_dataset_families": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Achieved Dataset Families",
+      "type": "array"
+    },
+    "achieved_independent_rig_count": {
+      "minimum": 0,
+      "title": "Achieved Independent Rig Count",
+      "type": "integer"
+    },
+    "audit_id": {
+      "title": "Audit Id",
+      "type": "string"
+    },
+    "claim_text": {
+      "title": "Claim Text",
+      "type": "string"
+    },
+    "declared_category": {
+      "enum": [
+        "training_free_targetless",
+        "learned_targetless",
+        "spatiotemporal_targetless",
+        "production_target_based_reference"
+      ],
+      "title": "Declared Category",
+      "type": "string"
+    },
+    "minimum_dataset_families": {
+      "minimum": 1,
+      "title": "Minimum Dataset Families",
+      "type": "integer"
+    },
+    "minimum_independent_rigs": {
+      "minimum": 1,
+      "title": "Minimum Independent Rigs",
+      "type": "integer"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarSotaAuditProvenance"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarClaimRequirementResult"
+      },
+      "minItems": 1,
+      "title": "Requirements",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_sota_audit_result/v0.1",
+      "default": "slac.camera_lidar_sota_audit_result/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "incomplete"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "audit_id",
+    "protocol_id",
+    "declared_category",
+    "claim_text",
+    "verdict",
+    "achieved_dataset_families",
+    "achieved_independent_rig_count",
+    "minimum_dataset_families",
+    "minimum_independent_rigs",
+    "requirements",
+    "summary",
+    "provenance"
+  ],
+  "title": "CameraLidarSotaAuditResult",
+  "type": "object"
+}

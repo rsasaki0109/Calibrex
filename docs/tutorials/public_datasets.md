@@ -1032,7 +1032,48 @@ recomputes `result.yaml` using the dataset's `calib_velo_to_cam.txt` extrinsic
 as the reference/output transform (unless
 `evaluation.kitti.use_frame_graph_candidate: true`), renders `evidence.json`,
 `assessment.json`, `protocol.json`, `policy.json`, and `transforms.json`, and
-verifies `bundle.json`. It reports the `lidar_camera_projection_*`,
+verifies `bundle.json`.
+
+Before running the full-scale benchmark, lock the prespecified raw inputs:
+
+```bash
+calibrex kitti lock-benchmark-input \
+  /path/to/2011_09_26/2011_09_26_drive_0005_sync \
+  --output outputs/kitti_0005/kitti-benchmark-input.json
+calibrex validate outputs/kitti_0005/kitti-benchmark-input.json
+```
+
+The lock uses 20 frame pairs fixed in advance at indices `0:154:8`, spanning
+the complete drive. It records each selected image and Velodyne file, both
+timestamp files, both required calibration files, their byte sizes and
+SHA-256 digests, plus a deterministic aggregate input digest. The command
+rejects the bundled two-frame synthetic fixture and incomplete official
+downloads rather than silently changing the selected frames. Raw KITTI data
+is never copied into the output artifact.
+
+Compare the scalar-reference I2I optimizer with the vectorized,
+safety-gated deterministic coarse-to-fine path on the same locked frames and
+perturbations:
+
+```bash
+calibrex kitti benchmark-i2i \
+  outputs/kitti_0005/kitti-benchmark-input.json \
+  --definition-output outputs/kitti_0005/i2i-benchmark.definition.json \
+  --output outputs/kitti_0005/i2i-benchmark.json
+calibrex validate outputs/kitti_0005/i2i-benchmark.json
+```
+
+Both methods receive the same six prespecified `+0.10 m` or `+10 deg`
+single-axis initial errors and the same seeded frame holdout. The resulting
+standard benchmark artifacts retain failures, runtime, translation/rotation
+error to the KITTI dataset reference, held-out normalized MI, the exact input
+digest, executed source digest, and producer/execution provenance. The command
+also reports `accuracy_non_degraded`, `runtime_improved`, and
+`performance_gate_passed`; non-degradation is checked for every paired trial,
+not only for aggregate means. KITTI calibration is treated as a dataset
+reference rather than independent metrology.
+
+The demo reports the `lidar_camera_projection_*`,
 `lidar_camera_edge_alignment_score`, and `lidar_camera_perturbation_*`
 projection evidence metrics described below, plus `koide_lidar_camera_*`
 adapter readiness metrics — the demo does not execute the external Koide-style

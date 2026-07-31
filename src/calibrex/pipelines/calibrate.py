@@ -103,6 +103,10 @@ from calibrex.solvers.native_tum_joint_slac_solver import (
     NativeTUMJointSlacSolver,
 )
 from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
+from calibrex.solvers.unicalib_lidar_camera_solver import (
+    UNICALIB_FACTOR_NAMES,
+    UniCalibLidarCameraSolver,
+)
 from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
 from calibrex.visualization.report import write_report_artifacts
 from calibrex.visualization.rig3d import write_rig_3d_artifact
@@ -212,6 +216,10 @@ def _apply_pipeline_adapter(
         )
     elif config.solver.backend == NATIVE_LEVINSON_THRUN_ONLINE_BACKEND:
         adapter_result = NativeLevinsonThrunOnlineSolver().solve(
+            config, frame_graph, inspection
+        )
+    elif _uses_unicalib_lidar_camera_adapter(config):
+        adapter_result = UniCalibLidarCameraSolver().solve(
             config, frame_graph, inspection
         )
     elif _uses_koide_lidar_camera_adapter(config):
@@ -415,6 +423,16 @@ def _uses_koide_lidar_camera_adapter(config: CalibrationConfig) -> bool:
         factor.enabled
         for name, factor in config.pipeline.factors.items()
         if name in KOIDE_LIDAR_CAMERA_FACTOR_NAMES
+    )
+
+
+def _uses_unicalib_lidar_camera_adapter(config: CalibrationConfig) -> bool:
+    if config.solver.backend == "unicalib_lidar_camera":
+        return True
+    return any(
+        factor.enabled
+        for name, factor in config.pipeline.factors.items()
+        if name in UNICALIB_FACTOR_NAMES
     )
 
 

@@ -1,0 +1,326 @@
+{
+  "$defs": {
+    "CameraLidarArtifactProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and source digests shared by camera--LiDAR artifacts.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "CameraLidarArtifactProvenance",
+      "type": "object"
+    },
+    "CameraLidarHitDefinition": {
+      "additionalProperties": false,
+      "description": "Prespecified success criterion matching the paper protocol.",
+      "properties": {
+        "comparison": {
+          "const": "strict_less_than",
+          "default": "strict_less_than",
+          "title": "Comparison",
+          "type": "string"
+        },
+        "rotation_error_max_deg": {
+          "exclusiveMinimum": 0.0,
+          "title": "Rotation Error Max Deg",
+          "type": "number"
+        },
+        "translation_error_max_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Translation Error Max M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rotation_error_max_deg",
+        "translation_error_max_m"
+      ],
+      "title": "CameraLidarHitDefinition",
+      "type": "object"
+    },
+    "CameraLidarIsolationDeclaration": {
+      "additionalProperties": false,
+      "description": "Train/validation/test selection and leakage declaration.",
+      "properties": {
+        "evaluation_split": {
+          "title": "Evaluation Split",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "provider_selection_split": {
+          "title": "Provider Selection Split",
+          "type": "string"
+        },
+        "test_data_used_for_selection": {
+          "default": false,
+          "title": "Test Data Used For Selection",
+          "type": "boolean"
+        },
+        "threshold_selection_split": {
+          "title": "Threshold Selection Split",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_selection_split",
+        "threshold_selection_split",
+        "evaluation_split",
+        "evidence"
+      ],
+      "title": "CameraLidarIsolationDeclaration",
+      "type": "object"
+    },
+    "CameraLidarPerturbation": {
+      "additionalProperties": false,
+      "description": "One immutable perturbation trial relative to dataset reference.",
+      "properties": {
+        "rotation_deg_xyz": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rotation Deg Xyz",
+          "type": "array"
+        },
+        "translation_m_xyz": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M Xyz",
+          "type": "array"
+        },
+        "trial_id": {
+          "title": "Trial Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trial_id",
+        "rotation_deg_xyz",
+        "translation_m_xyz"
+      ],
+      "title": "CameraLidarPerturbation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable Borer-style perturbation and evaluation protocol.",
+  "properties": {
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "degrees_of_freedom": {
+      "enum": [
+        "rotation_only",
+        "six_dof"
+      ],
+      "title": "Degrees Of Freedom",
+      "type": "string"
+    },
+    "frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Frame Ids",
+      "type": "array"
+    },
+    "frame_sampling": {
+      "const": "uniform_over_sequence",
+      "title": "Frame Sampling",
+      "type": "string"
+    },
+    "histogram_bins": {
+      "minimum": 8,
+      "title": "Histogram Bins",
+      "type": "integer"
+    },
+    "hit": {
+      "$ref": "#/$defs/CameraLidarHitDefinition"
+    },
+    "isolation": {
+      "$ref": "#/$defs/CameraLidarIsolationDeclaration"
+    },
+    "metric_definitions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Metric Definitions",
+      "type": "object"
+    },
+    "min_visible_points": {
+      "minimum": 4,
+      "title": "Min Visible Points",
+      "type": "integer"
+    },
+    "objective": {
+      "const": "per_frame_mean_mutual_information",
+      "title": "Objective",
+      "type": "string"
+    },
+    "optimizer": {
+      "title": "Optimizer",
+      "type": "string"
+    },
+    "optimizer_options": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "title": "Optimizer Options",
+      "type": "object"
+    },
+    "perturbation_count": {
+      "exclusiveMinimum": 0,
+      "title": "Perturbation Count",
+      "type": "integer"
+    },
+    "perturbation_method": {
+      "const": "fibonacci_sphere",
+      "title": "Perturbation Method",
+      "type": "string"
+    },
+    "perturbations": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarPerturbation"
+      },
+      "minItems": 1,
+      "title": "Perturbations",
+      "type": "array"
+    },
+    "primary_source": {
+      "title": "Primary Source",
+      "type": "string"
+    },
+    "problem_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Problem Sha256",
+      "type": "string"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarArtifactProvenance"
+    },
+    "rotation_magnitude_deg": {
+      "exclusiveMinimum": 0.0,
+      "title": "Rotation Magnitude Deg",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_benchmark_protocol/v0.1",
+      "default": "slac.camera_lidar_benchmark_protocol/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "translation_magnitude_m": {
+      "minimum": 0.0,
+      "title": "Translation Magnitude M",
+      "type": "number"
+    },
+    "visibility": {
+      "const": "z_buffer_nearest_range",
+      "title": "Visibility",
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocol_id",
+    "primary_source",
+    "dataset_id",
+    "problem_sha256",
+    "degrees_of_freedom",
+    "frame_sampling",
+    "frame_ids",
+    "perturbation_method",
+    "perturbation_count",
+    "rotation_magnitude_deg",
+    "translation_magnitude_m",
+    "perturbations",
+    "hit",
+    "objective",
+    "histogram_bins",
+    "min_visible_points",
+    "visibility",
+    "optimizer",
+    "optimizer_options",
+    "isolation",
+    "metric_definitions",
+    "provenance"
+  ],
+  "title": "CameraLidarBenchmarkProtocol",
+  "type": "object"
+}

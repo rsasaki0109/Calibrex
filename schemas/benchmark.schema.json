@@ -566,7 +566,7 @@
     },
     "DistributionSummary": {
       "additionalProperties": false,
-      "description": "Descriptive distribution and deterministic bootstrap mean interval.",
+      "description": "Descriptive distribution and deterministic bootstrap mean interval.\n\n``p90`` and ``p95`` use linear interpolation between adjacent values in\nthe sorted empirical sample, matching :func:`_percentile`.",
       "properties": {
         "count": {
           "minimum": 0,
@@ -644,6 +644,30 @@
           ],
           "default": null,
           "title": "Minimum"
+        },
+        "p90": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P90"
+        },
+        "p95": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P95"
         },
         "standard_deviation": {
           "anyOf": [

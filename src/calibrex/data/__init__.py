@@ -19,6 +19,13 @@ from calibrex.data.ethz_hand_eye import (
 )
 from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import KITTIRawDataset, LuminanceImage, read_png_luminance
+from calibrex.data.kitti_benchmark import (
+    KITTI_RAW_0005_BENCHMARK_FRAME_IDS,
+    KITTIBenchmarkInputManifest,
+    build_kitti_raw_0005_benchmark_input,
+    load_kitti_benchmark_input,
+    verify_kitti_benchmark_input,
+)
 from calibrex.data.livox import LivoxPCDDataset
 from calibrex.data.manifest import DatasetManifest, StreamManifest, load_manifest
 from calibrex.data.nuscenes import NuScenesDataset
@@ -38,12 +45,14 @@ __all__ = [
     "ETHZ_ROBOT_ARM_REAL_ARCHIVE",
     "ETHZ_ROBOT_ARM_REAL_SHA256",
     "ETHZ_ROBOT_ARM_REAL_URL",
+    "KITTI_RAW_0005_BENCHMARK_FRAME_IDS",
     "A2D2LidarDataset",
     "AlignedHandEyePosePair",
     "DatasetInspection",
     "DatasetManifest",
     "DatasetReader",
     "HandEyeMotionDataset",
+    "KITTIBenchmarkInputManifest",
     "KITTIRawDataset",
     "LivoxPCDDataset",
     "LuminanceImage",
@@ -60,7 +69,9 @@ __all__ = [
     "TimestampedPose",
     "TimestampedRecord",
     "associate_depth_groundtruth",
+    "build_kitti_raw_0005_benchmark_input",
     "inspect_dataset",
+    "load_kitti_benchmark_input",
     "load_manifest",
     "read_a2d2_lidar_boundary_points",
     "read_a2d2_lidar_points_reflectivity",
@@ -68,4 +79,5 @@ __all__ = [
     "read_png_luminance",
     "read_tum_depth_png",
     "sample_tum_depth_points",
+    "verify_kitti_benchmark_input",
 ]

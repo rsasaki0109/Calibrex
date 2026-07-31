@@ -20,6 +20,7 @@ from calibrex.data.inspect import DatasetInspection
 from calibrex.data.kitti import read_png_luminance
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 from calibrex.solvers.pandey_mutual_information_solver import (
+    HistogramSmoothingBackend,
     MutualInformationCameraModel,
     MutualInformationObservation,
     PandeyMutualInformationOptions,
@@ -46,9 +47,7 @@ _PINNED_A2D2_SHA256 = {
     "20180810150607_lidar_frontleft_000000061.npz": (
         "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91"
     ),
-    "cams_lidars.json": (
-        "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2"
-    ),
+    "cams_lidars.json": ("ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2"),
 }
 _FRAME_ID = re.compile(r"_(\d{9})\.(?:png|npz)$")
 
@@ -88,10 +87,22 @@ class NativePandeyMutualInformationSolver(SolverAdapter):
             initial_step_size=_float_option(options, "initial_step_size", 0.02),
             min_step_size=_float_option(options, "min_step_size", 1.0e-5),
             max_step_size=_float_option(options, "max_step_size", 0.1),
-            known_bad_translation_m=_float_option(
-                options, "known_bad_translation_m", 0.05
-            ),
+            known_bad_translation_m=_float_option(options, "known_bad_translation_m", 0.05),
             known_bad_rotation_deg=_float_option(options, "known_bad_rotation_deg", 5.0),
+            histogram_smoothing_backend=_smoothing_backend_option(options),
+            coarse_search_translation_steps_m=_float_tuple_option(
+                options,
+                "coarse_search_translation_steps_m",
+            ),
+            coarse_search_rotation_steps_deg=_float_tuple_option(
+                options,
+                "coarse_search_rotation_steps_deg",
+            ),
+            coarse_search_sweeps_per_level=_int_option(
+                options,
+                "coarse_search_sweeps_per_level",
+                1,
+            ),
         )
         result = PandeyMutualInformationSolver().solve(
             observations,
@@ -245,9 +256,7 @@ def _metrics(
             value=detectable_fraction,
             unit="fraction",
             grade=(
-                "pass"
-                if detectable_fraction is not None and detectable_fraction >= 0.8
-                else "warn"
+                "pass" if detectable_fraction is not None and detectable_fraction >= 0.8 else "warn"
             ),
             reason=f"{detectable_count}/{len(probes)} signed held-out controls lowered MI",
         ),
@@ -268,8 +277,7 @@ def _metrics(
             unit="m",
             grade="warn",
             reason=(
-                "error to A2D2's distributed camera-view registration; "
-                "not independent metrology"
+                "error to A2D2's distributed camera-view registration; not independent metrology"
             ),
         ),
         "pandey_preregistered_reference_rotation_error_deg": MetricResult(
@@ -277,8 +285,7 @@ def _metrics(
             unit="deg",
             grade="warn",
             reason=(
-                "error to A2D2's distributed camera-view registration; "
-                "not independent metrology"
+                "error to A2D2's distributed camera-view registration; not independent metrology"
             ),
         ),
     }
@@ -291,9 +298,7 @@ def _provenance(
     preregistered: bool,
 ) -> dict[str, Any]:
     raw_inputs = [_raw_input_payload(path) for path in input_files]
-    data_verified = all(
-        item["digest_matches_pinned_sample"] is True for item in raw_inputs
-    )
+    data_verified = all(item["digest_matches_pinned_sample"] is True for item in raw_inputs)
     return {
         "pandey_mutual_information": result.as_dict(),
         "paper_doi": PANDEY_PAPER_DOI,
@@ -389,3 +394,19 @@ def _int_option(options: dict[str, Any], name: str, default: int) -> int:
 def _float_option(options: dict[str, Any], name: str, default: float) -> float:
     value = options.get(name, default)
     return float(value) if isinstance(value, (int, float)) else default
+
+
+def _float_tuple_option(options: dict[str, Any], name: str) -> tuple[float, ...]:
+    value = options.get(name)
+    if not isinstance(value, (list, tuple)):
+        return ()
+    return tuple(float(item) for item in value)
+
+
+def _smoothing_backend_option(
+    options: dict[str, Any],
+) -> HistogramSmoothingBackend:
+    value = options.get("histogram_smoothing_backend", "vectorized")
+    if value not in ("scalar", "vectorized"):
+        raise ValueError(f"unsupported histogram_smoothing_backend: {value}")
+    return cast(HistogramSmoothingBackend, value)

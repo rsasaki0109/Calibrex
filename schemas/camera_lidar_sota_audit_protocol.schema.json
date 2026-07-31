@@ -1,0 +1,291 @@
+{
+  "$defs": {
+    "CameraLidarClaimRequirement": {
+      "additionalProperties": false,
+      "description": "One frozen numerical or completion gate.",
+      "properties": {
+        "comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "greater_equal",
+                "greater_than",
+                "less_equal",
+                "less_than",
+                "equal"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparison"
+        },
+        "dataset_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Family"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Path"
+        },
+        "evidence_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Sha256"
+        },
+        "independent_rig": {
+          "default": false,
+          "title": "Independent Rig",
+          "type": "boolean"
+        },
+        "method_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method Id"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "phase": {
+          "title": "Phase",
+          "type": "string"
+        },
+        "reference_method_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Method Id"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "requirement_id": {
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "rig_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rig Id"
+        },
+        "statistic": {
+          "anyOf": [
+            {
+              "enum": [
+                "metric_mean",
+                "metric_median",
+                "metric_p90",
+                "metric_p95",
+                "metric_maximum",
+                "failure_rate",
+                "runtime_mean",
+                "runtime_p95",
+                "peak_memory_mean",
+                "peak_memory_p95",
+                "paired_improvement_ci95_low",
+                "paired_improvement_ci95_high"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Statistic"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "phase",
+        "description"
+      ],
+      "title": "CameraLidarClaimRequirement",
+      "type": "object"
+    },
+    "CameraLidarSotaAuditProvenance": {
+      "additionalProperties": false,
+      "description": "Generator/command lineage for a claim protocol or result.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "CameraLidarSotaAuditProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Frozen requirements for one explicitly scoped SOTA claim.",
+  "properties": {
+    "claim_text": {
+      "title": "Claim Text",
+      "type": "string"
+    },
+    "declared_category": {
+      "enum": [
+        "training_free_targetless",
+        "learned_targetless",
+        "spatiotemporal_targetless",
+        "production_target_based_reference"
+      ],
+      "title": "Declared Category",
+      "type": "string"
+    },
+    "minimum_dataset_families": {
+      "default": 2,
+      "minimum": 1,
+      "title": "Minimum Dataset Families",
+      "type": "integer"
+    },
+    "minimum_independent_rigs": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Minimum Independent Rigs",
+      "type": "integer"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarSotaAuditProvenance"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarClaimRequirement"
+      },
+      "minItems": 1,
+      "title": "Requirements",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_sota_audit_protocol/v0.1",
+      "default": "slac.camera_lidar_sota_audit_protocol/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocol_id",
+    "declared_category",
+    "claim_text",
+    "requirements",
+    "provenance"
+  ],
+  "title": "CameraLidarSotaAuditProtocol",
+  "type": "object"
+}
