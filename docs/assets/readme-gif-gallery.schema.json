@@ -80,7 +80,7 @@
             "enum": ["a2d2", "livox-horizon-horizon", "tiers-lidars-cali", "tiers-indoor02-kissicp"]
           },
           "visual": {
-            "enum": ["evidence", "online", "motion"]
+                "enum": ["evidence", "online", "motion", "camera_lidar"]
           },
           "readme_role": {
             "enum": ["hero", "gallery"]
@@ -282,7 +282,12 @@
                   "required": ["kind", "url"],
                   "properties": {
                     "kind": {
-                      "enum": ["npz_range_from_tar", "pcd_tar_gz", "sensor_metadata_json"]
+                      "enum": [
+                        "camera_png_from_tar",
+                        "npz_range_from_tar",
+                        "pcd_tar_gz",
+                        "sensor_metadata_json"
+                      ]
                     },
                     "url": {
                       "type": "string",

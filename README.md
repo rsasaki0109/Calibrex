@@ -302,6 +302,21 @@ data cannot falsify.
   </tr>
 </table>
 
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
+    </td>
+    <td width="50%">
+      <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td><sub><b>A2D2 camera × LiDAR</b><br>Real front-left camera frames with real camera-view LiDAR returns. A2D2 distributes these points pre-registered into the camera view, so this is visual evidence—not independent extrinsic accuracy.</sub></td>
+    <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
+  </tr>
+</table>
+
 <p align="center">
   <sub>Every gallery asset is generated from public raw data. Dataset source,
   protocol, parameters, and digests are recorded in
