@@ -126,6 +126,36 @@ Fetch it manually from the upstream dataset:
 2. Save the bag as `data/public/tiers_lidars_cali/LidarsCali.bag`
    (the path declared in the example config).
 
+### Continuous-time VLP-16 ↔ Livox Horizon quickstart
+
+The timed path profiles the target extrinsic and a scalar clock offset jointly
+against fixed supplied VRPN odometry. It accepts both ROS 1 and ROS 2 through
+the same ROS-independent solver; this TIERS example uses the ROS 1 bag and
+Livox `offset_time` values. Run the inspection before the solver so missing
+point-time or odometry coverage is visible before a long replay:
+
+```bash
+python -m pip install -e ".[rosbag1-lz4]"
+calibrex public-datasets show tiers_livox_lidars_cali --json
+calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag \
+  --type rosbag1 --json
+calibrex continuous-time-lidar-pair \
+  examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml \
+  --output outputs/tiers_livox_lidars_cali_continuous_time/continuous_time_lidar_pair.yaml \
+  --json
+calibrex validate \
+  outputs/tiers_livox_lidars_cali_continuous_time/continuous_time_lidar_pair.yaml \
+  --kind continuous-time-lidar-pair
+```
+
+The output is a schema-valid continuous-time artifact rather than a claim of
+absolute clock truth. Its `provenance.source_sha256` binds the config and the
+full bag; `iterations` records every candidate probe and its train/holdout
+RMSE; and `time_offset_sign_convention` defines the positive direction. The
+current checked run selected +40 ms, but the public sequence has no
+independent clock reference, so treat that value as an algorithmic estimate
+under fixed odometry and the declared temporal holdout.
+
 Then inspect and run the LiDAR-pair evidence config:
 
 ```bash
