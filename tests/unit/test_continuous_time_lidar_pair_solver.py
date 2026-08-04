@@ -107,6 +107,16 @@ def test_continuous_time_profile_reoptimizes_extrinsic_and_clock() -> None:
     assert result.initial_train_rmse_m is not None
     assert result.final_train_rmse_m <= result.initial_train_rmse_m + 1.0e-9
     assert abs(result.estimated_time_offset_sec - true_offset_s) <= 0.025
+    assert result.iterations
+    assert all(
+        len(iteration.candidate_train_rmse_m) == len(iteration.candidate_offsets_sec)
+        for iteration in result.iterations
+    )
+    assert any(
+        rmse is not None
+        for iteration in result.iterations
+        for rmse in iteration.candidate_train_rmse_m
+    )
 
 
 def test_adaptive_plane_map_can_disable_uniform_fallback() -> None:

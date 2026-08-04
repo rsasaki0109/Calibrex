@@ -288,6 +288,128 @@
       "visual": "before_after"
     },
     {
+      "animation": {
+        "fps": 10,
+        "frames": 40,
+        "height": 540,
+        "width": 960
+      },
+      "metadata_source": "TIERS LidarsCali rosbag1 + continuous-time solver",
+      "output": "docs/assets/livox-time-offset-sweep.gif",
+      "public_inputs": [
+        {
+          "bag_file": "LidarsCali.bag",
+          "kind": "rosbag1_local_dataset",
+          "replay_budgets": {
+            "batch_size": 1500,
+            "holdout_ratio": 0.2,
+            "max_replay_duration_s": 60.0,
+            "max_source_messages": 1,
+            "max_source_points": 8000,
+            "max_target_messages": 14,
+            "max_target_points": 1500,
+            "rolling_window": 2000
+          },
+          "sha256_first_mib": "aa1f477d43e1d24236aed0f0860eadf4886efbf1f129c31b0a477eb54ab780f8",
+          "size_bytes": 7178470523,
+          "url": "https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT"
+        }
+      ],
+      "readme_role": "gallery",
+      "sensor_pair": {
+        "source": "velodyne_vlp16",
+        "target": "livox_horizon"
+      },
+      "sha256": "6eb11fa62c5e766efe0ac7870744d11f9012138b51d36a04369adbf59b91f180",
+      "size_bytes": 45494,
+      "source": "tiers-lidars-cali",
+      "source_label": "TIERS VLP-16 world-map points",
+      "target_label": "TIERS Livox Horizon per-point-time returns",
+      "time_offset_sweep": {
+        "config_path": "examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml",
+        "config_sha256": "35b32c13def7fe234b287c6f188b89ade919bf7c49fcad41b5d3ea24468fee0e",
+        "curve_semantics": "minimum observed train RMSE for each solver candidate offset; every point is a re-optimized probe, not a dense fixed-extrinsic sweep",
+        "dataset_path": "data/public/tiers_lidars_cali/LidarsCali.bag",
+        "dataset_sha256": "43d28ffbf07991b54ef617bfd5499f889dd6f5c747d1b7f448215da370e4f448",
+        "estimated_offset_s": 0.04,
+        "final_holdout_rmse_m": 0.0241714826780641,
+        "final_train_rmse_m": 0.02403713225425392,
+        "initial_offset_s": 0.0,
+        "initial_train_rmse_m": 0.09569976738480075,
+        "initial_transform": {
+          "rotation_quat_xyzw": [
+            0.02555299710805249,
+            -0.02426599725370805,
+            -0.0014299998381604926,
+            0.9993778868959138
+          ],
+          "translation_m": [
+            0.181055,
+            -0.010158,
+            -0.244932
+          ]
+        },
+        "limitation": "The public TIERS sequence has no external clock ground truth; the reported offset is an algorithmic estimate under fixed supplied odometry and the declared temporal holdout.",
+        "mode": "real_solver_candidate_probe",
+        "probes": [
+          {
+            "accepted": false,
+            "holdout_rmse_m": 0.024037483919075692,
+            "iteration": 5,
+            "offset_s": -0.02,
+            "train_rmse_m": 0.024609095689612177
+          },
+          {
+            "accepted": false,
+            "holdout_rmse_m": 0.02411132834285886,
+            "iteration": 6,
+            "offset_s": 0.0,
+            "train_rmse_m": 0.024210635929741296
+          },
+          {
+            "accepted": false,
+            "holdout_rmse_m": 0.024182557625484737,
+            "iteration": 7,
+            "offset_s": 0.02,
+            "train_rmse_m": 0.02410853836025667
+          },
+          {
+            "accepted": true,
+            "holdout_rmse_m": 0.0241714826780641,
+            "iteration": 7,
+            "offset_s": 0.04,
+            "train_rmse_m": 0.02403713225425392
+          },
+          {
+            "accepted": false,
+            "holdout_rmse_m": 0.02418611276883485,
+            "iteration": 8,
+            "offset_s": 0.06,
+            "train_rmse_m": 0.024114903326850245
+          }
+        ],
+        "refined_transform": {
+          "rotation_quat_xyzw": [
+            -0.0026419446764690624,
+            -0.02652423461670137,
+            0.0224062633448713,
+            0.999393538336748
+          ],
+          "translation_m": [
+            0.13376090040056252,
+            0.1316333214881526,
+            -0.2555290585069932
+          ]
+        },
+        "source": "calibrex continuous-time lidar pair",
+        "source_sensor": "velodyne_vlp16",
+        "target_sensor": "livox_horizon",
+        "transform_convention": "positive offset evaluates target capture at odometry time t_capture + offset"
+      },
+      "uses_builtin_metadata_fallback": false,
+      "visual": "time_sweep"
+    },
+    {
       "metadata_source": "TIERS LidarsCali static rig (Livox Horizon + Avia)",
       "online_run": {
         "accepted_batch_count": 14,

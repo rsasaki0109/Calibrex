@@ -8,12 +8,40 @@
           "title": "Accepted",
           "type": "boolean"
         },
+        "candidate_holdout_rmse_m": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Candidate Holdout Rmse M",
+          "type": "array"
+        },
         "candidate_offsets_sec": {
           "items": {
             "type": "number"
           },
           "minItems": 1,
           "title": "Candidate Offsets Sec",
+          "type": "array"
+        },
+        "candidate_train_rmse_m": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Candidate Train Rmse M",
           "type": "array"
         },
         "holdout_rmse_m": {

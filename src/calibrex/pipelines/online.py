@@ -4151,6 +4151,8 @@ def evaluate_continuous_time_lidar_pair(
             ContinuousTimeLidarPairIterationArtifact(
                 iteration=item.iteration,
                 candidate_offsets_sec=list(item.candidate_offsets_sec),
+                candidate_train_rmse_m=list(item.candidate_train_rmse_m),
+                candidate_holdout_rmse_m=list(item.candidate_holdout_rmse_m),
                 selected_offset_sec=item.selected_offset_sec,
                 train_rmse_m=item.train_rmse_m,
                 holdout_rmse_m=item.holdout_rmse_m,

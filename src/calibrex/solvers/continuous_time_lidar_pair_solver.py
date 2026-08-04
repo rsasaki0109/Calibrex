@@ -109,6 +109,8 @@ class ContinuousTimeLidarPairIteration:
     train_rmse_m: float | None
     holdout_rmse_m: float | None
     accepted: bool
+    candidate_train_rmse_m: tuple[float | None, ...] = ()
+    candidate_holdout_rmse_m: tuple[float | None, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -283,6 +285,28 @@ class ContinuousTimeLidarPairSolver:
                 ContinuousTimeLidarPairIteration(
                     iteration=iteration,
                     candidate_offsets_sec=tuple(candidates),
+                    candidate_train_rmse_m=tuple(
+                        next(
+                            (
+                                candidate.solver_result.final_rmse_m
+                                for candidate in evaluated
+                                if candidate.offset_sec == offset
+                            ),
+                            None,
+                        )
+                        for offset in candidates
+                    ),
+                    candidate_holdout_rmse_m=tuple(
+                        next(
+                            (
+                                candidate.holdout_rmse_m
+                                for candidate in evaluated
+                                if candidate.offset_sec == offset
+                            ),
+                            None,
+                        )
+                        for offset in candidates
+                    ),
                     selected_offset_sec=selected.offset_sec,
                     train_rmse_m=selected_rmse,
                     holdout_rmse_m=selected.holdout_rmse_m,
