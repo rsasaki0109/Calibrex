@@ -122,7 +122,7 @@ calibrex validate \
 ```
 
 The configuration is
-[`examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml`](../../examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml).
+[`examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml).
 It declares the Livox non-repetitive pattern and explicitly leaves unavailable
 point-time and temperature observations unknown rather than inferring them
 from PCD file order.

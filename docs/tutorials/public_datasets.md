@@ -313,9 +313,9 @@ driver is not required. Configure the Livox sensor with
 field unset unless its fields provide one.
 
 The reproducible paired-sequence entry point is
-[`agrob_modular_e/manifest.yaml`](../../examples/public_datasets/agrob_modular_e/manifest.yaml)
+[`agrob_modular_e/manifest.yaml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/public_datasets/agrob_modular_e/manifest.yaml)
 and
-[`agrob_modular_e/online_config.yaml`](../../examples/public_datasets/agrob_modular_e/online_config.yaml).
+[`agrob_modular_e/online_config.yaml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/public_datasets/agrob_modular_e/online_config.yaml).
 The manifest pins the `2023-06-13T170852Z.zip` archive (2,548,542,803 bytes,
 MD5 `fa0cea9ea4aafd5e7a0d75676e8e064d`), which contains 2455 Livox
 `CustomMsg` messages, 2470 `/rslidar_points` messages, and 4932 `/odom`
@@ -342,7 +342,7 @@ holdout, known-bad, trajectory-quality, point-time mapping, and provenance
 gates when interpreting it.
 
 For the checked three-window joint replay, the standalone
-[`trajectory_window_drift.yaml`](../../outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift.yaml)
+`outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift.yaml`
 artifact reports full-span RMSE 0.349 m (FAIL) and local RMSEs 0.361 m (FAIL),
 0.288 m (PASS), and 0.330 m (FAIL). Its
 `local_inconsistency_suspected` interpretation means the joint failure cannot
@@ -350,7 +350,7 @@ be attributed to long-span accumulation alone; it remains a ground-truth-free
 diagnostic rather than an absolute extrinsic-accuracy claim.
 
 The deskew-off control is preserved in
-[`trajectory_window_drift_deskew_off.yaml`](../../outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift_deskew_off.yaml):
+`outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift_deskew_off.yaml`:
 full-span RMSE rises to 0.358 m and the three windows become 0.364/0.310/0.352
 m (all FAIL). The odometry stream has 4932 raw and retained poses with zero
 sub-millisecond burst removals, so `preserve`, `keep_first`, and `keep_last`
@@ -376,7 +376,7 @@ regression. It is not a LiDAR-to-LiDAR absolute-extrinsic reference: this small
 fixture supplies one Livox sensor and a trajectory, not a second calibrated
 LiDAR. The raw bag remains an external input under `data/public/glim_versatile/`.
 The checked stream contract is
-[`glim_versatile/manifest.yaml`](../../examples/public_datasets/glim_versatile/manifest.yaml)
+[`glim_versatile/manifest.yaml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/public_datasets/glim_versatile/manifest.yaml)
 and validates with `calibrex validate --kind dataset-manifest`.
 
 The ROS 1 PointCloud2 header carries the relative Livox clock (about 110 s),
