@@ -88,10 +88,54 @@ training residual.
   <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
 </p>
 
+## Solid-state LiDAR quickstart
+
+Start with the small Livox sample if you want a fast, no-ROS check. It writes a
+calibrated `result.yaml`, `report.html`, evidence sidecars, and a verified
+provenance bundle:
+
+```bash
+python -m pip install .
+calibrex demo livox-evidence \
+  --output-dir outputs/solid-state-livox-demo \
+  --json
+calibrex validate outputs/solid-state-livox-demo/result.yaml
+calibrex verify outputs/solid-state-livox-demo/bundle.json
+```
+
+For real per-point timing and clock-offset profiling, use the public TIERS
+VLP-16 ↔ Livox Horizon bag. The bag is about 7.18 GB and is never downloaded
+automatically; place it at `data/public/tiers_lidars_cali/LidarsCali.bag` as
+described in the [public-dataset tutorial](docs/tutorials/public_datasets.md#tiers-lidarscali-ros-1-bag-livox-horizon--avia).
+No ROS installation is required:
+
+```bash
+python -m pip install -e ".[rosbag1-lz4]"
+calibrex public-datasets show tiers_livox_lidars_cali --json
+calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag \
+  --type rosbag1 --json
+calibrex continuous-time-lidar-pair \
+  examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml \
+  --output outputs/solid-state-tiers/continuous_time_lidar_pair.yaml \
+  --json
+calibrex validate \
+  outputs/solid-state-tiers/continuous_time_lidar_pair.yaml \
+  --kind continuous-time-lidar-pair
+```
+
+The timed artifact records the config and bag SHA-256, transform convention,
+candidate offsets, train/holdout RMSE, and fixed-odometry provenance. On the
+checked public run, the selected offset was **+40 ms** and train RMSE changed
+from **0.0957 m to 0.0240 m**, with **0.0242 m** holdout RMSE. This is an
+algorithmic estimate under the declared holdout: the public sequence has no
+independent clock ground truth.
+
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
   ·
   <a href="#five-minute-quickstart"><strong>Five-minute quickstart</strong></a>
+  ·
+  <a href="#solid-state-lidar-quickstart"><strong>Solid-state quickstart</strong></a>
   ·
   <a href="docs/concepts/calibration_methods.md"><strong>Calibration methods</strong></a>
   ·

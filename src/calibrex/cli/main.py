@@ -197,8 +197,8 @@ from calibrex.importers.kalibr import import_kalibr_camchain
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.pipelines.online import (
     OnlineCalibrationRunOptions,
+    evaluate_continuous_time_lidar_pair,
     evaluate_rosbag2_capture_readiness,
-    evaluate_rosbag2_continuous_time_lidar_pair,
     evaluate_rosbag2_trajectory_window_drift,
     run_online_calibration,
 )
@@ -2036,7 +2036,7 @@ def _cmd_capture_readiness(args: argparse.Namespace) -> int:
 
 
 def _cmd_continuous_time_lidar_pair(args: argparse.Namespace) -> int:
-    artifact = evaluate_rosbag2_continuous_time_lidar_pair(args.config)
+    artifact = evaluate_continuous_time_lidar_pair(args.config)
     payload = artifact.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)
