@@ -66,7 +66,13 @@ def test_readme_gallery_manifest_matches_assets() -> None:
         assert asset["sha256"] == hashlib.sha256(asset_path.read_bytes()).hexdigest()
         assert asset["size_bytes"] == asset_path.stat().st_size
         assert asset["visual"] == job.visual
-        assert asset["visual"] in {"evidence", "online", "motion"}
+        assert asset["visual"] in {
+            "evidence",
+            "online",
+            "motion",
+            "camera_lidar",
+            "before_after",
+        }
         assert asset["uses_builtin_metadata_fallback"] is False
         assert asset["public_inputs"]
         if job.readme_role is not None:
@@ -110,7 +116,7 @@ def test_readme_gallery_has_multiple_public_sources() -> None:
         "tiers-lidars-cali",
         "tiers-indoor02-kissicp",
     }
-    assert visuals == {"evidence", "online", "motion"}
+    assert visuals == {"evidence", "online", "motion", "camera_lidar", "before_after"}
     assert len(a2d2_pairs) >= 2
     assert all(source_id != target_id for source_id, target_id in a2d2_pairs)
 
@@ -182,6 +188,76 @@ def test_motion_hero_gif_manifest_declares_real_pipeline_provenance() -> None:
     )
 
 
+def test_camera_lidar_gif_manifest_declares_real_a2d2_inputs() -> None:
+    manifest = json.loads(
+        (ROOT / "docs" / "assets" / "readme-gif-gallery.json").read_text(encoding="utf-8")
+    )
+    asset = next(
+        asset
+        for asset in manifest["assets"]
+        if asset["output"] == "docs/assets/a2d2-camera-lidar-overlay.gif"
+    )
+    assert asset["source"] == "a2d2"
+    assert asset["visual"] == "camera_lidar"
+    assert asset["sensor_pair"] == {
+        "source": "camera_front_left",
+        "target": "lidar_front_left_camera_view",
+    }
+    assert asset["uses_builtin_metadata_fallback"] is False
+    assert "already registered" in asset["metadata_source"]
+    assert asset["animation"] == {
+        "frames": 24,
+        "fps": 8,
+        "height": 540,
+        "width": 960,
+    }
+    input_kinds = {item["kind"] for item in asset["public_inputs"]}
+    assert input_kinds == {
+        "camera_png_from_tar",
+        "npz_range_from_tar",
+        "sensor_metadata_json",
+    }
+    assert sum(item["kind"] == "camera_png_from_tar" for item in asset["public_inputs"]) == 2
+    assert sum(item["kind"] == "npz_range_from_tar" for item in asset["public_inputs"]) == 2
+
+
+def test_before_after_gif_manifest_declares_algorithmic_refinement() -> None:
+    tool = load_gif_tool()
+    manifest = json.loads(
+        (ROOT / "docs" / "assets" / "readme-gif-gallery.json").read_text(encoding="utf-8")
+    )
+    asset = next(
+        asset
+        for asset in manifest["assets"]
+        if asset["output"] == "docs/assets/livox-before-after-calibration.gif"
+    )
+
+    assert asset["source"] == "livox-horizon-horizon"
+    assert asset["visual"] == "before_after"
+    assert asset["readme_role"] == "gallery"
+    assert asset["sensor_pair"] == {
+        "source": "base_horizon",
+        "target": "target_horizon",
+    }
+    assert asset["calibration_replay"]["mode"] == "algorithmic_refinement_replay"
+    assert asset["calibration_replay"]["source"] == "calibrex calibrate"
+    assert asset["calibration_replay"]["initial_transform"] == {
+        "translation_m": list(tool.LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM.translation_m),
+        "rotation_quat_xyzw": list(tool.LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM.rotation_quat_xyzw),
+    }
+    assert asset["calibration_replay"]["refined_transform"] == {
+        "translation_m": list(tool.LIVOX_BEFORE_AFTER_REFINED_TRANSFORM.translation_m),
+        "rotation_quat_xyzw": list(tool.LIVOX_BEFORE_AFTER_REFINED_TRANSFORM.rotation_quat_xyzw),
+    }
+    assert "no transform ground truth" in asset["calibration_replay"]["limitation"]
+    assert asset["animation"] == {
+        "frames": tool.BEFORE_AFTER_FRAME_COUNT,
+        "fps": tool.BEFORE_AFTER_FPS,
+        "height": tool.HEIGHT,
+        "width": tool.WIDTH,
+    }
+
+
 def test_tiers_hero_gif_skips_when_bag_absent(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -203,6 +279,18 @@ def test_tiers_hero_gif_skips_when_bag_absent(
     )
 
     generated: list[str] = []
+
+    camera_scene = tool.CameraLidarOverlayScene(
+        frames=(),
+        metadata_source="test metadata",
+        camera_resolution=(1920, 1208),
+    )
+    monkeypatch.setattr(
+        tool,
+        "load_camera_lidar_inputs",
+        lambda _path, **_kwargs: camera_scene,
+    )
+    monkeypatch.setattr(tool, "generate_camera_lidar_gif", lambda **_kwargs: None)
 
     def _fake_generate_gif(**kwargs: object) -> None:
         generated.append(str(kwargs.get("output")))
@@ -284,6 +372,18 @@ def test_indoor02_motion_hero_gif_skips_when_bag_absent(
     )
 
     generated: list[str] = []
+
+    camera_scene = tool.CameraLidarOverlayScene(
+        frames=(),
+        metadata_source="test metadata",
+        camera_resolution=(1920, 1208),
+    )
+    monkeypatch.setattr(
+        tool,
+        "load_camera_lidar_inputs",
+        lambda _path, **_kwargs: camera_scene,
+    )
+    monkeypatch.setattr(tool, "generate_camera_lidar_gif", lambda **_kwargs: None)
 
     def _fake_generate_gif(**kwargs: object) -> None:
         generated.append(str(kwargs.get("output")))

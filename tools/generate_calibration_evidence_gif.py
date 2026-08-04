@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Generate README fixed 3D LiDAR-to-LiDAR calibration evidence GIFs.
+"""Generate README calibration evidence GIFs from public sensor data.
 
 The default visual uses real public Livox Horizon-Horizon PCD frames from the
 official Livox automatic calibration example. It does not redistribute the
 upstream archives and does not claim benchmark accuracy. The animation is an
 evidence-viewer proxy for how Calibrex compares a fixed 3D LiDAR-to-LiDAR
-candidate against a selected reference. Alternate sources also use public raw
-data; README-facing assets must not use deterministic fallback geometry.
+candidate against a selected reference. The README camera-LiDAR view uses real
+A2D2 camera frames and corresponding public camera-view LiDAR NPZ files.
+Alternate sources also use public raw data; README-facing assets must not use
+deterministic fallback geometry.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from urllib.request import Request, urlopen
 
 import yaml
 
+from calibrex.core.geometry import SE3, interpolate_se3
 from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
 from calibrex.data.odometry_track import OdometryTrack
 
@@ -90,6 +93,20 @@ A2D2_LIDAR_SAMPLE_URL = (
 A2D2_LIDAR_SAMPLE_NAME = "20180810150607_lidar_front_left_000000060.npz"
 A2D2_LIDAR_SAMPLE_START = 1536
 A2D2_LIDAR_SAMPLE_SIZE = 2_977_425
+A2D2_CAMERA_SAMPLE_URL = (
+    "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/"
+    "camera_lidar-20180810150607_camera_frontleft.tar"
+)
+A2D2_CAMERA_DATA_DIR = Path("data/public/a2d2_pandey_mutual_information")
+A2D2_CAMERA_FRAME_IDS = ("000000060", "000000061")
+A2D2_CAMERA_WIDTH = 1920
+A2D2_CAMERA_HEIGHT = 1208
+A2D2_CAMERA_LIDAR_FPS = 8
+A2D2_CAMERA_LIDAR_FRAME_COUNT = 24
+A2D2_CAMERA_LIDAR_MAX_POINTS = 6000
+# 1920x1208 -> 960x604, then crop 32 px from the top and bottom to make the
+# README's 16:9 frame while keeping camera-view row/column coordinates aligned.
+A2D2_CAMERA_LIDAR_CROP_TOP = 32
 A2D2_LIDAR_ID_TO_NAME = {
     0: "front_center",
     1: "front_left",
@@ -97,6 +114,24 @@ A2D2_LIDAR_ID_TO_NAME = {
     3: "rear_left",
     4: "rear_right",
 }
+BEFORE_AFTER_FPS = 10
+BEFORE_AFTER_FRAME_COUNT = 40
+LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM = SE3(
+    (0.0, -0.13, 0.0),
+    (0.0, 0.0, 0.0, 1.0),
+)
+# Recomputed by the native registration-comparison solver with
+# examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml.
+# This is an algorithmic refinement replay, not transform ground truth.
+LIVOX_BEFORE_AFTER_REFINED_TRANSFORM = SE3(
+    (0.0010078589985484784, -0.09265454616076582, -0.057378637479629915),
+    (
+        -0.038733292303448026,
+        -0.005099336960170632,
+        -0.0026082442525630425,
+        0.9992331689309665,
+    ),
+)
 LIVOX_BASE_PCD_URL = (
     "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
     "Showcase/Base_LiDAR_Frames.tar.gz"
@@ -133,7 +168,7 @@ CHART = (676, 294, 216, 48)
 Color = tuple[int, int, int]
 Point3 = tuple[float, float, float]
 Point2 = tuple[int, int]
-VisualMode = Literal["evidence", "online", "motion"]
+VisualMode = Literal["evidence", "online", "motion", "camera_lidar", "before_after"]
 ReadmeRole = Literal["hero", "gallery"]
 
 BG = (10, 15, 27)
@@ -187,6 +222,37 @@ class LidarCloudPair:
     known_bad_summary: str
     protocol_summary: str
     case_summary: str
+
+
+@dataclass(frozen=True)
+class CameraLidarPoint:
+    """One real A2D2 point already expressed in the camera-view raster."""
+
+    row_px: float
+    col_px: float
+    depth_m: float
+    lidar_id: int
+
+
+@dataclass(frozen=True)
+class CameraLidarFrame:
+    """One synchronized A2D2 camera/point-cloud pair for the README view."""
+
+    frame_id: str
+    camera_path: Path
+    lidar_path: Path
+    camera_pixels: bytes
+    points: tuple[CameraLidarPoint, ...]
+    total_valid_points: int
+
+
+@dataclass(frozen=True)
+class CameraLidarOverlayScene:
+    """Real A2D2 frames and metadata used by the camera-LiDAR GIF."""
+
+    frames: tuple[CameraLidarFrame, ...]
+    metadata_source: str
+    camera_resolution: tuple[int, int]
 
 
 @dataclass(frozen=True)
@@ -259,6 +325,12 @@ README_GIF_JOBS = (
         output=Path("docs/assets/calibration-evidence-demo.gif"),
     ),
     ReadmeGifJob(
+        source="livox-horizon-horizon",
+        output=Path("docs/assets/livox-before-after-calibration.gif"),
+        visual="before_after",
+        readme_role="gallery",
+    ),
+    ReadmeGifJob(
         source="a2d2",
         output=Path("docs/assets/a2d2-multilidar-evidence-demo.gif"),
         a2d2_source_id=0,
@@ -269,6 +341,11 @@ README_GIF_JOBS = (
         output=Path("docs/assets/a2d2-front-rear-evidence-demo.gif"),
         a2d2_source_id=1,
         a2d2_target_id=3,
+    ),
+    ReadmeGifJob(
+        source="a2d2",
+        output=Path("docs/assets/a2d2-camera-lidar-overlay.gif"),
+        visual="camera_lidar",
     ),
 )
 
@@ -298,7 +375,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--visual",
-        choices=["evidence", "online", "motion"],
+        choices=["evidence", "online", "motion", "camera_lidar", "before_after"],
         default="evidence",
         help="Animation layout to render for a single-source GIF.",
     )
@@ -348,6 +425,29 @@ def main() -> int:
         )
         return 0
 
+    if args.visual == "camera_lidar":
+        if args.source != "a2d2":
+            raise SystemExit("--visual camera_lidar requires --source a2d2")
+        scene = load_camera_lidar_inputs(
+            args.data_dir or A2D2_CAMERA_DATA_DIR,
+            allow_network=not args.no_network,
+        )
+        generate_camera_lidar_gif(
+            output=args.output,
+            scene=scene,
+            frames=args.frames,
+        )
+        matching_job = next((job for job in README_GIF_JOBS if job.output == args.output), None)
+        if matching_job is not None:
+            patch_readme_gallery_manifest(
+                job=matching_job,
+                cloud_pair=None,
+                metadata_source=scene.metadata_source,
+                frames=args.frames,
+                allow_fallback=False,
+            )
+        return 0
+
     cloud_pair, lidars, metadata_source = load_gif_inputs(
         source=args.source,
         data_dir=args.data_dir,
@@ -394,6 +494,25 @@ def generate_readme_gallery(
     manifest_assets: list[dict[str, object]] = []
     existing_manifest = load_readme_gallery_manifest_if_exists()
     for job in README_GIF_JOBS:
+        if job.visual == "camera_lidar":
+            camera_scene = load_camera_lidar_inputs(
+                A2D2_CAMERA_DATA_DIR,
+                allow_network=allow_network,
+            )
+            camera_frames = _frames_for_job(job, frames)
+            generate_camera_lidar_gif(
+                output=job.output,
+                scene=camera_scene,
+                frames=camera_frames,
+            )
+            manifest_assets.append(
+                readme_gallery_manifest_asset(
+                    job=job,
+                    cloud_pair=None,
+                    metadata_source=camera_scene.metadata_source,
+                )
+            )
+            continue
         if job.source == "tiers-lidars-cali" and not tiers_bag_available():
             print(
                 f"Skipping {job.output}: {TIERS_BAG_PATH} is not present. "
@@ -456,26 +575,77 @@ def generate_readme_gallery(
 def _frames_for_job(job: ReadmeGifJob, default_frames: int) -> int:
     if job.visual == "motion":
         return MOTION_HERO_FRAME_COUNT
+    if job.visual == "camera_lidar":
+        return A2D2_CAMERA_LIDAR_FRAME_COUNT
+    if job.visual == "before_after":
+        return BEFORE_AFTER_FRAME_COUNT
     return default_frames
 
 
 def _fps_for_visual(visual: VisualMode) -> int:
     if visual == "motion":
         return MOTION_HERO_FPS
+    if visual == "camera_lidar":
+        return A2D2_CAMERA_LIDAR_FPS
+    if visual == "before_after":
+        return BEFORE_AFTER_FPS
     return FPS
 
 
 def readme_gallery_manifest_asset(
     *,
     job: ReadmeGifJob,
-    cloud_pair: LidarCloudPair,
+    cloud_pair: LidarCloudPair | None,
     metadata_source: str,
     online_run: OnlineGifRun | None = None,
     motion_scene: MotionHeroScene | None = None,
 ) -> dict[str, object]:
     """Return a stable provenance manifest entry for one README GIF."""
 
-    if job.source == "livox-horizon-horizon":
+    if job.visual == "camera_lidar":
+        public_inputs = [
+            {
+                "kind": "camera_png_from_tar",
+                "url": A2D2_CAMERA_SAMPLE_URL,
+                "selected_member": (
+                    "./camera_lidar/20180810_150607/camera/cam_front_left/"
+                    "20180810150607_camera_frontleft_000000060.png"
+                ),
+            },
+            {
+                "kind": "camera_png_from_tar",
+                "url": A2D2_CAMERA_SAMPLE_URL,
+                "selected_member": (
+                    "./camera_lidar/20180810_150607/camera/cam_front_left/"
+                    "20180810150607_camera_frontleft_000000061.png"
+                ),
+            },
+            {
+                "kind": "npz_range_from_tar",
+                "url": A2D2_LIDAR_SAMPLE_URL,
+                "selected_member": (
+                    "./camera_lidar/20180810_150607/lidar/cam_front_left/"
+                    "20180810150607_lidar_front_left_000000060.npz"
+                ),
+            },
+            {
+                "kind": "npz_range_from_tar",
+                "url": A2D2_LIDAR_SAMPLE_URL,
+                "selected_member": (
+                    "./camera_lidar/20180810_150607/lidar/cam_front_left/"
+                    "20180810150607_lidar_front_left_000000061.npz"
+                ),
+            },
+            {
+                "kind": "sensor_metadata_json",
+                "url": A2D2_SENSOR_CONFIG_URL,
+            },
+        ]
+        sensor_pair = {
+            "source": "camera_front_left",
+            "target": "lidar_front_left_camera_view",
+        }
+    elif job.source == "livox-horizon-horizon":
         public_inputs: list[dict[str, object]] = [
             {
                 "kind": "pcd_tar_gz",
@@ -552,15 +722,27 @@ def readme_gallery_manifest_asset(
     else:
         raise SystemExit(f"unsupported README GIF source: {job.source}")
 
+    if job.visual == "camera_lidar":
+        source_label = "A2D2 front-left camera frames (000000060/061)"
+        target_label = (
+            "A2D2 front-left camera-view LiDAR points "
+            f"(up to {A2D2_CAMERA_LIDAR_MAX_POINTS:,} plotted/frame)"
+        )
+    else:
+        if cloud_pair is None:
+            raise SystemExit(f"{job.visual} README GIF manifest requires a LiDAR cloud pair")
+        source_label = cloud_pair.source_label
+        target_label = cloud_pair.target_label
+
     asset: dict[str, object] = {
-        "output": str(job.output),
+        "output": job.output.as_posix(),
         "sha256": sha256_file(job.output),
         "size_bytes": job.output.stat().st_size,
         "source": job.source,
         "visual": job.visual,
         "sensor_pair": sensor_pair,
-        "source_label": cloud_pair.source_label,
-        "target_label": cloud_pair.target_label,
+        "source_label": source_label,
+        "target_label": target_label,
         "public_inputs": public_inputs,
         "metadata_source": metadata_source,
         "uses_builtin_metadata_fallback": metadata_source == "fixed multi-LiDAR fallback",
@@ -619,13 +801,56 @@ def readme_gallery_manifest_asset(
                 "max_rolling_regression_m": online_run.gate_thresholds.max_rolling_regression_m,
             },
         }
+    elif job.visual == "before_after":
+        if job.source != "livox-horizon-horizon":
+            raise SystemExit("before_after README GIF currently requires the public Livox pair")
+        asset["calibration_replay"] = {
+            "mode": "algorithmic_refinement_replay",
+            "source": "calibrex calibrate",
+            "config_path": (
+                "examples/public_datasets/livox_horizon_horizon_pcd_sample/"
+                "icp_comparison_config.yaml"
+            ),
+            "transform_convention": (
+                "T_base_horizon_target_horizon maps target PCD points into the base PCD frame"
+            ),
+            "initial_transform": {
+                "translation_m": list(LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM.translation_m),
+                "rotation_quat_xyzw": list(
+                    LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM.rotation_quat_xyzw
+                ),
+            },
+            "refined_transform": {
+                "translation_m": list(LIVOX_BEFORE_AFTER_REFINED_TRANSFORM.translation_m),
+                "rotation_quat_xyzw": list(
+                    LIVOX_BEFORE_AFTER_REFINED_TRANSFORM.rotation_quat_xyzw
+                ),
+            },
+            "limitation": (
+                "The public pair has no transform ground truth; the after view is an "
+                "algorithmically refined replay, not metrology certification."
+            ),
+        }
+        asset["animation"] = {
+            "frames": BEFORE_AFTER_FRAME_COUNT,
+            "fps": BEFORE_AFTER_FPS,
+            "width": WIDTH,
+            "height": HEIGHT,
+        }
+    elif job.visual == "camera_lidar":
+        asset["animation"] = {
+            "frames": A2D2_CAMERA_LIDAR_FRAME_COUNT,
+            "fps": A2D2_CAMERA_LIDAR_FPS,
+            "width": WIDTH,
+            "height": HEIGHT,
+        }
     return asset
 
 
 def patch_readme_gallery_manifest(
     *,
     job: ReadmeGifJob,
-    cloud_pair: LidarCloudPair,
+    cloud_pair: LidarCloudPair | None,
     metadata_source: str,
     frames: int,
     allow_fallback: bool,
@@ -658,7 +883,12 @@ def patch_readme_gallery_manifest(
         online_run=online_run,
         motion_scene=motion_scene,
     )
-    assets = [asset for asset in manifest.get("assets", []) if asset["output"] != str(job.output)]
+    output_key = job.output.as_posix()
+    assets = [
+        asset
+        for asset in manifest.get("assets", [])
+        if str(asset["output"]).replace("\\", "/") != output_key
+    ]
     assets.append(updated_asset)
     assets.sort(key=lambda asset: str(asset["output"]))
     manifest["schema_version"] = README_GIF_MANIFEST_SCHEMA_VERSION
@@ -835,9 +1065,12 @@ def find_manifest_asset(
 
     if manifest is None:
         return None
-    output_text = str(output)
+    output_text = output.as_posix()
     for asset in manifest.get("assets", []):
-        if isinstance(asset, dict) and asset.get("output") == output_text:
+        if (
+            isinstance(asset, dict)
+            and str(asset.get("output", "")).replace("\\", "/") == output_text
+        ):
             return asset
     return None
 
@@ -910,6 +1143,295 @@ def load_gif_inputs(
         )
 
     raise SystemExit(f"unsupported GIF source: {source}")
+
+
+def load_camera_lidar_inputs(
+    data_dir: Path,
+    *,
+    allow_network: bool = True,
+) -> CameraLidarOverlayScene:
+    """Load real synchronized A2D2 camera frames and camera-view LiDAR NPZs."""
+
+    ensure_a2d2_camera_lidar_sample(data_dir, allow_network=allow_network)
+    if not data_dir.is_dir():
+        raise SystemExit(
+            f"A2D2 camera-LiDAR data directory is missing: {data_dir}. "
+            f"Download the public camera archive from {A2D2_CAMERA_SAMPLE_URL} "
+            f"and the LiDAR archive from {A2D2_LIDAR_SAMPLE_URL}."
+        )
+
+    frames: list[CameraLidarFrame] = []
+    for frame_id in A2D2_CAMERA_FRAME_IDS:
+        camera_path = data_dir / f"20180810150607_camera_frontleft_{frame_id}.png"
+        lidar_path = data_dir / f"20180810150607_lidar_frontleft_{frame_id}.npz"
+        if not camera_path.is_file() or not lidar_path.is_file():
+            raise SystemExit(
+                "A2D2 camera-LiDAR frame pair is missing: "
+                f"{camera_path.name} and/or {lidar_path.name}. "
+                f"Use the public inputs documented by {A2D2_CAMERA_SAMPLE_URL} "
+                f"and {A2D2_LIDAR_SAMPLE_URL}."
+            )
+        points, total_valid_points = load_a2d2_camera_view_points(lidar_path)
+        if not points:
+            raise SystemExit(f"{lidar_path} contains no valid camera-view LiDAR points")
+        frames.append(
+            CameraLidarFrame(
+                frame_id=frame_id,
+                camera_path=camera_path,
+                lidar_path=lidar_path,
+                camera_pixels=read_camera_frame_pixels(camera_path),
+                points=points,
+                total_valid_points=total_valid_points,
+            )
+        )
+    return CameraLidarOverlayScene(
+        frames=tuple(frames),
+        metadata_source=(
+            "A2D2 public cams_lidars.json; LiDAR rows/columns are distributed "
+            "already registered into the front-left camera view"
+        ),
+        camera_resolution=(A2D2_CAMERA_WIDTH, A2D2_CAMERA_HEIGHT),
+    )
+
+
+def load_a2d2_camera_view_points(
+    path: Path,
+) -> tuple[tuple[CameraLidarPoint, ...], int]:
+    """Read and deterministically subsample real A2D2 camera-view points."""
+
+    with zipfile.ZipFile(path) as archive:
+        _row_header, row_values = read_npy_array(archive, "pcloud_attr.row.npy")
+        _col_header, col_values = read_npy_array(archive, "pcloud_attr.col.npy")
+        _depth_header, depth_values = read_npy_array(archive, "pcloud_attr.depth.npy")
+        _id_header, lidar_id_values = read_npy_array(archive, "pcloud_attr.lidar_id.npy")
+        _valid_header, valid_values = read_npy_array(archive, "pcloud_attr.valid.npy")
+
+    lengths = {
+        len(row_values),
+        len(col_values),
+        len(depth_values),
+        len(lidar_id_values),
+        len(valid_values),
+    }
+    if len(lengths) != 1:
+        raise SystemExit(f"{path} has inconsistent camera-view point attribute lengths")
+
+    candidates: list[CameraLidarPoint] = []
+    for row, col, depth, lidar_id, valid in zip(
+        row_values,
+        col_values,
+        depth_values,
+        lidar_id_values,
+        valid_values,
+        strict=True,
+    ):
+        if not valid:
+            continue
+        row_px = float(row)
+        col_px = float(col)
+        depth_m = float(depth)
+        if not (
+            math.isfinite(row_px)
+            and math.isfinite(col_px)
+            and math.isfinite(depth_m)
+            and 0.0 <= row_px < A2D2_CAMERA_HEIGHT
+            and 0.0 <= col_px < A2D2_CAMERA_WIDTH
+            and depth_m > 0.0
+        ):
+            continue
+        candidates.append(
+            CameraLidarPoint(
+                row_px=row_px,
+                col_px=col_px,
+                depth_m=depth_m,
+                lidar_id=int(lidar_id),
+            )
+        )
+
+    stride = max(1, math.ceil(len(candidates) / A2D2_CAMERA_LIDAR_MAX_POINTS))
+    return tuple(candidates[::stride]), len(candidates)
+
+
+def read_camera_frame_pixels(path: Path) -> bytes:
+    """Resize/crop a real A2D2 PNG into the README PPM raster."""
+
+    if shutil.which("ffmpeg") is None:
+        raise SystemExit("ffmpeg is required to render the camera-LiDAR README GIF")
+    scaled_height = round(A2D2_CAMERA_HEIGHT * WIDTH / A2D2_CAMERA_WIDTH)
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            str(path),
+            "-vf",
+            (
+                f"scale={WIDTH}:{scaled_height}:flags=lanczos,"
+                f"crop={WIDTH}:{HEIGHT}:0:{A2D2_CAMERA_LIDAR_CROP_TOP}"
+            ),
+            "-frames:v",
+            "1",
+            "-f",
+            "image2pipe",
+            "-vcodec",
+            "ppm",
+            "-",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return parse_ppm_pixels(result.stdout)
+
+
+def parse_ppm_pixels(payload: bytes) -> bytes:
+    """Parse one binary PPM frame emitted by ffmpeg."""
+
+    position = 0
+    tokens: list[bytes] = []
+    while len(tokens) < 4:
+        while position < len(payload) and payload[position] in b" \t\r\n":
+            position += 1
+        if position < len(payload) and payload[position] == ord("#"):
+            newline = payload.find(b"\n", position)
+            if newline < 0:
+                raise SystemExit("camera frame PPM has an unterminated comment")
+            position = newline + 1
+            continue
+        start = position
+        while position < len(payload) and payload[position] not in b" \t\r\n":
+            position += 1
+        if start == position:
+            raise SystemExit("camera frame PPM header is incomplete")
+        tokens.append(payload[start:position])
+    if tokens[0] != b"P6" or tokens[3] != b"255":
+        raise SystemExit("camera frame PPM must be an 8-bit binary P6 image")
+    width = int(tokens[1])
+    height = int(tokens[2])
+    if width != WIDTH or height != HEIGHT:
+        raise SystemExit(
+            f"camera frame raster is {width}x{height}, expected {WIDTH}x{HEIGHT}"
+        )
+    if position >= len(payload) or payload[position] not in b" \t\r\n":
+        raise SystemExit("camera frame PPM pixel separator is missing")
+    position += 1
+    pixel_bytes = WIDTH * HEIGHT * 3
+    pixels = payload[position : position + pixel_bytes]
+    if len(pixels) != pixel_bytes:
+        raise SystemExit("camera frame PPM pixel payload is truncated")
+    return pixels
+
+
+def generate_camera_lidar_gif(
+    *,
+    output: Path,
+    scene: CameraLidarOverlayScene,
+    frames: int,
+) -> None:
+    """Render an animated overlay from real A2D2 camera-view point clouds."""
+
+    if frames < 1:
+        raise SystemExit("camera-LiDAR GIF frame count must be positive")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="slac_camera_lidar_gif_") as tmp_name:
+        frame_dir = Path(tmp_name)
+        frames_per_source = max(1, frames // len(scene.frames))
+        for index in range(frames):
+            source_index = (index // frames_per_source) % len(scene.frames)
+            phase = index % frames_per_source
+            source_frame = scene.frames[source_index]
+            image = bytearray(source_frame.camera_pixels)
+            draw_camera_lidar_overlay(
+                image,
+                source_frame.points,
+                phase=phase,
+                frames_per_source=frames_per_source,
+            )
+            write_ppm(frame_dir / f"frame_{index:03d}.ppm", image)
+        encode_camera_lidar_gif(frame_dir, output, frames=frames)
+
+
+def draw_camera_lidar_overlay(
+    image: bytearray,
+    points: tuple[CameraLidarPoint, ...],
+    *,
+    phase: int,
+    frames_per_source: int,
+) -> None:
+    """Draw real camera-view points with a deterministic reveal animation."""
+
+    if phase < 2:
+        return
+    opacity = min(0.96, 0.18 + (phase - 2) * 0.15)
+    reveal_slots = min(6, phase - 1)
+    for point_index, point in enumerate(points):
+        if phase < 7 and point_index % 6 >= reveal_slots:
+            continue
+        x = round(point.col_px * WIDTH / A2D2_CAMERA_WIDTH)
+        y = round(point.row_px * WIDTH / A2D2_CAMERA_WIDTH) - A2D2_CAMERA_LIDAR_CROP_TOP
+        color = camera_lidar_depth_color(point.depth_m)
+        circle(image, x, y, 2, color, alpha=opacity * 0.18)
+        circle(image, x, y, 1, color, alpha=opacity)
+
+
+def camera_lidar_depth_color(depth_m: float) -> Color:
+    """Map measured A2D2 depth to a vivid cyan/amber/magenta overlay color."""
+
+    ratio = max(0.0, min(1.0, (depth_m - 2.0) / 90.0))
+    if ratio < 0.5:
+        return mix((34, 211, 238), (245, 158, 11), ratio * 2.0)
+    return mix((245, 158, 11), (251, 113, 133), (ratio - 0.5) * 2.0)
+
+
+def encode_camera_lidar_gif(frame_dir: Path, output: Path, *, frames: int) -> None:
+    """Encode camera-LiDAR PPM frames as a looped GIF without synthetic text."""
+
+    palette = frame_dir / "palette.png"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "warning",
+            "-framerate",
+            str(A2D2_CAMERA_LIDAR_FPS),
+            "-i",
+            str(frame_dir / "frame_%03d.ppm"),
+            "-vf",
+            "palettegen=max_colors=128",
+            "-frames:v",
+            "1",
+            "-update",
+            "true",
+            str(palette),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "warning",
+            "-framerate",
+            str(A2D2_CAMERA_LIDAR_FPS),
+            "-i",
+            str(frame_dir / "frame_%03d.ppm"),
+            "-i",
+            str(palette),
+            "-lavfi",
+            "[0:v][1:v]paletteuse=dither=bayer:bayer_scale=3",
+            "-loop",
+            "0",
+            "-frames:v",
+            str(frames),
+            str(output),
+        ],
+        check=True,
+    )
 
 
 def generate_gif(
@@ -993,6 +1515,13 @@ def generate_gif(
                     cloud_pair=cloud_pair,
                     frame_state=frame_state,
                     metadata_source=metadata_source,
+                )
+            elif visual == "before_after":
+                progress = smoothstep(index / max(1, frames - 1))
+                draw_before_after_calibration_frame(
+                    image=image,
+                    cloud_pair=cloud_pair,
+                    progress=progress,
                 )
             else:
                 progress = smoothstep(index / max(1, frames - 1))
@@ -1715,6 +2244,38 @@ def ensure_a2d2_lidar_sample(data_dir: Path, *, allow_network: bool) -> None:
     sample_path.write_bytes(data)
 
 
+def ensure_a2d2_camera_lidar_sample(data_dir: Path, *, allow_network: bool) -> None:
+    """Ensure the two real A2D2 camera/LiDAR pairs used by the README GIF."""
+
+    required = [
+        data_dir / f"20180810150607_camera_frontleft_{frame_id}.png"
+        for frame_id in A2D2_CAMERA_FRAME_IDS
+    ] + [
+        data_dir / f"20180810150607_lidar_frontleft_{frame_id}.npz"
+        for frame_id in A2D2_CAMERA_FRAME_IDS
+    ]
+    if all(path.is_file() for path in required):
+        return
+    if not allow_network:
+        missing = ", ".join(path.name for path in required if not path.is_file())
+        raise SystemExit(
+            f"A2D2 camera-LiDAR README inputs are missing: {missing}. "
+            "Run without --no-network or download them with "
+            "python tools/download_public_dataset.py "
+            "a2d2_pandey_mutual_information."
+        )
+    try:
+        from download_public_dataset import download_a2d2_pandey_mutual_information
+
+        download_a2d2_pandey_mutual_information(data_dir.parent)
+    except (ImportError, OSError) as exc:
+        raise SystemExit(
+            "A2D2 camera-LiDAR public input download failed; run "
+            "python tools/download_public_dataset.py "
+            f"a2d2_pandey_mutual_information manually: {exc}"
+        ) from exc
+
+
 def load_livox_horizon_cloud_pair(data_dir: Path) -> LidarCloudPair:
     """Load two solid-state Livox Horizon PCD frames from public example data."""
 
@@ -2230,6 +2791,92 @@ def draw_frame(
     draw_calibration_scene(image, lidars, cloud_pair, progress)
     draw_evidence_panel(image, cloud_pair, progress, residual_history, metadata_source)
     draw_timeline(image, progress)
+
+
+def draw_before_after_calibration_frame(
+    *,
+    image: bytearray,
+    cloud_pair: LidarCloudPair,
+    progress: float,
+) -> None:
+    """Render real Livox returns before and during algorithmic refinement."""
+
+    fill_rect(image, 0, 0, WIDTH, HEIGHT, BG)
+    left_panel = (34, 86, 438, 380)
+    right_panel = (488, 86, 438, 380)
+    draw_before_after_panel(
+        image,
+        left_panel,
+        cloud_pair,
+        LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM,
+        target_color=CANDIDATE,
+    )
+    current_transform = interpolate_se3(
+        LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM,
+        LIVOX_BEFORE_AFTER_REFINED_TRANSFORM,
+        progress,
+    )
+    draw_before_after_panel(
+        image,
+        right_panel,
+        cloud_pair,
+        current_transform,
+        target_color=mix(CANDIDATE, OPTIMIZED, progress),
+    )
+    draw_timeline(image, progress)
+
+
+def draw_before_after_panel(
+    image: bytearray,
+    panel: tuple[int, int, int, int],
+    cloud_pair: LidarCloudPair,
+    target_transform: SE3,
+    *,
+    target_color: Color,
+) -> None:
+    """Draw two real PCD clouds in one shared, compact 3D projection."""
+
+    x, y, width, height = panel
+    fill_rect(image, x, y, width, height, PANEL)
+    rect(image, x, y, width, height, GRID, alpha=0.90)
+    for grid_x in range(0, 61, 10):
+        start = project_before_after_point((float(grid_x), -22.0, 0.0), panel)
+        end = project_before_after_point((float(grid_x), 22.0, 0.0), panel)
+        line(image, start[0], start[1], end[0], end[1], GRID, alpha=0.26)
+    for grid_y in range(-20, 21, 10):
+        start = project_before_after_point((0.0, float(grid_y), 0.0), panel)
+        end = project_before_after_point((60.0, float(grid_y), 0.0), panel)
+        line(image, start[0], start[1], end[0], end[1], GRID, alpha=0.26)
+
+    for index, point in enumerate(cloud_pair.source_points):
+        if index % 2:
+            continue
+        px, py = project_before_after_point(point, panel)
+        circle(image, px, py, 1, REFERENCE, alpha=0.64)
+
+    for index, point in enumerate(cloud_pair.target_points):
+        if index % 2:
+            continue
+        transformed = target_transform.transform_point(point)
+        px, py = project_before_after_point(transformed, panel)
+        circle(image, px, py, 1, target_color, alpha=0.78)
+
+
+def project_before_after_point(point: Point3, panel: tuple[int, int, int, int]) -> Point2:
+    """Project the public Livox scene into one top-down before/after panel."""
+
+    panel_x, panel_y, _panel_width, panel_height = panel
+    x, y, z = point
+    return (
+        round(panel_x + 45.0 + (x / 35.0) * 340.0 + (y / 16.0) * 20.0),
+        round(
+            panel_y
+            + panel_height
+            - 28.0
+            - ((y + 16.0) / 32.0) * (panel_height - 56.0)
+            - z * 2.0
+        ),
+    )
 
 
 def draw_online_calibration_frame(
@@ -3038,6 +3685,12 @@ def encode_gif(
         paletteuse_filter = (
             f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
         )
+    elif visual == "before_after":
+        text_filter = build_before_after_text_filter()
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
     else:
         text_filter = build_text_filter(cloud_pair)
         palette_filter = f"{text_filter},palettegen=max_colors=96"
@@ -3093,10 +3746,7 @@ def encode_gif(
 
 
 def build_text_filter(cloud_pair: LidarCloudPair) -> str:
-    font_file = subprocess.check_output(
-        ["fc-match", "-f", "%{file}", "Noto Sans"],
-        text=True,
-    ).strip()
+    font_file = resolve_gif_font_file()
     labels = [
         ("Fixed 3D LiDAR to fixed 3D LiDAR", 34, 22, 26, "E5E7EB"),
         (cloud_pair.subtitle, 34, 55, 16, "CBD5E1"),
@@ -3139,10 +3789,7 @@ def build_online_text_filter(
     *,
     online_run: OnlineGifRun | None = None,
 ) -> str:
-    font_file = subprocess.check_output(
-        ["fc-match", "-f", "%{file}", "Noto Sans"],
-        text=True,
-    ).strip()
+    font_file = resolve_gif_font_file()
     if online_run is not None:
         assessment = f"assessment: {online_run.final_gate_status.upper()} from timeline"
         accepted_summary = (
@@ -3183,6 +3830,65 @@ def build_online_text_filter(
         ("assess", 842, 520, 14, "CBD5E1"),
     ]
     return ",".join(drawtext(font_file, *label) for label in labels)
+
+
+def build_before_after_text_filter() -> str:
+    """Return the static labels for the real-data before/after replay."""
+
+    font_file = resolve_gif_font_file()
+    labels = [
+        ("Calibration Before / After", 34, 22, 26, "E5E7EB"),
+        (
+            "Livox Horizon ↔ Horizon — real public PCD pair",
+            34,
+            55,
+            16,
+            "CBD5E1",
+        ),
+        ("BEFORE · initial transform", 52, 108, 17, "E5E7EB"),
+        ("AFTER · native refinement", 506, 108, 17, "E5E7EB"),
+        (
+            "green: base Horizon reference   pink/cyan: target Horizon returns",
+            50,
+            486,
+            14,
+            "CBD5E1",
+        ),
+        (
+            "T_base_horizon_target_horizon  ·  initial → algorithmic refinement",
+            50,
+            505,
+            12,
+            "94A3B8",
+        ),
+        ("initial", 62, 520, 14, "CBD5E1"),
+        ("refined", 842, 520, 14, "CBD5E1"),
+    ]
+    return ",".join(drawtext(font_file, *label) for label in labels)
+
+
+def resolve_gif_font_file() -> str:
+    """Resolve a font for ffmpeg on both Unix and Windows hosts."""
+
+    try:
+        font_file = subprocess.check_output(
+            ["fc-match", "-f", "%{file}", "Noto Sans"],
+            text=True,
+        ).strip()
+        if font_file and Path(font_file).is_file():
+            return font_file
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    candidates = (
+        Path("C:/Windows/Fonts/segoeui.ttf"),
+        Path("C:/Windows/Fonts/arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    raise RuntimeError("no usable font found for README GIF text rendering")
 
 
 def drawtext(

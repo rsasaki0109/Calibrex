@@ -1,6 +1,53 @@
 {
   "assets": [
     {
+      "animation": {
+        "fps": 8,
+        "frames": 24,
+        "height": 540,
+        "width": 960
+      },
+      "metadata_source": "A2D2 public cams_lidars.json; LiDAR rows/columns are distributed already registered into the front-left camera view",
+      "output": "docs/assets/a2d2-camera-lidar-overlay.gif",
+      "public_inputs": [
+        {
+          "kind": "camera_png_from_tar",
+          "selected_member": "./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000060.png",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_camera_frontleft.tar"
+        },
+        {
+          "kind": "camera_png_from_tar",
+          "selected_member": "./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000061.png",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_camera_frontleft.tar"
+        },
+        {
+          "kind": "npz_range_from_tar",
+          "selected_member": "./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_front_left_000000060.npz",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar"
+        },
+        {
+          "kind": "npz_range_from_tar",
+          "selected_member": "./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_front_left_000000061.npz",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar"
+        },
+        {
+          "kind": "sensor_metadata_json",
+          "url": "https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json"
+        }
+      ],
+      "sensor_pair": {
+        "source": "camera_front_left",
+        "target": "lidar_front_left_camera_view"
+      },
+      "sha256": "455bb5aa87b6fcbca31dcfe802e438ad166936cc9529a89426e4239212392719",
+      "size_bytes": 990363,
+      "source": "a2d2",
+      "source_label": "A2D2 front-left camera frames (000000060/061)",
+      "target_label": "A2D2 front-left camera-view LiDAR points (up to 6,000 plotted/frame)",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "camera_lidar"
+    },
+    {
       "metadata_source": "A2D2 public cams_lidars.json",
       "output": "docs/assets/a2d2-front-rear-evidence-demo.gif",
       "public_inputs": [
@@ -92,58 +139,6 @@
       "visual": "evidence"
     },
     {
-      "metadata_source": "TIERS LidarsCali static rig (Livox Horizon + Avia)",
-      "online_run": {
-        "accepted_batch_count": 14,
-        "batch_count": 14,
-        "final_gate_status": "pass",
-        "gate_thresholds": {
-          "max_holdout_rmse_m": 0.4,
-          "max_rolling_regression_m": 0.15,
-          "min_rank": 6
-        },
-        "inconclusive_batch_count": 0,
-        "rejected_batch_count": 0
-      },
-      "output": "docs/assets/online-calibration-loop.gif",
-      "pipeline": {
-        "mode": "real_online",
-        "source": "calibrex calibrate --online",
-        "timeline_schema_version": "slac.online_timeline/v0.2"
-      },
-      "public_inputs": [
-        {
-          "bag_file": "LidarsCali.bag",
-          "kind": "rosbag1_local_dataset",
-          "replay_budgets": {
-            "batch_size": 1500,
-            "holdout_ratio": 0.2,
-            "max_replay_duration_s": 60.0,
-            "max_source_messages": 1,
-            "max_source_points": 8000,
-            "max_target_messages": 14,
-            "max_target_points": 1500,
-            "rolling_window": 2000
-          },
-          "sha256_first_mib": "aa1f477d43e1d24236aed0f0860eadf4886efbf1f129c31b0a477eb54ab780f8",
-          "size_bytes": 7178470523,
-          "url": "https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT"
-        }
-      ],
-      "readme_role": "gallery",
-      "sensor_pair": {
-        "source": "livox_horizon",
-        "target": "livox_avia"
-      },
-      "sha256": "5d71c7d028c064643559aa83a8a329aa27b9edfcbef3d83bba73549a8806eab0",
-      "size_bytes": 414831,
-      "source": "tiers-lidars-cali",
-      "source_label": "Livox Horizon points",
-      "target_label": "Livox Avia points",
-      "uses_builtin_metadata_fallback": false,
-      "visual": "online"
-    },
-    {
       "animation": {
         "fps": 10,
         "frames": 50,
@@ -224,6 +219,125 @@
       "target_label": "Ouster OS1 points",
       "uses_builtin_metadata_fallback": false,
       "visual": "motion"
+    },
+    {
+      "animation": {
+        "fps": 10,
+        "frames": 40,
+        "height": 540,
+        "width": 960
+      },
+      "calibration_replay": {
+        "config_path": "examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml",
+        "initial_transform": {
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            -0.13,
+            0.0
+          ]
+        },
+        "limitation": "The public pair has no transform ground truth; the after view is an algorithmically refined replay, not metrology certification.",
+        "mode": "algorithmic_refinement_replay",
+        "refined_transform": {
+          "rotation_quat_xyzw": [
+            -0.038733292303448026,
+            -0.005099336960170632,
+            -0.0026082442525630425,
+            0.9992331689309665
+          ],
+          "translation_m": [
+            0.0010078589985484784,
+            -0.09265454616076582,
+            -0.057378637479629915
+          ]
+        },
+        "source": "calibrex calibrate",
+        "transform_convention": "T_base_horizon_target_horizon maps target PCD points into the base PCD frame"
+      },
+      "metadata_source": "Livox official PCD sample",
+      "output": "docs/assets/livox-before-after-calibration.gif",
+      "public_inputs": [
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "base_horizon_100432.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz"
+        },
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "target_horizon_100538.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Target-LiDAR-Frames.tar.gz"
+        }
+      ],
+      "readme_role": "gallery",
+      "sensor_pair": {
+        "source": "base_horizon",
+        "target": "target_horizon"
+      },
+      "sha256": "256de17e5bde4c44bd1b7be523438cf023482fd5e724693fd3ea319bfcdf5901",
+      "size_bytes": 115597,
+      "source": "livox-horizon-horizon",
+      "source_label": "base Horizon points",
+      "target_label": "target Horizon points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "before_after"
+    },
+    {
+      "metadata_source": "TIERS LidarsCali static rig (Livox Horizon + Avia)",
+      "online_run": {
+        "accepted_batch_count": 14,
+        "batch_count": 14,
+        "final_gate_status": "pass",
+        "gate_thresholds": {
+          "max_holdout_rmse_m": 0.4,
+          "max_rolling_regression_m": 0.15,
+          "min_rank": 6
+        },
+        "inconclusive_batch_count": 0,
+        "rejected_batch_count": 0
+      },
+      "output": "docs/assets/online-calibration-loop.gif",
+      "pipeline": {
+        "mode": "real_online",
+        "source": "calibrex calibrate --online",
+        "timeline_schema_version": "slac.online_timeline/v0.2"
+      },
+      "public_inputs": [
+        {
+          "bag_file": "LidarsCali.bag",
+          "kind": "rosbag1_local_dataset",
+          "replay_budgets": {
+            "batch_size": 1500,
+            "holdout_ratio": 0.2,
+            "max_replay_duration_s": 60.0,
+            "max_source_messages": 1,
+            "max_source_points": 8000,
+            "max_target_messages": 14,
+            "max_target_points": 1500,
+            "rolling_window": 2000
+          },
+          "sha256_first_mib": "aa1f477d43e1d24236aed0f0860eadf4886efbf1f129c31b0a477eb54ab780f8",
+          "size_bytes": 7178470523,
+          "url": "https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/Ea0qTMxHxR5GsHMX62HRjFMBxpdrOrp9fMSfKkxp2e5DAg?e=HmjOoT"
+        }
+      ],
+      "readme_role": "gallery",
+      "sensor_pair": {
+        "source": "livox_horizon",
+        "target": "livox_avia"
+      },
+      "sha256": "5d71c7d028c064643559aa83a8a329aa27b9edfcbef3d83bba73549a8806eab0",
+      "size_bytes": 414831,
+      "source": "tiers-lidars-cali",
+      "source_label": "Livox Horizon points",
+      "target_label": "Livox Avia points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "online"
     }
   ],
   "dimensions": {
