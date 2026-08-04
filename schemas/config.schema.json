@@ -75,6 +75,18 @@
     "DatasetConfig": {
       "additionalProperties": false,
       "properties": {
+        "odometry_preprocessing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OdometryPreprocessingConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "optional explicit pose-stream preprocessing for rosbag1/rosbag2 odometry; the raw dataset is never modified"
+        },
         "odometry_topic": {
           "anyOf": [
             {
@@ -156,6 +168,9 @@
         },
         "radar": {
           "$ref": "#/$defs/RadarEvaluationConfig"
+        },
+        "solid_state": {
+          "$ref": "#/$defs/SolidStateEvaluationConfig"
         },
         "strict": {
           "default": false,
@@ -355,6 +370,33 @@
         }
       },
       "title": "KITTIEvaluationConfig",
+      "type": "object"
+    },
+    "OdometryPreprocessingConfig": {
+      "additionalProperties": false,
+      "description": "Explicit preprocessing for bursty pose streams used as odometry.",
+      "properties": {
+        "burst_policy": {
+          "default": "preserve",
+          "description": "how to handle consecutive odometry poses closer than min_interval_s; preserve keeps the source stream unchanged",
+          "enum": [
+            "preserve",
+            "keep_first",
+            "keep_last"
+          ],
+          "title": "Burst Policy",
+          "type": "string"
+        },
+        "min_interval_s": {
+          "default": 0.001,
+          "description": "minimum retained pose spacing for keep_first/keep_last policies",
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Min Interval S",
+          "type": "number"
+        }
+      },
+      "title": "OdometryPreprocessingConfig",
       "type": "object"
     },
     "OutputsConfig": {
@@ -585,6 +627,18 @@
           ],
           "default": null
         },
+        "odometry_preprocessing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OdometryPreprocessingConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "optional explicit pose-stream preprocessing for rosbag1/rosbag2 odometry; the raw dataset is never modified"
+        },
         "point_time_field": {
           "anyOf": [
             {
@@ -597,6 +651,18 @@
           "default": null,
           "description": "optional PointCloud2 field name for per-point capture-time offsets relative to the message stamp (seconds or integer nanoseconds); enables per-point deskew during rosbag2 online motion compensation",
           "title": "Point Time Field"
+        },
+        "solid_state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateLidarProfile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "optional acquisition and internal-calibration metadata for a solid-state/non-repetitive LiDAR; retained in the result provenance"
         },
         "topic": {
           "anyOf": [
@@ -625,6 +691,341 @@
         "type"
       ],
       "title": "SensorConfig",
+      "type": "object"
+    },
+    "SolidStateEvaluationConfig": {
+      "additionalProperties": false,
+      "description": "Evaluation gates specific to non-repetitive/solid-state acquisition.",
+      "properties": {
+        "distance_bins_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Distance Bins M",
+          "type": "array"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "min_distance_span_m": {
+          "default": 5.0,
+          "minimum": 0.0,
+          "title": "Min Distance Span M",
+          "type": "number"
+        },
+        "min_fov_azimuth_deg": {
+          "default": 20.0,
+          "maximum": 360.0,
+          "minimum": 0.0,
+          "title": "Min Fov Azimuth Deg",
+          "type": "number"
+        },
+        "min_fov_elevation_deg": {
+          "default": 5.0,
+          "maximum": 180.0,
+          "minimum": 0.0,
+          "title": "Min Fov Elevation Deg",
+          "type": "number"
+        },
+        "min_holdout_windows": {
+          "default": 2,
+          "minimum": 1,
+          "title": "Min Holdout Windows",
+          "type": "integer"
+        },
+        "min_known_bad_detectable_fraction": {
+          "default": 0.5,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Known Bad Detectable Fraction",
+          "type": "number"
+        },
+        "min_points_per_distance_bin": {
+          "default": 20,
+          "minimum": 0,
+          "title": "Min Points Per Distance Bin",
+          "type": "integer"
+        },
+        "min_temperature_span_c": {
+          "default": 5.0,
+          "minimum": 0.0,
+          "title": "Min Temperature Span C",
+          "type": "number"
+        },
+        "require_independent_holdout": {
+          "default": false,
+          "title": "Require Independent Holdout",
+          "type": "boolean"
+        },
+        "require_point_time": {
+          "default": false,
+          "title": "Require Point Time",
+          "type": "boolean"
+        },
+        "require_temperature": {
+          "default": false,
+          "title": "Require Temperature",
+          "type": "boolean"
+        }
+      },
+      "title": "SolidStateEvaluationConfig",
+      "type": "object"
+    },
+    "SolidStateIntrinsicCalibration": {
+      "additionalProperties": false,
+      "description": "Origin and representation of the sensor's internal calibration.",
+      "properties": {
+        "artifact_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Path"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "model": {
+          "default": "unknown",
+          "enum": [
+            "manufacturer_native",
+            "beam_table",
+            "angular_resolution",
+            "flash_projection",
+            "unknown"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "source": {
+          "default": "unknown",
+          "enum": [
+            "manufacturer",
+            "estimated",
+            "imported",
+            "unknown"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "SolidStateIntrinsicCalibration",
+      "type": "object"
+    },
+    "SolidStateLidarProfile": {
+      "additionalProperties": false,
+      "description": "Static and acquisition-semantic metadata for one solid-state LiDAR.",
+      "properties": {
+        "architecture": {
+          "default": "unknown",
+          "enum": [
+            "solid_state",
+            "mems",
+            "flash",
+            "opa",
+            "hybrid",
+            "unknown"
+          ],
+          "title": "Architecture",
+          "type": "string"
+        },
+        "firmware_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Firmware Version"
+        },
+        "integration_window_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integration Window S"
+        },
+        "intrinsic_calibration": {
+          "$ref": "#/$defs/SolidStateIntrinsicCalibration"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "point_time_available": {
+          "default": false,
+          "title": "Point Time Available",
+          "type": "boolean"
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "source field carrying per-point capture-time offsets, when applicable",
+          "title": "Point Time Field"
+        },
+        "point_time_reference": {
+          "default": "unknown",
+          "enum": [
+            "message_stamp",
+            "timebase",
+            "sweep_start",
+            "sweep_end",
+            "mid_sweep",
+            "absolute_sensor_time",
+            "unknown"
+          ],
+          "title": "Point Time Reference",
+          "type": "string"
+        },
+        "point_time_unit": {
+          "default": "unknown",
+          "enum": [
+            "seconds",
+            "nanoseconds",
+            "unknown"
+          ],
+          "title": "Point Time Unit",
+          "type": "string"
+        },
+        "scan_pattern": {
+          "default": "unknown",
+          "enum": [
+            "repetitive",
+            "non_repetitive",
+            "frame",
+            "unknown"
+          ],
+          "title": "Scan Pattern",
+          "type": "string"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateTemperatureCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SolidStateLidarProfile",
+      "type": "object"
+    },
+    "SolidStateTemperatureCondition": {
+      "additionalProperties": false,
+      "description": "Temperature attached to a calibration or capture interval.",
+      "properties": {
+        "ambient_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ambient C"
+        },
+        "compensation_applied": {
+          "default": false,
+          "title": "Compensation Applied",
+          "type": "boolean"
+        },
+        "max_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max C"
+        },
+        "min_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min C"
+        },
+        "sensor_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor C"
+        },
+        "source": {
+          "default": "unknown",
+          "enum": [
+            "sensor_telemetry",
+            "ambient",
+            "external",
+            "unknown"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "SolidStateTemperatureCondition",
       "type": "object"
     },
     "SolverConfig": {

@@ -1,0 +1,103 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: agrob_modular_e_livox_rslidar_online_dynamic_alt90
+  description: >
+    Alternate dynamic-window follow-up for the AgRob Modular-e Livox MID-70
+    to RS-LiDAR calibration. The inclusive capture-time window begins 90
+    seconds after the first /odom header timestamp and ends at +150 seconds,
+    providing an independent moving capture interval for reproducibility.
+  output_dir: outputs/agrob_modular_e_livox_rslidar_online_dynamic_alt90
+  domain: robotics
+
+dataset:
+  type: rosbag2
+  path: data/public/agrob_scorpion/2023-06-13T170852Z
+  odometry_topic: /odom
+  time_base: ros_time
+
+sensors:
+  livox_mid70:
+    type: lidar
+    model: livox_mid70
+    topic: /livox/lidar
+    frame_id: livox_frame
+    fields: [x, y, z, reflectivity, tag, line, offset_time]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      integration_window_s: 0.1
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+      notes:
+        - nominal integration window set to 0.1 s from observed offset_time span (0.09983 s max)
+  rslidar:
+    type: lidar
+    model: rslidar
+    topic: /rslidar_points
+    frame_id: rslidar
+    fields: [x, y, z, intensity]
+
+frames:
+  livox_mid70:
+    root: true
+  rslidar:
+    parent: livox_mid70
+    transform:
+      estimate: true
+      initial:
+        translation: [-0.0698, 0.0, 0.09]
+        rotation_quat_xyzw: [0.0, 0.0, 1.0, 0.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_lidar_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        capture_window_start_timestamp_ns: 1686676371234969730
+        capture_window_end_timestamp_ns: 1686676431234969730
+        capture_window_record_prefilter_margin_s: 2.0
+        use_point_time_offsets: true
+        inject_time_offset_s: 0.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: true
+    require_independent_holdout: true
+    min_holdout_windows: 2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

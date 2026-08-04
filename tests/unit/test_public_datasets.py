@@ -1,3 +1,7 @@
+import hashlib
+import importlib.util
+import io
+import json
 import struct
 import zlib
 from pathlib import Path
@@ -5,6 +9,10 @@ from pathlib import Path
 from calibrex.core.config import DatasetConfig, load_config
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
+from calibrex.core.io import read_mapping
+from calibrex.core.solid_state_cross_dataset_benchmark import (
+    SolidStateCrossDatasetBenchmarkSpec,
+)
 from calibrex.data.inspect import inspect_dataset
 from calibrex.data.kitti import (
     find_camera_lidar_pairs,
@@ -20,6 +28,14 @@ from calibrex.data.kitti import (
 )
 from calibrex.data.public_datasets import load_public_dataset_catalog
 from calibrex.graph.problem import build_problem
+
+_DOWNLOAD_TOOL = Path(__file__).parents[2] / "tools" / "download_public_dataset.py"
+_DOWNLOAD_SPEC = importlib.util.spec_from_file_location(
+    "download_public_dataset", _DOWNLOAD_TOOL
+)
+assert _DOWNLOAD_SPEC is not None and _DOWNLOAD_SPEC.loader is not None
+public_downloader = importlib.util.module_from_spec(_DOWNLOAD_SPEC)
+_DOWNLOAD_SPEC.loader.exec_module(public_downloader)
 
 
 def _write_velodyne_points(path: Path, points: list[tuple[float, float, float, float]]) -> None:
@@ -71,6 +87,69 @@ def _png_chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", checksum)
 
 
+def test_agrob_parallel_range_ledger_is_exact_and_resumable(
+    tmp_path: Path, monkeypatch
+) -> None:
+    payload = bytes((index * 17) % 251 for index in range(1025))
+    monkeypatch.setattr(public_downloader, "AGROB_MODULAR_E_SIZE_BYTES", len(payload))
+    monkeypatch.setattr(
+        public_downloader,
+        "AGROB_MODULAR_E_MD5",
+        hashlib.md5(payload).hexdigest(),
+    )
+    calls: list[tuple[int, int]] = []
+
+    class Response:
+        status = 206
+
+        def __init__(self, start: int, end: int) -> None:
+            self.headers = {
+                "Content-Range": f"bytes {start}-{end}/{len(payload)}",
+            }
+            self._stream = io.BytesIO(payload[start : end + 1])
+
+        def __enter__(self) -> "Response":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self, size: int = -1) -> bytes:
+            return self._stream.read(size)
+
+    def fake_urlopen(request, timeout: int) -> Response:
+        del timeout
+        raw_range = request.get_header("Range")
+        assert raw_range is not None
+        start_text, end_text = raw_range.removeprefix("bytes=").split("-")
+        start, end = int(start_text), int(end_text)
+        calls.append((start, end))
+        return Response(start, end)
+
+    monkeypatch.setattr(public_downloader, "urlopen", fake_urlopen)
+    partial = tmp_path / "archive.parallel.part"
+    state_path = tmp_path / "archive.parallel.state.json"
+
+    public_downloader._download_agrob_ranges_parallel(
+        partial,
+        state_path,
+        workers=4,
+        chunk_size=128,
+    )
+
+    assert partial.read_bytes() == payload
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert len(state["completed_chunks"]) == 9
+    call_count = len(calls)
+    public_downloader._download_agrob_ranges_parallel(
+        partial,
+        state_path,
+        workers=4,
+        chunk_size=128,
+    )
+    assert len(calls) == call_count
+
+
 def test_public_dataset_catalog_lists_public_examples() -> None:
     catalog = load_public_dataset_catalog()
     assert "tum_rgbd_freiburg1_xyz" in catalog.datasets
@@ -80,6 +159,7 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert "a2d2_lidar_pair_sample" in catalog.datasets
     assert "a2d2_pandey_mutual_information" in catalog.datasets
     assert "livox_horizon_horizon_pcd_sample" in catalog.datasets
+    assert "glim_versatile" in catalog.datasets
     assert "tiers_livox_lidars_cali" in catalog.datasets
     assert "tiers_lidars_dataset_indoor02" in catalog.datasets
     assert catalog.datasets["tum_rgbd_freiburg1_xyz"].slac_config is not None
@@ -89,6 +169,8 @@ def test_public_dataset_catalog_lists_public_examples() -> None:
     assert catalog.datasets["a2d2_pandey_mutual_information"].family == "a2d2"
     assert catalog.datasets["livox_horizon_horizon_pcd_sample"].family == "livox_calibration"
     assert catalog.datasets["livox_horizon_horizon_pcd_sample"].slac_config is not None
+    assert catalog.datasets["glim_versatile"].family == "glim_versatile"
+    assert catalog.datasets["glim_versatile"].slac_config is not None
     assert catalog.datasets["tiers_livox_lidars_cali"].family == "tiers_lidars"
     assert catalog.datasets["tiers_livox_lidars_cali"].slac_config is not None
     assert catalog.datasets["tiers_lidars_dataset_indoor02"].family == "tiers_lidars"
@@ -159,6 +241,9 @@ def test_livox_public_config_compiles_solid_state_lidar_pair() -> None:
     assert inspection.dataset_type == "livox_pcd"
     assert "base_horizon" in config.sensors
     assert "target_horizon" in config.sensors
+    assert config.sensors["base_horizon"].solid_state is not None
+    assert config.sensors["base_horizon"].solid_state.scan_pattern == "non_repetitive"
+    assert config.evaluation.solid_state.enabled is True
     assert "fixed_lidar_mount_prior" in {factor.name for factor in problem.factors}
 
 
@@ -170,7 +255,55 @@ def test_tiers_public_config_compiles_rosbag1_lidar_pair() -> None:
     assert inspection.dataset_type == "rosbag1"
     assert config.sensors["livox_horizon"].topic == "/livox/lidar"
     assert config.sensors["livox_avia"].topic == "/avia/livox/lidar"
+    assert config.sensors["livox_horizon"].solid_state is not None
+    assert config.sensors["livox_avia"].solid_state is not None
     assert "fixed_lidar_mount_prior" in {factor.name for factor in problem.factors}
+
+
+def test_solid_state_cross_dataset_benchmark_configs_compile() -> None:
+    for path in [
+        "examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml",
+        "examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml",
+    ]:
+        config = load_config(path)
+        assert config.dataset.type in {"rosbag1", "rosbag2"}
+        assert config.dataset.odometry_topic is not None
+        assert config.sensors
+        assert config.evaluation.solid_state.enabled is True
+
+
+def test_solid_state_benchmark_v02_spec_declares_paired_replicates() -> None:
+    spec = SolidStateCrossDatasetBenchmarkSpec.model_validate(
+        read_mapping(
+            Path(
+                "examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml"
+            )
+        )
+    )
+    assert spec.protocol.split_ids == ["early_holdout", "middle_holdout", "late_holdout"]
+    assert spec.protocol.seed_values == [0, 17, 42]
+    assert all(len(dataset.replicates) == 4 for dataset in spec.datasets)
+    assert all(
+        len({replicate.split_id for replicate in dataset.replicates}) == 2
+        and len({replicate.seed for replicate in dataset.replicates}) == 2
+        for dataset in spec.datasets
+    )
+
+
+def test_tiers_indoor02_motion_configs_compile() -> None:
+    for path in [
+        "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml",
+        "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_pose_burst_config.yaml",
+        "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_baseframe_config.yaml",
+    ]:
+        config = load_config(path)
+        assert config.dataset.type == "rosbag2"
+        assert config.dataset.odometry_topic == "/odom"
+    burst_config = load_config(
+        "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_pose_burst_config.yaml"
+    )
+    assert burst_config.dataset.odometry_preprocessing is not None
+    assert burst_config.dataset.odometry_preprocessing.burst_policy == "keep_last"
 
 
 def test_kitti_velodyne_reader_and_inspection_stats(tmp_path: Path) -> None:

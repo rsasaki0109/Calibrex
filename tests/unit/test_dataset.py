@@ -220,6 +220,10 @@ def test_livox_pcd_reader_summarizes_solid_state_pair(tmp_path: Path) -> None:
     assert streams["livox_pcd"].message_count == 2
     records = list(dataset.records("livox_pcd"))
     assert records[0].payload_path == str(base)
+    assert records[0].metadata["point_time_available"] is False
+    assert records[0].metadata["timestamp_semantics"] == (
+        "file_order_index_not_physical_capture_time"
+    )
 
     points = read_livox_binary_pcd(base)
     assert tuple(round(value, 3) for value in points[0]) == (0.1, 0.1, 0.0, 10.0)
@@ -419,6 +423,30 @@ def test_dataset_config_rejects_non_positive_sample_limit() -> None:
     for invalid in (0, -1):
         with pytest.raises(ValidationError):
             DatasetConfig(type="a2d2_lidar", path="unused", sample_limit=invalid)
+
+
+def test_dataset_config_accepts_explicit_odometry_burst_preprocessing() -> None:
+    dataset = DatasetConfig(
+        type="rosbag2",
+        path="unused",
+        odometry_topic="/odom",
+        odometry_preprocessing={
+            "burst_policy": "keep_last",
+            "min_interval_s": 0.001,
+        },
+    )
+
+    assert dataset.odometry_preprocessing is not None
+    assert dataset.odometry_preprocessing.burst_policy == "keep_last"
+
+
+def test_dataset_config_rejects_invalid_odometry_burst_policy() -> None:
+    with pytest.raises(ValidationError):
+        DatasetConfig(
+            type="rosbag2",
+            path="unused",
+            odometry_preprocessing={"burst_policy": "repair"},
+        )
 
 
 def test_a2d2_lidar_inspection_defaults_to_three_samples(tmp_path: Path) -> None:

@@ -18,11 +18,13 @@ from calibrex.data.inspect import inspect_dataset
 from calibrex.data.ros_cdr import (
     CdrReader,
     decode_ros2_imu,
+    decode_ros2_livox_custommsg,
     decode_ros2_odometry,
     decode_ros2_pointcloud2,
 )
 from calibrex.data.rosbag2 import (
     IMU_TYPE,
+    LIVOX_CUSTOMMSG_TYPE,
     MCAP_MAGIC,
     ODOMETRY_TYPE,
     POINTCLOUD2_TYPE,
@@ -30,9 +32,11 @@ from calibrex.data.rosbag2 import (
     _lz4_decompress,
     _zstd_decompress,
     decode_imu,
+    decode_livox_custommsg,
     decode_odometry,
     decode_pointcloud2,
     iter_messages,
+    read_lidar_messages,
     read_pointcloud2_messages,
     resolve_storage,
     summarize_rosbag2,
@@ -65,9 +69,17 @@ class CdrWriter:
         self.align(4)
         self._buf.extend(struct.pack(f"{self._endian}I", value))
 
+    def write_uint64(self, value: int) -> None:
+        self.align(8)
+        self._buf.extend(struct.pack(f"{self._endian}Q", value))
+
     def write_uint8(self, value: int) -> None:
         self.align(1)
         self._buf.append(value & 0xFF)
+
+    def write_float32(self, value: float) -> None:
+        self.align(4)
+        self._buf.extend(struct.pack(f"{self._endian}f", value))
 
     def write_float64(self, value: float) -> None:
         self.align(8)
@@ -150,6 +162,37 @@ def _encode_pointcloud2(
             payload.extend(struct.pack("<fff", x, y, z))
     writer.write_byte_sequence(bytes(payload))
     writer.write_bool(True)
+    return writer.finish()
+
+
+def _encode_livox_custommsg(
+    points: list[tuple[int, float, float, float, int, int, int]],
+    *,
+    frame_id: str,
+    secs: int,
+    nsecs: int,
+    timebase_ns: int,
+    lidar_id: int = 1,
+    little_endian: bool = True,
+) -> bytes:
+    writer = CdrWriter(little_endian=little_endian)
+    writer.write_int32(secs)
+    writer.write_uint32(nsecs)
+    writer.write_string(frame_id)
+    writer.write_uint64(timebase_ns)
+    writer.write_uint32(len(points))
+    writer.write_uint8(lidar_id)
+    for _ in range(3):
+        writer.write_uint8(0)
+    writer.write_uint32(len(points))
+    for offset_time, x, y, z, reflectivity, tag, line in points:
+        writer.write_uint32(offset_time)
+        writer.write_float32(x)
+        writer.write_float32(y)
+        writer.write_float32(z)
+        writer.write_uint8(reflectivity)
+        writer.write_uint8(tag)
+        writer.write_uint8(line)
     return writer.finish()
 
 
@@ -536,6 +579,26 @@ def test_rosbag2_cdr_endianness_flag() -> None:
     assert decoded.xyz[0].tolist() == [9.0, 8.0, 7.0]
 
 
+def test_rosbag2_pointcloud_filters_nonfinite_xyz_rows() -> None:
+    pytest.importorskip("numpy")
+    payload = _encode_pointcloud2(
+        [(float("nan"), 2.0, 3.0, 0.5), (4.0, 5.0, 6.0, 0.25)],
+        frame_id="finite_filter",
+        secs=1,
+        nsecs=2,
+        with_intensity=True,
+    )
+
+    decoded = decode_ros2_pointcloud2("/cloud", 0, payload)
+
+    assert decoded.point_count == 1
+    assert decoded.raw_point_count == 2
+    assert decoded.nonfinite_xyz_count == 1
+    assert decoded.xyz.tolist() == [[4.0, 5.0, 6.0]]
+    assert decoded.intensity is not None
+    assert decoded.intensity.tolist() == [0.25]
+
+
 def test_rosbag2_alignment_sensitive_pointcloud_layout() -> None:
     payload = _encode_pointcloud2(
         [(1.25, 2.25, 3.25, 0.0)],
@@ -547,6 +610,99 @@ def test_rosbag2_alignment_sensitive_pointcloud_layout() -> None:
     )
     decoded = decode_ros2_pointcloud2("/cloud", 0, payload)
     assert decoded.xyz[0].tolist() == [1.25, 2.25, 3.25]
+
+
+def test_rosbag2_decodes_livox_custommsg_with_cdr_sequence_alignment() -> None:
+    payload = _encode_livox_custommsg(
+        [
+            (0, 1.0, 2.0, 3.0, 10, 4, 1),
+            (1000, 4.0, 5.0, 6.0, 20, 5, 2),
+        ],
+        frame_id="livox_frame",
+        secs=100,
+        nsecs=500,
+        timebase_ns=100_000_000_000,
+    )
+
+    decoded = decode_ros2_livox_custommsg("/livox/lidar", 0, payload)
+
+    assert decoded.point_count == 2
+    assert decoded.xyz.tolist() == [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    assert decoded.intensity is not None
+    assert decoded.intensity.tolist() == [10.0, 20.0]
+    assert decoded.offset_time_ns is not None
+    assert decoded.offset_time_ns.tolist() == [0, 1000]
+    assert decoded.line is not None
+    assert decoded.line.tolist() == [1, 2]
+    assert decoded.timestamp_ns == 100_000_000_500
+    assert decoded.point_time_reference_ns == 100_000_000_000
+
+
+def test_rosbag2_decodes_livox_custommsg_big_endian() -> None:
+    payload = _encode_livox_custommsg(
+        [(2500, -1.5, 2.5, 3.5, 7, 8, 9)],
+        frame_id="be_livox",
+        secs=3,
+        nsecs=4,
+        timebase_ns=3_000_000_000,
+        little_endian=False,
+    )
+
+    decoded = decode_livox_custommsg("/livox/lidar", 0, payload)
+
+    assert decoded.xyz[0].tolist() == pytest.approx([-1.5, 2.5, 3.5])
+    assert decoded.offset_time_ns is not None
+    assert decoded.offset_time_ns.tolist() == [2500]
+
+
+def test_rosbag2_rejects_truncated_livox_custommsg() -> None:
+    payload = _encode_livox_custommsg(
+        [(0, 1.0, 2.0, 3.0, 10, 0, 0)],
+        frame_id="livox_frame",
+        secs=1,
+        nsecs=2,
+        timebase_ns=1_000_000_000,
+    )
+
+    with pytest.raises(DatasetError, match="truncated livox_interfaces/msg/CustomMsg"):
+        decode_livox_custommsg("/livox/lidar", 0, payload[:-1])
+
+
+def test_rosbag2_livox_custommsg_is_a_normalized_lidar_stream(tmp_path: Path) -> None:
+    payload = _encode_livox_custommsg(
+        [(0, 1.0, 2.0, 3.0, 10, 0, 0)],
+        frame_id="livox_frame",
+        secs=10,
+        nsecs=20,
+        timebase_ns=10_000_000_000,
+    )
+    bag = tmp_path / "livox_custom.db3"
+    _write_sqlite_bag(
+        bag,
+        topics=[("/livox/lidar", LIVOX_CUSTOMMSG_TYPE)],
+        messages=[("/livox/lidar", 10_000_000_020, payload)],
+    )
+
+    messages = list(read_lidar_messages(bag, topic="/livox/lidar"))
+    stats = summarize_rosbag2(bag)
+    streams = {stream.topic: stream for stream in stats.streams}
+
+    assert len(messages) == 1
+    assert messages[0].point_count == 1
+    assert streams["/livox/lidar"].sampled_point_count == 1
+    assert streams["/livox/lidar"].message_type == LIVOX_CUSTOMMSG_TYPE
+    assert streams["/livox/lidar"].point_time_available is True
+    assert streams["/livox/lidar"].point_time_reference == "timebase"
+    assert streams["/livox/lidar"].sampled_point_time_min_s == pytest.approx(0.0)
+    assert streams["/livox/lidar"].sampled_point_time_max_s == pytest.approx(0.0)
+    assert streams["/livox/lidar"].sampled_point_time_reference_first_ns == 10_000_000_000
+    assert streams["/livox/lidar"].sampled_point_time_reference_last_ns == 10_000_000_000
+    assert streams["/livox/lidar"].range_min_m == pytest.approx((14.0) ** 0.5)
+    assert streams["/livox/lidar"].range_max_m == pytest.approx((14.0) ** 0.5)
+    assert streams["/livox/lidar"].fov_azimuth_deg == pytest.approx(0.0)
+    assert streams["/livox/lidar"].fov_elevation_deg == pytest.approx(0.0)
+    assert streams["/livox/lidar"].distance_bin_counts == (1, 0, 0, 0)
+    assert Rosbag2Reader(bag).streams()[0].kind == "pointcloud"
 
 
 def test_rosbag2_missing_lz4_codec_error() -> None:
@@ -670,6 +826,10 @@ def test_rosbag2_inspect_integration(tmp_path: Path) -> None:
     assert diagnostics["storage_identifier"] == "sqlite3"
     odom_stream = next(item for item in diagnostics["streams"] if item["topic"] == "/odom")
     assert odom_stream["sample_pose_position_m"] == [1.5, 2.5, 3.5]
+    assert odom_stream["sample_frame_id"] == "odom"
+    odom_motion = diagnostics["odometry_motion"]["/odom"]
+    assert odom_motion["message_count"] == 1
+    assert odom_motion["quality_status"] == "inconclusive"
 
 
 def test_rosbag2_inspect_missing_path(tmp_path: Path) -> None:

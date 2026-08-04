@@ -291,14 +291,14 @@ def _inspect_rosbag1(path: Path, dataset_type: str) -> DatasetInspection:
     if stats.status == "malformed":
         warnings.append(stats.reason or "ROS bag could not be parsed")
     if stats.pointcloud_topic_count == 0:
-        warnings.append("no sensor_msgs/PointCloud2 topics found in ROS bag")
+        warnings.append("no supported LiDAR point-cloud topics found in ROS bag")
     elif stats.pointcloud_topic_count < 2:
         warnings.append(
-            "fewer than two PointCloud2 topics; a LiDAR-to-LiDAR pair needs two clouds"
+            "fewer than two LiDAR point-cloud topics; a LiDAR-to-LiDAR pair needs two clouds"
         )
     for stream in stats.streams:
         if stream.sampled_point_count == 0:
-            warnings.append(f"PointCloud2 topic {stream.topic} decoded no points")
+            warnings.append(f"LiDAR point-cloud topic {stream.topic} decoded no points")
     streams = [
         StreamSummary(
             name=stream.topic,
@@ -334,15 +334,49 @@ def _inspect_rosbag2(path: Path, dataset_type: str) -> DatasetInspection:
     if stats.status == "malformed":
         warnings.append(stats.reason or "rosbag2 bag could not be parsed")
     if stats.topic_count == 0:
-        warnings.append("no supported PointCloud2 or Odometry topics found in rosbag2 bag")
+        warnings.append(
+            "no supported PointCloud2, Livox CustomMsg, or Odometry topics found "
+            "in rosbag2 bag"
+        )
     for stream in stats.streams:
-        if stream.message_type == "sensor_msgs/msg/PointCloud2" and stream.sampled_point_count == 0:
-            warnings.append(f"PointCloud2 topic {stream.topic} decoded no points")
+        if (
+            stream.message_type
+            in {
+                "sensor_msgs/msg/PointCloud2",
+                "livox_interfaces/msg/CustomMsg",
+                "livox_ros_driver/msg/CustomMsg",
+                "livox_ros_driver2/msg/CustomMsg",
+            }
+            and stream.sampled_point_count == 0
+        ):
+            warnings.append(f"LiDAR topic {stream.topic} decoded no points")
+        if stream.message_type in {
+            "livox_interfaces/msg/CustomMsg",
+            "livox_ros_driver/msg/CustomMsg",
+            "livox_ros_driver2/msg/CustomMsg",
+        } and stream.point_time_available is not True:
+            warnings.append(
+                f"Livox CustomMsg topic {stream.topic} has no finite offset_time sample"
+            )
+        if stream.sampled_nonfinite_xyz_count > 0:
+            warnings.append(
+                f"LiDAR topic {stream.topic} contains "
+                f"{stream.sampled_nonfinite_xyz_count} sampled non-finite xyz rows; "
+                "they were excluded from calibration"
+            )
+    for motion in stats.odometry_motion.values():
+        if motion.quality_status != "pass":
+            warnings.append(f"Odometry motion quality {motion.topic}: {motion.quality_reason}")
     streams = [
         StreamSummary(
             name=stream.topic,
             kind="pointcloud"
-            if stream.message_type == "sensor_msgs/msg/PointCloud2"
+            if stream.message_type in {
+                "sensor_msgs/msg/PointCloud2",
+                "livox_interfaces/msg/CustomMsg",
+                "livox_ros_driver/msg/CustomMsg",
+                "livox_ros_driver2/msg/CustomMsg",
+            }
             else "odometry",
             message_count=stream.message_count,
             topic=stream.topic,

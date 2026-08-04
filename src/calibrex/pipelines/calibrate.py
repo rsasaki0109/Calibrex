@@ -33,6 +33,7 @@ from calibrex.core.result import (
     TransformQuality,
     TransformResult,
 )
+from calibrex.core.solid_state import build_solid_state_context
 from calibrex.data.downloads import (
     LIVOX_BASE_PCD_NAME,
     LIVOX_BASE_PCD_URL,
@@ -59,6 +60,7 @@ from calibrex.evaluation.radar import radar_velocity_metrics_from_result
 from calibrex.evaluation.radar_spatiotemporal import (
     radar_spatiotemporal_metrics_from_result,
 )
+from calibrex.evaluation.solid_state import solid_state_metrics_from_inspection
 from calibrex.evaluation.timing import timing_metrics_from_inspection
 from calibrex.graph.problem import build_problem
 from calibrex.solvers.base import SolverAdapterResult
@@ -155,8 +157,17 @@ def run_calibration(
     _apply_dataset_initialization(config, result)
     _apply_external_candidate_extrinsics(options.candidate_extrinsics, result)
     _apply_livox_pair_candidate_evidence(config, result)
+    result.metrics.update(solid_state_metrics_from_inspection(config, inspection, result))
+    if result.solid_state is not None:
+        result.run.provenance["solid_state_evaluation_config"] = (
+            config.evaluation.solid_state.model_dump(mode="json")
+        )
     _apply_extrinsic_reference_comparisons(result)
     _apply_pipeline_adapter(config, frame_graph, inspection, result, output_dir)
+    # Adapters may add holdout/known-bad provenance after the initial metadata
+    # pass. Recompute the solid-state metrics so their grades reflect the final
+    # result-level evidence rather than only the config declaration.
+    result.metrics.update(solid_state_metrics_from_inspection(config, inspection, result))
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
     result.metrics.update(
         lidar_camera_comparison_metrics_from_result(config, result, inspection)
@@ -357,6 +368,13 @@ def _apply_livox_pair_candidate_evidence(
         "known_bad_perturbation": "left-multiplied source-frame SE(3) controls",
         "known_bad_case_count": len(evidence.cases),
         "known_bad_challenge": evidence.known_bad_challenge,
+    }
+    result.run.provenance["solid_state_evaluation"] = {
+        "independent_holdout": evidence.point_to_plane.independent_holdout,
+        "split_policy": evidence.point_to_plane.split_policy,
+        "train_window_count": len(evidence.point_to_plane.train_frame_ids),
+        "holdout_window_count": len(evidence.point_to_plane.holdout_frame_ids),
+        "known_bad_case_count": len(evidence.cases),
     }
     existing_cases = result.run.provenance.get("evidence_cases")
     cases = existing_cases if isinstance(existing_cases, list) else []
@@ -960,13 +978,31 @@ def _build_provisional_result(
         )
 
     metrics = _default_metrics(config, inspection)
+    config_sha256 = sha256_path(config_path)
+    dataset_sha256 = sha256_path(Path(config.dataset.path))
+    solid_state_context = build_solid_state_context(
+        {
+            sensor_name: sensor.solid_state
+            for sensor_name, sensor in config.sensors.items()
+            if sensor.solid_state is not None
+        },
+        config_sha256=config_sha256,
+        dataset_sha256=dataset_sha256,
+        source_paths=[str(config_path), config.dataset.path],
+        tool_version=__version__,
+        git_commit=git_commit(),
+        notes=[
+            "profile copied from the schema-validated calibration config",
+            "capture windows are populated by adapters when per-window telemetry is available",
+        ],
+    )
     return CalibrationResult(
         run=RunInfo(
             id=run_id,
             slac_version=__version__,
             git_commit=git_commit(),
-            config_sha256=sha256_path(config_path),
-            dataset_sha256=sha256_path(Path(config.dataset.path)),
+            config_sha256=config_sha256,
+            dataset_sha256=dataset_sha256,
             status="warning",
             domain=config.project.domain,
             provenance={
@@ -980,6 +1016,7 @@ def _build_provisional_result(
             },
         ),
         frame_graph=frame_graph.snapshot(),
+        solid_state=solid_state_context,
         candidate_extrinsics=candidate_extrinsics,
         transforms=transforms,
         time_offsets=time_offsets,

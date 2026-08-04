@@ -948,6 +948,7 @@ def test_evaluate_cached_result_reports_materialization_warning(
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["metrics_origin"] == "cached"
+
     assert payload["data_verified"] is False
     assert payload["evidence_case_count"] == 6
     assert payload["warning"] == (
@@ -1043,6 +1044,94 @@ def test_evaluate_cached_result_reports_materialization_warning(
     assert (
         "warning: cached evidence: raw data was not read or recomputed by this evaluate command"
     ) in evaluate_text
+
+
+def test_continuous_time_artifact_exports_refined_transform(tmp_path: Path) -> None:
+    transform = {
+        "parent": "lidar_map",
+        "child": "lidar_stream",
+        "translation_m": [0.1, 0.0, 0.0],
+        "rotation_quat_xyzw": [0.0, 0.0, 0.0, 1.0],
+        "quality": {"grade": "pass"},
+    }
+    artifact = {
+        "schema_version": "slac.continuous_time_lidar_pair_result/v0.1",
+        "config_path": "config.yaml",
+        "dataset_path": "bag",
+        "source_sensor": "lidar_map",
+        "target_sensor": "lidar_stream",
+        "odometry_topic": "/odom",
+        "variable": "T_lidar_map_lidar_stream",
+        "trajectory_model": "piecewise_se3_fixed_odometry",
+        "time_offset_sign_convention": "positive offset evaluates target at t+offset",
+        "initial_transform": transform,
+        "refined_transform": transform,
+        "initial_time_offset_sec": 0.0,
+        "estimated_time_offset_sec": 0.01,
+        "initial_train_rmse_m": 0.2,
+        "final_train_rmse_m": 0.1,
+        "final_holdout_rmse_m": 0.12,
+        "train_correspondence_count": 20,
+        "holdout_correspondence_count": 8,
+        "outlier_rejected_count": 2,
+        "observability": {
+            "rank": 6,
+            "condition_number": 2.0,
+            "weak_directions": [],
+            "residual_count": 20,
+        },
+        "status": "converged",
+        "reason": "test",
+        "options": {
+            "initial_time_offset_sec": 0.0,
+            "max_abs_time_offset_sec": 0.2,
+            "initial_time_step_sec": 0.02,
+            "minimum_time_step_sec": 0.001,
+            "max_iterations": 4,
+            "min_correspondences": 6,
+            "max_odometry_extrapolation_s": 0.25,
+            "max_source_records": 6000,
+            "max_target_points_per_split": 6000,
+            "outlier_policy": "mad",
+            "outlier_mad_scale": 3.5,
+            "outlier_min_threshold_m": 0.02,
+            "outlier_min_inlier_fraction": 0.25,
+            "voxel_strategy": "adaptive",
+            "adaptive_range_reference_m": 10.0,
+            "adaptive_range_exponent": 0.5,
+            "adaptive_min_voxel_size_m": 0.25,
+            "adaptive_max_voxel_size_m": 1.5,
+            "adaptive_min_points_per_voxel": 3,
+            "correspondence_refinement_iterations": 1,
+            "fixed_extrinsic_max_iterations": 12,
+            "fixed_extrinsic_robust_loss": "huber",
+        },
+        "provenance": {
+            "source_paths": ["config.yaml", "bag"],
+            "source_sha256": {"config.yaml": "a" * 64, "bag": "b" * 64},
+        },
+    }
+    artifact_path = tmp_path / "continuous_time.yaml"
+    write_mapping(artifact_path, artifact)
+    output_path = tmp_path / "tf.yaml"
+
+    assert (
+        main(
+            [
+                "export",
+                str(artifact_path),
+                "--kind",
+                "continuous-time-lidar-pair",
+                "--format",
+                "ros-tf",
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+    exported = read_mapping(output_path)
+    assert exported["transforms"][0]["name"] == "T_lidar_map_lidar_stream"
 
 
 def test_compare_command_writes_machine_readable_summary(
@@ -1284,6 +1373,10 @@ def test_schema_commands(tmp_path: Path) -> None:
     evidence_bundle_schema = tmp_path / "evidence_bundle.schema.json"
     evidence_bundle_verification_schema = tmp_path / "evidence_bundle_verification.schema.json"
     online_timeline_schema = tmp_path / "online_timeline.schema.json"
+    trajectory_window_drift_schema = tmp_path / "trajectory_window_drift.schema.json"
+    capture_readiness_schema = tmp_path / "capture_readiness.schema.json"
+    continuous_time_lidar_schema = tmp_path / "continuous_time_lidar_pair_result.schema.json"
+    continuous_time_lidar_ablation_schema = tmp_path / "continuous_time_lidar_ablation.schema.json"
     assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
     assert main(["schema", "result", "--output", str(result_schema)]) == 0
@@ -1336,6 +1429,50 @@ def test_schema_commands(tmp_path: Path) -> None:
         == 0
     )
     assert main(["schema", "online-timeline", "--output", str(online_timeline_schema)]) == 0
+    assert (
+        main(
+            [
+                "schema",
+                "trajectory-window-drift",
+                "--output",
+                str(trajectory_window_drift_schema),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "schema",
+                "continuous-time-lidar-ablation",
+                "--output",
+                str(continuous_time_lidar_ablation_schema),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "schema",
+                "continuous-time-lidar-pair",
+                "--output",
+                str(continuous_time_lidar_schema),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "schema",
+                "capture-readiness",
+                "--output",
+                str(capture_readiness_schema),
+            ]
+        )
+        == 0
+    )
     assert config_schema.exists()
     assert result_schema.exists()
     assert comparison_schema.exists()
@@ -1355,6 +1492,10 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert evidence_bundle_schema.exists()
     assert evidence_bundle_verification_schema.exists()
     assert online_timeline_schema.exists()
+    assert trajectory_window_drift_schema.exists()
+    assert capture_readiness_schema.exists()
+    assert continuous_time_lidar_schema.exists()
+    assert continuous_time_lidar_ablation_schema.exists()
     for filename in [
         "config.schema.json",
         "result.schema.json",
@@ -1375,6 +1516,10 @@ def test_schema_commands(tmp_path: Path) -> None:
         "evidence_bundle.schema.json",
         "evidence_bundle_verification.schema.json",
         "online_timeline.schema.json",
+        "trajectory_window_drift.schema.json",
+        "capture_readiness.schema.json",
+            "continuous_time_lidar_pair_result.schema.json",
+            "continuous_time_lidar_ablation.schema.json",
     ]:
         assert (all_schema_dir / filename).exists()
     summary_schema = json.loads(report_summary_schema.read_text(encoding="utf-8"))
@@ -2840,6 +2985,13 @@ def test_livox_demo_command_recomputes_and_verifies_bundle(
     assert Path(payload["bundle"]).exists()
     assert Path(payload["verification"]).exists()
     assert Path(payload["html_report"]).exists()
+    result = load_result(payload["result"])
+    assert result.solid_state is not None
+    assert result.solid_state.sensors["base_horizon"].scan_pattern == "non_repetitive"
+    metrics = read_mapping(output_dir / "metrics.json")["metrics"]
+    assert isinstance(metrics, dict)
+    assert "solid_state_fov_azimuth_deg" in metrics
+    assert "solid_state_holdout_independent" in metrics
     assert (
         main(
             [

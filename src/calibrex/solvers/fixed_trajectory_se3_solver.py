@@ -167,6 +167,14 @@ class FixedTrajectorySe3ExtrinsicSolver:
                     break
                 current_rmse = candidate_rmse
             else:
+                if _has_converged(
+                    step, current_rmse, candidate_rmse, solver_options
+                ):
+                    status = "converged"
+                    stop_reason = (
+                        "candidate step and residual change below tolerance"
+                    )
+                    break
                 rejected_steps += 1
                 damping *= 10.0
                 if damping > solver_options.max_damping:

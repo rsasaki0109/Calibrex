@@ -38,6 +38,7 @@ from calibrex.core.camera_lidar_sota_audit import (
     camera_lidar_sota_audit_protocol_json_schema,
     camera_lidar_sota_audit_result_json_schema,
 )
+from calibrex.core.capture_readiness import capture_readiness_json_schema
 from calibrex.core.config import (
     CalibrationConfig,
     DatasetConfig,
@@ -48,6 +49,17 @@ from calibrex.core.config import (
 from calibrex.core.continuous_time_camera_lidar_artifacts import (
     continuous_time_camera_lidar_problem_json_schema,
     continuous_time_camera_lidar_result_json_schema,
+)
+from calibrex.core.continuous_time_lidar_ablation import (
+    continuous_time_lidar_ablation_json_schema,
+)
+from calibrex.core.continuous_time_lidar_artifacts import (
+    ContinuousTimeLidarPairArtifact,
+    continuous_time_lidar_pair_json_schema,
+)
+from calibrex.core.dynamic_window import (
+    DynamicWindowConsistencyThresholds,
+    dynamic_window_consistency_json_schema,
 )
 from calibrex.core.evidence_bundle import (
     EvidenceBundleVerification,
@@ -66,6 +78,7 @@ from calibrex.core.exceptions import BenchmarkError, CalibrexError
 from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
+from calibrex.core.livox_time_ablation import livox_time_ablation_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     probabilistic_correspondence_json_schema,
@@ -78,7 +91,16 @@ from calibrex.core.report_artifacts import (
     report_artifact_schema_kinds,
 )
 from calibrex.core.result import CalibrationResult, load_result, result_json_schema
+from calibrex.core.solid_state import solid_state_context_json_schema
+from calibrex.core.solid_state_cross_dataset_benchmark import (
+    solid_state_cross_dataset_benchmark_config_json_schema,
+    solid_state_cross_dataset_benchmark_json_schema,
+)
+from calibrex.core.solid_state_failure_analysis import (
+    solid_state_failure_analysis_json_schema,
+)
 from calibrex.core.trajectory import trajectory_json_schema
+from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.core.validation import (
     ValidationKind,
@@ -140,6 +162,7 @@ from calibrex.evaluation.continuous_time_trajectory_adapter import (
     attach_recorded_body_trajectory,
 )
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
+from calibrex.evaluation.dynamic_window import evaluate_dynamic_window_consistency
 from calibrex.evaluation.evidence_summary import evidence_cases_from_result
 from calibrex.evaluation.kitti_falsification_benchmark import (
     kitti_falsification_json_schema,
@@ -167,12 +190,18 @@ from calibrex.evaluation.report_compare import (
 )
 from calibrex.evaluation.thresholds import ThresholdProfile, apply_metric_thresholds
 from calibrex.evaluation.timing import timing_metrics_from_inspection
-from calibrex.export.autoware import export_autoware_yaml
-from calibrex.export.ros_tf import export_ros_tf_yaml
+from calibrex.export.autoware import export_autoware_transforms, export_autoware_yaml
+from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
-from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.pipelines.online import (
+    OnlineCalibrationRunOptions,
+    evaluate_rosbag2_capture_readiness,
+    evaluate_rosbag2_continuous_time_lidar_pair,
+    evaluate_rosbag2_trajectory_window_drift,
+    run_online_calibration,
+)
 from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
     OpenCvProbabilisticPnpAdapter,
     OpenCvProbabilisticPnpOptions,
@@ -284,6 +313,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "result",
             "comparison",
             "report-comparison",
+            "dynamic-window-consistency",
+            "trajectory-window-drift",
+            "capture-readiness",
+            "continuous-time-lidar-pair",
+            "continuous-time-lidar-ablation",
+            "solid-state-cross-dataset-benchmark-config",
+            "solid-state-cross-dataset-benchmark",
+            "solid-state-failure-analysis",
             "assessment",
             "benchmark",
             "benchmark-definition",
@@ -311,6 +348,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "evidence-bundle",
             "evidence-bundle-verification",
             "online-timeline",
+            "solid-state-context",
+            "livox-time-ablation",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -585,6 +624,112 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     report_compare.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     report_compare.set_defaults(func=_cmd_report_compare)
+
+    window_consistency = subcommands.add_parser(
+        "window-consistency",
+        help="gate one transform across multiple labeled capture-window results",
+    )
+    window_consistency.add_argument(
+        "entries",
+        nargs="+",
+        metavar="LABEL=RESULT",
+        help="labeled result file, e.g. main=dynamic_result.yaml",
+    )
+    window_consistency.add_argument("--transform", required=True, help="transform id to compare")
+    window_consistency.add_argument(
+        "--max-translation-delta-m",
+        type=float,
+        required=True,
+        help="maximum allowed pairwise translation delta in metres",
+    )
+    window_consistency.add_argument(
+        "--max-rotation-delta-deg",
+        type=float,
+        required=True,
+        help="maximum allowed pairwise rotation delta in degrees",
+    )
+    window_consistency.add_argument("--reference", metavar="LABEL")
+    window_consistency.add_argument("--output", type=Path, help="write the consistency artifact")
+    window_consistency.add_argument(
+        "--enforce",
+        action="store_true",
+        help="return non-zero when the consistency grade is not PASS",
+    )
+    window_consistency.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    window_consistency.set_defaults(func=_cmd_window_consistency)
+
+    trajectory_window_drift = subcommands.add_parser(
+        "trajectory-window-drift",
+        help="recompute odometry/map consistency for each configured capture window",
+    )
+    trajectory_window_drift.add_argument("config", type=Path)
+    trajectory_window_drift.add_argument(
+        "--reference-result",
+        type=Path,
+        help="optional completed result to bind into artifact provenance",
+    )
+    trajectory_window_drift.add_argument(
+        "--deskew",
+        choices=["config", "on", "off"],
+        default="config",
+        help="override use_point_time_offsets for this diagnostic",
+    )
+    trajectory_window_drift.add_argument(
+        "--odometry-burst-policy",
+        choices=["config", "preserve", "keep_first", "keep_last"],
+        default="config",
+        help="override odometry burst preprocessing for this diagnostic",
+    )
+    trajectory_window_drift.add_argument(
+        "--odometry-burst-min-interval-s",
+        type=float,
+        help="override the minimum retained odometry sample interval",
+    )
+    trajectory_window_drift.add_argument(
+        "--output", type=Path, required=True, help="write the drift artifact"
+    )
+    trajectory_window_drift.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    trajectory_window_drift.set_defaults(func=_cmd_trajectory_window_drift)
+
+    capture_readiness = subcommands.add_parser(
+        "calibration-readiness",
+        help="check motion and geometry readiness before LiDAR calibration",
+    )
+    capture_readiness.add_argument("config", type=Path)
+    capture_readiness.add_argument(
+        "--output", type=Path, required=True, help="write the readiness artifact"
+    )
+    capture_readiness.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    capture_readiness.add_argument(
+        "--enforce",
+        action="store_true",
+        help="return non-zero unless every window passes readiness",
+    )
+    capture_readiness.set_defaults(func=_cmd_capture_readiness)
+
+    continuous_time_lidar = subcommands.add_parser(
+        "continuous-time-lidar-pair",
+        help="jointly profile LiDAR extrinsic and clock offset on rosbag1/rosbag2",
+    )
+    continuous_time_lidar.add_argument("config", type=Path)
+    continuous_time_lidar.add_argument(
+        "--output", type=Path, required=True, help="write the continuous-time artifact"
+    )
+    continuous_time_lidar.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    continuous_time_lidar.add_argument(
+        "--enforce",
+        action="store_true",
+        help="return non-zero unless optimization, rank, and holdout evidence pass",
+    )
+    continuous_time_lidar.set_defaults(func=_cmd_continuous_time_lidar_pair)
 
     metrics = subcommands.add_parser("metrics", help="list registered metric definitions")
     metrics.add_argument("--json", action="store_true")
@@ -1160,6 +1305,12 @@ def _build_parser() -> argparse.ArgumentParser:
     export = subcommands.add_parser("export", help="export a result to another format")
     export.add_argument("result", type=Path)
     export.add_argument("--format", choices=["ros-tf", "autoware"], required=True)
+    export.add_argument(
+        "--kind",
+        choices=["result", "continuous-time-lidar-pair"],
+        default="result",
+        help="input artifact kind; continuous-time exports its refined transform",
+    )
     export.add_argument("--output", type=Path, required=True)
     export.set_defaults(func=_cmd_export)
 
@@ -1246,6 +1397,16 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "result": result_json_schema,
         "comparison": comparison_json_schema,
         "report-comparison": report_comparison_json_schema,
+        "dynamic-window-consistency": dynamic_window_consistency_json_schema,
+        "trajectory-window-drift": trajectory_window_drift_json_schema,
+        "capture-readiness": capture_readiness_json_schema,
+        "continuous-time-lidar-pair": continuous_time_lidar_pair_json_schema,
+        "continuous-time-lidar-ablation": continuous_time_lidar_ablation_json_schema,
+        "solid-state-cross-dataset-benchmark-config": (
+            solid_state_cross_dataset_benchmark_config_json_schema
+        ),
+        "solid-state-cross-dataset-benchmark": solid_state_cross_dataset_benchmark_json_schema,
+        "solid-state-failure-analysis": solid_state_failure_analysis_json_schema,
         "assessment": assessment_json_schema,
         "benchmark": benchmark_json_schema,
         "benchmark-definition": benchmark_definition_json_schema,
@@ -1285,6 +1446,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "evidence-bundle": evidence_bundle_json_schema,
         "evidence-bundle-verification": evidence_bundle_verification_json_schema,
         "online-timeline": online_timeline_json_schema,
+        "solid-state-context": solid_state_context_json_schema,
+        "livox-time-ablation": livox_time_ablation_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -1300,6 +1463,8 @@ def _report_artifact_schema_generator(kind: str) -> Callable[[], dict[str, Any]]
 
 
 def _schema_filename(kind: str) -> str:
+    if kind == "continuous-time-lidar-pair":
+        return "continuous_time_lidar_pair_result.schema.json"
     return f"{kind.replace('-', '_')}.schema.json"
 
 
@@ -1792,6 +1957,122 @@ def _cmd_report_compare(args: argparse.Namespace) -> int:
     if args.enforce_compatible and report.summary.protocol_compatibility_status != "compatible":
         return 1
     return 0
+
+
+def _cmd_window_consistency(args: argparse.Namespace) -> int:
+    labeled_paths = _parse_labeled_results(args.entries)
+    labeled_results = [(label, load_result(path)) for label, path in labeled_paths]
+    try:
+        artifact = evaluate_dynamic_window_consistency(
+            labeled_results,
+            paths=dict(labeled_paths),
+            transform_id=args.transform,
+            thresholds=DynamicWindowConsistencyThresholds(
+                max_translation_delta_m=args.max_translation_delta_m,
+                max_rotation_delta_deg=args.max_rotation_delta_deg,
+            ),
+            reference_label=args.reference,
+        )
+    except ValueError as exc:
+        _die(str(exc))
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    elif not args.output:
+        print(
+            f"window consistency: {artifact.grade} "
+            f"({len(artifact.blocking_failures)} blocking failures, "
+            f"{len(artifact.warnings)} warnings)"
+        )
+    if args.enforce and artifact.grade != "pass":
+        return 1
+    return 0
+
+
+def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
+    artifact = evaluate_rosbag2_trajectory_window_drift(
+        args.config,
+        reference_result_path=args.reference_result,
+        use_point_time_offsets=(
+            None if args.deskew == "config" else args.deskew == "on"
+        ),
+        odometry_burst_policy=(
+            None if args.odometry_burst_policy == "config" else args.odometry_burst_policy
+        ),
+        odometry_burst_min_interval_s=args.odometry_burst_min_interval_s,
+    )
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    elif not args.output:
+        print(
+            f"trajectory window drift: {artifact.grade} "
+            f"({artifact.interpretation})"
+        )
+    return 0
+
+
+def _cmd_capture_readiness(args: argparse.Namespace) -> int:
+    artifact = evaluate_rosbag2_capture_readiness(args.config)
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(
+            f"calibration readiness: {artifact.grade.upper()} "
+            f"({artifact.decision}); {artifact.summary}"
+        )
+        for recommendation in artifact.recommendations:
+            print(f"  next: {recommendation.message}")
+        if args.output:
+            print(f"  artifact: {args.output}")
+    return 1 if args.enforce and artifact.grade != "pass" else 0
+
+
+def _cmd_continuous_time_lidar_pair(args: argparse.Namespace) -> int:
+    artifact = evaluate_rosbag2_continuous_time_lidar_pair(args.config)
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(
+            f"continuous-time LiDAR pair: {artifact.status} "
+            f"offset={artifact.estimated_time_offset_sec:.6f}s "
+            f"train_rmse={artifact.final_train_rmse_m}"
+        )
+        print(
+            f"  holdout_rmse={artifact.final_holdout_rmse_m} "
+            f"rank={artifact.observability.rank} "
+            f"condition={artifact.observability.condition_number}"
+        )
+        print(
+            f"  correspondences=train:{artifact.train_correspondence_count} "
+            f"holdout:{artifact.holdout_correspondence_count}; "
+            f"outliers_rejected={artifact.outlier_rejected_count}"
+        )
+        print(
+            f"  method=voxel:{artifact.options.voxel_strategy} "
+            f"outliers:{artifact.options.outlier_policy}"
+        )
+        print(f"  reason: {artifact.reason}")
+        if args.output:
+            print(f"  artifact: {args.output}")
+    enforce_ok = (
+        artifact.status == "converged"
+        and artifact.observability.rank is not None
+        and artifact.observability.rank >= 6
+        and artifact.final_holdout_rmse_m is not None
+        and artifact.holdout_correspondence_count >= artifact.options.min_correspondences
+    )
+    return 1 if args.enforce and not enforce_ok else 0
 
 
 def _parse_labeled_results(entries: list[str]) -> list[tuple[str, Path]]:
@@ -2970,13 +3251,30 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
-    result = load_result(args.result)
-    if args.format == "ros-tf":
-        export_ros_tf_yaml(result, args.output)
-    elif args.format == "autoware":
-        export_autoware_yaml(result, args.output)
+    if args.kind == "continuous-time-lidar-pair":
+        artifact = ContinuousTimeLidarPairArtifact.model_validate(
+            read_mapping(args.result)
+        )
+        transforms = {artifact.variable: artifact.refined_transform}
+        if args.format == "ros-tf":
+            export_ros_tf_transforms(transforms, args.output)
+        elif args.format == "autoware":
+            export_autoware_transforms(
+                transforms,
+                args.output,
+                source_run=artifact.provenance.tool_name,
+                quality_grade=artifact.refined_transform.quality.grade,
+            )
+        else:
+            _die(f"unsupported export format: {args.format}")
     else:
-        _die(f"unsupported export format: {args.format}")
+        result = load_result(args.result)
+        if args.format == "ros-tf":
+            export_ros_tf_yaml(result, args.output)
+        elif args.format == "autoware":
+            export_autoware_yaml(result, args.output)
+        else:
+            _die(f"unsupported export format: {args.format}")
     print(f"wrote {args.output}")
     return 0
 

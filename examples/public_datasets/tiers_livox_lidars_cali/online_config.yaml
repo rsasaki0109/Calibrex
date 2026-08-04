@@ -15,6 +15,7 @@ dataset:
   type: rosbag1
   path: data/public/tiers_lidars_cali/LidarsCali.bag
   time_base: ros_time
+  odometry_topic: /vrpn_client_node/UWBTest/pose
 
 sensors:
   livox_horizon:
@@ -22,13 +23,35 @@ sensors:
     model: livox_horizon
     topic: /livox/lidar
     frame_id: horizon_frame
-    fields: [x, y, z, intensity]
+    fields: [x, y, z, intensity, offset_time, line]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
   livox_avia:
     type: lidar
     model: livox_avia
     topic: /avia/livox/lidar
     frame_id: avia_frame
-    fields: [x, y, z, intensity]
+    fields: [x, y, z, intensity, offset_time, line]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
 
 frames:
   livox_horizon:
@@ -60,6 +83,8 @@ pipeline:
         max_target_points: 1500
         max_target_messages: 36
         max_replay_duration_s: 60.0
+        use_point_time_offsets: true
+        inject_time_offset_s: 0.0
         online_gate_min_rank: 6
         online_gate_max_holdout_rmse_m: 0.40
         online_gate_max_rolling_regression_m: 0.15
@@ -72,6 +97,11 @@ solver:
 
 evaluation:
   holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: true
+    require_independent_holdout: true
+    min_holdout_windows: 2
 
 outputs:
   result: result.yaml

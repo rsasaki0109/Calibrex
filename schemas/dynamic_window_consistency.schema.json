@@ -1,0 +1,410 @@
+{
+  "$defs": {
+    "DynamicWindowCaptureWindow": {
+      "additionalProperties": false,
+      "description": "One replay window and its selected observation counts, when available.",
+      "properties": {
+        "end_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Timestamp Ns"
+        },
+        "selected_source_message_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Source Message Count"
+        },
+        "selected_source_point_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Source Point Count"
+        },
+        "selected_target_message_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Target Message Count"
+        },
+        "selected_target_point_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Target Point Count"
+        },
+        "start_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Timestamp Ns"
+        },
+        "window_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window Index"
+        }
+      },
+      "title": "DynamicWindowCaptureWindow",
+      "type": "object"
+    },
+    "DynamicWindowConsistencyInput": {
+      "additionalProperties": false,
+      "description": "One schema-validated calibration result used by the consistency gate.",
+      "properties": {
+        "capture_window_end_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Window End Timestamp Ns"
+        },
+        "capture_window_start_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Window Start Timestamp Ns"
+        },
+        "capture_windows": {
+          "items": {
+            "$ref": "#/$defs/DynamicWindowCaptureWindow"
+          },
+          "title": "Capture Windows",
+          "type": "array"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "quality_grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Quality Grade",
+          "type": "string"
+        },
+        "result_path": {
+          "title": "Result Path",
+          "type": "string"
+        },
+        "result_sha256": {
+          "pattern": "^[0-9a-fA-F]{64}$",
+          "title": "Result Sha256",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "transform_present": {
+          "title": "Transform Present",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "label",
+        "result_path",
+        "result_sha256",
+        "run_id",
+        "quality_grade",
+        "transform_present"
+      ],
+      "title": "DynamicWindowConsistencyInput",
+      "type": "object"
+    },
+    "DynamicWindowConsistencyPair": {
+      "additionalProperties": false,
+      "description": "Pairwise transform delta and gate verdict.",
+      "properties": {
+        "grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "left_label": {
+          "title": "Left Label",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "right_label": {
+          "title": "Right Label",
+          "type": "string"
+        },
+        "rotation_delta_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Delta Deg"
+        },
+        "translation_delta_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Delta M"
+        }
+      },
+      "required": [
+        "left_label",
+        "right_label",
+        "grade",
+        "reason"
+      ],
+      "title": "DynamicWindowConsistencyPair",
+      "type": "object"
+    },
+    "DynamicWindowConsistencyProvenance": {
+      "additionalProperties": false,
+      "description": "Input digests and generation details for a consistency artifact.",
+      "properties": {
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 2,
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "DynamicWindowConsistencyProvenance",
+      "type": "object"
+    },
+    "DynamicWindowConsistencyThresholds": {
+      "additionalProperties": false,
+      "description": "Declared transform-delta limits for accepting one window family.",
+      "properties": {
+        "max_rotation_delta_deg": {
+          "minimum": 0.0,
+          "title": "Max Rotation Delta Deg",
+          "type": "number"
+        },
+        "max_translation_delta_m": {
+          "minimum": 0.0,
+          "title": "Max Translation Delta M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_translation_delta_m",
+        "max_rotation_delta_deg"
+      ],
+      "title": "DynamicWindowConsistencyThresholds",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable gate for reusing one transform across capture windows.",
+  "properties": {
+    "blocking_failures": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocking Failures",
+      "type": "array"
+    },
+    "comparison_mode": {
+      "const": "all_pairs",
+      "default": "all_pairs",
+      "title": "Comparison Mode",
+      "type": "string"
+    },
+    "grade": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail"
+      ],
+      "title": "Grade",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/DynamicWindowConsistencyInput"
+      },
+      "minItems": 2,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/DynamicWindowConsistencyPair"
+      },
+      "minItems": 1,
+      "title": "Pairs",
+      "type": "array"
+    },
+    "protocol_compatibility_status": {
+      "enum": [
+        "compatible",
+        "warning",
+        "not_comparable"
+      ],
+      "title": "Protocol Compatibility Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/DynamicWindowConsistencyProvenance"
+    },
+    "reference_label": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Label"
+    },
+    "schema_version": {
+      "const": "slac.dynamic_window_consistency/v0.1",
+      "default": "slac.dynamic_window_consistency/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/DynamicWindowConsistencyThresholds"
+    },
+    "transform_id": {
+      "title": "Transform Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "transform_id",
+    "thresholds",
+    "inputs",
+    "pairs",
+    "protocol_compatibility_status",
+    "grade",
+    "provenance"
+  ],
+  "title": "DynamicWindowConsistencyArtifact",
+  "type": "object"
+}

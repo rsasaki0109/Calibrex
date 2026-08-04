@@ -34,12 +34,28 @@ from calibrex.core.camera_lidar_sota_audit import (
     CameraLidarSotaAuditProtocol,
     CameraLidarSotaAuditResult,
 )
+from calibrex.core.capture_readiness import (
+    CAPTURE_READINESS_SCHEMA_VERSION,
+    CaptureReadinessArtifact,
+)
 from calibrex.core.config import CONFIG_SCHEMA_VERSION, CalibrationConfig
 from calibrex.core.continuous_time_camera_lidar_artifacts import (
     CONTINUOUS_TIME_CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION,
     CONTINUOUS_TIME_CAMERA_LIDAR_RESULT_SCHEMA_VERSION,
     ContinuousTimeCameraLidarProblemArtifact,
     ContinuousTimeCameraLidarResultArtifact,
+)
+from calibrex.core.continuous_time_lidar_ablation import (
+    CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
+    ContinuousTimeLidarAblationManifest,
+)
+from calibrex.core.continuous_time_lidar_artifacts import (
+    CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION,
+    ContinuousTimeLidarPairArtifact,
+)
+from calibrex.core.dynamic_window import (
+    DYNAMIC_WINDOW_CONSISTENCY_SCHEMA_VERSION,
+    DynamicWindowConsistencyArtifact,
 )
 from calibrex.core.evidence_bundle import (
     EVIDENCE_BUNDLE_SCHEMA_VERSION,
@@ -59,6 +75,10 @@ from calibrex.core.external_run import (
     ExternalCalibrationRunArtifact,
 )
 from calibrex.core.io import read_mapping
+from calibrex.core.livox_time_ablation import (
+    LIVOX_TIME_ABLATION_SCHEMA_VERSION,
+    LivoxTimeAblationManifest,
+)
 from calibrex.core.online_timeline import (
     ONLINE_TIMELINE_SCHEMA_VERSION,
     OnlineCalibrationTimelineArtifact,
@@ -84,7 +104,27 @@ from calibrex.core.report_artifacts import (
     ReportSummaryArtifact,
 )
 from calibrex.core.result import RESULT_SCHEMA_VERSION, CalibrationResult, StrictModel
+from calibrex.core.solid_state import (
+    SOLID_STATE_CONTEXT_SCHEMA_VERSION,
+    SolidStateLidarCalibrationContext,
+)
+from calibrex.core.solid_state_cross_dataset_benchmark import (
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION,
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION_V0_1,
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION,
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION_V0_1,
+    SolidStateCrossDatasetBenchmarkManifest,
+    SolidStateCrossDatasetBenchmarkSpec,
+)
+from calibrex.core.solid_state_failure_analysis import (
+    SOLID_STATE_FAILURE_ANALYSIS_SCHEMA_VERSION,
+    SolidStateFailureAnalysisManifest,
+)
 from calibrex.core.trajectory import TRAJECTORY_SCHEMA_VERSION, TrajectoryArtifact
+from calibrex.core.trajectory_window_drift import (
+    TRAJECTORY_WINDOW_DRIFT_SCHEMA_VERSION,
+    TrajectoryWindowDriftArtifact,
+)
 from calibrex.core.transform_artifacts import (
     TRANSFORMS_SCHEMA_VERSION,
     TransformArtifact,
@@ -112,6 +152,7 @@ ValidationKind = Literal[
     "result",
     "comparison",
     "report-comparison",
+    "dynamic-window-consistency",
     "assessment",
     "benchmark",
     "benchmark-definition",
@@ -145,6 +186,15 @@ ValidationKind = Literal[
     "evidence-bundle-verification",
     "online-timeline",
     "trajectory",
+    "trajectory-window-drift",
+    "capture-readiness",
+    "continuous-time-lidar-pair",
+    "continuous-time-lidar-ablation",
+    "solid-state-cross-dataset-benchmark-config",
+    "solid-state-cross-dataset-benchmark",
+    "solid-state-failure-analysis",
+    "solid-state-context",
+    "livox-time-ablation",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -152,6 +202,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "result": CalibrationResult,
     "comparison": ResultComparison,
     "report-comparison": ReportComparison,
+    "dynamic-window-consistency": DynamicWindowConsistencyArtifact,
     "assessment": AssessmentArtifact,
     "benchmark": BenchmarkArtifact,
     "benchmark-definition": BenchmarkDefinition,
@@ -189,6 +240,15 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "evidence-bundle-verification": EvidenceBundleVerification,
     "online-timeline": OnlineCalibrationTimelineArtifact,
     "trajectory": TrajectoryArtifact,
+    "trajectory-window-drift": TrajectoryWindowDriftArtifact,
+    "capture-readiness": CaptureReadinessArtifact,
+    "continuous-time-lidar-pair": ContinuousTimeLidarPairArtifact,
+    "continuous-time-lidar-ablation": ContinuousTimeLidarAblationManifest,
+    "solid-state-cross-dataset-benchmark-config": SolidStateCrossDatasetBenchmarkSpec,
+    "solid-state-cross-dataset-benchmark": SolidStateCrossDatasetBenchmarkManifest,
+    "solid-state-failure-analysis": SolidStateFailureAnalysisManifest,
+    "solid-state-context": SolidStateLidarCalibrationContext,
+    "livox-time-ablation": LivoxTimeAblationManifest,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -196,6 +256,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     RESULT_SCHEMA_VERSION: "result",
     COMPARISON_SCHEMA_VERSION: "comparison",
     REPORT_COMPARISON_SCHEMA_VERSION: "report-comparison",
+    DYNAMIC_WINDOW_CONSISTENCY_SCHEMA_VERSION: "dynamic-window-consistency",
     ASSESSMENT_SCHEMA_VERSION: "assessment",
     BENCHMARK_SCHEMA_VERSION: "benchmark",
     BENCHMARK_DEFINITION_SCHEMA_VERSION: "benchmark-definition",
@@ -241,6 +302,25 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION: "evidence-bundle-verification",
     ONLINE_TIMELINE_SCHEMA_VERSION: "online-timeline",
     TRAJECTORY_SCHEMA_VERSION: "trajectory",
+    TRAJECTORY_WINDOW_DRIFT_SCHEMA_VERSION: "trajectory-window-drift",
+    CAPTURE_READINESS_SCHEMA_VERSION: "capture-readiness",
+    CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: "continuous-time-lidar-pair",
+    CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION: "continuous-time-lidar-ablation",
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION: (
+        "solid-state-cross-dataset-benchmark-config"
+    ),
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION_V0_1: (
+        "solid-state-cross-dataset-benchmark-config"
+    ),
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION: (
+        "solid-state-cross-dataset-benchmark"
+    ),
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION_V0_1: (
+        "solid-state-cross-dataset-benchmark"
+    ),
+    SOLID_STATE_FAILURE_ANALYSIS_SCHEMA_VERSION: "solid-state-failure-analysis",
+    SOLID_STATE_CONTEXT_SCHEMA_VERSION: "solid-state-context",
+    LIVOX_TIME_ABLATION_SCHEMA_VERSION: "livox-time-ablation",
 }
 
 

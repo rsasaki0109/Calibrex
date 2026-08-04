@@ -9,6 +9,7 @@ import platform
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from time import perf_counter
+from typing import cast
 
 import numpy as np
 
@@ -415,7 +416,14 @@ def _axis_angle_matrix(
     vector /= np.linalg.norm(vector)
     x, y, z = vector
     skew = np.asarray(((0.0, -z, y), (z, 0.0, -x), (-y, x, 0.0)))
-    return np.eye(3) + math.sin(angle) * skew + (1.0 - math.cos(angle)) * (skew @ skew)
+    return cast(
+        np.ndarray,
+        np.asarray(
+            np.eye(3)
+            + math.sin(angle) * skew
+            + (1.0 - math.cos(angle)) * (skew @ skew)
+        ),
+    )
 
 
 def _string_list_sha256(values: list[str]) -> str:

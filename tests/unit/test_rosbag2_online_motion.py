@@ -9,9 +9,15 @@ from pathlib import Path
 
 import pytest
 
+from calibrex.core.config import CalibrationConfig
 from calibrex.core.exceptions import DatasetError
+from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
-from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.pipelines.online import (
+    OnlineCalibrationRunOptions,
+    _resolve_online_lidar_pair,
+    run_online_calibration,
+)
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",
@@ -32,6 +38,36 @@ _STEP_NS = 100_000_000
 
 _TRUE_T_BASE_AVIA = SE3((0.12, -0.05, 0.03), (0.0, 0.0, 0.0871557, 0.9961947))
 _WRONG_T_BASE_AVIA = SE3((0.20, 0.08, 0.06), (0.0, 0.0, 0.0, 1.0))
+
+
+def test_online_pair_prefers_fixed_source_and_estimated_target_in_chain() -> None:
+    config = CalibrationConfig.model_validate(
+        {
+            "dataset": {"type": "rosbag2", "path": "fixture.db3"},
+            "sensors": {
+                "velodyne_vlp16": {"type": "lidar"},
+                "ouster_os1": {"type": "lidar"},
+            },
+            "frames": {
+                "base_link": {"root": True},
+                "velodyne_vlp16": {
+                    "parent": "base_link",
+                    "transform": {"estimate": False},
+                },
+                "ouster_os1": {
+                    "parent": "velodyne_vlp16",
+                    "transform": {"estimate": True},
+                },
+            },
+        }
+    )
+    frame_graph = FrameGraph.from_config(config)
+
+    assert _resolve_online_lidar_pair(
+        config,
+        frame_graph,
+        sorted(config.sensors),
+    ) == ("velodyne_vlp16", "ouster_os1")
 
 
 def _corner_world_points(

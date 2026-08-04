@@ -1,0 +1,101 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: agrob_modular_e_livox_rslidar_online
+  description: >
+    Online Livox MID-70-to-RS-LiDAR extrinsic calibration from the AgRob
+    Modular-e 2023-06-13T170852Z ROS 2 sequence. The Livox source is the
+    non-repetitive /livox/lidar CustomMsg stream and is deskewed from its
+    timebase/offset_time fields. The /rslidar_points target is decoded as
+    PointCloud2 without assuming a per-point time field. The initial transform
+    is the dataset's measured sensor placement expressed as T_livox_frame_rslidar:
+    translation [-0.0698, 0.0, 0.09] m and yaw pi. It is only an initializer;
+    the final claim must use independent holdout and known-bad controls.
+  output_dir: outputs/agrob_modular_e_livox_rslidar_online
+  domain: robotics
+
+dataset:
+  type: rosbag2
+  path: data/public/agrob_scorpion/2023-06-13T170852Z
+  odometry_topic: /odom
+  time_base: ros_time
+
+sensors:
+  livox_mid70:
+    type: lidar
+    model: livox_mid70
+    topic: /livox/lidar
+    frame_id: livox_frame
+    fields: [x, y, z, reflectivity, tag, line, offset_time]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+  rslidar:
+    type: lidar
+    model: rslidar
+    topic: /rslidar_points
+    frame_id: rslidar
+    fields: [x, y, z, intensity]
+
+frames:
+  livox_mid70:
+    root: true
+  rslidar:
+    parent: livox_mid70
+    transform:
+      estimate: true
+      initial:
+        translation: [-0.0698, 0.0, 0.09]
+        rotation_quat_xyzw: [0.0, 0.0, 1.0, 0.0]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_lidar_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        use_point_time_offsets: true
+        inject_time_offset_s: 0.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: true
+    require_independent_holdout: true
+    min_holdout_windows: 2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

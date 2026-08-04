@@ -1,0 +1,166 @@
+schema_version: slac.solid_state_cross_dataset_benchmark_config/v0.2
+protocol:
+  name: bounded_continuous_time_uniform_vs_adaptive_solid_state_lidar
+  solver: continuous_time_lidar_pair
+  variants:
+  - uniform_none
+  - adaptive_mad
+  same_capture_windows: true
+  same_temporal_holdout: true
+  same_solver_budget: true
+  bounded_replay_allowed: true
+  bounded_replay_note: 'Each dataset uses a deterministic bounded replay cap recorded
+    in its config and continuous-time artifact; variants within a dataset share every
+    cap, temporal split, and solver budget.
+
+    '
+  primary_metric: final_holdout_rmse_m
+  lower_is_better: true
+  minimum_holdout_correspondences: 6
+  split_ids:
+  - early_holdout
+  - middle_holdout
+  - late_holdout
+  holdout_start_fractions:
+    early_holdout: 0.6
+    middle_holdout: 0.7
+    late_holdout: 0.8
+  seed_values:
+  - 0
+  - 17
+  - 42
+  confidence_level: 0.95
+  bootstrap_samples: 2000
+  bootstrap_seed: 20260804
+  minimum_scored_replicates: 4
+  require_converged: false
+datasets:
+- id: agrob_modular_e
+  name: AgRob Modular-e Livox MID-70 plus RS-LiDAR
+  family: agrob_scorpion
+  dataset_manifest_path: examples/public_datasets/agrob_modular_e/manifest.yaml
+  config_path: examples/public_datasets/agrob_modular_e/online_joint_config.yaml
+  ablation_manifest_path: outputs/agrob_modular_e_livox_rslidar_continuous_time_ablation_hybrid_support6_iter10/ablation_manifest.yaml
+  reference_mode: trajectory_only
+  absolute_extrinsic_ground_truth: false
+  identity_control: false
+  independent_temporal_holdout: true
+  replicates:
+  - id: agrob_modular_e__middle_holdout__seed_0
+    split_id: middle_holdout
+    seed: 0
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\agrob_modular_e\agrob_modular_e__middle_holdout__seed_0\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.7
+    - sampling_seed=0
+  - id: agrob_modular_e__middle_holdout__seed_17
+    split_id: middle_holdout
+    seed: 17
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\agrob_modular_e\agrob_modular_e__middle_holdout__seed_17\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.7
+    - sampling_seed=17
+  - id: agrob_modular_e__late_holdout__seed_0
+    split_id: late_holdout
+    seed: 0
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\agrob_modular_e\agrob_modular_e__late_holdout__seed_0\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.8
+    - sampling_seed=0
+  - id: agrob_modular_e__late_holdout__seed_17
+    split_id: late_holdout
+    seed: 17
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\agrob_modular_e\agrob_modular_e__late_holdout__seed_17\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.8
+    - sampling_seed=17
+  notes:
+  - Livox MID-70 is the solid-state target and RS-LiDAR is the fixed source map.
+  - This is a real sensor pair with no independently surveyed extrinsic ground truth.
+- id: tiers_livox_lidars_cali
+  name: TIERS LidarsCali Velodyne VLP-16 plus Livox Horizon
+  family: tiers_lidars
+  dataset_manifest_path: examples/public_datasets/tiers_livox_lidars_cali/manifest.yaml
+  config_path: examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml
+  ablation_manifest_path: outputs/tiers_livox_lidars_cali_continuous_time_ablation_recordclock_bounded/ablation_manifest.yaml
+  reference_mode: trajectory_only
+  absolute_extrinsic_ground_truth: false
+  identity_control: false
+  independent_temporal_holdout: true
+  replicates:
+  - id: tiers_livox_lidars_cali__middle_holdout__seed_0
+    split_id: middle_holdout
+    seed: 0
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\tiers_livox_lidars_cali\tiers_livox_lidars_cali__middle_holdout__seed_0\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.7
+    - sampling_seed=0
+  - id: tiers_livox_lidars_cali__middle_holdout__seed_17
+    split_id: middle_holdout
+    seed: 17
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\tiers_livox_lidars_cali\tiers_livox_lidars_cali__middle_holdout__seed_17\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.7
+    - sampling_seed=17
+  - id: tiers_livox_lidars_cali__late_holdout__seed_0
+    split_id: late_holdout
+    seed: 0
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\tiers_livox_lidars_cali\tiers_livox_lidars_cali__late_holdout__seed_0\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.8
+    - sampling_seed=0
+  - id: tiers_livox_lidars_cali__late_holdout__seed_17
+    split_id: late_holdout
+    seed: 17
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\tiers_livox_lidars_cali\tiers_livox_lidars_cali__late_holdout__seed_17\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.8
+    - sampling_seed=17
+  notes:
+  - Livox CustomMsg message headers are since-boot; ROS1 replay uses bag-record clock
+    for temporal partitioning.
+  - The bounded profile is intentionally capped for workstation execution and is shared
+    by both variants.
+- id: glim_versatile
+  name: AIST GLIM Livox Avia duplicate-topic identity control
+  family: glim_versatile
+  dataset_manifest_path: examples/public_datasets/glim_versatile/manifest.yaml
+  config_path: examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml
+  ablation_manifest_path: outputs/glim_versatile_livox_continuous_time_ablation_bounded/ablation_manifest.yaml
+  reference_mode: identity_control
+  absolute_extrinsic_ground_truth: false
+  identity_control: true
+  independent_temporal_holdout: false
+  replicates:
+  - id: glim_versatile__middle_holdout__seed_0
+    split_id: middle_holdout
+    seed: 0
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\glim_versatile\glim_versatile__middle_holdout__seed_0\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.7
+    - sampling_seed=0
+  - id: glim_versatile__middle_holdout__seed_17
+    split_id: middle_holdout
+    seed: 17
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\glim_versatile\glim_versatile__middle_holdout__seed_17\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.7
+    - sampling_seed=17
+  - id: glim_versatile__late_holdout__seed_0
+    split_id: late_holdout
+    seed: 0
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\glim_versatile\glim_versatile__late_holdout__seed_0\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.8
+    - sampling_seed=0
+  - id: glim_versatile__late_holdout__seed_17
+    split_id: late_holdout
+    seed: 17
+    ablation_manifest_path: outputs\solid_state_benchmark_v02_no_uniform_fallback\glim_versatile\glim_versatile__late_holdout__seed_17\ablation_manifest.yaml
+    notes:
+    - holdout_start_fraction=0.8
+    - sampling_seed=17
+  notes:
+  - The copied topic is an identity control, not a surveyed second-LiDAR extrinsic.
+  - The accompanying trajectory is useful for motion/clock replay but does not provide
+    absolute extrinsic ground truth.

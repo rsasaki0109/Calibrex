@@ -1,0 +1,1032 @@
+{
+  "$defs": {
+    "ContinuousTimeLidarPairOptionsArtifact": {
+      "additionalProperties": false,
+      "description": "Profile and fixed-extrinsic solver settings recorded in the result.",
+      "properties": {
+        "adaptive_max_voxel_size_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Adaptive Max Voxel Size M",
+          "type": "number"
+        },
+        "adaptive_min_points_per_voxel": {
+          "minimum": 1,
+          "title": "Adaptive Min Points Per Voxel",
+          "type": "integer"
+        },
+        "adaptive_min_voxel_size_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Adaptive Min Voxel Size M",
+          "type": "number"
+        },
+        "adaptive_range_exponent": {
+          "minimum": 0.0,
+          "title": "Adaptive Range Exponent",
+          "type": "number"
+        },
+        "adaptive_range_reference_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Adaptive Range Reference M",
+          "type": "number"
+        },
+        "adaptive_use_uniform_fallback": {
+          "default": true,
+          "title": "Adaptive Use Uniform Fallback",
+          "type": "boolean"
+        },
+        "correspondence_refinement_iterations": {
+          "minimum": 0,
+          "title": "Correspondence Refinement Iterations",
+          "type": "integer"
+        },
+        "fixed_extrinsic_max_iterations": {
+          "minimum": 0,
+          "title": "Fixed Extrinsic Max Iterations",
+          "type": "integer"
+        },
+        "fixed_extrinsic_robust_loss": {
+          "enum": [
+            "none",
+            "huber"
+          ],
+          "title": "Fixed Extrinsic Robust Loss",
+          "type": "string"
+        },
+        "holdout_start_fraction": {
+          "default": 0.8,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Holdout Start Fraction",
+          "type": "number"
+        },
+        "initial_time_offset_sec": {
+          "title": "Initial Time Offset Sec",
+          "type": "number"
+        },
+        "initial_time_step_sec": {
+          "exclusiveMinimum": 0.0,
+          "title": "Initial Time Step Sec",
+          "type": "number"
+        },
+        "max_abs_time_offset_sec": {
+          "minimum": 0.0,
+          "title": "Max Abs Time Offset Sec",
+          "type": "number"
+        },
+        "max_iterations": {
+          "minimum": 1,
+          "title": "Max Iterations",
+          "type": "integer"
+        },
+        "max_odometry_extrapolation_s": {
+          "minimum": 0.0,
+          "title": "Max Odometry Extrapolation S",
+          "type": "number"
+        },
+        "max_source_records": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Source Records"
+        },
+        "max_target_points_per_split": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Target Points Per Split"
+        },
+        "min_correspondences": {
+          "minimum": 1,
+          "title": "Min Correspondences",
+          "type": "integer"
+        },
+        "minimum_time_step_sec": {
+          "exclusiveMinimum": 0.0,
+          "title": "Minimum Time Step Sec",
+          "type": "number"
+        },
+        "outlier_mad_scale": {
+          "minimum": 0.0,
+          "title": "Outlier Mad Scale",
+          "type": "number"
+        },
+        "outlier_min_inlier_fraction": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Outlier Min Inlier Fraction",
+          "type": "number"
+        },
+        "outlier_min_threshold_m": {
+          "minimum": 0.0,
+          "title": "Outlier Min Threshold M",
+          "type": "number"
+        },
+        "outlier_policy": {
+          "enum": [
+            "none",
+            "mad"
+          ],
+          "title": "Outlier Policy",
+          "type": "string"
+        },
+        "sampling_seed": {
+          "default": 0,
+          "title": "Sampling Seed",
+          "type": "integer"
+        },
+        "voxel_strategy": {
+          "enum": [
+            "uniform",
+            "adaptive"
+          ],
+          "title": "Voxel Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "initial_time_offset_sec",
+        "max_abs_time_offset_sec",
+        "initial_time_step_sec",
+        "minimum_time_step_sec",
+        "max_iterations",
+        "min_correspondences",
+        "max_odometry_extrapolation_s",
+        "outlier_policy",
+        "outlier_mad_scale",
+        "outlier_min_threshold_m",
+        "outlier_min_inlier_fraction",
+        "voxel_strategy",
+        "adaptive_range_reference_m",
+        "adaptive_range_exponent",
+        "adaptive_min_voxel_size_m",
+        "adaptive_max_voxel_size_m",
+        "adaptive_min_points_per_voxel",
+        "correspondence_refinement_iterations",
+        "fixed_extrinsic_max_iterations",
+        "fixed_extrinsic_robust_loss"
+      ],
+      "title": "ContinuousTimeLidarPairOptionsArtifact",
+      "type": "object"
+    },
+    "SolidStateFailureAnalysisFinding": {
+      "additionalProperties": false,
+      "description": "An evidence-backed observation or explicitly labelled causal hypothesis.",
+      "properties": {
+        "caveat": {
+          "title": "Caveat",
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "candidate_cause"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "supporting_replicates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Replicates",
+          "type": "array"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "severity",
+        "confidence",
+        "title",
+        "evidence",
+        "caveat"
+      ],
+      "title": "SolidStateFailureAnalysisFinding",
+      "type": "object"
+    },
+    "SolidStateFailureAnalysisProvenance": {
+      "additionalProperties": false,
+      "description": "Digest-bound inputs used to derive the analysis.",
+      "properties": {
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "SolidStateFailureAnalysisProvenance",
+      "type": "object"
+    },
+    "SolidStateFailureAnalysisReplicate": {
+      "additionalProperties": false,
+      "description": "Paired adaptive/uniform diagnostics for one split and sampling seed.",
+      "properties": {
+        "adaptive": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateFailureAnalysisVariant"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "adaptive_condition_number_minus_uniform": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Condition Number Minus Uniform"
+        },
+        "adaptive_correspondence_delta": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Correspondence Delta"
+        },
+        "adaptive_generalization_gap_minus_uniform_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Generalization Gap Minus Uniform M"
+        },
+        "adaptive_holdout_minus_uniform_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Holdout Minus Uniform M"
+        },
+        "adaptive_offset_minus_uniform_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Offset Minus Uniform Sec"
+        },
+        "adaptive_outlier_rate_minus_uniform": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Outlier Rate Minus Uniform"
+        },
+        "adaptive_train_minus_uniform_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Train Minus Uniform M"
+        },
+        "diagnosis": {
+          "title": "Diagnosis",
+          "type": "string"
+        },
+        "holdout_improvement_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Improvement Percent"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "signals": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Signals",
+          "type": "array"
+        },
+        "split_id": {
+          "title": "Split Id",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "uniform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateFailureAnalysisVariant"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "winner": {
+          "enum": [
+            "adaptive",
+            "uniform",
+            "tie",
+            "inconclusive"
+          ],
+          "title": "Winner",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "split_id",
+        "seed",
+        "status",
+        "winner",
+        "diagnosis"
+      ],
+      "title": "SolidStateFailureAnalysisReplicate",
+      "type": "object"
+    },
+    "SolidStateFailureAnalysisSummary": {
+      "additionalProperties": false,
+      "description": "Aggregate statistics for the selected dataset.",
+      "properties": {
+        "adaptive_converged_count": {
+          "minimum": 0,
+          "title": "Adaptive Converged Count",
+          "type": "integer"
+        },
+        "adaptive_rank_six_count": {
+          "minimum": 0,
+          "title": "Adaptive Rank Six Count",
+          "type": "integer"
+        },
+        "adaptive_win_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adaptive Win Rate"
+        },
+        "adaptive_wins": {
+          "minimum": 0,
+          "title": "Adaptive Wins",
+          "type": "integer"
+        },
+        "diagnosis_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Diagnosis Counts",
+          "type": "object"
+        },
+        "mean_adaptive_generalization_gap_minus_uniform_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Adaptive Generalization Gap Minus Uniform M"
+        },
+        "mean_adaptive_outlier_rejection_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Adaptive Outlier Rejection Rate"
+        },
+        "mean_adaptive_train_minus_uniform_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Adaptive Train Minus Uniform M"
+        },
+        "mean_holdout_improvement_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Holdout Improvement Percent"
+        },
+        "replicate_count": {
+          "minimum": 0,
+          "title": "Replicate Count",
+          "type": "integer"
+        },
+        "scored_replicate_count": {
+          "minimum": 0,
+          "title": "Scored Replicate Count",
+          "type": "integer"
+        },
+        "ties": {
+          "minimum": 0,
+          "title": "Ties",
+          "type": "integer"
+        },
+        "uniform_converged_count": {
+          "minimum": 0,
+          "title": "Uniform Converged Count",
+          "type": "integer"
+        },
+        "uniform_rank_six_count": {
+          "minimum": 0,
+          "title": "Uniform Rank Six Count",
+          "type": "integer"
+        },
+        "uniform_wins": {
+          "minimum": 0,
+          "title": "Uniform Wins",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "replicate_count",
+        "scored_replicate_count",
+        "adaptive_wins",
+        "uniform_wins",
+        "ties",
+        "adaptive_rank_six_count",
+        "uniform_rank_six_count",
+        "adaptive_converged_count",
+        "uniform_converged_count"
+      ],
+      "title": "SolidStateFailureAnalysisSummary",
+      "type": "object"
+    },
+    "SolidStateFailureAnalysisVariant": {
+      "additionalProperties": false,
+      "description": "Diagnostics copied from one continuous-time solver artifact.",
+      "properties": {
+        "accepted_iteration_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Accepted Iteration Count",
+          "type": "integer"
+        },
+        "accepted_iteration_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accepted Iteration Rate"
+        },
+        "artifact_schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Schema Version"
+        },
+        "artifact_source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Artifact Source Sha256",
+          "type": "object"
+        },
+        "best_profile_holdout_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Best Profile Holdout Rmse M"
+        },
+        "condition_number": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition Number"
+        },
+        "estimated_time_offset_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Time Offset Sec"
+        },
+        "final_holdout_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Holdout Rmse M"
+        },
+        "final_train_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Train Rmse M"
+        },
+        "holdout_correspondence_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Holdout Correspondence Count",
+          "type": "integer"
+        },
+        "holdout_train_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Train Ratio"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "initial_time_offset_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial Time Offset Sec"
+        },
+        "initial_train_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial Train Rmse M"
+        },
+        "observability_rank": {
+          "anyOf": [
+            {
+              "maximum": 6,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observability Rank"
+        },
+        "optimization_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Optimization Status"
+        },
+        "options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuousTimeLidarPairOptionsArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outlier_policy": {
+          "enum": [
+            "none",
+            "mad"
+          ],
+          "title": "Outlier Policy",
+          "type": "string"
+        },
+        "outlier_rejected_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Outlier Rejected Count",
+          "type": "integer"
+        },
+        "outlier_rejection_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outlier Rejection Rate"
+        },
+        "profile_holdout_span_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Holdout Span M"
+        },
+        "profile_iteration_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Profile Iteration Count",
+          "type": "integer"
+        },
+        "profile_offset_span_sec": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Offset Span Sec"
+        },
+        "quality_grade": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Grade"
+        },
+        "residual_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Residual Count",
+          "type": "integer"
+        },
+        "result_path": {
+          "title": "Result Path",
+          "type": "string"
+        },
+        "result_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result Sha256"
+        },
+        "train_correspondence_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Train Correspondence Count",
+          "type": "integer"
+        },
+        "train_holdout_gap_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Holdout Gap M"
+        },
+        "train_rmse_change_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Rmse Change M"
+        },
+        "voxel_strategy": {
+          "enum": [
+            "uniform",
+            "adaptive"
+          ],
+          "title": "Voxel Strategy",
+          "type": "string"
+        },
+        "weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Weak Directions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "voxel_strategy",
+        "outlier_policy",
+        "result_path"
+      ],
+      "title": "SolidStateFailureAnalysisVariant",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reproducible failure analysis for one benchmark dataset.",
+  "properties": {
+    "analysis_scope": {
+      "title": "Analysis Scope",
+      "type": "string"
+    },
+    "benchmark_manifest_path": {
+      "title": "Benchmark Manifest Path",
+      "type": "string"
+    },
+    "benchmark_manifest_sha256": {
+      "pattern": "^[0-9a-fA-F]{64}$",
+      "title": "Benchmark Manifest Sha256",
+      "type": "string"
+    },
+    "conclusion": {
+      "title": "Conclusion",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_name": {
+      "title": "Dataset Name",
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/SolidStateFailureAnalysisFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/SolidStateFailureAnalysisProvenance"
+    },
+    "replicates": {
+      "items": {
+        "$ref": "#/$defs/SolidStateFailureAnalysisReplicate"
+      },
+      "title": "Replicates",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.solid_state_failure_analysis/v0.1",
+      "default": "slac.solid_state_failure_analysis/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/SolidStateFailureAnalysisSummary"
+    },
+    "tool": {
+      "title": "Tool",
+      "type": "string"
+    },
+    "tool_version": {
+      "title": "Tool Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tool",
+    "tool_version",
+    "benchmark_manifest_path",
+    "benchmark_manifest_sha256",
+    "dataset_id",
+    "dataset_name",
+    "analysis_scope",
+    "summary",
+    "conclusion",
+    "provenance"
+  ],
+  "title": "SolidStateFailureAnalysisManifest",
+  "type": "object"
+}

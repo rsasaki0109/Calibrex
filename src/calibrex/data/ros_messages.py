@@ -58,12 +58,48 @@ class PointCloud2Message:
     xyz: np.ndarray
     intensity: np.ndarray | None
     point_time_offsets_s: np.ndarray | None = None
+    raw_point_count: int | None = None
+    nonfinite_xyz_count: int = 0
 
     @property
     def point_count(self) -> int:
         """Return the number of decoded points."""
 
         return int(self.xyz.shape[0])
+
+
+@dataclass(frozen=True)
+class LivoxCustomMessage:
+    """A decoded Livox ``CustomMsg`` LiDAR payload.
+
+    The normalized representation is shared by the ROS 1 and ROS 2 adapters.
+    ``offset_time_ns`` is the raw Livox per-point offset from ``timebase``;
+    callers must explicitly map that sensor clock into their recording clock
+    before using it for deskew.
+    """
+
+    topic: str
+    timestamp_ns: int
+    frame_id: str
+    timebase_ns: int
+    point_num: int
+    lidar_id: int
+    xyz: np.ndarray
+    intensity: np.ndarray | None
+    offset_time_ns: np.ndarray | None
+    line: np.ndarray | None
+
+    @property
+    def point_count(self) -> int:
+        """Return the number of decoded points."""
+
+        return int(self.xyz.shape[0])
+
+    @property
+    def point_time_reference_ns(self) -> int:
+        """Return Livox's point-time base, with a header fallback."""
+
+        return self.timebase_ns if self.timebase_ns else self.timestamp_ns
 
 
 @dataclass(frozen=True)
@@ -111,6 +147,30 @@ def require_numpy(*, extra_name: str) -> Any:
         msg = f"decoding ROS bag messages requires numpy; install slac[{extra_name}]"
         raise DatasetError(msg) from exc
     return numpy_module
+
+
+def filter_nonfinite_pointcloud_rows(
+    np_mod: Any,
+    xyz: np.ndarray,
+    intensity: np.ndarray | None,
+    point_time_offsets_s: np.ndarray | None,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray | None, int]:
+    """Drop PointCloud2 rows whose xyz coordinates are not finite.
+
+    Organized ROS point clouds commonly use NaN rows for missing returns.  The
+    calibration core requires finite coordinates, so the adapter removes those
+    rows while keeping optional intensity and per-point time arrays aligned.
+    The returned count preserves an audit trail for the discarded rows.
+    """
+
+    valid = np_mod.isfinite(xyz).all(axis=1)
+    nonfinite_count = int(np_mod.count_nonzero(~valid))
+    filtered_xyz = xyz[valid]
+    filtered_intensity = intensity[valid] if intensity is not None else None
+    filtered_point_time = (
+        point_time_offsets_s[valid] if point_time_offsets_s is not None else None
+    )
+    return filtered_xyz, filtered_intensity, filtered_point_time, nonfinite_count
 
 
 def decode_pointcloud_payload(

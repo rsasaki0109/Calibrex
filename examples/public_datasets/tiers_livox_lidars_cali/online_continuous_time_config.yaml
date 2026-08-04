@@ -1,0 +1,114 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: tiers_livox_lidars_cali_continuous_time_benchmark
+  description: >
+    ROS-independent continuous-time Velodyne-VLP-16-to-Livox-Horizon
+    calibration on the TIERS LidarsCali ROS 1 bag. The cross-dataset benchmark
+    uses a deterministic bounded replay so the same source-map, temporal-
+    holdout, solver-budget, and robust/adaptive ablation protocol is practical
+    on a workstation; all caps are recorded in the generated artifact.
+  output_dir: outputs/tiers_livox_lidars_cali_continuous_time_benchmark
+  domain: robotics
+
+dataset:
+  type: rosbag1
+  path: data/public/tiers_lidars_cali/LidarsCali.bag
+  time_base: ros_time
+  odometry_topic: /vrpn_client_node/UWBTest/pose
+
+sensors:
+  velodyne_vlp16:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_points
+    frame_id: velo_sensor
+    fields: [x, y, z, intensity]
+  livox_horizon:
+    type: lidar
+    model: livox_horizon
+    topic: /livox/lidar
+    frame_id: horizon_frame
+    fields: [x, y, z, intensity, offset_time, line]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+
+frames:
+  velodyne_vlp16:
+    root: true
+  livox_horizon:
+    parent: velodyne_vlp16
+    transform:
+      estimate: true
+      initial:
+        translation: [0.181055, -0.010158, -0.244932]
+        rotation_quat_xyzw: [0.025553, -0.024266, -0.001430, 0.999378]
+      prior_sigma:
+        translation_m: 0.3
+        rotation_deg: 15.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag1_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 3000
+        max_source_messages: 6
+        max_target_points: 400
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        use_point_time_offsets: true
+        inject_time_offset_s: 0.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+        continuous_time_initial_offset_s: 0.0
+        continuous_time_max_abs_offset_s: 0.20
+        continuous_time_initial_step_s: 0.02
+        continuous_time_minimum_step_s: 0.005
+        continuous_time_max_iterations: 8
+        continuous_time_min_correspondences: 6
+        continuous_time_max_source_records: 2000
+        continuous_time_max_target_points_per_split: 1200
+        continuous_time_correspondence_refinement_iterations: 1
+        continuous_time_fixed_extrinsic_max_iterations: 8
+        continuous_time_adaptive_range_reference_m: 10.0
+        continuous_time_adaptive_range_exponent: 0.5
+        continuous_time_adaptive_min_voxel_size_m: 0.25
+        continuous_time_adaptive_max_voxel_size_m: 1.5
+        continuous_time_adaptive_min_points_per_voxel: 6
+        continuous_time_voxel_strategy: adaptive
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: true
+    require_independent_holdout: true
+    min_holdout_windows: 2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

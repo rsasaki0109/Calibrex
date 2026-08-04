@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "LivoxTimeAblationPolicy": {
+      "additionalProperties": false,
+      "description": "Declared interpretation policy shared by all ablation variants.",
+      "properties": {
+        "deskew_off_means": {
+          "title": "Deskew Off Means",
+          "type": "string"
+        },
+        "injected_offsets_are_validation_only": {
+          "default": true,
+          "title": "Injected Offsets Are Validation Only",
+          "type": "boolean"
+        },
+        "point_time_field": {
+          "default": "offset_time",
+          "title": "Point Time Field",
+          "type": "string"
+        },
+        "point_time_reference": {
+          "default": "Livox CustomMsg timebase",
+          "title": "Point Time Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deskew_off_means"
+      ],
+      "title": "LivoxTimeAblationPolicy",
+      "type": "object"
+    },
+    "LivoxTimeAblationVariant": {
+      "additionalProperties": false,
+      "description": "One materialized deskew/clock-shift online replay.",
+      "properties": {
+        "config_path": {
+          "title": "Config Path",
+          "type": "string"
+        },
+        "config_sha256": {
+          "pattern": "^[0-9a-fA-F]{64}$",
+          "title": "Config Sha256",
+          "type": "string"
+        },
+        "deskew_applied": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deskew Applied"
+        },
+        "final_gate_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Gate Status"
+        },
+        "final_rolling_rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Rolling Rmse M"
+        },
+        "holdout_rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Rmse M"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "inject_time_offset_s": {
+          "title": "Inject Time Offset S",
+          "type": "number"
+        },
+        "known_bad_detectable_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Detectable Fraction"
+        },
+        "point_time_mapping_residual_max_abs_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Mapping Residual Max Abs S"
+        },
+        "point_time_mapping_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Mapping Status"
+        },
+        "quality_grade": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "warn",
+                "fail"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Grade"
+        },
+        "result_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result Path"
+        },
+        "result_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result Sha256"
+        },
+        "run_status": {
+          "title": "Run Status",
+          "type": "string"
+        },
+        "trajectory_gate_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trajectory Gate Status"
+        },
+        "use_point_time_offsets": {
+          "title": "Use Point Time Offsets",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "config_path",
+        "config_sha256",
+        "use_point_time_offsets",
+        "inject_time_offset_s",
+        "run_status"
+      ],
+      "title": "LivoxTimeAblationVariant",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable manifest for a complete Livox time ablation.",
+  "properties": {
+    "base_config_path": {
+      "title": "Base Config Path",
+      "type": "string"
+    },
+    "base_config_sha256": {
+      "pattern": "^[0-9a-fA-F]{64}$",
+      "title": "Base Config Sha256",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/LivoxTimeAblationPolicy"
+    },
+    "schema_version": {
+      "const": "slac.livox_time_ablation/v0.1",
+      "default": "slac.livox_time_ablation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tool": {
+      "title": "Tool",
+      "type": "string"
+    },
+    "tool_version": {
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "variants": {
+      "items": {
+        "$ref": "#/$defs/LivoxTimeAblationVariant"
+      },
+      "minItems": 1,
+      "title": "Variants",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tool",
+    "tool_version",
+    "base_config_path",
+    "base_config_sha256",
+    "policy",
+    "variants"
+  ],
+  "title": "LivoxTimeAblationManifest",
+  "type": "object"
+}
