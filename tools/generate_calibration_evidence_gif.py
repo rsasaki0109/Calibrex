@@ -34,6 +34,7 @@ from urllib.request import Request, urlopen
 
 import yaml
 
+from calibrex.core.geometry import SE3, interpolate_se3
 from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
 from calibrex.data.odometry_track import OdometryTrack
 
@@ -113,6 +114,24 @@ A2D2_LIDAR_ID_TO_NAME = {
     3: "rear_left",
     4: "rear_right",
 }
+BEFORE_AFTER_FPS = 10
+BEFORE_AFTER_FRAME_COUNT = 40
+LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM = SE3(
+    (0.0, -0.13, 0.0),
+    (0.0, 0.0, 0.0, 1.0),
+)
+# Recomputed by the native registration-comparison solver with
+# examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml.
+# This is an algorithmic refinement replay, not transform ground truth.
+LIVOX_BEFORE_AFTER_REFINED_TRANSFORM = SE3(
+    (0.0010078589985484784, -0.09265454616076582, -0.057378637479629915),
+    (
+        -0.038733292303448026,
+        -0.005099336960170632,
+        -0.0026082442525630425,
+        0.9992331689309665,
+    ),
+)
 LIVOX_BASE_PCD_URL = (
     "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/"
     "Showcase/Base_LiDAR_Frames.tar.gz"
@@ -149,7 +168,7 @@ CHART = (676, 294, 216, 48)
 Color = tuple[int, int, int]
 Point3 = tuple[float, float, float]
 Point2 = tuple[int, int]
-VisualMode = Literal["evidence", "online", "motion", "camera_lidar"]
+VisualMode = Literal["evidence", "online", "motion", "camera_lidar", "before_after"]
 ReadmeRole = Literal["hero", "gallery"]
 
 BG = (10, 15, 27)
@@ -306,6 +325,12 @@ README_GIF_JOBS = (
         output=Path("docs/assets/calibration-evidence-demo.gif"),
     ),
     ReadmeGifJob(
+        source="livox-horizon-horizon",
+        output=Path("docs/assets/livox-before-after-calibration.gif"),
+        visual="before_after",
+        readme_role="gallery",
+    ),
+    ReadmeGifJob(
         source="a2d2",
         output=Path("docs/assets/a2d2-multilidar-evidence-demo.gif"),
         a2d2_source_id=0,
@@ -350,7 +375,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--visual",
-        choices=["evidence", "online", "motion", "camera_lidar"],
+        choices=["evidence", "online", "motion", "camera_lidar", "before_after"],
         default="evidence",
         help="Animation layout to render for a single-source GIF.",
     )
@@ -552,6 +577,8 @@ def _frames_for_job(job: ReadmeGifJob, default_frames: int) -> int:
         return MOTION_HERO_FRAME_COUNT
     if job.visual == "camera_lidar":
         return A2D2_CAMERA_LIDAR_FRAME_COUNT
+    if job.visual == "before_after":
+        return BEFORE_AFTER_FRAME_COUNT
     return default_frames
 
 
@@ -560,6 +587,8 @@ def _fps_for_visual(visual: VisualMode) -> int:
         return MOTION_HERO_FPS
     if visual == "camera_lidar":
         return A2D2_CAMERA_LIDAR_FPS
+    if visual == "before_after":
+        return BEFORE_AFTER_FPS
     return FPS
 
 
@@ -771,6 +800,42 @@ def readme_gallery_manifest_asset(
                 "max_holdout_rmse_m": online_run.gate_thresholds.max_holdout_rmse_m,
                 "max_rolling_regression_m": online_run.gate_thresholds.max_rolling_regression_m,
             },
+        }
+    elif job.visual == "before_after":
+        if job.source != "livox-horizon-horizon":
+            raise SystemExit("before_after README GIF currently requires the public Livox pair")
+        asset["calibration_replay"] = {
+            "mode": "algorithmic_refinement_replay",
+            "source": "calibrex calibrate",
+            "config_path": (
+                "examples/public_datasets/livox_horizon_horizon_pcd_sample/"
+                "icp_comparison_config.yaml"
+            ),
+            "transform_convention": (
+                "T_base_horizon_target_horizon maps target PCD points into the base PCD frame"
+            ),
+            "initial_transform": {
+                "translation_m": list(LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM.translation_m),
+                "rotation_quat_xyzw": list(
+                    LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM.rotation_quat_xyzw
+                ),
+            },
+            "refined_transform": {
+                "translation_m": list(LIVOX_BEFORE_AFTER_REFINED_TRANSFORM.translation_m),
+                "rotation_quat_xyzw": list(
+                    LIVOX_BEFORE_AFTER_REFINED_TRANSFORM.rotation_quat_xyzw
+                ),
+            },
+            "limitation": (
+                "The public pair has no transform ground truth; the after view is an "
+                "algorithmically refined replay, not metrology certification."
+            ),
+        }
+        asset["animation"] = {
+            "frames": BEFORE_AFTER_FRAME_COUNT,
+            "fps": BEFORE_AFTER_FPS,
+            "width": WIDTH,
+            "height": HEIGHT,
         }
     elif job.visual == "camera_lidar":
         asset["animation"] = {
@@ -1450,6 +1515,13 @@ def generate_gif(
                     cloud_pair=cloud_pair,
                     frame_state=frame_state,
                     metadata_source=metadata_source,
+                )
+            elif visual == "before_after":
+                progress = smoothstep(index / max(1, frames - 1))
+                draw_before_after_calibration_frame(
+                    image=image,
+                    cloud_pair=cloud_pair,
+                    progress=progress,
                 )
             else:
                 progress = smoothstep(index / max(1, frames - 1))
@@ -2721,6 +2793,92 @@ def draw_frame(
     draw_timeline(image, progress)
 
 
+def draw_before_after_calibration_frame(
+    *,
+    image: bytearray,
+    cloud_pair: LidarCloudPair,
+    progress: float,
+) -> None:
+    """Render real Livox returns before and during algorithmic refinement."""
+
+    fill_rect(image, 0, 0, WIDTH, HEIGHT, BG)
+    left_panel = (34, 86, 438, 380)
+    right_panel = (488, 86, 438, 380)
+    draw_before_after_panel(
+        image,
+        left_panel,
+        cloud_pair,
+        LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM,
+        target_color=CANDIDATE,
+    )
+    current_transform = interpolate_se3(
+        LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM,
+        LIVOX_BEFORE_AFTER_REFINED_TRANSFORM,
+        progress,
+    )
+    draw_before_after_panel(
+        image,
+        right_panel,
+        cloud_pair,
+        current_transform,
+        target_color=mix(CANDIDATE, OPTIMIZED, progress),
+    )
+    draw_timeline(image, progress)
+
+
+def draw_before_after_panel(
+    image: bytearray,
+    panel: tuple[int, int, int, int],
+    cloud_pair: LidarCloudPair,
+    target_transform: SE3,
+    *,
+    target_color: Color,
+) -> None:
+    """Draw two real PCD clouds in one shared, compact 3D projection."""
+
+    x, y, width, height = panel
+    fill_rect(image, x, y, width, height, PANEL)
+    rect(image, x, y, width, height, GRID, alpha=0.90)
+    for grid_x in range(0, 61, 10):
+        start = project_before_after_point((float(grid_x), -22.0, 0.0), panel)
+        end = project_before_after_point((float(grid_x), 22.0, 0.0), panel)
+        line(image, start[0], start[1], end[0], end[1], GRID, alpha=0.26)
+    for grid_y in range(-20, 21, 10):
+        start = project_before_after_point((0.0, float(grid_y), 0.0), panel)
+        end = project_before_after_point((60.0, float(grid_y), 0.0), panel)
+        line(image, start[0], start[1], end[0], end[1], GRID, alpha=0.26)
+
+    for index, point in enumerate(cloud_pair.source_points):
+        if index % 2:
+            continue
+        px, py = project_before_after_point(point, panel)
+        circle(image, px, py, 1, REFERENCE, alpha=0.64)
+
+    for index, point in enumerate(cloud_pair.target_points):
+        if index % 2:
+            continue
+        transformed = target_transform.transform_point(point)
+        px, py = project_before_after_point(transformed, panel)
+        circle(image, px, py, 1, target_color, alpha=0.78)
+
+
+def project_before_after_point(point: Point3, panel: tuple[int, int, int, int]) -> Point2:
+    """Project the public Livox scene into one top-down before/after panel."""
+
+    panel_x, panel_y, _panel_width, panel_height = panel
+    x, y, z = point
+    return (
+        round(panel_x + 45.0 + (x / 35.0) * 340.0 + (y / 16.0) * 20.0),
+        round(
+            panel_y
+            + panel_height
+            - 28.0
+            - ((y + 16.0) / 32.0) * (panel_height - 56.0)
+            - z * 2.0
+        ),
+    )
+
+
 def draw_online_calibration_frame(
     *,
     image: bytearray,
@@ -3527,6 +3685,12 @@ def encode_gif(
         paletteuse_filter = (
             f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
         )
+    elif visual == "before_after":
+        text_filter = build_before_after_text_filter()
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
     else:
         text_filter = build_text_filter(cloud_pair)
         palette_filter = f"{text_filter},palettegen=max_colors=96"
@@ -3582,10 +3746,7 @@ def encode_gif(
 
 
 def build_text_filter(cloud_pair: LidarCloudPair) -> str:
-    font_file = subprocess.check_output(
-        ["fc-match", "-f", "%{file}", "Noto Sans"],
-        text=True,
-    ).strip()
+    font_file = resolve_gif_font_file()
     labels = [
         ("Fixed 3D LiDAR to fixed 3D LiDAR", 34, 22, 26, "E5E7EB"),
         (cloud_pair.subtitle, 34, 55, 16, "CBD5E1"),
@@ -3628,10 +3789,7 @@ def build_online_text_filter(
     *,
     online_run: OnlineGifRun | None = None,
 ) -> str:
-    font_file = subprocess.check_output(
-        ["fc-match", "-f", "%{file}", "Noto Sans"],
-        text=True,
-    ).strip()
+    font_file = resolve_gif_font_file()
     if online_run is not None:
         assessment = f"assessment: {online_run.final_gate_status.upper()} from timeline"
         accepted_summary = (
@@ -3672,6 +3830,65 @@ def build_online_text_filter(
         ("assess", 842, 520, 14, "CBD5E1"),
     ]
     return ",".join(drawtext(font_file, *label) for label in labels)
+
+
+def build_before_after_text_filter() -> str:
+    """Return the static labels for the real-data before/after replay."""
+
+    font_file = resolve_gif_font_file()
+    labels = [
+        ("Calibration Before / After", 34, 22, 26, "E5E7EB"),
+        (
+            "Livox Horizon ↔ Horizon — real public PCD pair",
+            34,
+            55,
+            16,
+            "CBD5E1",
+        ),
+        ("BEFORE · initial transform", 52, 108, 17, "E5E7EB"),
+        ("AFTER · native refinement", 506, 108, 17, "E5E7EB"),
+        (
+            "green: base Horizon reference   pink/cyan: target Horizon returns",
+            50,
+            486,
+            14,
+            "CBD5E1",
+        ),
+        (
+            "T_base_horizon_target_horizon  ·  initial → algorithmic refinement",
+            50,
+            505,
+            12,
+            "94A3B8",
+        ),
+        ("initial", 62, 520, 14, "CBD5E1"),
+        ("refined", 842, 520, 14, "CBD5E1"),
+    ]
+    return ",".join(drawtext(font_file, *label) for label in labels)
+
+
+def resolve_gif_font_file() -> str:
+    """Resolve a font for ffmpeg on both Unix and Windows hosts."""
+
+    try:
+        font_file = subprocess.check_output(
+            ["fc-match", "-f", "%{file}", "Noto Sans"],
+            text=True,
+        ).strip()
+        if font_file and Path(font_file).is_file():
+            return font_file
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    candidates = (
+        Path("C:/Windows/Fonts/segoeui.ttf"),
+        Path("C:/Windows/Fonts/arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    raise RuntimeError("no usable font found for README GIF text rendering")
 
 
 def drawtext(

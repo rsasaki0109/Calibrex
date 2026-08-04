@@ -304,16 +304,20 @@ data cannot falsify.
 
 <table>
   <tr>
-    <td width="50%">
+    <td width="33%">
       <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
     </td>
-    <td width="50%">
+    <td width="33%">
       <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/livox-before-after-calibration.gif" alt="Livox real point cloud calibration before and after refinement" width="100%">
     </td>
   </tr>
   <tr>
     <td><sub><b>A2D2 camera × LiDAR</b><br>Real front-left camera frames with real camera-view LiDAR returns. A2D2 distributes these points pre-registered into the camera view, so this is visual evidence—not independent extrinsic accuracy.</sub></td>
     <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
+    <td><sub><b>Livox before → after</b><br>Real Horizon PCD returns through the native registration refinement replay; the public pair has no transform ground truth.</sub></td>
   </tr>
 </table>
 

@@ -11,6 +11,27 @@
     "generator",
     "schema_version"
   ],
+  "$defs": {
+    "se3_transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rotation_quat_xyzw", "translation_m"],
+      "properties": {
+        "translation_m": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "rotation_quat_xyzw": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    }
+  },
   "properties": {
     "schema_version": {
       "const": "slac.readme_gif_gallery/v0.3"
@@ -80,7 +101,7 @@
             "enum": ["a2d2", "livox-horizon-horizon", "tiers-lidars-cali", "tiers-indoor02-kissicp"]
           },
           "visual": {
-                "enum": ["evidence", "online", "motion", "camera_lidar"]
+            "enum": ["evidence", "online", "motion", "camera_lidar", "before_after"]
           },
           "readme_role": {
             "enum": ["hero", "gallery"]
@@ -145,6 +166,45 @@
                 "minLength": 1
               },
               "generation_command": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "calibration_replay": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "config_path",
+              "initial_transform",
+              "limitation",
+              "mode",
+              "refined_transform",
+              "source",
+              "transform_convention"
+            ],
+            "properties": {
+              "mode": {
+                "const": "algorithmic_refinement_replay"
+              },
+              "source": {
+                "const": "calibrex calibrate"
+              },
+              "config_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "transform_convention": {
+                "type": "string",
+                "minLength": 1
+              },
+              "initial_transform": {
+                "$ref": "#/$defs/se3_transform"
+              },
+              "refined_transform": {
+                "$ref": "#/$defs/se3_transform"
+              },
+              "limitation": {
                 "type": "string",
                 "minLength": 1
               }

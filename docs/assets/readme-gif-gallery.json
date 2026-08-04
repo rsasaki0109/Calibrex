@@ -221,6 +221,73 @@
       "visual": "motion"
     },
     {
+      "animation": {
+        "fps": 10,
+        "frames": 40,
+        "height": 540,
+        "width": 960
+      },
+      "calibration_replay": {
+        "config_path": "examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml",
+        "initial_transform": {
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            -0.13,
+            0.0
+          ]
+        },
+        "limitation": "The public pair has no transform ground truth; the after view is an algorithmically refined replay, not metrology certification.",
+        "mode": "algorithmic_refinement_replay",
+        "refined_transform": {
+          "rotation_quat_xyzw": [
+            -0.038733292303448026,
+            -0.005099336960170632,
+            -0.0026082442525630425,
+            0.9992331689309665
+          ],
+          "translation_m": [
+            0.0010078589985484784,
+            -0.09265454616076582,
+            -0.057378637479629915
+          ]
+        },
+        "source": "calibrex calibrate",
+        "transform_convention": "T_base_horizon_target_horizon maps target PCD points into the base PCD frame"
+      },
+      "metadata_source": "Livox official PCD sample",
+      "output": "docs/assets/livox-before-after-calibration.gif",
+      "public_inputs": [
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "base_horizon_100432.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Base_LiDAR_Frames.tar.gz"
+        },
+        {
+          "kind": "pcd_tar_gz",
+          "selected_member": "target_horizon_100538.pcd",
+          "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Showcase/Target-LiDAR-Frames.tar.gz"
+        }
+      ],
+      "readme_role": "gallery",
+      "sensor_pair": {
+        "source": "base_horizon",
+        "target": "target_horizon"
+      },
+      "sha256": "256de17e5bde4c44bd1b7be523438cf023482fd5e724693fd3ea319bfcdf5901",
+      "size_bytes": 115597,
+      "source": "livox-horizon-horizon",
+      "source_label": "base Horizon points",
+      "target_label": "target Horizon points",
+      "uses_builtin_metadata_fallback": false,
+      "visual": "before_after"
+    },
+    {
       "metadata_source": "TIERS LidarsCali static rig (Livox Horizon + Avia)",
       "online_run": {
         "accepted_batch_count": 14,
