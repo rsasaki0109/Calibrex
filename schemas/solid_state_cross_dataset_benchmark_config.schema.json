@@ -1,0 +1,275 @@
+{
+  "$defs": {
+    "SolidStateCrossDatasetBenchmarkProtocol": {
+      "additionalProperties": false,
+      "description": "The controls and primary metric shared by each dataset comparison.",
+      "properties": {
+        "bootstrap_samples": {
+          "default": 2000,
+          "minimum": 100,
+          "title": "Bootstrap Samples",
+          "type": "integer"
+        },
+        "bootstrap_seed": {
+          "default": 0,
+          "title": "Bootstrap Seed",
+          "type": "integer"
+        },
+        "bounded_replay_allowed": {
+          "default": true,
+          "title": "Bounded Replay Allowed",
+          "type": "boolean"
+        },
+        "bounded_replay_note": {
+          "title": "Bounded Replay Note",
+          "type": "string"
+        },
+        "confidence_level": {
+          "default": 0.95,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Confidence Level",
+          "type": "number"
+        },
+        "holdout_start_fractions": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Holdout Start Fractions",
+          "type": "object"
+        },
+        "lower_is_better": {
+          "default": true,
+          "title": "Lower Is Better",
+          "type": "boolean"
+        },
+        "minimum_holdout_correspondences": {
+          "default": 6,
+          "minimum": 1,
+          "title": "Minimum Holdout Correspondences",
+          "type": "integer"
+        },
+        "minimum_scored_replicates": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Minimum Scored Replicates",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "primary_metric": {
+          "const": "final_holdout_rmse_m",
+          "default": "final_holdout_rmse_m",
+          "title": "Primary Metric",
+          "type": "string"
+        },
+        "require_converged": {
+          "default": false,
+          "title": "Require Converged",
+          "type": "boolean"
+        },
+        "same_capture_windows": {
+          "default": true,
+          "title": "Same Capture Windows",
+          "type": "boolean"
+        },
+        "same_solver_budget": {
+          "default": true,
+          "title": "Same Solver Budget",
+          "type": "boolean"
+        },
+        "same_temporal_holdout": {
+          "default": true,
+          "title": "Same Temporal Holdout",
+          "type": "boolean"
+        },
+        "seed_values": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Seed Values",
+          "type": "array"
+        },
+        "solver": {
+          "const": "continuous_time_lidar_pair",
+          "title": "Solver",
+          "type": "string"
+        },
+        "split_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Split Ids",
+          "type": "array"
+        },
+        "variants": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Variants",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "solver",
+        "variants",
+        "bounded_replay_note"
+      ],
+      "title": "SolidStateCrossDatasetBenchmarkProtocol",
+      "type": "object"
+    },
+    "SolidStateCrossDatasetBenchmarkSpecDataset": {
+      "additionalProperties": false,
+      "description": "One input declaration for the cross-dataset aggregator.",
+      "properties": {
+        "ablation_manifest_path": {
+          "title": "Ablation Manifest Path",
+          "type": "string"
+        },
+        "absolute_extrinsic_ground_truth": {
+          "default": false,
+          "title": "Absolute Extrinsic Ground Truth",
+          "type": "boolean"
+        },
+        "config_path": {
+          "title": "Config Path",
+          "type": "string"
+        },
+        "dataset_manifest_path": {
+          "title": "Dataset Manifest Path",
+          "type": "string"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "identity_control": {
+          "default": false,
+          "title": "Identity Control",
+          "type": "boolean"
+        },
+        "independent_temporal_holdout": {
+          "default": true,
+          "title": "Independent Temporal Holdout",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "reference_mode": {
+          "enum": [
+            "absolute_extrinsic",
+            "identity_control",
+            "trajectory_only",
+            "none"
+          ],
+          "title": "Reference Mode",
+          "type": "string"
+        },
+        "replicates": {
+          "items": {
+            "$ref": "#/$defs/SolidStateCrossDatasetBenchmarkSpecReplicate"
+          },
+          "title": "Replicates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "family",
+        "dataset_manifest_path",
+        "config_path",
+        "ablation_manifest_path",
+        "reference_mode"
+      ],
+      "title": "SolidStateCrossDatasetBenchmarkSpecDataset",
+      "type": "object"
+    },
+    "SolidStateCrossDatasetBenchmarkSpecReplicate": {
+      "additionalProperties": false,
+      "description": "One explicitly materialized repeated evaluation declared by the user.",
+      "properties": {
+        "ablation_manifest_path": {
+          "title": "Ablation Manifest Path",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "split_id": {
+          "title": "Split Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "split_id",
+        "seed",
+        "ablation_manifest_path"
+      ],
+      "title": "SolidStateCrossDatasetBenchmarkSpecReplicate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "User-authored cross-dataset benchmark declaration.",
+  "properties": {
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/SolidStateCrossDatasetBenchmarkSpecDataset"
+      },
+      "minItems": 1,
+      "title": "Datasets",
+      "type": "array"
+    },
+    "protocol": {
+      "$ref": "#/$defs/SolidStateCrossDatasetBenchmarkProtocol"
+    },
+    "schema_version": {
+      "default": "slac.solid_state_cross_dataset_benchmark_config/v0.2",
+      "enum": [
+        "slac.solid_state_cross_dataset_benchmark_config/v0.1",
+        "slac.solid_state_cross_dataset_benchmark_config/v0.2"
+      ],
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocol",
+    "datasets"
+  ],
+  "title": "SolidStateCrossDatasetBenchmarkSpec",
+  "type": "object"
+}

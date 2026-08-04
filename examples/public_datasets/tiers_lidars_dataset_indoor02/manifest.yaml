@@ -39,6 +39,13 @@ streams:
 provenance:
   source: TIERS multi-modal lidars dataset Indoor02 sequence
   official_url: https://github.com/TIERS/tiers-lidars-dataset
+  official_ground_truth_csv_url: https://github.com/TIERS/tiers-lidars-dataset/blob/main/data/ground_truth/indoor02_optitrack.csv
+  official_ground_truth_note: >
+    The upstream OptiTrack CSV is the same VRPN pose stream used for the
+    Indoor02 MOCAP replay; it is an audit reference, not an independently
+    smoothed trajectory.
+  official_ground_truth_row_count: "5066"
+  official_ground_truth_submillisecond_interval_count: "854"
   download_url: https://utufi.sharepoint.com/:u:/s/msteams_0ed7e9/EYXGcc1Z-y1FpnDwQ1geIoEBovXvLfoxZwt36J1_t2PugA?e=UwHhXd
   license: MIT
   size_bytes: "17974826130"
@@ -48,6 +55,11 @@ provenance:
     PoseStamped topic (/vrpn_client_node/UWBTest/pose) by
     tools/rosbag1_to_rosbag2_online_pair.py; only the nav_msgs/Odometry envelope
     is authored — the pose trajectory is real MOCAP data.
+  odometry_burst_policy_note: >
+    The raw stream is preserved. The reproducible pose-burst control config
+    uses dataset.odometry_preprocessing.burst_policy=keep_last with
+    min_interval_s=0.001 only for analysis; the result provenance records raw
+    and retained counts and the removed count.
   kiss_icp_odometry_note: >
     Rig-frame /odom variant (indoor02_rosbag2_kissicp) from KISS-ICP on
     /velodyne_points via tools/rosbag1_to_rosbag2_online_pair.py --odom-source

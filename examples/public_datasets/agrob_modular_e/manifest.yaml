@@ -1,0 +1,60 @@
+schema_version: slac.dataset_manifest/v0.1
+name: agrob_modular_e_livox_rslidar
+description: >
+  AgRob Modular-e ROS 2 sequence with a Livox MID-70 solid-state stream,
+  RS-LiDAR PointCloud2 stream, and robot odometry. The archive is an external
+  input; this manifest records the public identity and the normalized stream
+  contract used by the ROS-independent adapter.
+time_base: ros_time
+streams:
+  livox_custommsg:
+    kind: pointcloud
+    count: 2455
+    path: data/public/agrob_scorpion/2023-06-13T170852Z
+    topic: /livox/lidar
+    sensor: livox_mid70
+    frame_id: livox_frame
+    timestamp_field: rosbag2_record_timestamp_ns
+    fields:
+      - x
+      - y
+      - z
+      - reflectivity
+      - tag
+      - line
+      - offset_time
+  rslidar_pointcloud2:
+    kind: pointcloud
+    count: 2470
+    path: data/public/agrob_scorpion/2023-06-13T170852Z
+    topic: /rslidar_points
+    sensor: rslidar
+    frame_id: rslidar
+    timestamp_field: header_stamp_ns
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+  odometry:
+    kind: trajectory
+    count: 4932
+    path: data/public/agrob_scorpion/2023-06-13T170852Z
+    topic: /odom
+    sensor: robot_odometry
+    frame_id: odom
+    timestamp_field: header_stamp_ns
+provenance:
+  source: AgRob Modular-e ROS 2 bags from the IV SCORPION integration
+  official_url: https://zenodo.org/records/8083431
+  download_url: https://zenodo.org/records/8083431/files/2023-06-13T170852Z.zip?download=1
+  archive_name: 2023-06-13T170852Z.zip
+  archive_size_bytes: "2548542803"
+  archive_md5: fa0cea9ea4aafd5e7a0d75676e8e064d
+  license: CC-BY-4.0
+  lidar_models: Livox MID-70 and RS-LiDAR
+  livox_message_type: livox_interfaces/msg/CustomMsg
+  rslidar_message_type: sensor_msgs/msg/PointCloud2
+  livox_point_time_semantics: timebase plus uint32 offset_time in nanoseconds
+  static_transforms: imu_link-to-rslidar and imu_link-to-livox_frame are published in the dataset description
+  calibration_scope: Livox-to-RS-LiDAR relative extrinsic with odometry-assisted deskew

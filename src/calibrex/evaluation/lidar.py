@@ -10,6 +10,7 @@ from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3, QuaternionXYZW, Vector3
 from calibrex.core.report_artifacts import EvidenceCaseItem
 from calibrex.core.result import Grade, MetricResult
+from calibrex.data.adaptive_voxel import AdaptiveVoxelPlaneMap
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.kitti import (
     summarize_lidar_world_map_consistency,
@@ -19,6 +20,7 @@ from calibrex.data.livox import (
     LivoxPairPointToPlaneStats,
     LivoxPCDDatasetStats,
     LivoxPointRecord,
+    VoxelPlaneMap,
     build_voxel_plane_map,
     nearest_voxel_plane,
     summarize_livox_pair_point_to_plane,
@@ -278,26 +280,26 @@ def _rosbag1_pointcloud_metrics(diagnostics: Mapping[str, object]) -> dict[str, 
             value=topic_count,
             unit="topics",
             grade="pass" if topic_count >= 2 else "warn",
-            reason=f"ROS bag exposes {topic_count:g} PointCloud2 topics",
+            reason=f"ROS bag exposes {topic_count:g} supported LiDAR point-cloud topics",
         )
     if message_count:
         metrics["lidar_frame_coverage"] = MetricResult(
             value=message_count,
             unit="frames",
-            reason=f"inspected {message_count:g} PointCloud2 messages across topics",
+            reason=f"inspected {message_count:g} ROS1 LiDAR messages across topics",
         )
     if sampled_point_count:
         metrics["lidar_point_coverage"] = MetricResult(
             value=sampled_point_count,
             unit="points",
-            reason=f"sampled {sampled_point_count:g} PointCloud2 points",
+            reason=f"sampled {sampled_point_count:g} ROS1 LiDAR points",
         )
     if bounds_min is not None and bounds_max is not None:
         extent = math.dist(bounds_min, bounds_max)
         metrics["lidar_spatial_coverage_m"] = MetricResult(
             value=extent,
             unit="m",
-            reason=f"sampled PointCloud2 XYZ extent is {extent:g} m",
+            reason=f"sampled ROS1 LiDAR XYZ extent is {extent:g} m",
         )
     return metrics
 
@@ -919,6 +921,8 @@ def build_rig_point_to_plane_observations(
     target_t_world_source: list[SE3] | None = None,
     voxel_size_m: float = 1.0,
     correspondence_gate_m: float = 1.5,
+    source_plane_map: VoxelPlaneMap | None = None,
+    adaptive_plane_map: AdaptiveVoxelPlaneMap | None = None,
 ) -> list[LidarPointToPlaneObservation]:
     """Build fixed-correspondence point-to-plane observations for a LiDAR pair.
 
@@ -928,11 +932,21 @@ def build_rig_point_to_plane_observations(
     ``target_t_world_source`` poses are supplied (motion-compensated online
     replay); otherwise ``T_world_source`` is identity for the static-rig path.
     The raw target-frame point is stored so the factor can re-apply the optimized
-    extrinsic via ``t_world_ego`` (``T_world_source``).
+    extrinsic via ``t_world_ego`` (``T_world_source``). When both a uniform and
+    adaptive map are supplied, the candidate with the smaller absolute initial
+    point-to-plane residual is selected, with centroid distance as a tie-break.
     """
 
-    plane_map = build_voxel_plane_map(source_records, voxel_size_m)
-    if not plane_map:
+    plane_map = (
+        source_plane_map
+        if source_plane_map is not None
+        else (
+            {}
+            if adaptive_plane_map is not None
+            else build_voxel_plane_map(source_records, voxel_size_m)
+        )
+    )
+    if adaptive_plane_map is None and not plane_map:
         return []
     if target_t_world_source is not None and len(target_t_world_source) != len(target_points):
         msg = "target_t_world_source length must match target_points"
@@ -945,21 +959,67 @@ def build_rig_point_to_plane_observations(
             else SE3.identity()
         )
         world_point = t_world_source.compose(initial_t_source_target).transform_point(point)
-        plane = nearest_voxel_plane(
-            world_point,
-            plane_map,
-            voxel_size_m=voxel_size_m,
-            correspondence_gate_m=correspondence_gate_m,
+        candidates: list[tuple[Vector3, Vector3, float]] = []
+        if source_plane_map is not None:
+            fixed_plane = nearest_voxel_plane(
+                world_point,
+                source_plane_map,
+                voxel_size_m=voxel_size_m,
+                correspondence_gate_m=correspondence_gate_m,
+            )
+            if fixed_plane is not None and fixed_plane.normal is not None:
+                candidates.append(
+                    (
+                        fixed_plane.centroid,
+                        fixed_plane.normal,
+                        math.dist(world_point, fixed_plane.centroid),
+                    )
+                )
+        if adaptive_plane_map is not None:
+            adaptive_plane = adaptive_plane_map.nearest_plane(
+                world_point,
+                correspondence_gate_m=correspondence_gate_m,
+            )
+            if adaptive_plane is not None:
+                candidates.append(
+                    (
+                        adaptive_plane.centroid,
+                        adaptive_plane.normal,
+                        math.dist(world_point, adaptive_plane.centroid),
+                    )
+                )
+        elif source_plane_map is None:
+            fallback_plane = nearest_voxel_plane(
+                world_point,
+                plane_map,
+                voxel_size_m=voxel_size_m,
+                correspondence_gate_m=correspondence_gate_m,
+            )
+            if fallback_plane is not None and fallback_plane.normal is not None:
+                candidates.append(
+                    (
+                        fallback_plane.centroid,
+                        fallback_plane.normal,
+                        math.dist(world_point, fallback_plane.centroid),
+                    )
+                )
+        if not candidates:
+            continue
+        plane_point, normal, _centroid_distance = min(
+            candidates,
+            key=lambda candidate: (
+                abs(
+                    candidate[1][0] * (world_point[0] - candidate[0][0])
+                    + candidate[1][1] * (world_point[1] - candidate[0][1])
+                    + candidate[1][2] * (world_point[2] - candidate[0][2])
+                ),
+                candidate[2],
+            ),
         )
-        if plane is None:
-            continue
-        normal = plane.normal
-        if normal is None:
-            continue
         observations.append(
             LidarPointToPlaneObservation(
                 point_lidar_m=point,
-                plane_point_world_m=plane.centroid,
+                plane_point_world_m=plane_point,
                 plane_normal_world=normal,
                 t_world_ego=t_world_source,
             )

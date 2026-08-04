@@ -17,11 +17,33 @@ sensors:
     model: livox_horizon
     frame_id: base_horizon
     fields: [x, y, z, intensity]
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: unknown
+      point_time_unit: unknown
+      point_time_available: false
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+      notes:
+        - vendor calibration is declared but no raw calibration artifact is bundled in this sample
   target_horizon:
     type: lidar
     model: livox_horizon
     frame_id: target_horizon
     fields: [x, y, z, intensity]
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: unknown
+      point_time_unit: unknown
+      point_time_available: false
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+      notes:
+        - vendor calibration is declared but no raw calibration artifact is bundled in this sample
 
 frames:
   base_horizon:
@@ -54,6 +76,16 @@ solver:
 
 evaluation:
   holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: false
+    require_temperature: false
+    require_independent_holdout: false
+    min_temperature_span_c: 5.0
+    min_distance_span_m: 5.0
+    min_fov_azimuth_deg: 20.0
+    min_fov_elevation_deg: 5.0
+    min_points_per_distance_bin: 20
   metrics:
     - lidar_frame_coverage
     - lidar_point_coverage
@@ -64,6 +96,14 @@ evaluation:
     - lidar_pair_known_bad_detectable_fraction
     - lidar_pair_known_bad_centroid_rmse_delta_max_m
     - lidar_pair_known_bad_point_to_plane_p90_delta_max_m
+    - solid_state_distance_span_m
+    - solid_state_fov_azimuth_deg
+    - solid_state_fov_elevation_deg
+    - solid_state_temperature_span_c
+    - solid_state_distance_bin_coverage_fraction
+    - solid_state_holdout_window_count
+    - solid_state_holdout_independent
+    - solid_state_known_bad_detectable_fraction
 
 outputs:
   result: result.yaml

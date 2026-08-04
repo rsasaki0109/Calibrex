@@ -62,6 +62,11 @@ negative result is not converted into a PASS by threshold tuning.
 
 Solid-state LiDAR-to-LiDAR evidence demo:
 
+The Livox workflow now carries a schema-validated solid-state profile through
+the result.  See [solid-state LiDAR calibration](../concepts/solid_state_lidar.md)
+for point-time/integration semantics, temperature declarations, distance/FOV
+coverage, and the independent-holdout limitation of this two-PCD sample.
+
 ```bash
 calibrex demo livox-evidence --output-dir outputs/livox_horizon_horizon_pcd_sample
 ```
@@ -129,6 +134,39 @@ calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag --type rosbag1 --j
 calibrex calibrate examples/public_datasets/tiers_livox_lidars_cali/config.yaml
 ```
 
+The offline config uses the native ROS-independent point-to-plane adapter. It
+reserves later target capture windows for holdout and records whether the
+source map was cut at the holdout time boundary. With
+`require_independent_holdout: true`, too few target windows or an unverifiable
+Livox/ROS clock relationship is an inconclusive evidence outcome, not a
+successful calibration claim.
+
+In the downloaded TIERS bag, Livox `timebase` values are in a since-boot-like
+domain while ROS bag records are in the recording epoch. The ROS 1 adapter
+therefore uses the bag record timestamp as the replay clock and applies
+`capture_ns = bag_record_timestamp_ns + offset_time_ns`; it does not substitute
+the Livox timebase with a message header stamp. Results record
+`point_time_clock_mapping_by_sensor`, including the residual and stable/unstable
+decision. The current TIERS run measured approximately 1 ms residuals and
+classified both Livox mappings as stable.
+
+For the point-time ablation, materialize signed timing controls and both deskew
+modes from the online mixed-sensor config:
+
+```bash
+python tools/run_livox_time_ablation.py \
+  examples/public_datasets/tiers_livox_lidars_cali/online_mixed_config.yaml \
+  --output-dir outputs/tiers_livox_time_ablation \
+  --include-no-deskew
+calibrex validate outputs/tiers_livox_time_ablation/ablation_manifest.yaml \
+  --kind livox-time-ablation
+```
+
+The manifest binds every materialized config/result by SHA-256. A nonzero
+`inject_time_offset_s` is a validation-only known-bad timing control; it is not
+reported as a recovered clock estimate. The `deskew_off` variants still
+decode and report `offset_time`, but do not consume it for pose interpolation.
+
 ### Camera-LiDAR measured capture-time evidence
 
 The same bag contains RealSense color images, Velodyne VLP-16 PointCloud2
@@ -185,6 +223,36 @@ and rolling RMSE. Gate thresholds are declared under
 recorded in `result.yaml` provenance. The example config uses a 60 s Avia replay
 slice (`max_replay_duration_s`) so a multi-gigabyte bag stays stream-bounded.
 
+### Livox point-time and deskew ablation
+
+Livox `CustomMsg` carries a `timebase` for the first point and an integer
+nanosecond `offset_time` for each point. The online adapter decodes and records
+both. With `use_point_time_offsets: true` it uses those offsets for pose
+interpolation when `/vrpn_client_node/UWBTest/pose` is available; with the flag
+false it still records the offsets but deliberately uses message-level timing.
+Signed `inject_time_offset_s` values are validation-only perturbations.
+
+Materialize and run the comparison set with provenance and SHA-256 digests for
+every variant:
+
+```bash
+python tools/run_livox_time_ablation.py \
+  examples/public_datasets/tiers_livox_lidars_cali/online_config.yaml \
+  --output-dir outputs/tiers_livox_time_ablation \
+  --include-no-deskew
+```
+
+`ablation_manifest.yaml` compares deskew on/off at zero shift and the requested
+signed timing controls. The default tool set is 0, ±5, ±10, and ±20 ms; a
+bounded replay can request only `--offset-s 0 -0.005` as in the checked
+TIERS evidence bundle. A shifted case is a negative control and must not be
+reported as an estimated clock offset. Check each result's
+`point_time_reference_by_sensor`, clock-domain note, and
+`point_time_clock_mapping_by_sensor` and
+`rosbag1_source_map_temporal_boundary_applied` before interpreting it. The
+tool reuses a completed result when its config SHA still matches, so a long
+bag experiment can be resumed without silently changing completed variants.
+
 When `report.html` is generated for an online run, an **Online timeline**
 section visualizes the same `timeline.json` data: a per-batch gate verdict strip
 (pass / fail / inconclusive), inline SVG charts of holdout and rolling RMSE with
@@ -199,6 +267,150 @@ the Horizon→Avia run produced 108 target batches (500 points each) from 36 Avi
 messages. All 108 batches passed the gates with full rank 6, per-batch holdout
 RMSE between 0.05 m and 0.23 m (mean ~0.14 m), and final rolling RMSE near
 0.14 m.
+
+#### Checked TIERS `LidarsCali.bag` result (2026-08-02)
+
+The full 14-variant check (deskew on/off × 0, ±5, ±10, and ±20 ms validation
+shift) completed and is recorded in
+[`ablation_manifest.yaml`](C:/Users/rsasa/Workspace/Calibrex/outputs/tiers_livox_time_ablation/ablation_manifest.yaml).
+Every variant passed the final online calibration gate and detected all known
+bad controls (`known_bad_detectable_fraction: 1.0`). The independent holdout
+RMSE range was 0.15778–0.15857 m and the final rolling RMSE range was
+0.17377–0.17444 m. At zero shift, deskew on/off was 0.158479/0.173897 m vs
+0.158435/0.174256 m (holdout/rolling), so this sequence does not support a
+deskew benefit claim: the difference is below 1 mm and is smaller than the
+trajectory-quality uncertainty.
+
+The Livox point-time mapping was `stable` for all variants, with a maximum
+clock-mapping residual of 1.089 ms and a decoded point-time span of 99.905 ms.
+The result quality grade remains `fail` because the recorded trajectory exceeds
+the current kinematic gate (3.383 m/s maximum linear speed and
+2897.130 deg/s maximum angular speed) and no cross-segment source scans were
+available. The solid-state coverage was 10.20 m in distance, 81.7° in azimuth,
+and 28.1° in elevation; only one of four distance bins was supported, and the
+bag has no integration-window or temperature profile. These are evidence gaps,
+not reasons to relax the trajectory gate.
+
+#### AgRob Modular-e ROS 2 smoke check
+
+The `2023-06-14T174658Z` sequence from the public
+[AgRob Modular-e dataset](https://zenodo.org/records/8083431) was downloaded
+and checksum-verified (`f8e52a9ee09f4013773f56893fc67b8b`). It contains 3855
+Livox messages over 386.15 s and 7539 `/odom` messages, but `/livox/lidar` is
+`sensor_msgs/msg/PointCloud2` with only `x`, `y`, `z`, `intensity`, `tag`, and
+`line` fields. No per-point time field is present. Its odometry also contains
+large outliers (maximum linear speed 98.69 m/s), so this sequence is retained
+as an adapter smoke fixture only and is not used for the point-time or deskew
+calibration evidence.
+
+The larger AgRob sequences expose the ROS 2 Livox topic as
+`livox_interfaces/msg/CustomMsg` alongside `/rslidar_points`. Calibrex's
+ROS-independent rosbag2 adapter decodes that message directly: it preserves
+`timebase`, `offset_time`, reflectivity, tag, and line, and maps the Livox clock
+to the rosbag2 record clock for online deskew. A ROS installation or vendor
+driver is not required. Configure the Livox sensor with
+`point_time_field: offset_time`; leave the RS-LiDAR PointCloud2 sensor's time
+field unset unless its fields provide one.
+
+The reproducible paired-sequence entry point is
+[`agrob_modular_e/manifest.yaml`](../../examples/public_datasets/agrob_modular_e/manifest.yaml)
+and
+[`agrob_modular_e/online_config.yaml`](../../examples/public_datasets/agrob_modular_e/online_config.yaml).
+The manifest pins the `2023-06-13T170852Z.zip` archive (2,548,542,803 bytes,
+MD5 `fa0cea9ea4aafd5e7a0d75676e8e064d`), which contains 2455 Livox
+`CustomMsg` messages, 2470 `/rslidar_points` messages, and 4932 `/odom`
+messages according to the Zenodo record. The downloader resumes exact byte
+ranges and promotes the archive only after the MD5 check succeeds:
+
+```bash
+python tools/download_public_dataset.py agrob_modular_e \
+  --agrob-workers 256 --agrob-chunk-kib 256
+calibrex validate examples/public_datasets/agrob_modular_e/manifest.yaml --kind dataset-manifest
+calibrex calibrate examples/public_datasets/agrob_modular_e/online_config.yaml --online
+```
+
+The parallel options are useful when the public Zenodo endpoint throttles each
+individual Range response. They write a size-shaped, but explicitly
+unverified, sidecar plus a resumable state ledger; only the final MD5 check
+creates `2023-06-13T170852Z.zip`. A partial file must never be treated as a
+valid bag or extracted.
+
+This is the first public paired run in the project that exercises the ROS 2
+Livox `CustomMsg` adapter against an independent RS-LiDAR stream. A successful
+solver exit is not by itself an accuracy claim: retain the generated result's
+holdout, known-bad, trajectory-quality, point-time mapping, and provenance
+gates when interpreting it.
+
+For the checked three-window joint replay, the standalone
+[`trajectory_window_drift.yaml`](../../outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift.yaml)
+artifact reports full-span RMSE 0.349 m (FAIL) and local RMSEs 0.361 m (FAIL),
+0.288 m (PASS), and 0.330 m (FAIL). Its
+`local_inconsistency_suspected` interpretation means the joint failure cannot
+be attributed to long-span accumulation alone; it remains a ground-truth-free
+diagnostic rather than an absolute extrinsic-accuracy claim.
+
+The deskew-off control is preserved in
+[`trajectory_window_drift_deskew_off.yaml`](../../outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift_deskew_off.yaml):
+full-span RMSE rises to 0.358 m and the three windows become 0.364/0.310/0.352
+m (all FAIL). The odometry stream has 4932 raw and retained poses with zero
+sub-millisecond burst removals, so `preserve`, `keep_first`, and `keep_last`
+are equivalent for this recording. Window 0/2 also have much less rotational
+excitation than window 1 (endpoint rotation 6.1°/1.8° versus 170.5°), which
+is a stronger next suspect than burst preprocessing alone.
+
+#### AIST GLIM versatile Livox trajectory fixture
+
+The official [GLIM cross-sensor evaluation dataset](https://zenodo.org/records/6864654)
+provides a smaller, reproducible Livox Avia fixture. The downloaded
+`livox.bag` is 613,350,674 bytes with MD5
+`fb17a6d4e0bc1765e276f0dcca8a5063`, and `gt/livox.txt` is the accompanying
+trajectory file. `calibrex inspect --type rosbag1` found 618 messages each on
+`/livox/lidar` (`livox_ros_driver/CustomMsg`) and `/livox/points`
+(`sensor_msgs/PointCloud2`); both expose point time over approximately 99.85 ms
+per message. The bag span is 61.693 s, while the 618 GT poses span 61.700 s.
+
+The GT trajectory has a maximum linear speed of 0.749 m/s and maximum angular
+speed of 56.6 deg/s under the current kinematic policy, so it is suitable for
+ROS 1 CustomMsg/PointCloud2 decoding, point-time mapping, and deskew replay
+regression. It is not a LiDAR-to-LiDAR absolute-extrinsic reference: this small
+fixture supplies one Livox sensor and a trajectory, not a second calibrated
+LiDAR. The raw bag remains an external input under `data/public/glim_versatile/`.
+The checked stream contract is
+[`glim_versatile/manifest.yaml`](../../examples/public_datasets/glim_versatile/manifest.yaml)
+and validates with `calibrex validate --kind dataset-manifest`.
+
+The ROS 1 PointCloud2 header carries the relative Livox clock (about 110 s),
+while bag records use epoch time. The reproducible conversion therefore
+restamps `/livox/points` with the measured median record/header offset and
+maps the external GT with the same explicit offset. This is a clock-domain
+normalization, not a recovered time-offset estimate:
+
+```bash
+python tools/rosbag1_to_rosbag2_online_pair.py \
+  --src data/public/glim_versatile/livox.bag \
+  --dst data/public/glim_versatile/livox_rosbag2_gt_restamped \
+  --topic /livox/points \
+  --odom-source external-trajectory \
+  --trajectory-file data/public/glim_versatile/gt/livox.txt \
+  --trajectory-time-offset-s 1655977530.260883 \
+  --restamp-topic /livox/points \
+  --duplicate-topic /livox/points:/livox/points_copy
+```
+
+The duplicate topic is an identity self-consistency control. The checked
+zero-shift ablation is recorded in
+`outputs/glim_versatile_livox_time_ablation/ablation_manifest.yaml`:
+
+| Mode | Holdout RMSE (m) | Final rolling RMSE (m) | Final gate | Trajectory gate |
+|------|------------------:|------------------------:|------------|-----------------|
+| deskew on | 0.164552 | 0.161424 | pass | pass |
+| deskew off | 0.153536 | 0.149489 | pass | pass |
+
+Both variants detect the declared known-bad controls (1.0), but the off-mode
+is slightly better on this identity control. This does not establish a deskew
+benefit or absolute extrinsic accuracy; it establishes that the external-GT
+adapter, clock normalization, PointCloud2 `t` decoding, and trajectory gates
+are executable on a public solid-state fixture.
 
 ### Spinning × solid-state (Velodyne VLP-16 → Livox Horizon)
 
@@ -247,11 +459,20 @@ than confirming each other tightly. It is recorded in
 `outputs/tiers_livox_lidars_cali_online_mixed/result.yaml` with full rosbag replay
 provenance.
 
-`calibrex inspect --type rosbag1` lists every `sensor_msgs/PointCloud2` topic
-with message counts, and samples a few messages per topic to report decoded
-point counts, intensity presence, spatial bounds, and first/last ROS
+The mixed offline config follows the same bounded native adapter protocol, with
+Velodyne as the source map and Horizon as the target. Its PointCloud2 `time`
+field is recorded as a spinning-LiDAR control; it is not substituted for
+Livox `offset_time`. KITTI/A2D2 and Indoor02 remain comparison controls: they
+test spinning-LiDAR geometry, public-data reproducibility, and temporal
+holdout machinery, but cannot establish solid-state temperature or internal
+beam-calibration accuracy.
+
+`calibrex inspect --type rosbag1` lists every supported PointCloud2 or Livox
+`CustomMsg` topic with message counts, and samples a few messages per topic to
+report decoded point counts, intensity presence, spatial bounds, range,
+azimuth/elevation FOV, point-time availability/range, and first/last ROS
 timestamps (normalized to integer nanoseconds). Other message types are
-ignored by design; the alpha reader is scoped to point clouds.
+ignored by design; the reader remains ROS-independent and point-cloud scoped.
 
 ## ROS 2 bag (rosbag2) reader
 
@@ -271,10 +492,40 @@ work out of the box).
 calibrex inspect path/to/bag --type rosbag2 --json
 ```
 
-`calibrex inspect --type rosbag2` reports per-topic message counts, sampled
-decoded point counts for PointCloud2 topics, and a pose sample for Odometry
-topics (position, orientation `xyzw`, and pose covariance diagonal entries from
-the first sampled message).
+`calibrex inspect --type rosbag2` reports per-topic message counts, decoded
+`frame_id`, sampled point counts/bounds, Livox `offset_time` availability and
+timebase range, plus an all-message Odometry motion audit (time span, path
+length, linear/angular speed p95/max, duplicate timestamps, and the default replay
+kinematic gate). This separates a valid message decode from a trustworthy
+motion-compensation premise.
+
+For ROS 2 online calibration, the replay applies a deterministic temporal
+boundary: source-map messages at or after the final 20% target-capture boundary
+are excluded from the source map, while the target stream retains per-batch
+point holdouts. The result records the boundary timestamp, train/holdout window
+counts, and whether the clock-domain comparison was actually applied. Livox
+`CustomMsg` is also included in the independent first-half/second-half
+trajectory drift evidence; no ROS vendor driver is needed.
+
+For a joint replay over several time ranges, replace the legacy single-window
+options with a factor option such as:
+
+```yaml
+capture_windows:
+  - start_timestamp_ns: 1686676331234969730
+    end_timestamp_ns: 1686676371234969729
+  - start_timestamp_ns: 1686676371234969730
+    end_timestamp_ns: 1686676411234969729
+capture_window_sampling_policy: evenly_spaced
+```
+
+`capture_windows` is an inclusive union. With `evenly_spaced`, source and
+target records are selected per window using decoded LiDAR capture timestamps;
+the legacy `max_source_messages`, `max_target_messages`, and source-point cap
+are applied per window. The result provenance records each boundary and the
+adopted source/target message and point counts. The default `first` policy
+preserves the historical single-window behavior. Set `max_replay_duration_s`
+to `null` when windows span more than that duration.
 
 ### Moving platform (TIERS Indoor02, rosbag2 + odometry)
 
@@ -290,6 +541,25 @@ manually from the upstream dataset:
    `examples/public_datasets/tiers_lidars_dataset_indoor02/manifest.yaml` under
    `provenance.download_url`).
 2. Save the bag as `data/public/tiers_lidars_dataset/indoor02.bag`.
+
+The repository helper performs the public SharePoint cookie handshake and
+resumable Range download automatically:
+
+```bash
+python tools/download_public_dataset.py tiers_lidars_dataset_indoor02 \
+  --output-dir data/public
+```
+
+Reproduction audit (2026-08-02): a cookie-preserving public SharePoint session
+retrieved the raw bag to an external data volume (the 17,974,826,130-byte file
+is intentionally not committed). Its first-MiB SHA-256 matches the manifest:
+`164c2f8dcfd42463ad4981ba25a97668f015ced776db2781fc1e4211fd8fd574`.
+`calibrex inspect --type rosbag1` then reported 420 Velodyne messages, 423
+Ouster messages, and Livox/other LiDAR streams. The pure-Python ROS 1 reader
+also had to be made tolerant of the official bag's padding between top-level
+records; the regression test and the raw-bag replay now cover that path.
+The generated Indoor02 results below are therefore a fresh, schema-validated
+run from the public archive. The archive itself remains an external input.
 
 Convert the ROS 1 bag to rosbag2 with synthesized odometry (the pose trajectory
 is real MOCAP; only the `nav_msgs/msg/Odometry` envelope is authored). The
@@ -363,7 +633,7 @@ calibrex inspect data/public/tiers_lidars_dataset/indoor02_rosbag2_mcap --type r
 ```
 
 Online motion-compensated calibration with MOCAP odometry (A), the static-rig
-control (B), and KISS-ICP rig-frame odometry (C):
+control (B), and the optional KISS-ICP rig-frame odometry (C):
 
 ```bash
 pip install -e ".[dev,rosbag1-lz4,rosbag2,rosbag2-compression]"
@@ -372,67 +642,106 @@ calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online
 calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_config.yaml --online
 ```
 
-On a bounded replay of the restamped converted bag (12 Velodyne source messages
-/ 8k source points, 36 Ouster target messages / 1.5k target points, 60 s budget),
-all three runs produced 108 Ouster batches (500 points each). Before restamping,
-every target interpolation was clamped to the odometry track start
-(`odometry_interpolation_clamp_count: 36` / 36 target messages in run C) because
-Ouster header stamps sat in a different clock domain than `/odom`; motion
-compensation was frozen at the first pose and any compensated run was not
-measuring real accuracy. Calibrex now gates on odometry extrapolation
-(`online_gate_max_odometry_extrapolation_s`, default 0.25 s): batches whose
-target timestamps lie beyond that tolerance outside the odometry track are
-excluded with reason `odometry_extrapolation` instead of silently clamping.
+On the fresh bounded replay (12 Velodyne source messages / 8k source points,
+36 Ouster target messages / 1.5k target points, 60 s budget), the MOCAP run (A)
+and static control (B) each produced 108 target batches. Before restamping,
+Ouster header stamps were in a different clock domain from `/odom`; the
+converter's measured per-topic offset was `1645462364594977536` ns. After
+restamping, A had zero odometry clamping and zero extrapolation.
 
-After restamping, motion-compensated runs A and C show near-zero extrapolation
-(clamp count 0–1, `odometry_interpolation_max_extrapolation_s` ≤ 0.025 s). Run A
-(MOCAP odometry) adopted all 108 batches. The static control (B) adopted 106 and
-rejected 2 batches whose holdout RMSE exceeded the 0.40 m gate (batches 66 and
-105). KISS-ICP rig-frame odometry (C) adopted 106 and rejected 2 batches for
-holdout RMSE (batches 66 and 102) — not for extrapolation. Per-batch holdout
-RMSE ranged 0.20–0.38 m for A (mean ~0.28 m), 0.13–0.42 m for B (mean ~0.28 m),
-and 0.17–0.41 m for C (mean ~0.28 m). Final rolling RMSE settled near 0.28 m
-(A), 0.29 m (B), and 0.31 m (C). All runs kept rank 6 with condition number
-~4–9.
+The recomputed evidence is:
 
-The TIERS README GICP seed (`frames.ouster_os1.transform.initial`, inter-sensor
-distance ~0.37 m) is a nominal reference, not ground truth. Final estimates
-drifted substantially from that seed for the MOCAP odometry run (A: ~287 cm
-translation / ~46° rotation), consistent with an unknown constant offset between
-the MOCAP rigid-body frame and `base_link` — rotation smears the world map with
-scene distance and platform excursion. On that sequence the MOCAP motion-compensated
-final extrinsic is **not** validated against the TIERS reference: a ~2.9 m
-translation drift on a physically ~0.37 m sensor pair is not agreement at any
-level. The static control (B) drifted ~106 cm / ~15° from the seed. Run C now
-measures genuinely motion-compensated accuracy (restamped timestamps, extrapolation
-gate clean) but still lands ~85 cm / ~28° from the seed — larger than the
-inter-sensor baseline (~0.37 m) and well outside the holdout residual band.
+| Run | Odometry | Batches adopted | Holdout RMSE (m) | Final rolling RMSE (m) | Trajectory/evidence verdict |
+|-----|----------|-----------------|------------------|-------------------------|-----------------------------|
+| A motion | MOCAP `/odom` | 108 / 108 | 0.319675 | 0.281411 | kinematic gate **fail**; max 240.387 m/s and 115546.218 deg/s |
+| B static | none | 107 / 108 | 0.302346 | 0.286878 | trajectory skipped; static evidence **warn** |
 
-Run C removes the external MOCAP body-alignment ambiguity structurally: KISS-ICP
-poses are `T_world_velo_sensor` with the Velodyne as the root frame. The
-KISS-ICP trajectory itself is sane on this sequence (~7 m office-scale excursion,
-unit quaternions, no consecutive-pose translation jumps above 0.11 m). C is
-closer to the TIERS GICP seed than A (~85 cm vs ~287 cm translation) and
-slightly closer than B in translation (85 cm vs 106 cm), but still
-~2.3× the inter-sensor baseline. **Absolute extrinsic accuracy against the
-TIERS reference is not established** by C: the residual ~85 cm / ~28° gap is
-larger than the measured holdout residuals (~0.28 m mean) and cannot be read as
-confirmation of the GICP seed. The online gates measure internal consistency of
-the (possibly biased) world map, not absolute extrinsic accuracy. The VRPN
-rigid-body (`UWBTest`) alignment caveat applies only to run A.
+Both runs detected all six declared known-bad extrinsic perturbations (6/6),
+and both final online gates passed. The result, timeline, trajectory (A),
+assessment, and evidence bundle validate against their schemas; `calibrex
+verify` reports 10/10 artifacts and zero failed claims for each run. The
+artifacts are under `outputs/tiers_lidars_dataset_indoor02_online_motion/` and
+`outputs/tiers_lidars_dataset_indoor02_online_static/`.
 
-This validation did establish that real rosbag2 bags from an independent encoder
-(`rosbags`) exposed two reader bugs that synthetic mirror-image tests could not:
-CDR encapsulation endianness was keyed off the wrong header byte, and
-message-mode zstd compression declared in `metadata.yaml` was ignored. With both
-fixed, `calibrex inspect` decodes the regenerated sqlite3 and MCAP+zstd bags
-with standard CDR headers and per-message decompression.
+The trajectory failure in A is intentional evidence, not a relaxed threshold:
+the VRPN pose stream contains kinematic outliers under the current 3 m/s and
+120 deg/s policy. A's LiDAR holdout and interpolation numbers are retained,
+but A is **not** an absolute-accuracy certification. B is a useful static
+control, not ground truth. The TIERS README GICP seed (inter-sensor distance
+about 0.37 m) remains a nominal reference rather than an independently verified
+truth; the current estimates differ from that seed by about 2.853 m / 45.4° (A)
+and 0.862 m / 17.6° (B). These gaps prevent claiming absolute extrinsic accuracy.
+
+Run C (KISS-ICP rig-frame odometry) remains a reproducible optional experiment
+via the command above, but its numeric result is not included in this audit
+until that conversion and bundle are rerun from the same raw archive.
+
+#### Indoor02 pose-burst and frame-semantics audit
+
+The official TIERS OptiTrack CSV is available at
+<https://github.com/TIERS/tiers-lidars-dataset/blob/main/data/ground_truth/indoor02_optitrack.csv>.
+An audit of that file and the converted `/odom` stream found 854 consecutive
+pose intervals shorter than 1 ms. The burst is present in the official source
+trajectory itself; it is not introduced by the rosbag2 conversion. The raw
+track remains the input of record.
+
+Two schema-validated controls make the handling explicit:
+
+```bash
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_pose_burst_config.yaml --online
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_baseframe_config.yaml --online
+```
+
+Both set `dataset.odometry_preprocessing.burst_policy: keep_last` and
+`min_interval_s: 0.001`. This retains the latest pose in each sub-millisecond
+burst, without modifying the bag. The result provenance records 5,065 raw
+poses, 4,211 retained poses, and 854 removed poses.
+
+| Run | Frame graph | Batches adopted | Final rolling RMSE (m) | Linear max (m/s) | Angular max (deg/s) | Trajectory verdict |
+|-----|-------------|-----------------|------------------------|------------------|---------------------|--------------------|
+| A raw baseline | Velodyne root | 108 / 108 | 0.281411 | 240.387 | 115546.218 | **FAIL** |
+| A1 pose-burst control | Velodyne root | 108 / 108 | 0.309474 | 1.745 | 600.717 | **FAIL** |
+| A2 pose-burst + explicit base frame | `base_link → velodyne → ouster` | 106 / 108 | 0.285919 | 1.745 | 600.717 | **FAIL** |
+
+The burst policy removes the artificial linear-speed failure, but the official
+orientation stream still exceeds the declared 120 deg/s angular gate. No
+orientation smoothing or threshold relaxation is applied, so A1/A2 are
+improved reproducible analyses rather than absolute-accuracy certification.
+The A2 output keeps the documented fixed `T_base_link_velodyne_vlp16` edge and
+estimates `T_velodyne_vlp16_ouster_os1`; the online pair selector is covered by
+a regression test for chained non-root LiDAR frames.
+
+The corrected A2 bundle is under
+`outputs/tiers_lidars_dataset_indoor02_online_motion_baseframe_pose_burst/`.
+It has a passing final online gate, a passing cross-segment RMSE of 0.2973 m,
+and a failing overall quality grade solely because of the angular kinematic
+gate. Verify it with:
+
+```bash
+calibrex verify outputs/tiers_lidars_dataset_indoor02_online_motion_baseframe_pose_burst/bundle.json
+calibrex validate outputs/tiers_lidars_dataset_indoor02_online_motion_baseframe_pose_burst/trajectory.json --kind trajectory
+```
+
+This validation established that the public archive exercised three real-input
+reader paths that synthetic mirror-image tests did not: ROS 1 top-level record
+padding between chunks, CDR encapsulation endianness keyed off the wrong header
+byte, and message-mode zstd compression declared in `metadata.yaml` being
+ignored. With those fixes, `calibrex inspect` decodes the raw bag and the
+regenerated sqlite3/MCAP bags with standard CDR headers and per-message
+decompression.
 
 | Run | Odometry | Batches adopted | Holdout RMSE (m) | Final Δ vs TIERS seed |
 |-----|----------|-----------------|------------------|------------------------|
-| A motion | MOCAP `/odom` | 108 / 108 | 0.20 – 0.38 (mean ~0.28) | ~287 cm, ~46° |
-| B static | none | 106 / 108 | 0.13 – 0.42 (mean ~0.28) | ~106 cm, ~15° |
-| C kiss-icp | KISS-ICP `/odom` | 106 / 108 | 0.17 – 0.41 (mean ~0.28) | ~85 cm, ~28° |
+| A motion | MOCAP `/odom` | 108 / 108 | 0.319675 | 2.853 m, 45.4°; kinematic gate fail |
+| B static | none | 107 / 108 | 0.302346 | 0.862 m, 17.6°; warn |
+| C kiss-icp | KISS-ICP `/odom` | not rerun in this audit | — | optional, no current claim |
+
+The identity/KISS-ICP and deskew subsections below are historical optional
+evidence records from earlier Indoor02 conversions. They are retained as
+reproduction targets, but their numeric claims are not part of the fresh
+2026-08-02 A/B audit above because those KISS-ICP bundles were not regenerated
+in this run. Re-run the commands and verify the resulting bundles before using
+any of those numbers as current release evidence.
 
 ### Identity self-consistency control
 
@@ -730,6 +1039,170 @@ the three: pass &lt; inconclusive &lt; fail):
 Fewer than 10 odometry samples → kinematic **INCONCLUSIVE**; fewer than 50
 cross-segment correspondences → cross-segment **INCONCLUSIVE**.
 
+Before starting a solid-state LiDAR calibration, run the capture-readiness
+wizard. It checks window-local motion excitation, voxel-plane normal diversity,
+and a six-DoF point-to-plane observability proxy, then emits a concise
+`PROCEED`, `REVIEW`, or `RECAPTURE` recommendation:
+
+```bash
+calibrex calibration-readiness \
+  examples/public_datasets/agrob_modular_e/online_joint_config.yaml \
+  --output outputs/agrob_modular_e_livox_rslidar_online_joint/capture_readiness.yaml
+calibrex validate \
+  outputs/agrob_modular_e_livox_rslidar_online_joint/capture_readiness.yaml
+```
+
+For the AgRob Modular-e three-window replay, the readiness artifact reports
+window 0: **RECAPTURE** (6.1° endpoint rotation), window 1: **PROCEED**
+(170.5°), and window 2: **RECAPTURE** (1.8°). All three windows have full
+local geometry evidence in this recording (normal rank 3, estimated observable
+DoF 6, and 3567–3713 proxy correspondences), so the actionable problem is
+motion excitation rather than missing planes. The artifact is
+`slac.capture_readiness/v0.1` and includes the config/bag digests, thresholds,
+deskew policy, and recapture instructions.
+
+When the readiness result is usable, the continuous-time LiDAR-pair baseline
+can profile a scalar clock offset while re-optimizing the extrinsic at every
+candidate offset:
+
+```bash
+calibrex continuous-time-lidar-pair \
+  examples/public_datasets/agrob_modular_e/online_joint_config.yaml \
+  --output outputs/agrob_modular_e_livox_rslidar_continuous_time_ablation_hybrid_support6_iter10/adaptive_mad/continuous_time_lidar_pair.yaml
+```
+
+This artifact uses the latest target capture frame group as holdout and records
+the sign convention, offset profile, train/holdout RMSE, local rank, robust
+rejection count, map strategy, and input digests. The checked AgRob run uses a
+range-adaptive voxel map plus a robust uniform fallback, deterministic MAD
+rejection, and one correspondence-refinement pass. It uses caps of 6,000
+source records and 6,000 target points per split, a six-point minimum adaptive
+voxel support, and ten clock-profile iterations; it converged at `+37.5 ms`,
+with train/holdout RMSE `0.2507/0.2246 m`, rank 6, and 491 rejected
+correspondences. These are ground-truth-free fit diagnostics, not an absolute
+accuracy claim. It is a fixed-odometry continuous-time refinement baseline:
+the piecewise-SE(3) trajectory is interpolated but its knots are not estimated.
+That boundary is explicit so it is not confused with iKalibr-style joint
+trajectory estimation. Set `continuous_time_voxel_strategy: uniform` and
+`continuous_time_outlier_policy: none` for a declared baseline comparison.
+
+To materialize the fair public-data comparison in one user-facing command, run
+the uniform/no-rejection baseline and the adaptive/MAD variant with identical
+capture windows, temporal holdout, and solver budgets:
+
+```bash
+python tools/run_continuous_time_lidar_ablation.py \
+  examples/public_datasets/agrob_modular_e/online_joint_config.yaml \
+  --output-dir outputs/agrob_modular_e_livox_rslidar_continuous_time_ablation_hybrid_support6_iter10
+calibrex validate \
+  outputs/agrob_modular_e_livox_rslidar_continuous_time_ablation_hybrid_support6_iter10/ablation_manifest.yaml \
+  --kind continuous-time-lidar-ablation
+```
+
+The checked manifest records both config/result SHA-256 digests. On a later
+rerun, add `--reuse-only` to verify the materialized evidence without
+recomputing the solver. On this AgRob recording, `adaptive_mad` converged at
+`+37.5 ms` with `0.2507/0.2246 m` train/holdout RMSE and 491 rejected
+correspondences; `uniform_none` converged at `+10 ms` with
+`0.3113/0.2907 m` and no deterministic rejection. The adaptive holdout RMSE
+is 22.7% lower on this recording. This is a ground-truth-free ablation result,
+not evidence that either policy is universally superior.
+
+### Cross-dataset solid-state benchmark
+
+The same comparison can be aggregated across the locally available public
+recordings. The declaration labels whether each dataset is a real sensor pair,
+an identity control, or only a trajectory reference; the output does not turn
+temporal holdout into absolute extrinsic ground truth.
+
+```bash
+calibrex validate examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --kind solid-state-cross-dataset-benchmark-config
+python tools/run_solid_state_benchmark_replicates.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --output-root outputs/solid_state_benchmark_v02_replicates \
+  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --split-id middle_holdout --split-id late_holdout \
+  --seed 0 --seed 17
+python tools/run_solid_state_cross_dataset_benchmark.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md \
+  --html-output outputs/solid_state_cross_dataset_benchmark_v02.html
+calibrex validate outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  --kind solid-state-cross-dataset-benchmark
+```
+
+The checked v0.2 run uses four paired replicates per dataset (two temporal
+holdout boundaries × two sampling seeds). Lower holdout RMSE is better:
+
+| Dataset | Replicates | Adaptive win rate | Mean improvement (95% CI) | Winner | Reference label |
+|---|---:|---:|---:|---|---|
+| AgRob Modular-e | 4 | 0.25 | -3.63% (-12.68, 5.94) | uniform | real pair, trajectory-only |
+| TIERS LidarsCali | 4 | 1.00 | 79.19% (74.19, 84.18) | adaptive | real pair, trajectory-only |
+| AIST GLIM | 4 | 1.00 | 65.17% (62.18, 67.99) | adaptive | identity control |
+
+Across 12 scored replicates, adaptive won 9/12 (win rate 0.75), with mean
+improvement 46.91% and bootstrap 95% CI [25.36, 65.86]%. AgRob is a useful
+counterexample: its adaptive result is not stable across the tested splits and
+seeds. TIERS and GLIM still expose `max_iterations` in some artifacts, so the
+failure classification remains visible even when the holdout comparison is
+scored. These results are temporal-holdout evidence, not a universal SOTA
+claim; independently surveyed extrinsic ground truth and unseen public
+sequences remain the next validation gate.
+
+To inspect the AgRob counterexample without tuning on its holdout, generate a
+digest-bound diagnostic artifact:
+
+```bash
+python tools/run_solid_state_failure_analysis.py \
+  outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  --dataset-id agrob_modular_e \
+  --output outputs/agrob_solid_state_failure_analysis.yaml \
+  --markdown-output outputs/agrob_solid_state_failure_analysis.md \
+  --html-output outputs/agrob_solid_state_failure_analysis.html
+calibrex validate outputs/agrob_solid_state_failure_analysis.yaml \
+  --kind solid-state-failure-analysis
+```
+
+The current analysis identifies three uniform-winning AgRob replicates where
+adaptive has lower train RMSE but higher holdout RMSE, and records sampling-seed
+and clock-profile variation as follow-up hypotheses. It also confirms that all
+eight variants are rank 6 and converged, so the counterexample is not explained
+by a simple rank or termination failure. Residual histograms and per-iteration
+correspondence counts are not yet present in the v0.1 result artifact; the
+findings are therefore explicitly labelled candidate causes.
+
+As a controlled semantic ablation, `--adaptive-no-uniform-fallback` was also
+run over the same 12 split/seed replicates. It was not adopted: AgRob mean
+improvement changed from `-3.63%` to `-41.72%`, and the GLIM identity control
+changed from `+65.17%` to `-82.22%`. The current hybrid fallback remains the
+declared default while the next investigation targets adaptive plane support
+and clock-profile selection.
+
+For a multi-window capture, recompute the same map/odometry evidence per
+window without rerunning the extrinsic solver:
+
+```bash
+calibrex trajectory-window-drift \
+  examples/public_datasets/agrob_modular_e/online_joint_config.yaml \
+  --reference-result outputs/agrob_modular_e_livox_rslidar_online_joint/result.yaml \
+  --output outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift.yaml
+calibrex validate \
+  outputs/agrob_modular_e_livox_rslidar_online_joint/trajectory_window_drift.yaml
+```
+
+The `slac.trajectory_window_drift/v0.1` artifact records odometry coverage and
+motion for every configured window, its local cross-segment RMSE and
+correspondence count, the full-span comparison, calculation parameters, and
+input digests. Use `--deskew on|off` and
+`--odometry-burst-policy preserve|keep_first|keep_last` for controlled
+diagnostic variants; the selected values are recorded in the artifact.
+`local_inconsistency_suspected` means at least one window fails;
+`long_span_inconsistency_suspected` is reserved for a full-span-only failure.
+Both are ground-truth-free hypotheses and do not uniquely identify whether
+odometry, map geometry, or sensor timing caused the residual.
+
 The cross-segment pass is a separate bounded bag decode (~80 source messages on
 Indoor02) and does not reuse the calibration replay's `max_source_messages`
 budget.
@@ -859,16 +1332,17 @@ replay budgets as rosbag1 (`max_source_messages`, `max_source_points`,
 `lidar_rig_point_to_plane` factor options). Set `dataset.odometry_topic` to a
 `nav_msgs/msg/Odometry` topic to enable motion compensation during replay.
 
-Formulation with optional per-point deskew (rosbag2, when
+Formulation with optional per-point deskew (ROS 1/ROS 2, when
 `sensors.<name>.point_time_field` is set and `dataset.odometry_topic` is
 configured):
 
 * `T_world_base(t)` — interpolated odometry pose (linear translation, quaternion
   slerp on the shortest arc; out-of-range queries clamp to the nearest pose).
-* Source map points use capture time `t_i = message_stamp + offset_i` when
-  deskew is active; otherwise the message stamp. Points transform to the world
-  frame as `p_world = T_world_base(t_i) * T_base_source * p_sensor` before
-  voxel-plane map construction.
+* Source map points use capture time `t_i = message_stamp + offset_i` for ROS 2
+  and `t_i = bag_record_timestamp + offset_i` for ROS 1 when deskew is active;
+  otherwise the corresponding message/record time. Points transform to the
+  world frame as `p_world = T_world_base(t_i) * T_base_source * p_sensor`
+  before voxel-plane map construction.
 * Target points keep sensor-frame coordinates and record per-point
   `T_world_source(t_j_point)` when deskew is active, else per-message
   `T_world_source(t_msg)` for correspondence (`T_world_source *
@@ -880,6 +1354,9 @@ configured):
 Replay provenance records the odometry topic, message count, time coverage,
 interpolation method, clamp count, total interpolation count,
 `odometry_interpolation_max_extrapolation_s`, a `motion_compensated` flag, and
+when `dataset.odometry_preprocessing` is configured, the raw/retained pose
+counts, selected burst policy, interval, and removed count. The raw bag is
+never rewritten by this preprocessing stage. It also records
 when configured `deskew_applied`, `deskew_time_field`, `deskew_span_s`, or
 `deskew_ignored_no_odometry`.
 Batches whose target timestamps extrapolate beyond

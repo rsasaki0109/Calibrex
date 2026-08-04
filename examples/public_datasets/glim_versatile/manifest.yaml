@@ -1,0 +1,65 @@
+schema_version: slac.dataset_manifest/v0.1
+name: glim_versatile_livox
+description: >
+  AIST GLIM cross-sensor evaluation fixture with Livox Avia ROS 1 point-time
+  streams and the accompanying Livox trajectory.
+time_base: ros_time
+streams:
+  livox_custommsg:
+    kind: pointcloud
+    count: 618
+    path: data/public/glim_versatile/livox.bag
+    topic: /livox/lidar
+    sensor: livox_avia
+    frame_id: livox
+    timestamp_field: header_stamp_ns
+    fields:
+      - x
+      - y
+      - z
+      - reflectivity
+      - tag
+      - line
+      - offset_time
+  livox_pointcloud2:
+    kind: pointcloud
+    count: 618
+    path: data/public/glim_versatile/livox.bag
+    topic: /livox/points
+    sensor: livox_avia
+    frame_id: livox
+    timestamp_field: header_stamp_ns
+    fields:
+      - x
+      - y
+      - z
+      - intensity
+      - t
+  livox_ground_truth:
+    kind: trajectory
+    count: 618
+    path: data/public/glim_versatile/gt/livox.txt
+    sensor: livox_trajectory
+    frame_id: world
+    timestamp_field: time_s
+    fields:
+      - time_s
+      - x
+      - y
+      - z
+      - qx
+      - qy
+      - qz
+      - qw
+provenance:
+  source: AIST GLIM cross-sensor evaluation dataset
+  official_url: https://zenodo.org/records/6864654
+  livox_download_url: https://zenodo.org/records/6864654/files/livox.bag?download=1
+  ground_truth_archive_url: https://zenodo.org/records/6864654/files/gt.tar.gz?download=1
+  lidar_model: Livox Avia
+  scan_pattern: non-repetitive solid-state
+  livox_bag_size_bytes: "613350674"
+  livox_bag_md5: fb17a6d4e0bc1765e276f0dcca8a5063
+  ground_truth_md5: ea25f7703ec5d076ba91dba63666d92c
+  point_time_semantics: CustomMsg offset_time and PointCloud2 t span one scan
+  absolute_extrinsic_reference: trajectory only; no second LiDAR ground truth

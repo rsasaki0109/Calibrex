@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from calibrex.core.exceptions import ConfigError
 from calibrex.core.io import read_mapping
+from calibrex.core.solid_state import SolidStateEvaluationConfig, SolidStateLidarProfile
 
 CONFIG_SCHEMA_VERSION: Literal["slac.config/v0.1"] = "slac.config/v0.1"
 
@@ -25,6 +26,7 @@ DatasetType = Literal[
     "tum_rgbd",
 ]
 DomainType = Literal["robotics", "autonomous_driving", "industrial", "research", "other"]
+OdometryBurstPolicy = Literal["preserve", "keep_first", "keep_last"]
 
 
 class StrictModel(BaseModel):
@@ -40,6 +42,24 @@ class ProjectConfig(StrictModel):
     domain: DomainType = "robotics"
 
 
+class OdometryPreprocessingConfig(StrictModel):
+    """Explicit preprocessing for bursty pose streams used as odometry."""
+
+    burst_policy: OdometryBurstPolicy = Field(
+        default="preserve",
+        description=(
+            "how to handle consecutive odometry poses closer than min_interval_s; "
+            "preserve keeps the source stream unchanged"
+        ),
+    )
+    min_interval_s: float = Field(
+        default=0.001,
+        gt=0.0,
+        le=1.0,
+        description="minimum retained pose spacing for keep_first/keep_last policies",
+    )
+
+
 class DatasetConfig(StrictModel):
     type: DatasetType
     path: str
@@ -49,6 +69,13 @@ class DatasetConfig(StrictModel):
         description=(
             "optional nav_msgs/msg/Odometry topic for online motion compensation "
             "from rosbag1/rosbag2 replays; unset preserves the static-rig path"
+        ),
+    )
+    odometry_preprocessing: OdometryPreprocessingConfig | None = Field(
+        default=None,
+        description=(
+            "optional explicit pose-stream preprocessing for rosbag1/rosbag2 "
+            "odometry; the raw dataset is never modified"
         ),
     )
     sample_limit: int | None = Field(
@@ -88,6 +115,20 @@ class SensorConfig(StrictModel):
     intrinsics: CameraIntrinsicsConfig | None = None
     fields: list[str] = Field(default_factory=list)
     noise: ImuNoiseConfig | None = None
+    solid_state: SolidStateLidarProfile | None = Field(
+        default=None,
+        description=(
+            "optional acquisition and internal-calibration metadata for a "
+            "solid-state/non-repetitive LiDAR; retained in the result provenance"
+        ),
+    )
+    odometry_preprocessing: OdometryPreprocessingConfig | None = Field(
+        default=None,
+        description=(
+            "optional explicit pose-stream preprocessing for rosbag1/rosbag2 "
+            "odometry; the raw dataset is never modified"
+        ),
+    )
     point_time_field: str | None = Field(
         default=None,
         description=(
@@ -99,6 +140,17 @@ class SensorConfig(StrictModel):
 
     @model_validator(mode="after")
     def validate_sensor_specifics(self) -> SensorConfig:
+        if self.solid_state is not None and self.type != "lidar":
+            msg = "solid_state metadata is only valid for lidar sensors"
+            raise ValueError(msg)
+        if self.solid_state is not None:
+            if self.point_time_field is None:
+                self.point_time_field = self.solid_state.point_time_field
+            elif self.solid_state.point_time_field is None:
+                self.solid_state.point_time_field = self.point_time_field
+            elif self.solid_state.point_time_field != self.point_time_field:
+                msg = "solid_state.point_time_field must match sensor point_time_field"
+                raise ValueError(msg)
         if self.type == "camera" and self.intrinsics is None:
             self.intrinsics = CameraIntrinsicsConfig()
         if self.type == "lidar" and not self.fields:
@@ -241,6 +293,9 @@ class EvaluationConfig(StrictModel):
     strict: bool = False
     kitti: KITTIEvaluationConfig = Field(default_factory=KITTIEvaluationConfig)
     radar: RadarEvaluationConfig = Field(default_factory=RadarEvaluationConfig)
+    solid_state: SolidStateEvaluationConfig = Field(
+        default_factory=SolidStateEvaluationConfig
+    )
 
 
 class OutputsConfig(StrictModel):

@@ -10,9 +10,20 @@ from pathlib import Path
 import jsonschema
 import pytest
 
+from calibrex.core.capture_readiness import capture_readiness_json_schema
+from calibrex.core.continuous_time_lidar_artifacts import (
+    continuous_time_lidar_pair_json_schema,
+)
 from calibrex.core.geometry import SE3
 from calibrex.core.trajectory import trajectory_json_schema
-from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
+from calibrex.pipelines.online import (
+    OnlineCalibrationRunOptions,
+    evaluate_rosbag2_capture_readiness,
+    evaluate_rosbag2_continuous_time_lidar_pair,
+    evaluate_rosbag2_trajectory_window_drift,
+    run_online_calibration,
+)
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",
@@ -370,3 +381,103 @@ def test_rosbag2_online_trajectory_skipped_without_odometry(tmp_path: Path) -> N
     assert "trajectory_evidence" not in provenance
     assert "trajectory_path" not in provenance
     assert "trajectory_gate_verdict" not in result.metrics
+
+
+def test_rosbag2_trajectory_window_drift_artifact_recomputes_local_span(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    bag = _build_moving_rig_bag(tmp_path / "window_drift.db3", message_count=12)
+    config_path = tmp_path / "window_drift_config.yaml"
+    _write_config(
+        config_path,
+        bag_path=bag,
+        output_dir=tmp_path / "outputs",
+        odometry_topic="/odom",
+    )
+
+    artifact = evaluate_rosbag2_trajectory_window_drift(config_path)
+
+    jsonschema.validate(
+        artifact.model_dump(mode="json", exclude_none=True),
+        trajectory_window_drift_json_schema(),
+    )
+    assert len(artifact.windows) == 1
+    assert artifact.windows[0].odometry.pose_count == 12
+    assert artifact.full_span_cross_segment.gate_status == "pass"
+    assert artifact.interpretation == "no_inconsistency_detected"
+
+    deskew_off = evaluate_rosbag2_trajectory_window_drift(
+        config_path,
+        use_point_time_offsets=False,
+        odometry_burst_policy="keep_last",
+    )
+    assert deskew_off.parameters.use_point_time_offsets is False
+    assert deskew_off.parameters.odometry_burst_policy == "keep_last"
+    assert any(
+        "override use_point_time_offsets=false" in note
+        for note in deskew_off.provenance.notes
+    )
+
+
+def test_rosbag2_capture_readiness_artifact_reports_motion_and_geometry(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    bag = _build_moving_rig_bag(tmp_path / "readiness.db3", message_count=12)
+    config_path = tmp_path / "readiness_config.yaml"
+    _write_config(
+        config_path,
+        bag_path=bag,
+        output_dir=tmp_path / "outputs",
+        odometry_topic="/odom",
+    )
+
+    artifact = evaluate_rosbag2_capture_readiness(config_path)
+
+    jsonschema.validate(
+        artifact.model_dump(mode="json", exclude_none=True),
+        capture_readiness_json_schema(),
+    )
+    assert artifact.decision == "recapture"
+    assert any("time span" in reason for reason in artifact.windows[0].reasons)
+    assert artifact.windows[0].motion.pose_count == 12
+    assert artifact.windows[0].geometry.source_scan_count > 0
+    assert artifact.windows[0].geometry.correspondence_count > 0
+
+
+def test_rosbag2_continuous_time_lidar_pair_emits_holdout_artifact(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    bag = _build_moving_rig_bag(tmp_path / "continuous_time.db3", message_count=16)
+    config_path = tmp_path / "continuous_time_config.yaml"
+    _write_config(
+        config_path,
+        bag_path=bag,
+        output_dir=tmp_path / "outputs",
+        odometry_topic="/odom",
+        max_source_messages=12,
+        max_target_messages=12,
+        trajectory_options="""
+        continuous_time_initial_offset_s: 0.0
+        continuous_time_max_abs_offset_s: 0.05
+        continuous_time_initial_step_s: 0.02
+        continuous_time_minimum_step_s: 0.005
+        continuous_time_max_iterations: 4
+        continuous_time_fixed_extrinsic_max_iterations: 20
+""",
+    )
+
+    artifact = evaluate_rosbag2_continuous_time_lidar_pair(config_path)
+
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    jsonschema.validate(payload, continuous_time_lidar_pair_json_schema())
+    assert artifact.trajectory_model == "piecewise_se3_fixed_odometry"
+    assert any(note == "holdout_frame_count=3" for note in artifact.provenance.notes)
+    assert artifact.train_correspondence_count >= 6
+    assert artifact.holdout_correspondence_count >= 6
+    assert artifact.refined_transform.parent == "lidar_map"
+    assert artifact.refined_transform.child == "lidar_stream"
+    assert str(config_path) in artifact.provenance.source_sha256
+    assert str(bag) in artifact.provenance.source_sha256

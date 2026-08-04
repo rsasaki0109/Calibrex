@@ -1,0 +1,506 @@
+{
+  "$defs": {
+    "TrajectoryWindowCrossSegmentEvidence": {
+      "additionalProperties": false,
+      "description": "Cross-segment map-consistency evidence for one span.",
+      "properties": {
+        "correspondence_count": {
+          "minimum": 0,
+          "title": "Correspondence Count",
+          "type": "integer"
+        },
+        "first_half_end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Half End Timestamp Ns"
+        },
+        "first_half_point_count": {
+          "minimum": 0,
+          "title": "First Half Point Count",
+          "type": "integer"
+        },
+        "first_half_scan_count": {
+          "minimum": 0,
+          "title": "First Half Scan Count",
+          "type": "integer"
+        },
+        "first_half_start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Half Start Timestamp Ns"
+        },
+        "gate_reason": {
+          "title": "Gate Reason",
+          "type": "string"
+        },
+        "gate_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Gate Status",
+          "type": "string"
+        },
+        "rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rmse M"
+        },
+        "sampling_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sampling Policy"
+        },
+        "second_half_end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Second Half End Timestamp Ns"
+        },
+        "second_half_point_count": {
+          "minimum": 0,
+          "title": "Second Half Point Count",
+          "type": "integer"
+        },
+        "second_half_scan_count": {
+          "minimum": 0,
+          "title": "Second Half Scan Count",
+          "type": "integer"
+        },
+        "second_half_start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Second Half Start Timestamp Ns"
+        }
+      },
+      "required": [
+        "first_half_scan_count",
+        "second_half_scan_count",
+        "first_half_point_count",
+        "second_half_point_count",
+        "correspondence_count",
+        "gate_status",
+        "gate_reason"
+      ],
+      "title": "TrajectoryWindowCrossSegmentEvidence",
+      "type": "object"
+    },
+    "TrajectoryWindowDriftParameters": {
+      "additionalProperties": false,
+      "description": "Replay and correspondence settings needed to reproduce the diagnostic.",
+      "properties": {
+        "capture_window_record_prefilter_margin_s": {
+          "minimum": 0.0,
+          "title": "Capture Window Record Prefilter Margin S",
+          "type": "number"
+        },
+        "capture_window_sampling_policy": {
+          "title": "Capture Window Sampling Policy",
+          "type": "string"
+        },
+        "correspondence_gate_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Correspondence Gate M",
+          "type": "number"
+        },
+        "max_points_per_half": {
+          "minimum": 1,
+          "title": "Max Points Per Half",
+          "type": "integer"
+        },
+        "max_scans_per_half": {
+          "minimum": 1,
+          "title": "Max Scans Per Half",
+          "type": "integer"
+        },
+        "odometry_burst_min_interval_s": {
+          "exclusiveMinimum": 0.0,
+          "title": "Odometry Burst Min Interval S",
+          "type": "number"
+        },
+        "odometry_burst_policy": {
+          "default": "preserve",
+          "enum": [
+            "preserve",
+            "keep_first",
+            "keep_last"
+          ],
+          "title": "Odometry Burst Policy",
+          "type": "string"
+        },
+        "source_point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Point Time Field"
+        },
+        "use_point_time_offsets": {
+          "default": true,
+          "title": "Use Point Time Offsets",
+          "type": "boolean"
+        },
+        "voxel_size_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Voxel Size M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "voxel_size_m",
+        "correspondence_gate_m",
+        "max_scans_per_half",
+        "max_points_per_half",
+        "odometry_burst_min_interval_s",
+        "capture_window_record_prefilter_margin_s",
+        "capture_window_sampling_policy"
+      ],
+      "title": "TrajectoryWindowDriftParameters",
+      "type": "object"
+    },
+    "TrajectoryWindowDriftProvenance": {
+      "additionalProperties": false,
+      "description": "Input digests and generation details for a drift artifact.",
+      "properties": {
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 2,
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "TrajectoryWindowDriftProvenance",
+      "type": "object"
+    },
+    "TrajectoryWindowDriftThresholds": {
+      "additionalProperties": false,
+      "description": "Thresholds used by the per-window cross-segment gate.",
+      "properties": {
+        "max_cross_segment_rmse_m": {
+          "minimum": 0.0,
+          "title": "Max Cross Segment Rmse M",
+          "type": "number"
+        },
+        "min_correspondences": {
+          "minimum": 1,
+          "title": "Min Correspondences",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_cross_segment_rmse_m",
+        "min_correspondences"
+      ],
+      "title": "TrajectoryWindowDriftThresholds",
+      "type": "object"
+    },
+    "TrajectoryWindowDriftWindow": {
+      "additionalProperties": false,
+      "description": "Evidence collected for one configured capture window.",
+      "properties": {
+        "cross_segment": {
+          "$ref": "#/$defs/TrajectoryWindowCrossSegmentEvidence"
+        },
+        "end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Timestamp Ns"
+        },
+        "odometry": {
+          "$ref": "#/$defs/TrajectoryWindowOdometryStats"
+        },
+        "start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Timestamp Ns"
+        },
+        "window_index": {
+          "minimum": 0,
+          "title": "Window Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "window_index",
+        "odometry",
+        "cross_segment"
+      ],
+      "title": "TrajectoryWindowDriftWindow",
+      "type": "object"
+    },
+    "TrajectoryWindowOdometryStats": {
+      "additionalProperties": false,
+      "description": "Odometry coverage and motion summary for one declared capture window.",
+      "properties": {
+        "endpoint_displacement_m": {
+          "minimum": 0.0,
+          "title": "Endpoint Displacement M",
+          "type": "number"
+        },
+        "endpoint_rotation_deg": {
+          "minimum": 0.0,
+          "title": "Endpoint Rotation Deg",
+          "type": "number"
+        },
+        "first_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Timestamp Ns"
+        },
+        "last_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Timestamp Ns"
+        },
+        "path_length_m": {
+          "minimum": 0.0,
+          "title": "Path Length M",
+          "type": "number"
+        },
+        "pose_count": {
+          "minimum": 0,
+          "title": "Pose Count",
+          "type": "integer"
+        },
+        "time_span_s": {
+          "minimum": 0.0,
+          "title": "Time Span S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pose_count",
+        "time_span_s",
+        "path_length_m",
+        "endpoint_displacement_m",
+        "endpoint_rotation_deg"
+      ],
+      "title": "TrajectoryWindowOdometryStats",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable diagnostic separating local and long-span drift signals.",
+  "properties": {
+    "config_path": {
+      "title": "Config Path",
+      "type": "string"
+    },
+    "dataset_path": {
+      "title": "Dataset Path",
+      "type": "string"
+    },
+    "full_span_cross_segment": {
+      "$ref": "#/$defs/TrajectoryWindowCrossSegmentEvidence"
+    },
+    "grade": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail"
+      ],
+      "title": "Grade",
+      "type": "string"
+    },
+    "interpretation": {
+      "enum": [
+        "local_inconsistency_suspected",
+        "long_span_inconsistency_suspected",
+        "no_inconsistency_detected",
+        "inconclusive"
+      ],
+      "title": "Interpretation",
+      "type": "string"
+    },
+    "interpretation_reason": {
+      "title": "Interpretation Reason",
+      "type": "string"
+    },
+    "odometry_topic": {
+      "title": "Odometry Topic",
+      "type": "string"
+    },
+    "parameters": {
+      "$ref": "#/$defs/TrajectoryWindowDriftParameters"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TrajectoryWindowDriftProvenance"
+    },
+    "schema_version": {
+      "const": "slac.trajectory_window_drift/v0.1",
+      "default": "slac.trajectory_window_drift/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_sensor": {
+      "title": "Source Sensor",
+      "type": "string"
+    },
+    "target_sensor": {
+      "title": "Target Sensor",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/TrajectoryWindowDriftThresholds"
+    },
+    "windows": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryWindowDriftWindow"
+      },
+      "minItems": 1,
+      "title": "Windows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "config_path",
+    "dataset_path",
+    "source_sensor",
+    "target_sensor",
+    "odometry_topic",
+    "parameters",
+    "thresholds",
+    "windows",
+    "full_span_cross_segment",
+    "interpretation",
+    "grade",
+    "interpretation_reason",
+    "provenance"
+  ],
+  "title": "TrajectoryWindowDriftArtifact",
+  "type": "object"
+}

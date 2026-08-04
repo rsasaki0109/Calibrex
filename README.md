@@ -1,8 +1,8 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Calibration evidence, not just a matrix.</strong><br>
-  Validate robotics sensor calibration with reproducible PASS / WARN / FAIL evidence.
+  <strong>Evidence-first calibration for robotics sensors.</strong><br>
+  Calibrate solid-state LiDAR and multi-sensor rigs with holdouts, observability, and provenance you can reproduce.
 </p>
 
 <p align="center">
@@ -14,13 +14,14 @@
   <img alt="Provenance" src="https://img.shields.io/badge/provenance-recorded-818cf8">
 </p>
 
-Calibrex is a ROS-independent Python toolkit that turns candidate extrinsics,
-time offsets, and trajectories into evidence backed by **holdout metrics,
-known-bad controls, observability checks, and reproducible provenance**.
+Calibrex is an open-source, ROS-independent Python toolkit that turns candidate
+extrinsics, time offsets, and trajectories into evidence backed by **holdout
+metrics, known-bad controls, observability checks, and reproducible provenance**.
 
-Use it to evaluate native or adapter-produced LiDAR, camera, IMU, radar, RGB-D,
-hand-eye, and robot-world calibration without reducing the verdict to optimizer
-convergence or a single training residual.
+Use it when a transform must be more than a plausible number: evaluate native or
+adapter-produced LiDAR, camera, IMU, radar, RGB-D, hand-eye, and robot-world
+calibration without reducing the verdict to optimizer convergence or a single
+training residual.
 
 <p align="center">
   <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
@@ -158,6 +159,25 @@ does not provide an accepted ground-truth extrinsic. The tables report closure
 RMSE on untouched holdout poses, retain failures in the denominator, and show
 95% bootstrap intervals across splits. See the [full protocol, citations,
 limitations, and reproducible provenance](docs/benchmarks/ethz_hand_eye_opencv.md).
+
+### Solid-state LiDAR: reproducible public-data evidence
+
+The v0.2 solid-state protocol runs four paired replicates per dataset across
+two temporal holdout boundaries and two deterministic sampling seeds. Lower
+holdout RMSE is better; positive improvement means adaptive is better than the
+uniform baseline.
+
+| Public pair/control | Replicates | Adaptive win rate | Mean improvement (95% CI) | Winner |
+|---|---:|---:|---:|---|
+| AgRob Modular-e Livox MID-70 ↔ RS-LiDAR | 4 | 0.25 | −3.63% (−12.68, 5.94) | uniform |
+| TIERS LidarsCali VLP-16 ↔ Livox Horizon | 4 | 1.00 | +79.19% (+74.19, 84.18) | adaptive |
+| AIST GLIM identity control | 4 | 1.00 | +65.17% (+62.18, 67.99) | adaptive |
+
+Across 12 scored replicates, adaptive wins 9/12 with mean improvement of
+46.91% and bootstrap 95% CI [25.36, 65.86]%. AgRob is retained as a useful
+counterexample rather than hidden: its result varies across split and seed.
+These are ground-truth-free temporal-holdout results, not a universal SOTA
+claim. Reproduce the runs and inspect the [public-dataset protocol](docs/tutorials/public_datasets.md#cross-dataset-solid-state-benchmark).
 
 <details>
 <summary><b>What is implemented in the current alpha?</b></summary>
@@ -370,6 +390,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 - [Documentation site](https://rsasaki0109.github.io/Calibrex/)
 - [SLAC concept](docs/concepts/slac.md)
 - [Calibration methods](docs/concepts/calibration_methods.md)
+- [Solid-state LiDAR calibration](docs/concepts/solid_state_lidar.md)
 - [Frame conventions](docs/concepts/frame_conventions.md)
 - [Public datasets](docs/tutorials/public_datasets.md)
 - [Open3D adapter](docs/tutorials/open3d_slac.md)

@@ -90,6 +90,16 @@ datasets:
     slac_manifest: examples/public_datasets/livox_horizon_horizon_pcd_sample/manifest.yaml
     slac_config: examples/public_datasets/livox_horizon_horizon_pcd_sample/config.yaml
     recommended_pipeline: solid_state_lidar_lidar_evidence
+  glim_versatile:
+    name: AIST GLIM versatile Livox Avia trajectory fixture
+    family: glim_versatile
+    domain: robotics
+    official_url: https://zenodo.org/records/6864654
+    download_url: https://zenodo.org/records/6864654/files/livox.bag?download=1
+    license_note: Follow the current Zenodo record terms and citation requirements; the trajectory is a reference stream, not an absolute extrinsic survey.
+    slac_manifest: examples/public_datasets/glim_versatile/manifest.yaml
+    slac_config: examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml
+    recommended_pipeline: solid_state_multi_lidar_evidence
   kitti_lidar_camera_evidence:
     name: KITTI raw camera-LiDAR diagnostic overlay evidence demo
     family: kitti_raw
@@ -120,3 +130,13 @@ datasets:
     slac_manifest: examples/public_datasets/tiers_lidars_dataset_indoor02/manifest.yaml
     slac_config: examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml
     recommended_pipeline: multi_lidar_evidence
+  agrob_modular_e:
+    name: AgRob Modular-e Livox MID-70 + RS-LiDAR ROS 2 sequence
+    family: agrob_scorpion
+    domain: robotics
+    official_url: https://zenodo.org/records/8083431
+    download_url: https://zenodo.org/records/8083431/files/2023-06-13T170852Z.zip?download=1
+    license_note: Zenodo record is CC BY 4.0; verify the published archive MD5 before use.
+    slac_manifest: examples/public_datasets/agrob_modular_e/manifest.yaml
+    slac_config: examples/public_datasets/agrob_modular_e/online_config.yaml
+    recommended_pipeline: solid_state_multi_lidar_evidence

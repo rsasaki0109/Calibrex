@@ -45,6 +45,7 @@ provenance](benchmarks/ethz_robot_world_hand_eye.md).
 
 - [Open3D SLAC adapter](tutorials/open3d_slac.md)
 - [Targetless LiDAR-camera adapter](tutorials/lidar_camera_adapter.md)
+- [Solid-state LiDAR calibration](concepts/solid_state_lidar.md)
 - [Problem builder](concepts/problem_builder.md)
 - [Schema reference](reference/schemas.md)
 - [License boundaries](concepts/license_boundaries.md)

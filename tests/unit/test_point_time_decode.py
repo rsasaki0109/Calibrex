@@ -100,6 +100,22 @@ def test_decode_point_time_uint32_nanoseconds() -> None:
     assert decoded.point_time_offsets_s.tolist() == pytest.approx([0.05])
 
 
+def test_decode_point_time_stays_aligned_after_nonfinite_xyz_filter() -> None:
+    pytest.importorskip("numpy")
+    payload = _encode_pointcloud2_with_time_field(
+        [(float("nan"), 2.0, 3.0, 0.5), (4.0, 5.0, 6.0, 0.25)],
+        [0.01, 0.02],
+        time_field="time",
+        time_datatype=7,
+    )
+
+    decoded = decode_ros2_pointcloud2("/cloud", 0, payload, point_time_field="time")
+
+    assert decoded.point_count == 1
+    assert decoded.point_time_offsets_s is not None
+    assert decoded.point_time_offsets_s.tolist() == pytest.approx([0.02])
+
+
 def test_decode_point_time_missing_field_raises() -> None:
     pytest.importorskip("numpy")
     payload = _encode_pointcloud2(

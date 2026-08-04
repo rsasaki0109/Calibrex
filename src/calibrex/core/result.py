@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from calibrex.core.exceptions import ResultError
 from calibrex.core.geometry import SE3
 from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.solid_state import SolidStateLidarCalibrationContext
 
 RESULT_SCHEMA_VERSION: Literal["slac.result/v0.1"] = "slac.result/v0.1"
 Grade = Literal["pass", "warn", "fail"]
@@ -179,6 +180,13 @@ class CalibrationResult(StrictModel):
     schema_version: Literal["slac.result/v0.1"] = RESULT_SCHEMA_VERSION
     run: RunInfo
     frame_graph: FrameGraphSnapshot
+    solid_state: SolidStateLidarCalibrationContext | None = Field(
+        default=None,
+        description=(
+            "optional solid-state LiDAR acquisition, intrinsic-calibration, "
+            "temperature, and timing context"
+        ),
+    )
     candidate_extrinsics: dict[str, TransformResult] = Field(default_factory=dict)
     reference_extrinsics: dict[str, TransformResult] = Field(default_factory=dict)
     transforms: dict[str, TransformResult] = Field(default_factory=dict)

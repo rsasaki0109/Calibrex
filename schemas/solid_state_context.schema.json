@@ -1,0 +1,544 @@
+{
+  "$defs": {
+    "SolidStateCaptureWindow": {
+      "additionalProperties": false,
+      "description": "Observed timing and operating conditions for one capture interval.",
+      "properties": {
+        "capture_span_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Span S"
+        },
+        "end_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Timestamp Ns"
+        },
+        "fov_azimuth_deg": {
+          "anyOf": [
+            {
+              "maximum": 360.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fov Azimuth Deg"
+        },
+        "fov_elevation_deg": {
+          "anyOf": [
+            {
+              "maximum": 180.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fov Elevation Deg"
+        },
+        "integration_window_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integration Window S"
+        },
+        "point_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Count"
+        },
+        "point_time_deskew_applied": {
+          "default": false,
+          "title": "Point Time Deskew Applied",
+          "type": "boolean"
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Field"
+        },
+        "point_time_max_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Max S"
+        },
+        "point_time_min_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Min S"
+        },
+        "point_time_offsets_available": {
+          "default": false,
+          "title": "Point Time Offsets Available",
+          "type": "boolean"
+        },
+        "range_max_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range Max M"
+        },
+        "range_min_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range Min M"
+        },
+        "reference_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Timestamp Ns"
+        },
+        "start_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Timestamp Ns"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateTemperatureCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SolidStateCaptureWindow",
+      "type": "object"
+    },
+    "SolidStateIntrinsicCalibration": {
+      "additionalProperties": false,
+      "description": "Origin and representation of the sensor's internal calibration.",
+      "properties": {
+        "artifact_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Path"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "model": {
+          "default": "unknown",
+          "enum": [
+            "manufacturer_native",
+            "beam_table",
+            "angular_resolution",
+            "flash_projection",
+            "unknown"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "source": {
+          "default": "unknown",
+          "enum": [
+            "manufacturer",
+            "estimated",
+            "imported",
+            "unknown"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "SolidStateIntrinsicCalibration",
+      "type": "object"
+    },
+    "SolidStateLidarProfile": {
+      "additionalProperties": false,
+      "description": "Static and acquisition-semantic metadata for one solid-state LiDAR.",
+      "properties": {
+        "architecture": {
+          "default": "unknown",
+          "enum": [
+            "solid_state",
+            "mems",
+            "flash",
+            "opa",
+            "hybrid",
+            "unknown"
+          ],
+          "title": "Architecture",
+          "type": "string"
+        },
+        "firmware_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Firmware Version"
+        },
+        "integration_window_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integration Window S"
+        },
+        "intrinsic_calibration": {
+          "$ref": "#/$defs/SolidStateIntrinsicCalibration"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "point_time_available": {
+          "default": false,
+          "title": "Point Time Available",
+          "type": "boolean"
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "source field carrying per-point capture-time offsets, when applicable",
+          "title": "Point Time Field"
+        },
+        "point_time_reference": {
+          "default": "unknown",
+          "enum": [
+            "message_stamp",
+            "timebase",
+            "sweep_start",
+            "sweep_end",
+            "mid_sweep",
+            "absolute_sensor_time",
+            "unknown"
+          ],
+          "title": "Point Time Reference",
+          "type": "string"
+        },
+        "point_time_unit": {
+          "default": "unknown",
+          "enum": [
+            "seconds",
+            "nanoseconds",
+            "unknown"
+          ],
+          "title": "Point Time Unit",
+          "type": "string"
+        },
+        "scan_pattern": {
+          "default": "unknown",
+          "enum": [
+            "repetitive",
+            "non_repetitive",
+            "frame",
+            "unknown"
+          ],
+          "title": "Scan Pattern",
+          "type": "string"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateTemperatureCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SolidStateLidarProfile",
+      "type": "object"
+    },
+    "SolidStateProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for solid-state metadata and operating-condition claims.",
+      "properties": {
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "SolidStateProvenance",
+      "type": "object"
+    },
+    "SolidStateTemperatureCondition": {
+      "additionalProperties": false,
+      "description": "Temperature attached to a calibration or capture interval.",
+      "properties": {
+        "ambient_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ambient C"
+        },
+        "compensation_applied": {
+          "default": false,
+          "title": "Compensation Applied",
+          "type": "boolean"
+        },
+        "max_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max C"
+        },
+        "min_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min C"
+        },
+        "sensor_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor C"
+        },
+        "source": {
+          "default": "unknown",
+          "enum": [
+            "sensor_telemetry",
+            "ambient",
+            "external",
+            "unknown"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "SolidStateTemperatureCondition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Result-level solid-state context for one calibration run.",
+  "properties": {
+    "capture_windows": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SolidStateCaptureWindow"
+      },
+      "title": "Capture Windows",
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "#/$defs/SolidStateProvenance"
+    },
+    "schema_version": {
+      "const": "slac.solid_state_lidar_context/v0.1",
+      "default": "slac.solid_state_lidar_context/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensors": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SolidStateLidarProfile"
+      },
+      "title": "Sensors",
+      "type": "object"
+    }
+  },
+  "required": [
+    "sensors",
+    "provenance"
+  ],
+  "title": "SolidStateLidarCalibrationContext",
+  "type": "object"
+}

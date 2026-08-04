@@ -21,24 +21,26 @@ other dataset adapters in :mod:`calibrex.data`.
 from __future__ import annotations
 
 import bz2
+import math
 import struct
 from collections.abc import Iterable, Iterator
+from contextlib import suppress
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO
+from typing import BinaryIO
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_messages import (
+    LivoxCustomMessage,
     PointCloud2Message,
     PointField,
     decode_point_time_offsets,
     decode_pointcloud_payload,
+    filter_nonfinite_pointcloud_rows,
     require_numpy,
 )
-
-if TYPE_CHECKING:  # pragma: no cover - typing only
-    import numpy as np
 
 BAG_MAGIC = b"#ROSBAG V2.0\n"
 
@@ -52,9 +54,22 @@ OP_CONNECTION = 0x07
 
 POINTCLOUD2_TYPE = "sensor_msgs/PointCloud2"
 LIVOX_CUSTOMMSG_TYPE = "livox_ros_driver/CustomMsg"
+POSE_STAMPED_TYPE = "geometry_msgs/PoseStamped"
 LIDAR_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, LIVOX_CUSTOMMSG_TYPE})
 _LIDAR_MESSAGE_TYPES = LIDAR_MESSAGE_TYPES
 _LIVOX_CUSTOM_POINT_STEP = 19
+_DEFAULT_DISTANCE_BIN_EDGES_M = (0.0, 10.0, 20.0, 40.0, 80.0)
+_BAG_HEADER_PADDING_SCAN_LIMIT = 16 * 1024 * 1024
+_RECORD_OPS = frozenset(
+    {
+        OP_MSG_DATA,
+        OP_BAG_HEADER,
+        OP_INDEX_DATA,
+        OP_CHUNK,
+        OP_CHUNK_INFO,
+        OP_CONNECTION,
+    }
+)
 
 @dataclass(frozen=True)
 class Rosbag1Connection:
@@ -67,25 +82,14 @@ class Rosbag1Connection:
 
 
 @dataclass(frozen=True)
-class LivoxCustomMessage:
-    """A decoded ``livox_ros_driver/CustomMsg`` LiDAR payload."""
+class Ros1PoseStampedMessage:
+    """A decoded ROS 1 ``geometry_msgs/PoseStamped`` payload."""
 
     topic: str
     timestamp_ns: int
     frame_id: str
-    timebase_ns: int
-    point_num: int
-    lidar_id: int
-    xyz: np.ndarray
-    intensity: np.ndarray | None
-    offset_time_ns: np.ndarray | None
-    line: np.ndarray | None
-
-    @property
-    def point_count(self) -> int:
-        """Return the number of decoded points."""
-
-        return int(self.xyz.shape[0])
+    position: tuple[float, float, float]
+    orientation_xyzw: tuple[float, float, float, float]
 
 
 BagLidarMessage = PointCloud2Message | LivoxCustomMessage
@@ -105,6 +109,16 @@ class Rosbag1PointCloudStreamStats:
     bounds_max_m: tuple[float, float, float] | None = None
     first_timestamp_ns: int | None = None
     last_timestamp_ns: int | None = None
+    range_min_m: float | None = None
+    range_max_m: float | None = None
+    fov_azimuth_deg: float | None = None
+    fov_elevation_deg: float | None = None
+    point_time_available: bool = False
+    point_time_field: str | None = None
+    point_time_min_s: float | None = None
+    point_time_max_s: float | None = None
+    distance_bin_edges_m: tuple[float, ...] = _DEFAULT_DISTANCE_BIN_EDGES_M
+    distance_bin_counts: tuple[int, ...] | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return a JSON/YAML-friendly representation."""
@@ -120,6 +134,20 @@ class Rosbag1PointCloudStreamStats:
             "bounds_max_m": list(self.bounds_max_m) if self.bounds_max_m else None,
             "first_timestamp_ns": self.first_timestamp_ns,
             "last_timestamp_ns": self.last_timestamp_ns,
+            "range_min_m": self.range_min_m,
+            "range_max_m": self.range_max_m,
+            "fov_azimuth_deg": self.fov_azimuth_deg,
+            "fov_elevation_deg": self.fov_elevation_deg,
+            "point_time_available": self.point_time_available,
+            "point_time_field": self.point_time_field,
+            "point_time_min_s": self.point_time_min_s,
+            "point_time_max_s": self.point_time_max_s,
+            "distance_bin_edges_m": list(self.distance_bin_edges_m),
+            "distance_bin_counts": (
+                list(self.distance_bin_counts)
+                if self.distance_bin_counts is not None
+                else None
+            ),
         }
 
 
@@ -292,9 +320,13 @@ def iter_messages(
 
     bag_path = Path(path)
     connections: dict[int, Rosbag1Connection] = {}
+    index_pos: int | None = None
+    remaining_chunk_count: int | None = None
     source = _open_bag(bag_path)
     try:
         while True:
+            if index_pos is not None and source.tell() >= index_pos:
+                break
             length_prefix = source.read(4)
             if len(length_prefix) == 0:
                 break
@@ -311,7 +343,22 @@ def iter_messages(
                 connections[connection.conn_id] = connection
             elif op == OP_CHUNK:
                 yield from _iter_chunk_messages(header, data, connections, topics)
-            # Other record types (bag header, index data, chunk info) are skipped.
+                if remaining_chunk_count is not None:
+                    remaining_chunk_count -= 1
+                if (
+                    (remaining_chunk_count == 0 or not _skip_record_padding(source))
+                    and index_pos is not None
+                ):
+                    source.seek(index_pos)
+            elif op == OP_BAG_HEADER:
+                parsed_index_pos = _uint64(header.get("index_pos"))
+                index_pos = parsed_index_pos if parsed_index_pos and parsed_index_pos > 0 else None
+                parsed_chunk_count = _uint32(header.get("chunk_count"))
+                remaining_chunk_count = (
+                    parsed_chunk_count if parsed_chunk_count and parsed_chunk_count > 0 else None
+                )
+                _skip_record_padding(source)
+            # Other record types (index data and chunk info) are skipped.
     finally:
         source.close()
 
@@ -322,6 +369,43 @@ def _record_op(header: dict[str, bytes]) -> int:
         msg = "ROS bag record header missing 'op' field"
         raise DatasetError(msg)
     return op_bytes[0]
+
+
+def _skip_record_padding(source: BinaryIO) -> bool:
+    """Skip optional padding between top-level ROS bag records.
+
+    ``rosbag`` may reserve padded areas after the initial ``BAG_HEADER`` and
+    between chunks.  The next actual record is not necessarily aligned to a
+    simple power-of-two boundary (the TIERS Indoor02 bag has 67--702 byte gaps
+    between chunks), so alignment arithmetic alone is insufficient.  Scan only
+    the bounded padding area for the next header that contains a valid record
+    opcode, then rewind to that header.  Normal bags without padding take the
+    first-candidate path and are unchanged.
+
+    Return ``True`` when a next record header was found.  A bounded final gap
+    can return ``False`` so the caller can use the bag index position.
+    """
+
+    start = source.tell()
+    for _ in range(_BAG_HEADER_PADDING_SCAN_LIMIT):
+        candidate = source.tell()
+        prefix = source.read(4)
+        if len(prefix) != 4:
+            source.seek(start)
+            return False
+        (header_length,) = struct.unpack("<I", prefix)
+        if 0 < header_length <= 1024 * 1024:
+            header_bytes = source.read(header_length)
+            if len(header_bytes) == header_length:
+                with suppress(DatasetError):
+                    fields = _read_header_fields(header_bytes)
+                    op_bytes = fields.get("op")
+                    if op_bytes and op_bytes[0] in _RECORD_OPS:
+                        source.seek(candidate)
+                        return True
+        source.seek(candidate + 1)
+    source.seek(start)
+    return False
 
 
 def _iter_chunk_messages(
@@ -378,6 +462,14 @@ def _uint32(value: bytes | None) -> int | None:
     if value is None or len(value) < 4:
         return None
     return int(struct.unpack("<I", value[:4])[0])
+
+
+def _uint64(value: bytes | None) -> int | None:
+    """Decode a little-endian unsigned 64-bit field when present."""
+
+    if value is None or len(value) < 8:
+        return None
+    return int(struct.unpack("<Q", value[:8])[0])
 
 
 def _time_field_to_ns(value: bytes | None) -> int | None:
@@ -521,6 +613,37 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
     )
 
 
+def decode_pose_stamped(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+) -> Ros1PoseStampedMessage:
+    """Decode a ROS 1 ``geometry_msgs/PoseStamped`` payload."""
+
+    offset = 0
+    _sequence, offset = _read_uint32(data, offset)
+    stamp_secs, offset = _read_uint32(data, offset)
+    stamp_nsecs, offset = _read_uint32(data, offset)
+    frame_id, offset = _read_string(data, offset)
+    if offset + 56 > len(data):
+        msg = "truncated geometry_msgs/PoseStamped payload"
+        raise DatasetError(msg)
+    values = struct.unpack_from("<7d", data, offset)
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return Ros1PoseStampedMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        position=(float(values[0]), float(values[1]), float(values[2])),
+        orientation_xyzw=(
+            float(values[3]),
+            float(values[4]),
+            float(values[5]),
+            float(values[6]),
+        ),
+    )
+
+
 def decode_pointcloud2(
     topic: str,
     timestamp_ns: int,
@@ -580,6 +703,12 @@ def decode_pointcloud2(
             field_name=point_time_field,
             topic=topic,
         )
+    raw_point_count = int(xyz.shape[0])
+    xyz, intensity, point_time_offsets_s, nonfinite_xyz_count = (
+        filter_nonfinite_pointcloud_rows(
+            numpy_module, xyz, intensity, point_time_offsets_s
+        )
+    )
 
     header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
     return PointCloud2Message(
@@ -593,6 +722,8 @@ def decode_pointcloud2(
         xyz=xyz,
         intensity=intensity,
         point_time_offsets_s=point_time_offsets_s,
+        raw_point_count=raw_point_count,
+        nonfinite_xyz_count=nonfinite_xyz_count,
     )
 
 
@@ -623,6 +754,16 @@ def summarize_rosbag1(
     has_intensity: dict[str, bool] = {}
     bounds_min: dict[str, tuple[float, float, float]] = {}
     bounds_max: dict[str, tuple[float, float, float]] = {}
+    range_min: dict[str, float] = {}
+    range_max: dict[str, float] = {}
+    azimuth_samples: dict[str, list[float]] = {}
+    elevation_min: dict[str, float] = {}
+    elevation_max: dict[str, float] = {}
+    point_time_available: dict[str, bool] = {}
+    point_time_field: dict[str, str] = {}
+    point_time_min: dict[str, float] = {}
+    point_time_max: dict[str, float] = {}
+    distance_bin_counts: dict[str, list[int]] = {}
     first_ts: dict[str, int] = {}
     last_ts: dict[str, int] = {}
 
@@ -643,12 +784,44 @@ def summarize_rosbag1(
                 timestamp_ns,
                 data,
             )
+            if isinstance(message, PointCloud2Message):
+                time_field = _pointcloud2_time_field(message)
+                if time_field is not None:
+                    with suppress(DatasetError):
+                        message = decode_pointcloud2(
+                            topic,
+                            timestamp_ns,
+                            data,
+                            point_time_field=time_field,
+                        )
+                        # A field named ``time`` is common, but its datatype is
+                        # not guaranteed to be an offset.  Keep geometry
+                        # diagnostics useful and leave time availability false
+                        # when it cannot be decoded unambiguously.
             sampled_counts[topic] = sampled_counts.get(topic, 0) + 1
             sampled_points[topic] = sampled_points.get(topic, 0) + message.point_count
             has_intensity[topic] = has_intensity.get(topic, False) or (
                 message.intensity is not None
             )
             _accumulate_bounds(message, topic, bounds_min, bounds_max)
+            _accumulate_geometry(
+                message,
+                topic,
+                range_min,
+                range_max,
+                azimuth_samples,
+                elevation_min,
+                elevation_max,
+                distance_bin_counts,
+            )
+            _accumulate_point_time(
+                message,
+                topic,
+                point_time_available,
+                point_time_field,
+                point_time_min,
+                point_time_max,
+            )
     except DatasetError as exc:
         return Rosbag1DatasetStats(
             status="malformed",
@@ -669,6 +842,21 @@ def summarize_rosbag1(
             bounds_max_m=bounds_max.get(topic),
             first_timestamp_ns=first_ts.get(topic),
             last_timestamp_ns=last_ts.get(topic),
+            range_min_m=range_min.get(topic),
+            range_max_m=range_max.get(topic),
+            fov_azimuth_deg=_azimuth_fov_deg(azimuth_samples.get(topic, [])),
+            fov_elevation_deg=_fov_span_deg(
+                elevation_min.get(topic), elevation_max.get(topic)
+            ),
+            point_time_available=point_time_available.get(topic, False),
+            point_time_field=point_time_field.get(topic),
+            point_time_min_s=point_time_min.get(topic),
+            point_time_max_s=point_time_max.get(topic),
+            distance_bin_counts=(
+                tuple(distance_bin_counts[topic])
+                if topic in distance_bin_counts
+                else None
+            ),
         )
         for topic in sorted(counts)
     )
@@ -707,6 +895,124 @@ def _accumulate_bounds(
     bounds_max[topic] = frame_max if existing_max is None else _elementwise_max(
         existing_max, frame_max
     )
+
+
+def _pointcloud2_time_field(message: PointCloud2Message) -> str | None:
+    """Return the conventional PointCloud2 point-time field, if present."""
+
+    names = {field.name for field in message.fields}
+    for candidate in ("offset_time", "time", "t"):
+        if candidate in names:
+            return candidate
+    return None
+
+
+def _accumulate_geometry(
+    message: BagLidarMessage,
+    topic: str,
+    range_min: dict[str, float],
+    range_max: dict[str, float],
+    azimuth_samples: dict[str, list[float]],
+    elevation_min: dict[str, float],
+    elevation_max: dict[str, float],
+    distance_bin_counts: dict[str, list[int]],
+) -> None:
+    """Accumulate finite range and angular-coverage diagnostics."""
+
+    if message.point_count == 0:
+        return
+    np_mod = require_numpy(extra_name="rosbag1")
+    finite = np_mod.isfinite(message.xyz).all(axis=1)
+    points = message.xyz[finite]
+    if points.shape[0] == 0:
+        return
+    horizontal = np_mod.sqrt(points[:, 0] ** 2 + points[:, 1] ** 2)
+    ranges = np_mod.sqrt(horizontal**2 + points[:, 2] ** 2)
+    current_min = float(ranges.min())
+    current_max = float(ranges.max())
+    range_min[topic] = min(current_min, range_min.get(topic, current_min))
+    range_max[topic] = max(current_max, range_max.get(topic, current_max))
+    bins = distance_bin_counts.setdefault(
+        topic, [0] * (len(_DEFAULT_DISTANCE_BIN_EDGES_M) - 1)
+    )
+    for lower_index, lower in enumerate(_DEFAULT_DISTANCE_BIN_EDGES_M[:-1]):
+        upper = _DEFAULT_DISTANCE_BIN_EDGES_M[lower_index + 1]
+        in_bin = (ranges >= lower) & (
+            (ranges < upper)
+            | (
+                (lower_index == len(bins) - 1)
+                & (ranges == upper)
+            )
+        )
+        bins[lower_index] += int(in_bin.sum())
+
+    # A bounded angular sample keeps inspect output small for dense scans while
+    # retaining enough support for a coverage diagnostic.
+    step = max(1, math.ceil(points.shape[0] / 4096))
+    azimuths = np_mod.degrees(np_mod.arctan2(points[::step, 1], points[::step, 0]))
+    samples = azimuth_samples.setdefault(topic, [])
+    samples.extend(float(value) % 360.0 for value in azimuths)
+    if len(samples) > 8192:
+        del samples[8192:]
+    elevation = np_mod.degrees(np_mod.arctan2(points[:, 2], horizontal))
+    elevation_min[topic] = min(
+        float(elevation.min()), elevation_min.get(topic, float(elevation.min()))
+    )
+    elevation_max[topic] = max(
+        float(elevation.max()), elevation_max.get(topic, float(elevation.max()))
+    )
+
+
+def _accumulate_point_time(
+    message: BagLidarMessage,
+    topic: str,
+    available: dict[str, bool],
+    fields: dict[str, str],
+    minimum: dict[str, float],
+    maximum: dict[str, float],
+) -> None:
+    """Accumulate decoded point-time offset bounds in seconds."""
+
+    field_name: str | None
+    if isinstance(message, LivoxCustomMessage):
+        offsets = message.offset_time_ns
+        field_name = "offset_time"
+        scale = 1.0e-9
+    elif isinstance(message, PointCloud2Message):
+        offsets = message.point_time_offsets_s
+        field_name = _pointcloud2_time_field(message)
+        scale = 1.0
+    else:  # pragma: no cover - BagLidarMessage is exhaustive
+        return
+    if offsets is None or int(offsets.shape[0]) == 0:
+        return
+    values = offsets.astype(float) * scale
+    available[topic] = True
+    if field_name is not None:
+        fields[topic] = field_name
+    current_min = float(values.min())
+    current_max = float(values.max())
+    minimum[topic] = min(current_min, minimum.get(topic, current_min))
+    maximum[topic] = max(current_max, maximum.get(topic, current_max))
+
+
+def _azimuth_fov_deg(values: list[float]) -> float | None:
+    if not values:
+        return None
+    if len(values) == 1:
+        return 0.0
+    ordered = sorted(values)
+    largest_gap = max(
+        [right - left for left, right in pairwise(ordered)]
+        + [ordered[0] + 360.0 - ordered[-1]]
+    )
+    return max(0.0, min(360.0, 360.0 - largest_gap))
+
+
+def _fov_span_deg(lower: float | None, upper: float | None) -> float | None:
+    if lower is None or upper is None:
+        return None
+    return max(0.0, upper - lower)
 
 
 def _elementwise_min(

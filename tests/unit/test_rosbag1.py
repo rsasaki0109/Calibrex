@@ -22,6 +22,7 @@ from calibrex.data.rosbag1 import (
     _decompress_chunk,
     decode_livox_custommsg,
     decode_pointcloud2,
+    decode_pose_stamped,
     read_pointcloud2_messages,
     summarize_rosbag1,
 )
@@ -121,6 +122,8 @@ def _write_bag(
     *,
     compression: str = "none",
     with_intensity: bool = True,
+    bag_header_padding: int = 0,
+    inter_chunk_padding: int = 0,
 ) -> None:
     """Write a minimal but valid rosbag1 v2.0 file.
 
@@ -154,7 +157,7 @@ def _write_bag(
             "op": b"\x03",
             "index_pos": struct.pack("<Q", 0),
             "conn_count": struct.pack("<I", len(topics)),
-            "chunk_count": struct.pack("<I", 1),
+            "chunk_count": struct.pack("<I", 2 if inter_chunk_padding else 1),
         },
         b"\x00" * 32,
     )
@@ -166,10 +169,26 @@ def _write_bag(
         },
         chunk_data,
     )
-    path.write_bytes(BAG_MAGIC + bag_header + chunk)
+    if inter_chunk_padding:
+        empty_chunk = _record(
+            {
+                "op": b"\x05",
+                "compression": compression.encode("ascii"),
+                "size": struct.pack("<I", 0),
+            },
+            b"",
+        )
+        chunk += b"\x00" * inter_chunk_padding + empty_chunk
+    path.write_bytes(BAG_MAGIC + bag_header + b" " * bag_header_padding + chunk)
 
 
-def _sample_bag(path: Path, *, compression: str = "none") -> Path:
+def _sample_bag(
+    path: Path,
+    *,
+    compression: str = "none",
+    bag_header_padding: int = 0,
+    inter_chunk_padding: int = 0,
+) -> Path:
     horizon = [
         ([(1.0, 2.0, 3.0, 10.0), (4.0, 5.0, 6.0, 20.0)], 100, 500),
         ([(1.1, 2.1, 3.1, 11.0)], 101, 0),
@@ -184,6 +203,8 @@ def _sample_bag(path: Path, *, compression: str = "none") -> Path:
             (1, "/avia/livox/lidar", avia),
         ],
         compression=compression,
+        bag_header_padding=bag_header_padding,
+        inter_chunk_padding=inter_chunk_padding,
     )
     return path
 
@@ -197,6 +218,24 @@ def test_rosbag1_lists_pointcloud_topics(tmp_path: Path) -> None:
     assert streams["/avia/livox/lidar"].message_count == 1
     assert streams["/livox/lidar"].kind == "pointcloud"
     assert streams["/livox/lidar"].sensor == "sensor_msgs/PointCloud2"
+
+
+def test_rosbag1_accepts_padded_bag_header(tmp_path: Path) -> None:
+    bag = _sample_bag(tmp_path / "padded_header.bag", bag_header_padding=4096)
+
+    streams = {stream.name: stream for stream in Rosbag1Reader(bag).streams()}
+
+    assert set(streams) == {"/livox/lidar", "/avia/livox/lidar"}
+    assert streams["/livox/lidar"].message_count == 2
+
+
+def test_rosbag1_accepts_padding_between_chunks(tmp_path: Path) -> None:
+    bag = _sample_bag(tmp_path / "padded_chunks.bag", inter_chunk_padding=256)
+
+    streams = {stream.name: stream for stream in Rosbag1Reader(bag).streams()}
+
+    assert set(streams) == {"/livox/lidar", "/avia/livox/lidar"}
+    assert streams["/avia/livox/lidar"].message_count == 1
 
 
 def test_rosbag1_decodes_pointcloud2_to_numpy(tmp_path: Path) -> None:
@@ -219,6 +258,7 @@ def _serialize_livox_custommsg(
     frame_id: str,
     secs: int,
     nsecs: int,
+    timebase_ns: int | None = None,
 ) -> bytes:
     buf = b""
     buf += struct.pack("<I", 0)
@@ -226,7 +266,10 @@ def _serialize_livox_custommsg(
     buf += struct.pack("<I", nsecs)
     frame = frame_id.encode("utf-8")
     buf += struct.pack("<I", len(frame)) + frame
-    buf += struct.pack("<Q", secs * 1_000_000_000 + nsecs)
+    buf += struct.pack(
+        "<Q",
+        secs * 1_000_000_000 + nsecs if timebase_ns is None else timebase_ns,
+    )
     buf += struct.pack("<I", len(points))
     buf += struct.pack("<B", 1)  # lidar_id
     buf += b"\x00\x00\x00"  # rsvd
@@ -244,6 +287,7 @@ def test_rosbag1_decodes_livox_custommsg() -> None:
         frame_id="horizon_frame",
         secs=100,
         nsecs=500,
+        timebase_ns=100 * 1_000_000_000,
     )
     message = decode_livox_custommsg("/livox/lidar", 0, payload)
     assert message.point_count == 2
@@ -253,6 +297,27 @@ def test_rosbag1_decodes_livox_custommsg() -> None:
     assert message.line is not None
     assert message.line.tolist() == [0, 1]
     assert message.frame_id == "horizon_frame"
+    assert message.point_time_reference_ns == 100 * 1_000_000_000
+    assert message.offset_time_ns is not None
+    assert message.offset_time_ns.tolist() == [0, 1000]
+
+
+def test_rosbag1_decodes_pose_stamped() -> None:
+    frame = b"world"
+    payload = b"".join(
+        (
+            struct.pack("<I", 0),
+            struct.pack("<II", 100, 250),
+            struct.pack("<I", len(frame)),
+            frame,
+            struct.pack("<7d", 1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 1.0),
+        )
+    )
+    message = decode_pose_stamped("/pose", 0, payload)
+    assert message.timestamp_ns == 100 * 1_000_000_000 + 250
+    assert message.frame_id == "world"
+    assert message.position == (1.0, 2.0, 3.0)
+    assert message.orientation_xyzw == (0.0, 0.0, 0.0, 1.0)
 
 
 def test_rosbag1_records_normalize_ros_time(tmp_path: Path) -> None:

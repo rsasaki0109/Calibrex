@@ -1,0 +1,236 @@
+{
+  "$defs": {
+    "ContinuousTimeLidarAblationPolicy": {
+      "additionalProperties": false,
+      "description": "Declared controls shared by all ablation variants.",
+      "properties": {
+        "baseline_definition": {
+          "title": "Baseline Definition",
+          "type": "string"
+        },
+        "same_capture_windows": {
+          "default": true,
+          "title": "Same Capture Windows",
+          "type": "boolean"
+        },
+        "same_solver_budget": {
+          "default": true,
+          "title": "Same Solver Budget",
+          "type": "boolean"
+        },
+        "same_temporal_holdout": {
+          "default": true,
+          "title": "Same Temporal Holdout",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "baseline_definition"
+      ],
+      "title": "ContinuousTimeLidarAblationPolicy",
+      "type": "object"
+    },
+    "ContinuousTimeLidarAblationVariant": {
+      "additionalProperties": false,
+      "description": "One schema-valid continuous-time variant result.",
+      "properties": {
+        "config_path": {
+          "title": "Config Path",
+          "type": "string"
+        },
+        "config_sha256": {
+          "pattern": "^[0-9a-fA-F]{64}$",
+          "title": "Config Sha256",
+          "type": "string"
+        },
+        "estimated_time_offset_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Time Offset Sec"
+        },
+        "final_holdout_rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Holdout Rmse M"
+        },
+        "final_train_rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Train Rmse M"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "observability_rank": {
+          "anyOf": [
+            {
+              "maximum": 6,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observability Rank"
+        },
+        "outlier_policy": {
+          "enum": [
+            "none",
+            "mad"
+          ],
+          "title": "Outlier Policy",
+          "type": "string"
+        },
+        "outlier_rejected_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outlier Rejected Count"
+        },
+        "quality_grade": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "warn",
+                "fail"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Grade"
+        },
+        "result_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result Path"
+        },
+        "result_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result Sha256"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "voxel_strategy": {
+          "enum": [
+            "uniform",
+            "adaptive"
+          ],
+          "title": "Voxel Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "config_path",
+        "config_sha256",
+        "voxel_strategy",
+        "outlier_policy",
+        "status"
+      ],
+      "title": "ContinuousTimeLidarAblationVariant",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reproducible comparison table for baseline and SOTA-inspired variants.",
+  "properties": {
+    "base_config_path": {
+      "title": "Base Config Path",
+      "type": "string"
+    },
+    "base_config_sha256": {
+      "pattern": "^[0-9a-fA-F]{64}$",
+      "title": "Base Config Sha256",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/ContinuousTimeLidarAblationPolicy"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_lidar_ablation/v0.1",
+      "default": "slac.continuous_time_lidar_ablation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tool": {
+      "title": "Tool",
+      "type": "string"
+    },
+    "tool_version": {
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "variants": {
+      "items": {
+        "$ref": "#/$defs/ContinuousTimeLidarAblationVariant"
+      },
+      "minItems": 1,
+      "title": "Variants",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tool",
+    "tool_version",
+    "base_config_path",
+    "base_config_sha256",
+    "policy",
+    "variants"
+  ],
+  "title": "ContinuousTimeLidarAblationManifest",
+  "type": "object"
+}

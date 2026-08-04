@@ -76,6 +76,52 @@ def test_parse_args_rejects_native_deskew_without_kiss_icp(tool_module) -> None:
         )
 
 
+def test_parse_args_requires_external_trajectory_inputs(tool_module) -> None:
+    with pytest.raises(SystemExit):
+        tool_module._parse_args(
+            [
+                "--src",
+                "in.bag",
+                "--dst",
+                "out",
+                "--topic",
+                "/livox/points",
+                "--odom-source",
+                "external-trajectory",
+            ]
+        )
+
+
+def test_read_external_trajectory_maps_and_normalizes_rows(tool_module, tmp_path: Path) -> None:
+    trajectory = tmp_path / "trajectory.txt"
+    trajectory.write_text(
+        "# time x y z qx qy qz qw\n"
+        "10.0 1 2 3 0 0 0 2\n"
+        "10.5 2 2 3 0 0 0 1\n",
+        encoding="utf-8",
+    )
+
+    samples = tool_module._read_external_trajectory(trajectory, time_offset_s=100.0)
+
+    assert [sample.timestamp_ns for sample in samples] == [110_000_000_000, 110_500_000_000]
+    assert samples[0].translation_xyz == (1.0, 2.0, 3.0)
+    assert samples[0].rotation_quat_xyzw == (0.0, 0.0, 0.0, 1.0)
+
+
+def test_read_external_trajectory_rejects_non_monotonic_rows(
+    tool_module, tmp_path: Path
+) -> None:
+    trajectory = tmp_path / "trajectory.txt"
+    trajectory.write_text(
+        "1 0 0 0 0 0 0 1\n"
+        "1 0 0 0 0 0 0 1\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="strictly increasing"):
+        tool_module._read_external_trajectory(trajectory, time_offset_s=0.0)
+
+
 def test_pointcloud2_field_error_lists_available_fields(tool_module) -> None:
     class _Field:
         def __init__(self, name: str, offset: int, datatype: int, count: int) -> None:

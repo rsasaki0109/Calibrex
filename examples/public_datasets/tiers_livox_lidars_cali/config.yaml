@@ -9,7 +9,7 @@ project:
 dataset:
   type: rosbag1
   path: data/public/tiers_lidars_cali/LidarsCali.bag
-  time_base: unix_time_ns
+  time_base: ros_time
 
 sensors:
   livox_horizon:
@@ -17,13 +17,39 @@ sensors:
     model: livox_horizon
     topic: /livox/lidar
     frame_id: horizon_frame
-    fields: [x, y, z, intensity]
+    fields: [x, y, z, intensity, offset_time, line]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+      notes:
+        - Livox CustomMsg timebase is the first-point clock; clock alignment to ROS pose time requires verification
   livox_avia:
     type: lidar
     model: livox_avia
     topic: /avia/livox/lidar
     frame_id: avia_frame
-    fields: [x, y, z, intensity]
+    fields: [x, y, z, intensity, offset_time, line]
+    point_time_field: offset_time
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: timebase
+      point_time_unit: nanoseconds
+      point_time_available: true
+      point_time_field: offset_time
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+      notes:
+        - Livox CustomMsg timebase is the first-point clock; clock alignment to ROS pose time requires verification
 
 frames:
   livox_horizon:
@@ -47,15 +73,31 @@ pipeline:
   factors:
     fixed_lidar_mount_prior:
       enabled: true
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        use_point_time_offsets: false
 
 solver:
-  backend: scipy
-  max_iterations: 20
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
   robust_loss: huber
   convergence_tolerance: 1.0e-6
 
 evaluation:
   holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: true
+    require_independent_holdout: true
+    min_holdout_windows: 2
   metrics:
     - lidar_pointcloud_topic_count
     - lidar_frame_coverage
@@ -63,6 +105,15 @@ evaluation:
     - lidar_spatial_coverage_m
     - lidar_pair_source_voxel_recall_in_target
     - lidar_pair_shared_voxel_centroid_rmse_m
+    - lidar_rig_point_to_plane_rmse_m
+    - lidar_pair_holdout_point_to_plane_rmse_m
+    - lidar_pair_known_bad_detectable_fraction
+    - solid_state_distance_span_m
+    - solid_state_fov_azimuth_deg
+    - solid_state_fov_elevation_deg
+    - solid_state_distance_bin_coverage_fraction
+    - solid_state_holdout_window_count
+    - solid_state_holdout_independent
 
 outputs:
   result: result.yaml

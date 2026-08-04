@@ -22,11 +22,21 @@ from calibrex.core.camera_lidar_sota_audit import (
     camera_lidar_sota_audit_protocol_json_schema,
     camera_lidar_sota_audit_result_json_schema,
 )
+from calibrex.core.capture_readiness import capture_readiness_json_schema
 from calibrex.core.config import config_json_schema
 from calibrex.core.continuous_time_camera_lidar_artifacts import (
     continuous_time_camera_lidar_problem_json_schema,
     continuous_time_camera_lidar_result_json_schema,
 )
+from calibrex.core.continuous_time_lidar_ablation import (
+    CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
+    ContinuousTimeLidarAblationManifest,
+    continuous_time_lidar_ablation_json_schema,
+)
+from calibrex.core.continuous_time_lidar_artifacts import (
+    continuous_time_lidar_pair_json_schema,
+)
+from calibrex.core.dynamic_window import dynamic_window_consistency_json_schema
 from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
@@ -34,6 +44,11 @@ from calibrex.core.evidence_bundle import (
 )
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
 from calibrex.core.external_run import external_run_json_schema
+from calibrex.core.livox_time_ablation import (
+    LIVOX_TIME_ABLATION_SCHEMA_VERSION,
+    LivoxTimeAblationManifest,
+    livox_time_ablation_json_schema,
+)
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     probabilistic_correspondence_json_schema,
@@ -42,7 +57,16 @@ from calibrex.core.probabilistic_correspondence import (
 )
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
+from calibrex.core.solid_state import solid_state_context_json_schema
+from calibrex.core.solid_state_cross_dataset_benchmark import (
+    solid_state_cross_dataset_benchmark_config_json_schema,
+    solid_state_cross_dataset_benchmark_json_schema,
+)
+from calibrex.core.solid_state_failure_analysis import (
+    solid_state_failure_analysis_json_schema,
+)
 from calibrex.core.trajectory import trajectory_json_schema
+from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.depth import depth_provider_json_schema
 from calibrex.data.kitti_benchmark import kitti_benchmark_input_json_schema
@@ -65,6 +89,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "result.schema.json": result_json_schema,
         "comparison.schema.json": comparison_json_schema,
         "report_comparison.schema.json": report_comparison_json_schema,
+        "dynamic_window_consistency.schema.json": dynamic_window_consistency_json_schema,
         "assessment.schema.json": assessment_json_schema,
         "benchmark.schema.json": benchmark_json_schema,
         "benchmark_definition.schema.json": benchmark_definition_json_schema,
@@ -109,6 +134,23 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "evidence_bundle_verification.schema.json": evidence_bundle_verification_json_schema,
         "online_timeline.schema.json": online_timeline_json_schema,
         "trajectory.schema.json": trajectory_json_schema,
+        "trajectory_window_drift.schema.json": trajectory_window_drift_json_schema,
+        "capture_readiness.schema.json": capture_readiness_json_schema,
+        "continuous_time_lidar_pair_result.schema.json": (
+            continuous_time_lidar_pair_json_schema
+        ),
+        "continuous_time_lidar_ablation.schema.json": (
+            continuous_time_lidar_ablation_json_schema
+        ),
+        "solid_state_cross_dataset_benchmark_config.schema.json": (
+            solid_state_cross_dataset_benchmark_config_json_schema
+        ),
+        "solid_state_cross_dataset_benchmark.schema.json": (
+            solid_state_cross_dataset_benchmark_json_schema
+        ),
+        "solid_state_failure_analysis.schema.json": solid_state_failure_analysis_json_schema,
+        "solid_state_context.schema.json": solid_state_context_json_schema,
+        "livox_time_ablation.schema.json": livox_time_ablation_json_schema,
         "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),
         "report_metrics.schema.json": lambda: report_artifact_json_schema("report-metrics"),
         "report_observability.schema.json": lambda: report_artifact_json_schema(
@@ -120,6 +162,83 @@ def test_static_schema_files_match_generated_schemas() -> None:
     for filename, generate_schema in generators.items():
         static_schema = json.loads((Path("schemas") / filename).read_text(encoding="utf-8"))
         assert static_schema == generate_schema()
+
+
+def test_livox_time_ablation_schema_validates_manifest() -> None:
+    schema = json.loads(
+        Path("schemas/livox_time_ablation.schema.json").read_text(encoding="utf-8")
+    )
+    manifest = LivoxTimeAblationManifest.model_validate(
+        {
+            "schema_version": LIVOX_TIME_ABLATION_SCHEMA_VERSION,
+            "tool": "tools/run_livox_time_ablation.py",
+            "tool_version": "0.1.0",
+            "base_config_path": "config.yaml",
+            "base_config_sha256": "a" * 64,
+            "policy": {
+                "deskew_off_means": "observe offsets without consuming them",
+            },
+            "variants": [
+                {
+                    "id": "deskew_on_offset_p0ms",
+                    "config_path": "deskew_on_offset_p0ms/config.yaml",
+                    "config_sha256": "b" * 64,
+                    "use_point_time_offsets": True,
+                    "inject_time_offset_s": 0.0,
+                    "run_status": "completed",
+                    "final_rolling_rmse_m": 0.2,
+                    "quality_grade": "pass",
+                    "trajectory_gate_status": "pass",
+                    "deskew_applied": True,
+                    "point_time_mapping_status": "stable",
+                    "point_time_mapping_residual_max_abs_s": 0.001,
+                }
+            ],
+        }
+    ).model_dump(mode="json", exclude_none=True)
+    jsonschema.validate(manifest, schema)
+
+
+def test_continuous_time_lidar_ablation_schema_validates_manifest() -> None:
+    schema = json.loads(
+        Path("schemas/continuous_time_lidar_ablation.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    manifest = ContinuousTimeLidarAblationManifest.model_validate(
+        {
+            "schema_version": CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
+            "tool": "tools/run_continuous_time_lidar_ablation.py",
+            "tool_version": "0.1.0",
+            "base_config_path": "config.yaml",
+            "base_config_sha256": "a" * 64,
+            "policy": {
+                "same_capture_windows": True,
+                "same_temporal_holdout": True,
+                "same_solver_budget": True,
+                "baseline_definition": "uniform voxel planes with no MAD rejection",
+            },
+            "variants": [
+                {
+                    "id": "adaptive_mad",
+                    "config_path": "adaptive_mad/config.yaml",
+                    "config_sha256": "b" * 64,
+                    "result_path": "adaptive_mad/continuous_time_lidar_pair.yaml",
+                    "result_sha256": "c" * 64,
+                    "voxel_strategy": "adaptive",
+                    "outlier_policy": "mad",
+                    "status": "converged",
+                    "estimated_time_offset_sec": -0.02,
+                    "final_train_rmse_m": 0.34,
+                    "final_holdout_rmse_m": 0.38,
+                    "observability_rank": 6,
+                    "outlier_rejected_count": 144,
+                    "quality_grade": "pass",
+                }
+            ],
+        }
+    ).model_dump(mode="json", exclude_none=True)
+    jsonschema.validate(manifest, schema)
 
 
 def test_config_schema_validates_minimal_example() -> None:
@@ -184,6 +303,26 @@ def test_config_schema_validates_tiers_camera_lidar_capture_time_example() -> No
         ).read_text(encoding="utf-8")
     )
     jsonschema.validate(config, schema)
+
+
+def test_config_schema_validates_tiers_livox_pair_example() -> None:
+    schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
+    config = yaml.safe_load(
+        Path("examples/public_datasets/tiers_livox_lidars_cali/config.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    jsonschema.validate(config, schema)
+
+
+def test_config_schema_validates_tiers_indoor02_motion_variants() -> None:
+    schema = json.loads(Path("schemas/config.schema.json").read_text(encoding="utf-8"))
+    for path in [
+        "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_pose_burst_config.yaml",
+        "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_baseframe_config.yaml",
+    ]:
+        config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+        jsonschema.validate(config, schema)
 
 
 def test_result_schema_validates_precomputed_example() -> None:

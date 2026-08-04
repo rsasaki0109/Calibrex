@@ -1,0 +1,108 @@
+schema_version: slac.config/v0.1
+
+project:
+  name: glim_versatile_livox_online_identity
+  description: >
+    ROS-independent online identity control using the AIST GLIM Livox Avia
+    PointCloud2 stream duplicated into a second topic. The external GT file is
+    converted only into a nav_msgs/Odometry envelope before replay; the
+    calibration target is deliberately identity, not an absolute extrinsic.
+  output_dir: outputs/glim_versatile_livox_online_identity
+  domain: research
+
+dataset:
+  type: rosbag2
+  path: data/public/glim_versatile/livox_rosbag2_gt_restamped
+  time_base: ros_time
+  odometry_topic: /odom
+
+sensors:
+  livox_avia:
+    type: lidar
+    model: livox_avia
+    topic: /livox/points
+    frame_id: livox
+    fields: [x, y, z, intensity, t]
+    point_time_field: t
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: message_stamp
+      point_time_unit: seconds
+      point_time_available: true
+      point_time_field: t
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+  livox_avia_copy:
+    type: lidar
+    model: livox_avia
+    topic: /livox/points_copy
+    frame_id: livox_copy
+    fields: [x, y, z, intensity, t]
+    point_time_field: t
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: message_stamp
+      point_time_unit: seconds
+      point_time_available: true
+      point_time_field: t
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
+
+frames:
+  livox_avia:
+    root: true
+  livox_avia_copy:
+    parent: livox_avia
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.0]
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.2
+        rotation_deg: 10.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - rosbag2_pointcloud2_reader
+    - lidar_pair_voxel_evidence
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        use_point_time_offsets: true
+        inject_time_offset_s: 0.0
+        online_gate_min_rank: 6
+        online_gate_max_holdout_rmse_m: 0.40
+        online_gate_max_rolling_regression_m: 0.15
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: true
+    require_independent_holdout: true
+    min_holdout_windows: 2
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

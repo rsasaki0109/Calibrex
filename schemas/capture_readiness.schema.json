@@ -1,0 +1,663 @@
+{
+  "$defs": {
+    "CaptureReadinessGeometry": {
+      "additionalProperties": false,
+      "description": "Surface-normal and local point-to-plane observability evidence.",
+      "properties": {
+        "correspondence_count": {
+          "minimum": 0,
+          "title": "Correspondence Count",
+          "type": "integer"
+        },
+        "estimated_observable_dof": {
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Estimated Observable Dof",
+          "type": "integer"
+        },
+        "normal_condition_number": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normal Condition Number"
+        },
+        "normal_diversity_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normal Diversity Score"
+        },
+        "normal_eigenvalues": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "title": "Normal Eigenvalues",
+          "type": "array"
+        },
+        "normal_rank": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Normal Rank",
+          "type": "integer"
+        },
+        "normal_source": {
+          "default": "voxel_plane_map",
+          "enum": [
+            "voxel_plane_map",
+            "unavailable"
+          ],
+          "title": "Normal Source",
+          "type": "string"
+        },
+        "plane_count": {
+          "minimum": 0,
+          "title": "Plane Count",
+          "type": "integer"
+        },
+        "source_point_count": {
+          "minimum": 0,
+          "title": "Source Point Count",
+          "type": "integer"
+        },
+        "source_scan_count": {
+          "minimum": 0,
+          "title": "Source Scan Count",
+          "type": "integer"
+        },
+        "weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Weak Directions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_scan_count",
+        "source_point_count",
+        "plane_count",
+        "normal_rank",
+        "estimated_observable_dof",
+        "correspondence_count"
+      ],
+      "title": "CaptureReadinessGeometry",
+      "type": "object"
+    },
+    "CaptureReadinessMotion": {
+      "additionalProperties": false,
+      "description": "Coverage and kinematic excitation measured in one capture window.",
+      "properties": {
+        "angular_speed_max_dps": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Angular Speed Max Dps"
+        },
+        "angular_speed_p95_dps": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Angular Speed P95 Dps"
+        },
+        "endpoint_displacement_m": {
+          "minimum": 0.0,
+          "title": "Endpoint Displacement M",
+          "type": "number"
+        },
+        "endpoint_rotation_deg": {
+          "minimum": 0.0,
+          "title": "Endpoint Rotation Deg",
+          "type": "number"
+        },
+        "first_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Timestamp Ns"
+        },
+        "last_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Timestamp Ns"
+        },
+        "linear_speed_max_mps": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Linear Speed Max Mps"
+        },
+        "linear_speed_p95_mps": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Linear Speed P95 Mps"
+        },
+        "path_length_m": {
+          "minimum": 0.0,
+          "title": "Path Length M",
+          "type": "number"
+        },
+        "pose_count": {
+          "minimum": 0,
+          "title": "Pose Count",
+          "type": "integer"
+        },
+        "time_span_s": {
+          "minimum": 0.0,
+          "title": "Time Span S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pose_count",
+        "time_span_s",
+        "path_length_m",
+        "endpoint_displacement_m",
+        "endpoint_rotation_deg"
+      ],
+      "title": "CaptureReadinessMotion",
+      "type": "object"
+    },
+    "CaptureReadinessParameters": {
+      "additionalProperties": false,
+      "description": "Replay and geometry-proxy settings needed to reproduce the artifact.",
+      "properties": {
+        "capture_window_record_prefilter_margin_s": {
+          "minimum": 0.0,
+          "title": "Capture Window Record Prefilter Margin S",
+          "type": "number"
+        },
+        "capture_window_sampling_policy": {
+          "title": "Capture Window Sampling Policy",
+          "type": "string"
+        },
+        "correspondence_gate_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Correspondence Gate M",
+          "type": "number"
+        },
+        "geometry_proxy": {
+          "const": "source_world_plane_map_virtual_target",
+          "default": "source_world_plane_map_virtual_target",
+          "title": "Geometry Proxy",
+          "type": "string"
+        },
+        "max_points_per_window": {
+          "minimum": 1,
+          "title": "Max Points Per Window",
+          "type": "integer"
+        },
+        "max_scans_per_window": {
+          "minimum": 1,
+          "title": "Max Scans Per Window",
+          "type": "integer"
+        },
+        "odometry_burst_min_interval_s": {
+          "exclusiveMinimum": 0.0,
+          "title": "Odometry Burst Min Interval S",
+          "type": "number"
+        },
+        "odometry_burst_policy": {
+          "default": "preserve",
+          "enum": [
+            "preserve",
+            "keep_first",
+            "keep_last"
+          ],
+          "title": "Odometry Burst Policy",
+          "type": "string"
+        },
+        "source_point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Point Time Field"
+        },
+        "use_point_time_offsets": {
+          "default": true,
+          "title": "Use Point Time Offsets",
+          "type": "boolean"
+        },
+        "voxel_size_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Voxel Size M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "voxel_size_m",
+        "correspondence_gate_m",
+        "max_scans_per_window",
+        "max_points_per_window",
+        "odometry_burst_min_interval_s",
+        "capture_window_record_prefilter_margin_s",
+        "capture_window_sampling_policy"
+      ],
+      "title": "CaptureReadinessParameters",
+      "type": "object"
+    },
+    "CaptureReadinessProvenance": {
+      "additionalProperties": false,
+      "description": "Input digests and generation details for a readiness artifact.",
+      "properties": {
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 2,
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "CaptureReadinessProvenance",
+      "type": "object"
+    },
+    "CaptureReadinessRecommendation": {
+      "additionalProperties": false,
+      "description": "Human-facing summary of the next safe action.",
+      "properties": {
+        "action": {
+          "enum": [
+            "proceed",
+            "recapture",
+            "review"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "instructions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Instructions",
+          "type": "array"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "window_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Window Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "message"
+      ],
+      "title": "CaptureReadinessRecommendation",
+      "type": "object"
+    },
+    "CaptureReadinessThresholds": {
+      "additionalProperties": false,
+      "description": "Configurable gates for deciding whether a capture window is usable.",
+      "properties": {
+        "max_angular_speed_dps": {
+          "default": 120.0,
+          "minimum": 0.0,
+          "title": "Max Angular Speed Dps",
+          "type": "number"
+        },
+        "max_linear_speed_mps": {
+          "default": 3.0,
+          "minimum": 0.0,
+          "title": "Max Linear Speed Mps",
+          "type": "number"
+        },
+        "max_normal_condition_number": {
+          "default": 100.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Normal Condition Number",
+          "type": "number"
+        },
+        "min_endpoint_rotation_deg": {
+          "default": 10.0,
+          "minimum": 0.0,
+          "title": "Min Endpoint Rotation Deg",
+          "type": "number"
+        },
+        "min_normal_rank": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Min Normal Rank",
+          "type": "integer"
+        },
+        "min_observable_dof": {
+          "default": 6,
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Min Observable Dof",
+          "type": "integer"
+        },
+        "min_path_length_m": {
+          "default": 1.0,
+          "minimum": 0.0,
+          "title": "Min Path Length M",
+          "type": "number"
+        },
+        "min_plane_count": {
+          "default": 10,
+          "minimum": 1,
+          "title": "Min Plane Count",
+          "type": "integer"
+        },
+        "min_pose_count": {
+          "default": 10,
+          "minimum": 1,
+          "title": "Min Pose Count",
+          "type": "integer"
+        },
+        "min_time_span_s": {
+          "default": 5.0,
+          "minimum": 0.0,
+          "title": "Min Time Span S",
+          "type": "number"
+        },
+        "warn_endpoint_rotation_deg": {
+          "default": 25.0,
+          "minimum": 0.0,
+          "title": "Warn Endpoint Rotation Deg",
+          "type": "number"
+        }
+      },
+      "title": "CaptureReadinessThresholds",
+      "type": "object"
+    },
+    "CaptureReadinessWindow": {
+      "additionalProperties": false,
+      "description": "Actionable readiness result for one declared capture window.",
+      "properties": {
+        "actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "decision": {
+          "enum": [
+            "proceed",
+            "recapture",
+            "review"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "geometry": {
+          "$ref": "#/$defs/CaptureReadinessGeometry"
+        },
+        "grade": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "motion": {
+          "$ref": "#/$defs/CaptureReadinessMotion"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "requested_end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested End Timestamp Ns"
+        },
+        "requested_start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Start Timestamp Ns"
+        },
+        "window_index": {
+          "minimum": 0,
+          "title": "Window Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "window_index",
+        "motion",
+        "geometry",
+        "grade",
+        "decision"
+      ],
+      "title": "CaptureReadinessWindow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Ground-truth-free preflight artifact for solid-state LiDAR calibration.",
+  "properties": {
+    "config_path": {
+      "title": "Config Path",
+      "type": "string"
+    },
+    "dataset_path": {
+      "title": "Dataset Path",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "proceed",
+        "recapture",
+        "review"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "grade": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail"
+      ],
+      "title": "Grade",
+      "type": "string"
+    },
+    "odometry_topic": {
+      "title": "Odometry Topic",
+      "type": "string"
+    },
+    "parameters": {
+      "$ref": "#/$defs/CaptureReadinessParameters"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CaptureReadinessProvenance"
+    },
+    "recommendations": {
+      "items": {
+        "$ref": "#/$defs/CaptureReadinessRecommendation"
+      },
+      "minItems": 1,
+      "title": "Recommendations",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.capture_readiness/v0.1",
+      "default": "slac.capture_readiness/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_sensor": {
+      "title": "Source Sensor",
+      "type": "string"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "target_sensor": {
+      "title": "Target Sensor",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/CaptureReadinessThresholds"
+    },
+    "windows": {
+      "items": {
+        "$ref": "#/$defs/CaptureReadinessWindow"
+      },
+      "minItems": 1,
+      "title": "Windows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "config_path",
+    "dataset_path",
+    "source_sensor",
+    "target_sensor",
+    "odometry_topic",
+    "parameters",
+    "thresholds",
+    "windows",
+    "grade",
+    "decision",
+    "summary",
+    "recommendations",
+    "provenance"
+  ],
+  "title": "CaptureReadinessArtifact",
+  "type": "object"
+}

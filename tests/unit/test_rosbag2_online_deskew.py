@@ -10,7 +10,11 @@ from pathlib import Path
 import pytest
 
 from calibrex.core.geometry import SE3, interpolate_se3
-from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+from calibrex.pipelines.online import (
+    OnlineCalibrationRunOptions,
+    _select_record_timestamps_per_capture_window,
+    run_online_calibration,
+)
 
 _FIXTURES = importlib.util.spec_from_file_location(
     "rosbag2_test_fixtures",
@@ -21,9 +25,11 @@ _rosbag2 = importlib.util.module_from_spec(_FIXTURES)
 _FIXTURES.loader.exec_module(_rosbag2)
 
 POINTCLOUD2_TYPE = _rosbag2.POINTCLOUD2_TYPE
+LIVOX_CUSTOMMSG_TYPE = _rosbag2.LIVOX_CUSTOMMSG_TYPE
 ODOMETRY_TYPE = _rosbag2.ODOMETRY_TYPE
 CdrWriter = _rosbag2.CdrWriter
 _encode_odometry = _rosbag2._encode_odometry
+_encode_livox_custommsg = _rosbag2._encode_livox_custommsg
 _write_sqlite_bag = _rosbag2._write_sqlite_bag
 
 _BASE_NS = 1_000_000_000
@@ -110,10 +116,18 @@ def _encode_pointcloud2_with_time(
     return writer.finish()
 
 
-def _build_deskew_sweep_bag(path: Path, *, message_count: int = 10) -> Path:
+def _build_deskew_sweep_bag(
+    path: Path,
+    *,
+    message_count: int = 10,
+    source_custommsg: bool = False,
+) -> Path:
     world_points = _corner_world_points()
     topics = [
-        ("/livox/lidar", POINTCLOUD2_TYPE),
+        (
+            "/livox/lidar",
+            LIVOX_CUSTOMMSG_TYPE if source_custommsg else POINTCLOUD2_TYPE,
+        ),
         ("/avia/livox/lidar", POINTCLOUD2_TYPE),
         ("/odom", ODOMETRY_TYPE),
     ]
@@ -157,18 +171,35 @@ def _build_deskew_sweep_bag(path: Path, *, message_count: int = 10) -> Path:
 
         source_stamp_ns = timestamp_ns + 10
         target_stamp_ns = timestamp_ns + 20
-        messages.append(
-            (
-                "/livox/lidar",
-                source_stamp_ns,
-                _encode_pointcloud2_with_time(
-                    horizon_points,
-                    time_values,
-                    secs=source_stamp_ns // 1_000_000_000,
-                    nsecs=source_stamp_ns % 1_000_000_000,
-                ),
+        if source_custommsg:
+            source_payload = _encode_livox_custommsg(
+                [
+                    (
+                        round(offset_s * 1_000_000_000),
+                        point[0],
+                        point[1],
+                        point[2],
+                        0,
+                        0,
+                        point_index % 4,
+                    )
+                    for point_index, (point, offset_s) in enumerate(
+                        zip(horizon_points, time_values, strict=True)
+                    )
+                ],
+                frame_id="frame",
+                secs=source_stamp_ns // 1_000_000_000,
+                nsecs=source_stamp_ns % 1_000_000_000,
+                timebase_ns=source_stamp_ns,
             )
-        )
+        else:
+            source_payload = _encode_pointcloud2_with_time(
+                horizon_points,
+                time_values,
+                secs=source_stamp_ns // 1_000_000_000,
+                nsecs=source_stamp_ns % 1_000_000_000,
+            )
+        messages.append(("/livox/lidar", source_stamp_ns, source_payload))
         messages.append(
             (
                 "/avia/livox/lidar",
@@ -191,11 +222,41 @@ def _write_config(
     bag_path: Path,
     output_dir: Path,
     deskew: bool,
+    source_custommsg: bool = False,
+    capture_window_start_ns: int | None = None,
+    capture_window_end_ns: int | None = None,
+    capture_window_prefilter_margin_s: float | None = None,
+    capture_windows: list[tuple[int, int]] | None = None,
 ) -> None:
-    deskew_lines = ""
+    source_deskew_lines = ""
+    target_deskew_lines = ""
     if deskew:
-        deskew_lines = """
+        source_time_field = "offset_time" if source_custommsg else "time"
+        source_deskew_lines = f"""
+    point_time_field: {source_time_field}"""
+        target_deskew_lines = """
     point_time_field: time"""
+    capture_window_lines = ""
+    if capture_window_start_ns is not None:
+        capture_window_lines += (
+            f"\n        capture_window_start_timestamp_ns: {capture_window_start_ns}"
+        )
+    if capture_window_end_ns is not None:
+        capture_window_lines += (
+            f"\n        capture_window_end_timestamp_ns: {capture_window_end_ns}"
+        )
+    if capture_window_prefilter_margin_s is not None:
+        capture_window_lines += (
+            "\n        capture_window_record_prefilter_margin_s: "
+            f"{capture_window_prefilter_margin_s}"
+        )
+    if capture_windows is not None:
+        capture_window_lines += "\n        capture_windows:"
+        for start_ns, end_ns in capture_windows:
+            capture_window_lines += (
+                f"\n          - start_timestamp_ns: {start_ns}"
+                f"\n            end_timestamp_ns: {end_ns}"
+            )
     config_path.write_text(
         f"""
 schema_version: slac.config/v0.1
@@ -209,10 +270,10 @@ dataset:
 sensors:
   lidar_map:
     type: lidar
-    topic: /livox/lidar{deskew_lines}
+    topic: /livox/lidar{source_deskew_lines}
   lidar_stream:
     type: lidar
-    topic: /avia/livox/lidar{deskew_lines}
+    topic: /avia/livox/lidar{target_deskew_lines}
 frames:
   base_link:
     root: true
@@ -242,7 +303,7 @@ pipeline:
         max_source_messages: 8
         max_target_points: 150
         max_target_messages: 8
-        max_replay_duration_s: 5.0
+        max_replay_duration_s: 5.0{capture_window_lines}
 solver:
   max_iterations: 30
 """,
@@ -269,11 +330,33 @@ def _translation_error_m(estimate: SE3, truth: SE3) -> float:
     return math.dist((0.0, 0.0, 0.0), delta.translation_m)
 
 
-def _run_session(tmp_path: Path, *, deskew: bool) -> tuple[SE3, dict[str, object]]:
-    bag = _build_deskew_sweep_bag(tmp_path / "deskew_sweep.db3")
+def _run_session(
+    tmp_path: Path,
+    *,
+    deskew: bool,
+    source_custommsg: bool = False,
+    capture_window_start_ns: int | None = None,
+    capture_window_end_ns: int | None = None,
+    capture_window_prefilter_margin_s: float | None = None,
+    capture_windows: list[tuple[int, int]] | None = None,
+) -> tuple[SE3, dict[str, object]]:
+    bag = _build_deskew_sweep_bag(
+        tmp_path / "deskew_sweep.db3",
+        source_custommsg=source_custommsg,
+    )
     output_dir = tmp_path / ("outputs_deskew" if deskew else "outputs_no_deskew")
     config_path = tmp_path / ("config_deskew.yaml" if deskew else "config_no_deskew.yaml")
-    _write_config(config_path, bag_path=bag, output_dir=output_dir, deskew=deskew)
+    _write_config(
+        config_path,
+        bag_path=bag,
+        output_dir=output_dir,
+        deskew=deskew,
+        source_custommsg=source_custommsg,
+        capture_window_start_ns=capture_window_start_ns,
+        capture_window_end_ns=capture_window_end_ns,
+        capture_window_prefilter_margin_s=capture_window_prefilter_margin_s,
+        capture_windows=capture_windows,
+    )
     result = run_online_calibration(
         config_path,
         OnlineCalibrationRunOptions(batch_size=200, rolling_window=400, holdout_ratio=0.2),
@@ -308,3 +391,99 @@ def test_rosbag2_online_motion_without_deskew_is_worse_on_sweeping_rig(tmp_path:
     rot_error = _rotation_error_deg(estimate, truth)
     assert provenance["deskew_applied"] is False
     assert trans_error > 0.04 or rot_error > 0.15
+
+
+def test_rosbag2_online_livox_custommsg_deskew_recovers_ground_truth(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    estimate, provenance = _run_session(
+        tmp_path,
+        deskew=True,
+        source_custommsg=True,
+    )
+    truth = _ground_truth_source_target()
+
+    assert provenance["rosbag2_source_message_type"] == LIVOX_CUSTOMMSG_TYPE
+    assert provenance["point_time_observed_by_sensor"]["lidar_map"] is True
+    assert provenance["point_time_reference_by_sensor"]["lidar_map"] == (
+        "timebase_native_ros_epoch"
+    )
+    assert provenance["deskew_applied"] is True
+    # CustomMsg carries integer-nanosecond offsets; the fixture's conversion
+    # therefore has a small quantization difference from PointCloud2 float time.
+    assert _translation_error_m(estimate, truth) < 0.03
+    assert _rotation_error_deg(estimate, truth) < 1.0
+    assert provenance["rosbag2_temporal_holdout_independent"] is True
+    trajectory = provenance["trajectory_evidence"]
+    assert isinstance(trajectory, dict)
+    assert trajectory["cross_segment_first_half_scan_count"] > 0
+    assert trajectory["cross_segment_second_half_scan_count"] > 0
+
+
+def test_rosbag2_online_capture_window_filters_capture_clock(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    start_ns = _BASE_NS + 2 * _STEP_NS
+    end_ns = _BASE_NS + 7 * _STEP_NS
+    _estimate, provenance = _run_session(
+        tmp_path,
+        deskew=True,
+        capture_window_start_ns=start_ns,
+        capture_window_end_ns=end_ns,
+        capture_window_prefilter_margin_s=0.5,
+    )
+
+    assert provenance["rosbag2_capture_window_start_timestamp_ns"] == start_ns
+    assert provenance["rosbag2_capture_window_end_timestamp_ns"] == end_ns
+    assert provenance["rosbag2_capture_window_record_prefilter_margin_s"] == 0.5
+    assert provenance["rosbag2_first_source_timestamp_ns"] >= start_ns
+    assert provenance["rosbag2_first_target_timestamp_ns"] >= start_ns
+    assert provenance["rosbag2_replay_end_timestamp_ns"] <= end_ns
+    assert provenance["rosbag2_source_message_count"] > 0
+    assert provenance["rosbag2_target_message_count"] > 0
+    trajectory = provenance["trajectory_evidence"]
+    assert isinstance(trajectory, dict)
+    assert trajectory["cross_segment_first_half_start_timestamp_ns"] >= start_ns
+    assert trajectory["cross_segment_second_half_end_timestamp_ns"] <= end_ns
+
+
+def test_rosbag2_online_multi_capture_windows_replay_union_with_provenance(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    windows = [
+        (_BASE_NS + _STEP_NS, _BASE_NS + 3 * _STEP_NS + 50),
+        (6 * _STEP_NS + _BASE_NS, 8 * _STEP_NS + _BASE_NS + 50),
+    ]
+    _estimate, provenance = _run_session(
+        tmp_path,
+        deskew=True,
+        capture_windows=windows,
+    )
+
+    assert provenance["rosbag2_capture_window_count"] == 2
+    capture_windows = provenance["rosbag2_capture_windows"]
+    assert isinstance(capture_windows, list)
+    assert [
+        (item["start_timestamp_ns"], item["end_timestamp_ns"])
+        for item in capture_windows
+    ] == windows
+    assert [item["selected_target_message_count"] for item in capture_windows] == [3, 3]
+    assert all(item["selected_source_message_count"] > 0 for item in capture_windows)
+    assert provenance["rosbag2_target_message_count"] == 6
+    trajectory = provenance["trajectory_evidence"]
+    assert isinstance(trajectory, dict)
+    assert trajectory["cross_segment_first_half_scan_count"] > 0
+    assert trajectory["cross_segment_second_half_scan_count"] > 0
+
+
+def test_capture_window_even_sampling_uses_capture_not_record_clock() -> None:
+    selected = _select_record_timestamps_per_capture_window(
+        [(100, 1_000), (200, 1_100), (300, 1_200), (400, 1_300)],
+        ((1_050, 1_250),),
+        max_samples_per_window=2,
+    )
+
+    assert selected == {200, 300}

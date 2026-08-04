@@ -21,6 +21,11 @@ ROS 1 ``.bag`` with ``rosbags``, writes a rosbag2 directory containing:
     real upstream data (for TIERS Indoor02, VRPN MOCAP). **Only the Odometry
     message envelope is synthesized here**; Calibrex never authors ``/odom``
     during calibration.
+  * ``--odom-source external-trajectory``: builds the same Odometry envelope
+    from a whitespace-delimited trajectory file with rows
+    ``time_s x y z qx qy qz qw``. ``--trajectory-time-offset-s`` maps the
+    external time column into the bag/header clock explicitly; the source
+    trajectory file is never rewritten.
   * ``--odom-source kiss-icp``: estimated from the source LiDAR itself via
     KISS-ICP on ``--kiss-icp-topic``. Poses are ``T_world_sensor`` in the
     source sensor frame (rig-frame odometry; no external body alignment
@@ -63,15 +68,24 @@ import sys
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from math import sqrt
+from math import isfinite, sqrt
 from pathlib import Path
 
 import numpy as np
-from lidar_scan_deskew import (
-    PoseTrackSample,
-    normalize_scan_timestamps,
-    rigidify_scan_to_timestamp,
-)
+
+try:
+    from lidar_scan_deskew import (
+        PoseTrackSample,
+        normalize_scan_timestamps,
+        rigidify_scan_to_timestamp,
+    )
+except ModuleNotFoundError:  # pragma: no cover - import layout depends on invocation
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from lidar_scan_deskew import (
+        PoseTrackSample,
+        normalize_scan_timestamps,
+        rigidify_scan_to_timestamp,
+    )
 from rosbags.highlevel import AnyReader
 from rosbags.rosbag2 import (
     CompressionFormat,
@@ -85,6 +99,8 @@ POINTCLOUD2_MSGTYPE = "sensor_msgs/msg/PointCloud2"
 ODOMETRY_MSGTYPE = "nav_msgs/msg/Odometry"
 POSE_STAMPED_MSGTYPE = "geometry_msgs/msg/PoseStamped"
 IMU_MSGTYPE = "sensor_msgs/msg/Imu"
+HEADER_MSGTYPE = "std_msgs/msg/Header"
+TIME_MSGTYPE = "builtin_interfaces/msg/Time"
 
 POINTFIELD_NUMPY = {
     1: "i1",
@@ -107,6 +123,15 @@ class TopicStats:
     last_timestamp_ns: int | None
 
 
+@dataclass(frozen=True)
+class ExternalTrajectorySample:
+    """One external trajectory row mapped into the bag clock."""
+
+    timestamp_ns: int
+    translation_xyz: tuple[float, float, float]
+    rotation_quat_xyzw: tuple[float, float, float, float]
+
+
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--src", type=Path, required=True, help="Source ROS 1 .bag path")
@@ -120,13 +145,34 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--odom-source",
-        choices=("pose-topic", "kiss-icp", "kiss-icp-two-pass"),
+        choices=("pose-topic", "external-trajectory", "kiss-icp", "kiss-icp-two-pass"),
         default="pose-topic",
         help="Odometry synthesis mode (default: pose-topic)",
     )
     parser.add_argument(
         "--pose-topic",
         help="PoseStamped topic converted 1:1 into --odom-topic (required for pose-topic mode)",
+    )
+    parser.add_argument(
+        "--trajectory-file",
+        type=Path,
+        help=(
+            "External trajectory rows time_s x y z qx qy qz qw (required for "
+            "external-trajectory mode)"
+        ),
+    )
+    parser.add_argument(
+        "--trajectory-time-offset-s",
+        type=float,
+        help=(
+            "Seconds added to external trajectory time_s to form the ROS/bag "
+            "clock; required for external-trajectory mode"
+        ),
+    )
+    parser.add_argument(
+        "--trajectory-frame-id",
+        default="world",
+        help="frame_id for synthesized external-trajectory Odometry (default: world)",
     )
     parser.add_argument(
         "--kiss-icp-topic",
@@ -204,6 +250,13 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.odom_source == "pose-topic" and not args.pose_topic:
         parser.error("--pose-topic is required when --odom-source pose-topic")
+    if args.odom_source == "external-trajectory" and args.trajectory_file is None:
+        parser.error("--trajectory-file is required when --odom-source external-trajectory")
+    if args.odom_source == "external-trajectory" and args.trajectory_time_offset_s is None:
+        parser.error(
+            "--trajectory-time-offset-s is required when "
+            "--odom-source external-trajectory"
+        )
     kiss_modes = {"kiss-icp", "kiss-icp-two-pass"}
     if args.odom_source in kiss_modes and not args.kiss_icp_topic:
         parser.error(f"--kiss-icp-topic is required when --odom-source {args.odom_source}")
@@ -264,6 +317,58 @@ def _normalize_quaternion_xyzw(
         msg = "quaternion norm must be non-zero"
         raise ValueError(msg)
     return (x / norm, y / norm, z / norm, w / norm)
+
+
+def _read_external_trajectory(
+    path: Path,
+    *,
+    time_offset_s: float,
+) -> tuple[ExternalTrajectorySample, ...]:
+    """Read ``time_s x y z qx qy qz qw`` rows and map them to bag time."""
+
+    if not path.is_file():
+        raise ValueError(f"external trajectory file not found: {path}")
+    if not isfinite(time_offset_s):
+        raise ValueError("external trajectory time offset must be finite")
+
+    samples: list[ExternalTrajectorySample] = []
+    previous_timestamp_ns: int | None = None
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        content = line.split("#", 1)[0].strip()
+        if not content:
+            continue
+        fields = content.split()
+        if len(fields) != 8:
+            raise ValueError(
+                f"external trajectory line {line_number} must contain 8 values "
+                "(time_s x y z qx qy qz qw)"
+            )
+        try:
+            values = tuple(float(field) for field in fields)
+        except ValueError as exc:
+            raise ValueError(
+                f"external trajectory line {line_number} contains a non-numeric value"
+            ) from exc
+        if not all(isfinite(value) for value in values):
+            raise ValueError(f"external trajectory line {line_number} contains a non-finite value")
+        time_s, x, y, z, qx, qy, qz, qw = values
+        timestamp_ns = round((time_s + time_offset_s) * 1_000_000_000.0)
+        if previous_timestamp_ns is not None and timestamp_ns <= previous_timestamp_ns:
+            raise ValueError(
+                "external trajectory timestamps must be strictly increasing "
+                f"(line {line_number})"
+            )
+        previous_timestamp_ns = timestamp_ns
+        samples.append(
+            ExternalTrajectorySample(
+                timestamp_ns=timestamp_ns,
+                translation_xyz=(x, y, z),
+                rotation_quat_xyzw=_normalize_quaternion_xyzw((qx, qy, qz, qw)),
+            )
+        )
+    if len(samples) < 2:
+        raise ValueError("external trajectory must contain at least two samples")
+    return tuple(samples)
 
 
 def _quaternion_xyzw_from_rotation_matrix(matrix: np.ndarray) -> tuple[float, float, float, float]:
@@ -403,6 +508,58 @@ def _pose_to_odometry(
     twist_with_covariance = TwistWithCovariance(twist=zero_twist, covariance=covariance.copy())
     return Odometry(
         header=pose_msg.header,
+        child_frame_id=child_frame_id,
+        pose=pose_with_covariance,
+        twist=twist_with_covariance,
+    )
+
+
+def _external_trajectory_to_odometry(
+    sample: ExternalTrajectorySample,
+    *,
+    child_frame_id: str,
+    frame_id: str,
+    typestore: object,
+) -> object:
+    """Build a ROS 2 Odometry envelope from one external trajectory sample."""
+
+    Header = typestore.types[HEADER_MSGTYPE]
+    Time = typestore.types[TIME_MSGTYPE]
+    Pose = typestore.types["geometry_msgs/msg/Pose"]
+    Point = typestore.types["geometry_msgs/msg/Point"]
+    Quaternion = typestore.types["geometry_msgs/msg/Quaternion"]
+    PoseWithCovariance = typestore.types["geometry_msgs/msg/PoseWithCovariance"]
+    Twist = typestore.types["geometry_msgs/msg/Twist"]
+    TwistWithCovariance = typestore.types["geometry_msgs/msg/TwistWithCovariance"]
+    Vector3 = typestore.types["geometry_msgs/msg/Vector3"]
+    Odometry = typestore.types[ODOMETRY_MSGTYPE]
+
+    timestamp_ns = sample.timestamp_ns
+    header = Header(
+        stamp=Time(
+            sec=timestamp_ns // 1_000_000_000,
+            nanosec=timestamp_ns % 1_000_000_000,
+        ),
+        frame_id=frame_id,
+    )
+    x, y, z = sample.translation_xyz
+    qx, qy, qz, qw = sample.rotation_quat_xyzw
+    pose = Pose(
+        position=Point(x=x, y=y, z=z),
+        orientation=Quaternion(x=qx, y=qy, z=qz, w=qw),
+    )
+    covariance = np.zeros(36, dtype=np.float64)
+    pose_with_covariance = PoseWithCovariance(pose=pose, covariance=covariance)
+    zero_twist = Twist(
+        linear=Vector3(x=0.0, y=0.0, z=0.0),
+        angular=Vector3(x=0.0, y=0.0, z=0.0),
+    )
+    twist_with_covariance = TwistWithCovariance(
+        twist=zero_twist,
+        covariance=covariance.copy(),
+    )
+    return Odometry(
+        header=header,
         child_frame_id=child_frame_id,
         pose=pose_with_covariance,
         twist=twist_with_covariance,
@@ -558,6 +715,9 @@ def _print_summary(
     odom_topic: str,
     odom_source: str,
     pose_topic: str | None,
+    trajectory_file: Path | None,
+    trajectory_time_offset_s: float | None,
+    trajectory_frame_id: str | None,
     kiss_icp_topic: str | None,
     kiss_icp_version: str | None,
     kiss_icp_pass1_version: str | None,
@@ -574,6 +734,10 @@ def _print_summary(
     print(f"odom_source: {odom_source}")
     if pose_topic is not None:
         print(f"pose_topic: {pose_topic}")
+    if trajectory_file is not None:
+        print(f"trajectory_file: {trajectory_file}")
+        print(f"trajectory_time_offset_s: {trajectory_time_offset_s}")
+        print(f"trajectory_frame_id: {trajectory_frame_id}")
     if kiss_icp_topic is not None:
         print(f"kiss_icp_topic: {kiss_icp_topic}")
         if kiss_icp_passes is not None:
@@ -636,10 +800,17 @@ def convert_bag(
         else {}
     )
 
+    external_trajectory: tuple[ExternalTrajectorySample, ...] = ()
+    if args.odom_source == "external-trajectory":
+        external_trajectory = _read_external_trajectory(
+            args.trajectory_file,
+            time_offset_s=args.trajectory_time_offset_s,
+        )
+
     selected_topics = set(args.topics) | set(args.imu_topics)
     if args.odom_source == "pose-topic":
         selected_topics.add(args.pose_topic)
-    else:
+    elif args.odom_source in {"kiss-icp", "kiss-icp-two-pass"}:
         selected_topics.add(args.kiss_icp_topic)
 
     duplicate_topics = _parse_duplicate_topics(
@@ -688,6 +859,26 @@ def convert_bag(
     writer.open()
 
     try:
+        if args.odom_source == "external-trajectory":
+            odom_connection = writer.add_connection(
+                args.odom_topic,
+                ODOMETRY_MSGTYPE,
+                typestore=ros2_typestore,
+            )
+            for sample in external_trajectory:
+                odom_msg = _external_trajectory_to_odometry(
+                    sample,
+                    child_frame_id=args.child_frame_id,
+                    frame_id=args.trajectory_frame_id,
+                    typestore=ros2_typestore,
+                )
+                writer.write(
+                    odom_connection,
+                    sample.timestamp_ns,
+                    ros2_typestore.serialize_cdr(odom_msg, ODOMETRY_MSGTYPE),
+                )
+                _record_stats(stats, args.odom_topic, sample.timestamp_ns)
+
         with AnyReader([args.src], default_typestore=ros1_typestore) as reader:
             available = {connection.topic for connection in reader.connections}
             missing = sorted(selected_topics - available)
@@ -848,6 +1039,17 @@ def main(argv: Iterable[str] | None = None) -> int:
         odom_topic=args.odom_topic,
         odom_source=args.odom_source,
         pose_topic=args.pose_topic if args.odom_source == "pose-topic" else None,
+        trajectory_file=(
+            args.trajectory_file if args.odom_source == "external-trajectory" else None
+        ),
+        trajectory_time_offset_s=(
+            args.trajectory_time_offset_s
+            if args.odom_source == "external-trajectory"
+            else None
+        ),
+        trajectory_frame_id=(
+            args.trajectory_frame_id if args.odom_source == "external-trajectory" else None
+        ),
         kiss_icp_topic=args.kiss_icp_topic if args.odom_source in kiss_modes else None,
         kiss_icp_version=kiss_provenance.version,
         kiss_icp_pass1_version=kiss_provenance.pass1_version,

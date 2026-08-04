@@ -17,11 +17,29 @@ sensors:
     model: livox_horizon
     frame_id: base_horizon
     fields: [x, y, z, intensity]
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: unknown
+      point_time_unit: unknown
+      point_time_available: false
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
   target_horizon:
     type: lidar
     model: livox_horizon
     frame_id: target_horizon
     fields: [x, y, z, intensity]
+    solid_state:
+      architecture: solid_state
+      scan_pattern: non_repetitive
+      point_time_reference: unknown
+      point_time_unit: unknown
+      point_time_available: false
+      intrinsic_calibration:
+        source: manufacturer
+        model: manufacturer_native
 
 frames:
   base_horizon:
@@ -58,6 +76,11 @@ solver:
 
 evaluation:
   holdout_ratio: 0.2
+  solid_state:
+    enabled: true
+    require_point_time: false
+    require_temperature: false
+    require_independent_holdout: false
 
 outputs:
   result: result.yaml

@@ -6,6 +6,7 @@ import math
 import struct
 from collections.abc import Iterable
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 
 from calibrex.core.geometry import SE3, Vector3
@@ -49,6 +50,10 @@ class LivoxPCDSampleStats:
     intensity_min: float | None = None
     intensity_max: float | None = None
     intensity_mean: float | None = None
+    range_min_m: float | None = None
+    range_max_m: float | None = None
+    fov_azimuth_deg: float | None = None
+    fov_elevation_deg: float | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return a JSON/YAML-friendly representation."""
@@ -61,6 +66,10 @@ class LivoxPCDSampleStats:
             "intensity_min": self.intensity_min,
             "intensity_max": self.intensity_max,
             "intensity_mean": self.intensity_mean,
+            "range_min_m": self.range_min_m,
+            "range_max_m": self.range_max_m,
+            "fov_azimuth_deg": self.fov_azimuth_deg,
+            "fov_elevation_deg": self.fov_elevation_deg,
         }
 
 
@@ -77,6 +86,10 @@ class LivoxPCDDatasetStats:
     intensity_min: float | None = None
     intensity_max: float | None = None
     intensity_mean: float | None = None
+    range_min_m: float | None = None
+    range_max_m: float | None = None
+    fov_azimuth_deg: float | None = None
+    fov_elevation_deg: float | None = None
     pair_target_transform_applied: bool = False
     pair_transform_convention: str | None = None
     pair_voxel_size_m: float | None = None
@@ -105,6 +118,10 @@ class LivoxPCDDatasetStats:
             "intensity_min": self.intensity_min,
             "intensity_max": self.intensity_max,
             "intensity_mean": self.intensity_mean,
+            "range_min_m": self.range_min_m,
+            "range_max_m": self.range_max_m,
+            "fov_azimuth_deg": self.fov_azimuth_deg,
+            "fov_elevation_deg": self.fov_elevation_deg,
             "pair_target_transform_applied": self.pair_target_transform_applied,
             "pair_transform_convention": self.pair_transform_convention,
             "pair_voxel_size_m": self.pair_voxel_size_m,
@@ -227,6 +244,9 @@ class _VoxelPlane:
         return _fallback_plane_normal(self.fallback_points or [])
 
 
+VoxelPlaneMap = dict[tuple[int, int, int], _VoxelPlane]
+
+
 @dataclass(frozen=True)
 class _VoxelPairSummary:
     voxel_size_m: float
@@ -332,7 +352,12 @@ class LivoxPCDDataset:
                 stream=stream,
                 timestamp_ns=index,
                 payload_path=str(path),
-                metadata={"format": "pcd", "sensor_family": "livox"},
+                metadata={
+                    "format": "pcd",
+                    "sensor_family": "livox",
+                    "timestamp_semantics": "file_order_index_not_physical_capture_time",
+                    "point_time_available": False,
+                },
             )
 
 
@@ -394,6 +419,10 @@ def summarize_livox_pcd(
     else:
         pair = None
     status = "scored" if samples else "malformed"
+    sampled_points = [point for points in sampled_points_by_file for point in points]
+    range_min_m, range_max_m, fov_azimuth_deg, fov_elevation_deg = _geometry_coverage(
+        sampled_points
+    )
     return LivoxPCDDatasetStats(
         status=status,
         sample_count=len(files),
@@ -404,6 +433,10 @@ def summarize_livox_pcd(
         intensity_min=total.intensity_min if total.count else None,
         intensity_max=total.intensity_max if total.count else None,
         intensity_mean=total.intensity_mean,
+        range_min_m=range_min_m,
+        range_max_m=range_max_m,
+        fov_azimuth_deg=fov_azimuth_deg,
+        fov_elevation_deg=fov_elevation_deg,
         pair_target_transform_applied=target_transform is not None,
         pair_transform_convention=(
             "T_source_target maps target PCD points into the source PCD frame"
@@ -609,7 +642,7 @@ def _support_definition() -> str:
 def build_voxel_plane_map(
     records: list[LivoxPointRecord],
     voxel_size_m: float,
-) -> dict[tuple[int, int, int], _VoxelPlane]:
+) -> VoxelPlaneMap:
     """Return the voxel-plane map used for point-to-plane correspondences.
 
     Each voxel aggregates a centroid and a plane normal (from per-point PCD
@@ -622,7 +655,7 @@ def build_voxel_plane_map(
 
 def nearest_voxel_plane(
     point: Vector3,
-    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    plane_map: VoxelPlaneMap,
     *,
     voxel_size_m: float,
     correspondence_gate_m: float,
@@ -781,6 +814,7 @@ def _summarize_sample(path: Path, points: list[LivoxPoint]) -> LivoxPCDSampleSta
     accumulator = _PointAccumulator()
     for point in points:
         accumulator.add(point)
+    range_min_m, range_max_m, fov_azimuth_deg, fov_elevation_deg = _geometry_coverage(points)
     return LivoxPCDSampleStats(
         path=str(path),
         point_count=accumulator.count,
@@ -789,7 +823,52 @@ def _summarize_sample(path: Path, points: list[LivoxPoint]) -> LivoxPCDSampleSta
         intensity_min=accumulator.intensity_min if accumulator.count else None,
         intensity_max=accumulator.intensity_max if accumulator.count else None,
         intensity_mean=accumulator.intensity_mean,
+        range_min_m=range_min_m,
+        range_max_m=range_max_m,
+        fov_azimuth_deg=fov_azimuth_deg,
+        fov_elevation_deg=fov_elevation_deg,
     )
+
+
+def _geometry_coverage(
+    points: list[LivoxPoint],
+) -> tuple[float | None, float | None, float | None, float | None]:
+    """Return range and angular coverage for a sampled solid-state cloud."""
+
+    ranges: list[float] = []
+    azimuths_deg: list[float] = []
+    elevations_deg: list[float] = []
+    for x, y, z, _intensity in points:
+        if not all(math.isfinite(value) for value in (x, y, z)):
+            continue
+        horizontal_range = math.hypot(x, y)
+        ranges.append(math.sqrt(horizontal_range * horizontal_range + z * z))
+        azimuths_deg.append(math.degrees(math.atan2(y, x)))
+        elevations_deg.append(math.degrees(math.atan2(z, horizontal_range)))
+    if not ranges:
+        return None, None, None, None
+    return (
+        min(ranges),
+        max(ranges),
+        _circular_span_deg(azimuths_deg),
+        max(elevations_deg) - min(elevations_deg),
+    )
+
+
+def _circular_span_deg(angles_deg: list[float]) -> float | None:
+    """Return the shortest circular arc containing all azimuth samples."""
+
+    if not angles_deg:
+        return None
+    if len(angles_deg) == 1:
+        return 0.0
+    ordered = sorted((angle % 360.0) for angle in angles_deg)
+    largest_gap = max(
+        right - left
+        for left, right in pairwise(ordered)
+    )
+    largest_gap = max(largest_gap, ordered[0] + 360.0 - ordered[-1])
+    return max(0.0, 360.0 - largest_gap)
 
 
 def _summarize_voxel_pair(
