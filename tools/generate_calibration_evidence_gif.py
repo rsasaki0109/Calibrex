@@ -25,6 +25,7 @@ import sys
 import tarfile
 import tempfile
 import zipfile
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,7 +37,7 @@ import yaml
 
 from calibrex.core.geometry import SE3, interpolate_se3
 from calibrex.core.online_timeline import ONLINE_TIMELINE_SCHEMA_VERSION
-from calibrex.data.odometry_track import OdometryTrack
+from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
 
 _TOOLS_DIR = Path(__file__).resolve().parent
 if str(_TOOLS_DIR) not in sys.path:
@@ -116,6 +117,19 @@ A2D2_LIDAR_ID_TO_NAME = {
 }
 BEFORE_AFTER_FPS = 10
 BEFORE_AFTER_FRAME_COUNT = 40
+TIME_SWEEP_FPS = 10
+TIME_SWEEP_FRAME_COUNT = 40
+TIME_SWEEP_CONFIG_PATH = Path(
+    "examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml"
+)
+TIME_SWEEP_SOURCE_TOPIC = "/velodyne_points"
+TIME_SWEEP_TARGET_TOPIC = "/livox/lidar"
+TIME_SWEEP_ODOMETRY_TOPIC = "/vrpn_client_node/UWBTest/pose"
+TIME_SWEEP_MAX_SOURCE_MESSAGES = 3
+TIME_SWEEP_MAX_SOURCE_POINTS = 3600
+TIME_SWEEP_MAX_TARGET_MESSAGES = 8
+TIME_SWEEP_MAX_TARGET_POINTS = 3600
+TIME_SWEEP_OFFSET_COVERAGE_MARGIN_S = 0.25
 LIVOX_BEFORE_AFTER_INITIAL_TRANSFORM = SE3(
     (0.0, -0.13, 0.0),
     (0.0, 0.0, 0.0, 1.0),
@@ -164,11 +178,21 @@ TIERS_GIF_MAX_ROLLING_REGRESSION_M = 0.15
 SCENE_PANEL = (28, 86, 594, 426)
 RIGHT_PANEL = (650, 92, 278, 414)
 CHART = (676, 294, 216, 48)
+TIME_SWEEP_LEFT_PANEL = (34, 86, 520, 380)
+TIME_SWEEP_RIGHT_PANEL = (574, 86, 352, 380)
+TIME_SWEEP_CHART = (610, 150, 286, 196)
 
 Color = tuple[int, int, int]
 Point3 = tuple[float, float, float]
 Point2 = tuple[int, int]
-VisualMode = Literal["evidence", "online", "motion", "camera_lidar", "before_after"]
+VisualMode = Literal[
+    "evidence",
+    "online",
+    "motion",
+    "camera_lidar",
+    "before_after",
+    "time_sweep",
+]
 ReadmeRole = Literal["hero", "gallery"]
 
 BG = (10, 15, 27)
@@ -222,6 +246,72 @@ class LidarCloudPair:
     known_bad_summary: str
     protocol_summary: str
     case_summary: str
+
+
+@dataclass(frozen=True)
+class TimeOffsetProbe:
+    """One real solver candidate evaluation used by the time-sweep curve."""
+
+    offset_s: float
+    train_rmse_m: float | None
+    holdout_rmse_m: float | None
+    iteration: int
+    accepted: bool
+
+
+@dataclass(frozen=True)
+class TimeOffsetSweepSummary:
+    """Schema-friendly summary of one public-data time-offset run."""
+
+    config_path: str
+    config_sha256: str
+    dataset_path: str
+    dataset_sha256: str
+    source_sensor: str
+    target_sensor: str
+    initial_offset_s: float
+    estimated_offset_s: float
+    initial_train_rmse_m: float | None
+    final_train_rmse_m: float | None
+    final_holdout_rmse_m: float | None
+    initial_transform: SE3
+    refined_transform: SE3
+    transform_convention: str
+    probes: tuple[TimeOffsetProbe, ...]
+    curve_semantics: str
+    limitation: str
+
+
+@dataclass(frozen=True)
+class TimedTargetPoint:
+    """One Livox point and its bag-clock capture timestamp."""
+
+    point: Point3
+    capture_timestamp_ns: int
+
+
+@dataclass(frozen=True)
+class TimeOffsetSweepFrameState:
+    """One rendered candidate offset with real pose-compensated points."""
+
+    offset_s: float
+    probe_index: int
+    train_rmse_m: float | None
+    target_world_points: tuple[Point3, ...]
+    estimated_world_points: tuple[Point3, ...]
+    ghosting_rmse_m: float
+
+
+@dataclass(frozen=True)
+class TimeOffsetSweepRun:
+    """Real TIERS bag data and solver evidence used by the time-sweep GIF."""
+
+    summary: TimeOffsetSweepSummary
+    source_world_points: tuple[Point3, ...]
+    target_points: tuple[TimedTargetPoint, ...]
+    odometry_track: OdometryTrack
+    world_bounds_xy: tuple[float, float, float, float]
+    frame_states: tuple[TimeOffsetSweepFrameState, ...]
 
 
 @dataclass(frozen=True)
@@ -321,6 +411,12 @@ README_GIF_JOBS = (
         readme_role="gallery",
     ),
     ReadmeGifJob(
+        source="tiers-lidars-cali",
+        output=Path("docs/assets/livox-time-offset-sweep.gif"),
+        visual="time_sweep",
+        readme_role="gallery",
+    ),
+    ReadmeGifJob(
         source="livox-horizon-horizon",
         output=Path("docs/assets/calibration-evidence-demo.gif"),
     ),
@@ -375,7 +471,14 @@ def main() -> int:
     )
     parser.add_argument(
         "--visual",
-        choices=["evidence", "online", "motion", "camera_lidar", "before_after"],
+        choices=[
+            "evidence",
+            "online",
+            "motion",
+            "camera_lidar",
+            "before_after",
+            "time_sweep",
+        ],
         default="evidence",
         help="Animation layout to render for a single-source GIF.",
     )
@@ -443,6 +546,39 @@ def main() -> int:
                 job=matching_job,
                 cloud_pair=None,
                 metadata_source=scene.metadata_source,
+                frames=args.frames,
+                allow_fallback=False,
+            )
+        return 0
+
+    if args.visual == "time_sweep":
+        if args.source != "tiers-lidars-cali":
+            raise SystemExit("--visual time_sweep requires --source tiers-lidars-cali")
+        if not tiers_bag_available():
+            raise SystemExit(
+                f"{TIERS_BAG_PATH} is required for the TIERS time-offset sweep GIF"
+            )
+        generate_gif(
+            output=args.output,
+            source=args.source,
+            frames=args.frames,
+            cloud_pair=None,
+            lidars=[],
+            metadata_source="TIERS LidarsCali rosbag1 + continuous-time solver",
+            visual=args.visual,
+            a2d2_source_id=args.a2d2_source_id,
+            a2d2_target_id=args.a2d2_target_id,
+            data_dir=args.data_dir,
+            allow_network=not args.no_network,
+        )
+        matching_job = next(
+            (job for job in README_GIF_JOBS if job.output == args.output), None
+        )
+        if matching_job is not None:
+            patch_readme_gallery_manifest(
+                job=matching_job,
+                cloud_pair=None,
+                metadata_source="TIERS LidarsCali rosbag1 + continuous-time solver",
                 frames=args.frames,
                 allow_fallback=False,
             )
@@ -533,6 +669,31 @@ def generate_readme_gallery(
             if preserved is not None:
                 manifest_assets.append(preserved)
             continue
+        if job.visual == "time_sweep":
+            time_sweep_run = generate_gif(
+                output=job.output,
+                source=job.source,
+                frames=_frames_for_job(job, frames),
+                cloud_pair=None,
+                lidars=[],
+                metadata_source="TIERS LidarsCali rosbag1 + continuous-time solver",
+                visual=job.visual,
+                a2d2_source_id=job.a2d2_source_id,
+                a2d2_target_id=job.a2d2_target_id,
+                data_dir=None,
+                allow_network=allow_network,
+            )
+            manifest_assets.append(
+                readme_gallery_manifest_asset(
+                    job=job,
+                    cloud_pair=None,
+                    metadata_source="TIERS LidarsCali rosbag1 + continuous-time solver",
+                    time_sweep_run=(
+                        time_sweep_run.summary if time_sweep_run is not None else None
+                    ),
+                )
+            )
+            continue
         cloud_pair, lidars, metadata_source = load_gif_inputs(
             source=job.source,
             data_dir=None,
@@ -579,6 +740,8 @@ def _frames_for_job(job: ReadmeGifJob, default_frames: int) -> int:
         return A2D2_CAMERA_LIDAR_FRAME_COUNT
     if job.visual == "before_after":
         return BEFORE_AFTER_FRAME_COUNT
+    if job.visual == "time_sweep":
+        return TIME_SWEEP_FRAME_COUNT
     return default_frames
 
 
@@ -589,6 +752,8 @@ def _fps_for_visual(visual: VisualMode) -> int:
         return A2D2_CAMERA_LIDAR_FPS
     if visual == "before_after":
         return BEFORE_AFTER_FPS
+    if visual == "time_sweep":
+        return TIME_SWEEP_FPS
     return FPS
 
 
@@ -599,6 +764,7 @@ def readme_gallery_manifest_asset(
     metadata_source: str,
     online_run: OnlineGifRun | None = None,
     motion_scene: MotionHeroScene | None = None,
+    time_sweep_run: TimeOffsetSweepSummary | None = None,
 ) -> dict[str, object]:
     """Return a stable provenance manifest entry for one README GIF."""
 
@@ -684,6 +850,23 @@ def readme_gallery_manifest_asset(
             "target_lidar_id": job.a2d2_target_id,
             "target": A2D2_LIDAR_ID_TO_NAME[job.a2d2_target_id],
         }
+    elif job.visual == "time_sweep":
+        download_url = load_tiers_download_url()
+        bag_path = TIERS_BAG_PATH
+        rosbag_input = {
+            "kind": "rosbag1_local_dataset",
+            "url": download_url,
+            "bag_file": TIERS_BAG_NAME,
+            "replay_budgets": tiers_gif_replay_budgets(),
+        }
+        if bag_path.exists():
+            rosbag_input["size_bytes"] = bag_path.stat().st_size
+            rosbag_input["sha256_first_mib"] = sha256_file_prefix(bag_path)
+        public_inputs = [rosbag_input]
+        sensor_pair = {
+            "source": "velodyne_vlp16",
+            "target": "livox_horizon",
+        }
     elif job.source == "tiers-lidars-cali":
         download_url = load_tiers_download_url()
         bag_path = TIERS_BAG_PATH
@@ -728,6 +911,9 @@ def readme_gallery_manifest_asset(
             "A2D2 front-left camera-view LiDAR points "
             f"(up to {A2D2_CAMERA_LIDAR_MAX_POINTS:,} plotted/frame)"
         )
+    elif job.visual == "time_sweep":
+        source_label = "TIERS VLP-16 world-map points"
+        target_label = "TIERS Livox Horizon per-point-time returns"
     else:
         if cloud_pair is None:
             raise SystemExit(f"{job.visual} README GIF manifest requires a LiDAR cloud pair")
@@ -844,6 +1030,18 @@ def readme_gallery_manifest_asset(
             "width": WIDTH,
             "height": HEIGHT,
         }
+    elif job.visual == "time_sweep":
+        if time_sweep_run is None:
+            time_sweep_run = load_time_sweep_run_for_manifest(job)
+        if time_sweep_run is None:
+            raise SystemExit("time_sweep README GIF requires a real solver run")
+        asset["time_offset_sweep"] = time_offset_sweep_manifest_payload(time_sweep_run)
+        asset["animation"] = {
+            "frames": TIME_SWEEP_FRAME_COUNT,
+            "fps": TIME_SWEEP_FPS,
+            "width": WIDTH,
+            "height": HEIGHT,
+        }
     return asset
 
 
@@ -876,12 +1074,16 @@ def patch_readme_gallery_manifest(
 
     online_run = load_online_run_for_manifest(job) if job.visual == "online" else None
     motion_scene = load_motion_scene_for_manifest(job) if job.visual == "motion" else None
+    time_sweep_run = (
+        load_time_sweep_run_for_manifest(job) if job.visual == "time_sweep" else None
+    )
     updated_asset = readme_gallery_manifest_asset(
         job=job,
         cloud_pair=cloud_pair,
         metadata_source=metadata_source,
         online_run=online_run,
         motion_scene=motion_scene,
+        time_sweep_run=time_sweep_run,
     )
     output_key = job.output.as_posix()
     assets = [
@@ -969,6 +1171,136 @@ def load_motion_scene_for_manifest(job: ReadmeGifJob) -> MotionHeroScene | None:
         scan_count=int(payload["scan_count"]),
         scans_per_animation_frame=float(payload["scans_per_animation_frame"]),
     )
+
+
+def time_sweep_cache_path(output: Path) -> Path:
+    """Return the tracked sidecar path for one time-sweep run summary."""
+
+    return output.with_suffix(".time-sweep-run.json")
+
+
+def time_offset_sweep_manifest_payload(
+    summary: TimeOffsetSweepSummary,
+) -> dict[str, object]:
+    """Return schema-friendly provenance for the real time-offset replay."""
+
+    return {
+        "mode": "real_solver_candidate_probe",
+        "source": "calibrex continuous-time lidar pair",
+        "config_path": summary.config_path,
+        "config_sha256": summary.config_sha256,
+        "dataset_path": summary.dataset_path,
+        "dataset_sha256": summary.dataset_sha256,
+        "source_sensor": summary.source_sensor,
+        "target_sensor": summary.target_sensor,
+        "transform_convention": summary.transform_convention,
+        "initial_offset_s": summary.initial_offset_s,
+        "estimated_offset_s": summary.estimated_offset_s,
+        "initial_train_rmse_m": summary.initial_train_rmse_m,
+        "final_train_rmse_m": summary.final_train_rmse_m,
+        "final_holdout_rmse_m": summary.final_holdout_rmse_m,
+        "initial_transform": summary.initial_transform.as_dict(),
+        "refined_transform": summary.refined_transform.as_dict(),
+        "curve_semantics": summary.curve_semantics,
+        "probes": [
+            {
+                "offset_s": probe.offset_s,
+                "train_rmse_m": probe.train_rmse_m,
+                "holdout_rmse_m": probe.holdout_rmse_m,
+                "iteration": probe.iteration,
+                "accepted": probe.accepted,
+            }
+            for probe in summary.probes
+        ],
+        "limitation": summary.limitation,
+    }
+
+
+def write_time_sweep_run_cache(
+    output: Path,
+    summary: TimeOffsetSweepSummary,
+) -> None:
+    """Persist the solver summary used by the README manifest."""
+
+    payload = {
+        "schema_version": "slac.readme_time_offset_sweep/v0.1",
+        **time_offset_sweep_manifest_payload(summary),
+    }
+    time_sweep_cache_path(output).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def load_time_sweep_run_for_manifest(
+    job: ReadmeGifJob,
+) -> TimeOffsetSweepSummary | None:
+    """Load a generated time-sweep summary sidecar when it is available."""
+
+    if job.visual != "time_sweep":
+        return None
+    cache_path = time_sweep_cache_path(job.output)
+    if not cache_path.exists():
+        return None
+    try:
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+        probes = tuple(
+            TimeOffsetProbe(
+                offset_s=float(item["offset_s"]),
+                train_rmse_m=(
+                    float(item["train_rmse_m"])
+                    if item.get("train_rmse_m") is not None
+                    else None
+                ),
+                holdout_rmse_m=(
+                    float(item["holdout_rmse_m"])
+                    if item.get("holdout_rmse_m") is not None
+                    else None
+                ),
+                iteration=int(item["iteration"]),
+                accepted=bool(item["accepted"]),
+            )
+            for item in payload["probes"]
+        )
+        return TimeOffsetSweepSummary(
+            config_path=str(payload["config_path"]),
+            config_sha256=str(payload["config_sha256"]),
+            dataset_path=str(payload["dataset_path"]),
+            dataset_sha256=str(payload["dataset_sha256"]),
+            source_sensor=str(payload["source_sensor"]),
+            target_sensor=str(payload["target_sensor"]),
+            initial_offset_s=float(payload["initial_offset_s"]),
+            estimated_offset_s=float(payload["estimated_offset_s"]),
+            initial_train_rmse_m=(
+                float(payload["initial_train_rmse_m"])
+                if payload.get("initial_train_rmse_m") is not None
+                else None
+            ),
+            final_train_rmse_m=(
+                float(payload["final_train_rmse_m"])
+                if payload.get("final_train_rmse_m") is not None
+                else None
+            ),
+            final_holdout_rmse_m=(
+                float(payload["final_holdout_rmse_m"])
+                if payload.get("final_holdout_rmse_m") is not None
+                else None
+            ),
+            initial_transform=SE3.from_lists(
+                list(payload["initial_transform"]["translation_m"]),
+                list(payload["initial_transform"]["rotation_quat_xyzw"]),
+            ),
+            refined_transform=SE3.from_lists(
+                list(payload["refined_transform"]["translation_m"]),
+                list(payload["refined_transform"]["rotation_quat_xyzw"]),
+            ),
+            transform_convention=str(payload["transform_convention"]),
+            probes=probes,
+            curve_semantics=str(payload["curve_semantics"]),
+            limitation=str(payload["limitation"]),
+        )
+    except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError):
+        return None
 
 
 def write_readme_gallery_manifest(
@@ -1434,12 +1766,387 @@ def encode_camera_lidar_gif(frame_dir: Path, output: Path, *, frames: int) -> No
     )
 
 
+def run_tiers_time_sweep_pipeline(
+    *,
+    bag_path: Path,
+    frames: int,
+) -> TimeOffsetSweepRun:
+    """Run the native continuous-time solver and load real points for replay."""
+
+    if frames < 1:
+        raise SystemExit("time-offset sweep GIF frame count must be positive")
+    from calibrex.pipelines.online import evaluate_continuous_time_lidar_pair
+
+    artifact = evaluate_continuous_time_lidar_pair(TIME_SWEEP_CONFIG_PATH)
+    summary = time_offset_sweep_summary_from_artifact(artifact)
+    source_world_points, target_points, odometry_track = (
+        load_tiers_time_sweep_geometry(
+            bag_path,
+            refined_transform=summary.refined_transform,
+        )
+    )
+    base_run = TimeOffsetSweepRun(
+        summary=summary,
+        source_world_points=tuple(source_world_points),
+        target_points=tuple(target_points),
+        odometry_track=odometry_track,
+        world_bounds_xy=(0.0, 1.0, 0.0, 1.0),
+        frame_states=(),
+    )
+    frame_states, bounds = build_time_offset_sweep_frame_states(base_run, frames)
+    return TimeOffsetSweepRun(
+        summary=summary,
+        source_world_points=base_run.source_world_points,
+        target_points=base_run.target_points,
+        odometry_track=base_run.odometry_track,
+        world_bounds_xy=bounds,
+        frame_states=frame_states,
+    )
+
+
+def time_offset_sweep_summary_from_artifact(artifact: object) -> TimeOffsetSweepSummary:
+    """Convert a schema-valid continuous-time result into GIF provenance."""
+
+    provenance = artifact.provenance.source_sha256
+    config_sha256 = _digest_for_path(provenance, TIME_SWEEP_CONFIG_PATH.name)
+    dataset_sha256 = _digest_for_path(provenance, TIERS_BAG_NAME)
+    probes_by_offset: dict[float, TimeOffsetProbe] = {}
+    for iteration in artifact.iterations:
+        offsets = tuple(float(value) for value in iteration.candidate_offsets_sec)
+        train_values = tuple(
+            value if value is None else float(value)
+            for value in getattr(iteration, "candidate_train_rmse_m", ())
+        )
+        holdout_values = tuple(
+            value if value is None else float(value)
+            for value in getattr(iteration, "candidate_holdout_rmse_m", ())
+        )
+        if len(train_values) != len(offsets):
+            train_values = tuple(
+                iteration.train_rmse_m if offset == iteration.selected_offset_sec else None
+                for offset in offsets
+            )
+        if len(holdout_values) != len(offsets):
+            holdout_values = tuple(
+                iteration.holdout_rmse_m
+                if offset == iteration.selected_offset_sec
+                else None
+                for offset in offsets
+            )
+        for index, offset in enumerate(offsets):
+            train_rmse = train_values[index]
+            if train_rmse is None:
+                continue
+            key = round(offset, 12)
+            candidate = TimeOffsetProbe(
+                offset_s=offset,
+                train_rmse_m=train_rmse,
+                holdout_rmse_m=holdout_values[index],
+                iteration=int(iteration.iteration),
+                accepted=(
+                    bool(iteration.accepted)
+                    and offset == float(iteration.selected_offset_sec)
+                ),
+            )
+            previous = probes_by_offset.get(key)
+            if previous is None or (
+                previous.train_rmse_m is None
+                or train_rmse < previous.train_rmse_m
+            ):
+                probes_by_offset[key] = candidate
+    if not probes_by_offset and artifact.final_train_rmse_m is not None:
+        probes_by_offset[round(float(artifact.estimated_time_offset_sec), 12)] = (
+            TimeOffsetProbe(
+                offset_s=float(artifact.estimated_time_offset_sec),
+                train_rmse_m=float(artifact.final_train_rmse_m),
+                holdout_rmse_m=artifact.final_holdout_rmse_m,
+                iteration=0,
+                accepted=True,
+            )
+        )
+    return TimeOffsetSweepSummary(
+        config_path=str(TIME_SWEEP_CONFIG_PATH).replace("\\", "/"),
+        config_sha256=config_sha256,
+        dataset_path=str(TIERS_BAG_PATH).replace("\\", "/"),
+        dataset_sha256=dataset_sha256,
+        source_sensor=str(artifact.source_sensor),
+        target_sensor=str(artifact.target_sensor),
+        initial_offset_s=float(artifact.initial_time_offset_sec),
+        estimated_offset_s=float(artifact.estimated_time_offset_sec),
+        initial_train_rmse_m=artifact.initial_train_rmse_m,
+        final_train_rmse_m=artifact.final_train_rmse_m,
+        final_holdout_rmse_m=artifact.final_holdout_rmse_m,
+        initial_transform=SE3.from_lists(
+            list(artifact.initial_transform.translation_m),
+            list(artifact.initial_transform.rotation_quat_xyzw),
+        ),
+        refined_transform=SE3.from_lists(
+            list(artifact.refined_transform.translation_m),
+            list(artifact.refined_transform.rotation_quat_xyzw),
+        ),
+        transform_convention=str(artifact.time_offset_sign_convention),
+        probes=tuple(sorted(probes_by_offset.values(), key=lambda probe: probe.offset_s)),
+        curve_semantics=(
+            "minimum observed train RMSE for each solver candidate offset; every "
+            "point is a re-optimized probe, not a dense fixed-extrinsic sweep"
+        ),
+        limitation=(
+            "The public TIERS sequence has no external clock ground truth; the "
+            "reported offset is an algorithmic estimate under fixed supplied "
+            "odometry and the declared temporal holdout."
+        ),
+    )
+
+
+def _digest_for_path(digests: Mapping[str, str], filename: str) -> str:
+    """Find a provenance digest by path basename across Windows/Unix paths."""
+
+    for path, digest in digests.items():
+        if Path(str(path).replace("\\", "/")).name == filename:
+            return str(digest)
+    raise SystemExit(f"continuous-time result is missing a digest for {filename}")
+
+
+def load_tiers_time_sweep_geometry(
+    bag_path: Path,
+    *,
+    refined_transform: SE3,
+) -> tuple[list[Point3], list[TimedTargetPoint], OdometryTrack]:
+    """Load bounded, real VLP/Livox/pose data for the visual replay."""
+
+    from calibrex.data.rosbag1 import (
+        LIDAR_MESSAGE_TYPES,
+        POSE_STAMPED_TYPE,
+        decode_bag_lidar_message,
+        decode_pose_stamped,
+        iter_messages,
+    )
+
+    source_chunks: list[tuple[int, list[Point3]]] = []
+    target_chunks: list[list[TimedTargetPoint]] = []
+    pose_samples: list[OdometryPoseSample] = []
+    last_target_record_ns: int | None = None
+    topics = {
+        TIME_SWEEP_SOURCE_TOPIC,
+        TIME_SWEEP_TARGET_TOPIC,
+        TIME_SWEEP_ODOMETRY_TOPIC,
+    }
+    for connection, record_ns, data in iter_messages(bag_path, topics=topics):
+        if connection.topic == TIME_SWEEP_ODOMETRY_TOPIC:
+            if connection.message_type == POSE_STAMPED_TYPE:
+                pose = decode_pose_stamped(connection.topic, record_ns, data)
+                pose_samples.append(
+                    OdometryPoseSample(
+                        timestamp_ns=record_ns,
+                        pose=SE3(pose.position, pose.orientation_xyzw),
+                    )
+                )
+            continue
+        if connection.message_type not in LIDAR_MESSAGE_TYPES:
+            continue
+        if connection.topic == TIME_SWEEP_SOURCE_TOPIC:
+            if len(source_chunks) >= TIME_SWEEP_MAX_SOURCE_MESSAGES:
+                continue
+            message = decode_bag_lidar_message(
+                connection.topic,
+                connection.message_type,
+                record_ns,
+                data,
+            )
+            points, _total = _sample_xyz_points(
+                message.xyz,
+                limit=TIME_SWEEP_MAX_SOURCE_POINTS,
+            )
+            if points:
+                source_chunks.append((record_ns, points))
+        elif connection.topic == TIME_SWEEP_TARGET_TOPIC:
+            if len(target_chunks) >= TIME_SWEEP_MAX_TARGET_MESSAGES:
+                pass
+            else:
+                message = decode_bag_lidar_message(
+                    connection.topic,
+                    connection.message_type,
+                    record_ns,
+                    data,
+                )
+                offsets = getattr(message, "offset_time_ns", None)
+                raw_points: list[TimedTargetPoint] = []
+                for index, point in enumerate(message.xyz):
+                    x, y, z = (float(point[0]), float(point[1]), float(point[2]))
+                    if not all(math.isfinite(value) for value in (x, y, z)):
+                        continue
+                    if not (-80.0 <= x <= 80.0 and -80.0 <= y <= 80.0 and -8.0 <= z <= 20.0):
+                        continue
+                    point_time_ns = (
+                        int(offsets[index]) if offsets is not None else 0
+                    )
+                    raw_points.append(
+                        TimedTargetPoint(
+                            point=(x, y, z),
+                            capture_timestamp_ns=record_ns + point_time_ns,
+                        )
+                    )
+                if raw_points:
+                    target_chunks.append(raw_points)
+                    last_target_record_ns = record_ns
+        if (
+            len(source_chunks) >= TIME_SWEEP_MAX_SOURCE_MESSAGES
+            and len(target_chunks) >= TIME_SWEEP_MAX_TARGET_MESSAGES
+            and last_target_record_ns is not None
+            and pose_samples
+            and pose_samples[-1].timestamp_ns
+            >= last_target_record_ns
+            + round(TIME_SWEEP_OFFSET_COVERAGE_MARGIN_S * 1_000_000_000)
+        ):
+            break
+
+    if not source_chunks or not target_chunks or len(pose_samples) < 2:
+        raise SystemExit(
+            "TIERS LidarsCali did not provide enough VLP/Livox/pose data for "
+            "the time-offset sweep GIF"
+        )
+    odometry_track = OdometryTrack(pose_samples)
+    raw_target = list(_flatten_and_sample(
+        [point for chunk in target_chunks for point in chunk],
+        limit=TIME_SWEEP_MAX_TARGET_POINTS,
+    ))
+    source_world_points = [
+        odometry_track.interpolate(timestamp_ns)[0].transform_point(point)
+        for timestamp_ns, points in source_chunks
+        for point in _flatten_and_sample(
+            points,
+            limit=max(1, TIME_SWEEP_MAX_SOURCE_POINTS // len(source_chunks)),
+        )
+    ]
+    if len(source_world_points) > TIME_SWEEP_MAX_SOURCE_POINTS:
+        source_world_points = source_world_points[:TIME_SWEEP_MAX_SOURCE_POINTS]
+    return source_world_points, raw_target, odometry_track
+
+
+def _sample_xyz_points(xyz: object, *, limit: int) -> tuple[list[Point3], int]:
+    """Filter finite sensor points and retain a deterministic uniform subset."""
+
+    points: list[Point3] = []
+    for row in xyz:
+        x, y, z = (float(row[0]), float(row[1]), float(row[2]))
+        if not all(math.isfinite(value) for value in (x, y, z)):
+            continue
+        if not (-80.0 <= x <= 80.0 and -80.0 <= y <= 80.0 and -8.0 <= z <= 20.0):
+            continue
+        points.append((x, y, z))
+    total = len(points)
+    return _flatten_and_sample(points, limit=limit), total
+
+
+def _flatten_and_sample(values: list[object], *, limit: int) -> list[object]:
+    """Select boundary-preserving values without depending on numpy."""
+
+    if len(values) <= limit:
+        return values
+    if limit < 2:
+        return values[:1]
+    return [values[(index * (len(values) - 1)) // (limit - 1)] for index in range(limit)]
+
+
+def build_time_offset_sweep_frame_states(
+    run: TimeOffsetSweepRun,
+    frames: int,
+) -> tuple[tuple[TimeOffsetSweepFrameState, ...], tuple[float, float, float, float]]:
+    """Build the real pose-compensated candidate frames and shared view bounds."""
+
+    probes = [probe for probe in run.summary.probes if probe.train_rmse_m is not None]
+    offsets = sorted({probe.offset_s for probe in probes})
+    if len(offsets) < 2:
+        offsets = sorted(
+            {run.summary.initial_offset_s, run.summary.estimated_offset_s}
+        )
+    if len(offsets) < 2:
+        offsets = [offsets[0] - 0.01, offsets[0] + 0.01]
+    probe_by_offset = {round(probe.offset_s, 12): probe for probe in probes}
+    target_cache: dict[float, tuple[Point3, ...]] = {}
+
+    def points_at(offset_s: float) -> tuple[Point3, ...]:
+        key = round(offset_s, 12)
+        if key not in target_cache:
+            target_cache[key] = tuple(
+                _time_sweep_target_world_point(run, point, offset_s)
+                for point in run.target_points
+            )
+        return target_cache[key]
+
+    estimated_points = points_at(run.summary.estimated_offset_s)
+    all_points = list(run.source_world_points) + list(estimated_points)
+    for offset in offsets:
+        all_points.extend(points_at(offset))
+    bounds = _time_sweep_bounds(all_points)
+    states: list[TimeOffsetSweepFrameState] = []
+    for frame_index in range(frames):
+        probe_index = min(
+            len(offsets) - 1,
+            (frame_index * len(offsets)) // max(1, frames),
+        )
+        offset_s = offsets[probe_index]
+        target_world = points_at(offset_s)
+        ghosting_rmse = _point_cloud_rmse(target_world, estimated_points)
+        probe = probe_by_offset.get(round(offset_s, 12))
+        states.append(
+            TimeOffsetSweepFrameState(
+                offset_s=offset_s,
+                probe_index=probe_index,
+                train_rmse_m=probe.train_rmse_m if probe is not None else None,
+                target_world_points=target_world,
+                estimated_world_points=estimated_points,
+                ghosting_rmse_m=ghosting_rmse,
+            )
+        )
+    return tuple(states), bounds
+
+
+def _time_sweep_target_world_point(
+    run: TimeOffsetSweepRun,
+    point: TimedTargetPoint,
+    offset_s: float,
+) -> Point3:
+    """Apply the refined extrinsic and fixed odometry at a candidate clock time."""
+
+    pose, _clamped, _extrapolation_s = run.odometry_track.interpolate(
+        point.capture_timestamp_ns + round(offset_s * 1_000_000_000)
+    )
+    return pose.compose(run.summary.refined_transform).transform_point(point.point)
+
+
+def _point_cloud_rmse(left: tuple[Point3, ...], right: tuple[Point3, ...]) -> float:
+    """Return point-wise displacement RMSE for two aligned visual replays."""
+
+    if not left or len(left) != len(right):
+        return 0.0
+    squared = [
+        (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+        for a, b in zip(left, right, strict=True)
+    ]
+    return math.sqrt(sum(squared) / len(squared))
+
+
+def _time_sweep_bounds(points: list[Point3]) -> tuple[float, float, float, float]:
+    """Return padded x/y bounds for the shared top-down time-sweep view."""
+
+    if not points:
+        return (-1.0, 1.0, -1.0, 1.0)
+    x_values = [point[0] for point in points]
+    y_values = [point[1] for point in points]
+    x_min, x_max = min(x_values), max(x_values)
+    y_min, y_max = min(y_values), max(y_values)
+    x_pad = max(0.5, (x_max - x_min) * 0.08)
+    y_pad = max(0.5, (y_max - y_min) * 0.08)
+    return (x_min - x_pad, x_max + x_pad, y_min - y_pad, y_max + y_pad)
+
+
 def generate_gif(
     *,
     output: Path,
     source: str,
     frames: int,
-    cloud_pair: LidarCloudPair,
+    cloud_pair: LidarCloudPair | None,
     lidars: list[LidarPose],
     metadata_source: str,
     visual: VisualMode,
@@ -1447,12 +2154,13 @@ def generate_gif(
     a2d2_target_id: int = 1,
     data_dir: Path | None = None,
     allow_network: bool = True,
-) -> None:
+) -> TimeOffsetSweepRun | None:
     """Render one evidence animation to a GIF."""
 
     output.parent.mkdir(parents=True, exist_ok=True)
     online_run: OnlineGifRun | None = None
     motion_scene: MotionHeroScene | None = None
+    time_sweep_run: TimeOffsetSweepRun | None = None
     if visual == "motion":
         timeline_path = Path(
             "outputs/tiers_lidars_dataset_indoor02_online_kissicp/timeline.json"
@@ -1481,6 +2189,16 @@ def generate_gif(
                 allow_network=allow_network,
             )
         write_online_run_cache(output, online_run)
+    elif visual == "time_sweep":
+        if source != "tiers-lidars-cali" or not TIERS_BAG_PATH.is_file():
+            raise SystemExit(
+                "time_sweep README GIF requires the public TIERS LidarsCali bag"
+            )
+        time_sweep_run = run_tiers_time_sweep_pipeline(
+            bag_path=TIERS_BAG_PATH,
+            frames=frames,
+        )
+        write_time_sweep_run_cache(output, time_sweep_run.summary)
 
     draw_helpers = SimpleNamespace(
         fill_rect=fill_rect,
@@ -1517,13 +2235,25 @@ def generate_gif(
                     metadata_source=metadata_source,
                 )
             elif visual == "before_after":
+                if cloud_pair is None:
+                    raise SystemExit("before_after GIF requires a LiDAR cloud pair")
                 progress = smoothstep(index / max(1, frames - 1))
                 draw_before_after_calibration_frame(
                     image=image,
                     cloud_pair=cloud_pair,
                     progress=progress,
                 )
+            elif visual == "time_sweep":
+                if time_sweep_run is None:
+                    raise SystemExit("time_sweep GIF requires a real solver run")
+                draw_time_offset_sweep_frame(
+                    image=image,
+                    run=time_sweep_run,
+                    frame_state=time_sweep_run.frame_states[index],
+                )
             else:
+                if cloud_pair is None:
+                    raise SystemExit("evidence GIF requires a LiDAR cloud pair")
                 progress = smoothstep(index / max(1, frames - 1))
                 residual_history.append(residual_proxy(progress))
                 draw_frame(
@@ -1553,6 +2283,7 @@ def generate_gif(
                 if motion_scene is not None
                 else None
             ),
+            time_sweep_run=time_sweep_run,
         )
         if visual == "motion" and motion_scene is not None:
             def _draw_motion_review_frame(
@@ -1578,6 +2309,7 @@ def generate_gif(
                 draw_frame_fn=_draw_motion_review_frame,
                 bake_text_fn=bake_motion_frame_text,
             )
+    return time_sweep_run
 
 
 def write_motion_run_cache(output: Path, motion_scene: MotionHeroScene) -> None:
@@ -2796,7 +3528,7 @@ def draw_frame(
 def draw_before_after_calibration_frame(
     *,
     image: bytearray,
-    cloud_pair: LidarCloudPair,
+    cloud_pair: LidarCloudPair | None,
     progress: float,
 ) -> None:
     """Render real Livox returns before and during algorithmic refinement."""
@@ -2829,7 +3561,7 @@ def draw_before_after_calibration_frame(
 def draw_before_after_panel(
     image: bytearray,
     panel: tuple[int, int, int, int],
-    cloud_pair: LidarCloudPair,
+    cloud_pair: LidarCloudPair | None,
     target_transform: SE3,
     *,
     target_color: Color,
@@ -2877,6 +3609,202 @@ def project_before_after_point(point: Point3, panel: tuple[int, int, int, int]) 
             - z * 2.0
         ),
     )
+
+
+def draw_time_offset_sweep_frame(
+    *,
+    image: bytearray,
+    run: TimeOffsetSweepRun,
+    frame_state: TimeOffsetSweepFrameState,
+) -> None:
+    """Render real pose-compensated ghosting and the solver's offset curve."""
+
+    fill_rect(image, 0, 0, WIDTH, HEIGHT, BG)
+    for panel in (TIME_SWEEP_LEFT_PANEL, TIME_SWEEP_RIGHT_PANEL):
+        fill_rect(image, panel[0], panel[1], panel[2], panel[3], PANEL)
+        rect(image, panel[0], panel[1], panel[2], panel[3], GRID, alpha=0.90)
+    draw_time_offset_sweep_scene(image, run, frame_state)
+    draw_time_offset_sweep_curve(image, run.summary, frame_state)
+    draw_time_offset_sweep_timeline(image, run.summary, frame_state)
+
+
+def draw_time_offset_sweep_scene(
+    image: bytearray,
+    run: TimeOffsetSweepRun,
+    frame_state: TimeOffsetSweepFrameState,
+) -> None:
+    """Draw the VLP reference and candidate/estimated Livox world replays."""
+
+    panel = TIME_SWEEP_LEFT_PANEL
+    x, y, width, height = panel
+    x_min, x_max, y_min, y_max = run.world_bounds_xy
+    for fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
+        gx = x + 24 + round(fraction * (width - 48))
+        gy = y + 22 + round(fraction * (height - 44))
+        line(image, gx, y + 20, gx, y + height - 20, GRID, alpha=0.35)
+        line(image, x + 20, gy, x + width - 20, gy, GRID, alpha=0.35)
+
+    for index, point in enumerate(run.source_world_points):
+        if index % 2:
+            continue
+        px, py = project_time_sweep_point(point, panel, (x_min, x_max, y_min, y_max))
+        circle(image, px, py, 1, REFERENCE, alpha=0.62)
+
+    for index, point in enumerate(frame_state.estimated_world_points):
+        if index % 2:
+            continue
+        px, py = project_time_sweep_point(point, panel, (x_min, x_max, y_min, y_max))
+        circle(image, px, py, 1, OPTIMIZED, alpha=0.20)
+
+    span = max(
+        1.0e-6,
+        max(
+            abs(frame_state.offset_s - run.summary.estimated_offset_s),
+            abs(run.summary.estimated_offset_s),
+        ),
+    )
+    closeness = max(
+        0.0,
+        min(
+            1.0,
+            1.0
+            - abs(frame_state.offset_s - run.summary.estimated_offset_s) / span,
+        ),
+    )
+    candidate_color = mix(CANDIDATE, OPTIMIZED, closeness)
+    for index, point in enumerate(frame_state.target_world_points):
+        if index % 2:
+            continue
+        px, py = project_time_sweep_point(point, panel, (x_min, x_max, y_min, y_max))
+        circle(image, px, py, 1, candidate_color, alpha=0.86)
+        if (
+            abs(frame_state.offset_s - run.summary.estimated_offset_s) > 1.0e-9
+            and index % 18 == 0
+            and index < len(frame_state.estimated_world_points)
+        ):
+            ex, ey = project_time_sweep_point(
+                frame_state.estimated_world_points[index],
+                panel,
+                (x_min, x_max, y_min, y_max),
+            )
+            line(image, px, py, ex, ey, WARNING, alpha=0.34)
+
+
+def project_time_sweep_point(
+    point: Point3,
+    panel: tuple[int, int, int, int],
+    bounds: tuple[float, float, float, float],
+) -> Point2:
+    """Project world-frame points into the shared top-down sweep panel."""
+
+    panel_x, panel_y, panel_width, panel_height = panel
+    x_min, x_max, y_min, y_max = bounds
+    x, y, z = point
+    x_ratio = (x - x_min) / max(1.0e-6, x_max - x_min)
+    y_ratio = (y - y_min) / max(1.0e-6, y_max - y_min)
+    return (
+        round(panel_x + 22 + max(0.0, min(1.0, x_ratio)) * (panel_width - 44)),
+        round(
+            panel_y
+            + panel_height
+            - 22
+            - max(0.0, min(1.0, y_ratio)) * (panel_height - 44)
+            - z * 1.2
+        ),
+    )
+
+
+def draw_time_offset_sweep_curve(
+    image: bytearray,
+    summary: TimeOffsetSweepSummary,
+    frame_state: TimeOffsetSweepFrameState,
+) -> None:
+    """Draw the best observed train-RMSE value at each real solver probe."""
+
+    chart_x, chart_y, chart_width, chart_height = TIME_SWEEP_CHART
+    fill_rect(image, chart_x, chart_y, chart_width, chart_height, PANEL_ALT)
+    rect(image, chart_x, chart_y, chart_width, chart_height, GRID, alpha=0.95)
+    probes = [probe for probe in summary.probes if probe.train_rmse_m is not None]
+    if not probes:
+        return
+    offsets = [probe.offset_s for probe in probes]
+    values = [float(probe.train_rmse_m) for probe in probes if probe.train_rmse_m is not None]
+    min_offset, max_offset = min(offsets), max(offsets)
+    min_value, max_value = min(values), max(values)
+    offset_pad = max(0.001, (max_offset - min_offset) * 0.08)
+    value_pad = max(0.001, (max_value - min_value) * 0.12)
+    min_offset -= offset_pad
+    max_offset += offset_pad
+    min_value = max(0.0, min_value - value_pad)
+    max_value += value_pad
+    for line_index in range(1, 4):
+        gy = chart_y + line_index * chart_height // 4
+        line(image, chart_x, gy, chart_x + chart_width, gy, GRID, alpha=0.42)
+    points: list[Point2] = []
+    for probe in probes:
+        if probe.train_rmse_m is None:
+            continue
+        px = chart_x + round(
+            (probe.offset_s - min_offset) / max(1.0e-9, max_offset - min_offset)
+            * chart_width
+        )
+        py = chart_y + chart_height - round(
+            (probe.train_rmse_m - min_value) / max(1.0e-9, max_value - min_value)
+            * chart_height
+        )
+        points.append((px, py))
+    for index in range(1, len(points)):
+        line_between(image, points[index - 1], points[index], OPTIMIZED, 0.95, thickness=2)
+    for point in points:
+        circle(image, point[0], point[1], 4, OPTIMIZED, alpha=0.95)
+
+    current_probe = min(
+        probes,
+        key=lambda probe: abs(probe.offset_s - frame_state.offset_s),
+    )
+    current_y_value = (
+        frame_state.train_rmse_m
+        if frame_state.train_rmse_m is not None
+        else current_probe.train_rmse_m
+    )
+    if current_y_value is not None:
+        current_x = chart_x + round(
+            (frame_state.offset_s - min_offset) / max(1.0e-9, max_offset - min_offset)
+            * chart_width
+        )
+        current_y = chart_y + chart_height - round(
+            (current_y_value - min_value) / max(1.0e-9, max_value - min_value)
+            * chart_height
+        )
+        line(image, current_x, chart_y, current_x, chart_y + chart_height, WARNING, alpha=0.52)
+        circle(image, current_x, current_y, 6, WARNING, alpha=1.0)
+
+
+def draw_time_offset_sweep_timeline(
+    image: bytearray,
+    summary: TimeOffsetSweepSummary,
+    frame_state: TimeOffsetSweepFrameState,
+) -> None:
+    """Draw the candidate-offset cursor along the GIF timeline."""
+
+    probes = [probe for probe in summary.probes if probe.train_rmse_m is not None]
+    if not probes:
+        return
+    minimum = min(probe.offset_s for probe in probes)
+    maximum = max(probe.offset_s for probe in probes)
+    x0, y, width = 82, 516, 786
+    fill_rect(image, x0, y, width, 8, (31, 41, 55), alpha=1.0)
+    ratio = (frame_state.offset_s - minimum) / max(1.0e-9, maximum - minimum)
+    fill_rect(image, x0, y, round(width * max(0.0, min(1.0, ratio))), 8, OPTIMIZED, alpha=0.90)
+    cursor_x = x0 + round(width * max(0.0, min(1.0, ratio)))
+    fill_rect(image, cursor_x - 2, y - 12, 4, 32, WARNING, alpha=0.90)
+    estimated_ratio = (summary.estimated_offset_s - minimum) / max(1.0e-9, maximum - minimum)
+    estimated_x = x0 + round(width * max(0.0, min(1.0, estimated_ratio)))
+    circle(image, estimated_x, y + 4, 7, OPTIMIZED, alpha=1.0)
+    for probe in probes:
+        probe_ratio = (probe.offset_s - minimum) / max(1.0e-9, maximum - minimum)
+        px = x0 + round(width * max(0.0, min(1.0, probe_ratio)))
+        circle(image, px, y + 4, 4, TEXT_DIM, alpha=0.92)
 
 
 def draw_online_calibration_frame(
@@ -3667,12 +4595,13 @@ def write_ppm(path: Path, image: bytearray) -> None:
 def encode_gif(
     frame_dir: Path,
     output: Path,
-    cloud_pair: LidarCloudPair,
+    cloud_pair: LidarCloudPair | None,
     *,
     visual: VisualMode,
     online_run: OnlineGifRun | None = None,
     motion_scene: MotionHeroScene | None = None,
     frame_state: object | None = None,
+    time_sweep_run: TimeOffsetSweepRun | None = None,
 ) -> None:
     palette = frame_dir / "palette.png"
     fps = _fps_for_visual(visual)
@@ -3691,7 +4620,17 @@ def encode_gif(
         paletteuse_filter = (
             f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
         )
+    elif visual == "time_sweep":
+        if time_sweep_run is None:
+            raise SystemExit("time_sweep GIF requires a real solver run")
+        text_filter = build_time_offset_sweep_text_filter(time_sweep_run.summary)
+        palette_filter = f"{text_filter},palettegen=max_colors=96"
+        paletteuse_filter = (
+            f"[0:v]{text_filter}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3"
+        )
     else:
+        if cloud_pair is None:
+            raise SystemExit("evidence GIF requires a LiDAR cloud pair")
         text_filter = build_text_filter(cloud_pair)
         palette_filter = f"{text_filter},palettegen=max_colors=96"
         paletteuse_filter = (
@@ -3863,6 +4802,63 @@ def build_before_after_text_filter() -> str:
         ),
         ("initial", 62, 520, 14, "CBD5E1"),
         ("refined", 842, 520, 14, "CBD5E1"),
+    ]
+    return ",".join(drawtext(font_file, *label) for label in labels)
+
+
+def build_time_offset_sweep_text_filter(summary: TimeOffsetSweepSummary) -> str:
+    """Return static labels for the real Livox clock-offset sweep."""
+
+    font_file = resolve_gif_font_file()
+    initial_rmse = (
+        f"{summary.initial_train_rmse_m:.4f} m"
+        if summary.initial_train_rmse_m is not None
+        else "n/a"
+    )
+    final_rmse = (
+        f"{summary.final_train_rmse_m:.4f} m"
+        if summary.final_train_rmse_m is not None
+        else "n/a"
+    )
+    holdout_rmse = (
+        f"{summary.final_holdout_rmse_m:.4f} m"
+        if summary.final_holdout_rmse_m is not None
+        else "n/a"
+    )
+    estimate_ms = f"{summary.estimated_offset_s * 1000.0:+.0f} ms"
+    labels = [
+        ("Livox Time Offset Sweep", 34, 22, 26, "E5E7EB"),
+        (
+            "TIERS LidarsCali · VLP-16 + Livox Horizon · real rosbag1",
+            34,
+            55,
+            16,
+            "CBD5E1",
+        ),
+        (
+            "green: VLP world reference   pink: candidate clock   cyan: estimated clock",
+            50,
+            486,
+            14,
+            "CBD5E1",
+        ),
+        (
+            "T_world_base fixed odometry · Livox offset_time mapped to bag clock",
+            50,
+            505,
+            12,
+            "94A3B8",
+        ),
+        ("solver probe train RMSE", 610, 108, 17, "E5E7EB"),
+        ("minimum observed per candidate offset", 610, 130, 12, "CBD5E1"),
+        (f"estimated offset: {estimate_ms}", 610, 362, 13, "34D399"),
+        (f"train RMSE: {initial_rmse} -> {final_rmse}", 610, 382, 12, "CBD5E1"),
+        (f"holdout RMSE: {holdout_rmse}", 610, 400, 12, "CBD5E1"),
+        ("candidate probes / re-optimized extrinsic", 610, 426, 12, "F59E0B"),
+        ("public sequence has no clock ground truth", 610, 444, 12, "94A3B8"),
+        ("candidate", 82, 520, 14, "CBD5E1"),
+        ("estimated", 420, 520, 14, "CBD5E1"),
+        ("holdout", 810, 520, 14, "CBD5E1"),
     ]
     return ",".join(drawtext(font_file, *label) for label in labels)
 

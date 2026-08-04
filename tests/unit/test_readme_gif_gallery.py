@@ -72,6 +72,7 @@ def test_readme_gallery_manifest_matches_assets() -> None:
             "motion",
             "camera_lidar",
             "before_after",
+            "time_sweep",
         }
         assert asset["uses_builtin_metadata_fallback"] is False
         assert asset["public_inputs"]
@@ -116,7 +117,14 @@ def test_readme_gallery_has_multiple_public_sources() -> None:
         "tiers-lidars-cali",
         "tiers-indoor02-kissicp",
     }
-    assert visuals == {"evidence", "online", "motion", "camera_lidar", "before_after"}
+    assert visuals == {
+        "evidence",
+        "online",
+        "motion",
+        "camera_lidar",
+        "before_after",
+        "time_sweep",
+    }
     assert len(a2d2_pairs) >= 2
     assert all(source_id != target_id for source_id, target_id in a2d2_pairs)
 
@@ -255,6 +263,40 @@ def test_before_after_gif_manifest_declares_algorithmic_refinement() -> None:
         "fps": tool.BEFORE_AFTER_FPS,
         "height": tool.HEIGHT,
         "width": tool.WIDTH,
+    }
+
+
+def test_time_sweep_gif_manifest_declares_real_solver_probes() -> None:
+    manifest = json.loads(
+        (ROOT / "docs" / "assets" / "readme-gif-gallery.json").read_text(encoding="utf-8")
+    )
+    asset = next(
+        asset
+        for asset in manifest["assets"]
+        if asset["output"] == "docs/assets/livox-time-offset-sweep.gif"
+    )
+
+    assert asset["source"] == "tiers-lidars-cali"
+    assert asset["visual"] == "time_sweep"
+    assert asset["readme_role"] == "gallery"
+    assert asset["sensor_pair"] == {
+        "source": "velodyne_vlp16",
+        "target": "livox_horizon",
+    }
+    sweep = asset["time_offset_sweep"]
+    assert sweep["mode"] == "real_solver_candidate_probe"
+    assert sweep["estimated_offset_s"] == pytest.approx(0.04)
+    assert sweep["final_train_rmse_m"] < sweep["initial_train_rmse_m"]
+    assert sweep["final_holdout_rmse_m"] is not None
+    assert len(sweep["config_sha256"]) == 64
+    assert len(sweep["dataset_sha256"]) == 64
+    assert len(sweep["probes"]) >= 3
+    assert "ground truth" in sweep["limitation"]
+    assert asset["animation"] == {
+        "frames": 40,
+        "fps": 10,
+        "height": 540,
+        "width": 960,
     }
 
 

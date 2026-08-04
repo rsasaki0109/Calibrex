@@ -67,6 +67,8 @@ class ContinuousTimeLidarPairIterationArtifact(StrictModel):
 
     iteration: int = Field(ge=1)
     candidate_offsets_sec: list[float] = Field(min_length=1)
+    candidate_train_rmse_m: list[float | None] = Field(default_factory=list)
+    candidate_holdout_rmse_m: list[float | None] = Field(default_factory=list)
     selected_offset_sec: float
     train_rmse_m: float | None = Field(default=None, ge=0.0)
     holdout_rmse_m: float | None = Field(default=None, ge=0.0)

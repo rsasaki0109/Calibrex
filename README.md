@@ -321,6 +321,15 @@ data cannot falsify.
   </tr>
 </table>
 
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/livox-time-offset-sweep.gif" alt="TIERS real solid-state LiDAR time offset sweep" width="100%">
+    </td>
+    <td width="50%"><sub><b>TIERS time-offset sweep</b><br>Real VLP-16 ↔ Livox Horizon candidate probes. The plot reports the algorithmic +40 ms estimate and re-optimized train/holdout RMSE; the public sequence has no independent clock ground truth.</sub></td>
+  </tr>
+</table>
+
 <p align="center">
   <sub>Every gallery asset is generated from public raw data. Dataset source,
   protocol, parameters, and digests are recorded in
