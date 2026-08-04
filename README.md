@@ -33,6 +33,61 @@ training residual.
   holdout gates.</sub>
 </p>
 
+## Public-data gallery
+
+<table>
+  <tr>
+    <td width="33%">
+      <img src="docs/assets/calibration-evidence-demo.gif" alt="Livox public solid-state LiDAR calibration evidence" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public front multi-LiDAR calibration evidence" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/a2d2-front-rear-evidence-demo.gif" alt="A2D2 public front-rear LiDAR calibration evidence" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td><sub><b>Livox Horizon ↔ Horizon</b><br>Known-bad controls and holdout point-to-plane evidence.</sub></td>
+    <td><sub><b>A2D2 front pair</b><br>Fixed-rig metadata and support accounting.</sub></td>
+    <td><sub><b>A2D2 front ↔ rear</b><br>A longer baseline with different overlap behavior.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="33%">
+      <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/livox-before-after-calibration.gif" alt="Livox real point cloud calibration before and after refinement" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td><sub><b>A2D2 camera × LiDAR</b><br>Real front-left camera frames with real camera-view LiDAR returns. A2D2 distributes these points pre-registered into the camera view, so this is visual evidence—not independent extrinsic accuracy.</sub></td>
+    <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
+    <td><sub><b>Livox before → after</b><br>Real Horizon PCD returns through the native registration refinement replay; the public pair has no transform ground truth.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/livox-time-offset-sweep.gif" alt="TIERS real solid-state LiDAR time offset sweep" width="100%">
+    </td>
+    <td width="50%"><sub><b>TIERS time-offset sweep</b><br>Real VLP-16 ↔ Livox Horizon candidate probes. The plot reports the algorithmic +40 ms estimate and re-optimized train/holdout RMSE; the public sequence has no independent clock ground truth.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <sub>Every gallery asset is generated from public raw data. Dataset source,
+  protocol, parameters, and digests are recorded in
+  <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
+</p>
+
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
   ·
@@ -280,61 +335,6 @@ reported as evidence, not hidden as demo noise.
 
 The failure is part of the product: gates refuse to certify what the available
 data cannot falsify.
-
-## Public-data gallery
-
-<table>
-  <tr>
-    <td width="33%">
-      <img src="docs/assets/calibration-evidence-demo.gif" alt="Livox public solid-state LiDAR calibration evidence" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public front multi-LiDAR calibration evidence" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/a2d2-front-rear-evidence-demo.gif" alt="A2D2 public front-rear LiDAR calibration evidence" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td><sub><b>Livox Horizon ↔ Horizon</b><br>Known-bad controls and holdout point-to-plane evidence.</sub></td>
-    <td><sub><b>A2D2 front pair</b><br>Fixed-rig metadata and support accounting.</sub></td>
-    <td><sub><b>A2D2 front ↔ rear</b><br>A longer baseline with different overlap behavior.</sub></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td width="33%">
-      <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/livox-before-after-calibration.gif" alt="Livox real point cloud calibration before and after refinement" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td><sub><b>A2D2 camera × LiDAR</b><br>Real front-left camera frames with real camera-view LiDAR returns. A2D2 distributes these points pre-registered into the camera view, so this is visual evidence—not independent extrinsic accuracy.</sub></td>
-    <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
-    <td><sub><b>Livox before → after</b><br>Real Horizon PCD returns through the native registration refinement replay; the public pair has no transform ground truth.</sub></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/assets/livox-time-offset-sweep.gif" alt="TIERS real solid-state LiDAR time offset sweep" width="100%">
-    </td>
-    <td width="50%"><sub><b>TIERS time-offset sweep</b><br>Real VLP-16 ↔ Livox Horizon candidate probes. The plot reports the algorithmic +40 ms estimate and re-optimized train/holdout RMSE; the public sequence has no independent clock ground truth.</sub></td>
-  </tr>
-</table>
-
-<p align="center">
-  <sub>Every gallery asset is generated from public raw data. Dataset source,
-  protocol, parameters, and digests are recorded in
-  <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
-</p>
 
 ## Install
 

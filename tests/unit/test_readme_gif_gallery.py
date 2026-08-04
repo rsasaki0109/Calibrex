@@ -35,6 +35,7 @@ def test_readme_gallery_jobs_match_readme_gifs() -> None:
 
     assert readme_gifs <= gallery_gifs
     assert "docs/assets/calibrex-motion-calibration-loop.gif" in readme_gifs
+    assert readme.index("## Public-data gallery") < readme.index("## Five-minute quickstart")
     hero_jobs = [job for job in tool.README_GIF_JOBS if job.readme_role == "hero"]
     assert len(hero_jobs) == 1
     assert hero_jobs[0].output.as_posix() in readme_gifs
