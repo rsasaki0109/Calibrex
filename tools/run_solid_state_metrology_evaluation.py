@@ -13,11 +13,14 @@ from calibrex.core.io import read_mapping, write_mapping, write_text
 from calibrex.core.provenance import sha256_path
 from calibrex.core.solid_state_metrology_evaluation import (
     SOLID_STATE_METROLOGY_EVALUATION_SCHEMA_VERSION,
+    SolidStateMetrologyDownstreamMetric,
+    SolidStateMetrologyEstimate,
     SolidStateMetrologyEvaluationArtifact,
     SolidStateMetrologyEvaluationProtocol,
     SolidStateMetrologyEvaluationProvenance,
     SolidStateMetrologyEvaluationThresholds,
     SolidStateMetrologyReference,
+    SolidStateMetrologySession,
     evaluate_solid_state_metrology,
     verify_solid_state_metrology_evidence,
 )
@@ -35,6 +38,23 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--enforce", action="store_true")
+    parser.add_argument(
+        "--prepare-collection-plan",
+        action="store_true",
+        help="generate a four-capture/two-remount packet to fill with measurements",
+    )
+    parser.add_argument(
+        "--plan-sessions",
+        type=int,
+        default=4,
+        help="number of capture sessions in the generated plan (default: 4)",
+    )
+    parser.add_argument(
+        "--plan-remounts",
+        type=int,
+        default=2,
+        help="number of mechanical remounts in the generated plan (default: 2)",
+    )
     parser.add_argument(
         "--verify-sources",
         action="store_true",
@@ -78,6 +98,97 @@ def _template() -> SolidStateMetrologyEvaluationArtifact:
     )
 
 
+def _collection_plan_template(
+    *,
+    session_count: int,
+    remount_count: int,
+) -> SolidStateMetrologyEvaluationArtifact:
+    """Return a schema-valid, empty physical collection packet."""
+
+    remount_ids = [f"remount-{index + 1}" for index in range(remount_count)]
+    sessions: list[SolidStateMetrologySession] = []
+    estimates: list[SolidStateMetrologyEstimate] = []
+    for index in range(session_count):
+        session_id = f"session-{index:02d}"
+        remount_id = remount_ids[index % remount_count]
+        reference_path = f"metrology/{session_id}-reference.yaml"
+        sessions.append(
+            SolidStateMetrologySession(
+                id=session_id,
+                remount_id=remount_id,
+                reference=SolidStateMetrologyReference(
+                    extrinsic_method="surveyed_rig",
+                    clock_method="hardware_trigger",
+                    source_paths=[reference_path],
+                    notes=[
+                        "fill with the independent transform/time measurement for this session",
+                        "do not derive this reference from the solver estimate",
+                    ],
+                ),
+                capture_path=f"captures/{session_id}.mcap",
+                notes=[
+                    "replace the capture path with the finalized bag/MCAP source",
+                    "record the capture SHA-256 after the file is finalized",
+                ],
+            )
+        )
+        estimates.append(
+            SolidStateMetrologyEstimate(
+                id=f"estimate-{index:02d}",
+                session_id=session_id,
+                source_path=f"estimates/{session_id}.yaml",
+                notes=[
+                    "fill with the solver output for this capture",
+                    "record the output SHA-256 after the estimate is finalized",
+                ],
+            )
+        )
+    return SolidStateMetrologyEvaluationArtifact(
+        evaluation_id="solid-state-metrology-v0.1-collection-plan",
+        protocol=SolidStateMetrologyEvaluationProtocol(
+            name="solid_state_physical_ground_truth_collection",
+            source_sensor="lidar_source",
+            target_sensor="lidar_target",
+            minimum_usable_sessions=session_count,
+            minimum_remounts=remount_count,
+            require_per_session_reference=True,
+            notes=[
+                "collection plan only: replace every placeholder with measured evidence",
+                "recommended layout is two captures per remount",
+            ],
+        ),
+        reference=SolidStateMetrologyReference(
+            extrinsic_method="surveyed_rig",
+            clock_method="hardware_trigger",
+            source_paths=["metrology/reference-protocol.yaml"],
+            notes=[
+                "fill with the common reference-method and frame/time convention record",
+                "session.reference holds the measured value used for each run",
+            ],
+        ),
+        sessions=sessions,
+        estimates=estimates,
+        downstream_metric=SolidStateMetrologyDownstreamMetric(
+            name="held_out_downstream_metric",
+            unit="declare",
+            notes=[
+                "fill with a held-out physical-use metric and predeclared threshold",
+                "the metric must not be consumed by the solver",
+            ],
+        ),
+        thresholds=SolidStateMetrologyEvaluationThresholds(),
+        provenance=SolidStateMetrologyEvaluationProvenance(
+            generator=TOOL_PATH,
+            generator_version=__version__,
+            source_sha256={"collection-plan-template": "0" * 64},
+            notes=[
+                "collection plan is not a calibration result",
+                "no physical PASS is generated until measured evidence is supplied",
+            ],
+        ),
+    )
+
+
 def _provenance(
     *,
     source_digest: str,
@@ -106,7 +217,10 @@ def _render_markdown(artifact: SolidStateMetrologyEvaluationArtifact) -> str:
     """Render a compact physical-evaluation report."""
 
     per_session_reference_count = sum(
-        session.reference is not None for session in artifact.sessions
+        session.reference is not None
+        and session.reference.transform is not None
+        and session.reference.time_offset_sec is not None
+        for session in artifact.sessions
     )
     lines = [
         "# Solid-state LiDAR physical ground-truth evaluation",
@@ -228,6 +342,14 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.verify_sources and args.input is None:
         _parser().error("--verify-sources requires --input")
+    if args.prepare_collection_plan and args.input is not None:
+        _parser().error("--prepare-collection-plan cannot be combined with --input")
+    if args.plan_sessions < 1:
+        _parser().error("--plan-sessions must be >= 1")
+    if args.plan_remounts < 1:
+        _parser().error("--plan-remounts must be >= 1")
+    if args.plan_sessions < args.plan_remounts:
+        _parser().error("--plan-sessions must be >= --plan-remounts")
     command = [TOOL_PATH, *(argv or sys.argv[1:])]
     source_digest = sha256_path(Path(__file__).resolve())
     if source_digest is None:
@@ -235,7 +357,14 @@ def main(argv: list[str] | None = None) -> int:
 
     input_digest: str | None = None
     if args.input is None:
-        artifact = _template()
+        artifact = (
+            _collection_plan_template(
+                session_count=args.plan_sessions,
+                remount_count=args.plan_remounts,
+            )
+            if args.prepare_collection_plan
+            else _template()
+        )
     else:
         input_digest = sha256_path(args.input)
         if input_digest is None:
@@ -277,7 +406,10 @@ def main(argv: list[str] | None = None) -> int:
         "evidence_integrity_checked": evaluated.evidence_integrity.checked,
         "evidence_integrity_passed": evaluated.evidence_integrity.passed,
         "per_session_reference_count": sum(
-            session.reference is not None for session in evaluated.sessions
+            session.reference is not None
+            and session.reference.transform is not None
+            and session.reference.time_offset_sec is not None
+            for session in evaluated.sessions
         ),
         "evidence_source_check_count": len(
             evaluated.evidence_integrity.source_checks

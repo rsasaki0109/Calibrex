@@ -141,19 +141,24 @@ with a compact [Markdown report](../assets/solid-state-synthetic-benchmark-v01.m
 
 The synthetic gate does not establish accuracy on a physical sensor pair. The
 next gate is a measurement packet that keeps spatial and temporal metrology
-separate from solver output. Generate a template with:
+separate from solver output. For a practical first collection, generate four
+captures across two remounts with the [physical collection runbook](../tutorials/solid_state_metrology_collection.md):
 
 ```bash
 python tools/run_solid_state_metrology_evaluation.py \
-  --output outputs/solid-state-metrology-evaluation.yaml \
-  --markdown-output outputs/solid-state-metrology-evaluation.md
+  --prepare-collection-plan \
+  --plan-sessions 4 \
+  --plan-remounts 2 \
+  --output outputs/solid-state-metrology/plan.yaml \
+  --markdown-output outputs/solid-state-metrology/plan.md
 ```
 
-After editing the packet with the measured reference and solver estimates,
-rerun it with `--input ... --enforce`. Relative evidence paths are resolved
-against the input packet directory. `--enforce` recomputes each declared
-SHA-256 and verifies the source exists; `--verify-sources` runs the same
-integrity report without requiring a numerical PASS. A physical PASS requires
+The generated packet is a collection plan, not a physical result. After
+editing it with the measured reference and solver estimates, rerun it with
+`--input ... --enforce`. Relative evidence paths are resolved against the
+input packet directory. `--enforce` recomputes each declared SHA-256 and
+verifies the source exists; `--verify-sources` runs the same integrity report
+without requiring a numerical PASS. A physical PASS requires
 all of the following:
 
 - an independent extrinsic and clock reference for every usable session, with

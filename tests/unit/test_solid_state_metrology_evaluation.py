@@ -362,6 +362,58 @@ def test_checked_template_is_schema_valid() -> None:
     assert artifact.metrics.run_count == 0
 
 
+def test_cli_prepares_four_capture_two_remount_collection_plan(
+    tmp_path: Path,
+) -> None:
+    module_path = Path("tools/run_solid_state_metrology_evaluation.py").resolve()
+    spec = importlib.util.spec_from_file_location("solid_state_metrology_tool", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    output_path = tmp_path / "collection-plan.yaml"
+    markdown_path = tmp_path / "collection-plan.md"
+    assert (
+        module.main(
+            [
+                "--prepare-collection-plan",
+                "--output",
+                str(output_path),
+                "--markdown-output",
+                str(markdown_path),
+            ]
+        )
+        == 0
+    )
+    result = SolidStateMetrologyEvaluationArtifact.model_validate(
+        read_mapping(output_path)
+    )
+    schema = json.loads(
+        Path("schemas/solid_state_metrology_evaluation.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    jsonschema.validate(read_mapping(output_path), schema)
+    assert result.status == "inconclusive"
+    assert result.protocol.minimum_usable_sessions == 4
+    assert result.protocol.minimum_remounts == 2
+    assert result.metrics.run_count == 4
+    assert result.metrics.remount_count == 2
+    assert [session.remount_id for session in result.sessions] == [
+        "remount-1",
+        "remount-2",
+        "remount-1",
+        "remount-2",
+    ]
+    assert all(session.reference is not None for session in result.sessions)
+    assert all(session.capture_path is not None for session in result.sessions)
+    assert all(estimate.source_path is not None for estimate in result.estimates)
+    assert "Per-session references: `0/4`" in markdown_path.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_cli_re_evaluates_a_measured_packet_and_enforces_pass(tmp_path: Path) -> None:
     module_path = Path("tools/run_solid_state_metrology_evaluation.py").resolve()
     spec = importlib.util.spec_from_file_location("solid_state_metrology_tool", module_path)

@@ -148,22 +148,29 @@ real-data claim still requires independently measured extrinsics and clock
 truth. The checked result is available as a [schema-valid YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml)
 with a compact [Markdown report](docs/assets/solid-state-synthetic-benchmark-v01.md).
 
-For the physical gate, generate the schema-valid measurement packet template,
-fill it with independently surveyed extrinsics and clock-reference evidence for
-each usable session, repeat remount sessions, solver estimates, and an unused
-downstream holdout metric, then enforce the result:
+For the physical gate, start with the recommended four-capture/two-remount
+collection plan. The [physical collection runbook](docs/tutorials/solid_state_metrology_collection.md)
+explains how to fill its independent per-session references, solver estimates,
+source digests, and unused downstream holdout metric:
 
 ```bash
 python tools/run_solid_state_metrology_evaluation.py \
-  --output outputs/solid-state-metrology-evaluation.yaml \
-  --markdown-output outputs/solid-state-metrology-evaluation.md
+  --prepare-collection-plan \
+  --plan-sessions 4 \
+  --plan-remounts 2 \
+  --output outputs/solid-state-metrology/plan.yaml \
+  --markdown-output outputs/solid-state-metrology/plan.md
 # Edit the output packet with measured evidence, then evaluate it.
 python tools/run_solid_state_metrology_evaluation.py \
-  --input outputs/solid-state-metrology-evaluation.yaml \
-  --output outputs/solid-state-metrology-evaluation-final.yaml \
-  --markdown-output outputs/solid-state-metrology-evaluation-final.md \
+  --input outputs/solid-state-metrology/plan.yaml \
+  --output outputs/solid-state-metrology/final.yaml \
+  --markdown-output outputs/solid-state-metrology/final.md \
   --enforce
 ```
+
+The generator emits a schema-valid but intentionally incomplete packet with
+two captures per remount. The smaller empty template remains available as the
+[checked YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml).
 
 With `--enforce`, Calibrex also verifies every declared reference, capture, and
 estimate source relative to the input packet: the path must exist and its
