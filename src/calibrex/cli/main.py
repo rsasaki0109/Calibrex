@@ -99,6 +99,12 @@ from calibrex.core.solid_state_cross_dataset_benchmark import (
 from calibrex.core.solid_state_failure_analysis import (
     solid_state_failure_analysis_json_schema,
 )
+from calibrex.core.solid_state_metrology_evaluation import (
+    solid_state_metrology_evaluation_json_schema,
+)
+from calibrex.core.solid_state_synthetic_benchmark import (
+    solid_state_synthetic_benchmark_json_schema,
+)
 from calibrex.core.trajectory import trajectory_json_schema
 from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
@@ -321,6 +327,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "solid-state-cross-dataset-benchmark-config",
             "solid-state-cross-dataset-benchmark",
             "solid-state-failure-analysis",
+            "solid-state-synthetic-benchmark",
+            "solid-state-metrology-evaluation",
             "assessment",
             "benchmark",
             "benchmark-definition",
@@ -1407,6 +1415,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         ),
         "solid-state-cross-dataset-benchmark": solid_state_cross_dataset_benchmark_json_schema,
         "solid-state-failure-analysis": solid_state_failure_analysis_json_schema,
+        "solid-state-synthetic-benchmark": solid_state_synthetic_benchmark_json_schema,
+        "solid-state-metrology-evaluation": solid_state_metrology_evaluation_json_schema,
         "assessment": assessment_json_schema,
         "benchmark": benchmark_json_schema,
         "benchmark-definition": benchmark_definition_json_schema,

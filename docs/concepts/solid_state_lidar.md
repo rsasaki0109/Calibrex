@@ -110,6 +110,101 @@ mapping can be established, pose interpolation is rejected or the result
 remains non-independent; this is the correct evidence outcome until a
 documented clock mapping is supplied.
 
+## Ground-truth solver gate
+
+Public sensor-pair recordings generally do not include independently surveyed
+extrinsics or an absolute clock reference. Keep that limitation separate from
+the solver-mechanics check by running the deterministic synthetic benchmark:
+
+```bash
+python tools/run_solid_state_synthetic_benchmark.py \
+  --output outputs/solid_state_synthetic_benchmark_v01.yaml \
+  --markdown-output outputs/solid_state_synthetic_benchmark_v01.md \
+  --enforce
+calibrex validate outputs/solid_state_synthetic_benchmark_v01.yaml \
+  --kind solid-state-synthetic-benchmark
+```
+
+The reference case uses a known three-plane motion scene, a perturbed initial
+extrinsic, and a **+30 ms** clock offset. The checked gate recovers the
+reference to below 1e-12 numerical error in this deterministic fixture and rejects a
+fixed-clock known-bad control with a 30 ms time error. Its output records the
+truth, estimate, parameter errors, thresholds, and generator SHA-256 in
+`provenance`. This is a correctness gate for the implementation, not evidence
+of accuracy on a physical sensor pair; absolute real-data claims still require
+independent extrinsic/clock ground truth.
+
+The checked artifact is [YAML](../assets/solid-state-synthetic-benchmark-v01.yaml)
+with a compact [Markdown report](../assets/solid-state-synthetic-benchmark-v01.md).
+
+## Public-data-only evaluation
+
+When new hardware data cannot be collected, use the public benchmark as the
+primary gate. The [public-data runbook](../tutorials/solid_state_public_benchmark.md)
+freezes paired capture windows, temporal holdouts, solver budgets, sampling
+seeds, and known-bad/control semantics across AgRob, TIERS, and AIST GLIM:
+
+```bash
+calibrex validate \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --kind solid-state-cross-dataset-benchmark-config
+python tools/run_solid_state_cross_dataset_benchmark.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v03.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v03.md
+```
+
+This produces ground-truth-free temporal-holdout evidence and comparative
+failure/known-bad evidence. It does not produce an absolute extrinsic or clock
+accuracy claim. The checked v0.3 report scores 27 paired replicates: adaptive
+wins 23/27 overall, while the AgRob real-pair subset remains mixed at 5/9.
+See the [full v0.3 report](../assets/solid-state-cross-dataset-benchmark-v03.md)
+for per-dataset intervals and limitations.
+
+## Optional physical ground-truth packet (future)
+
+The independent metrology packet is retained as a future extension only. It is
+not required for the public-data-only project and must remain `planned` or
+`inconclusive` when surveyed extrinsic/clock references are unavailable. If a
+future user obtains those measurements, the [physical collection runbook](../tutorials/solid_state_metrology_collection.md)
+describes the schema-valid packet and integrity gate:
+
+```bash
+python tools/run_solid_state_metrology_evaluation.py \
+  --prepare-collection-plan \
+  --plan-sessions 4 \
+  --plan-remounts 2 \
+  --output outputs/solid-state-metrology/plan.yaml \
+  --markdown-output outputs/solid-state-metrology/plan.md
+```
+
+The generated packet is a collection plan, not a physical result. After
+editing it with the measured reference and solver estimates, rerun it with
+`--input ... --enforce`. Relative evidence paths are resolved against the
+input packet directory. `--enforce` recomputes each declared SHA-256 and
+verifies the source exists; `--verify-sources` runs the same integrity report
+without requiring a numerical PASS. A physical PASS requires
+all of the following:
+
+- an independent extrinsic and clock reference for every usable session, with
+  declared method, uncertainty, source digests, and
+  `evidence_level: independently_measured`;
+- at least three usable captures across at least two remounts;
+- a held-out downstream metric that was not consumed by the solver and has a
+  predeclared threshold.
+- every global/session reference, usable capture, and estimate source
+  path/digest pair passes the integrity check, with unique IDs and valid
+  estimate-to-session links. Remounted sessions are compared against their own
+  measured reference rather than one global transform.
+
+Missing evidence remains `planned` or `inconclusive`; it is never converted to
+a PASS by the tool. A missing, mismatched, or structurally inconsistent source
+is surfaced in `evidence_integrity` and blocks PASS. The checked packet is
+therefore an intentionally empty
+[YAML template](../assets/solid-state-metrology-evaluation-v01.yaml) with a
+[Markdown report](../assets/solid-state-metrology-evaluation-v01.md), not a
+physical accuracy claim.
+
 ## Livox workflow
 
 The checked-in workflow is:

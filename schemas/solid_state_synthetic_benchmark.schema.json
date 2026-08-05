@@ -1,0 +1,743 @@
+{
+  "$defs": {
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "SolidStateSyntheticBenchmarkAggregate": {
+      "additionalProperties": false,
+      "description": "Aggregate gate outcome without hiding individual controls.",
+      "properties": {
+        "all_expected_outcomes_detected": {
+          "title": "All Expected Outcomes Detected",
+          "type": "boolean"
+        },
+        "conclusion": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "known_bad_case_count": {
+          "minimum": 0,
+          "title": "Known Bad Case Count",
+          "type": "integer"
+        },
+        "known_bad_detected_count": {
+          "minimum": 0,
+          "title": "Known Bad Detected Count",
+          "type": "integer"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "reference_case_count": {
+          "minimum": 0,
+          "title": "Reference Case Count",
+          "type": "integer"
+        },
+        "reference_pass_count": {
+          "minimum": 0,
+          "title": "Reference Pass Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reference_case_count",
+        "reference_pass_count",
+        "known_bad_case_count",
+        "known_bad_detected_count",
+        "all_expected_outcomes_detected",
+        "conclusion"
+      ],
+      "title": "SolidStateSyntheticBenchmarkAggregate",
+      "type": "object"
+    },
+    "SolidStateSyntheticBenchmarkCase": {
+      "additionalProperties": false,
+      "description": "One truth-backed reference or deliberately failing control.",
+      "properties": {
+        "case_type": {
+          "enum": [
+            "reference",
+            "known_bad"
+          ],
+          "title": "Case Type",
+          "type": "string"
+        },
+        "estimated_time_offset_sec": {
+          "title": "Estimated Time Offset Sec",
+          "type": "number"
+        },
+        "estimated_transform": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "expected_outcome": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Expected Outcome",
+          "type": "string"
+        },
+        "expected_outcome_detected": {
+          "title": "Expected Outcome Detected",
+          "type": "boolean"
+        },
+        "failure_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failure Reasons",
+          "type": "array"
+        },
+        "final_holdout_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Holdout Rmse M"
+        },
+        "final_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Final Rotation Error Deg",
+          "type": "number"
+        },
+        "final_time_offset_error_sec": {
+          "minimum": 0.0,
+          "title": "Final Time Offset Error Sec",
+          "type": "number"
+        },
+        "final_train_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Train Rmse M"
+        },
+        "final_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Final Translation Error M",
+          "type": "number"
+        },
+        "gate_passed": {
+          "title": "Gate Passed",
+          "type": "boolean"
+        },
+        "holdout_correspondence_count": {
+          "minimum": 0,
+          "title": "Holdout Correspondence Count",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "initial_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Initial Rotation Error Deg",
+          "type": "number"
+        },
+        "initial_time_offset_error_sec": {
+          "minimum": 0.0,
+          "title": "Initial Time Offset Error Sec",
+          "type": "number"
+        },
+        "initial_train_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial Train Rmse M"
+        },
+        "initial_transform": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "initial_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Initial Translation Error M",
+          "type": "number"
+        },
+        "iterations": {
+          "minimum": 0,
+          "title": "Iterations",
+          "type": "integer"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "observability_rank": {
+          "anyOf": [
+            {
+              "maximum": 6,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observability Rank"
+        },
+        "status": {
+          "enum": [
+            "converged",
+            "max_iterations",
+            "insufficient_constraints",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "train_correspondence_count": {
+          "minimum": 0,
+          "title": "Train Correspondence Count",
+          "type": "integer"
+        },
+        "true_time_offset_sec": {
+          "title": "True Time Offset Sec",
+          "type": "number"
+        },
+        "true_transform": {
+          "$ref": "#/$defs/TransformResult"
+        }
+      },
+      "required": [
+        "id",
+        "case_type",
+        "expected_outcome",
+        "status",
+        "initial_transform",
+        "true_transform",
+        "estimated_transform",
+        "true_time_offset_sec",
+        "estimated_time_offset_sec",
+        "initial_rotation_error_deg",
+        "final_rotation_error_deg",
+        "initial_translation_error_m",
+        "final_translation_error_m",
+        "initial_time_offset_error_sec",
+        "final_time_offset_error_sec",
+        "train_correspondence_count",
+        "holdout_correspondence_count",
+        "iterations",
+        "gate_passed",
+        "expected_outcome_detected"
+      ],
+      "title": "SolidStateSyntheticBenchmarkCase",
+      "type": "object"
+    },
+    "SolidStateSyntheticBenchmarkProtocol": {
+      "additionalProperties": false,
+      "description": "Frozen construction and evaluation policy for the synthetic scene.",
+      "properties": {
+        "frame_convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Frame Convention",
+          "type": "string"
+        },
+        "known_bad_control": {
+          "title": "Known Bad Control",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "point_time_convention": {
+          "title": "Point Time Convention",
+          "type": "string"
+        },
+        "scene": {
+          "const": "three_plane_motion_fixture",
+          "title": "Scene",
+          "type": "string"
+        },
+        "solver": {
+          "const": "continuous_time_lidar_pair",
+          "title": "Solver",
+          "type": "string"
+        },
+        "train_fraction": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Train Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "solver",
+        "scene",
+        "point_time_convention",
+        "train_fraction",
+        "known_bad_control"
+      ],
+      "title": "SolidStateSyntheticBenchmarkProtocol",
+      "type": "object"
+    },
+    "SolidStateSyntheticBenchmarkProvenance": {
+      "additionalProperties": false,
+      "description": "Digest-bound provenance for generated synthetic evidence.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "random_seed": {
+          "default": 0,
+          "title": "Random Seed",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-fA-F]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "SolidStateSyntheticBenchmarkProvenance",
+      "type": "object"
+    },
+    "SolidStateSyntheticBenchmarkThresholds": {
+      "additionalProperties": false,
+      "description": "Absolute parameter-error gates for the reference case.",
+      "properties": {
+        "max_rotation_error_deg": {
+          "exclusiveMinimum": 0.0,
+          "title": "Max Rotation Error Deg",
+          "type": "number"
+        },
+        "max_time_offset_error_sec": {
+          "exclusiveMinimum": 0.0,
+          "title": "Max Time Offset Error Sec",
+          "type": "number"
+        },
+        "max_translation_error_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Max Translation Error M",
+          "type": "number"
+        },
+        "require_converged": {
+          "default": true,
+          "title": "Require Converged",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "max_rotation_error_deg",
+        "max_translation_error_m",
+        "max_time_offset_error_sec"
+      ],
+      "title": "SolidStateSyntheticBenchmarkThresholds",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Result of a deterministic solid-state LiDAR ground-truth benchmark.",
+  "properties": {
+    "aggregate": {
+      "$ref": "#/$defs/SolidStateSyntheticBenchmarkAggregate"
+    },
+    "benchmark_id": {
+      "title": "Benchmark Id",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/SolidStateSyntheticBenchmarkCase"
+      },
+      "minItems": 2,
+      "title": "Cases",
+      "type": "array"
+    },
+    "protocol": {
+      "$ref": "#/$defs/SolidStateSyntheticBenchmarkProtocol"
+    },
+    "provenance": {
+      "$ref": "#/$defs/SolidStateSyntheticBenchmarkProvenance"
+    },
+    "schema_version": {
+      "const": "slac.solid_state_synthetic_benchmark/v0.1",
+      "default": "slac.solid_state_synthetic_benchmark/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/SolidStateSyntheticBenchmarkThresholds"
+    }
+  },
+  "required": [
+    "benchmark_id",
+    "protocol",
+    "thresholds",
+    "cases",
+    "aggregate",
+    "provenance"
+  ],
+  "title": "SolidStateSyntheticBenchmarkArtifact",
+  "type": "object"
+}
