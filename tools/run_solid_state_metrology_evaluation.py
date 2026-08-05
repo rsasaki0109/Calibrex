@@ -19,6 +19,7 @@ from calibrex.core.solid_state_metrology_evaluation import (
     SolidStateMetrologyEvaluationThresholds,
     SolidStateMetrologyReference,
     evaluate_solid_state_metrology,
+    verify_solid_state_metrology_evidence,
 )
 
 TOOL_PATH = "tools/run_solid_state_metrology_evaluation.py"
@@ -34,6 +35,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--enforce", action="store_true")
+    parser.add_argument(
+        "--verify-sources",
+        action="store_true",
+        help="recompute declared physical-source digests and relationship checks",
+    )
     parser.add_argument("--json", action="store_true")
     return parser
 
@@ -146,6 +152,44 @@ def _render_markdown(artifact: SolidStateMetrologyEvaluationArtifact) -> str:
             )
     else:
         lines.append("| — | — | — | — | — | — | NOT RUN |")
+    verified_source_count = sum(
+        check.status == "verified"
+        for check in artifact.evidence_integrity.source_checks
+    )
+    lines.extend(
+        [
+            "",
+            "## Evidence integrity",
+            "",
+            f"- Checked: `{artifact.evidence_integrity.checked}`",
+            f"- Passed: `{artifact.evidence_integrity.passed}`",
+            f"- Sources verified: `{verified_source_count}/"
+            f"{len(artifact.evidence_integrity.source_checks)}`",
+        ]
+    )
+    if artifact.evidence_integrity.source_checks:
+        lines.extend(
+            [
+                "",
+                "| Role | Owner | Path | Status |",
+                "|---|---|---|---|",
+            ]
+        )
+        lines.extend(
+            f"| {check.role} | {check.owner_id} | {check.path} | {check.status} |"
+            for check in artifact.evidence_integrity.source_checks
+        )
+    if artifact.evidence_integrity.issues:
+        lines.extend(
+            [
+                "",
+                "Integrity issues:",
+                *(
+                    f"- {issue}"
+                    for issue in artifact.evidence_integrity.issues
+                ),
+            ]
+        )
     lines.extend(
         [
             "",
@@ -176,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
     """Load or create a template, evaluate it, and write schema-valid evidence."""
 
     args = _parser().parse_args(argv)
+    if args.verify_sources and args.input is None:
+        _parser().error("--verify-sources requires --input")
     command = [TOOL_PATH, *(argv or sys.argv[1:])]
     source_digest = sha256_path(Path(__file__).resolve())
     if source_digest is None:
@@ -201,6 +247,15 @@ def main(argv: list[str] | None = None) -> int:
             )
         }
     )
+    if args.input is not None and (args.verify_sources or args.enforce):
+        artifact = artifact.model_copy(
+            update={
+                "evidence_integrity": verify_solid_state_metrology_evidence(
+                    artifact,
+                    base_dir=args.input.resolve().parent,
+                )
+            }
+        )
     evaluated = evaluate_solid_state_metrology(artifact)
     write_mapping(args.output, evaluated.model_dump(mode="json", exclude_none=True))
     if args.markdown_output is not None:
@@ -213,6 +268,11 @@ def main(argv: list[str] | None = None) -> int:
         "decision": evaluated.decision,
         "run_count": evaluated.metrics.run_count,
         "passing_run_count": evaluated.metrics.passing_run_count,
+        "evidence_integrity_checked": evaluated.evidence_integrity.checked,
+        "evidence_integrity_passed": evaluated.evidence_integrity.passed,
+        "evidence_source_check_count": len(
+            evaluated.evidence_integrity.source_checks
+        ),
     }
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))

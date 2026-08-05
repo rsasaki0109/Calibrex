@@ -165,6 +165,12 @@ python tools/run_solid_state_metrology_evaluation.py \
   --enforce
 ```
 
+With `--enforce`, Calibrex also verifies every declared reference, capture, and
+estimate source relative to the input packet: the path must exist and its
+SHA-256 must match. It also rejects duplicate IDs and broken estimate/session
+links, so a missing or tampered source cannot become a physical PASS. Use
+`--verify-sources` without `--enforce` to inspect the integrity report first.
+
 The checked physical packet is intentionally **PLANNED**, not a fabricated
 accuracy result: [YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml)
 and [Markdown report](docs/assets/solid-state-metrology-evaluation-v01.md).

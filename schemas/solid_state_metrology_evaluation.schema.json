@@ -448,6 +448,117 @@
       "title": "SolidStateMetrologyEvaluationThresholds",
       "type": "object"
     },
+    "SolidStateMetrologyEvidenceIntegrity": {
+      "additionalProperties": false,
+      "description": "Recomputed source and relationship checks for a physical packet.",
+      "properties": {
+        "checked": {
+          "default": false,
+          "title": "Checked",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "passed": {
+          "default": false,
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "source_checks": {
+          "items": {
+            "$ref": "#/$defs/SolidStateMetrologyEvidenceSourceCheck"
+          },
+          "title": "Source Checks",
+          "type": "array"
+        }
+      },
+      "title": "SolidStateMetrologyEvidenceIntegrity",
+      "type": "object"
+    },
+    "SolidStateMetrologyEvidenceSourceCheck": {
+      "additionalProperties": false,
+      "description": "One digest check for a declared physical-evidence source.",
+      "properties": {
+        "declared_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Declared Sha256"
+        },
+        "observed_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Sha256"
+        },
+        "owner_id": {
+          "title": "Owner Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "role": {
+          "enum": [
+            "reference",
+            "session_capture",
+            "estimate"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "verified",
+            "missing",
+            "missing_digest",
+            "mismatch"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "owner_id",
+        "path",
+        "status"
+      ],
+      "title": "SolidStateMetrologyEvidenceSourceCheck",
+      "type": "object"
+    },
     "SolidStateMetrologyReference": {
       "additionalProperties": false,
       "description": "Independently measured spatial and temporal reference values.",
@@ -1025,6 +1136,9 @@
     "evaluation_id": {
       "title": "Evaluation Id",
       "type": "string"
+    },
+    "evidence_integrity": {
+      "$ref": "#/$defs/SolidStateMetrologyEvidenceIntegrity"
     },
     "metrics": {
       "$ref": "#/$defs/SolidStateMetrologyEvaluationMetrics"

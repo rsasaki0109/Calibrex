@@ -5,11 +5,13 @@ from __future__ import annotations
 import math
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
 from calibrex.core.geometry import SE3
+from calibrex.core.provenance import sha256_path
 from calibrex.core.result import StrictModel, TransformResult
 
 SOLID_STATE_METROLOGY_EVALUATION_SCHEMA_VERSION: Literal[
@@ -35,6 +37,13 @@ MetrologyClockMethod = Literal[
 MetrologySessionStatus = Literal["usable", "rejected"]
 MetrologyStatus = Literal["planned", "inconclusive", "pass", "fail"]
 MetrologyDecision = Literal["collect", "review", "pass", "fail"]
+MetrologyEvidenceRole = Literal["reference", "session_capture", "estimate"]
+MetrologyEvidenceSourceStatus = Literal[
+    "verified",
+    "missing",
+    "missing_digest",
+    "mismatch",
+]
 
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
@@ -161,6 +170,35 @@ class SolidStateMetrologyEvaluationMetrics(StrictModel):
     run_metrics: list[SolidStateMetrologyRunMetric] = Field(default_factory=list)
 
 
+class SolidStateMetrologyEvidenceSourceCheck(StrictModel):
+    """One digest check for a declared physical-evidence source."""
+
+    role: MetrologyEvidenceRole
+    owner_id: str
+    path: str
+    declared_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
+    observed_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
+    status: MetrologyEvidenceSourceStatus
+    reason: str | None = None
+
+
+class SolidStateMetrologyEvidenceIntegrity(StrictModel):
+    """Recomputed source and relationship checks for a physical packet."""
+
+    checked: bool = False
+    passed: bool = False
+    source_checks: list[SolidStateMetrologyEvidenceSourceCheck] = Field(
+        default_factory=list
+    )
+    issues: list[str] = Field(default_factory=list)
+
+
 class SolidStateMetrologyEvaluationProvenance(StrictModel):
     """Digest-bound provenance for the generated physical evaluation."""
 
@@ -195,6 +233,9 @@ class SolidStateMetrologyEvaluationArtifact(StrictModel):
     metrics: SolidStateMetrologyEvaluationMetrics = Field(
         default_factory=SolidStateMetrologyEvaluationMetrics
     )
+    evidence_integrity: SolidStateMetrologyEvidenceIntegrity = Field(
+        default_factory=SolidStateMetrologyEvidenceIntegrity
+    )
     status: MetrologyStatus = "planned"
     decision: MetrologyDecision = "collect"
     reasons: list[str] = Field(default_factory=list)
@@ -222,6 +263,166 @@ def _translation_error_m(reference: SE3, estimate: SE3) -> float:
 def _append_unique(reasons: list[str], value: str) -> None:
     if value not in reasons:
         reasons.append(value)
+
+
+def _source_check(
+    *,
+    role: MetrologyEvidenceRole,
+    owner_id: str,
+    path: str,
+    declared_sha256: str | None,
+    base_dir: Path,
+) -> SolidStateMetrologyEvidenceSourceCheck:
+    """Recompute one declared source digest relative to the packet directory."""
+
+    source_path = Path(path)
+    if not source_path.is_absolute():
+        source_path = base_dir / source_path
+    observed_sha256 = sha256_path(source_path)
+    if declared_sha256 is None:
+        status: MetrologyEvidenceSourceStatus = "missing_digest"
+        reason = "source_digest_missing"
+    elif observed_sha256 is None:
+        status = "missing"
+        reason = "source_path_missing"
+    elif observed_sha256.lower() != declared_sha256.lower():
+        status = "mismatch"
+        reason = "source_digest_mismatch"
+    else:
+        status = "verified"
+        reason = None
+    return SolidStateMetrologyEvidenceSourceCheck(
+        role=role,
+        owner_id=owner_id,
+        path=path,
+        declared_sha256=declared_sha256,
+        observed_sha256=observed_sha256,
+        status=status,
+        reason=reason,
+    )
+
+
+def verify_solid_state_metrology_evidence(
+    artifact: SolidStateMetrologyEvaluationArtifact,
+    *,
+    base_dir: Path,
+) -> SolidStateMetrologyEvidenceIntegrity:
+    """Verify declared physical sources and cross-record relationships.
+
+    Relative source paths are resolved against ``base_dir``.  The function is
+    intentionally separate from the numerical evaluator so a caller can keep
+    the evidence check reproducible and visible in the saved artifact.
+    """
+
+    issues: list[str] = []
+    source_checks: list[SolidStateMetrologyEvidenceSourceCheck] = []
+
+    session_ids = [session.id for session in artifact.sessions]
+    if len(session_ids) != len(set(session_ids)):
+        issues.append("duplicate_session_id")
+    estimate_ids = [estimate.id for estimate in artifact.estimates]
+    if len(estimate_ids) != len(set(estimate_ids)):
+        issues.append("duplicate_estimate_id")
+
+    reference_paths = set(artifact.reference.source_paths)
+    if len(reference_paths) != len(artifact.reference.source_paths):
+        issues.append("duplicate_reference_source_path")
+    if not artifact.reference.source_paths:
+        issues.append("reference_source_paths_missing")
+    for source_path in artifact.reference.source_paths:
+        declared_sha256 = artifact.reference.source_sha256.get(source_path)
+        if declared_sha256 is None:
+            _append_unique(issues, "reference_source_digest_missing")
+        source_checks.append(
+            _source_check(
+                role="reference",
+                owner_id="reference",
+                path=source_path,
+                declared_sha256=declared_sha256,
+                base_dir=base_dir,
+            )
+        )
+    if set(artifact.reference.source_sha256) - reference_paths:
+        issues.append("reference_source_digest_without_path")
+
+    known_session_ids = set(session_ids)
+    for session in artifact.sessions:
+        if session.capture_path is not None:
+            source_checks.append(
+                _source_check(
+                    role="session_capture",
+                    owner_id=session.id,
+                    path=session.capture_path,
+                    declared_sha256=session.capture_sha256,
+                    base_dir=base_dir,
+                )
+            )
+            if session.capture_sha256 is None:
+                _append_unique(issues, "session_capture_digest_missing")
+        elif session.capture_sha256 is not None:
+            _append_unique(issues, "session_capture_path_missing")
+        elif session.status == "usable":
+            _append_unique(issues, "session_capture_path_missing")
+            _append_unique(issues, "session_capture_digest_missing")
+
+    for estimate in artifact.estimates:
+        if estimate.session_id not in known_session_ids:
+            _append_unique(issues, "estimate_session_link_missing")
+        if estimate.source_path is not None:
+            source_checks.append(
+                _source_check(
+                    role="estimate",
+                    owner_id=estimate.id,
+                    path=estimate.source_path,
+                    declared_sha256=estimate.source_sha256,
+                    base_dir=base_dir,
+                )
+            )
+            if estimate.source_sha256 is None:
+                _append_unique(issues, "estimate_source_digest_missing")
+        elif estimate.source_sha256 is not None:
+            _append_unique(issues, "estimate_source_path_missing")
+        else:
+            _append_unique(issues, "estimate_source_path_missing")
+            _append_unique(issues, "estimate_source_digest_missing")
+
+    for source_check in source_checks:
+        if source_check.status == "missing":
+            _append_unique(issues, "evidence_source_missing")
+        elif source_check.status == "missing_digest":
+            _append_unique(issues, "evidence_source_digest_missing")
+        elif source_check.status == "mismatch":
+            _append_unique(issues, "evidence_source_digest_mismatch")
+
+    passed = bool(source_checks) and not issues and all(
+        source_check.status == "verified" for source_check in source_checks
+    )
+    return SolidStateMetrologyEvidenceIntegrity(
+        checked=True,
+        passed=passed,
+        source_checks=source_checks,
+        issues=issues,
+    )
+
+
+def _evidence_integrity_reasons(
+    artifact: SolidStateMetrologyEvaluationArtifact,
+) -> list[str]:
+    """Turn a persisted integrity report into numerical-gate reasons."""
+
+    integrity = artifact.evidence_integrity
+    if not integrity.checked:
+        return ["evidence_integrity_not_checked"] if artifact.estimates else []
+    reasons: list[str] = []
+    if not integrity.passed:
+        reasons.append("evidence_integrity_failed")
+    if not integrity.source_checks:
+        reasons.append("evidence_integrity_source_checks_missing")
+    if any(check.status != "verified" for check in integrity.source_checks):
+        reasons.append("evidence_source_integrity_failed")
+    for issue in integrity.issues:
+        _append_unique(reasons, issue)
+    return reasons
 
 
 def _reference_reasons(
@@ -308,6 +509,8 @@ def evaluate_solid_state_metrology(
     ]
     remount_ids = {session.remount_id for session in usable_sessions}
     reasons = _reference_reasons(artifact)
+    for reason in _evidence_integrity_reasons(artifact):
+        _append_unique(reasons, reason)
     if len(usable_sessions) < artifact.protocol.minimum_usable_sessions:
         _append_unique(reasons, "insufficient_usable_sessions")
     if len(remount_ids) < artifact.protocol.minimum_remounts:
@@ -431,9 +634,22 @@ def evaluate_solid_state_metrology(
         downstream_metric_passed=downstream_passed,
         run_metrics=run_metrics,
     )
+    evidence_integrity = artifact.evidence_integrity
+    if evidence_integrity.checked:
+        evidence_integrity = evidence_integrity.model_copy(
+            update={
+                "passed": bool(evidence_integrity.source_checks)
+                and not evidence_integrity.issues
+                and all(
+                    check.status == "verified"
+                    for check in evidence_integrity.source_checks
+                )
+            }
+        )
     return artifact.model_copy(
         update={
             "metrics": metrics,
+            "evidence_integrity": evidence_integrity,
             "status": status,
             "decision": decision,
             "reasons": reasons,

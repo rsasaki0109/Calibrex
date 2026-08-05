@@ -150,8 +150,11 @@ python tools/run_solid_state_metrology_evaluation.py \
 ```
 
 After editing the packet with the measured reference and solver estimates,
-rerun it with `--input ... --enforce`. A physical PASS requires all of the
-following:
+rerun it with `--input ... --enforce`. Relative evidence paths are resolved
+against the input packet directory. `--enforce` recomputes each declared
+SHA-256 and verifies the source exists; `--verify-sources` runs the same
+integrity report without requiring a numerical PASS. A physical PASS requires
+all of the following:
 
 - an independent extrinsic reference with declared method, uncertainty, source
   digests, and `evidence_level: independently_measured`;
@@ -159,9 +162,13 @@ following:
 - at least three usable captures across at least two remounts;
 - a held-out downstream metric that was not consumed by the solver and has a
   predeclared threshold.
+- every reference, usable capture, and estimate source path/digest pair passes
+  the integrity check, with unique IDs and valid estimate-to-session links.
 
 Missing evidence remains `planned` or `inconclusive`; it is never converted to
-a PASS by the tool. The checked packet is therefore an intentionally empty
+a PASS by the tool. A missing, mismatched, or structurally inconsistent source
+is surfaced in `evidence_integrity` and blocks PASS. The checked packet is
+therefore an intentionally empty
 [YAML template](../assets/solid-state-metrology-evaluation-v01.yaml) with a
 [Markdown report](../assets/solid-state-metrology-evaluation-v01.md), not a
 physical accuracy claim.

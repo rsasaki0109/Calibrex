@@ -11,6 +11,7 @@ from pathlib import Path
 import jsonschema
 
 from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.provenance import sha256_path
 from calibrex.core.result import (
     EstimateEvidenceLevel,
     TransformEstimateProvenance,
@@ -27,6 +28,7 @@ from calibrex.core.solid_state_metrology_evaluation import (
     SolidStateMetrologyReference,
     SolidStateMetrologySession,
     evaluate_solid_state_metrology,
+    verify_solid_state_metrology_evidence,
 )
 
 
@@ -123,8 +125,91 @@ def _artifact(
     )
 
 
-def test_physical_reference_and_repeat_remounts_pass() -> None:
-    evaluated = evaluate_solid_state_metrology(_artifact())
+def _artifact_with_materialized_sources(
+    tmp_path: Path,
+) -> SolidStateMetrologyEvaluationArtifact:
+    """Create a measured-looking packet whose declared sources really exist."""
+
+    artifact = _artifact()
+
+    def materialize(relative_path: str, payload: bytes) -> str:
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+        digest = sha256_path(path)
+        assert digest is not None
+        return digest
+
+    reference_path = "metrology/reference.csv"
+    reference_digest = materialize(reference_path, b"independent-reference\n")
+    sessions = []
+    for session in artifact.sessions:
+        capture_path = f"captures/{session.id}.bin"
+        capture_digest = materialize(capture_path, session.id.encode("utf-8"))
+        sessions.append(
+            session.model_copy(
+                update={
+                    "capture_path": capture_path,
+                    "capture_sha256": capture_digest,
+                }
+            )
+        )
+
+    estimates = []
+    for estimate in artifact.estimates:
+        assert estimate.source_path is not None
+        estimate_digest = materialize(
+            estimate.source_path,
+            estimate.id.encode("utf-8"),
+        )
+        estimates.append(
+            estimate.model_copy(update={"source_sha256": estimate_digest})
+        )
+
+    return artifact.model_copy(
+        update={
+            "reference": artifact.reference.model_copy(
+                update={"source_sha256": {reference_path: reference_digest}}
+            ),
+            "sessions": sessions,
+            "estimates": estimates,
+        }
+    )
+
+
+def _verified_artifact(
+    tmp_path: Path,
+    *,
+    estimate_translation: tuple[float, float, float] = (0.12, -0.05, 0.04),
+) -> SolidStateMetrologyEvaluationArtifact:
+    materialized = _artifact_with_materialized_sources(tmp_path)
+    artifact = materialized.model_copy(
+        update={
+            "estimates": [
+                estimate.model_copy(
+                    update={
+                        "transform": _transform(
+                            estimate_translation,
+                            yaw_deg=8.0,
+                        )
+                    }
+                )
+                for estimate in materialized.estimates
+            ]
+        }
+    )
+    return artifact.model_copy(
+        update={
+            "evidence_integrity": verify_solid_state_metrology_evidence(
+                artifact,
+                base_dir=tmp_path,
+            )
+        }
+    )
+
+
+def test_physical_reference_and_repeat_remounts_pass(tmp_path: Path) -> None:
+    evaluated = evaluate_solid_state_metrology(_verified_artifact(tmp_path))
 
     assert evaluated.status == "pass"
     assert evaluated.decision == "pass"
@@ -134,9 +219,12 @@ def test_physical_reference_and_repeat_remounts_pass() -> None:
     assert evaluated.reasons == []
 
 
-def test_physical_accuracy_failure_is_not_inconclusive() -> None:
+def test_physical_accuracy_failure_is_not_inconclusive(tmp_path: Path) -> None:
     evaluated = evaluate_solid_state_metrology(
-        _artifact(estimate_translation=(0.2, -0.05, 0.04))
+        _verified_artifact(
+            tmp_path,
+            estimate_translation=(0.2, -0.05, 0.04),
+        )
     )
 
     assert evaluated.status == "fail"
@@ -178,7 +266,10 @@ def test_cli_re_evaluates_a_measured_packet_and_enforces_pass(tmp_path: Path) ->
 
     input_path = tmp_path / "input.yaml"
     output_path = tmp_path / "output.yaml"
-    write_mapping(input_path, _artifact().model_dump(mode="json"))
+    write_mapping(
+        input_path,
+        _artifact_with_materialized_sources(tmp_path).model_dump(mode="json"),
+    )
 
     assert (
         module.main(
@@ -197,3 +288,74 @@ def test_cli_re_evaluates_a_measured_packet_and_enforces_pass(tmp_path: Path) ->
     )
     assert result.status == "pass"
     assert result.metrics.passing_run_count == 3
+    assert result.evidence_integrity.checked is True
+    assert result.evidence_integrity.passed is True
+    assert all(
+        check.status == "verified"
+        for check in result.evidence_integrity.source_checks
+    )
+
+
+def test_cli_integrity_gate_rejects_tampered_source(tmp_path: Path) -> None:
+    module_path = Path("tools/run_solid_state_metrology_evaluation.py").resolve()
+    spec = importlib.util.spec_from_file_location("solid_state_metrology_tool", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    input_path = tmp_path / "input.yaml"
+    output_path = tmp_path / "output.yaml"
+    write_mapping(
+        input_path,
+        _artifact_with_materialized_sources(tmp_path).model_dump(mode="json"),
+    )
+    (tmp_path / "captures/session-1.bin").write_bytes(b"tampered")
+
+    assert (
+        module.main(
+            [
+                "--input",
+                str(input_path),
+                "--output",
+                str(output_path),
+                "--enforce",
+            ]
+        )
+        == 1
+    )
+    result = SolidStateMetrologyEvaluationArtifact.model_validate(
+        read_mapping(output_path)
+    )
+    assert result.status == "inconclusive"
+    assert "evidence_integrity_failed" in result.reasons
+    assert "evidence_source_digest_mismatch" in result.reasons
+    assert any(
+        check.owner_id == "session-1" and check.status == "mismatch"
+        for check in result.evidence_integrity.source_checks
+    )
+
+
+def test_integrity_gate_detects_duplicate_ids_and_unknown_session_link(
+    tmp_path: Path,
+) -> None:
+    artifact = _artifact()
+    sessions = [
+        artifact.sessions[0].model_copy(update={"id": "duplicate-session"}),
+        artifact.sessions[1].model_copy(update={"id": "duplicate-session"}),
+        artifact.sessions[2],
+    ]
+    estimates = [
+        artifact.estimates[0].model_copy(update={"session_id": "missing-session"}),
+        artifact.estimates[1],
+        artifact.estimates[2],
+    ]
+    integrity = verify_solid_state_metrology_evidence(
+        artifact.model_copy(update={"sessions": sessions, "estimates": estimates}),
+        base_dir=tmp_path,
+    )
+
+    assert integrity.passed is False
+    assert "duplicate_session_id" in integrity.issues
+    assert "estimate_session_link_missing" in integrity.issues
+    assert "evidence_source_missing" in integrity.issues

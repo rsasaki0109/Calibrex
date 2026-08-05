@@ -19,6 +19,12 @@ This report is PASS-capable only when independent spatial/temporal references, r
 |---|---|---|---:|---:|---:|---|
 | — | — | — | — | — | — | NOT RUN |
 
+## Evidence integrity
+
+- Checked: `False`
+- Passed: `False`
+- Sources verified: `0/0`
+
 ## Aggregate
 
 - Usable sessions: `0`
