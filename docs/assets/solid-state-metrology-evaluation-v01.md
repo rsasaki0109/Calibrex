@@ -5,13 +5,14 @@
 - Status: **PLANNED**
 - Decision: `collect`
 
-This report is PASS-capable only when independent spatial/temporal references, repeat remount sessions, and the declared downstream holdout metric are all present.
+This report is PASS-capable only when independent spatial/temporal references for every usable session, repeat remount sessions, and the declared downstream holdout metric are all present.
 
 ## Reference
 
 - Extrinsic method: `unknown`
 - Clock method: `unknown`
 - Independent of solver: `False`
+- Per-session references: `0/0`
 
 ## Runs
 

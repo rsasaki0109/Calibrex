@@ -149,9 +149,9 @@ truth. The checked result is available as a [schema-valid YAML artifact](docs/as
 with a compact [Markdown report](docs/assets/solid-state-synthetic-benchmark-v01.md).
 
 For the physical gate, generate the schema-valid measurement packet template,
-fill it with independently surveyed extrinsics, clock-reference evidence,
-repeat remount sessions, solver estimates, and an unused downstream holdout
-metric, then enforce the result:
+fill it with independently surveyed extrinsics and clock-reference evidence for
+each usable session, repeat remount sessions, solver estimates, and an unused
+downstream holdout metric, then enforce the result:
 
 ```bash
 python tools/run_solid_state_metrology_evaluation.py \
@@ -168,7 +168,9 @@ python tools/run_solid_state_metrology_evaluation.py \
 With `--enforce`, Calibrex also verifies every declared reference, capture, and
 estimate source relative to the input packet: the path must exist and its
 SHA-256 must match. It also rejects duplicate IDs and broken estimate/session
-links, so a missing or tampered source cannot become a physical PASS. Use
+links. Each usable session must also carry its own independent reference, so a
+remount is not incorrectly scored against a single global transform. A missing
+or tampered source cannot become a physical PASS. Use
 `--verify-sources` without `--enforce` to inspect the integrity report first.
 
 The checked physical packet is intentionally **PLANNED**, not a fabricated

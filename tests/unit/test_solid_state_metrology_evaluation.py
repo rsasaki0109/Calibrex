@@ -69,10 +69,37 @@ def _artifact(
         yaw_deg=8.0,
         evidence_level="independently_measured",
     )
+    def session_reference(session_id: str) -> SolidStateMetrologyReference:
+        path = f"metrology/{session_id}-reference.csv"
+        return SolidStateMetrologyReference(
+            extrinsic_method="surveyed_rig",
+            clock_method="hardware_trigger",
+            independent_of_solver=True,
+            transform=reference_transform,
+            time_offset_sec=0.03,
+            rotation_uncertainty_deg=0.01,
+            translation_uncertainty_m=0.0005,
+            time_uncertainty_sec=0.00001,
+            source_paths=[path],
+            source_sha256={path: "f" * 64},
+        )
+
     sessions = [
-        SolidStateMetrologySession(id="session-0", remount_id="mount-a"),
-        SolidStateMetrologySession(id="session-1", remount_id="mount-a"),
-        SolidStateMetrologySession(id="session-2", remount_id="mount-b"),
+        SolidStateMetrologySession(
+            id="session-0",
+            remount_id="mount-a",
+            reference=session_reference("session-0"),
+        ),
+        SolidStateMetrologySession(
+            id="session-1",
+            remount_id="mount-a",
+            reference=session_reference("session-1"),
+        ),
+        SolidStateMetrologySession(
+            id="session-2",
+            remount_id="mount-b",
+            reference=session_reference("session-2"),
+        ),
     ]
     estimates = [
         SolidStateMetrologyEstimate(
@@ -144,11 +171,26 @@ def _artifact_with_materialized_sources(
     reference_digest = materialize(reference_path, b"independent-reference\n")
     sessions = []
     for session in artifact.sessions:
+        assert session.reference is not None
+        assert len(session.reference.source_paths) == 1
+        session_reference_path = session.reference.source_paths[0]
+        session_reference_digest = materialize(
+            session_reference_path,
+            f"independent-reference:{session.id}".encode(),
+        )
+        session_reference = session.reference.model_copy(
+            update={
+                "source_sha256": {
+                    session_reference_path: session_reference_digest
+                }
+            }
+        )
         capture_path = f"captures/{session.id}.bin"
         capture_digest = materialize(capture_path, session.id.encode("utf-8"))
         sessions.append(
             session.model_copy(
                 update={
+                    "reference": session_reference,
                     "capture_path": capture_path,
                     "capture_sha256": capture_digest,
                 }
@@ -230,6 +272,70 @@ def test_physical_accuracy_failure_is_not_inconclusive(tmp_path: Path) -> None:
     assert evaluated.status == "fail"
     assert evaluated.metrics.passing_run_count == 0
     assert "translation_error_exceeds_threshold" in evaluated.reasons
+
+
+def test_missing_session_reference_blocks_physical_pass(tmp_path: Path) -> None:
+    artifact = _verified_artifact(tmp_path)
+    sessions = [
+        artifact.sessions[0].model_copy(update={"reference": None}),
+        *artifact.sessions[1:],
+    ]
+    artifact = artifact.model_copy(update={"sessions": sessions})
+    artifact = artifact.model_copy(
+        update={
+            "evidence_integrity": verify_solid_state_metrology_evidence(
+                artifact,
+                base_dir=tmp_path,
+            )
+        }
+    )
+
+    evaluated = evaluate_solid_state_metrology(artifact)
+
+    assert evaluated.status == "inconclusive"
+    assert evaluated.decision == "review"
+    assert "missing_session_reference" in evaluated.reasons
+    assert evaluated.metrics.evaluated_run_count == 2
+
+
+def test_session_reference_drives_that_session_error(tmp_path: Path) -> None:
+    artifact = _verified_artifact(tmp_path)
+    assert artifact.sessions[2].reference is not None
+    shifted_reference = artifact.sessions[2].reference.model_copy(
+        update={
+            "transform": _transform(
+                (0.15, -0.05, 0.04),
+                yaw_deg=8.0,
+                evidence_level="independently_measured",
+            )
+        }
+    )
+    sessions = [
+        *artifact.sessions[:2],
+        artifact.sessions[2].model_copy(update={"reference": shifted_reference}),
+    ]
+    artifact = artifact.model_copy(update={"sessions": sessions})
+    artifact = artifact.model_copy(
+        update={
+            "evidence_integrity": verify_solid_state_metrology_evidence(
+                artifact,
+                base_dir=tmp_path,
+            )
+        }
+    )
+
+    evaluated = evaluate_solid_state_metrology(artifact)
+
+    assert evaluated.status == "fail"
+    assert evaluated.metrics.passing_run_count == 2
+    session_metric = next(
+        metric
+        for metric in evaluated.metrics.run_metrics
+        if metric.session_id == "session-2"
+    )
+    assert session_metric.translation_error_m is not None
+    assert abs(session_metric.translation_error_m - 0.03) < 1.0e-12
+    assert "translation_error_exceeds_threshold" in session_metric.reasons
 
 
 def test_missing_physical_evidence_stays_planned() -> None:

@@ -315,6 +315,11 @@
           "title": "Require Downstream Metric",
           "type": "boolean"
         },
+        "require_per_session_reference": {
+          "default": true,
+          "title": "Require Per Session Reference",
+          "type": "boolean"
+        },
         "required_clock_method": {
           "default": "hardware_trigger",
           "enum": [
@@ -533,6 +538,7 @@
         "role": {
           "enum": [
             "reference",
+            "session_reference",
             "session_capture",
             "estimate"
           ],
@@ -803,6 +809,17 @@
           },
           "title": "Notes",
           "type": "array"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateMetrologyReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "remount_id": {
           "title": "Remount Id",

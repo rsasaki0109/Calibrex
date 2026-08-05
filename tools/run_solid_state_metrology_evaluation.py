@@ -55,6 +55,7 @@ def _template() -> SolidStateMetrologyEvaluationArtifact:
             target_sensor="lidar_target",
             notes=[
                 "replace the reference and estimates with measured artifacts",
+                "provide an independent spatial/temporal reference for every usable session",
                 "repeat across at least two remounts before claiming PASS",
             ],
         ),
@@ -104,6 +105,9 @@ def _provenance(
 def _render_markdown(artifact: SolidStateMetrologyEvaluationArtifact) -> str:
     """Render a compact physical-evaluation report."""
 
+    per_session_reference_count = sum(
+        session.reference is not None for session in artifact.sessions
+    )
     lines = [
         "# Solid-state LiDAR physical ground-truth evaluation",
         "",
@@ -113,14 +117,16 @@ def _render_markdown(artifact: SolidStateMetrologyEvaluationArtifact) -> str:
         f"- Decision: `{artifact.decision}`",
         "",
         "This report is PASS-capable only when independent spatial/temporal "
-        "references, repeat remount sessions, and the declared downstream holdout "
-        "metric are all present.",
+        "references for every usable session, repeat remount sessions, and the "
+        "declared downstream holdout metric are all present.",
         "",
         "## Reference",
         "",
         f"- Extrinsic method: `{artifact.reference.extrinsic_method}`",
         f"- Clock method: `{artifact.reference.clock_method}`",
         f"- Independent of solver: `{artifact.reference.independent_of_solver}`",
+        f"- Per-session references: `{per_session_reference_count}/"
+        f"{artifact.metrics.usable_session_count}`",
         "",
         "## Runs",
         "",
@@ -270,6 +276,9 @@ def main(argv: list[str] | None = None) -> int:
         "passing_run_count": evaluated.metrics.passing_run_count,
         "evidence_integrity_checked": evaluated.evidence_integrity.checked,
         "evidence_integrity_passed": evaluated.evidence_integrity.passed,
+        "per_session_reference_count": sum(
+            session.reference is not None for session in evaluated.sessions
+        ),
         "evidence_source_check_count": len(
             evaluated.evidence_integrity.source_checks
         ),

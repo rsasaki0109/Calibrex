@@ -37,7 +37,12 @@ MetrologyClockMethod = Literal[
 MetrologySessionStatus = Literal["usable", "rejected"]
 MetrologyStatus = Literal["planned", "inconclusive", "pass", "fail"]
 MetrologyDecision = Literal["collect", "review", "pass", "fail"]
-MetrologyEvidenceRole = Literal["reference", "session_capture", "estimate"]
+MetrologyEvidenceRole = Literal[
+    "reference",
+    "session_reference",
+    "session_capture",
+    "estimate",
+]
 MetrologyEvidenceSourceStatus = Literal[
     "verified",
     "missing",
@@ -67,6 +72,7 @@ class SolidStateMetrologyEvaluationProtocol(StrictModel):
     minimum_usable_sessions: int = Field(default=3, ge=1)
     minimum_remounts: int = Field(default=2, ge=1)
     require_downstream_metric: bool = True
+    require_per_session_reference: bool = True
     notes: list[str] = Field(default_factory=list)
 
 
@@ -119,6 +125,7 @@ class SolidStateMetrologySession(StrictModel):
 
     id: str
     remount_id: str
+    reference: SolidStateMetrologyReference | None = None
     capture_path: str | None = None
     capture_sha256: str | None = Field(
         default=None,
@@ -302,6 +309,40 @@ def _source_check(
     )
 
 
+def _append_reference_source_checks(
+    *,
+    reference: SolidStateMetrologyReference,
+    role: MetrologyEvidenceRole,
+    owner_id: str,
+    base_dir: Path,
+    issues: list[str],
+    source_checks: list[SolidStateMetrologyEvidenceSourceCheck],
+) -> None:
+    """Append digest checks for one global or per-session reference."""
+
+    prefix = "session_reference" if role == "session_reference" else "reference"
+    reference_paths = set(reference.source_paths)
+    if len(reference_paths) != len(reference.source_paths):
+        _append_unique(issues, f"duplicate_{prefix}_source_path")
+    if not reference.source_paths:
+        _append_unique(issues, f"{prefix}_source_paths_missing")
+    for source_path in reference.source_paths:
+        declared_sha256 = reference.source_sha256.get(source_path)
+        if declared_sha256 is None:
+            _append_unique(issues, f"{prefix}_source_digest_missing")
+        source_checks.append(
+            _source_check(
+                role=role,
+                owner_id=owner_id,
+                path=source_path,
+                declared_sha256=declared_sha256,
+                base_dir=base_dir,
+            )
+        )
+    if set(reference.source_sha256) - reference_paths:
+        _append_unique(issues, f"{prefix}_source_digest_without_path")
+
+
 def verify_solid_state_metrology_evidence(
     artifact: SolidStateMetrologyEvaluationArtifact,
     *,
@@ -324,29 +365,31 @@ def verify_solid_state_metrology_evidence(
     if len(estimate_ids) != len(set(estimate_ids)):
         issues.append("duplicate_estimate_id")
 
-    reference_paths = set(artifact.reference.source_paths)
-    if len(reference_paths) != len(artifact.reference.source_paths):
-        issues.append("duplicate_reference_source_path")
-    if not artifact.reference.source_paths:
-        issues.append("reference_source_paths_missing")
-    for source_path in artifact.reference.source_paths:
-        declared_sha256 = artifact.reference.source_sha256.get(source_path)
-        if declared_sha256 is None:
-            _append_unique(issues, "reference_source_digest_missing")
-        source_checks.append(
-            _source_check(
-                role="reference",
-                owner_id="reference",
-                path=source_path,
-                declared_sha256=declared_sha256,
-                base_dir=base_dir,
-            )
-        )
-    if set(artifact.reference.source_sha256) - reference_paths:
-        issues.append("reference_source_digest_without_path")
+    _append_reference_source_checks(
+        reference=artifact.reference,
+        role="reference",
+        owner_id="reference",
+        base_dir=base_dir,
+        issues=issues,
+        source_checks=source_checks,
+    )
 
     known_session_ids = set(session_ids)
     for session in artifact.sessions:
+        if session.reference is not None:
+            _append_reference_source_checks(
+                reference=session.reference,
+                role="session_reference",
+                owner_id=session.id,
+                base_dir=base_dir,
+                issues=issues,
+                source_checks=source_checks,
+            )
+        elif (
+            session.status == "usable"
+            and artifact.protocol.require_per_session_reference
+        ):
+            _append_unique(issues, "session_reference_missing")
         if session.capture_path is not None:
             source_checks.append(
                 _source_check(
@@ -425,46 +468,63 @@ def _evidence_integrity_reasons(
     return reasons
 
 
-def _reference_reasons(
-    artifact: SolidStateMetrologyEvaluationArtifact,
+def _reference_reasons_for(
+    reference: SolidStateMetrologyReference,
+    protocol: SolidStateMetrologyEvaluationProtocol,
+    thresholds: SolidStateMetrologyEvaluationThresholds,
+    *,
+    prefix: str = "",
 ) -> list[str]:
-    reference = artifact.reference
-    protocol = artifact.protocol
-    thresholds = artifact.thresholds
     reasons: list[str] = []
+
+    def add(reason: str) -> None:
+        reasons.append(f"{prefix}{reason}")
+
     if not reference.independent_of_solver:
-        reasons.append("reference_not_declared_independent_of_solver")
+        add("reference_not_declared_independent_of_solver")
     if reference.extrinsic_method != protocol.required_extrinsic_method:
-        reasons.append("extrinsic_reference_method_does_not_match_protocol")
+        add("extrinsic_reference_method_does_not_match_protocol")
     if reference.clock_method != protocol.required_clock_method:
-        reasons.append("clock_reference_method_does_not_match_protocol")
+        add("clock_reference_method_does_not_match_protocol")
     if reference.transform is None:
-        reasons.append("missing_reference_transform")
+        add("missing_reference_transform")
     elif reference.transform.provenance.evidence_level != "independently_measured":
-        reasons.append("reference_transform_provenance_is_not_independent")
+        add("reference_transform_provenance_is_not_independent")
     if reference.time_offset_sec is None:
-        reasons.append("missing_reference_time_offset")
+        add("missing_reference_time_offset")
     if not reference.source_paths or not reference.source_sha256:
-        reasons.append("missing_reference_source_provenance")
+        add("missing_reference_source_provenance")
     if reference.rotation_uncertainty_deg is None:
-        reasons.append("missing_reference_rotation_uncertainty")
+        add("missing_reference_rotation_uncertainty")
     elif (
         reference.rotation_uncertainty_deg
         > thresholds.max_reference_rotation_uncertainty_deg
     ):
-        reasons.append("reference_rotation_uncertainty_exceeds_threshold")
+        add("reference_rotation_uncertainty_exceeds_threshold")
     if reference.translation_uncertainty_m is None:
-        reasons.append("missing_reference_translation_uncertainty")
+        add("missing_reference_translation_uncertainty")
     elif (
         reference.translation_uncertainty_m
         > thresholds.max_reference_translation_uncertainty_m
     ):
-        reasons.append("reference_translation_uncertainty_exceeds_threshold")
+        add("reference_translation_uncertainty_exceeds_threshold")
     if reference.time_uncertainty_sec is None:
-        reasons.append("missing_reference_time_uncertainty")
+        add("missing_reference_time_uncertainty")
     elif reference.time_uncertainty_sec > thresholds.max_reference_time_uncertainty_sec:
-        reasons.append("reference_time_uncertainty_exceeds_threshold")
+        add("reference_time_uncertainty_exceeds_threshold")
     return reasons
+
+
+def _reference_reasons(
+    artifact: SolidStateMetrologyEvaluationArtifact,
+) -> list[str]:
+    """Validate the packet-level reference declaration."""
+
+    return _reference_reasons_for(
+        artifact.reference,
+        artifact.protocol,
+        artifact.thresholds,
+    )
 
 
 def _downstream_metric_state(
@@ -501,7 +561,6 @@ def evaluate_solid_state_metrology(
 ) -> SolidStateMetrologyEvaluationArtifact:
     """Evaluate independent reference errors and physical evidence gates."""
 
-    reference = artifact.reference
     thresholds = artifact.thresholds
     session_by_id = {session.id: session for session in artifact.sessions}
     usable_sessions = [
@@ -509,6 +568,18 @@ def evaluate_solid_state_metrology(
     ]
     remount_ids = {session.remount_id for session in usable_sessions}
     reasons = _reference_reasons(artifact)
+    if artifact.protocol.require_per_session_reference:
+        for session in usable_sessions:
+            if session.reference is None:
+                _append_unique(reasons, "missing_session_reference")
+            else:
+                for reason in _reference_reasons_for(
+                    session.reference,
+                    artifact.protocol,
+                    thresholds,
+                    prefix="session_",
+                ):
+                    _append_unique(reasons, reason)
     for reason in _evidence_integrity_reasons(artifact):
         _append_unique(reasons, reason)
     if len(usable_sessions) < artifact.protocol.minimum_usable_sessions:
@@ -521,15 +592,26 @@ def evaluate_solid_state_metrology(
 
     run_metrics: list[SolidStateMetrologyRunMetric] = []
     for estimate in artifact.estimates:
-        session = session_by_id.get(estimate.session_id)
+        estimate_session = session_by_id.get(estimate.session_id)
         run_reasons: list[str] = []
-        if session is None:
+        session_reference: SolidStateMetrologyReference | None = None
+        if estimate_session is None:
             run_reasons.append("estimate_references_unknown_session")
-        elif session.status != "usable":
+        elif estimate_session.status != "usable":
             run_reasons.append("estimate_references_rejected_session")
-        if reference.transform is None:
+        elif (
+            estimate_session.reference is None
+            and artifact.protocol.require_per_session_reference
+        ):
+            run_reasons.append("missing_session_reference")
+        else:
+            session_reference = estimate_session.reference or artifact.reference
+        if session_reference is None:
             run_reasons.append("missing_reference_transform")
-        if reference.time_offset_sec is None:
+            run_reasons.append("missing_reference_time_offset")
+        elif session_reference.transform is None:
+            run_reasons.append("missing_reference_transform")
+        if session_reference is not None and session_reference.time_offset_sec is None:
             run_reasons.append("missing_reference_time_offset")
         if estimate.transform is None:
             run_reasons.append("missing_estimate_transform")
@@ -540,28 +622,39 @@ def evaluate_solid_state_metrology(
         translation_error: float | None = None
         time_error: float | None = None
         if (
-            reference.transform is not None
+            session_reference is not None
+            and session_reference.transform is not None
             and estimate.transform is not None
         ):
             rotation_error = _rotation_error_deg(
-                reference.transform.as_se3(), estimate.transform.as_se3()
+                session_reference.transform.as_se3(), estimate.transform.as_se3()
             )
             translation_error = _translation_error_m(
-                reference.transform.as_se3(), estimate.transform.as_se3()
+                session_reference.transform.as_se3(), estimate.transform.as_se3()
             )
             if rotation_error > thresholds.max_rotation_error_deg:
                 run_reasons.append("rotation_error_exceeds_threshold")
             if translation_error > thresholds.max_translation_error_m:
                 run_reasons.append("translation_error_exceeds_threshold")
-        if reference.time_offset_sec is not None and estimate.time_offset_sec is not None:
-            time_error = abs(estimate.time_offset_sec - reference.time_offset_sec)
+        if (
+            session_reference is not None
+            and session_reference.time_offset_sec is not None
+            and estimate.time_offset_sec is not None
+        ):
+            time_error = abs(
+                estimate.time_offset_sec - session_reference.time_offset_sec
+            )
             if time_error > thresholds.max_time_offset_error_sec:
                 run_reasons.append("time_offset_error_exceeds_threshold")
         run_metrics.append(
             SolidStateMetrologyRunMetric(
                 estimate_id=estimate.id,
                 session_id=estimate.session_id,
-                remount_id=session.remount_id if session is not None else None,
+                remount_id=(
+                    estimate_session.remount_id
+                    if estimate_session is not None
+                    else None
+                ),
                 rotation_error_deg=rotation_error,
                 translation_error_m=translation_error,
                 time_offset_error_sec=time_error,

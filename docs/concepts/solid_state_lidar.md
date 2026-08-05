@@ -156,14 +156,16 @@ SHA-256 and verifies the source exists; `--verify-sources` runs the same
 integrity report without requiring a numerical PASS. A physical PASS requires
 all of the following:
 
-- an independent extrinsic reference with declared method, uncertainty, source
-  digests, and `evidence_level: independently_measured`;
-- an independent clock reference with declared uncertainty;
+- an independent extrinsic and clock reference for every usable session, with
+  declared method, uncertainty, source digests, and
+  `evidence_level: independently_measured`;
 - at least three usable captures across at least two remounts;
 - a held-out downstream metric that was not consumed by the solver and has a
   predeclared threshold.
-- every reference, usable capture, and estimate source path/digest pair passes
-  the integrity check, with unique IDs and valid estimate-to-session links.
+- every global/session reference, usable capture, and estimate source
+  path/digest pair passes the integrity check, with unique IDs and valid
+  estimate-to-session links. Remounted sessions are compared against their own
+  measured reference rather than one global transform.
 
 Missing evidence remains `planned` or `inconclusive`; it is never converted to
 a PASS by the tool. A missing, mismatched, or structurally inconsistent source

@@ -10,8 +10,10 @@ protocol:
   minimum_usable_sessions: 3
   minimum_remounts: 2
   require_downstream_metric: true
+  require_per_session_reference: true
   notes:
   - replace the reference and estimates with measured artifacts
+  - provide an independent spatial/temporal reference for every usable session
   - repeat across at least two remounts before claiming PASS
 reference:
   extrinsic_method: unknown
@@ -63,14 +65,14 @@ provenance:
   generator: tools/run_solid_state_metrology_evaluation.py
   generator_version: 0.4.0
   source_sha256:
-    generator: a11f27131c0f847a9660aa365369af2798739314c3fe901cff3610625c879708
+    generator: 00330f64f3b988d0dde58c1493587bc077022ff0fd05ad5cf1191cb37fc2c6f9
   command:
   - tools/run_solid_state_metrology_evaluation.py
   - --output
   - docs/assets/solid-state-metrology-evaluation-v01.yaml
   - --markdown-output
   - docs/assets/solid-state-metrology-evaluation-v01.md
-  created_at: '2026-08-05T02:27:05.964987+00:00'
+  created_at: '2026-08-05T02:47:50.872990+00:00'
   notes:
   - physical reference values must be measured independently of the solver
   - no physical PASS is generated when reference or repeat-session evidence is missing
