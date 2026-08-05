@@ -65,6 +65,9 @@ from calibrex.core.solid_state_cross_dataset_benchmark import (
 from calibrex.core.solid_state_failure_analysis import (
     solid_state_failure_analysis_json_schema,
 )
+from calibrex.core.solid_state_synthetic_benchmark import (
+    solid_state_synthetic_benchmark_json_schema,
+)
 from calibrex.core.trajectory import trajectory_json_schema
 from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
@@ -149,6 +152,9 @@ def test_static_schema_files_match_generated_schemas() -> None:
             solid_state_cross_dataset_benchmark_json_schema
         ),
         "solid_state_failure_analysis.schema.json": solid_state_failure_analysis_json_schema,
+        "solid_state_synthetic_benchmark.schema.json": (
+            solid_state_synthetic_benchmark_json_schema
+        ),
         "solid_state_context.schema.json": solid_state_context_json_schema,
         "livox_time_ablation.schema.json": livox_time_ablation_json_schema,
         "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),

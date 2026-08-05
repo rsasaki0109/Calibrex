@@ -110,6 +110,33 @@ mapping can be established, pose interpolation is rejected or the result
 remains non-independent; this is the correct evidence outcome until a
 documented clock mapping is supplied.
 
+## Ground-truth solver gate
+
+Public sensor-pair recordings generally do not include independently surveyed
+extrinsics or an absolute clock reference. Keep that limitation separate from
+the solver-mechanics check by running the deterministic synthetic benchmark:
+
+```bash
+python tools/run_solid_state_synthetic_benchmark.py \
+  --output outputs/solid_state_synthetic_benchmark_v01.yaml \
+  --markdown-output outputs/solid_state_synthetic_benchmark_v01.md \
+  --enforce
+calibrex validate outputs/solid_state_synthetic_benchmark_v01.yaml \
+  --kind solid-state-synthetic-benchmark
+```
+
+The reference case uses a known three-plane motion scene, a perturbed initial
+extrinsic, and a **+30 ms** clock offset. The checked gate recovers the
+reference to below 1e-12 numerical error in this deterministic fixture and rejects a
+fixed-clock known-bad control with a 30 ms time error. Its output records the
+truth, estimate, parameter errors, thresholds, and generator SHA-256 in
+`provenance`. This is a correctness gate for the implementation, not evidence
+of accuracy on a physical sensor pair; real-data claims still require
+independent extrinsic/clock ground truth.
+
+The checked artifact is [YAML](../assets/solid-state-synthetic-benchmark-v01.yaml)
+with a compact [Markdown report](../assets/solid-state-synthetic-benchmark-v01.md).
+
 ## Livox workflow
 
 The checked-in workflow is:

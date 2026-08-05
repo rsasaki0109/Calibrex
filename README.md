@@ -130,6 +130,24 @@ from **0.0957 m to 0.0240 m**, with **0.0242 m** holdout RMSE. This is an
 algorithmic estimate under the declared holdout: the public sequence has no
 independent clock ground truth.
 
+For an absolute solver-correctness gate, run the deterministic synthetic
+truth benchmark. It recovers a known extrinsic and **+30 ms** clock offset,
+then rejects a fixed-clock known-bad control:
+
+```bash
+python tools/run_solid_state_synthetic_benchmark.py \
+  --output outputs/solid-state-synthetic-benchmark.yaml \
+  --markdown-output outputs/solid-state-synthetic-benchmark.md \
+  --enforce
+calibrex validate outputs/solid-state-synthetic-benchmark.yaml \
+  --kind solid-state-synthetic-benchmark
+```
+
+This synthetic gate verifies solver mechanics, not real-sensor accuracy. The
+real-data claim still requires independently measured extrinsics and clock
+truth. The checked result is available as a [schema-valid YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml)
+with a compact [Markdown report](docs/assets/solid-state-synthetic-benchmark-v01.md).
+
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
   ·
