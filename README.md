@@ -163,12 +163,19 @@ python tools/run_solid_state_benchmark_replicates.py \
   --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
   --split-id middle_holdout --split-id late_holdout \
   --seed 0 --seed 17
+python tools/run_solid_state_benchmark_replicates.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --output-root outputs/solid_state_benchmark_v03_replicates \
+  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --append-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --split-id early_holdout --split-id middle_holdout --split-id late_holdout \
+  --seed 0 --seed 17 --seed 42
 python tools/run_solid_state_cross_dataset_benchmark.py \
-  examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
-  --output outputs/solid_state_cross_dataset_benchmark_v02.yaml \
-  --markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md \
-  --html-output outputs/solid_state_cross_dataset_benchmark_v02.html
-calibrex validate outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v03.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v03.md \
+  --html-output outputs/solid_state_cross_dataset_benchmark_v03.html
+calibrex validate outputs/solid_state_cross_dataset_benchmark_v03.yaml \
   --kind solid-state-cross-dataset-benchmark
 ```
 
@@ -313,20 +320,21 @@ limitations, and reproducible provenance](docs/benchmarks/ethz_hand_eye_opencv.m
 
 ### Solid-state LiDAR: reproducible public-data evidence
 
-The v0.2 solid-state protocol runs four paired replicates per dataset across
-two temporal holdout boundaries and two deterministic sampling seeds. Lower
-holdout RMSE is better; positive improvement means adaptive is better than the
-uniform baseline.
+The checked v0.3 solid-state protocol runs nine paired replicates per dataset
+across three temporal holdout boundaries and three deterministic sampling
+seeds. Lower holdout RMSE is better; positive improvement means adaptive is
+better than the uniform baseline.
 
-| Public pair/control | Replicates | Adaptive win rate | Mean improvement (95% CI) | Winner |
+| Public pair/control | Replicates | Adaptive win rate | Mean improvement (95% CI) | Outcome |
 |---|---:|---:|---:|---|
-| AgRob Modular-e Livox MID-70 ↔ RS-LiDAR | 4 | 0.25 | −3.63% (−12.68, 5.94) | uniform |
-| TIERS LidarsCali VLP-16 ↔ Livox Horizon | 4 | 1.00 | +79.19% (+74.19, 84.18) | adaptive |
-| AIST GLIM identity control | 4 | 1.00 | +65.17% (+62.18, 67.99) | adaptive |
+| AgRob Modular-e Livox MID-70 ↔ RS-LiDAR | 9 | 0.556 | −1.34% (−10.16, 6.68) | mixed; adaptive 5/9 |
+| TIERS LidarsCali VLP-16 ↔ Livox Horizon | 9 | 1.00 | +78.76% (+76.00, 81.73) | adaptive 9/9 |
+| AIST GLIM identity control | 9 | 1.00 | +65.67% (+64.18, 66.95) | adaptive 9/9 |
 
-Across 12 scored replicates, adaptive wins 9/12 with mean improvement of
-46.91% and bootstrap 95% CI [25.36, 65.86]%. AgRob is retained as a useful
+Across 27 scored replicates, adaptive wins 23/27 with mean improvement of
+47.70% and bootstrap 95% CI [34.43, 59.99]%. AgRob is retained as a useful
 counterexample rather than hidden: its result varies across split and seed.
+The full checked summary is the [v0.3 benchmark report](docs/assets/solid-state-cross-dataset-benchmark-v03.md).
 These are ground-truth-free temporal-holdout results, not a universal SOTA
 claim. Reproduce the runs and inspect the [public-dataset protocol](docs/tutorials/public_datasets.md#cross-dataset-solid-state-benchmark).
 

@@ -1154,51 +1154,59 @@ python tools/run_solid_state_benchmark_replicates.py \
   --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
   --split-id middle_holdout --split-id late_holdout \
   --seed 0 --seed 17
+python tools/run_solid_state_benchmark_replicates.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --output-root outputs/solid_state_benchmark_v03_replicates \
+  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --append-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --split-id early_holdout --split-id middle_holdout --split-id late_holdout \
+  --seed 0 --seed 17 --seed 42
 python tools/run_solid_state_cross_dataset_benchmark.py \
-  examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
-  --output outputs/solid_state_cross_dataset_benchmark_v02.yaml \
-  --markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md \
-  --html-output outputs/solid_state_cross_dataset_benchmark_v02.html
-calibrex validate outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v03.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v03.md \
+  --html-output outputs/solid_state_cross_dataset_benchmark_v03.html
+calibrex validate outputs/solid_state_cross_dataset_benchmark_v03.yaml \
   --kind solid-state-cross-dataset-benchmark
 ```
 
-The checked v0.2 run uses four paired replicates per dataset (two temporal
-holdout boundaries × two sampling seeds). Lower holdout RMSE is better:
+The checked v0.3 run uses nine paired replicates per dataset (three temporal
+holdout boundaries × three sampling seeds). Lower holdout RMSE is better:
 
 | Dataset | Replicates | Adaptive win rate | Mean improvement (95% CI) | Winner | Reference label |
 |---|---:|---:|---:|---|---|
-| AgRob Modular-e | 4 | 0.25 | -3.63% (-12.68, 5.94) | uniform | real pair, trajectory-only |
-| TIERS LidarsCali | 4 | 1.00 | 79.19% (74.19, 84.18) | adaptive | real pair, trajectory-only |
-| AIST GLIM | 4 | 1.00 | 65.17% (62.18, 67.99) | adaptive | identity control |
+| AgRob Modular-e | 9 | 0.556 | -1.34% (-10.16, 6.68) | mixed (5/9) | real pair, trajectory-only |
+| TIERS LidarsCali | 9 | 1.00 | 78.76% (76.00, 81.73) | adaptive | real pair, trajectory-only |
+| AIST GLIM | 9 | 1.00 | 65.67% (64.18, 66.95) | adaptive | identity control |
 
-Across 12 scored replicates, adaptive won 9/12 (win rate 0.75), with mean
-improvement 46.91% and bootstrap 95% CI [25.36, 65.86]%. AgRob is a useful
+Across 27 scored replicates, adaptive won 23/27 (win rate 0.852), with mean
+improvement 47.70% and bootstrap 95% CI [34.43, 59.99]%. AgRob is a useful
 counterexample: its adaptive result is not stable across the tested splits and
 seeds. TIERS and GLIM still expose `max_iterations` in some artifacts, so the
 failure classification remains visible even when the holdout comparison is
 scored. These results are temporal-holdout evidence, not a universal SOTA
 claim; independently surveyed extrinsic ground truth and unseen public
-sequences remain the next validation gate.
+sequences remain the next validation gate. The compact checked report is
+[`solid-state-cross-dataset-benchmark-v03.md`](../assets/solid-state-cross-dataset-benchmark-v03.md).
 
 To inspect the AgRob counterexample without tuning on its holdout, generate a
 digest-bound diagnostic artifact:
 
 ```bash
 python tools/run_solid_state_failure_analysis.py \
-  outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  outputs/solid_state_cross_dataset_benchmark_v03.yaml \
   --dataset-id agrob_modular_e \
-  --output outputs/agrob_solid_state_failure_analysis.yaml \
-  --markdown-output outputs/agrob_solid_state_failure_analysis.md \
-  --html-output outputs/agrob_solid_state_failure_analysis.html
-calibrex validate outputs/agrob_solid_state_failure_analysis.yaml \
+  --output outputs/agrob_solid_state_failure_analysis_v03.yaml \
+  --markdown-output outputs/agrob_solid_state_failure_analysis_v03.md \
+  --html-output outputs/agrob_solid_state_failure_analysis_v03.html
+calibrex validate outputs/agrob_solid_state_failure_analysis_v03.yaml \
   --kind solid-state-failure-analysis
 ```
 
-The current analysis identifies three uniform-winning AgRob replicates where
+The current analysis identifies four uniform-winning AgRob replicates where
 adaptive has lower train RMSE but higher holdout RMSE, and records sampling-seed
 and clock-profile variation as follow-up hypotheses. It also confirms that all
-eight variants are rank 6 and converged, so the counterexample is not explained
+18 variants are rank 6 and converged, so the counterexample is not explained
 by a simple rank or termination failure. Residual histograms and per-iteration
 correspondence counts are not yet present in the v0.1 result artifact; the
 findings are therefore explicitly labelled candidate causes.

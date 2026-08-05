@@ -106,7 +106,32 @@ calibrex validate outputs/solid_state_cross_dataset_benchmark_v02.yaml \
 
 For a stronger public-only stress test, add `early_holdout` and seed `42`
 after the four-replicate run is reproducible. Treat that as a new declared
-benchmark version, not as an untracked tuning pass.
+benchmark version, not as an untracked tuning pass. The checked stronger run
+is v0.3: it appends the existing v0.2 pilot and evaluates all three holdout
+boundaries with seeds `0`, `17`, and `42`:
+
+```bash
+python tools/run_solid_state_benchmark_replicates.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --output-root outputs/solid_state_benchmark_v03_replicates \
+  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --append-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --split-id early_holdout \
+  --split-id middle_holdout \
+  --split-id late_holdout \
+  --seed 0 \
+  --seed 17 \
+  --seed 42
+
+python tools/run_solid_state_cross_dataset_benchmark.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v03.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v03.md \
+  --html-output outputs/solid_state_cross_dataset_benchmark_v03.html
+
+calibrex validate outputs/solid_state_cross_dataset_benchmark_v03.yaml \
+  --kind solid-state-cross-dataset-benchmark
+```
 
 ## 4. Read the result honestly
 
@@ -120,11 +145,14 @@ The report should retain, at minimum:
 - adaptive-vs-uniform deltas and bootstrap intervals;
 - the dataset reference label and its limitation.
 
-The checked v0.2 public run is a useful example: adaptive wins on 9 of 12
-scored replicates overall, but AgRob is retained as a counterexample rather
-than hidden. That is a comparative temporal-holdout result, not proof that the
-adaptive method has lower absolute calibration error on every solid-state
-LiDAR.
+The checked v0.3 public run is available as a compact
+[provenance-bound report](../assets/solid-state-cross-dataset-benchmark-v03.md):
+adaptive wins 23/27 scored replicates across all three datasets, with mean
+holdout improvement **47.70%** and bootstrap 95% CI **[34.43, 59.99]%**.
+AgRob wins are mixed at 5/9 with mean **−1.34%** and CI **[−10.16, 6.68]%**;
+TIERS and GLIM each favor adaptive in 9/9 replicates. This is comparative
+temporal-holdout evidence, not proof that adaptive has lower absolute
+calibration error on every solid-state LiDAR.
 
 ## 5. Add a solver change safely
 
@@ -136,6 +164,12 @@ For every solver improvement:
 4. inspect the known-bad and identity-control behavior;
 5. compare the aggregate only after the per-dataset rows are reviewed;
 6. update the protocol version if a split, budget, metric, or threshold changes.
+
+The current default remains `adaptive_mad` with the uniform correspondence
+fallback. A separate public AgRob isolation probe using adaptive voxelization
+with MAD rejection disabled lost all 9 paired conditions (mean improvement
+**−22.42%** versus `uniform_none`) and was not adopted. This is a diagnostic
+decision, not a new holdout-tuned protocol variant.
 
 Never use the holdout score to choose a seed, crop, motion window, adaptive
 fallback, or threshold and then call that same score an independent result.

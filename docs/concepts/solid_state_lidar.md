@@ -149,14 +149,17 @@ calibrex validate \
   examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
   --kind solid-state-cross-dataset-benchmark-config
 python tools/run_solid_state_cross_dataset_benchmark.py \
-  examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
-  --output outputs/solid_state_cross_dataset_benchmark_v02.yaml \
-  --markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v03.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v03.md
 ```
 
 This produces ground-truth-free temporal-holdout evidence and comparative
 failure/known-bad evidence. It does not produce an absolute extrinsic or clock
-accuracy claim.
+accuracy claim. The checked v0.3 report scores 27 paired replicates: adaptive
+wins 23/27 overall, while the AgRob real-pair subset remains mixed at 5/9.
+See the [full v0.3 report](../assets/solid-state-cross-dataset-benchmark-v03.md)
+for per-dataset intervals and limitations.
 
 ## Optional physical ground-truth packet (future)
 
