@@ -131,18 +131,40 @@ reference to below 1e-12 numerical error in this deterministic fixture and rejec
 fixed-clock known-bad control with a 30 ms time error. Its output records the
 truth, estimate, parameter errors, thresholds, and generator SHA-256 in
 `provenance`. This is a correctness gate for the implementation, not evidence
-of accuracy on a physical sensor pair; real-data claims still require
+of accuracy on a physical sensor pair; absolute real-data claims still require
 independent extrinsic/clock ground truth.
 
 The checked artifact is [YAML](../assets/solid-state-synthetic-benchmark-v01.yaml)
 with a compact [Markdown report](../assets/solid-state-synthetic-benchmark-v01.md).
 
-## Physical ground-truth packet
+## Public-data-only evaluation
 
-The synthetic gate does not establish accuracy on a physical sensor pair. The
-next gate is a measurement packet that keeps spatial and temporal metrology
-separate from solver output. For a practical first collection, generate four
-captures across two remounts with the [physical collection runbook](../tutorials/solid_state_metrology_collection.md):
+When new hardware data cannot be collected, use the public benchmark as the
+primary gate. The [public-data runbook](../tutorials/solid_state_public_benchmark.md)
+freezes paired capture windows, temporal holdouts, solver budgets, sampling
+seeds, and known-bad/control semantics across AgRob, TIERS, and AIST GLIM:
+
+```bash
+calibrex validate \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --kind solid-state-cross-dataset-benchmark-config
+python tools/run_solid_state_cross_dataset_benchmark.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md
+```
+
+This produces ground-truth-free temporal-holdout evidence and comparative
+failure/known-bad evidence. It does not produce an absolute extrinsic or clock
+accuracy claim.
+
+## Optional physical ground-truth packet (future)
+
+The independent metrology packet is retained as a future extension only. It is
+not required for the public-data-only project and must remain `planned` or
+`inconclusive` when surveyed extrinsic/clock references are unavailable. If a
+future user obtains those measurements, the [physical collection runbook](../tutorials/solid_state_metrology_collection.md)
+describes the schema-valid packet and integrity gate:
 
 ```bash
 python tools/run_solid_state_metrology_evaluation.py \

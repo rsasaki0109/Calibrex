@@ -1,7 +1,12 @@
-# Solid-state LiDAR physical collection runbook
+# Solid-state LiDAR physical collection runbook (future-only)
 
-This runbook turns the physical ground-truth gate into a repeatable data
-collection task. Public recordings are useful for solver smoke tests and
+> This is not the current project path. The supported scope is
+> [public-data-only evaluation](solid_state_public_benchmark.md). Keep this
+> document as a future extension for users who can obtain independent
+> metrology; no physical collection is required for the current benchmark.
+
+This runbook turns the optional physical ground-truth gate into a repeatable
+data-collection task. Public recordings are useful for solver smoke tests and
 holdout behavior, but they normally do not contain an independently surveyed
 extrinsic and clock reference. They cannot, by themselves, support a physical
 accuracy claim.

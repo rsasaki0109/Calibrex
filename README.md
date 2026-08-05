@@ -143,45 +143,43 @@ calibrex validate outputs/solid-state-synthetic-benchmark.yaml \
   --kind solid-state-synthetic-benchmark
 ```
 
-This synthetic gate verifies solver mechanics, not real-sensor accuracy. The
-real-data claim still requires independently measured extrinsics and clock
-truth. The checked result is available as a [schema-valid YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml)
+This synthetic gate verifies solver mechanics, not real-sensor accuracy. An
+absolute real-sensor accuracy claim still requires independently measured
+extrinsics and clock truth. The checked result is available as a [schema-valid YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml)
 with a compact [Markdown report](docs/assets/solid-state-synthetic-benchmark-v01.md).
 
-For the physical gate, start with the recommended four-capture/two-remount
-collection plan. The [physical collection runbook](docs/tutorials/solid_state_metrology_collection.md)
-explains how to fill its independent per-session references, solver estimates,
-source digests, and unused downstream holdout metric:
+The current solid-state evaluation scope is public-data-only. Use the
+[public benchmark runbook](docs/tutorials/solid_state_public_benchmark.md) to
+compare paired solver variants on the same capture windows, temporal holdouts,
+sampling seeds, and known-bad/control fixtures:
 
 ```bash
-python tools/run_solid_state_metrology_evaluation.py \
-  --prepare-collection-plan \
-  --plan-sessions 4 \
-  --plan-remounts 2 \
-  --output outputs/solid-state-metrology/plan.yaml \
-  --markdown-output outputs/solid-state-metrology/plan.md
-# Edit the output packet with measured evidence, then evaluate it.
-python tools/run_solid_state_metrology_evaluation.py \
-  --input outputs/solid-state-metrology/plan.yaml \
-  --output outputs/solid-state-metrology/final.yaml \
-  --markdown-output outputs/solid-state-metrology/final.md \
-  --enforce
+calibrex validate \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --kind solid-state-cross-dataset-benchmark-config
+python tools/run_solid_state_benchmark_replicates.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
+  --output-root outputs/solid_state_benchmark_v02_replicates \
+  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --split-id middle_holdout --split-id late_holdout \
+  --seed 0 --seed 17
+python tools/run_solid_state_cross_dataset_benchmark.py \
+  examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
+  --output outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  --markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md \
+  --html-output outputs/solid_state_cross_dataset_benchmark_v02.html
+calibrex validate outputs/solid_state_cross_dataset_benchmark_v02.yaml \
+  --kind solid-state-cross-dataset-benchmark
 ```
 
-The generator emits a schema-valid but intentionally incomplete packet with
-two captures per remount. The smaller empty template remains available as the
-[checked YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml).
+This gate can support reproducible temporal-holdout comparisons, observability,
+point-time/deskew evidence, convergence/failure analysis, and known-bad
+detection. It cannot establish absolute extrinsic or clock accuracy because
+the public recordings do not provide independent metrology.
 
-With `--enforce`, Calibrex also verifies every declared reference, capture, and
-estimate source relative to the input packet: the path must exist and its
-SHA-256 must match. It also rejects duplicate IDs and broken estimate/session
-links. Each usable session must also carry its own independent reference, so a
-remount is not incorrectly scored against a single global transform. A missing
-or tampered source cannot become a physical PASS. Use
-`--verify-sources` without `--enforce` to inspect the integrity report first.
-
-The checked physical packet is intentionally **PLANNED**, not a fabricated
-accuracy result: [YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml)
+The independent physical-metrology packet remains an optional future path for
+users who can obtain surveyed references. Its checked artifact is intentionally
+planned, not a result: [YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml)
 and [Markdown report](docs/assets/solid-state-metrology-evaluation-v01.md).
 
 <p align="center">
