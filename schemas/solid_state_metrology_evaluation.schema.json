@@ -1,0 +1,1085 @@
+{
+  "$defs": {
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "SolidStateMetrologyDownstreamMetric": {
+      "additionalProperties": false,
+      "description": "A held-out physical-use metric not consumed by the solver.",
+      "properties": {
+        "baseline_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Value"
+        },
+        "held_out": {
+          "default": false,
+          "title": "Held Out",
+          "type": "boolean"
+        },
+        "independent_of_solver": {
+          "default": false,
+          "title": "Independent Of Solver",
+          "type": "boolean"
+        },
+        "lower_is_better": {
+          "default": true,
+          "title": "Lower Is Better",
+          "type": "boolean"
+        },
+        "max_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Value"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "unit"
+      ],
+      "title": "SolidStateMetrologyDownstreamMetric",
+      "type": "object"
+    },
+    "SolidStateMetrologyEstimate": {
+      "additionalProperties": false,
+      "description": "One solver estimate tied to a captured and remounted session.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "source_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Sha256"
+        },
+        "time_offset_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Offset Sec"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "session_id"
+      ],
+      "title": "SolidStateMetrologyEstimate",
+      "type": "object"
+    },
+    "SolidStateMetrologyEvaluationMetrics": {
+      "additionalProperties": false,
+      "description": "Aggregate metrics retained alongside every per-session result.",
+      "properties": {
+        "downstream_metric_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Downstream Metric Passed"
+        },
+        "evaluated_run_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Evaluated Run Count",
+          "type": "integer"
+        },
+        "max_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rotation Error Deg"
+        },
+        "max_time_offset_error_sec": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Time Offset Error Sec"
+        },
+        "max_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Translation Error M"
+        },
+        "passing_run_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Passing Run Count",
+          "type": "integer"
+        },
+        "remount_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Remount Count",
+          "type": "integer"
+        },
+        "run_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Run Count",
+          "type": "integer"
+        },
+        "run_metrics": {
+          "items": {
+            "$ref": "#/$defs/SolidStateMetrologyRunMetric"
+          },
+          "title": "Run Metrics",
+          "type": "array"
+        },
+        "usable_session_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Usable Session Count",
+          "type": "integer"
+        }
+      },
+      "title": "SolidStateMetrologyEvaluationMetrics",
+      "type": "object"
+    },
+    "SolidStateMetrologyEvaluationProtocol": {
+      "additionalProperties": false,
+      "description": "Predeclared physical evidence requirements for one sensor pair.",
+      "properties": {
+        "frame_convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Frame Convention",
+          "type": "string"
+        },
+        "minimum_remounts": {
+          "default": 2,
+          "minimum": 1,
+          "title": "Minimum Remounts",
+          "type": "integer"
+        },
+        "minimum_usable_sessions": {
+          "default": 3,
+          "minimum": 1,
+          "title": "Minimum Usable Sessions",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "require_downstream_metric": {
+          "default": true,
+          "title": "Require Downstream Metric",
+          "type": "boolean"
+        },
+        "required_clock_method": {
+          "default": "hardware_trigger",
+          "enum": [
+            "hardware_trigger",
+            "common_pps",
+            "ptp",
+            "external_timebase",
+            "timestamp_injection",
+            "unknown"
+          ],
+          "title": "Required Clock Method",
+          "type": "string"
+        },
+        "required_extrinsic_method": {
+          "default": "surveyed_rig",
+          "enum": [
+            "surveyed_rig",
+            "optical_tracker",
+            "robot_arm",
+            "calibration_target",
+            "mechanical_cad",
+            "unknown"
+          ],
+          "title": "Required Extrinsic Method",
+          "type": "string"
+        },
+        "source_sensor": {
+          "title": "Source Sensor",
+          "type": "string"
+        },
+        "target_sensor": {
+          "title": "Target Sensor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "source_sensor",
+        "target_sensor"
+      ],
+      "title": "SolidStateMetrologyEvaluationProtocol",
+      "type": "object"
+    },
+    "SolidStateMetrologyEvaluationProvenance": {
+      "additionalProperties": false,
+      "description": "Digest-bound provenance for the generated physical evaluation.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "SolidStateMetrologyEvaluationProvenance",
+      "type": "object"
+    },
+    "SolidStateMetrologyEvaluationThresholds": {
+      "additionalProperties": false,
+      "description": "Absolute accuracy gates and maximum reference uncertainty.",
+      "properties": {
+        "max_reference_rotation_uncertainty_deg": {
+          "default": 0.1,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Reference Rotation Uncertainty Deg",
+          "type": "number"
+        },
+        "max_reference_time_uncertainty_sec": {
+          "default": 0.0002,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Reference Time Uncertainty Sec",
+          "type": "number"
+        },
+        "max_reference_translation_uncertainty_m": {
+          "default": 0.002,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Reference Translation Uncertainty M",
+          "type": "number"
+        },
+        "max_rotation_error_deg": {
+          "default": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Rotation Error Deg",
+          "type": "number"
+        },
+        "max_time_offset_error_sec": {
+          "default": 0.001,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Time Offset Error Sec",
+          "type": "number"
+        },
+        "max_translation_error_m": {
+          "default": 0.01,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Translation Error M",
+          "type": "number"
+        }
+      },
+      "title": "SolidStateMetrologyEvaluationThresholds",
+      "type": "object"
+    },
+    "SolidStateMetrologyReference": {
+      "additionalProperties": false,
+      "description": "Independently measured spatial and temporal reference values.",
+      "properties": {
+        "clock_method": {
+          "default": "unknown",
+          "enum": [
+            "hardware_trigger",
+            "common_pps",
+            "ptp",
+            "external_timebase",
+            "timestamp_injection",
+            "unknown"
+          ],
+          "title": "Clock Method",
+          "type": "string"
+        },
+        "extrinsic_method": {
+          "default": "unknown",
+          "enum": [
+            "surveyed_rig",
+            "optical_tracker",
+            "robot_arm",
+            "calibration_target",
+            "mechanical_cad",
+            "unknown"
+          ],
+          "title": "Extrinsic Method",
+          "type": "string"
+        },
+        "independent_of_solver": {
+          "default": false,
+          "title": "Independent Of Solver",
+          "type": "boolean"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "rotation_uncertainty_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Uncertainty Deg"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "time_offset_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Offset Sec"
+        },
+        "time_uncertainty_sec": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Uncertainty Sec"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "translation_uncertainty_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Uncertainty M"
+        }
+      },
+      "title": "SolidStateMetrologyReference",
+      "type": "object"
+    },
+    "SolidStateMetrologyRunMetric": {
+      "additionalProperties": false,
+      "description": "Absolute errors and gate outcome for one solver estimate.",
+      "properties": {
+        "estimate_id": {
+          "title": "Estimate Id",
+          "type": "string"
+        },
+        "gate_passed": {
+          "default": false,
+          "title": "Gate Passed",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "remount_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Remount Id"
+        },
+        "rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Error Deg"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "time_offset_error_sec": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Offset Error Sec"
+        },
+        "translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Error M"
+        }
+      },
+      "required": [
+        "estimate_id",
+        "session_id"
+      ],
+      "title": "SolidStateMetrologyRunMetric",
+      "type": "object"
+    },
+    "SolidStateMetrologySession": {
+      "additionalProperties": false,
+      "description": "One capture session, including its mechanical remount identity.",
+      "properties": {
+        "capture_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Path"
+        },
+        "capture_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Sha256"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "remount_id": {
+          "title": "Remount Id",
+          "type": "string"
+        },
+        "status": {
+          "default": "usable",
+          "enum": [
+            "usable",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "remount_id"
+      ],
+      "title": "SolidStateMetrologySession",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Physical ground-truth evaluation or an explicitly incomplete template.",
+  "properties": {
+    "decision": {
+      "default": "collect",
+      "enum": [
+        "collect",
+        "review",
+        "pass",
+        "fail"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "downstream_metric": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SolidStateMetrologyDownstreamMetric"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "estimates": {
+      "items": {
+        "$ref": "#/$defs/SolidStateMetrologyEstimate"
+      },
+      "title": "Estimates",
+      "type": "array"
+    },
+    "evaluation_id": {
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/SolidStateMetrologyEvaluationMetrics"
+    },
+    "protocol": {
+      "$ref": "#/$defs/SolidStateMetrologyEvaluationProtocol"
+    },
+    "provenance": {
+      "$ref": "#/$defs/SolidStateMetrologyEvaluationProvenance"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "reference": {
+      "$ref": "#/$defs/SolidStateMetrologyReference"
+    },
+    "schema_version": {
+      "const": "slac.solid_state_metrology_evaluation/v0.1",
+      "default": "slac.solid_state_metrology_evaluation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sessions": {
+      "items": {
+        "$ref": "#/$defs/SolidStateMetrologySession"
+      },
+      "title": "Sessions",
+      "type": "array"
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "inconclusive",
+        "pass",
+        "fail"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/SolidStateMetrologyEvaluationThresholds"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "protocol",
+    "reference",
+    "thresholds",
+    "provenance"
+  ],
+  "title": "SolidStateMetrologyEvaluationArtifact",
+  "type": "object"
+}

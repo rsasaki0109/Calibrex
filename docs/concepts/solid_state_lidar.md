@@ -137,6 +137,35 @@ independent extrinsic/clock ground truth.
 The checked artifact is [YAML](../assets/solid-state-synthetic-benchmark-v01.yaml)
 with a compact [Markdown report](../assets/solid-state-synthetic-benchmark-v01.md).
 
+## Physical ground-truth packet
+
+The synthetic gate does not establish accuracy on a physical sensor pair. The
+next gate is a measurement packet that keeps spatial and temporal metrology
+separate from solver output. Generate a template with:
+
+```bash
+python tools/run_solid_state_metrology_evaluation.py \
+  --output outputs/solid-state-metrology-evaluation.yaml \
+  --markdown-output outputs/solid-state-metrology-evaluation.md
+```
+
+After editing the packet with the measured reference and solver estimates,
+rerun it with `--input ... --enforce`. A physical PASS requires all of the
+following:
+
+- an independent extrinsic reference with declared method, uncertainty, source
+  digests, and `evidence_level: independently_measured`;
+- an independent clock reference with declared uncertainty;
+- at least three usable captures across at least two remounts;
+- a held-out downstream metric that was not consumed by the solver and has a
+  predeclared threshold.
+
+Missing evidence remains `planned` or `inconclusive`; it is never converted to
+a PASS by the tool. The checked packet is therefore an intentionally empty
+[YAML template](../assets/solid-state-metrology-evaluation-v01.yaml) with a
+[Markdown report](../assets/solid-state-metrology-evaluation-v01.md), not a
+physical accuracy claim.
+
 ## Livox workflow
 
 The checked-in workflow is:

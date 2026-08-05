@@ -120,6 +120,10 @@ from calibrex.core.solid_state_failure_analysis import (
     SOLID_STATE_FAILURE_ANALYSIS_SCHEMA_VERSION,
     SolidStateFailureAnalysisManifest,
 )
+from calibrex.core.solid_state_metrology_evaluation import (
+    SOLID_STATE_METROLOGY_EVALUATION_SCHEMA_VERSION,
+    SolidStateMetrologyEvaluationArtifact,
+)
 from calibrex.core.solid_state_synthetic_benchmark import (
     SOLID_STATE_SYNTHETIC_BENCHMARK_SCHEMA_VERSION,
     SolidStateSyntheticBenchmarkArtifact,
@@ -198,6 +202,7 @@ ValidationKind = Literal[
     "solid-state-cross-dataset-benchmark",
     "solid-state-failure-analysis",
     "solid-state-synthetic-benchmark",
+    "solid-state-metrology-evaluation",
     "solid-state-context",
     "livox-time-ablation",
 ]
@@ -253,6 +258,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "solid-state-cross-dataset-benchmark": SolidStateCrossDatasetBenchmarkManifest,
     "solid-state-failure-analysis": SolidStateFailureAnalysisManifest,
     "solid-state-synthetic-benchmark": SolidStateSyntheticBenchmarkArtifact,
+    "solid-state-metrology-evaluation": SolidStateMetrologyEvaluationArtifact,
     "solid-state-context": SolidStateLidarCalibrationContext,
     "livox-time-ablation": LivoxTimeAblationManifest,
 }
@@ -326,6 +332,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     ),
     SOLID_STATE_FAILURE_ANALYSIS_SCHEMA_VERSION: "solid-state-failure-analysis",
     SOLID_STATE_SYNTHETIC_BENCHMARK_SCHEMA_VERSION: "solid-state-synthetic-benchmark",
+    SOLID_STATE_METROLOGY_EVALUATION_SCHEMA_VERSION: "solid-state-metrology-evaluation",
     SOLID_STATE_CONTEXT_SCHEMA_VERSION: "solid-state-context",
     LIVOX_TIME_ABLATION_SCHEMA_VERSION: "livox-time-ablation",
 }

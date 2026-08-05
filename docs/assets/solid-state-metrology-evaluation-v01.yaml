@@ -1,0 +1,71 @@
+schema_version: slac.solid_state_metrology_evaluation/v0.1
+evaluation_id: solid-state-metrology-v0.1-template
+protocol:
+  name: solid_state_physical_ground_truth
+  source_sensor: lidar_source
+  target_sensor: lidar_target
+  frame_convention: T_parent_child
+  required_extrinsic_method: surveyed_rig
+  required_clock_method: hardware_trigger
+  minimum_usable_sessions: 3
+  minimum_remounts: 2
+  require_downstream_metric: true
+  notes:
+  - replace the reference and estimates with measured artifacts
+  - repeat across at least two remounts before claiming PASS
+reference:
+  extrinsic_method: unknown
+  clock_method: unknown
+  independent_of_solver: false
+  source_paths: []
+  source_sha256: {}
+  notes:
+  - 'planned template: no physical reference is supplied'
+  - reference provenance must be independent of the solver
+sessions: []
+estimates: []
+thresholds:
+  max_rotation_error_deg: 0.5
+  max_translation_error_m: 0.01
+  max_time_offset_error_sec: 0.001
+  max_reference_rotation_uncertainty_deg: 0.1
+  max_reference_translation_uncertainty_m: 0.002
+  max_reference_time_uncertainty_sec: 0.0002
+metrics:
+  run_count: 0
+  evaluated_run_count: 0
+  passing_run_count: 0
+  usable_session_count: 0
+  remount_count: 0
+  run_metrics: []
+status: planned
+decision: collect
+reasons:
+- reference_not_declared_independent_of_solver
+- extrinsic_reference_method_does_not_match_protocol
+- clock_reference_method_does_not_match_protocol
+- missing_reference_transform
+- missing_reference_time_offset
+- missing_reference_source_provenance
+- missing_reference_rotation_uncertainty
+- missing_reference_translation_uncertainty
+- missing_reference_time_uncertainty
+- insufficient_usable_sessions
+- insufficient_remounts
+- missing_downstream_metric
+- missing_estimates
+provenance:
+  generator: tools/run_solid_state_metrology_evaluation.py
+  generator_version: 0.4.0
+  source_sha256:
+    generator: a5f1a1d957e3fbdfe4ffb3284b2378ba26763b198d5481be5d0c09e9dd075aeb
+  command:
+  - tools/run_solid_state_metrology_evaluation.py
+  - --output
+  - docs/assets/solid-state-metrology-evaluation-v01.yaml
+  - --markdown-output
+  - docs/assets/solid-state-metrology-evaluation-v01.md
+  created_at: '2026-08-05T01:52:58.941833+00:00'
+  notes:
+  - physical reference values must be measured independently of the solver
+  - no physical PASS is generated when reference or repeat-session evidence is missing

@@ -148,6 +148,27 @@ real-data claim still requires independently measured extrinsics and clock
 truth. The checked result is available as a [schema-valid YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml)
 with a compact [Markdown report](docs/assets/solid-state-synthetic-benchmark-v01.md).
 
+For the physical gate, generate the schema-valid measurement packet template,
+fill it with independently surveyed extrinsics, clock-reference evidence,
+repeat remount sessions, solver estimates, and an unused downstream holdout
+metric, then enforce the result:
+
+```bash
+python tools/run_solid_state_metrology_evaluation.py \
+  --output outputs/solid-state-metrology-evaluation.yaml \
+  --markdown-output outputs/solid-state-metrology-evaluation.md
+# Edit the output packet with measured evidence, then evaluate it.
+python tools/run_solid_state_metrology_evaluation.py \
+  --input outputs/solid-state-metrology-evaluation.yaml \
+  --output outputs/solid-state-metrology-evaluation-final.yaml \
+  --markdown-output outputs/solid-state-metrology-evaluation-final.md \
+  --enforce
+```
+
+The checked physical packet is intentionally **PLANNED**, not a fabricated
+accuracy result: [YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml)
+and [Markdown report](docs/assets/solid-state-metrology-evaluation-v01.md).
+
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
   ·
