@@ -50,13 +50,14 @@ standalone camera-LiDAR calibration algorithm. Supply an officially downloaded
 KITTI raw sequence with `--dataset-path` when evaluating real data.
 
 <p align="center">
-  <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
+  <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
 </p>
 
 <p align="center">
-  <sub>Real TIERS Indoor02 moving-platform replay: a Velodyne VLP-16 motion map
-  supports online Ouster OS1 calibration, with 106 of 108 batches accepted by
-  holdout gates.</sub>
+  <sub><b>Real A2D2 camera × LiDAR:</b> front-left camera frames with real
+  camera-view LiDAR returns. A2D2 distributes these points pre-registered into
+  the camera view, so this is visual evidence—not independent extrinsic
+  accuracy.</sub>
 </p>
 
 ## Public-data gallery
@@ -83,7 +84,7 @@ KITTI raw sequence with `--dataset-path` when evaluating real data.
 <table>
   <tr>
     <td width="33%">
-      <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
+      <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
     </td>
     <td width="33%">
       <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
@@ -93,7 +94,7 @@ KITTI raw sequence with `--dataset-path` when evaluating real data.
     </td>
   </tr>
   <tr>
-    <td><sub><b>A2D2 camera × LiDAR</b><br>Real front-left camera frames with real camera-view LiDAR returns. A2D2 distributes these points pre-registered into the camera view, so this is visual evidence—not independent extrinsic accuracy.</sub></td>
+    <td><sub><b>TIERS moving platform</b><br>A Velodyne VLP-16 motion map supports online Ouster OS1 calibration, with 106 of 108 batches accepted by holdout gates.</sub></td>
     <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
     <td><sub><b>Livox before → after</b><br>Real Horizon PCD returns through the native registration refinement replay; the public pair has no transform ground truth.</sub></td>
   </tr>
