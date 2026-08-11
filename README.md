@@ -7,6 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/rsasaki0109/Calibrex/releases/latest"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/rsasaki0109/Calibrex"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
@@ -59,6 +60,11 @@ KITTI raw sequence with `--dataset-path` when evaluating real data.
   the camera view, so this is visual evidence—not independent extrinsic
   accuracy.</sub>
 </p>
+
+Tried it on your rig? Share a sanitized result or a useful failure case in the
+[v0.4.1 launch discussion](https://github.com/rsasaki0109/Calibrex/discussions/61).
+If the evidence-first workflow earns a place in your calibration stack,
+consider starring Calibrex so other robotics teams can find it.
 
 ## Public-data gallery
 
@@ -469,8 +475,15 @@ data cannot falsify.
 
 ## Install
 
-Calibrex is currently distributed from source. The quickstart above installs
-the core package; development and optional backends remain explicit:
+The supported no-source install is the versioned wheel attached to the
+[v0.4.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.4.1):
+
+```bash
+python -m pip install \
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.4.1/calibrex-0.4.1-py3-none-any.whl"
+```
+
+Development checkouts and optional backends remain explicit:
 
 ```bash
 python -m pip install -e ".[dev]"
