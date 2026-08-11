@@ -31,7 +31,8 @@ schema-valid result and review report, and verifies a digest-bound provenance
 bundle:
 
 ```bash
-python -m pip install calibrex
+python -m pip install \
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.4.1/calibrex-0.4.1-py3-none-any.whl"
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
