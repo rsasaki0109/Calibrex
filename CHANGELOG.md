@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Switched the public installation path to the verified GitHub Release wheel
+  and removed the automatic PyPI publishing workflow following the maintainer
+  decision to skip PyPI distribution.
+
 ## 0.4.1 - 2026-08-11
 
 - Promoted the no-download KITTI-shaped Camera-LiDAR evidence path into a
