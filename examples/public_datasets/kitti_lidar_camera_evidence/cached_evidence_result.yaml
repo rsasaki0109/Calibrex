@@ -1,40 +1,40 @@
 schema_version: slac.result/v0.1
 run:
-  id: kitti_lidar_camera_evidence_example
-  slac_version: 0.1.0a1
-  git_commit: 44308be
-  config_sha256: 5e70ead28058f53724aaf455e9c6fdf4332213323746ab3f5e82bf064d3934ee
-  dataset_sha256: 8c7c7ddebfa94b63b3b4382d62b07fc5ff9921e1c693c1912c805dae97a40c9d
-  status: warning
+  id: 2026-08-11T12-57-16Z_kitti_lidar_camera_evidence
+  slac_version: 0.4.0
+  git_commit: 835d8c9
+  config_sha256: d67f2fba0ecbdfa63f7387b787da76cd69afe12f90f23d078c3e47c7debea7e9
+  dataset_sha256: 632102322a4ed04fc69894507bcf7eba15d7c739dfa5dd66002680b0d8e95b28
+  status: failed
   domain: autonomous_driving
-  created_at: '2026-07-02T22:20:11Z'
+  created_at: '2026-08-11T12:57:16.695643+00:00'
   provenance:
     pipeline: multi_sensor_slac
     solver_backend: scipy
     max_iterations: 20
     seed: null
     dataset_type: kitti_raw
-    dataset_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync
+    dataset_path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync
     dry_run: false
     problem_summary:
       name: kitti_lidar_camera_evidence
       pipeline: multi_sensor_slac
       variables: 5
       estimated_variables: 4
-      factors: 4
+      factors: 5
       priors: 3
       gauges: 1
     problem_observability:
       estimated_dimension: 21
       fixed_dimension: 4
-      factor_count: 4
+      factor_count: 5
       prior_count: 3
       gauge_count: 1
       weak_directions: []
       grade: pass
     dataset_inspection:
       dataset_type: kitti_raw
-      path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync
+      path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync
       exists: true
       manifest: null
       streams:
@@ -201,16 +201,16 @@ run:
           camera_timestamp_ns: 1317042000000000000
           lidar_timestamp_ns: 1317042000005000000
           delta_ms: 5.0
-          camera_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000000.png
-          lidar_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000000.bin
+          camera_path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\image_02\data\0000000000.png
+          lidar_path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\velodyne_points\data\0000000000.bin
           lidar_point_count: 12
         - camera_index: 1
           lidar_index: 1
           camera_timestamp_ns: 1317042001000000000
           lidar_timestamp_ns: 1317042001005000000
           delta_ms: 5.0
-          camera_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000001.png
-          lidar_path: examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000001.bin
+          camera_path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\image_02\data\0000000001.png
+          lidar_path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\velodyne_points\data\0000000001.bin
           lidar_point_count: 12
     dataset_initialization:
       source: kitti_raw
@@ -255,24 +255,645 @@ run:
       timed_out: false
       stdout_tail: null
       stderr_tail: null
+      stdout_sha256: null
+      stderr_sha256: null
+      duration_seconds: null
       error: null
     koide_lidar_camera_camera_streams:
     - camera_left_color
     koide_lidar_camera_lidar_streams:
     - velodyne_points
+    koide_lidar_camera_training_isolation_declared: false
     koide_lidar_camera_loaded_transforms: {}
+    koide_lidar_camera_tool_identity:
+      tool_name: koide_lidar_camera
+      tool_version: null
+      source_repository: null
+      source_commit: null
+      license_spdx: null
+      adapter_version: calibrex.koide_lidar_camera_adapter/v0.2
+      command: null
+      result_path: null
+      result_sha256: null
+      result_size_bytes: null
+      training_isolation_declared: false
+      training_isolation_evidence: null
+      identity_declaration_source: factor.options plus hashed result payload
+      missing_required_fields:
+      - tool_version
+      - source_repository
+      - source_commit
+      - license_spdx
+      - result_sha256
+      complete: false
+    external_calibration_run:
+      schema_version: slac.external_calibration_run/v0.1
+      run_id: kitti_lidar_camera_evidence:koide_lidar_camera
+      adapter_name: koide_lidar_camera
+      adapter_version: calibrex.koide_lidar_camera_adapter/v0.2
+      tool:
+        name: koide_lidar_camera
+        license_boundary: imported
+      execution:
+        mode: imported
+        command: []
+        attempted: false
+        timed_out: false
+      artifacts: []
+      frame_convention: T_parent_child
+      time_convention: sensor_time_sec; Koide adapter imports no clock-offset estimate
+      train_data_isolation:
+        declared: false
+      status: not_executed
+      warnings:
+      - configure Koide-style external command or provide a precomputed result_path
+      - external run has no digest-bound input artifact
+      - external tool license is unknown
+      - external training-data isolation is not declared
+      parsed_outputs:
+        transforms: {}
+        time_offsets_seconds: {}
+        intrinsics: {}
+        external_metrics: {}
+        external_metrics_comparable: false
+      provenance:
+        producer: calibrex
+        calibrex_version: 0.4.0
+        generated_at: '2026-08-11T12:57:16.735332+00:00'
+        git_commit: 835d8c9
+    external_calibration_run_schema_version: slac.external_calibration_run/v0.1
     license_boundary: external subprocess/precomputed-result adapter; no external
-      calibration code is copied into slac core
+      calibration code is copied into Calibrex core
     solver_adapter: koide_lidar_camera
     solver_adapter_status: not_executed
-    public_dataset: kitti_lidar_camera_evidence
-    metrics_origin: cached
-    data_verified: false
-    computed_at: '2026-07-02T22:20:11Z'
-    evidence_note: Small synthetic KITTI-raw-shaped fixture bundled with this example
-      (not real recorded KITTI sensor data, since official KITTI raw data requires
-      a login-gated download); camera-LiDAR metrics are diagnostic overlay evidence
-      on the LiDAR candidate extrinsic, not a standalone camera calibration result.
+    external_calibration_run_path: outputs\ten-star-readme-smoke\external-run.json
+    lidar_camera_evidence:
+      protocol_id: kitti_lidar_camera_projection_edge_holdout/v0.1
+      split_policy: temporal_tail_holdout
+      independent_holdout: true
+      transform_convention: T_camera_lidar maps Velodyne points into camera frame
+      known_bad_perturbation: right-composed camera-frame SE(3) controls
+      known_bad_case_count: 24
+      known_bad_challenge:
+        challenge_id: kitti_lidar_camera_mandatory_6dof_large_controls/v0.1
+        mandatory_rotation_deg: 1.0
+        mandatory_translation_m: 0.1
+        mandatory_case_count: 12
+        target_mandatory_detectable_count: 8
+      parameters:
+        projection_frame_count: 2
+        use_frame_graph_candidate: false
+        evidence_gate_min_edge_alignment_holdout: 0.2
+        evidence_gate_min_depth_edge_alignment_holdout: 0.2
+        evidence_gate_min_perturbation_detectable_fraction: 0.5
+        evidence_gate_min_mandatory_detectable_count: 8
+      limitations:
+      - projection evidence observes image-plane alignment only; depth along the optical
+        axis and baselines are coverage-limited
+      - depth-edge scores require projected LiDAR depth discontinuities
+      candidate_transform: T_camera0_lidar0
+      evidence_gates:
+        evidence_gate_min_edge_alignment_holdout: 0.2
+        evidence_gate_min_depth_edge_alignment_holdout: 0.2
+        evidence_gate_min_perturbation_detectable_fraction: 0.5
+        evidence_gate_min_mandatory_detectable_count: 8
+    evidence_cases:
+    - family: lidar_camera
+      case_id: roll_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: roll
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.0
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 1.0
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: roll_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: roll
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.16666666666666666
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.8333333333333334
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: pitch_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: pitch
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.0
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 1.0
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: pitch_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: pitch
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.0
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 1.0
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: yaw_deg:+1deg
+      check: Known-Bad Controls
+      status: warn
+      dof: yaw
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: yaw_deg:+1deg
+      check: Known-Bad Controls
+      status: warn
+      dof: yaw
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: x_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: x
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: x_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: x
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: y_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: y
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: y_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: y
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: z_m:+0.1m
+      check: Known-Bad Controls
+      status: warn
+      dof: z
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: z_m:+0.1m
+      check: Known-Bad Controls
+      status: warn
+      dof: z
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: roll_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: roll
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.0
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 1.0
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: roll_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: roll
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.16666666666666666
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.8333333333333334
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: pitch_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: pitch
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.0
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 1.0
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: pitch_deg:+1deg
+      check: Known-Bad Controls
+      status: pass
+      dof: pitch
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.0
+        lidar_camera_depth_edge_alignment_score: 0.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 1.0
+        depth_edge_alignment_delta: 1.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: yaw_deg:+1deg
+      check: Known-Bad Controls
+      status: warn
+      dof: yaw
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: yaw_deg:+1deg
+      check: Known-Bad Controls
+      status: warn
+      dof: yaw
+      amount: 1.0
+      unit: deg
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: x_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: x
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: x_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: x
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: y_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: y
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: y_m:+0.1m
+      check: Known-Bad Controls
+      status: pass
+      dof: y
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 0.25
+        lidar_camera_depth_edge_alignment_score: 0.5
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.75
+        depth_edge_alignment_delta: 0.5
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: z_m:+0.1m
+      check: Known-Bad Controls
+      status: warn
+      dof: z
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    - family: lidar_camera
+      case_id: z_m:+0.1m
+      check: Known-Bad Controls
+      status: warn
+      dof: z
+      amount: 0.1
+      unit: m
+      convention: right-composed camera-frame SE(3) perturbation of T_camera_lidar
+      metric_values:
+        lidar_camera_edge_alignment_score: 1.0
+        lidar_camera_depth_edge_alignment_score: 1.0
+        lidar_camera_projection_ratio: 1.0
+      delta_values:
+        edge_alignment_delta: 0.0
+        depth_edge_alignment_delta: 0.0
+        projection_ratio_delta: 0.0
+    lidar_camera_baseline_comparison:
+      status: scored
+      candidates:
+        calibrex_applied:
+          candidate_id: calibrex_applied
+          train_frame_ids:
+          - camera:1:lidar:1
+          holdout_frame_ids:
+          - camera:0:lidar:0
+          train_projection_ratio: 1.0
+          holdout_projection_ratio: 1.0
+          train_edge_alignment: 1.0
+          holdout_edge_alignment: 1.0
+          train_depth_edge_alignment: 1.0
+          holdout_depth_edge_alignment: 1.0
+          scored_frame_count: 2
+          transform_camera_lidar:
+            translation_m:
+            - 0.0
+            - 0.0
+            - 0.0
+            rotation_quat_xyzw:
+            - 0.0
+            - 0.0
+            - 0.0
+            - 1.0
+          training_isolation_declared: false
+          evaluation_policy: shared seeded frame holdout with fresh projection
+        kitti_dataset_reference:
+          candidate_id: kitti_dataset_reference
+          train_frame_ids:
+          - camera:1:lidar:1
+          holdout_frame_ids:
+          - camera:0:lidar:0
+          train_projection_ratio: 1.0
+          holdout_projection_ratio: 1.0
+          train_edge_alignment: 1.0
+          holdout_edge_alignment: 1.0
+          train_depth_edge_alignment: 1.0
+          holdout_depth_edge_alignment: 1.0
+          scored_frame_count: 2
+          transform_camera_lidar:
+            translation_m:
+            - 0.0
+            - 0.0
+            - 0.0
+            rotation_quat_xyzw:
+            - 0.0
+            - 0.0
+            - 0.0
+            - 1.0
+          training_isolation_declared: true
+          evaluation_policy: shared seeded frame holdout with fresh projection
+      candidate_ids:
+      - calibrex_applied
+      - kitti_dataset_reference
+      reference_candidate_id: kitti_dataset_reference
+      pairwise_deltas:
+        calibrex_applied:
+          reference_candidate_id: kitti_dataset_reference
+          candidate_id: calibrex_applied
+          translation_delta_m: 0.0
+          rotation_delta_deg: 0.0
+          holdout_projection_ratio_delta: 0.0
+          holdout_edge_alignment_delta: 0.0
+          holdout_depth_edge_alignment_delta: 0.0
+          both_training_isolated: false
+          delta_convention: candidate minus reference; higher evidence scores are
+            better
+      capture_time_evidence:
+        status: declared_unavailable
+        reason: KITTI Velodyne .bin payloads do not carry per-point capture offsets;
+          the declared policy is recorded but per-point deskew is not applied
+        policy:
+          point_offset_unit: seconds
+          stamp_reference: scan_end
+          sensor_time_offset_sec: 0.0
+          time_convention: sensor_time + dt_sensor = reference_time
+          point_offset_convention: signed offset relative to message stamp
+        camera_reference: exposure_timestamp
+        per_point_times_available: false
+        deskew_applied: false
+        lidar_message_timestamp_source: velodyne_points/timestamps.txt
+        camera_timestamp_source: image_02/timestamps.txt
+        point_timestamp_source: null
+        projection_time_model: rigid scan at LiDAR message timestamp
+      comparison_warning: post-hoc holdout is not training-isolated for candidates
+        that do not declare it
+      raw_input_files:
+      - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\image_02\data\0000000000.png
+        role: kitti_camera_image
+        sha256: 85303c8f0bc96e67073cf6f576a4442e5035caf4c4bc996661e2fde8fed32331
+        size_bytes: 370
+        source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+      - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\velodyne_points\data\0000000000.bin
+        role: kitti_velodyne_scan
+        sha256: 35c1d57c8505bda939093e6b318ddb8add9d811d3d477ea74211744eaad8b141
+        size_bytes: 192
+        source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+      - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\image_02\data\0000000001.png
+        role: kitti_camera_image
+        sha256: 85303c8f0bc96e67073cf6f576a4442e5035caf4c4bc996661e2fde8fed32331
+        size_bytes: 370
+        source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+      - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\velodyne_points\data\0000000001.bin
+        role: kitti_velodyne_scan
+        sha256: 35c1d57c8505bda939093e6b318ddb8add9d811d3d477ea74211744eaad8b141
+        size_bytes: 192
+        source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+      - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\calib_velo_to_cam.txt
+        role: kitti_calibration
+        sha256: 774aa32beb91d4948d3afb9fec88e171abf09ff9134db90a6afed42045f92e06
+        size_bytes: 30
+        source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+      - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\calib_cam_to_cam.txt
+        role: kitti_calibration
+        sha256: 17edccdc83b24c526fdaf1e287b8692eaf4df390ea1af158183278b668e3fa6d
+        size_bytes: 91
+        source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    raw_input_files:
+    - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\image_02\data\0000000000.png
+      role: kitti_camera_image
+      sha256: 85303c8f0bc96e67073cf6f576a4442e5035caf4c4bc996661e2fde8fed32331
+      size_bytes: 370
+      source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\velodyne_points\data\0000000000.bin
+      role: kitti_velodyne_scan
+      sha256: 35c1d57c8505bda939093e6b318ddb8add9d811d3d477ea74211744eaad8b141
+      size_bytes: 192
+      source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\image_02\data\0000000001.png
+      role: kitti_camera_image
+      sha256: 85303c8f0bc96e67073cf6f576a4442e5035caf4c4bc996661e2fde8fed32331
+      size_bytes: 370
+      source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\2011_09_26_drive_0005_sync\velodyne_points\data\0000000001.bin
+      role: kitti_velodyne_scan
+      sha256: 35c1d57c8505bda939093e6b318ddb8add9d811d3d477ea74211744eaad8b141
+      size_bytes: 192
+      source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\calib_velo_to_cam.txt
+      role: kitti_calibration
+      sha256: 774aa32beb91d4948d3afb9fec88e171abf09ff9134db90a6afed42045f92e06
+      size_bytes: 30
+      source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    - path: examples\public_datasets\kitti_lidar_camera_evidence\2011_09_26\calib_cam_to_cam.txt
+      role: kitti_calibration
+      sha256: 17edccdc83b24c526fdaf1e287b8692eaf4df390ea1af158183278b668e3fa6d
+      size_bytes: 91
+      source_url: https://www.cvlibs.net/datasets/kitti/raw_data.php
+    data_verified: true
+    metrics_origin: recomputed
 frame_graph:
   root: base_link
   convention: T_parent_child
@@ -679,6 +1300,11 @@ metrics:
   koide_lidar_camera_execution_success:
     grade: warn
     reason: external execution was not requested
+  koide_lidar_camera_provenance_complete:
+    value: 0.0
+    grade: warn
+    reason: 'missing external provenance: tool_version, source_repository, source_commit,
+      license_spdx, result_sha256'
   lidar_camera_transform_pairs:
     value: 1.0
     grade: pass
@@ -735,31 +1361,31 @@ metrics:
     grade: pass
     reason: lidar_camera_projection_vertical_coverage=0.2; pass >= 0.15, warn >= 0.05
   lidar_camera_edge_alignment_score:
-    train: 0.5
-    holdout: 0.5
+    train: 1.0
+    holdout: 1.0
     grade: pass
-    reason: lidar_camera_edge_alignment_score=0.5; pass >= 0.2, warn >= 0.05
+    reason: lidar_camera_edge_alignment_score=1; pass >= 0.2, warn >= 0.05
   lidar_camera_edge_gradient_mean:
-    train: 127.5
-    holdout: 127.5
+    train: 255.0
+    holdout: 255.0
     grade: pass
     reason: mean image gradient sampled at projected LiDAR points; mean over 2 KITTI
       camera-LiDAR frame pair(s)
   lidar_camera_depth_discontinuity_points:
-    train: 12.0
-    holdout: 12.0
-    grade: pass
+    train: 2.0
+    holdout: 2.0
+    grade: warn
     unit: points
-    reason: lidar_camera_depth_discontinuity_points=12 points; pass >= 3 points, warn
+    reason: lidar_camera_depth_discontinuity_points=2 points; pass >= 3 points, warn
       >= 1 points
   lidar_camera_depth_edge_alignment_score:
-    train: 0.5
-    holdout: 0.5
+    train: 1.0
+    holdout: 1.0
     grade: pass
-    reason: lidar_camera_depth_edge_alignment_score=0.5; pass >= 0.2, warn >= 0.05
+    reason: lidar_camera_depth_edge_alignment_score=1; pass >= 0.2, warn >= 0.05
   lidar_camera_depth_edge_gradient_mean:
-    train: 127.5
-    holdout: 127.5
+    train: 255.0
+    holdout: 255.0
     grade: pass
     reason: mean image gradient at projected LiDAR depth-discontinuity points; mean
       over 2 KITTI camera-LiDAR frame pair(s)
@@ -770,29 +1396,111 @@ metrics:
     reason: lidar_camera_perturbation_case_count=24 cases; pass >= 12 cases, warn
       >= 1 cases
   lidar_camera_perturbation_detectable_fraction:
-    value: 0.0
-    grade: fail
-    reason: lidar_camera_perturbation_detectable_fraction=0; pass >= 0.5, warn >=
-      0.1
+    value: 0.6666666666666666
+    grade: pass
+    reason: lidar_camera_perturbation_detectable_fraction=0.666667; pass >= 0.5, warn
+      >= 0.1
   lidar_camera_perturbation_edge_delta_mean:
-    value: 0.0
-    grade: warn
-    reason: known camera-frame perturbations of KITTI T_camera_lidar; positive deltas
-      mean the reference projection score is better
+    value: 0.5694444444444444
+    grade: pass
+    reason: known camera-frame perturbations of T_camera_lidar; positive deltas mean
+      the reference projection score is better
   lidar_camera_perturbation_depth_edge_delta_mean:
-    value: 0.0
-    grade: warn
-    reason: known camera-frame perturbations of KITTI T_camera_lidar; positive deltas
-      mean the reference projection score is better
+    value: 0.5
+    grade: pass
+    reason: known camera-frame perturbations of T_camera_lidar; positive deltas mean
+      the reference projection score is better
   lidar_camera_perturbation_projection_ratio_delta_mean:
     value: 0.0
-    grade: warn
-    reason: known camera-frame perturbations of KITTI T_camera_lidar; positive deltas
-      mean the reference projection score is better
+    grade: pass
+    reason: known camera-frame perturbations of T_camera_lidar; positive deltas mean
+      the reference projection score is better
   lidar_camera_mutual_information_score:
     grade: warn
-    reason: mutual-information image/LiDAR intensity scoring is declared but not computed
-      by the alpha backend
+    reason: lidar_camera_mutual_information_score is declared but not computed by
+      the alpha backend
+  lidar_camera_comparison_candidate_count:
+    value: 2.0
+    grade: pass
+    unit: candidates
+  lidar_camera_capture_time_policy_declared:
+    value: 1.0
+    grade: pass
+    unit: bool
+    reason: KITTI Velodyne .bin payloads do not carry per-point capture offsets; the
+      declared policy is recorded but per-point deskew is not applied
+  lidar_camera_capture_time_deskew_applied:
+    value: 0.0
+    grade: warn
+    unit: bool
+    reason: KITTI Velodyne .bin payloads do not carry per-point capture offsets; the
+      declared policy is recorded but per-point deskew is not applied
+  lidar_camera_comparison_kitti_dataset_reference_holdout_edge_alignment:
+    train: 1.0
+    holdout: 1.0
+    value: 1.0
+    grade: pass
+    reason: shared untouched frame holdout
+  lidar_camera_comparison_kitti_dataset_reference_holdout_depth_edge_alignment:
+    train: 1.0
+    holdout: 1.0
+    value: 1.0
+    grade: pass
+    reason: shared untouched frame holdout
+  lidar_camera_comparison_kitti_dataset_reference_holdout_projection_ratio:
+    train: 1.0
+    holdout: 1.0
+    value: 1.0
+    grade: pass
+    reason: shared untouched frame holdout
+  lidar_camera_comparison_calibrex_applied_holdout_edge_alignment:
+    train: 1.0
+    holdout: 1.0
+    value: 1.0
+    grade: warn
+    reason: shared post-hoc holdout; training isolation was not declared
+  lidar_camera_comparison_calibrex_applied_holdout_depth_edge_alignment:
+    train: 1.0
+    holdout: 1.0
+    value: 1.0
+    grade: warn
+    reason: shared post-hoc holdout; training isolation was not declared
+  lidar_camera_comparison_calibrex_applied_holdout_projection_ratio:
+    train: 1.0
+    holdout: 1.0
+    value: 1.0
+    grade: warn
+    reason: shared post-hoc holdout; training isolation was not declared
+  lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_translation_delta_m:
+    value: 0.0
+    grade: warn
+    unit: m
+    reason: diagnostic candidate-minus-reference comparison on the shared frame holdout;
+      no acceptance threshold is declared
+  lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_rotation_delta_deg:
+    value: 0.0
+    grade: warn
+    unit: deg
+    reason: diagnostic candidate-minus-reference comparison on the shared frame holdout;
+      no acceptance threshold is declared
+  lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_holdout_edge_alignment_delta:
+    value: 0.0
+    grade: warn
+    unit: fraction
+    reason: diagnostic candidate-minus-reference comparison on the shared frame holdout;
+      no acceptance threshold is declared
+  lidar_camera_perturbation_mandatory_case_count:
+    value: 24.0
+    grade: pass
+    unit: cases
+    reason: lidar_camera_perturbation_mandatory_case_count=24 cases; pass >= 12 cases,
+      warn >= 1 cases
+  lidar_camera_perturbation_mandatory_detectable_count:
+    value: 16.0
+    grade: pass
+    unit: cases
+    reason: lidar_camera_perturbation_mandatory_detectable_count=16 cases; pass >=
+      8 cases, warn >= 1 cases
 observability:
   weak_directions:
   - uncomputed_alpha_backend
@@ -804,12 +1512,13 @@ degeneracy:
   grade: warn
   reason: 'too few local planar LiDAR neighborhoods; short vehicle motion duration:
     2 s; large LiDAR-OXTS timestamp mismatch: 995 ms; configure Koide-style external
-    command or provide a precomputed result_path; weak LiDAR world-map DoF from perturbation
-    sensitivity: x_lidar0, y_lidar0, yaw_lidar0'
+    command or provide a precomputed result_path; external run has no digest-bound
+    input artifact; external tool license is unknown; external training-data isolation
+    is not declared; weak LiDAR world-map DoF from perturbation sensitivity: x_lidar0,
+    y_lidar0, yaw_lidar0'
 quality:
   grade: fail
   blocking_failures:
-  - lidar_camera_perturbation_detectable_fraction=0; pass >= 0.5, warn >= 0.1
   - lidar_frame_coverage=2 frames; pass >= 100 frames, warn >= 10 frames
   - lidar_oxts_timestamp_alignment_ms=995 ms; pass <= 10 ms, warn <= 50 ms
   - lidar_point_coverage=24 points; pass >= 200000 points, warn >= 20000 points
@@ -823,12 +1532,19 @@ quality:
     deployment
   - koide_lidar_camera_adapter_available=0; pass >= 1, warn >= 0
   - external execution was not requested
+  - 'missing external provenance: tool_version, source_repository, source_commit,
+    license_spdx, result_sha256'
   - koide_lidar_camera_result_available=0; pass >= 1, warn >= 0
-  - mutual-information image/LiDAR intensity scoring is declared but not computed
-    by the alpha backend
+  - KITTI Velodyne .bin payloads do not carry per-point capture offsets; the declared
+    policy is recorded but per-point deskew is not applied
+  - shared post-hoc holdout; training isolation was not declared
+  - diagnostic candidate-minus-reference comparison on the shared frame holdout; no
+    acceptance threshold is declared
+  - lidar_camera_depth_discontinuity_points=2 points; pass >= 3 points, warn >= 1
+    points
+  - lidar_camera_mutual_information_score is declared but not computed by the alpha
+    backend
   - lidar_camera_overlay_score=0.685484; pass >= 0.75, warn >= 0.4
-  - known camera-frame perturbations of KITTI T_camera_lidar; positive deltas mean
-    the reference projection score is better
   - lidar_world_map_holdout_residual_count=7 points; pass >= 20 points, warn >= 1
     points
   - lidar_world_map_perturbation_detectable_fraction=0.416667; pass >= 0.5, warn >=
@@ -850,8 +1566,9 @@ quality:
   - 'T_base_link_lidar0: transform uncertainty is provisional'
   - 'too few local planar LiDAR neighborhoods; short vehicle motion duration: 2 s;
     large LiDAR-OXTS timestamp mismatch: 995 ms; configure Koide-style external command
-    or provide a precomputed result_path; weak LiDAR world-map DoF from perturbation
-    sensitivity: x_lidar0, y_lidar0, yaw_lidar0'
+    or provide a precomputed result_path; external run has no digest-bound input artifact;
+    external tool license is unknown; external training-data isolation is not declared;
+    weak LiDAR world-map DoF from perturbation sensitivity: x_lidar0, y_lidar0, yaw_lidar0'
   - observability is not fully established
   recommendation:
   - collect a longer fixed-LiDAR sequence before calibration
@@ -869,8 +1586,5 @@ quality:
   - preserve image exposure and LiDAR intensity fields for mutual-information checks
   - add cross-modal overlap and holdout sequences before trusting deployment
   - validate camera-lidar-radar timing on driving logs with dynamic objects held out
-artifacts:
-  html_report: /tmp/kitti_cached_out/report.html
-  rig_3d_viewer: /tmp/kitti_cached_out/artifacts/rig_3d.html
-  camera_lidar_overlay: /tmp/kitti_cached_out/artifacts/camera_lidar_overlay.html
+artifacts: {}
 export: {}

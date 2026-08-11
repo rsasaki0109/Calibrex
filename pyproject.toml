@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "calibrex"
-version = "0.4.0"
+version = "0.4.1"
 description = "Simultaneous localization and calibration evidence framework for robotics"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -89,7 +89,17 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-calibrex = ["py.typed"]
+calibrex = [
+  "py.typed",
+  "resources/kitti_lidar_camera_evidence/*.yaml",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*.txt",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*/image_02/*.txt",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*/image_02/data/*.png",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*/oxts/*.txt",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*/oxts/data/*.txt",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*/velodyne_points/*.txt",
+  "resources/kitti_lidar_camera_evidence/2011_09_26/*/velodyne_points/data/*.bin",
+]
 
 [tool.pytest.ini_options]
 addopts = "-q"

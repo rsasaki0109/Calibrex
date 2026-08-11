@@ -275,6 +275,15 @@ def _holdout_ratio(value: str) -> float:
     return ratio
 
 
+def _packaged_kitti_lidar_camera_demo_config() -> Path:
+    return (
+        Path(__file__).resolve().parents[1]
+        / "resources"
+        / "kitti_lidar_camera_evidence"
+        / "config.yaml"
+    )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="calibrex")
     parser.add_argument("--version", action="version", version=f"Calibrex {__version__}")
@@ -796,8 +805,8 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_demo.add_argument(
         "--config",
         type=Path,
-        default=Path("examples/public_datasets/kitti_lidar_camera_evidence/config.yaml"),
-        help="base KITTI camera-LiDAR evidence config",
+        default=_packaged_kitti_lidar_camera_demo_config(),
+        help="base KITTI camera-LiDAR evidence config (defaults to the packaged fixture)",
     )
     kitti_demo.add_argument(
         "--dataset-path",
@@ -2257,11 +2266,16 @@ def _cmd_demo_kitti_lidar_camera_evidence(args: argparse.Namespace) -> int:
     dataset_section = config_payload.get("dataset")
     if not isinstance(dataset_section, dict) or "path" not in dataset_section:
         _die(f"{args.config} does not contain a dataset mapping")
-    dataset_path = (
-        Path(args.dataset_path)
-        if args.dataset_path is not None
-        else Path(str(dataset_section["path"]))
-    )
+    if args.dataset_path is not None:
+        dataset_path = Path(args.dataset_path)
+    else:
+        configured_dataset_path = Path(str(dataset_section["path"]))
+        config_relative_path = args.config.parent / configured_dataset_path
+        dataset_path = (
+            configured_dataset_path
+            if configured_dataset_path.is_absolute() or configured_dataset_path.exists()
+            else config_relative_path
+        )
     _require_kitti_lidar_camera_demo_files(dataset_path)
 
     output_dir = Path(args.output_dir)

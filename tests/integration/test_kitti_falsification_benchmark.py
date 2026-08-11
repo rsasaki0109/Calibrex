@@ -26,11 +26,15 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
         projection_sample_points=800,
     )
 
-    assert benchmark.status == "fail"
+    assert benchmark.status == "inconclusive"
     assert len(benchmark.selected_frame_ids) == 2
     assert {trial.candidate_id for trial in benchmark.trials} == {
         "dataset_reference",
         "known_bad",
+    }
+    assert {trial.candidate_id: trial.assessment_status for trial in benchmark.trials} == {
+        "dataset_reference": "pass",
+        "known_bad": "inconclusive",
     }
     assert all(trial.bundle_valid for trial in benchmark.trials)
     assert all(len(trial.artifacts) == 9 for trial in benchmark.trials)

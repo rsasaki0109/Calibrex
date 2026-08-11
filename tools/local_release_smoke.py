@@ -47,6 +47,27 @@ def main() -> int:
     smoke_calibrex = _venv_executable(args.venv, "calibrex")
     _run([str(smoke_python), "-m", "pip", "install", str(wheel)])
     _run([str(smoke_calibrex), "doctor", "--json"])
+    camera_lidar_demo_dir = args.report_dir / "kitti-lidar-camera-evidence"
+    _run(
+        [
+            str(smoke_calibrex),
+            "demo",
+            "kitti-lidar-camera-evidence",
+            "--output-dir",
+            str(camera_lidar_demo_dir),
+            "--strict-assessment",
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "verify",
+            str(camera_lidar_demo_dir / "bundle.json"),
+            "--require-raw-recomputed",
+            "--json",
+        ]
+    )
     _run([str(smoke_calibrex), "schema", "all", "--output-dir", str(args.schema_dir)])
     _assert_schema_count(args.schema_dir)
     _run(
