@@ -1532,7 +1532,9 @@ KITTI raw camera-LiDAR evaluated projection evidence demo:
 
 ```bash
 calibrex calibrate examples/public_datasets/kitti_lidar_camera_evidence/config.yaml
-calibrex demo kitti-lidar-camera-evidence --output-dir outputs/kitti_lidar_camera_evidence
+calibrex demo kitti-lidar-camera-evidence \
+  --output-dir outputs/kitti_lidar_camera_evidence \
+  --strict-assessment
 ```
 
 Because KITTI raw data requires the official login-gated download flow,
@@ -1611,30 +1613,28 @@ recorded thresholds from `evaluation.kitti.evidence_gate_*` (defaults mirror
 metric grading: holdout edge-alignment `>= 0.20`, depth-edge holdout
 `>= 0.20`, perturbation detectable fraction `>= 0.50`, mandatory probe
 detections `>= 8` of the declared ±1 deg / ±0.10 m cases). On the committed
-76 KB synthetic fixture with the dataset reference extrinsic (baseline run):
+deterministic 300x300 synthetic fixture with the dataset reference extrinsic:
 
 | Check | Measured (holdout where applicable) | Verdict |
 | --- | --- | --- |
 | Candidate Support | 12 projected points, ratio 1.0, h/v coverage 0.2 | PASS |
-| Holdout Edge Alignment | edge 0.5, depth-edge 0.5 (threshold >= 0.2) | PASS |
-| Known-Bad Controls | detectable fraction 0.0, mandatory 0/24 (threshold >= 0.5 / >= 8) | FAIL |
-| Decision Boundary | support + holdout pass, controls fail | WARN (INCONCLUSIVE) |
-| Overall quality | evidence decision boundary inconclusive | FAIL |
+| Holdout Edge Alignment | edge 1.0, depth-edge 1.0 (threshold >= 0.2) | PASS |
+| Known-Bad Controls | detectable fraction 0.667, mandatory 16/24 (threshold >= 0.5 / >= 8) | PASS |
+| Decision Boundary | support + holdout + controls pass | PASS |
+| Falsification assessment | all 6 policy gates pass | PASS |
 
-The baseline FAIL on this fixture is the discipline working, not a defect: with
-zero detectable perturbations the protocol has no falsification power, and the
-framework refuses to certify a candidate it could not have caught being wrong
-(the same `>= 0.50 / >= 0.10` detectable-fraction grading the LiDAR-pair family
-uses). On full-scale KITTI frames the perturbation probes are expected to be
-detectable, making PASS reachable.
+`--strict-assessment` enforces this Camera-LiDAR falsification assessment. The
+generic result metric rollup still flags the fixture's intentionally tiny
+two-frame, 24-point coverage and limited vehicle motion; those warnings must not
+be interpreted as real-dataset calibration evidence. The fixture demonstrates
+that the declared controls can reject wrong projections, not that any physical
+rig has been calibrated accurately.
 
 Known-bad candidate probe: set `evaluation.kitti.use_frame_graph_candidate:
-true` and perturb the frame-graph candidate (example: `+2.0 m` x translation on
-`lidar0.initial`). A `+2 deg` yaw rotation does not move holdout scores on
-this tiny synthetic fixture; `+2.0 m` x translation drives holdout edge-alignment
-to `0.0` and flips that row to FAIL while overall quality remains FAIL. Set
-`evaluation.kitti.use_frame_graph_candidate: true` whenever the candidate
-under test comes from the config rather than `calib_velo_to_cam.txt`.
+true` and perturb the frame-graph candidate. Set this option whenever the
+candidate under test comes from the config rather than
+`calib_velo_to_cam.txt`; keep `--strict-assessment` enabled so unsupported
+candidates fail the shell command.
 
 A cached example result is available for report rendering without rerunning
 the pipeline:

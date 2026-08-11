@@ -96,8 +96,25 @@ def _write_kitti_lidar_camera_demo_fixture(sequence: Path) -> None:
         *((float(x), float(y), 5.0, 1.0) for x in range(3) for y in range(3)),
         *((0.0, float(y), 8.0, 1.0) for y in range(3)),
     ]
-    _write_png(sequence / "image_02" / "data" / "0000000000.png", width=20, height=20)
-    _write_png(sequence / "image_02" / "data" / "0000000001.png", width=20, height=20)
+    feature_pixels = {
+        (
+            round(150.0 + 150.0 * x / z),
+            round(150.0 + 150.0 * y / z),
+        )
+        for x, y, z, _ in kitti_points
+    }
+    _write_png(
+        sequence / "image_02" / "data" / "0000000000.png",
+        width=300,
+        height=300,
+        feature_pixels=feature_pixels,
+    )
+    _write_png(
+        sequence / "image_02" / "data" / "0000000001.png",
+        width=300,
+        height=300,
+        feature_pixels=feature_pixels,
+    )
     _write_velodyne_points(sequence / "velodyne_points" / "data" / "0000000000.bin", kitti_points)
     _write_velodyne_points(sequence / "velodyne_points" / "data" / "0000000001.bin", kitti_points)
     _write_oxts_packet(sequence / "oxts" / "data" / "0000000000.txt", yaw_rad=0.0, vn=2.0, ve=0.0)
@@ -120,9 +137,9 @@ def _write_kitti_lidar_camera_demo_fixture(sequence: Path) -> None:
     )
     (sequence.parent / "calib_cam_to_cam.txt").write_text(
         """
-S_rect_02: 20 20
+S_rect_02: 300 300
 R_rect_00: 1 0 0 0 1 0 0 0 1
-P_rect_02: 10 0 10 0 0 10 10 0 0 0 1 0
+P_rect_02: 150 0 150 0 0 150 150 0 0 0 1 0
 """.strip(),
         encoding="utf-8",
     )
@@ -201,11 +218,26 @@ def _write_livox_binary_pcd_with_normals(
     path.write_bytes(header + body)
 
 
-def _write_png(path: Path, *, width: int, height: int) -> None:
+def _write_png(
+    path: Path,
+    *,
+    width: int,
+    height: int,
+    feature_pixels: set[tuple[int, int]] | None = None,
+) -> None:
     raw_rows = b"".join(
         b"\x00"
-        + b"".join(b"\x00\x00\x00" if x < width // 2 else b"\xff\xff\xff" for x in range(width))
-        for _ in range(height)
+        + b"".join(
+            (
+                b"\xff\xff\xff"
+                if (x, y) in feature_pixels
+                else b"\x00\x00\x00"
+            )
+            if feature_pixels is not None
+            else (b"\x00\x00\x00" if x < width // 2 else b"\xff\xff\xff")
+            for x in range(width)
+        )
+        for y in range(height)
     )
     compressed = zlib.compress(raw_rows)
     path.write_bytes(
@@ -3076,6 +3108,7 @@ def test_kitti_lidar_camera_demo_command_produces_evidence_artifacts(
                 str(sequence),
                 "--output-dir",
                 str(output_dir),
+                "--strict-assessment",
                 "--json",
             ]
         )
@@ -3090,12 +3123,17 @@ def test_kitti_lidar_camera_demo_command_produces_evidence_artifacts(
     assert Path(payload["bundle"]).exists()
     assert Path(payload["verification"]).exists()
     assert Path(payload["html_report"]).exists()
+    assert payload["assessment_status"] == "pass"
     assert "diagnostic overlay evidence" in payload["note"]
     assert "not a standalone camera calibration" in payload["note"]
 
     result = load_result(payload["result"])
     assert result.metrics["lidar_camera_projection_frame_count"].value == 2.0
     assert result.metrics["lidar_camera_perturbation_case_count"].value is not None
+    assert result.metrics["lidar_camera_perturbation_detectable_fraction"].value == pytest.approx(
+        2.0 / 3.0
+    )
+    assert result.metrics["lidar_camera_perturbation_mandatory_detectable_count"].value == 16.0
     assert result.metrics["koide_lidar_camera_execution_success"].reason == (
         "external execution was not requested"
     )

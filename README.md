@@ -1,8 +1,8 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Evidence-first calibration for robotics sensors.</strong><br>
-  Calibrate solid-state LiDAR and multi-sensor rigs with holdouts, observability, and provenance you can reproduce.
+  <strong>Know whether your LiDAR-camera calibration is trustworthy.</strong><br>
+  Evaluate robotics sensor extrinsics with holdouts, known-bad controls, and provenance you can reproduce.
 </p>
 
 <p align="center">
@@ -22,6 +22,31 @@ Use it when a transform must be more than a plausible number: evaluate native or
 adapter-produced LiDAR, camera, IMU, radar, RGB-D, hand-eye, and robot-world
 calibration without reducing the verdict to optimizer convergence or a single
 training residual.
+
+## LiDAR-camera evidence in five minutes
+
+Run the complete evidence path without ROS or a dataset download. The command
+evaluates the bundled deterministic KITTI-shaped fixture, writes a
+schema-valid result and review report, and verifies a digest-bound provenance
+bundle:
+
+```bash
+python -m pip install calibrex
+
+calibrex demo kitti-lidar-camera-evidence \
+  --output-dir outputs/kitti-lidar-camera-evidence \
+  --strict-assessment
+calibrex validate outputs/kitti-lidar-camera-evidence/result.yaml
+calibrex verify outputs/kitti-lidar-camera-evidence/bundle.json
+```
+
+Open `outputs/kitti-lidar-camera-evidence/report.html` to inspect the projection
+evidence and known-bad perturbation probes. The checked fixture detects 16 of
+24 mandatory perturbation cases and passes all six falsification-policy gates
+in under one minute in the clean Windows wheel smoke test. This verifies the
+pipeline and evidence contracts; it is not a real-sensor accuracy claim or a
+standalone camera-LiDAR calibration algorithm. Supply an officially downloaded
+KITTI raw sequence with `--dataset-path` when evaluating real data.
 
 <p align="center">
   <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
@@ -244,7 +269,7 @@ Run the same evidence gates on every calibration change:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: rsasaki0109/Calibrex@v0.4.0
+- uses: rsasaki0109/Calibrex@v0.4.1
   with:
     candidate: calibration/candidate.yaml
     baseline: calibration/baseline.yaml

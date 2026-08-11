@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-08-11
+
+- Promoted the no-download KITTI-shaped Camera-LiDAR evidence path into a
+  strict five-minute demo. Its deterministic, generator-bound 300x300 fixture
+  now detects 16/24 mandatory ±1 deg / ±0.10 m perturbation cases, passes all
+  six falsification-policy gates without relaxing thresholds, and remains
+  explicitly synthetic rather than a real-sensor accuracy claim. Added direct
+  generator parity and strict end-to-end tests plus README commands that
+  validate the result and verify its digest-bound provenance bundle.
 - Added the Phase 3 provider-neutral probabilistic 2D--3D correspondence
   artifact and an optional Apache-2.0 OpenCV PnP-RANSAC adapter with
   confidence filtering, covariance-aware diagnostics, tests, and complete
