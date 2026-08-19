@@ -1,0 +1,156 @@
+"""Build probabilistic correspondences by projecting LiDAR into the camera."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Literal
+
+from calibrex.core.probabilistic_correspondence import (
+    CorrespondenceProviderIdentity,
+    ProbabilisticCorrespondenceArtifact,
+    ProbabilisticCorrespondenceFrame,
+    ProbabilisticCorrespondenceProvenance,
+    ProbabilisticImageCorrespondence,
+)
+from calibrex.core.provenance import git_commit
+from calibrex.data.depth import DepthCameraIntrinsics
+from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
+from calibrex.solvers.borer_depth_to_depth_solver import (
+    project_lidar_image_correspondences,
+)
+
+PROBABILISTIC_CORRESPONDENCE_FROM_PROBLEM_VERSION = (
+    "calibrex.probabilistic_correspondence_from_problem/v0.1"
+)
+_MIN_CORRESPONDENCES_PER_FRAME = 4
+
+
+def build_probabilistic_correspondence_from_problem(
+    problem_path: str | Path,
+    *,
+    transform_source: Literal["initial", "reference"] = "initial",
+    max_points_per_frame: int = 200,
+    pixel_noise_std: float = 1.5,
+    depth_relative_gate: float = 0.25,
+    seed: int = 0,
+    artifact_id: str | None = None,
+) -> ProbabilisticCorrespondenceArtifact:
+    """Project digest-verified LiDAR points into the camera for refinement."""
+
+    loaded = load_borer_problem(problem_path)
+    problem = loaded.problem
+    if transform_source == "reference":
+        transform = loaded.reference_transform_camera_lidar
+    else:
+        transform = problem.initial_transform_camera_lidar.as_se3()
+    reference = problem.reference_transform_camera_lidar
+    camera_frame = reference.parent
+    lidar_frame = reference.child
+    variance = pixel_noise_std * pixel_noise_std
+    covariance = [variance, 0.0, 0.0, variance]
+    frames: list[ProbabilisticCorrespondenceFrame] = []
+    for binding in problem.observations:
+        observation = next(
+            item for item in loaded.observations if item.frame_id == binding.frame_id
+        )
+        depth_observation = next(
+            item
+            for item in loaded.depth_provider.observations
+            if item.frame_id == binding.depth_observation_frame_id
+        )
+        projections = project_lidar_image_correspondences(
+            observation,
+            transform,
+            max_points=max_points_per_frame,
+            depth_relative_gate=depth_relative_gate,
+            seed=seed + int(binding.frame_id),
+        )
+        if len(projections) < _MIN_CORRESPONDENCES_PER_FRAME:
+            msg = (
+                f"frame {binding.frame_id} produced {len(projections)} correspondences; "
+                f"need at least {_MIN_CORRESPONDENCES_PER_FRAME}"
+            )
+            raise ValueError(msg)
+        intrinsics = DepthCameraIntrinsics(
+            width=depth_observation.intrinsics.width,
+            height=depth_observation.intrinsics.height,
+            fx=depth_observation.intrinsics.fx,
+            fy=depth_observation.intrinsics.fy,
+            cx=depth_observation.intrinsics.cx,
+            cy=depth_observation.intrinsics.cy,
+        )
+        correspondences = [
+            ProbabilisticImageCorrespondence(
+                correspondence_id=f"{binding.frame_id}-{index:04d}",
+                point_lidar_m=list(projection.point_lidar_m),
+                image_mean_px=[projection.image_u_px, projection.image_v_px],
+                image_covariance_px2=covariance,
+                outlier_probability=0.02,
+                reliability=0.98,
+            )
+            for index, projection in enumerate(projections)
+        ]
+        frames.append(
+            ProbabilisticCorrespondenceFrame(
+                frame_id=binding.frame_id,
+                capture_time_ns=binding.lidar_capture_time_ns,
+                camera_frame=camera_frame,
+                lidar_frame=lidar_frame,
+                intrinsics=intrinsics,
+                correspondences=correspondences,
+            )
+        )
+    provider = loaded.depth_provider.provider
+    problem_digest = loaded.problem_sha256
+    provider_digest = loaded.depth_provider_sha256
+    return ProbabilisticCorrespondenceArtifact(
+        artifact_id=artifact_id or f"{problem.problem_id}-correspondence",
+        dataset_id=problem.dataset_id,
+        split_id=problem.observations[0].split_id,
+        dataset_license_spdx="CC-BY-NC-SA-3.0",
+        provider=CorrespondenceProviderIdentity(
+            provider="calibrex",
+            model="depth-lidar-projection",
+            version=PROBABILISTIC_CORRESPONDENCE_FROM_PROBLEM_VERSION,
+            source_repository=provider.source_repository,
+            source_commit=provider.source_commit,
+            license_spdx=provider.license_spdx,
+            checkpoint_redistribution=provider.checkpoint_redistribution,
+        ),
+        frames=frames,
+        provenance=ProbabilisticCorrespondenceProvenance(
+            generator=__name__,
+            generator_version=PROBABILISTIC_CORRESPONDENCE_FROM_PROBLEM_VERSION,
+            git_commit=git_commit(),
+            input_sha256={
+                str(Path(problem_path).resolve()): problem_digest,
+                problem.depth_provider_path: provider_digest,
+            },
+        ),
+    )
+
+
+def save_probabilistic_correspondence_from_problem(
+    problem_path: str | Path,
+    output_path: str | Path,
+    *,
+    transform_source: Literal["initial", "reference"] = "initial",
+    max_points_per_frame: int = 200,
+    pixel_noise_std: float = 1.5,
+    depth_relative_gate: float = 0.25,
+    seed: int = 0,
+    artifact_id: str | None = None,
+) -> ProbabilisticCorrespondenceArtifact:
+    """Build and persist a correspondence artifact from a problem file."""
+
+    artifact = build_probabilistic_correspondence_from_problem(
+        problem_path,
+        transform_source=transform_source,
+        max_points_per_frame=max_points_per_frame,
+        pixel_noise_std=pixel_noise_std,
+        depth_relative_gate=depth_relative_gate,
+        seed=seed,
+        artifact_id=artifact_id,
+    )
+    artifact.save(output_path)
+    return artifact

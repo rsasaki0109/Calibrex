@@ -202,6 +202,11 @@ observable window must not update the installed transform.
   spinning LiDAR + camera (planar-board).
 - **Quickstart tutorial** — `docs/tutorials/your_own_data.md` covering the
   end-to-end flow from bag recording to result interpretation.
+- **Empirical SE(3) uncertainty — ground-truth workflow (synthetic + opt-in KITTI)**
+  — integration tests for coverage assessment without `--stability-only`;
+  `build_probabilistic_correspondence_from_problem()` projects digest-verified
+  LiDAR into the camera for official KITTI runs when
+  `CALIBREX_KITTI_RAW_0005` and `CALIBREX_KITTI_DEPTH_PROVIDER` are set.
 
 ## Next implementation issues
 
@@ -253,6 +258,10 @@ demonstrates that Calibrex can detect a known-bad calibration on real data.
   and vendor calibration source.
 
 ### 3. Empirical SE(3) uncertainty — ground-truth Camera-LiDAR workflow
+
+**Status:** synthetic public-workflow integration test and opt-in official KITTI
+test are implemented; remaining gap is a maintained public correspondence source
+that does not rely on depth-lidar projection from the initial pose.
 
 **Why now:** the stability-only (`--stability-only`) path is implemented and
 tested.  The full coverage assessment path (with a vendor reference transform)

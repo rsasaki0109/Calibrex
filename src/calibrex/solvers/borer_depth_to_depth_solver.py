@@ -7,6 +7,7 @@ et al. (arXiv:2311.01905). Learned depth generation remains outside the core.
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass, field, replace
 from typing import Literal, TypeAlias
 
@@ -104,6 +105,15 @@ class DepthPairProjection:
     pixel_u: NDArray[np.int64]
     pixel_v: NDArray[np.int64]
     projected_count_before_visibility: int
+
+
+@dataclass(frozen=True)
+class LidarImageCorrespondenceProjection:
+    """One LiDAR point projected into the image with sub-pixel coordinates."""
+
+    point_lidar_m: tuple[float, float, float]
+    image_u_px: float
+    image_v_px: float
 
 
 @dataclass(frozen=True)
@@ -212,6 +222,91 @@ def project_depth_pairs(
         pixel_v=pixel_v[finite],
         projected_count_before_visibility=projected_count,
     )
+
+
+def project_lidar_image_correspondences(
+    observation: DepthToDepthObservation,
+    transform_camera_lidar: SE3,
+    *,
+    max_points: int | None = 200,
+    depth_relative_gate: float = 0.25,
+    use_z_buffer: bool = True,
+    seed: int = 0,
+) -> tuple[LidarImageCorrespondenceProjection, ...]:
+    """Project visible LiDAR points into image coordinates for correspondence export."""
+
+    points_lidar = observation.lidar_points
+    rotation = _rotation_matrix(transform_camera_lidar.rotation_quat_xyzw)
+    translation: FloatArray = np.asarray(
+        transform_camera_lidar.translation_m, dtype=float
+    )
+    points_camera = points_lidar @ rotation.T + translation
+    projected = _project(points_camera, observation.camera)
+    valid_indices = np.flatnonzero(projected[2])
+    if valid_indices.size == 0:
+        return ()
+    u_float = projected[0][valid_indices]
+    v_float = projected[1][valid_indices]
+    pixel_u = np.rint(u_float).astype(np.int64)
+    pixel_v = np.rint(v_float).astype(np.int64)
+    inside = (
+        (pixel_u >= 0)
+        & (pixel_u < observation.camera.width)
+        & (pixel_v >= 0)
+        & (pixel_v < observation.camera.height)
+    )
+    valid_indices = valid_indices[inside]
+    u_float = u_float[inside]
+    v_float = v_float[inside]
+    pixel_u = pixel_u[inside]
+    pixel_v = pixel_v[inside]
+    if use_z_buffer and valid_indices.size:
+        camera_range = np.linalg.norm(points_camera[valid_indices], axis=1)
+        pixel_linear = pixel_v * observation.camera.width + pixel_u
+        by_depth = np.argsort(camera_range, kind="stable")
+        _pixels, first = np.unique(pixel_linear[by_depth], return_index=True)
+        selected = by_depth[first]
+        valid_indices = valid_indices[selected]
+        u_float = u_float[selected]
+        v_float = v_float[selected]
+        pixel_u = pixel_u[selected]
+        pixel_v = pixel_v[selected]
+    camera_depth = observation.depth_map[pixel_v, pixel_u]
+    lidar_range = observation.lidar_range_m[valid_indices]
+    finite = (
+        np.isfinite(camera_depth)
+        & (camera_depth > 0.0)
+        & np.isfinite(lidar_range)
+        & (lidar_range > 0.0)
+    )
+    valid_indices = valid_indices[finite]
+    u_float = u_float[finite]
+    v_float = v_float[finite]
+    camera_depth = camera_depth[finite]
+    lidar_range = lidar_range[finite]
+    if depth_relative_gate > 0.0:
+        relative_error = np.abs(camera_depth - lidar_range) / np.maximum(lidar_range, 1.0e-9)
+        consistent = relative_error <= depth_relative_gate
+        valid_indices = valid_indices[consistent]
+        u_float = u_float[consistent]
+        v_float = v_float[consistent]
+    projections = [
+        LidarImageCorrespondenceProjection(
+            point_lidar_m=(
+                float(points_lidar[index, 0]),
+                float(points_lidar[index, 1]),
+                float(points_lidar[index, 2]),
+            ),
+            image_u_px=float(u_float[item]),
+            image_v_px=float(v_float[item]),
+        )
+        for item, index in enumerate(valid_indices)
+    ]
+    if max_points is not None and len(projections) > max_points:
+        rng = random.Random(seed)
+        selected = sorted(rng.sample(range(len(projections)), max_points))
+        projections = [projections[index] for index in selected]
+    return tuple(projections)
 
 
 def evaluate_depth_to_depth_mi(
