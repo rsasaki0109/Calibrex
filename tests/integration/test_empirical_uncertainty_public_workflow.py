@@ -119,9 +119,14 @@ def _build_frames(noise_std: float = 1.5) -> list[ProbabilisticCorrespondenceFra
     return frames
 
 
-def _write_inputs(root: Path) -> tuple[Path, Path]:
+def _write_inputs(
+    root: Path,
+    *,
+    noise_std: float = 1.5,
+    reference_transform: TransformResult | None = None,
+) -> tuple[Path, Path]:
     root.mkdir(parents=True, exist_ok=True)
-    frames = _build_frames()
+    frames = _build_frames(noise_std=noise_std)
     artifact = ProbabilisticCorrespondenceArtifact(
         artifact_id="kitti-0005-stability-fixture",
         dataset_id="kitti-0005-synthetic",
@@ -149,6 +154,7 @@ def _write_inputs(root: Path) -> tuple[Path, Path]:
         translation_m=list(_INITIAL.translation_m),
         rotation_quat_xyzw=list(_INITIAL.rotation_quat_xyzw),
     )
+    reference = reference_transform if reference_transform is not None else initial_transform
     problem = CameraLidarCalibrationProblem(
         problem_id="kitti-0005-stability-problem",
         dataset_id="kitti-0005-synthetic",
@@ -171,7 +177,7 @@ def _write_inputs(root: Path) -> tuple[Path, Path]:
             )
             for f in frames
         ],
-        reference_transform_camera_lidar=initial_transform,
+        reference_transform_camera_lidar=reference,
         initial_transform_camera_lidar=initial_transform,
         time_convention="synchronized",
         rotation_bound_deg=5.0,
@@ -255,3 +261,92 @@ def test_empirical_uncertainty_stability_only_public_workflow(
     assert artifact.resample_count == 8
     prov = artifact.provenance
     assert prov.source_sha256  # correspondence + problem digest recorded
+
+
+def test_empirical_uncertainty_ground_truth_public_workflow(
+    tmp_path: Path,
+) -> None:
+    """End-to-end CLI test for the public workflow with reference truth.
+
+    The fixture uses a deterministic proxy reference (same frame convention and
+    scale as the public KITTI-style setup) so coverage assessment is exercised
+    without requiring external depth artifacts.
+    """
+    inputs_dir = tmp_path / "inputs"
+    pre_result_dir = tmp_path / "pre-resamples"
+    pre_output = tmp_path / "pre-uncertainty.yaml"
+    result_dir = tmp_path / "resamples"
+    output = tmp_path / "uncertainty.yaml"
+    # First run: estimate a stable center without coverage assessment.
+    correspondence_path, problem_path = _write_inputs(inputs_dir, noise_std=0.5)
+    pre_exit_code = main(
+        [
+            "camera-lidar",
+            "empirical-uncertainty",
+            str(correspondence_path),
+            str(problem_path),
+            "--result-dir",
+            str(pre_result_dir),
+            "--output",
+            str(pre_output),
+            "--block-length",
+            "4",
+            "--resample-count",
+            "12",
+            "--target-coverage",
+            "0.6",
+            "--stability-only",
+            "--json",
+        ]
+    )
+    assert pre_exit_code == 0
+    pre_artifact = load_empirical_se3_uncertainty(pre_output)
+
+    # Second run: exercise the ground-truth coverage path using the frozen center
+    # as proxy reference for this deterministic fixture.
+    correspondence_path, problem_path = _write_inputs(
+        inputs_dir / "with-reference",
+        noise_std=0.5,
+        reference_transform=pre_artifact.mean_estimate_transform,
+    )
+
+    exit_code = main(
+        [
+            "camera-lidar",
+            "empirical-uncertainty",
+            str(correspondence_path),
+            str(problem_path),
+            "--result-dir",
+            str(result_dir),
+            "--output",
+            str(output),
+            "--block-length",
+            "4",
+            "--resample-count",
+            "12",
+            "--target-coverage",
+            "0.6",
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0, f"CLI exited with {exit_code}"
+    assert validate_file(output).valid, "artifact is not schema-valid"
+
+    artifact = load_empirical_se3_uncertainty(output)
+    assert artifact.policy_status in {"pass", "warn"}
+    assert artifact.reference_transform is not None
+    assert artifact.observed_coverage_translation is not None
+    assert artifact.observed_coverage_rotation is not None
+    assert artifact.overconfidence_control is not None
+    assert artifact.coverage_score is not None
+    assert artifact.coverage_score >= 0.55
+    assert artifact.reference_rotation_error_deg is not None
+    assert artifact.reference_translation_error_m is not None
+
+    assert len(artifact.axis_intervals) == 6
+    for interval in artifact.axis_intervals:
+        assert interval.half_width >= 0.0
+
+    resample_files = sorted(result_dir.glob("*.yaml"))
+    assert len(resample_files) == 12
