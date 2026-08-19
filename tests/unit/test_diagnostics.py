@@ -55,3 +55,44 @@ def test_doctor_missing_dataset_fails_with_provenance(tmp_path: Path) -> None:
     assert artifact.provenance.dataset_type_source == "inferred"
     assert artifact.provenance.dataset_digest_status == "not_computed"
     jsonschema.validate(artifact.model_dump(mode="json"), doctor_json_schema())
+
+
+def test_doctor_rosbag2_suggests_template(tmp_path: Path) -> None:
+    bag_dir = tmp_path / "my_bag"
+    bag_dir.mkdir()
+    (bag_dir / "metadata.yaml").write_text(
+        "rosbag2_bagfile_information:\n  version: 4\n", encoding="utf-8"
+    )
+
+    artifact = build_doctor_artifact(
+        calibrex_version="test",
+        command=["calibrex", "doctor", str(bag_dir)],
+        path=bag_dir,
+    )
+
+    lidar_workflows = [w for w in artifact.workflows if w.workflow_id == "lidar-lidar-evidence"]
+    assert lidar_workflows, "expected a lidar-lidar-evidence workflow suggestion"
+    w = lidar_workflows[0]
+    assert w.next_command is not None
+    assert "velodyne_vlp16_pair_rosbag2" in w.next_command
+    assert "calibrex calibrate" in w.next_command
+    jsonschema.validate(artifact.model_dump(mode="json"), doctor_json_schema())
+
+
+def test_doctor_rosbag1_suggests_template(tmp_path: Path) -> None:
+    bag_file = tmp_path / "recording.bag"
+    bag_file.write_bytes(b"#ROSBAG V2.0\n")
+
+    artifact = build_doctor_artifact(
+        calibrex_version="test",
+        command=["calibrex", "doctor", str(bag_file)],
+        path=bag_file,
+    )
+
+    lidar_workflows = [w for w in artifact.workflows if w.workflow_id == "lidar-lidar-evidence"]
+    assert lidar_workflows, "expected a lidar-lidar-evidence workflow suggestion"
+    w = lidar_workflows[0]
+    assert w.next_command is not None
+    assert "velodyne_vlp16_pair_rosbag1" in w.next_command
+    assert "calibrex calibrate" in w.next_command
+    jsonschema.validate(artifact.model_dump(mode="json"), doctor_json_schema())

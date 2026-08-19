@@ -1510,6 +1510,8 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
                     print(f"  recommendation: {recommendation}")
             for workflow in artifact.workflows:
                 print(f"  workflow: {workflow.workflow_id} ({workflow.status})")
+                if workflow.next_command is not None:
+                    print(f"  next:     {workflow.next_command}")
     return 1 if artifact.status == "fail" else 0
 
 

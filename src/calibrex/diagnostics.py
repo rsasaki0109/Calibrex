@@ -225,16 +225,52 @@ def _quality(inspection: DatasetInspection) -> DoctorQuality:
     )
 
 
+def _lidar_lidar_next_command(dataset_type: str) -> str | None:
+    """Return the most specific next command for a LiDAR-LiDAR workflow."""
+    if dataset_type == "rosbag2":
+        return (
+            "cp -r examples/sensor_templates/velodyne_vlp16_pair_rosbag2 my_calib && "
+            "# edit my_calib/config.yaml (dataset.path and sensor topics) && "
+            "calibrex calibrate my_calib/config.yaml"
+        )
+    if dataset_type == "rosbag1":
+        return (
+            "cp -r examples/sensor_templates/velodyne_vlp16_pair_rosbag1 my_calib && "
+            "# edit my_calib/config.yaml (dataset.path and sensor topics) && "
+            "calibrex calibrate my_calib/config.yaml"
+        )
+    return None
+
+
 def _workflows(inspection: DatasetInspection) -> list[DoctorWorkflow]:
     kinds = {stream.kind for stream in inspection.streams}
     pointcloud_count = sum(stream.kind == "pointcloud" for stream in inspection.streams)
     workflows: list[DoctorWorkflow] = []
-    if pointcloud_count >= 2 or inspection.dataset_type in {"a2d2_lidar", "livox_pcd"}:
+    bag_dataset = inspection.dataset_type in {"rosbag1", "rosbag2"}
+    if (
+        pointcloud_count >= 2
+        or inspection.dataset_type in {"a2d2_lidar", "livox_pcd"}
+        or (bag_dataset and pointcloud_count >= 2)
+    ):
         workflows.append(
             DoctorWorkflow(
                 workflow_id="lidar-lidar-evidence",
                 status="available",
                 reason="at least two LiDAR streams or a supported LiDAR pair dataset were found",
+                next_command=_lidar_lidar_next_command(inspection.dataset_type),
+            )
+        )
+    elif bag_dataset:
+        # Bag detected but topics not yet verified — offer template with conditional status
+        workflows.append(
+            DoctorWorkflow(
+                workflow_id="lidar-lidar-evidence",
+                status="conditional",
+                reason=(
+                    f"{inspection.dataset_type} bag detected; confirm two PointCloud2 topics "
+                    "are present then edit the template"
+                ),
+                next_command=_lidar_lidar_next_command(inspection.dataset_type),
             )
         )
     elif pointcloud_count == 1:
