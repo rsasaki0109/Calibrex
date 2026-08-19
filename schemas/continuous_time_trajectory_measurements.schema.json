@@ -1,0 +1,479 @@
+{
+  "$defs": {
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "TrajectoryMeasurementProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and immutable input lineage for measurement sets.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "TrajectoryMeasurementProvenance",
+      "type": "object"
+    },
+    "TrajectoryPointMeasurementArtifact": {
+      "additionalProperties": false,
+      "description": "A body-frame point observed at a timestamp against a world target.",
+      "properties": {
+        "measurement_id": {
+          "title": "Measurement Id",
+          "type": "string"
+        },
+        "point_body_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Point Body M",
+          "type": "array"
+        },
+        "target_world_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Target World M",
+          "type": "array"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "measurement_id",
+        "timestamp_sec",
+        "point_body_m",
+        "target_world_m"
+      ],
+      "title": "TrajectoryPointMeasurementArtifact",
+      "type": "object"
+    },
+    "TrajectoryPoseMeasurementArtifact": {
+      "additionalProperties": false,
+      "description": "A measured world pose at a timestamp.",
+      "properties": {
+        "measurement_id": {
+          "title": "Measurement Id",
+          "type": "string"
+        },
+        "pose_world_body": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "measurement_id",
+        "timestamp_sec",
+        "pose_world_body"
+      ],
+      "title": "TrajectoryPoseMeasurementArtifact",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Measurements constraining a continuous-time trajectory fit.",
+  "properties": {
+    "body_frame": {
+      "title": "Body Frame",
+      "type": "string"
+    },
+    "measurements_id": {
+      "title": "Measurements Id",
+      "type": "string"
+    },
+    "point_measurements": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryPointMeasurementArtifact"
+      },
+      "title": "Point Measurements",
+      "type": "array"
+    },
+    "pose_measurements": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryPoseMeasurementArtifact"
+      },
+      "title": "Pose Measurements",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TrajectoryMeasurementProvenance"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_trajectory_measurements/v0.1",
+      "default": "slac.continuous_time_trajectory_measurements/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "world_frame": {
+      "title": "World Frame",
+      "type": "string"
+    }
+  },
+  "required": [
+    "measurements_id",
+    "world_frame",
+    "body_frame",
+    "provenance"
+  ],
+  "title": "ContinuousTimeTrajectoryMeasurements",
+  "type": "object"
+}

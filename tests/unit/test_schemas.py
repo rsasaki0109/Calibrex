@@ -28,6 +28,13 @@ from calibrex.core.continuous_time_camera_lidar_artifacts import (
     continuous_time_camera_lidar_problem_json_schema,
     continuous_time_camera_lidar_result_json_schema,
 )
+from calibrex.core.continuous_time_contract import (
+    continuous_time_trajectory_json_schema,
+)
+from calibrex.core.continuous_time_fit_artifacts import (
+    continuous_time_fit_json_schema,
+    continuous_time_measurements_json_schema,
+)
 from calibrex.core.continuous_time_lidar_ablation import (
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
     ContinuousTimeLidarAblationManifest,
@@ -37,6 +44,7 @@ from calibrex.core.continuous_time_lidar_artifacts import (
     continuous_time_lidar_pair_json_schema,
 )
 from calibrex.core.dynamic_window import dynamic_window_consistency_json_schema
+from calibrex.core.empirical_uncertainty import empirical_se3_uncertainty_json_schema
 from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
@@ -115,12 +123,24 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "continuous_time_camera_lidar_result.schema.json": (
             continuous_time_camera_lidar_result_json_schema
         ),
+        "continuous_time_trajectory.schema.json": (
+            continuous_time_trajectory_json_schema
+        ),
+        "continuous_time_trajectory_measurements.schema.json": (
+            continuous_time_measurements_json_schema
+        ),
+        "continuous_time_trajectory_fit.schema.json": (
+            continuous_time_fit_json_schema
+        ),
         "probabilistic_correspondence.schema.json": (
             probabilistic_correspondence_json_schema
         ),
         "probabilistic_pnp_result.schema.json": probabilistic_pnp_result_json_schema,
         "probabilistic_refinement_result.schema.json": (
             probabilistic_refinement_result_json_schema
+        ),
+        "empirical_se3_uncertainty.schema.json": (
+            empirical_se3_uncertainty_json_schema
         ),
         "camera_lidar_problem.schema.json": camera_lidar_problem_json_schema,
         "camera_lidar_sota_audit_protocol.schema.json": (

@@ -45,6 +45,16 @@ from calibrex.core.continuous_time_camera_lidar_artifacts import (
     ContinuousTimeCameraLidarProblemArtifact,
     ContinuousTimeCameraLidarResultArtifact,
 )
+from calibrex.core.continuous_time_contract import (
+    CONTINUOUS_TIME_TRAJECTORY_SCHEMA_VERSION,
+    ContinuousTimeTrajectoryContract,
+)
+from calibrex.core.continuous_time_fit_artifacts import (
+    CONTINUOUS_TIME_FIT_SCHEMA_VERSION,
+    CONTINUOUS_TIME_MEASUREMENTS_SCHEMA_VERSION,
+    ContinuousTimeTrajectoryFitResultArtifact,
+    ContinuousTimeTrajectoryMeasurements,
+)
 from calibrex.core.continuous_time_lidar_ablation import (
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
     ContinuousTimeLidarAblationManifest,
@@ -56,6 +66,10 @@ from calibrex.core.continuous_time_lidar_artifacts import (
 from calibrex.core.dynamic_window import (
     DYNAMIC_WINDOW_CONSISTENCY_SCHEMA_VERSION,
     DynamicWindowConsistencyArtifact,
+)
+from calibrex.core.empirical_uncertainty import (
+    EMPIRICAL_SE3_UNCERTAINTY_SCHEMA_VERSION,
+    EmpiricalSe3UncertaintyArtifact,
 )
 from calibrex.core.evidence_bundle import (
     EVIDENCE_BUNDLE_SCHEMA_VERSION,
@@ -176,9 +190,13 @@ ValidationKind = Literal[
     "depth-provider",
     "continuous-time-camera-lidar-problem",
     "continuous-time-camera-lidar-result",
+    "continuous-time-trajectory",
+    "continuous-time-trajectory-measurements",
+    "continuous-time-trajectory-fit",
     "probabilistic-correspondence",
     "probabilistic-pnp-result",
     "probabilistic-refinement-result",
+    "empirical-se3-uncertainty",
     "camera-lidar-problem",
     "camera-lidar-sota-audit-protocol",
     "camera-lidar-sota-audit-result",
@@ -232,9 +250,17 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "continuous-time-camera-lidar-result": (
         ContinuousTimeCameraLidarResultArtifact
     ),
+    "continuous-time-trajectory": ContinuousTimeTrajectoryContract,
+    "continuous-time-trajectory-measurements": (
+        ContinuousTimeTrajectoryMeasurements
+    ),
+    "continuous-time-trajectory-fit": (
+        ContinuousTimeTrajectoryFitResultArtifact
+    ),
     "probabilistic-correspondence": ProbabilisticCorrespondenceArtifact,
     "probabilistic-pnp-result": ProbabilisticPnpResultArtifact,
     "probabilistic-refinement-result": ProbabilisticRefinementResultArtifact,
+    "empirical-se3-uncertainty": EmpiricalSe3UncertaintyArtifact,
     "camera-lidar-problem": CameraLidarCalibrationProblem,
     "camera-lidar-sota-audit-protocol": CameraLidarSotaAuditProtocol,
     "camera-lidar-sota-audit-result": CameraLidarSotaAuditResult,
@@ -288,11 +314,17 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CONTINUOUS_TIME_CAMERA_LIDAR_RESULT_SCHEMA_VERSION: (
         "continuous-time-camera-lidar-result"
     ),
+    CONTINUOUS_TIME_TRAJECTORY_SCHEMA_VERSION: "continuous-time-trajectory",
+    CONTINUOUS_TIME_MEASUREMENTS_SCHEMA_VERSION: (
+        "continuous-time-trajectory-measurements"
+    ),
+    CONTINUOUS_TIME_FIT_SCHEMA_VERSION: "continuous-time-trajectory-fit",
     PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION: "probabilistic-correspondence",
     PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION: "probabilistic-pnp-result",
     PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: (
         "probabilistic-refinement-result"
     ),
+    EMPIRICAL_SE3_UNCERTAINTY_SCHEMA_VERSION: "empirical-se3-uncertainty",
     CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: "camera-lidar-problem",
     CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION: (
         "camera-lidar-sota-audit-protocol"

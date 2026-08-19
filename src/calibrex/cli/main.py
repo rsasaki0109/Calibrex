@@ -50,6 +50,13 @@ from calibrex.core.continuous_time_camera_lidar_artifacts import (
     continuous_time_camera_lidar_problem_json_schema,
     continuous_time_camera_lidar_result_json_schema,
 )
+from calibrex.core.continuous_time_contract import (
+    continuous_time_trajectory_json_schema,
+)
+from calibrex.core.continuous_time_fit_artifacts import (
+    continuous_time_fit_json_schema,
+    continuous_time_measurements_json_schema,
+)
 from calibrex.core.continuous_time_lidar_ablation import (
     continuous_time_lidar_ablation_json_schema,
 )
@@ -60,6 +67,9 @@ from calibrex.core.continuous_time_lidar_artifacts import (
 from calibrex.core.dynamic_window import (
     DynamicWindowConsistencyThresholds,
     dynamic_window_consistency_json_schema,
+)
+from calibrex.core.empirical_uncertainty import (
+    empirical_se3_uncertainty_json_schema,
 )
 from calibrex.core.evidence_bundle import (
     EvidenceBundleVerification,
@@ -167,8 +177,14 @@ from calibrex.evaluation.continuous_time_camera_lidar_run import (
 from calibrex.evaluation.continuous_time_trajectory_adapter import (
     attach_recorded_body_trajectory,
 )
+from calibrex.evaluation.continuous_time_trajectory_fit import (
+    run_continuous_time_trajectory_fit,
+)
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.dynamic_window import evaluate_dynamic_window_consistency
+from calibrex.evaluation.empirical_se3_uncertainty import (
+    run_empirical_se3_uncertainty,
+)
 from calibrex.evaluation.evidence_summary import evidence_cases_from_result
 from calibrex.evaluation.kitti_falsification_benchmark import (
     kitti_falsification_json_schema,
@@ -284,6 +300,48 @@ def _packaged_kitti_lidar_camera_demo_config() -> Path:
     )
 
 
+def _coverage_ratio(value: str) -> float:
+    """Parse an argparse value as a coverage target in (0, 1)."""
+
+    try:
+        ratio = float(value)
+    except ValueError as exc:
+        msg = f"invalid coverage ratio: {value!r}"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if not 0.0 < ratio < 1.0:
+        msg = f"must be > 0.0 and < 1.0, got {ratio}"
+        raise argparse.ArgumentTypeError(msg)
+    return ratio
+
+
+def _fit_ratio(value: str) -> float:
+    """Parse an argparse value as a block fit ratio in (0, 1)."""
+
+    try:
+        ratio = float(value)
+    except ValueError as exc:
+        msg = f"invalid fit block ratio: {value!r}"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if not 0.0 < ratio < 1.0:
+        msg = f"must be > 0.0 and < 1.0, got {ratio}"
+        raise argparse.ArgumentTypeError(msg)
+    return ratio
+
+
+def _overconfidence_scale(value: str) -> float:
+    """Parse an argparse value as an overconfidence control scale in (0, 1)."""
+
+    try:
+        scale = float(value)
+    except ValueError as exc:
+        msg = f"invalid overconfidence scale: {value!r}"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if not 0.0 < scale < 1.0:
+        msg = f"must be > 0.0 and < 1.0, got {scale}"
+        raise argparse.ArgumentTypeError(msg)
+    return scale
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="calibrex")
     parser.add_argument("--version", action="version", version=f"Calibrex {__version__}")
@@ -353,9 +411,13 @@ def _build_parser() -> argparse.ArgumentParser:
             "depth-provider",
             "continuous-time-camera-lidar-problem",
             "continuous-time-camera-lidar-result",
+            "continuous-time-trajectory",
+            "continuous-time-trajectory-measurements",
+            "continuous-time-trajectory-fit",
             "probabilistic-correspondence",
             "probabilistic-pnp-result",
             "probabilistic-refinement-result",
+            "empirical-se3-uncertainty",
             "camera-lidar-problem",
             "camera-lidar-sota-audit-protocol",
             "camera-lidar-sota-audit-result",
@@ -1241,6 +1303,51 @@ def _build_parser() -> argparse.ArgumentParser:
     sota_audit.add_argument("--json", action="store_true")
     sota_audit.set_defaults(func=_cmd_camera_lidar_audit_sota)
 
+    empirical_uncertainty = camera_lidar_subcommands.add_parser(
+        "empirical-uncertainty",
+        help="report empirical SE(3) coverage from block-resampled refits",
+    )
+    empirical_uncertainty.add_argument("correspondence", type=Path)
+    empirical_uncertainty.add_argument("initial_problem", type=Path)
+    empirical_uncertainty.add_argument(
+        "--result-dir", type=Path, required=True,
+        help="directory holding one schema-valid refit artifact per resample",
+    )
+    empirical_uncertainty.add_argument("--output", type=Path, required=True)
+    empirical_uncertainty.add_argument("--uncertainty-id")
+    empirical_uncertainty.add_argument(
+        "--block-length", type=_positive_int, default=5,
+        help="frames per contiguous temporal block (default 5)",
+    )
+    empirical_uncertainty.add_argument(
+        "--target-coverage", type=_coverage_ratio, default=0.9,
+        help="target interval coverage in (0, 1) (default 0.9)",
+    )
+    empirical_uncertainty.add_argument(
+        "--resample-count", type=_positive_int, default=20,
+        help="number of deterministic block subsamples (default 20)",
+    )
+    empirical_uncertainty.add_argument(
+        "--seed", type=int, default=0,
+        help="deterministic block-subsample seed (default 0)",
+    )
+    empirical_uncertainty.add_argument(
+        "--fit-block-ratio", type=_fit_ratio, default=0.6,
+        help="fraction of blocks used for fitting (default 0.6)",
+    )
+    empirical_uncertainty.add_argument(
+        "--overconfidence-scale", type=_overconfidence_scale, default=0.1,
+        help="interval scale tested by the overconfidence control (default 0.1)",
+    )
+    empirical_uncertainty.add_argument(
+        "--stability-only", action="store_true",
+        help="report the empirical spread without a coverage claim",
+    )
+    empirical_uncertainty.add_argument("--json", action="store_true")
+    empirical_uncertainty.set_defaults(
+        func=_cmd_camera_lidar_empirical_uncertainty
+    )
+
     external_run = subcommands.add_parser(
         "external-run",
         help="import or inspect external calibration run artifacts",
@@ -1274,6 +1381,43 @@ def _build_parser() -> argparse.ArgumentParser:
     kalibr_import.add_argument("--training-isolation-evidence")
     kalibr_import.add_argument("--json", action="store_true")
     kalibr_import.set_defaults(func=_cmd_external_run_import_kalibr)
+
+    trajectory = subcommands.add_parser(
+        "trajectory",
+        help="schema-valid continuous-time trajectory utilities",
+    )
+    trajectory_subcommands = trajectory.add_subparsers(
+        dest="trajectory_command",
+        required=True,
+    )
+    trajectory_build = trajectory_subcommands.add_parser(
+        "build-contract",
+        help="build a trajectory contract from a simple knots YAML",
+    )
+    trajectory_build.add_argument("knots_yaml", type=Path)
+    trajectory_build.add_argument("--output", type=Path, required=True)
+    trajectory_build.add_argument("--trajectory-id", required=True)
+    trajectory_build.add_argument("--world-frame", default="map")
+    trajectory_build.add_argument("--body-frame", default="base")
+    trajectory_build.add_argument(
+        "--interpolation",
+        choices=["piecewise_linear_slerp/v0.1", "screw_linear/v0.1"],
+        default="screw_linear/v0.1",
+    )
+    trajectory_build.add_argument("--json", action="store_true")
+    trajectory_build.set_defaults(func=_cmd_trajectory_build_contract)
+    trajectory_fit = trajectory_subcommands.add_parser(
+        "fit",
+        help="fit trajectory knots against point/pose measurements",
+    )
+    trajectory_fit.add_argument("trajectory", type=Path)
+    trajectory_fit.add_argument("measurements", type=Path)
+    trajectory_fit.add_argument("--output", type=Path, required=True)
+    trajectory_fit.add_argument("--fit-id")
+    trajectory_fit.add_argument("--max-iterations", type=_positive_int, default=30)
+    trajectory_fit.add_argument("--initial-damping", type=float, default=1.0e-3)
+    trajectory_fit.add_argument("--json", action="store_true")
+    trajectory_fit.set_defaults(func=_cmd_trajectory_fit)
 
     visualize = subcommands.add_parser("visualize", help="render result visualizations")
     visualize.add_argument("result", type=Path)
@@ -1445,11 +1589,17 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "continuous-time-camera-lidar-result": (
             continuous_time_camera_lidar_result_json_schema
         ),
+        "continuous-time-trajectory": continuous_time_trajectory_json_schema,
+        "continuous-time-trajectory-measurements": (
+            continuous_time_measurements_json_schema
+        ),
+        "continuous-time-trajectory-fit": continuous_time_fit_json_schema,
         "probabilistic-correspondence": probabilistic_correspondence_json_schema,
         "probabilistic-pnp-result": probabilistic_pnp_result_json_schema,
         "probabilistic-refinement-result": (
             probabilistic_refinement_result_json_schema
         ),
+        "empirical-se3-uncertainty": empirical_se3_uncertainty_json_schema,
         "camera-lidar-problem": camera_lidar_problem_json_schema,
         "camera-lidar-sota-audit-protocol": (
             camera_lidar_sota_audit_protocol_json_schema
@@ -3232,6 +3382,173 @@ def _cmd_camera_lidar_audit_sota(args: argparse.Namespace) -> int:
         args.json,
     )
     return 0 if audit.verdict == "supported" else 2
+
+
+def _cmd_camera_lidar_empirical_uncertainty(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "empirical-uncertainty",
+        str(args.correspondence),
+        str(args.initial_problem),
+        "--result-dir",
+        str(args.result_dir),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        artifact = run_empirical_se3_uncertainty(
+            args.correspondence,
+            args.initial_problem,
+            result_directory=args.result_dir,
+            command=" ".join(command),
+            block_length=args.block_length,
+            target_coverage=args.target_coverage,
+            resample_count=args.resample_count,
+            seed=args.seed,
+            fit_block_ratio=args.fit_block_ratio,
+            overconfidence_scale=args.overconfidence_scale,
+            assess_coverage=not args.stability_only,
+            result_id=args.uncertainty_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "uncertainty": str(args.output),
+            "policy_status": artifact.policy_status,
+            "coverage_score": artifact.coverage_score,
+            "observed_coverage_translation": (
+                artifact.observed_coverage_translation
+            ),
+            "observed_coverage_rotation": artifact.observed_coverage_rotation,
+            "observed_coverage_joint": artifact.observed_coverage_joint,
+            "interval_halfwidth_translation_m": (
+                artifact.interval_halfwidth_translation_m
+            ),
+            "interval_halfwidth_rotation_deg": (
+                artifact.interval_halfwidth_rotation_deg
+            ),
+            "resample_files": len(artifact.iterations),
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_build_contract(args: argparse.Namespace) -> int:
+    from calibrex.core.continuous_time_contract import (
+        ContinuousTimeClockSemantics,
+        ContinuousTimeKnotDomain,
+        ContinuousTimeKnotPose,
+        ContinuousTimeTrajectoryContract,
+        ContinuousTimeTrajectoryProvenance,
+    )
+    from calibrex.core.provenance import git_commit, sha256_path
+    from calibrex.core.result import TransformResult
+
+    mapping = read_mapping(args.knots_yaml)
+    raw_knots = mapping["knots"]
+    if not isinstance(raw_knots, list) or len(raw_knots) < 2:
+        raise CalibrexError("knots YAML must contain a non-empty list of knots")
+    digest = sha256_path(args.knots_yaml)
+    if digest is None:
+        raise CalibrexError(f"knots YAML is not readable: {args.knots_yaml}")
+    knots = []
+    for item in raw_knots:
+        timestamp = float(item["timestamp_sec"])
+        translation = [float(v) for v in item["translation_m"]]
+        quaternion = [float(v) for v in item["rotation_quat_xyzw"]]
+        knots.append(
+            ContinuousTimeKnotPose(
+                timestamp_sec=timestamp,
+                transform_world_body=TransformResult(
+                    parent=args.world_frame,
+                    child=args.body_frame,
+                    translation_m=translation,
+                    rotation_quat_xyzw=quaternion,
+                ),
+            )
+        )
+    contract = ContinuousTimeTrajectoryContract(
+        trajectory_id=args.trajectory_id,
+        world_frame=args.world_frame,
+        body_frame=args.body_frame,
+        interpolation=args.interpolation,
+        knot_domain=ContinuousTimeKnotDomain(
+            minimum_time_sec=knots[0].timestamp_sec,
+            maximum_time_sec=knots[-1].timestamp_sec,
+            span_sec=knots[-1].timestamp_sec - knots[0].timestamp_sec,
+        ),
+        clock=ContinuousTimeClockSemantics(),
+        knots=knots,
+        provenance=ContinuousTimeTrajectoryProvenance(
+            generator=__name__,
+            generator_version="0.1",
+            git_commit=git_commit(),
+            source_sha256=digest,
+        ),
+    )
+    contract.save(args.output)
+    _emit(
+        {
+            "status": "ok",
+            "trajectory": str(args.output),
+            "trajectory_id": contract.trajectory_id,
+            "knot_count": contract.knot_count,
+            "domain_sec": [contract.knot_domain.minimum_time_sec, contract.knot_domain.maximum_time_sec],
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_trajectory_fit(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "trajectory",
+        "fit",
+        str(args.trajectory),
+        str(args.measurements),
+        "--output",
+        str(args.output),
+    ]
+    from calibrex.core.continuous_time_sparse import (
+        ContinuousTimeTrajectoryFitOptions,
+    )
+
+    try:
+        artifact = run_continuous_time_trajectory_fit(
+            args.trajectory,
+            args.measurements,
+            result_id=args.fit_id,
+            command=command,
+            options=ContinuousTimeTrajectoryFitOptions(
+                max_iterations=args.max_iterations,
+                initial_damping=args.initial_damping,
+            ),
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "fit": str(args.output),
+            "fit_id": artifact.fit_id,
+            "status": artifact.status,
+            "iterations": artifact.iterations,
+            "final_objective": artifact.final_objective,
+            "final_point_rmse": artifact.final_point_rmse,
+            "final_pose_rmse": artifact.final_pose_rmse,
+        },
+        args.json,
+    )
+    return 0
 
 
 def _cmd_visualize(args: argparse.Namespace) -> int:

@@ -1,0 +1,505 @@
+{
+  "$defs": {
+    "ContinuousTimeFitProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and immutable input lineage for trajectory fits.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "measurements_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Measurements Sha256",
+          "type": "string"
+        },
+        "trajectory_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trajectory Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "trajectory_sha256",
+        "measurements_sha256"
+      ],
+      "title": "ContinuousTimeFitProvenance",
+      "type": "object"
+    },
+    "ContinuousTimeFittedKnot": {
+      "additionalProperties": false,
+      "description": "One fitted trajectory knot with its initial value.",
+      "properties": {
+        "initial_transform_world_body": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "knot_index": {
+          "minimum": 0,
+          "title": "Knot Index",
+          "type": "integer"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "transform_world_body": {
+          "$ref": "#/$defs/TransformResult"
+        }
+      },
+      "required": [
+        "knot_index",
+        "timestamp_sec",
+        "initial_transform_world_body",
+        "transform_world_body"
+      ],
+      "title": "ContinuousTimeFittedKnot",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid result of a sparse continuous-time trajectory fit.",
+  "properties": {
+    "final_objective": {
+      "title": "Final Objective",
+      "type": "number"
+    },
+    "final_point_rmse": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Final Point Rmse"
+    },
+    "final_pose_rmse": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Final Pose Rmse"
+    },
+    "fit_id": {
+      "title": "Fit Id",
+      "type": "string"
+    },
+    "gradient_norm": {
+      "minimum": 0.0,
+      "title": "Gradient Norm",
+      "type": "number"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "iterations": {
+      "minimum": 0,
+      "title": "Iterations",
+      "type": "integer"
+    },
+    "knots": {
+      "items": {
+        "$ref": "#/$defs/ContinuousTimeFittedKnot"
+      },
+      "minItems": 2,
+      "title": "Knots",
+      "type": "array"
+    },
+    "max_step_rotation_deg": {
+      "minimum": 0.0,
+      "title": "Max Step Rotation Deg",
+      "type": "number"
+    },
+    "max_step_translation_m": {
+      "minimum": 0.0,
+      "title": "Max Step Translation M",
+      "type": "number"
+    },
+    "nonzero_jacobian_blocks": {
+      "minimum": 0,
+      "title": "Nonzero Jacobian Blocks",
+      "type": "integer"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeFitProvenance"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_trajectory_fit/v0.1",
+      "default": "slac.continuous_time_trajectory_fit/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trajectory_id": {
+      "title": "Trajectory Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fit_id",
+    "trajectory_id",
+    "interpolation",
+    "status",
+    "iterations",
+    "final_objective",
+    "max_step_translation_m",
+    "max_step_rotation_deg",
+    "gradient_norm",
+    "nonzero_jacobian_blocks",
+    "knots",
+    "provenance"
+  ],
+  "title": "ContinuousTimeTrajectoryFitResultArtifact",
+  "type": "object"
+}

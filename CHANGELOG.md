@@ -6,6 +6,37 @@
   and removed the automatic PyPI publishing workflow following the maintainer
   decision to skip PyPI distribution.
 
+- Added the continuous-time trajectory foundation. `slac.continuous_time_trajectory/v0.1`
+  is a typed, schema-valid trajectory contract that declares the interpolation
+  model, knot-domain validity (queries outside the domain are rejected, never
+  clamped), and clock/capture-time semantics, and converts losslessly to the
+  existing piecewise linear-slerp adapter. Analytic SE(3) manifold operations
+  (`se3_manifold`) provide right-trivialized exp/log, the SO(3)/SE(3) left
+  Jacobians and adjoint, the point-transform Jacobian, and two-knot screw
+  interpolation Jacobians, all verified against finite differences. A sparse
+  Gauss--Newton/Levenberg--Marquardt fitter (`continuous_time_sparse`)
+  assembles the normal equations as a block-banded system in which every
+  factor touches at most its two bracketing knots, estimating all knots on the
+  manifold from body-frame point measurements and pose measurements (poses
+  become four anchored point factors using only the analytic point Jacobian).
+  `calibrex trajectory build-contract` and `calibrex trajectory fit` expose the
+  workflow, and the fit result validates against
+  `slac.continuous_time_trajectory_fit/v0.1` with provenance pinned to both
+  input digests.
+
+- Added schema-valid empirical SE(3) uncertainty evidence
+  (`slac.empirical_se3_uncertainty/v0.1`). `calibrex camera-lidar
+  empirical-uncertainty` refits the native probabilistic multi-frame refiner on
+  deterministic contiguous temporal-block subsamples that never split a block
+  across the train/holdout boundary, reports tangent-space intervals with
+  Sidak-corrected joint family coverage against injected truth, retains weak or
+  unobservable directions instead of dropping them, and applies an
+  overconfident interval control that must be refuted before the
+  PASS/WARN/FAIL policy can certify the intervals. Without a declared reference
+  (`--stability-only`) the artifact reports the empirical spread with an
+  INCONCLUSIVE policy. Every resample refit is retained as a digest-bound
+  schema-valid result, and the artifact validates against its generated schema.
+
 ## 0.4.1 - 2026-08-11
 
 - Promoted the no-download KITTI-shaped Camera-LiDAR evidence path into a

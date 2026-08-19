@@ -176,6 +176,35 @@ class ProbabilisticCameraLidarRefiner:
         )
         train = tuple(ordered[index] for index in train_indices)
         holdout = tuple(ordered[index] for index in holdout_indices)
+        return self.solve_partitioned(
+            train,
+            holdout,
+            initial_transform_camera_lidar,
+            settings,
+        )
+
+    def solve_partitioned(
+        self,
+        train_frames: Sequence[ProbabilisticCorrespondenceFrame],
+        holdout_frames: Sequence[ProbabilisticCorrespondenceFrame],
+        initial_transform_camera_lidar: SE3,
+        options: ProbabilisticCameraLidarRefinementOptions | None = None,
+    ) -> ProbabilisticCameraLidarRefinementResult:
+        """Refine from caller-supplied disjoint train/holdout frame sets.
+
+        The caller is responsible for assembling block-aligned frame subsets so
+        neighboring measurements sharing a scene are never split across the
+        train/holdout boundary.
+        """
+
+        settings = options or ProbabilisticCameraLidarRefinementOptions()
+        train = tuple(train_frames)
+        holdout = tuple(holdout_frames)
+        identifiers = [item.frame_id for item in train] + [
+            item.frame_id for item in holdout
+        ]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("train and holdout frame IDs must be disjoint")
         initial_train = evaluate_probabilistic_camera_lidar_pose(
             train, initial_transform_camera_lidar, settings
         )

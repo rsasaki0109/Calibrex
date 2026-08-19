@@ -1,0 +1,893 @@
+{
+  "$defs": {
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "EmpiricalAxisInterval": {
+      "additionalProperties": false,
+      "description": "Central interval for one SE(3) tangent axis.",
+      "properties": {
+        "axis": {
+          "enum": [
+            "translation_x_m",
+            "translation_y_m",
+            "translation_z_m",
+            "rotation_x_deg",
+            "rotation_y_deg",
+            "rotation_z_deg"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "half_width": {
+          "minimum": 0.0,
+          "title": "Half Width",
+          "type": "number"
+        },
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        },
+        "weak_direction": {
+          "title": "Weak Direction",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "axis",
+        "unit",
+        "lower",
+        "upper",
+        "half_width",
+        "weak_direction"
+      ],
+      "title": "EmpiricalAxisInterval",
+      "type": "object"
+    },
+    "EmpiricalBlock": {
+      "additionalProperties": false,
+      "description": "One contiguous temporal block that is never split across splits.",
+      "properties": {
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "capture_time_end_ns": {
+          "title": "Capture Time End Ns",
+          "type": "integer"
+        },
+        "capture_time_start_ns": {
+          "title": "Capture Time Start Ns",
+          "type": "integer"
+        },
+        "frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Frame Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "block_id",
+        "frame_ids",
+        "capture_time_start_ns",
+        "capture_time_end_ns"
+      ],
+      "title": "EmpiricalBlock",
+      "type": "object"
+    },
+    "EmpiricalResampleIteration": {
+      "additionalProperties": false,
+      "description": "One block resample refit with its retained solver status.",
+      "properties": {
+        "holdout_block_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Holdout Block Ids",
+          "type": "array"
+        },
+        "iteration_id": {
+          "title": "Iteration Id",
+          "type": "string"
+        },
+        "output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Sha256"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "solver_status": {
+          "title": "Solver Status",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "train_block_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Train Block Ids",
+          "type": "array"
+        },
+        "transform_camera_lidar": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "iteration_id",
+        "status",
+        "solver_status",
+        "train_block_ids",
+        "holdout_block_ids"
+      ],
+      "title": "EmpiricalResampleIteration",
+      "type": "object"
+    },
+    "EmpiricalUncertaintyProvenance": {
+      "additionalProperties": false,
+      "description": "Generator, command, and immutable input lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "data_verified": {
+          "title": "Data Verified",
+          "type": "boolean"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "resample_output_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Resample Output Sha256",
+          "type": "object"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "data_verified"
+      ],
+      "title": "EmpiricalUncertaintyProvenance",
+      "type": "object"
+    },
+    "OverconfidenceControlResult": {
+      "additionalProperties": false,
+      "description": "Result of applying the reported interval at a shrunken scale.",
+      "properties": {
+        "control_id": {
+          "title": "Control Id",
+          "type": "string"
+        },
+        "coverage_joint": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage Joint",
+          "type": "number"
+        },
+        "coverage_rotation": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage Rotation",
+          "type": "number"
+        },
+        "coverage_translation": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage Translation",
+          "type": "number"
+        },
+        "policy_status": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "refuted": {
+          "title": "Refuted",
+          "type": "boolean"
+        },
+        "scale": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control_id",
+        "scale",
+        "coverage_translation",
+        "coverage_rotation",
+        "coverage_joint",
+        "refuted",
+        "policy_status",
+        "reason"
+      ],
+      "title": "OverconfidenceControlResult",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Sampling-based SE(3) uncertainty evidence for one calibration family.",
+  "properties": {
+    "axis_intervals": {
+      "items": {
+        "$ref": "#/$defs/EmpiricalAxisInterval"
+      },
+      "maxItems": 6,
+      "minItems": 6,
+      "title": "Axis Intervals",
+      "type": "array"
+    },
+    "block_count": {
+      "minimum": 1,
+      "title": "Block Count",
+      "type": "integer"
+    },
+    "block_length": {
+      "minimum": 1,
+      "title": "Block Length",
+      "type": "integer"
+    },
+    "blocks": {
+      "items": {
+        "$ref": "#/$defs/EmpiricalBlock"
+      },
+      "minItems": 2,
+      "title": "Blocks",
+      "type": "array"
+    },
+    "calibration_family": {
+      "title": "Calibration Family",
+      "type": "string"
+    },
+    "child_frame": {
+      "title": "Child Frame",
+      "type": "string"
+    },
+    "coverage_score": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Coverage Score"
+    },
+    "fit_block_ratio": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Fit Block Ratio",
+      "type": "number"
+    },
+    "interval_halfwidth_rotation_deg": {
+      "minimum": 0.0,
+      "title": "Interval Halfwidth Rotation Deg",
+      "type": "number"
+    },
+    "interval_halfwidth_translation_m": {
+      "minimum": 0.0,
+      "title": "Interval Halfwidth Translation M",
+      "type": "number"
+    },
+    "iterations": {
+      "items": {
+        "$ref": "#/$defs/EmpiricalResampleIteration"
+      },
+      "minItems": 2,
+      "title": "Iterations",
+      "type": "array"
+    },
+    "mean_estimate_transform": {
+      "$ref": "#/$defs/TransformResult"
+    },
+    "observed_coverage_joint": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed Coverage Joint"
+    },
+    "observed_coverage_rotation": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed Coverage Rotation"
+    },
+    "observed_coverage_translation": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed Coverage Translation"
+    },
+    "overconfidence_control": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OverconfidenceControlResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "parent_frame": {
+      "title": "Parent Frame",
+      "type": "string"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/EmpiricalUncertaintyProvenance"
+    },
+    "reference_rotation_error_deg": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Rotation Error Deg"
+    },
+    "reference_transform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TransformResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reference_translation_error_m": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Translation Error M"
+    },
+    "resample_count": {
+      "minimum": 2,
+      "title": "Resample Count",
+      "type": "integer"
+    },
+    "resampling_method": {
+      "const": "seeded_block_subsampling",
+      "default": "seeded_block_subsampling",
+      "title": "Resampling Method",
+      "type": "string"
+    },
+    "sample_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Sample Ids",
+      "type": "array"
+    },
+    "sampling_unit": {
+      "const": "temporal_block",
+      "default": "temporal_block",
+      "title": "Sampling Unit",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.empirical_se3_uncertainty/v0.1",
+      "default": "slac.empirical_se3_uncertainty/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "tangent_ordering": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 6,
+      "title": "Tangent Ordering",
+      "type": "array"
+    },
+    "tangent_origin": {
+      "const": "resample_mean",
+      "default": "resample_mean",
+      "title": "Tangent Origin",
+      "type": "string"
+    },
+    "target_coverage": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Target Coverage",
+      "type": "number"
+    },
+    "transform_convention": {
+      "const": "T_parent_child",
+      "default": "T_parent_child",
+      "title": "Transform Convention",
+      "type": "string"
+    },
+    "uncertainty_id": {
+      "title": "Uncertainty Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "weak_directions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Weak Directions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "uncertainty_id",
+    "calibration_family",
+    "parent_frame",
+    "child_frame",
+    "tangent_ordering",
+    "block_length",
+    "block_count",
+    "resample_count",
+    "seed",
+    "target_coverage",
+    "fit_block_ratio",
+    "blocks",
+    "iterations",
+    "sample_ids",
+    "mean_estimate_transform",
+    "axis_intervals",
+    "interval_halfwidth_translation_m",
+    "interval_halfwidth_rotation_deg",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "EmpiricalSe3UncertaintyArtifact",
+  "type": "object"
+}

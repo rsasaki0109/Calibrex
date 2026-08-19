@@ -1,0 +1,495 @@
+{
+  "$defs": {
+    "ContinuousTimeClockSemantics": {
+      "additionalProperties": false,
+      "description": "Clock domain and capture-time convention for the knots.",
+      "properties": {
+        "epoch_reference": {
+          "default": "unix epoch (1970-01-01T00:00:00Z) unless otherwise stated",
+          "title": "Epoch Reference",
+          "type": "string"
+        },
+        "monotonic": {
+          "default": true,
+          "title": "Monotonic",
+          "type": "boolean"
+        },
+        "note": {
+          "default": "knot timestamps are the sensor-clock times at which the body pose T_world_body is exact; interpolation is only defined inside the declared knot domain and queries outside it are rejected",
+          "title": "Note",
+          "type": "string"
+        },
+        "time_unit": {
+          "const": "seconds",
+          "default": "seconds",
+          "title": "Time Unit",
+          "type": "string"
+        }
+      },
+      "title": "ContinuousTimeClockSemantics",
+      "type": "object"
+    },
+    "ContinuousTimeKnotDomain": {
+      "additionalProperties": false,
+      "description": "Valid temporal support of the trajectory.",
+      "properties": {
+        "maximum_time_sec": {
+          "title": "Maximum Time Sec",
+          "type": "number"
+        },
+        "minimum_time_sec": {
+          "title": "Minimum Time Sec",
+          "type": "number"
+        },
+        "span_sec": {
+          "minimum": 0.0,
+          "title": "Span Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "minimum_time_sec",
+        "maximum_time_sec",
+        "span_sec"
+      ],
+      "title": "ContinuousTimeKnotDomain",
+      "type": "object"
+    },
+    "ContinuousTimeKnotPose": {
+      "additionalProperties": false,
+      "description": "One timestamped ``T_world_body`` trajectory knot.",
+      "properties": {
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "transform_world_body": {
+          "$ref": "#/$defs/TransformResult"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "transform_world_body"
+      ],
+      "title": "ContinuousTimeKnotPose",
+      "type": "object"
+    },
+    "ContinuousTimeTrajectoryProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and immutable input lineage for the trajectory contract.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "ContinuousTimeTrajectoryProvenance",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid typed continuous body-pose trajectory.",
+  "properties": {
+    "body_frame": {
+      "title": "Body Frame",
+      "type": "string"
+    },
+    "clock": {
+      "$ref": "#/$defs/ContinuousTimeClockSemantics"
+    },
+    "extrapolation": {
+      "const": "reject",
+      "default": "reject",
+      "title": "Extrapolation",
+      "type": "string"
+    },
+    "interpolation": {
+      "enum": [
+        "piecewise_linear_slerp/v0.1",
+        "screw_linear/v0.1"
+      ],
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "knot_domain": {
+      "$ref": "#/$defs/ContinuousTimeKnotDomain"
+    },
+    "knots": {
+      "items": {
+        "$ref": "#/$defs/ContinuousTimeKnotPose"
+      },
+      "minItems": 2,
+      "title": "Knots",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeTrajectoryProvenance"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_trajectory/v0.1",
+      "default": "slac.continuous_time_trajectory/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "trajectory_id": {
+      "title": "Trajectory Id",
+      "type": "string"
+    },
+    "world_frame": {
+      "title": "World Frame",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trajectory_id",
+    "world_frame",
+    "body_frame",
+    "interpolation",
+    "knot_domain",
+    "clock",
+    "knots",
+    "provenance"
+  ],
+  "title": "ContinuousTimeTrajectoryContract",
+  "type": "object"
+}
