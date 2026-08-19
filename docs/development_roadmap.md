@@ -1,7 +1,7 @@
 # Development Roadmap
 
 This document is the current development decision for Calibrex as of
-2026-07-15. It reconciles the implemented code, the older ADR direction,
+2026-08-19. It reconciles the implemented code, the older ADR direction,
 public-data evidence, and relevant research/OSS. It is a planning inventory,
 not a claim that every listed method is production-ready.
 
@@ -92,15 +92,17 @@ accuracy.
 
 1. **Evidence scale:** Camera-LiDAR has several native methods but lacks a
    reproducible, raw, unregistered, full-scale public PASS/known-bad FAIL pair.
+   The full-scale KITTI benchmark is implemented but no PASS+FAIL public pair
+   result has been recorded yet.
 2. **Common external execution adoption:** the schema-versioned external-run
    artifact is implemented and proven by Koide and Kalibr. Remaining adapters
    such as iKalibr, RIs-Calib, Open3D, and NDT should migrate incrementally.
-3. **Empirical uncertainty:** spectra and black-box curvature are carefully not
-   called covariance, but results do not yet report empirically calibrated
-   SE(3) intervals or coverage.
-4. **Continuous time:** the graph roadmap calls for analytic/manifold
-   Jacobians, sparse blocks, sliding-window marginalization, and continuous-time
-   adapters. Current TUM Schur algebra still materializes dense NumPy blocks.
+3. **Empirical uncertainty:** `slac.empirical_se3_uncertainty/v0.1` is now
+   implemented and CLI-wired. The remaining gap is a public workflow demonstrating
+   PASS/WARN/FAIL policy on real Camera-LiDAR data.
+4. **Continuous time:** `ContinuousTimeTrajectoryContract`, SE(3) manifold
+   Jacobians, and sparse GN/LM fitter are implemented. The remaining gap is
+   native IMU and LiDAR factor integration and sliding-window marginalization.
 5. **Complete LiDAR-IMU solve:** rotation evidence exists; native translation,
    clock offset, bias, and intrinsic estimation do not.
 6. **Lifecycle monitoring:** online adoption gates exist, but there is no
@@ -156,13 +158,13 @@ GPL, visualization-server, or external-solver dependencies to `src/calibrex`.
 Finish the three implementation issues below. They turn existing breadth into
 repeatable comparative evidence and should land before another paper baseline.
 
-### P1 — Continuous-time foundation
+### P1 — Continuous-time foundation — partially implemented
 
-Add a typed `ContinuousTimeTrajectory` contract, knot-domain validity,
-clock-domain/capture-time semantics, manifold Jacobians, and sparse block
-assembly. Use it first as an adapter-facing representation, then for native
-IMU and LiDAR factors. Preserve the current discrete trajectory schema or add a
-versioned extension; do not silently change its meaning.
+`ContinuousTimeTrajectoryContract` (`slac.continuous_time_trajectory/v0.1`),
+SE(3) manifold Jacobians, and a sparse GN/LM fitter are implemented and
+CLI-wired. Remaining work: native IMU pre-integration factors, LiDAR
+point-to-plane factors against the continuous knot path, and sliding-window
+marginalization with gauge and consistency evidence.
 
 ### P2 — Native LiDAR-IMU and sliding-window evidence
 
@@ -184,86 +186,53 @@ These are the committed next issues in order. Scope may be split into smaller
 PRs, but their acceptance conditions must not be weakened to force green
 results.
 
-### 1. Full-scale KITTI Camera-LiDAR falsification benchmark — implemented
+### 1. Empirical SE(3) uncertainty — public Camera-LiDAR workflow
 
-**Outcome:** establish whether the existing Camera-LiDAR evidence has power on
-real, raw, unregistered data at useful scale.
-
-**Acceptance conditions:**
-
-- Use the official KITTI raw `2011_09_26_drive_0005_sync` flow without
-  redistributing restricted raw data.
-- Pin the sequence, selected frame IDs, calibration files, download/source
-  metadata, and SHA-256 input digests in provenance.
-- Freeze one protocol and split before evaluating the dataset reference and a
-  declared known-bad transform.
-- Materialize schema-valid result, evidence, policy, assessment, observability,
-  protocol, transform, and bundle-verification artifacts for both candidates.
-- The reference must PASS and the known-bad candidate must FAIL through
-  unchanged holdout/probe gates. If the data cannot support this, deliver an
-  INCONCLUSIVE/FAIL result plus the measured support and observability reason;
-  do not tune gates after seeing the result.
-- Add an opt-in integration test that runs when the official dataset is locally
-  available, plus fixture tests for the missing-data path and artifact schemas.
-
-### 2. Schema-versioned generic external calibration run — implemented
-
-**Outcome:** replace one-off external provenance dictionaries with a reusable
-adapter artifact while keeping the core ROS-independent and GPL-free.
+**Outcome:** run `calibrex camera-lidar empirical-uncertainty` on a real
+public Camera-LiDAR dataset (e.g. ACFR or KITTI) and report honest
+PASS/WARN/FAIL/INCONCLUSIVE coverage policy.
 
 **Acceptance conditions:**
 
-The runner, versioned decision artifact, frozen reference/known-bad candidates,
-SHA-bound selected inputs, raw-recomputed bundle verification, fixture failure
-test, and opt-in official-data integration test are implemented. An official
-run remains an empirical result: if the frozen gates cannot accept the
-reference and reject the known-bad candidate, the artifact records FAIL or
-INCONCLUSIVE without retuning.
+- Run on an existing public Camera-LiDAR dataset for which a reference
+  transform is available (ground-truth or vendor-provided).
+- Freeze the block-resampling seed, correspondence input, and initial problem
+  in provenance; the result is reproducible to bit-for-bit.
+- Report whether the Sidak-corrected joint family coverage gate is met; do not
+  retune thresholds after seeing the result.
+- Add an opt-in integration test that exercises the full pipeline when the
+  dataset is locally available, plus unit tests for the schema and policy logic.
+- If truth is unavailable (`--stability-only`), record INCONCLUSIVE and report
+  empirical spread; this is the minimum acceptable result.
 
-The v0.1 contract, Koide migration, Kalibr importer, independent-metric marker,
-failure-state tests, schema generation, and CLI validation are implemented.
-Further external adapters can adopt the same model without changing the wire
-schema.
+### 2. `test_readme_gif_gallery` schema-version fix
 
-- Define a schema-valid external-run model containing tool/version/commit,
-  SPDX license, adapter version, execution mode, command, container digest,
-  input/output digests, frame convention, time convention, train-data
-  isolation declaration, status, warnings, and parsed outputs.
-- Add backward-compatible conversion into `SolverAdapterResult` and transform
-  provenance; existing result/schema files must remain valid.
-- Migrate the Koide executable/precomputed path as the first producer without
-  losing any current provenance field.
-- Add a second producer or importer, preferably Kalibr YAML, to prove that the
-  contract is generic rather than Koide-shaped.
-- Recompute Calibrex holdout evidence independently of external fitness values
-  and label external-only metrics as non-comparable.
-- Test successful execution/import, missing executable, nonzero exit, timeout,
-  malformed output, digest mismatch, unknown license, and GPL subprocess
-  isolation. No ROS or external solver may become a default dependency.
-
-### 3. Empirical SE(3) uncertainty evidence
-
-**Outcome:** report whether uncertainty intervals are calibrated, rather than
-presenting an optimizer Hessian as covariance.
+**Outcome:** fix the `RefResolutionError` introduced by a schema `$id` that
+embeds the schema version twice (`slac.readme_gif_gallery/slac.readme_gif_gallery/v0.3`).
 
 **Acceptance conditions:**
 
-- Add a versioned uncertainty evidence artifact with transform convention,
-  tangent ordering, sampling unit, interval method, target coverage, observed
-  coverage, interval width/score, sample IDs, seed, and provenance.
-- Implement deterministic temporal/spatial block resampling for at least one
-  native calibration family; never randomly split neighboring measurements
-  that share the same scene or pose.
-- Evaluate translation and rotation in an explicitly declared SE(3) tangent
-  convention and retain weak/unobservable directions rather than dropping
-  them.
-- On synthetic injected truth, test target coverage and interval widening under
-  reduced excitation/noise. Add known-bad controls showing that an overconfident
-  interval fails its policy.
-- Run the method on one public workflow and report empirical stability without
-  claiming ground-truth coverage when independent truth is unavailable.
-- Integrate PASS/WARN/FAIL/INCONCLUSIVE policy, report rendering, bundle
-  verification, schema generation, schema drift tests, and provenance.
+- Correct the `$id` field in the gallery schema so it resolves correctly under
+  `jsonschema`.
+- All unit tests pass including `test_readme_gif_gallery`.
+- No other schema `$id` is affected.
+
+### 3. iKalibr external-run adapter
+
+**Outcome:** add a third external-run producer to the generic artifact,
+proving the contract extends beyond Koide and Kalibr.
+
+**Acceptance conditions:**
+
+- Implement a subprocess/container iKalibr adapter that produces a
+  `slac.external_run/v0.1` artifact with tool identity, SPDX license,
+  input/output digests, frame convention, time convention, and status.
+- Audit top-level and bundled third-party licenses before any import; boundary
+  must remain subprocess/container-only.
+- Recompute Calibrex holdout evidence independently of iKalibr fitness values.
+- Test successful execution, missing executable, nonzero exit, timeout,
+  malformed output, and digest mismatch. No ROS or iKalibr dependency becomes
+  a default `src/calibrex` dependency.
 
 ## Completion gate for this roadmap
 
