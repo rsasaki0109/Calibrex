@@ -238,7 +238,7 @@ falsification run with vendor reference transform closes the evidence gap and
 demonstrates that Calibrex can detect a known-bad calibration on real data.
 
 **Outcome:** run the existing KITTI falsification pipeline on the full
-`2011_09_30_drive_0005_sync` sequence and record an honest PASS/FAIL pair.
+`2011_09_26_drive_0005_sync` sequence and record an honest PASS/FAIL pair.
 
 **Acceptance conditions:**
 
