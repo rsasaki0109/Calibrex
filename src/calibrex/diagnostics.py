@@ -229,14 +229,16 @@ def _lidar_lidar_next_command(dataset_type: str) -> str | None:
     """Return the most specific next command for a LiDAR-LiDAR workflow."""
     if dataset_type == "rosbag2":
         return (
-            "cp -r examples/sensor_templates/velodyne_vlp16_pair_rosbag2 my_calib && "
-            "# edit my_calib/config.yaml (dataset.path and sensor topics) && "
+            "calibrex init --template velodyne_vlp16_pair_rosbag2 "
+            "--output my_calib/config.yaml && "
+            "# edit dataset.path and sensor topics, then "
             "calibrex calibrate my_calib/config.yaml"
         )
     if dataset_type == "rosbag1":
         return (
-            "cp -r examples/sensor_templates/velodyne_vlp16_pair_rosbag1 my_calib && "
-            "# edit my_calib/config.yaml (dataset.path and sensor topics) && "
+            "calibrex init --template velodyne_vlp16_pair_rosbag1 "
+            "--output my_calib/config.yaml && "
+            "# edit dataset.path and sensor topics, then "
             "calibrex calibrate my_calib/config.yaml"
         )
     return None

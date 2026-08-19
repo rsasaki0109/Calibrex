@@ -151,6 +151,11 @@ from calibrex.diagnostics import (
     build_doctor_artifact,
     doctor_json_schema,
 )
+from calibrex.init_templates import (
+    list_sensor_template_names,
+    template_summary,
+    write_sensor_template,
+)
 from calibrex.evaluation.borer_rotation_benchmark import (
     build_borer_rotation_protocol,
     build_borer_six_dof_protocol,
@@ -541,8 +546,26 @@ def _build_parser() -> argparse.ArgumentParser:
     evidence.set_defaults(func=_cmd_evidence)
 
     init = subcommands.add_parser("init", help="write a starter config")
-    init.add_argument("profile", choices=["camera-lidar-imu", "autonomous-driving-rig"])
-    init.add_argument("--output", type=Path, required=True)
+    init.add_argument(
+        "profile",
+        nargs="?",
+        choices=["camera-lidar-imu", "autonomous-driving-rig"],
+        help="legacy synthetic starter profile (ignored when --template is set)",
+    )
+    init.add_argument("--output", type=Path, help="output config file or directory")
+    init.add_argument(
+        "--template",
+        help=(
+            "copy a working sensor template config "
+            "(for example velodyne_vlp16_pair_rosbag2)"
+        ),
+    )
+    init.add_argument(
+        "--list-templates",
+        action="store_true",
+        help="list available sensor templates and exit",
+    )
+    init.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     init.set_defaults(func=_cmd_init)
 
     calibrate = subcommands.add_parser("calibrate", help="run calibration")
@@ -1796,6 +1819,38 @@ def _cmd_evidence(args: argparse.Namespace) -> int:
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
+    if args.list_templates:
+        payload = {
+            "templates": template_summary(),
+            "canonical": list_sensor_template_names(),
+        }
+        if args.json:
+            _emit(payload, True)
+        else:
+            for name in list_sensor_template_names():
+                print(name)
+        return 0
+    if args.template:
+        if args.output is None:
+            _die("--output is required with --template")
+        try:
+            written = write_sensor_template(args.template, args.output)
+        except CalibrexError as exc:
+            _die(str(exc))
+        payload = {
+            "status": "ok",
+            "template": args.template,
+            "output": str(written),
+        }
+        if args.json:
+            _emit(payload, True)
+        else:
+            print(f"wrote {written}")
+        return 0
+    if args.profile is None:
+        _die("profile is required unless --template or --list-templates is used")
+    if args.output is None:
+        _die("--output is required")
     config = _starter_config(args.profile)
     write_mapping(args.output, config)
     print(f"wrote {args.output}")

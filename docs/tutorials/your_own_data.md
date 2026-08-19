@@ -35,8 +35,11 @@ Tip: record indoors — more planar surfaces per unit distance than outdoors.
 ### 2. Pick a template
 
 ```bash
-cp -r examples/sensor_templates/velodyne_vlp16_pair_rosbag2 my_calib
+calibrex init --template velodyne_vlp16_pair_rosbag2 --output my_calib/config.yaml
+calibrex init --list-templates
 ```
+
+Or copy manually from `examples/sensor_templates/`.
 
 ### 3. Edit the config (three fields)
 

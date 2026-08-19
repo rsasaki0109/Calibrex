@@ -75,7 +75,7 @@ def test_doctor_rosbag2_suggests_template(tmp_path: Path) -> None:
     w = lidar_workflows[0]
     assert w.next_command is not None
     assert "velodyne_vlp16_pair_rosbag2" in w.next_command
-    assert "calibrex calibrate" in w.next_command
+    assert "calibrex init --template" in w.next_command
     jsonschema.validate(artifact.model_dump(mode="json"), doctor_json_schema())
 
 
@@ -94,5 +94,5 @@ def test_doctor_rosbag1_suggests_template(tmp_path: Path) -> None:
     w = lidar_workflows[0]
     assert w.next_command is not None
     assert "velodyne_vlp16_pair_rosbag1" in w.next_command
-    assert "calibrex calibrate" in w.next_command
+    assert "calibrex init --template" in w.next_command
     jsonschema.validate(artifact.model_dump(mode="json"), doctor_json_schema())
