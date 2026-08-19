@@ -108,6 +108,7 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 markers = [
     "integration: end-to-end tests that may be slow or require optional data",
+    "kitti: tests requiring local official KITTI raw sequence data",
 ]
 
 [tool.ruff]

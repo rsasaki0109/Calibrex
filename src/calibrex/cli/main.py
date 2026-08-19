@@ -2536,6 +2536,7 @@ def _cmd_demo_kitti_falsification_benchmark(args: argparse.Namespace) -> int:
         _die(str(exc))
     payload = {
         "status": benchmark.status,
+        "falsification_passed": benchmark.status == "pass",
         "reason": benchmark.reason,
         "benchmark": str(Path(args.output_dir) / "benchmark.json"),
         "dataset": benchmark.dataset_path,

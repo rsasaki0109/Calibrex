@@ -1,8 +1,10 @@
+import json
 import os
 from pathlib import Path
 
 import pytest
 
+from calibrex.cli.main import main
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTI_SEQUENCE,
@@ -56,10 +58,38 @@ def test_kitti_falsification_benchmark_rejects_missing_pinned_sequence(
         )
 
 
+def test_kitti_falsification_benchmark_cli_emits_falsification_flag(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output_dir = tmp_path / "benchmark-cli"
+    exit_code = main(
+        [
+            "demo",
+            "kitti-falsification-benchmark",
+            str(FIXTURE),
+            "--config",
+            str(CONFIG),
+            "--output-dir",
+            str(output_dir),
+            "--max-frames",
+            "2",
+            "--projection-sample-points",
+            "800",
+            "--json",
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "inconclusive"
+    assert payload["falsification_passed"] is False
+
+
 @pytest.mark.skipif(
     "CALIBREX_KITTI_RAW_0005" not in os.environ,
     reason="set CALIBREX_KITTI_RAW_0005 to the official KITTI raw sequence",
 )
+@pytest.mark.kitti
 def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
     benchmark = run_kitti_falsification_benchmark(
         Path(os.environ["CALIBREX_KITTI_RAW_0005"]),
@@ -71,4 +101,7 @@ def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
 
     assert len(benchmark.selected_frame_ids) == 50
     assert all(trial.bundle_valid for trial in benchmark.trials)
-    assert benchmark.status in {"pass", "fail", "inconclusive"}
+    by_id = {trial.candidate_id: trial for trial in benchmark.trials}
+    assert by_id["dataset_reference"].assessment_status == "pass"
+    assert by_id["known_bad"].assessment_status == "fail"
+    assert benchmark.status == "pass"
