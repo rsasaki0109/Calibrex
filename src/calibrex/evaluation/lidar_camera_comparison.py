@@ -22,6 +22,10 @@ from calibrex.data.kitti import (
     score_lidar_camera_edge_alignment,
 )
 from calibrex.evaluation.holdout import split_indices
+from calibrex.evaluation.lidar_camera import camera_lidar_from_rig_candidates
+
+DATASET_REFERENCE_MAX_TRANSLATION_M = 0.10
+DATASET_REFERENCE_MAX_ROTATION_DEG = 2.0
 
 
 @dataclass(frozen=True)
@@ -236,7 +240,7 @@ def lidar_camera_comparison_metrics_from_result(
     reference = read_velodyne_to_camera_transform(inspection.path)
     if reference is not None:
         candidates["kitti_dataset_reference"] = (reference, True)
-    applied = _applied_transform(result)
+    applied = _applied_transform(result, config=config)
     if applied is not None:
         candidates["calibrex_applied"] = (applied, False)
     external, isolation = _external_transform(result.run.provenance)
@@ -359,7 +363,15 @@ def _nonempty_split(count: int, ratio: float, seed: int) -> tuple[list[int], lis
     return train, holdout
 
 
-def _applied_transform(result: CalibrationResult) -> SE3 | None:
+def _applied_transform(
+    result: CalibrationResult,
+    *,
+    config: CalibrationConfig | None = None,
+) -> SE3 | None:
+    if config is not None and config.evaluation.kitti.use_frame_graph_candidate:
+        derived = camera_lidar_from_rig_candidates(result.candidate_extrinsics)
+        if derived is not None:
+            return derived
     camera = result.transforms.get("T_base_link_camera0")
     lidar = result.transforms.get("T_base_link_lidar0")
     if camera is None or lidar is None:

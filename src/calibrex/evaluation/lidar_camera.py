@@ -1157,13 +1157,13 @@ def _evaluation_camera_lidar_transform(
     inspection: DatasetInspection,
 ) -> SE3 | None:
     if config.evaluation.kitti.use_frame_graph_candidate:
-        derived = _camera_lidar_from_rig_candidates(result.candidate_extrinsics)
+        derived = camera_lidar_from_rig_candidates(result.candidate_extrinsics)
         if derived is not None:
             return derived
     return read_velodyne_to_camera_transform(inspection.path)
 
 
-def _camera_lidar_from_rig_candidates(
+def camera_lidar_from_rig_candidates(
     candidates: dict[str, TransformResult],
 ) -> SE3 | None:
     camera = candidates.get("T_base_link_camera0")

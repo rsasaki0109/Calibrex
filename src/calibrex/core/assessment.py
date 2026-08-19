@@ -16,6 +16,10 @@ from calibrex.core.report_artifacts import (
     ReportEvidenceArtifact,
 )
 from calibrex.core.result import StrictModel
+from calibrex.evaluation.lidar_camera_comparison import (
+    DATASET_REFERENCE_MAX_ROTATION_DEG,
+    DATASET_REFERENCE_MAX_TRANSLATION_M,
+)
 
 ASSESSMENT_SCHEMA_VERSION: Literal["slac.assessment/v0.1"] = (
     "slac.assessment/v0.1"
@@ -188,6 +192,7 @@ def assess_report_evidence(
                 _lidar_camera_protocol_declaration_rule(evidence, active_policy),
                 _lidar_camera_holdout_rule(evidence),
                 _lidar_camera_holdout_independence_rule(evidence),
+                _lidar_camera_dataset_reference_rule(evidence),
                 _lidar_camera_known_bad_rule(evidence, active_policy),
                 _summary_decision_rule(evidence, family="lidar_camera"),
             ]
@@ -897,6 +902,53 @@ def _lidar_camera_protocol_declaration_rule(
         thresholds={"min_known_bad_case_count": min_known_bad_case_count},
         evidence_refs=[protocol.protocol_id],
     )
+
+
+def _lidar_camera_dataset_reference_rule(
+    evidence: ReportEvidenceArtifact,
+) -> AssessmentRuleResult:
+    protocol = _lidar_camera_protocol(evidence)
+    if protocol is None or not _lidar_camera_use_frame_graph_candidate(protocol):
+        return AssessmentRuleResult(
+            rule_id="dataset_reference_consistency",
+            status="pass",
+            reason="dataset reference consistency gate applies only to frame-graph candidates",
+            evidence_refs=[protocol.protocol_id if protocol else "protocols"],
+        )
+    summary = _summary(evidence, family="lidar_camera", check="Dataset Reference Consistency")
+    if summary is None:
+        return AssessmentRuleResult(
+            rule_id="dataset_reference_consistency",
+            status="inconclusive",
+            reason="dataset reference comparison summary is unavailable",
+            evidence_refs=["summaries"],
+        )
+    status = _summary_status(summary.status)
+    return AssessmentRuleResult(
+        rule_id="dataset_reference_consistency",
+        status=status,
+        reason=(
+            "frame-graph candidate matches the dataset reference within acceptance tolerance"
+            if status == "pass"
+            else (
+                "frame-graph candidate deviates from the dataset reference beyond "
+                "acceptance tolerance"
+                if status == "fail"
+                else "dataset reference comparison is unavailable for this candidate"
+            )
+        ),
+        metric_ids=summary.metric_ids,
+        observed={"summary_status": summary.status},
+        thresholds={
+            "max_translation_delta_m": DATASET_REFERENCE_MAX_TRANSLATION_M,
+            "max_rotation_delta_deg": DATASET_REFERENCE_MAX_ROTATION_DEG,
+        },
+        evidence_refs=["Dataset Reference Consistency"],
+    )
+
+
+def _lidar_camera_use_frame_graph_candidate(protocol: EvidenceProtocolItem) -> bool:
+    return bool(protocol.parameters.get("use_frame_graph_candidate"))
 
 
 def _lidar_camera_holdout_rule(evidence: ReportEvidenceArtifact) -> AssessmentRuleResult:

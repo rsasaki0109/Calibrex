@@ -28,7 +28,7 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
         projection_sample_points=800,
     )
 
-    assert benchmark.status == "inconclusive"
+    assert benchmark.status == "pass"
     assert len(benchmark.selected_frame_ids) == 2
     assert {trial.candidate_id for trial in benchmark.trials} == {
         "dataset_reference",
@@ -36,7 +36,7 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
     }
     assert {trial.candidate_id: trial.assessment_status for trial in benchmark.trials} == {
         "dataset_reference": "pass",
-        "known_bad": "inconclusive",
+        "known_bad": "fail",
     }
     assert all(trial.bundle_valid for trial in benchmark.trials)
     assert all(len(trial.artifacts) == 9 for trial in benchmark.trials)
@@ -81,8 +81,8 @@ def test_kitti_falsification_benchmark_cli_emits_falsification_flag(
     )
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["status"] == "inconclusive"
-    assert payload["falsification_passed"] is False
+    assert payload["status"] == "pass"
+    assert payload["falsification_passed"] is True
 
 
 @pytest.mark.skipif(

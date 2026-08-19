@@ -7,6 +7,10 @@ from typing import cast
 
 from calibrex.core.report_artifacts import EvidenceCaseItem, EvidenceSummaryItem
 from calibrex.core.result import CalibrationResult, Grade, MetricResult
+from calibrex.evaluation.lidar_camera_comparison import (
+    DATASET_REFERENCE_MAX_ROTATION_DEG,
+    DATASET_REFERENCE_MAX_TRANSLATION_M,
+)
 from calibrex.evaluation.thresholds import (
     ThresholdProfile,
     primary_metric_value,
@@ -481,6 +485,29 @@ def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSumm
         mandatory_case_metric,
         gates=gates,
     )
+    use_frame_graph_candidate = _lidar_camera_use_frame_graph_candidate(result)
+    dataset_reference_translation = result.metrics.get(
+        "lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_translation_delta_m"
+    )
+    dataset_reference_rotation = result.metrics.get(
+        "lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_rotation_delta_deg"
+    )
+    dataset_reference_grade: Grade | None = None
+    dataset_reference_evidence: str | None = None
+    if use_frame_graph_candidate:
+        dataset_reference_grade, dataset_reference_evidence = _lidar_camera_dataset_reference_grade(
+            dataset_reference_translation,
+            dataset_reference_rotation,
+        )
+    decision_grades: list[Grade] = [support_grade, holdout_grade, known_bad_grade]
+    if dataset_reference_grade is not None:
+        decision_grades.append(dataset_reference_grade)
+    if any(grade == "fail" for grade in decision_grades):
+        decision_grade: Grade = "fail"
+    elif all(grade == "pass" for grade in decision_grades):
+        decision_grade = "pass"
+    else:
+        decision_grade = "warn"
     observability_text = _lidar_camera_observability_statement(
         result,
         horizontal_metric=horizontal_metric,
@@ -489,11 +516,6 @@ def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSumm
         depth_edge_available=depth_edge_available,
         mandatory_detection_metric=mandatory_detection_metric,
         mandatory_case_metric=mandatory_case_metric,
-    )
-    decision_grade: Grade = (
-        "pass"
-        if support_grade == "pass" and holdout_grade == "pass" and known_bad_grade == "pass"
-        else "warn"
     )
 
     items = [
@@ -543,6 +565,33 @@ def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSumm
                 "lidar_camera_depth_discontinuity_points",
             ],
         ),
+    ]
+    if use_frame_graph_candidate and dataset_reference_grade is not None:
+        items.append(
+            EvidenceSummaryItem(
+                family="lidar_camera",
+                check="Dataset Reference Consistency",
+                status=dataset_reference_grade,
+                evidence=dataset_reference_evidence or "dataset reference comparison unavailable",
+                interpretation=(
+                    "Frame-graph candidate matches the KITTI dataset reference within "
+                    "acceptance tolerance."
+                    if dataset_reference_grade == "pass"
+                    else (
+                        "Frame-graph candidate deviates from the KITTI dataset reference "
+                        "beyond acceptance tolerance."
+                        if dataset_reference_grade == "fail"
+                        else "Dataset reference comparison is unavailable for this candidate."
+                    )
+                ),
+                metric_ids=[
+                    "lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_translation_delta_m",
+                    "lidar_camera_comparison_calibrex_applied_vs_kitti_dataset_reference_rotation_delta_deg",
+                ],
+            )
+        )
+    items.extend(
+        [
         EvidenceSummaryItem(
             family="lidar_camera",
             check="Known-Bad Controls",
@@ -610,7 +659,8 @@ def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSumm
                 "lidar_camera_projection_ratio",
             ],
         ),
-    ]
+        ]
+    )
     return items
 
 
@@ -678,6 +728,41 @@ def _lidar_camera_support_grade(
     if not grades:
         return "warn"
     return _worst_grade(grades)
+
+
+def _lidar_camera_use_frame_graph_candidate(result: CalibrationResult) -> bool:
+    provenance = result.run.provenance.get("lidar_camera_evidence")
+    if not isinstance(provenance, dict):
+        return False
+    parameters = provenance.get("parameters")
+    if isinstance(parameters, dict):
+        return bool(parameters.get("use_frame_graph_candidate"))
+    return bool(provenance.get("use_frame_graph_candidate"))
+
+
+def _lidar_camera_dataset_reference_grade(
+    translation_metric: MetricResult | None,
+    rotation_metric: MetricResult | None,
+) -> tuple[Grade, str]:
+    translation_m = translation_metric.value if translation_metric is not None else None
+    rotation_deg = rotation_metric.value if rotation_metric is not None else None
+    if translation_m is None or rotation_deg is None:
+        return (
+            "warn",
+            "dataset reference comparison metrics are unavailable",
+        )
+    evidence = (
+        f"translation delta {_fmt(translation_m)} m "
+        f"(threshold <= {_fmt(DATASET_REFERENCE_MAX_TRANSLATION_M)}), "
+        f"rotation delta {_fmt(rotation_deg)} deg "
+        f"(threshold <= {_fmt(DATASET_REFERENCE_MAX_ROTATION_DEG)})"
+    )
+    if (
+        translation_m > DATASET_REFERENCE_MAX_TRANSLATION_M
+        or rotation_deg > DATASET_REFERENCE_MAX_ROTATION_DEG
+    ):
+        return "fail", evidence
+    return "pass", evidence
 
 
 def _lidar_camera_holdout_grade(
