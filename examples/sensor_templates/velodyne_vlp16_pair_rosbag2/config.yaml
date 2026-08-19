@@ -1,0 +1,94 @@
+# Velodyne VLP-16 pair calibration from a ROS 2 bag (.db3 or .mcap).
+#
+# Quick start:
+#   1. Record a bag while slowly rotating / driving so the sensor pair sees
+#      overlapping planar surfaces from multiple viewpoints.
+#      Recommended: 30–120 s, well-lit indoor or outdoor scene with walls.
+#   2. Edit the three fields marked EDIT below.
+#   3. calibrex calibrate examples/sensor_templates/velodyne_vlp16_pair_rosbag2/config.yaml
+#
+# Backend: native_lidar_point_to_plane
+#   Pure-Python, no ROS required.  Reads the bag directly.
+#   Supported container formats: sqlite3 (.db3) and MCAP (.mcap).
+
+schema_version: slac.config/v0.1
+
+project:
+  name: velodyne_vlp16_pair_rosbag2
+  description: Velodyne VLP-16 extrinsic calibration from a ROS 2 bag
+  output_dir: outputs/velodyne_vlp16_pair_rosbag2
+  domain: robotics
+
+dataset:
+  type: rosbag2                              # EDIT: keep rosbag2 for .db3 / .mcap
+  path: /path/to/your_recording              # EDIT: path to bag folder or .mcap file
+  time_base: ros_time
+
+sensors:
+  lidar_left:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_left/velodyne_points    # EDIT: change to your actual topic name
+    frame_id: lidar_left
+    fields: [x, y, z, intensity]
+  lidar_right:
+    type: lidar
+    model: velodyne_vlp16
+    topic: /velodyne_right/velodyne_points   # EDIT: change to your actual topic name
+    frame_id: lidar_right
+    fields: [x, y, z, intensity]
+
+frames:
+  lidar_left:
+    root: true
+  lidar_right:
+    parent: lidar_left
+    transform:
+      estimate: true
+      initial:
+        translation: [0.5, 0.0, 0.0]        # rough guess in metres
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+      prior_sigma:
+        translation_m: 0.5
+        rotation_deg: 30.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - lidar_pair_voxel_evidence
+  factors:
+    fixed_lidar_mount_prior:
+      enabled: true
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 8000
+        max_source_messages: 12
+        max_target_points: 1500
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        use_point_time_offsets: false
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  solid_state:
+    enabled: false
+  metrics:
+    - lidar_pair_source_voxel_recall_in_target
+    - lidar_pair_shared_voxel_centroid_rmse_m
+    - lidar_rig_point_to_plane_rmse_m
+    - lidar_pair_holdout_point_to_plane_rmse_m
+    - lidar_pair_known_bad_detectable_fraction
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

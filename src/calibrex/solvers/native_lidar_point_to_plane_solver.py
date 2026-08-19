@@ -36,6 +36,11 @@ from calibrex.data.rosbag1 import (
     decode_pointcloud2,
     iter_messages,
 )
+from calibrex.data.rosbag2 import (
+    LIDAR_MESSAGE_TYPES as ROSBAG2_LIDAR_MESSAGE_TYPES,
+    decode_lidar_message as decode_rosbag2_lidar_message,
+    iter_messages as iter_rosbag2_messages,
+)
 from calibrex.evaluation.lidar import (
     build_rig_point_to_plane_observations,
     lidar_rig_point_to_plane_metrics_from_evaluation,
@@ -54,7 +59,7 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
 
 NATIVE_LIDAR_POINT_TO_PLANE_BACKEND = "native_lidar_point_to_plane"
 _FACTOR_NAME = "lidar_rig_point_to_plane"
-_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd", "rosbag1")
+_SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd", "rosbag1", "rosbag2")
 _MIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
 
@@ -119,7 +124,7 @@ class NativeLidarPointToPlaneSolver(SolverAdapter):
                 f"'{config.dataset.type}'"
             )
         files = lidar_pair_dataset_files(config)
-        if config.dataset.type != "rosbag1" and len(files) < 2:
+        if config.dataset.type not in ("rosbag1", "rosbag2") and len(files) < 2:
             return self._unavailable(
                 "native LiDAR point-to-plane requires at least two LiDAR frames"
             )
@@ -302,12 +307,19 @@ def load_lidar_pair(
 ) -> LidarPairData:
     """Load the first supported source/target cloud pair without ROS dependencies."""
 
-    if config.dataset.type == "rosbag1":
+    if config.dataset.type in ("rosbag1", "rosbag2"):
         if source_sensor is None or target_sensor is None:
             lidars = sorted(
                 name for name, sensor in config.sensors.items() if sensor.type == "lidar"
             )
             source_sensor, target_sensor = lidars[0], lidars[1]
+        if config.dataset.type == "rosbag2":
+            return _load_rosbag2_lidar_pair(
+                config,
+                inputs,
+                source_sensor=source_sensor,
+                target_sensor=target_sensor,
+            )
         return _load_rosbag1_lidar_pair(
             config,
             inputs,
@@ -508,10 +520,186 @@ def _load_rosbag1_lidar_pair(
     )
 
 
+def _load_rosbag2_lidar_pair(
+    config: CalibrationConfig,
+    inputs: LidarPairSolveInputs,
+    *,
+    source_sensor: str,
+    target_sensor: str,
+) -> LidarPairData:
+    """Load a bounded ROS 2 bag pair and reserve later target windows for holdout.
+
+    Mirrors ``_load_rosbag1_lidar_pair`` but reads rosbag2 sqlite3/mcap containers
+    using the pure-Python rosbag2 reader.  No ``rclpy`` or ROS installation is
+    required.
+    """
+    bag_path = Path(config.dataset.path)
+    if not bag_path.exists():
+        return LidarPairData(
+            source_records=[],
+            target_points=[],
+            source_path=f"{bag_path}::{source_sensor}",
+            target_path=f"{bag_path}::{target_sensor}",
+        )
+    source_topic = _sensor_topic_rosbag2(config, source_sensor)
+    target_topic = _sensor_topic_rosbag2(config, target_sensor)
+    source_sensor_cfg = config.sensors.get(source_sensor)
+    target_sensor_cfg = config.sensors.get(target_sensor)
+    source_point_time_field = (
+        source_sensor_cfg.point_time_field if source_sensor_cfg is not None else None
+    )
+    target_point_time_field = (
+        target_sensor_cfg.point_time_field if target_sensor_cfg is not None else None
+    )
+    source_windows: list[tuple[int, list[Vector3]]] = []
+    target_windows: list[tuple[int, list[Vector3]]] = []
+    point_time_observed = {source_sensor: False, target_sensor: False}
+    point_time_reference: dict[str, str] = {}
+    point_time_clock_mapping: dict[str, dict[str, Any]] = {}
+    replay_start_ns: int | None = None
+
+    for connection, timestamp_ns, data in iter_rosbag2_messages(
+        bag_path, topics={source_topic, target_topic}
+    ):
+        if connection.message_type not in ROSBAG2_LIDAR_MESSAGE_TYPES:
+            continue
+        if connection.topic == source_topic:
+            if (
+                inputs.max_source_messages is not None
+                and len(source_windows) >= inputs.max_source_messages
+            ):
+                continue
+            message = decode_rosbag2_lidar_message(
+                source_topic,
+                connection.message_type,
+                timestamp_ns,
+                data,
+                point_time_field=source_point_time_field,
+            )
+            points = _message_points(message, inputs.max_source_points)
+            if points:
+                source_windows.append((timestamp_ns, points))
+            observed, reference = _message_point_time_semantics(message)
+            point_time_observed[source_sensor] |= observed
+            if reference is not None:
+                point_time_reference[source_sensor] = reference
+            _record_livox_clock_mapping(
+                point_time_clock_mapping,
+                source_sensor,
+                message,
+                ros_timestamp_ns=timestamp_ns,
+            )
+            continue
+        if connection.topic != target_topic:
+            continue
+        if replay_start_ns is None:
+            replay_start_ns = timestamp_ns
+        if (
+            inputs.max_replay_duration_s is not None
+            and timestamp_ns - replay_start_ns
+            > int(inputs.max_replay_duration_s * 1_000_000_000)
+        ):
+            break
+        if (
+            inputs.max_target_messages is not None
+            and len(target_windows) >= inputs.max_target_messages
+        ):
+            break
+        message = decode_rosbag2_lidar_message(
+            target_topic,
+            connection.message_type,
+            timestamp_ns,
+            data,
+            point_time_field=target_point_time_field,
+        )
+        points = _message_points(message, inputs.max_target_points)
+        if points:
+            target_windows.append((timestamp_ns, points))
+        observed, reference = _message_point_time_semantics(message)
+        point_time_observed[target_sensor] |= observed
+        if reference is not None:
+            point_time_reference[target_sensor] = reference
+        _record_livox_clock_mapping(
+            point_time_clock_mapping,
+            target_sensor,
+            message,
+            ros_timestamp_ns=timestamp_ns,
+        )
+
+    if len(target_windows) >= 2:
+        train_window_count = max(
+            1,
+            min(
+                len(target_windows) - 1,
+                int(len(target_windows) * (1.0 - config.evaluation.holdout_ratio)),
+            ),
+        )
+        holdout_windows = target_windows[train_window_count:]
+        train_windows = target_windows[:train_window_count]
+    else:
+        train_window_count = len(target_windows)
+        train_windows = target_windows
+        holdout_windows = []
+    holdout_start_ns = holdout_windows[0][0] if holdout_windows else None
+
+    source_train_windows = (
+        [
+            window
+            for window in source_windows
+            if holdout_start_ns is None or window[0] < holdout_start_ns
+        ]
+        if holdout_start_ns is not None
+        else source_windows
+    )
+    temporal_holdout_independent = bool(
+        holdout_windows and source_train_windows and holdout_start_ns is not None
+    )
+    if not source_train_windows and source_windows:
+        source_train_windows = source_windows
+        temporal_holdout_independent = False
+
+    source_records = [
+        record
+        for _timestamp, points in source_train_windows
+        for record in _points_to_records(points)
+    ]
+    if inputs.max_source_points is not None:
+        source_records = _stride(source_records, inputs.max_source_points)
+    target_points = [point for _timestamp, points in train_windows for point in points]
+    target_holdout_points = [
+        point for _timestamp, points in holdout_windows for point in points
+    ]
+    return LidarPairData(
+        source_records=source_records,
+        target_points=target_points,
+        target_holdout_points=target_holdout_points,
+        source_path=f"{bag_path}::{source_topic}",
+        target_path=f"{bag_path}::{target_topic}",
+        source_window_count=len(source_train_windows),
+        target_train_window_count=len(train_windows),
+        target_holdout_window_count=len(holdout_windows),
+        holdout_start_timestamp_ns=holdout_start_ns,
+        temporal_holdout_independent=temporal_holdout_independent,
+        point_time_observed_by_sensor=point_time_observed,
+        point_time_reference_by_sensor=point_time_reference,
+        point_time_clock_mapping_by_sensor=_finalize_livox_clock_mappings(
+            point_time_clock_mapping
+        ),
+        point_time_deskew_applied=False,
+    )
+
+
 def _sensor_topic(config: CalibrationConfig, sensor_name: str) -> str:
     sensor = config.sensors.get(sensor_name)
     if sensor is None or not sensor.topic:
         raise DatasetError(f"ROS1 LiDAR sensor {sensor_name!r} has no topic")
+    return sensor.topic
+
+
+def _sensor_topic_rosbag2(config: CalibrationConfig, sensor_name: str) -> str:
+    sensor = config.sensors.get(sensor_name)
+    if sensor is None or not sensor.topic:
+        raise DatasetError(f"ROS2 LiDAR sensor {sensor_name!r} has no topic")
     return sensor.topic
 
 

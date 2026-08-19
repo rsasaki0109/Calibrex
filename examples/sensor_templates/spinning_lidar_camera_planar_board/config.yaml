@@ -1,0 +1,107 @@
+# Spinning LiDAR ↔ Camera calibration using a checkerboard / planar target.
+#
+# This workflow uses pre-extracted target poses (plane normal + offset in the
+# LiDAR frame, image detection in the camera frame) stored as a CSV file.
+# The extraction step is sensor/driver-specific and must be performed first
+# using a tool such as Kalibr, ROS camera_calibration + lidar_camera_calib,
+# or the ACFR pose extractor.
+#
+# Required CSV columns (ACFR format):
+#   frame_id, target_normal_x, target_normal_y, target_normal_z,
+#   target_offset_m, image_u_px, image_v_px
+#
+# Once you have the poses CSV:
+#   calibrex calibrate \
+#     examples/sensor_templates/spinning_lidar_camera_planar_board/config.yaml
+#
+# Backend: native_planar_board
+#   Pure-Python Zhang-Pless and Verma-style board-centre Procrustes.
+
+schema_version: slac.config/v0.1
+
+project:
+  name: spinning_lidar_camera_planar_board
+  description: Spinning LiDAR–camera extrinsic calibration via planar target poses
+  output_dir: outputs/spinning_lidar_camera_planar_board
+  domain: robotics
+
+dataset:
+  type: filesystem                           # pre-extracted poses, no bag required
+  path: /path/to/poses_directory             # EDIT: directory containing poses.csv
+  time_base: capture_index
+
+sensors:
+  camera0:
+    type: camera
+    model: pinhole
+    frame_id: camera0
+    intrinsics:
+      estimate: false
+      fx: 720.0    # EDIT: your camera focal length (pixels)
+      fy: 720.0    # EDIT
+      cx: 640.0    # EDIT: principal point x
+      cy: 360.0    # EDIT: principal point y
+      distortion_model: radtan
+      distortion: [0.0, 0.0, 0.0, 0.0]      # EDIT: k1, k2, p1, p2
+  lidar0:
+    type: lidar
+    model: velodyne_vlp16                    # EDIT: your lidar model
+    frame_id: lidar0
+
+frames:
+  camera0:
+    root: true
+  lidar0:
+    parent: camera0
+    transform:
+      estimate: true
+      initial:
+        translation: [0.0, 0.0, 0.2]        # EDIT: rough guess (camera→lidar)
+        rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+pipeline:
+  type: planar_board_lidar_camera
+  frontends: [acfr_vlp_pose_adapter]
+  factors:
+    planar_board_plane_correspondence:
+      enabled: true
+      options:
+        poses_file: poses.csv               # EDIT: CSV filename inside dataset.path
+        input_format: acfr_vlp_poses_v1
+        normal_sign_policy: preserve
+        max_holdout_normal_rmse_deg: 3.0
+        max_holdout_offset_rmse_m: 0.05
+        min_known_bad_detectable_fraction: 0.8
+        point_plane_normal_scale_m: 1.0
+        point_plane_huber_delta_m: 0.05
+        max_point_plane_holdout_center_rmse_m: 0.03
+        max_point_plane_holdout_normal_rmse_deg: 3.0
+        min_point_plane_known_bad_detectable_fraction: 0.8
+        horn_point_huber_delta_m: 0.05
+        max_horn_point_holdout_rmse_m: 0.03
+        min_horn_point_known_bad_detectable_fraction: 0.8
+        min_horn_point_normalized_eigengap: 1.0e-4
+
+solver:
+  backend: native_planar_board
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-10
+  seed: 0
+
+evaluation:
+  holdout_ratio: 0.2
+  metrics:
+    - planar_board_normal_rmse_deg
+    - planar_board_offset_rmse_m
+    - planar_board_known_bad_detectable_fraction
+    - point_plane_center_rmse_m
+    - point_plane_normal_rmse_deg
+    - point_plane_joint_rank
+    - horn_point_rmse_m
+    - horn_point_joint_rank
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
