@@ -387,6 +387,7 @@ def load_borer_problem(
                 depth_map=depth,
                 lidar_points=_load_lidar(lidar_path, binding.lidar.encoding),
                 camera=camera,
+                depth_scale_convention=depth_observation.scale_convention,
             )
         )
     return LoadedCameraLidarProblem(

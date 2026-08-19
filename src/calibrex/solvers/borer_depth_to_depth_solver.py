@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3
+from calibrex.data.depth import DepthScaleConvention
 
 FloatArray: TypeAlias = NDArray[np.float64]
 DepthProjectionKind = Literal["pinhole", "double_sphere", "mei"]
@@ -56,6 +57,7 @@ class DepthToDepthObservation:
     depth_map: FloatArray
     lidar_points: FloatArray
     camera: DepthToDepthCameraModel
+    depth_scale_convention: DepthScaleConvention | None = None
     lidar_range_m: FloatArray = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -224,6 +226,12 @@ def project_depth_pairs(
     )
 
 
+def _depth_gate_applies(convention: DepthScaleConvention | None) -> bool:
+    """Return whether a relative depth gate compares depth maps in metric space."""
+
+    return convention in (None, "metric_z", "metric_range")
+
+
 def project_lidar_image_correspondences(
     observation: DepthToDepthObservation,
     transform_camera_lidar: SE3,
@@ -284,7 +292,7 @@ def project_lidar_image_correspondences(
     v_float = v_float[finite]
     camera_depth = camera_depth[finite]
     lidar_range = lidar_range[finite]
-    if depth_relative_gate > 0.0:
+    if depth_relative_gate > 0.0 and _depth_gate_applies(observation.depth_scale_convention):
         relative_error = np.abs(camera_depth - lidar_range) / np.maximum(lidar_range, 1.0e-9)
         consistent = relative_error <= depth_relative_gate
         valid_indices = valid_indices[consistent]

@@ -10,6 +10,7 @@ from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthToDepthOptions,
     evaluate_depth_to_depth_mi,
     project_depth_pairs,
+    project_lidar_image_correspondences,
     resolve_depth_to_depth_options,
 )
 
@@ -180,3 +181,40 @@ def test_resolve_options_freezes_invariant_histogram_ranges() -> None:
     assert observation.lidar_range_m.shape == (
         observation.lidar_points.shape[0],
     )
+
+
+def test_correspondence_projection_skips_metric_gate_for_disparity_maps() -> None:
+    observation = _synthetic_observation()
+    disparity_map = np.full_like(observation.depth_map, 0.05)
+    disparity_observation = DepthToDepthObservation(
+        frame_id="disparity",
+        depth_map=disparity_map,
+        lidar_points=observation.lidar_points,
+        camera=observation.camera,
+        depth_scale_convention="disparity",
+    )
+    metric_observation = DepthToDepthObservation(
+        frame_id="metric",
+        depth_map=disparity_map,
+        lidar_points=observation.lidar_points,
+        camera=observation.camera,
+        depth_scale_convention="metric_z",
+    )
+
+    disparity_projections = project_lidar_image_correspondences(
+        disparity_observation,
+        SE3.identity(),
+        max_points=100,
+        depth_relative_gate=0.01,
+        seed=0,
+    )
+    metric = project_lidar_image_correspondences(
+        metric_observation,
+        SE3.identity(),
+        max_points=100,
+        depth_relative_gate=0.01,
+        seed=0,
+    )
+
+    assert len(disparity_projections) >= 4
+    assert len(metric) == 0
