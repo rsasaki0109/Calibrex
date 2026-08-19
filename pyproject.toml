@@ -106,6 +106,9 @@ calibrex = [
 addopts = "-q"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "integration: end-to-end tests that may be slow or require optional data",
+]
 
 [tool.ruff]
 line-length = 100
