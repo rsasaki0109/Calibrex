@@ -1,0 +1,44 @@
+# Copy to .github/workflows/calibration-ci.yml and edit paths.
+#
+# Requires:
+#   calibration/baseline.yaml  — trusted result from a prior calibrex calibrate run
+#   calibration/candidate.yaml — result from this PR (commit or CI-generated)
+#
+# See examples/ci/README.md and docs/tutorials/calibration_ci.md.
+
+name: Calibration CI
+
+on:
+  pull_request:
+    paths:
+      - "calibration/**"
+      - ".github/workflows/calibration-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compare calibration evidence
+        id: calibrex
+        uses: rsasaki0109/Calibrex@v0.4.1
+        with:
+          candidate: calibration/candidate.yaml
+          baseline: calibration/baseline.yaml
+          output_dir: calibrex-ci
+          # Start with enforce: "false" while adopting; set "true" once baseline is trusted.
+          enforce: "false"
+          enforce_protocol: "true"
+
+      - name: Upload calibration CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-ci
+          path: calibrex-ci/
+          if-no-files-found: ignore

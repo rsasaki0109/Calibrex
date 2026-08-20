@@ -76,3 +76,9 @@ jobs:
           test "${CALIBRATION_STATUS}" = "inconclusive"
           test -f "${CALIBRATION_ARTIFACT}"
           test -f "${CALIBRATION_SUMMARY}"
+      - name: Upload calibration CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-ci-smoke
+          path: calibrex-ci/

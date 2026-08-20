@@ -151,7 +151,8 @@ workflow without weakening the research priorities below:
    evidence, workflow suggestions, and provenance; **done**
    (`slac.environment_readiness/v0.1`);
 2. publish a reusable GitHub Action that validates, compares, and assesses
-   calibration artifacts in pull requests;
+   calibration artifacts in pull requests; **done** (`examples/ci/`,
+   `action.yml`, `docs/tutorials/calibration_ci.md`);
 3. complete the generic external-run contract and prove it with Koide and
    Kalibr producers;
 4. finish the full-scale KITTI falsification benchmark; **done** (opt-in
@@ -217,13 +218,16 @@ observable window must not update the installed transform.
   spinning LiDAR + camera (planar-board).
 - **Quickstart tutorial** — `docs/tutorials/your_own_data.md` covering the
   end-to-end flow from bag recording to result interpretation.
+- **Calibration CI PR workflow template** — `examples/ci/calibration-ci-pr.yml`
+  with README, action output contract test, artifact upload in CI smoke, and
+  links from `calibration_ci.md` / `your_own_data.md`.
 
 ## Next implementation issues
 
 Ordered by the practical-tool criterion: user-facing friction first, then
 evidence depth.
 
-### 1. Reusable Calibration CI GitHub Action for pull requests
+### 1. Reusable Calibration CI GitHub Action for pull requests — implemented
 
 **Why now:** `calibrex ci` and the local action wrapper exist, but users still
 need a copy-pasteable workflow that validates, compares, and assesses calibration
@@ -279,6 +283,13 @@ multi-sensor continuous-time evidence.
 - Unit tests cover Jacobians and schema-valid fit artifacts; no GPL in core.
 
 ## Previous P0 issues (implemented 2026-08-20)
+
+### Reusable Calibration CI GitHub Action for pull requests
+
+- `examples/ci/calibration-ci-pr.yml` PR template, README, integration test for
+  `run_calibration_ci_action.py`, docs in `calibration_ci.md` and
+  `your_own_data.md`; existing composite action exposes `status`, `artifact`,
+  `summary`.
 
 ### `calibrex doctor` environment readiness artifact
 

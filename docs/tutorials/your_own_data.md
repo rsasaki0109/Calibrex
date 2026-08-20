@@ -99,6 +99,25 @@ cat outputs/velodyne_vlp16_pair_rosbag2/result.yaml
 
 The result contains:
 
+- `transforms` — calibrated extrinsics (`T_parent_child`, meters, quaternion xyzw)
+- `metrics` — holdout scores and grades
+- `assessment` — PASS / WARN / FAIL against the evidence contract
+
+Commit the result as your baseline once you trust it. On later changes, gate
+pull requests with [Calibration CI](calibration_ci.md):
+
+```bash
+calibrex ci outputs/my_calib/result.yaml \
+  --baseline calibration/baseline.yaml \
+  --output-dir outputs/calibration-ci \
+  --enforce
+```
+
+Copy the PR workflow from [`examples/ci/`](../../examples/ci/) into
+`.github/workflows/` for GitHub Actions.
+
+Example excerpt:
+
 ```yaml
 transforms:
   T_lidar_left_lidar_right:

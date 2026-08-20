@@ -45,6 +45,12 @@ calibrex verify outputs/calibration-ci/bundle.json --json
 
 ## GitHub Action
 
+Copy [`examples/ci/calibration-ci-pr.yml`](../../examples/ci/calibration-ci-pr.yml)
+into `.github/workflows/` and edit the candidate/baseline paths. See
+[`examples/ci/README.md`](../../examples/ci/README.md) for adoption steps.
+
+Minimal workflow:
+
 ```yaml
 name: Calibration
 
