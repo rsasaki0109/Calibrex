@@ -13,19 +13,24 @@ from calibrex.core.validation import validate_file
 from calibrex.data.kitti_benchmark import KITTI_RAW_0005_SEQUENCE_ID
 from calibrex.data.kitti_camera_lidar_problem import build_kitti_raw_camera_lidar_problem
 from calibrex.data.probabilistic_correspondence_from_problem import (
-    build_probabilistic_correspondence_from_problem,
+    build_featdepth_correspondence_from_problem,
 )
 
 pytestmark = pytest.mark.integration
 
+_FEATDEPTH_PROVIDER_COMMIT = "550420b3fb51a027549716b74c6fbce41651d3a5"
+_SKIP_REASON = (
+    "set CALIBREX_KITTI_RAW_0005 to the official sequence and "
+    "CALIBREX_KITTI_DEPTH_PROVIDER to a frozen FeatDepth depth-provider artifact "
+    f"(tools/run_featdepth_provider.py @ {_FEATDEPTH_PROVIDER_COMMIT})"
+)
 
+
+@pytest.mark.kitti
 @pytest.mark.skipif(
     "CALIBREX_KITTI_RAW_0005" not in os.environ
     or "CALIBREX_KITTI_DEPTH_PROVIDER" not in os.environ,
-    reason=(
-        "set CALIBREX_KITTI_RAW_0005 to the official sequence and "
-        "CALIBREX_KITTI_DEPTH_PROVIDER to a frozen depth-provider artifact"
-    ),
+    reason=_SKIP_REASON,
 )
 def test_official_kitti_empirical_uncertainty_ground_truth_workflow(
     tmp_path: Path,
@@ -43,13 +48,15 @@ def test_official_kitti_empirical_uncertainty_ground_truth_workflow(
     problem.save(problem_path)
 
     correspondence_path = tmp_path / "correspondence.yaml"
-    build_probabilistic_correspondence_from_problem(
+    correspondence = build_featdepth_correspondence_from_problem(
         problem_path,
-        transform_source="initial",
         max_points_per_frame=120,
         depth_relative_gate=0.35,
         seed=20260819,
-    ).save(correspondence_path)
+    )
+    correspondence.save(correspondence_path)
+    assert correspondence.provider.provider == "FeatDepth"
+    assert correspondence.provider.source_commit == _FEATDEPTH_PROVIDER_COMMIT
 
     result_dir = tmp_path / "resamples"
     output = tmp_path / "uncertainty.yaml"

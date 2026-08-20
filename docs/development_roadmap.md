@@ -105,8 +105,9 @@ accuracy.
    adapters such as RIs-Calib, Open3D, and NDT should migrate incrementally.
 3. **Empirical uncertainty:** `slac.empirical_se3_uncertainty/v0.1` is
    CLI-wired with synthetic and opt-in KITTI ground-truth integration tests.
-   Remaining gap: a maintained public correspondence source that does not rely
-   on depth-lidar projection from the initial/vendor pose (FeatDepth or similar).
+   FeatDepth-gated correspondences propagate depth-provider lineage
+   (`build_featdepth_correspondence_from_problem`); remaining gap: publish
+   maintained provider artifacts and portfolio evidence.
 4. **Continuous time:** `ContinuousTimeTrajectoryContract`, SE(3) manifold
    Jacobians, and sparse GN/LM fitter are implemented. The remaining gap is
    native IMU and LiDAR factor integration and sliding-window marginalization.
@@ -166,8 +167,7 @@ GPL, visualization-server, or external-solver dependencies to `src/calibrex`.
 ### P0 — Evidence and integration hardening
 
 The three committed P0 issues below are **implemented** (2026-08-20). The next
-tranche focuses on adoption CI, independent correspondence for uncertainty, and
-continuous-time factor integration.
+tranche focuses on continuous-time factor integration and lifecycle monitoring.
 
 ### P1 — Continuous-time foundation — partially implemented
 
@@ -205,6 +205,9 @@ observable window must not update the installed transform.
   bootstrap, pixel mean jitter, degenerate-spread policy; synthetic CLI
   integration test and opt-in official KITTI test (`CALIBREX_KITTI_RAW_0005` +
   `CALIBREX_KITTI_DEPTH_PROVIDER`).
+- **Independent FeatDepth correspondence for empirical uncertainty** —
+  `build_featdepth_correspondence_from_problem()` with depth-provider identity
+  and FeatDepth depth gating; opt-in KITTI ground-truth test updated.
 - **Empirical SE(3) uncertainty — public stability-only workflow** (`--stability-only`
   flag, integration test on a KITTI-shaped synthetic fixture, `INCONCLUSIVE` policy
   with honest reporting). Schema `slac.empirical_se3_uncertainty/v0.1`.
@@ -246,7 +249,7 @@ baseline artifacts and uploads schema-valid outputs.
 - Document usage in `docs/tutorials/your_own_data.md` or a dedicated CI tutorial.
 - No new dependencies in `src/calibrex`.
 
-### 2. Independent public correspondence for empirical uncertainty
+### 2. Independent public correspondence for empirical uncertainty — implemented
 
 **Why now:** the opt-in KITTI ground-truth test builds correspondences by
 projecting LiDAR at the vendor initial pose, which yields honest but often
@@ -264,6 +267,13 @@ the initial transform.
 - Opt-in integration test reports `policy_status in {"pass", "warn"}` when data
   is present, without retuning coverage thresholds after seeing results.
 - Provider stays outside `src/calibrex` (adapter/artifact boundary only).
+
+**Delivered:** `build_featdepth_correspondence_from_problem()` gates LiDAR
+projections with a frozen FeatDepth depth-provider artifact, propagates provider
+lineage into correspondence provenance, and relies on pixel jitter plus resample
+bootstrap (Issue 3) instead of projection at the vendor initial pose alone;
+opt-in KITTI test uses `CALIBREX_KITTI_DEPTH_PROVIDER` (pinned commit in skip
+message).
 
 ### 3. Continuous-time LiDAR point-to-plane factors
 
