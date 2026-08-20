@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "ContinuousTimeImuAccelBiasProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic recovery lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "ContinuousTimeImuAccelBiasProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Holdout and known-bad evidence for accelerometer bias and gravity.",
+  "properties": {
+    "accel_bias_error_m_s2": {
+      "minimum": 0.0,
+      "title": "Accel Bias Error M S2",
+      "type": "number"
+    },
+    "fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Fit Status",
+      "type": "string"
+    },
+    "gravity_error_m_s2": {
+      "minimum": 0.0,
+      "title": "Gravity Error M S2",
+      "type": "number"
+    },
+    "holdout_lever_arm_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Holdout Lever Arm Rmse M S2",
+      "type": "number"
+    },
+    "holdout_measurement_count": {
+      "minimum": 1,
+      "title": "Holdout Measurement Count",
+      "type": "integer"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "knot_count": {
+      "minimum": 2,
+      "title": "Knot Count",
+      "type": "integer"
+    },
+    "known_bad_accel_bias_body_m_s2": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Known Bad Accel Bias Body M S2",
+      "type": "array"
+    },
+    "known_bad_holdout_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Known Bad Holdout Rmse M S2",
+      "type": "number"
+    },
+    "known_bad_rmse_delta_m_s2": {
+      "title": "Known Bad Rmse Delta M S2",
+      "type": "number"
+    },
+    "max_knot_translation_error_m": {
+      "minimum": 0.0,
+      "title": "Max Knot Translation Error M",
+      "type": "number"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeImuAccelBiasProvenance"
+    },
+    "recovery_id": {
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_imu_accel_bias/v0.1",
+      "default": "slac.continuous_time_imu_accel_bias/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "train_lever_arm_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Train Lever Arm Rmse M S2",
+      "type": "number"
+    },
+    "train_measurement_count": {
+      "minimum": 1,
+      "title": "Train Measurement Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "interpolation",
+    "seed",
+    "knot_count",
+    "train_measurement_count",
+    "holdout_measurement_count",
+    "fit_status",
+    "max_knot_translation_error_m",
+    "accel_bias_error_m_s2",
+    "gravity_error_m_s2",
+    "train_lever_arm_rmse_m_s2",
+    "holdout_lever_arm_rmse_m_s2",
+    "known_bad_holdout_rmse_m_s2",
+    "known_bad_rmse_delta_m_s2",
+    "known_bad_accel_bias_body_m_s2",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "ContinuousTimeImuAccelBiasArtifact",
+  "type": "object"
+}

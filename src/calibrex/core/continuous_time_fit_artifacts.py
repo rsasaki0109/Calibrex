@@ -126,6 +126,63 @@ class TrajectoryPointToPlaneMeasurementArtifact(StrictModel):
         return self
 
 
+class TrajectoryImuGyroSampleArtifact(StrictModel):
+    """A body-frame gyro reading at a timestamp."""
+
+    timestamp_sec: float
+    omega_body_rad_s: list[float] = Field(min_length=3, max_length=3)
+
+    @model_validator(mode="after")
+    def check_sample(self) -> TrajectoryImuGyroSampleArtifact:
+        """Reject non-finite gyro samples."""
+
+        if not math.isfinite(self.timestamp_sec):
+            raise ValueError("gyro sample timestamp must be finite")
+        if not all(math.isfinite(value) for value in self.omega_body_rad_s):
+            raise ValueError("gyro sample rates must be finite")
+        return self
+
+
+class TrajectoryImuPreintegrationMeasurementArtifact(StrictModel):
+    """Gyro samples spanning two timestamps for a rotation pre-integration."""
+
+    measurement_id: str
+    gyro_samples: list[TrajectoryImuGyroSampleArtifact] = Field(min_length=2)
+    weight: float = Field(default=1.0, gt=0.0)
+
+    @model_validator(mode="after")
+    def check_measurement(self) -> TrajectoryImuPreintegrationMeasurementArtifact:
+        """Reject empty IDs or non-increasing gyro timestamps."""
+
+        if not self.measurement_id:
+            raise ValueError("measurement_id must not be empty")
+        timestamps = [item.timestamp_sec for item in self.gyro_samples]
+        if any(right <= left for left, right in pairwise(timestamps)):
+            raise ValueError("gyro sample timestamps must be strictly increasing")
+        return self
+
+
+class TrajectoryImuLeverArmMeasurementArtifact(StrictModel):
+    """Gravity-compensated specific force used to observe the IMU lever arm."""
+
+    measurement_id: str
+    timestamp_sec: float
+    accel_body_m_s2: list[float] = Field(min_length=3, max_length=3)
+    weight: float = Field(default=1.0, gt=0.0)
+
+    @model_validator(mode="after")
+    def check_measurement(self) -> TrajectoryImuLeverArmMeasurementArtifact:
+        """Reject non-finite lever-arm measurements."""
+
+        if not self.measurement_id:
+            raise ValueError("measurement_id must not be empty")
+        if not math.isfinite(self.timestamp_sec):
+            raise ValueError("lever-arm timestamp must be finite")
+        if not all(math.isfinite(value) for value in self.accel_body_m_s2):
+            raise ValueError("lever-arm acceleration must be finite")
+        return self
+
+
 class ContinuousTimeTrajectoryMeasurements(StrictModel):
     """Measurements constraining a continuous-time trajectory fit."""
 
@@ -144,6 +201,50 @@ class ContinuousTimeTrajectoryMeasurements(StrictModel):
     point_to_plane_measurements: list[TrajectoryPointToPlaneMeasurementArtifact] = (
         Field(default_factory=list)
     )
+    imu_preintegration_measurements: list[
+        TrajectoryImuPreintegrationMeasurementArtifact
+    ] = Field(default_factory=list)
+    imu_lever_arm_measurements: list[TrajectoryImuLeverArmMeasurementArtifact] = Field(
+        default_factory=list
+    )
+    initial_gyro_bias_rad_s: list[float] = Field(
+        default_factory=lambda: [0.0, 0.0, 0.0],
+        min_length=3,
+        max_length=3,
+    )
+    initial_lever_arm_body_m: list[float] = Field(
+        default_factory=lambda: [0.0, 0.0, 0.0],
+        min_length=3,
+        max_length=3,
+    )
+    estimate_gyro_bias: bool = False
+    estimate_lever_arm: bool = False
+    estimate_imu_clock_offset: bool = False
+    estimate_accel_bias: bool = False
+    estimate_gravity: bool = False
+    estimate_gyro_scale: bool = False
+    estimate_accel_scale: bool = False
+    initial_imu_clock_offset_sec: float = 0.0
+    initial_accel_bias_body_m_s2: list[float] = Field(
+        default_factory=lambda: [0.0, 0.0, 0.0],
+        min_length=3,
+        max_length=3,
+    )
+    initial_gravity_world_m_s2: list[float] = Field(
+        default_factory=lambda: [0.0, 0.0, 0.0],
+        min_length=3,
+        max_length=3,
+    )
+    initial_gyro_scale: list[float] = Field(
+        default_factory=lambda: [1.0, 1.0, 1.0],
+        min_length=3,
+        max_length=3,
+    )
+    initial_accel_scale: list[float] = Field(
+        default_factory=lambda: [1.0, 1.0, 1.0],
+        min_length=3,
+        max_length=3,
+    )
     provenance: TrajectoryMeasurementProvenance
 
     @model_validator(mode="after")
@@ -154,15 +255,61 @@ class ContinuousTimeTrajectoryMeasurements(StrictModel):
             not self.pose_measurements
             and not self.point_measurements
             and not self.point_to_plane_measurements
+            and not self.imu_preintegration_measurements
+            and not self.imu_lever_arm_measurements
         ):
             raise ValueError("measurements set requires at least one measurement")
         identifiers = (
             [item.measurement_id for item in self.pose_measurements]
             + [item.measurement_id for item in self.point_measurements]
             + [item.measurement_id for item in self.point_to_plane_measurements]
+            + [item.measurement_id for item in self.imu_preintegration_measurements]
+            + [item.measurement_id for item in self.imu_lever_arm_measurements]
         )
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("measurement IDs must be unique")
+        if not all(math.isfinite(value) for value in self.initial_gyro_bias_rad_s):
+            raise ValueError("initial gyro bias must be finite")
+        if not all(math.isfinite(value) for value in self.initial_lever_arm_body_m):
+            raise ValueError("initial lever arm must be finite")
+        if not math.isfinite(self.initial_imu_clock_offset_sec):
+            raise ValueError("initial IMU clock offset must be finite")
+        if not all(math.isfinite(value) for value in self.initial_accel_bias_body_m_s2):
+            raise ValueError("initial accelerometer bias must be finite")
+        if not all(math.isfinite(value) for value in self.initial_gravity_world_m_s2):
+            raise ValueError("initial gravity must be finite")
+        if self.estimate_gyro_bias and not self.imu_preintegration_measurements:
+            raise ValueError(
+                "gyro bias estimation requires IMU pre-integration measurements"
+            )
+        if self.estimate_lever_arm and not self.imu_lever_arm_measurements:
+            raise ValueError("lever-arm estimation requires IMU lever-arm measurements")
+        if self.estimate_imu_clock_offset and not (
+            self.imu_preintegration_measurements or self.imu_lever_arm_measurements
+        ):
+            raise ValueError("IMU clock-offset estimation requires IMU measurements")
+        if self.estimate_accel_bias and not self.imu_lever_arm_measurements:
+            raise ValueError(
+                "accelerometer-bias estimation requires IMU lever-arm measurements"
+            )
+        if self.estimate_gravity and not self.imu_lever_arm_measurements:
+            raise ValueError("gravity estimation requires IMU lever-arm measurements")
+        if not all(math.isfinite(value) for value in self.initial_gyro_scale):
+            raise ValueError("initial gyro scale must be finite")
+        if not all(math.isfinite(value) for value in self.initial_accel_scale):
+            raise ValueError("initial accelerometer scale must be finite")
+        if any(value <= 0.0 for value in self.initial_gyro_scale):
+            raise ValueError("initial gyro scale must be positive")
+        if any(value <= 0.0 for value in self.initial_accel_scale):
+            raise ValueError("initial accelerometer scale must be positive")
+        if self.estimate_gyro_scale and not self.imu_preintegration_measurements:
+            raise ValueError(
+                "gyro scale estimation requires IMU pre-integration measurements"
+            )
+        if self.estimate_accel_scale and not self.imu_lever_arm_measurements:
+            raise ValueError(
+                "accelerometer scale estimation requires IMU lever-arm measurements"
+            )
         for item in self.pose_measurements:
             if (
                 item.pose_world_body.parent != self.world_frame
@@ -212,6 +359,15 @@ class ContinuousTimeTrajectoryFitResultArtifact(StrictModel):
     final_point_rmse: float | None = Field(default=None, ge=0.0)
     final_point_to_plane_rmse: float | None = Field(default=None, ge=0.0)
     final_pose_rmse: float | None = Field(default=None, ge=0.0)
+    final_imu_rotation_rmse_rad: float | None = Field(default=None, ge=0.0)
+    final_lever_arm_rmse_m_s2: float | None = Field(default=None, ge=0.0)
+    gyro_bias_rad_s: list[float] | None = Field(default=None, min_length=3, max_length=3)
+    lever_arm_body_m: list[float] | None = Field(default=None, min_length=3, max_length=3)
+    imu_clock_offset_sec: float | None = None
+    accel_bias_body_m_s2: list[float] | None = Field(default=None, min_length=3, max_length=3)
+    gravity_world_m_s2: list[float] | None = Field(default=None, min_length=3, max_length=3)
+    gyro_scale: list[float] | None = Field(default=None, min_length=3, max_length=3)
+    accel_scale: list[float] | None = Field(default=None, min_length=3, max_length=3)
     max_step_translation_m: float = Field(ge=0.0)
     max_step_rotation_deg: float = Field(ge=0.0)
     gradient_norm: float = Field(ge=0.0)

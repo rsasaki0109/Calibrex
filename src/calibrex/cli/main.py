@@ -14,6 +14,7 @@ from calibrex.calibration_ci import (
     calibration_ci_json_schema,
     run_calibration_ci,
 )
+from calibrex.core.calibration_lifecycle import calibration_lifecycle_json_schema
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assess_evidence_file,
@@ -57,6 +58,21 @@ from calibrex.core.continuous_time_fit_artifacts import (
     continuous_time_fit_json_schema,
     continuous_time_measurements_json_schema,
 )
+from calibrex.core.continuous_time_imu_accel_bias import (
+    continuous_time_imu_accel_bias_json_schema,
+)
+from calibrex.core.continuous_time_imu_intrinsics import (
+    continuous_time_imu_intrinsics_json_schema,
+)
+from calibrex.core.continuous_time_imu_clock_offset import (
+    continuous_time_imu_clock_offset_json_schema,
+)
+from calibrex.core.continuous_time_imu_lever_arm import (
+    continuous_time_imu_lever_arm_json_schema,
+)
+from calibrex.core.continuous_time_imu_preintegration import (
+    continuous_time_imu_preintegration_json_schema,
+)
 from calibrex.core.continuous_time_lidar_ablation import (
     continuous_time_lidar_ablation_json_schema,
 )
@@ -67,6 +83,9 @@ from calibrex.core.continuous_time_lidar_artifacts import (
 from calibrex.core.continuous_time_lidar_point_to_plane import (
     continuous_time_lidar_point_to_plane_json_schema,
 )
+from calibrex.core.continuous_time_sliding_window import (
+    continuous_time_sliding_window_json_schema,
+)
 from calibrex.core.dynamic_window import (
     DynamicWindowConsistencyThresholds,
     dynamic_window_consistency_json_schema,
@@ -74,6 +93,7 @@ from calibrex.core.dynamic_window import (
 from calibrex.core.empirical_uncertainty import (
     empirical_se3_uncertainty_json_schema,
 )
+from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.core.evidence_bundle import (
     EvidenceBundleVerification,
     evidence_bundle_json_schema,
@@ -150,15 +170,9 @@ from calibrex.data.kitti_camera_lidar_problem import (
 )
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
-from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.diagnostics import (
     build_doctor_artifact,
     doctor_json_schema,
-)
-from calibrex.init_templates import (
-    list_sensor_template_names,
-    template_summary,
-    write_sensor_template,
 )
 from calibrex.evaluation.borer_rotation_benchmark import (
     build_borer_rotation_protocol,
@@ -225,6 +239,11 @@ from calibrex.export.autoware import export_autoware_transforms, export_autoware
 from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
+from calibrex.init_templates import (
+    list_sensor_template_names,
+    template_summary,
+    write_sensor_template,
+)
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 from calibrex.pipelines.online import (
     OnlineCalibrationRunOptions,
@@ -400,6 +419,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "capture-readiness",
             "continuous-time-lidar-pair",
             "continuous-time-lidar-point-to-plane",
+            "continuous-time-imu-preintegration",
+            "continuous-time-imu-lever-arm",
+            "continuous-time-imu-clock-offset",
+            "continuous-time-imu-accel-bias",
+            "continuous-time-sliding-window",
             "continuous-time-lidar-ablation",
             "solid-state-cross-dataset-benchmark-config",
             "solid-state-cross-dataset-benchmark",
@@ -415,6 +439,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "dataset-manifest",
             "doctor",
             "calibration-ci",
+            "calibration-lifecycle",
             "external-run",
             "kitti-falsification",
             "kitti-benchmark-input",
@@ -1455,6 +1480,82 @@ def _build_parser() -> argparse.ArgumentParser:
     trajectory_p2p.add_argument("--recovery-id", default="ct-lidar-p2p-synthetic")
     trajectory_p2p.add_argument("--json", action="store_true")
     trajectory_p2p.set_defaults(func=_cmd_trajectory_recover_point_to_plane)
+    trajectory_imu = trajectory_subcommands.add_parser(
+        "recover-imu-preintegration",
+        help="synthetic IMU gyro pre-integration recovery with holdout and known-bad",
+    )
+    trajectory_imu.add_argument("--output", type=Path, required=True)
+    trajectory_imu.add_argument("--seed", type=int, default=20260820)
+    trajectory_imu.add_argument("--recovery-id", default="ct-imu-preintegration-synthetic")
+    trajectory_imu.add_argument("--json", action="store_true")
+    trajectory_imu.set_defaults(func=_cmd_trajectory_recover_imu_preintegration)
+    trajectory_lever = trajectory_subcommands.add_parser(
+        "recover-imu-lever-arm",
+        help="synthetic IMU lever-arm recovery with holdout and known-bad",
+    )
+    trajectory_lever.add_argument("--output", type=Path, required=True)
+    trajectory_lever.add_argument("--seed", type=int, default=20260820)
+    trajectory_lever.add_argument("--recovery-id", default="ct-imu-lever-arm-synthetic")
+    trajectory_lever.add_argument("--json", action="store_true")
+    trajectory_lever.set_defaults(func=_cmd_trajectory_recover_imu_lever_arm)
+    trajectory_clock = trajectory_subcommands.add_parser(
+        "recover-imu-clock-offset",
+        help="synthetic IMU clock-offset recovery with holdout and known-bad",
+    )
+    trajectory_clock.add_argument("--output", type=Path, required=True)
+    trajectory_clock.add_argument("--seed", type=int, default=20260820)
+    trajectory_clock.add_argument("--recovery-id", default="ct-imu-clock-offset-synthetic")
+    trajectory_clock.add_argument("--json", action="store_true")
+    trajectory_clock.set_defaults(func=_cmd_trajectory_recover_imu_clock_offset)
+    trajectory_accel = trajectory_subcommands.add_parser(
+        "recover-imu-accel-bias",
+        help="synthetic IMU accelerometer-bias and gravity recovery",
+    )
+    trajectory_accel.add_argument("--output", type=Path, required=True)
+    trajectory_accel.add_argument("--seed", type=int, default=20260820)
+    trajectory_accel.add_argument("--recovery-id", default="ct-imu-accel-bias-synthetic")
+    trajectory_accel.add_argument("--json", action="store_true")
+    trajectory_accel.set_defaults(func=_cmd_trajectory_recover_imu_accel_bias)
+    trajectory_intrinsics = trajectory_subcommands.add_parser(
+        "recover-imu-intrinsics",
+        help="synthetic IMU diagonal scale intrinsics recovery",
+    )
+    trajectory_intrinsics.add_argument("--output", type=Path, required=True)
+    trajectory_intrinsics.add_argument("--seed", type=int, default=20260820)
+    trajectory_intrinsics.add_argument(
+        "--recovery-id", default="ct-imu-intrinsics-synthetic"
+    )
+    trajectory_intrinsics.add_argument("--json", action="store_true")
+    trajectory_intrinsics.set_defaults(func=_cmd_trajectory_recover_imu_intrinsics)
+    trajectory_window = trajectory_subcommands.add_parser(
+        "recover-sliding-window",
+        help="synthetic sliding-window marginalization recovery",
+    )
+    trajectory_window.add_argument("--output", type=Path, required=True)
+    trajectory_window.add_argument("--seed", type=int, default=20260820)
+    trajectory_window.add_argument(
+        "--recovery-id", default="ct-sliding-window-synthetic"
+    )
+    trajectory_window.add_argument("--json", action="store_true")
+    trajectory_window.set_defaults(func=_cmd_trajectory_recover_sliding_window)
+
+    lifecycle = subcommands.add_parser(
+        "lifecycle",
+        help="calibration lifecycle adoption and rollback evidence",
+    )
+    lifecycle_subcommands = lifecycle.add_subparsers(dest="lifecycle_command")
+    lifecycle_subcommands.required = True
+    lifecycle_simulate = lifecycle_subcommands.add_parser(
+        "simulate",
+        help="synthetic lifecycle replay with weak-observability and rollback controls",
+    )
+    lifecycle_simulate.add_argument("--output", type=Path, required=True)
+    lifecycle_simulate.add_argument("--seed", type=int, default=20260820)
+    lifecycle_simulate.add_argument(
+        "--lifecycle-id", default="calibration-lifecycle-synthetic"
+    )
+    lifecycle_simulate.add_argument("--json", action="store_true")
+    lifecycle_simulate.set_defaults(func=_cmd_lifecycle_simulate)
 
     visualize = subcommands.add_parser("visualize", help="render result visualizations")
     visualize.add_argument("result", type=Path)
@@ -1610,6 +1711,19 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "continuous-time-lidar-point-to-plane": (
             continuous_time_lidar_point_to_plane_json_schema
         ),
+        "continuous-time-imu-preintegration": (
+            continuous_time_imu_preintegration_json_schema
+        ),
+        "continuous-time-imu-lever-arm": continuous_time_imu_lever_arm_json_schema,
+        "continuous-time-imu-clock-offset": (
+            continuous_time_imu_clock_offset_json_schema
+        ),
+        "continuous-time-imu-accel-bias": continuous_time_imu_accel_bias_json_schema,
+        "continuous-time-imu-intrinsics": (
+            continuous_time_imu_intrinsics_json_schema
+        ),
+        "calibration-lifecycle": calibration_lifecycle_json_schema,
+        "continuous-time-sliding-window": continuous_time_sliding_window_json_schema,
         "continuous-time-lidar-ablation": continuous_time_lidar_ablation_json_schema,
         "solid-state-cross-dataset-benchmark-config": (
             solid_state_cross_dataset_benchmark_config_json_schema
@@ -3582,7 +3696,10 @@ def _cmd_trajectory_build_contract(args: argparse.Namespace) -> int:
             "trajectory": str(args.output),
             "trajectory_id": contract.trajectory_id,
             "knot_count": contract.knot_count,
-            "domain_sec": [contract.knot_domain.minimum_time_sec, contract.knot_domain.maximum_time_sec],
+            "domain_sec": [
+                contract.knot_domain.minimum_time_sec,
+                contract.knot_domain.maximum_time_sec,
+            ],
         },
         args.json,
     )
@@ -3622,12 +3739,19 @@ def _cmd_trajectory_fit(args: argparse.Namespace) -> int:
             "status": "ok",
             "fit": str(args.output),
             "fit_id": artifact.fit_id,
-            "status": artifact.status,
+            "fit_status": artifact.status,
             "iterations": artifact.iterations,
             "final_objective": artifact.final_objective,
             "final_point_rmse": artifact.final_point_rmse,
             "final_point_to_plane_rmse": artifact.final_point_to_plane_rmse,
             "final_pose_rmse": artifact.final_pose_rmse,
+            "final_imu_rotation_rmse_rad": artifact.final_imu_rotation_rmse_rad,
+            "final_lever_arm_rmse_m_s2": artifact.final_lever_arm_rmse_m_s2,
+            "gyro_bias_rad_s": artifact.gyro_bias_rad_s,
+            "lever_arm_body_m": artifact.lever_arm_body_m,
+            "imu_clock_offset_sec": artifact.imu_clock_offset_sec,
+            "accel_bias_body_m_s2": artifact.accel_bias_body_m_s2,
+            "gravity_world_m_s2": artifact.gravity_world_m_s2,
         },
         args.json,
     )
@@ -3665,6 +3789,282 @@ def _cmd_trajectory_recover_point_to_plane(args: argparse.Namespace) -> int:
             "fit_status": artifact.fit_status,
             "max_knot_error": artifact.max_knot_error,
             "holdout_point_to_plane_rmse_m": artifact.holdout_point_to_plane_rmse_m,
+            "known_bad_rmse_delta_m": artifact.known_bad_rmse_delta_m,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_imu_preintegration(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_imu_preintegration import (
+        run_synthetic_imu_preintegration_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-imu-preintegration",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_imu_preintegration_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "fit_status": artifact.fit_status,
+            "max_knot_rotation_error_rad": artifact.max_knot_rotation_error_rad,
+            "gyro_bias_error_rad_s": artifact.gyro_bias_error_rad_s,
+            "holdout_imu_rotation_rmse_rad": artifact.holdout_imu_rotation_rmse_rad,
+            "known_bad_rmse_delta_rad": artifact.known_bad_rmse_delta_rad,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_imu_lever_arm(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_imu_lever_arm import (
+        run_synthetic_imu_lever_arm_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-imu-lever-arm",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_imu_lever_arm_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "fit_status": artifact.fit_status,
+            "max_knot_translation_error_m": artifact.max_knot_translation_error_m,
+            "lever_arm_error_m": artifact.lever_arm_error_m,
+            "holdout_lever_arm_rmse_m_s2": artifact.holdout_lever_arm_rmse_m_s2,
+            "known_bad_rmse_delta_m_s2": artifact.known_bad_rmse_delta_m_s2,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_imu_clock_offset(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_imu_clock_offset import (
+        run_synthetic_imu_clock_offset_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-imu-clock-offset",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_imu_clock_offset_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "fit_status": artifact.fit_status,
+            "max_knot_rotation_error_rad": artifact.max_knot_rotation_error_rad,
+            "imu_clock_offset_error_sec": artifact.imu_clock_offset_error_sec,
+            "holdout_imu_rotation_rmse_rad": artifact.holdout_imu_rotation_rmse_rad,
+            "known_bad_rmse_delta_rad": artifact.known_bad_rmse_delta_rad,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_imu_accel_bias(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_imu_accel_bias import (
+        run_synthetic_imu_accel_bias_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-imu-accel-bias",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_imu_accel_bias_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "fit_status": artifact.fit_status,
+            "max_knot_translation_error_m": artifact.max_knot_translation_error_m,
+            "accel_bias_error_m_s2": artifact.accel_bias_error_m_s2,
+            "gravity_error_m_s2": artifact.gravity_error_m_s2,
+            "holdout_lever_arm_rmse_m_s2": artifact.holdout_lever_arm_rmse_m_s2,
+            "known_bad_rmse_delta_m_s2": artifact.known_bad_rmse_delta_m_s2,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_imu_intrinsics(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_imu_intrinsics import (
+        run_synthetic_imu_intrinsics_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-imu-intrinsics",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_imu_intrinsics_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "fit_status": artifact.fit_status,
+            "gyro_scale_error": artifact.gyro_scale_error,
+            "accel_scale_error": artifact.accel_scale_error,
+            "holdout_imu_rotation_rmse_rad": artifact.holdout_imu_rotation_rmse_rad,
+            "holdout_lever_arm_rmse_m_s2": artifact.holdout_lever_arm_rmse_m_s2,
+            "known_bad_imu_rmse_delta_rad": artifact.known_bad_imu_rmse_delta_rad,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_lifecycle_simulate(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.calibration_lifecycle import (
+        run_synthetic_calibration_lifecycle,
+    )
+
+    command = [
+        "calibrex",
+        "lifecycle",
+        "simulate",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_calibration_lifecycle(
+            seed=args.seed,
+            command=command,
+            lifecycle_id=args.lifecycle_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "lifecycle": str(args.output),
+            "policy_status": artifact.policy_status,
+            "adoption_count": artifact.adoption_count,
+            "rejection_count": artifact.rejection_count,
+            "rollback_count": artifact.rollback_count,
+            "weak_observability_installed_delta_m": (
+                artifact.weak_observability_installed_delta_m
+            ),
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_sliding_window(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_sliding_window import (
+        run_synthetic_sliding_window_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-sliding-window",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_sliding_window_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "batch_fit_status": artifact.batch_fit_status,
+            "sliding_fit_status": artifact.sliding_fit_status,
+            "max_overlap_translation_error_m": artifact.max_overlap_translation_error_m,
+            "sliding_holdout_rmse_m": artifact.sliding_holdout_rmse_m,
             "known_bad_rmse_delta_m": artifact.known_bad_rmse_delta_m,
         },
         args.json,

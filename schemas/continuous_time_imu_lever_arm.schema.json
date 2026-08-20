@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "ContinuousTimeImuLeverArmProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic recovery lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "ContinuousTimeImuLeverArmProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Holdout and known-bad evidence for knot-path IMU lever-arm factors.",
+  "properties": {
+    "fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Fit Status",
+      "type": "string"
+    },
+    "holdout_lever_arm_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Holdout Lever Arm Rmse M S2",
+      "type": "number"
+    },
+    "holdout_measurement_count": {
+      "minimum": 1,
+      "title": "Holdout Measurement Count",
+      "type": "integer"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "knot_count": {
+      "minimum": 2,
+      "title": "Knot Count",
+      "type": "integer"
+    },
+    "known_bad_holdout_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Known Bad Holdout Rmse M S2",
+      "type": "number"
+    },
+    "known_bad_lever_arm_body_m": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Known Bad Lever Arm Body M",
+      "type": "array"
+    },
+    "known_bad_rmse_delta_m_s2": {
+      "title": "Known Bad Rmse Delta M S2",
+      "type": "number"
+    },
+    "lever_arm_error_m": {
+      "minimum": 0.0,
+      "title": "Lever Arm Error M",
+      "type": "number"
+    },
+    "max_knot_translation_error_m": {
+      "minimum": 0.0,
+      "title": "Max Knot Translation Error M",
+      "type": "number"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeImuLeverArmProvenance"
+    },
+    "recovery_id": {
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_imu_lever_arm/v0.1",
+      "default": "slac.continuous_time_imu_lever_arm/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "train_lever_arm_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Train Lever Arm Rmse M S2",
+      "type": "number"
+    },
+    "train_measurement_count": {
+      "minimum": 1,
+      "title": "Train Measurement Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "interpolation",
+    "seed",
+    "knot_count",
+    "train_measurement_count",
+    "holdout_measurement_count",
+    "fit_status",
+    "max_knot_translation_error_m",
+    "lever_arm_error_m",
+    "train_lever_arm_rmse_m_s2",
+    "holdout_lever_arm_rmse_m_s2",
+    "known_bad_holdout_rmse_m_s2",
+    "known_bad_rmse_delta_m_s2",
+    "known_bad_lever_arm_body_m",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "ContinuousTimeImuLeverArmArtifact",
+  "type": "object"
+}

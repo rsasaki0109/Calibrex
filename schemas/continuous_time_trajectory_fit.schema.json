@@ -391,6 +391,66 @@
   "additionalProperties": false,
   "description": "Schema-valid result of a sparse continuous-time trajectory fit.",
   "properties": {
+    "accel_bias_body_m_s2": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Accel Bias Body M S2"
+    },
+    "accel_scale": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Accel Scale"
+    },
+    "final_imu_rotation_rmse_rad": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Final Imu Rotation Rmse Rad"
+    },
+    "final_lever_arm_rmse_m_s2": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Final Lever Arm Rmse M S2"
+    },
     "final_objective": {
       "title": "Final Objective",
       "type": "number"
@@ -443,6 +503,69 @@
       "title": "Gradient Norm",
       "type": "number"
     },
+    "gravity_world_m_s2": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Gravity World M S2"
+    },
+    "gyro_bias_rad_s": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Gyro Bias Rad S"
+    },
+    "gyro_scale": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Gyro Scale"
+    },
+    "imu_clock_offset_sec": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Imu Clock Offset Sec"
+    },
     "interpolation": {
       "const": "screw_linear",
       "title": "Interpolation",
@@ -460,6 +583,23 @@
       "minItems": 2,
       "title": "Knots",
       "type": "array"
+    },
+    "lever_arm_body_m": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lever Arm Body M"
     },
     "max_step_rotation_deg": {
       "minimum": 0.0,

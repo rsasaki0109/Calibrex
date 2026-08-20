@@ -1,0 +1,739 @@
+{
+  "$defs": {
+    "CalibrationLifecycleEvent": {
+      "additionalProperties": false,
+      "description": "One incumbent/candidate decision with installed-transform outcome.",
+      "properties": {
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "decision": {
+          "enum": [
+            "adopt",
+            "reject",
+            "hold",
+            "rollback"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "decision_reason": {
+          "title": "Decision Reason",
+          "type": "string"
+        },
+        "event_index": {
+          "minimum": 0,
+          "title": "Event Index",
+          "type": "integer"
+        },
+        "event_kind": {
+          "enum": [
+            "candidate_evaluated",
+            "adopted",
+            "rejected",
+            "held",
+            "drift_detected",
+            "rolled_back"
+          ],
+          "title": "Event Kind",
+          "type": "string"
+        },
+        "evidence_window": {
+          "$ref": "#/$defs/CalibrationLifecycleEvidenceWindow"
+        },
+        "incumbent_after": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "incumbent_before": {
+          "$ref": "#/$defs/TransformResult"
+        },
+        "installed_transform_changed": {
+          "title": "Installed Transform Changed",
+          "type": "boolean"
+        },
+        "rollback_target_event_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rollback Target Event Index"
+        }
+      },
+      "required": [
+        "event_index",
+        "event_kind",
+        "incumbent_before",
+        "evidence_window",
+        "decision",
+        "decision_reason",
+        "incumbent_after",
+        "installed_transform_changed"
+      ],
+      "title": "CalibrationLifecycleEvent",
+      "type": "object"
+    },
+    "CalibrationLifecycleEvidenceWindow": {
+      "additionalProperties": false,
+      "description": "Observability and holdout evidence for one candidate evaluation window.",
+      "properties": {
+        "drift_score": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Drift Score"
+        },
+        "end_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Timestamp Ns"
+        },
+        "holdout_correspondence_count": {
+          "minimum": 0,
+          "title": "Holdout Correspondence Count",
+          "type": "integer"
+        },
+        "holdout_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Rmse M"
+        },
+        "observability": {
+          "$ref": "#/$defs/ObservabilityResult"
+        },
+        "start_timestamp_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Timestamp Ns"
+        },
+        "train_correspondence_count": {
+          "minimum": 0,
+          "title": "Train Correspondence Count",
+          "type": "integer"
+        },
+        "window_index": {
+          "minimum": 0,
+          "title": "Window Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "window_index",
+        "train_correspondence_count",
+        "holdout_correspondence_count"
+      ],
+      "title": "CalibrationLifecycleEvidenceWindow",
+      "type": "object"
+    },
+    "CalibrationLifecycleGateThresholds": {
+      "additionalProperties": false,
+      "description": "Adoption gate thresholds aligned with online holdout and observability.",
+      "properties": {
+        "max_holdout_rmse_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Max Holdout Rmse M",
+          "type": "number"
+        },
+        "max_rolling_regression_m": {
+          "minimum": 0.0,
+          "title": "Max Rolling Regression M",
+          "type": "number"
+        },
+        "min_holdout_observations": {
+          "minimum": 1,
+          "title": "Min Holdout Observations",
+          "type": "integer"
+        },
+        "min_rank": {
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Min Rank",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_holdout_rmse_m",
+        "min_holdout_observations",
+        "min_rank",
+        "max_rolling_regression_m"
+      ],
+      "title": "CalibrationLifecycleGateThresholds",
+      "type": "object"
+    },
+    "CalibrationLifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic lifecycle lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "CalibrationLifecycleProvenance",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "ObservabilityResult": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_number": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition Number"
+        },
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Weak Directions",
+          "type": "array"
+        }
+      },
+      "title": "ObservabilityResult",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable adoption, rejection, and rollback timeline.",
+  "properties": {
+    "adoption_count": {
+      "minimum": 0,
+      "title": "Adoption Count",
+      "type": "integer"
+    },
+    "child": {
+      "title": "Child",
+      "type": "string"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/CalibrationLifecycleEvent"
+      },
+      "minItems": 1,
+      "title": "Events",
+      "type": "array"
+    },
+    "final_incumbent": {
+      "$ref": "#/$defs/TransformResult"
+    },
+    "hold_count": {
+      "minimum": 0,
+      "title": "Hold Count",
+      "type": "integer"
+    },
+    "initial_incumbent": {
+      "$ref": "#/$defs/TransformResult"
+    },
+    "known_bad_holdout_window_index": {
+      "minimum": 0,
+      "title": "Known Bad Holdout Window Index",
+      "type": "integer"
+    },
+    "known_bad_weak_window_index": {
+      "minimum": 0,
+      "title": "Known Bad Weak Window Index",
+      "type": "integer"
+    },
+    "lifecycle_id": {
+      "title": "Lifecycle Id",
+      "type": "string"
+    },
+    "parent": {
+      "title": "Parent",
+      "type": "string"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CalibrationLifecycleProvenance"
+    },
+    "rejection_count": {
+      "minimum": 0,
+      "title": "Rejection Count",
+      "type": "integer"
+    },
+    "rollback_count": {
+      "minimum": 0,
+      "title": "Rollback Count",
+      "type": "integer"
+    },
+    "rollback_source_event_index": {
+      "minimum": 0,
+      "title": "Rollback Source Event Index",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle/v0.1",
+      "default": "slac.calibration_lifecycle/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/CalibrationLifecycleGateThresholds"
+    },
+    "variable": {
+      "title": "Variable",
+      "type": "string"
+    },
+    "weak_observability_installed_delta_m": {
+      "minimum": 0.0,
+      "title": "Weak Observability Installed Delta M",
+      "type": "number"
+    },
+    "weak_observability_rejection_count": {
+      "minimum": 0,
+      "title": "Weak Observability Rejection Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "lifecycle_id",
+    "variable",
+    "parent",
+    "child",
+    "seed",
+    "thresholds",
+    "initial_incumbent",
+    "final_incumbent",
+    "events",
+    "adoption_count",
+    "rejection_count",
+    "hold_count",
+    "rollback_count",
+    "weak_observability_rejection_count",
+    "weak_observability_installed_delta_m",
+    "known_bad_weak_window_index",
+    "known_bad_holdout_window_index",
+    "rollback_source_event_index",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "CalibrationLifecycleArtifact",
+  "type": "object"
+}

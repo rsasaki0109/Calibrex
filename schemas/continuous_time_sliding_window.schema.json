@@ -1,0 +1,190 @@
+{
+  "$defs": {
+    "ContinuousTimeSlidingWindowProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic recovery lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "ContinuousTimeSlidingWindowProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Holdout and known-bad evidence for sliding-window marginalization.",
+  "properties": {
+    "batch_fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Batch Fit Status",
+      "type": "string"
+    },
+    "batch_holdout_rmse_m": {
+      "minimum": 0.0,
+      "title": "Batch Holdout Rmse M",
+      "type": "number"
+    },
+    "holdout_measurement_count": {
+      "minimum": 1,
+      "title": "Holdout Measurement Count",
+      "type": "integer"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "knot_count": {
+      "minimum": 2,
+      "title": "Knot Count",
+      "type": "integer"
+    },
+    "known_bad_overlap_translation_error_m": {
+      "minimum": 0.0,
+      "title": "Known Bad Overlap Translation Error M",
+      "type": "number"
+    },
+    "known_bad_rmse_delta_m": {
+      "title": "Known Bad Rmse Delta M",
+      "type": "number"
+    },
+    "known_bad_skip_marginalization": {
+      "title": "Known Bad Skip Marginalization",
+      "type": "boolean"
+    },
+    "max_overlap_rotation_error_rad": {
+      "minimum": 0.0,
+      "title": "Max Overlap Rotation Error Rad",
+      "type": "number"
+    },
+    "max_overlap_translation_error_m": {
+      "minimum": 0.0,
+      "title": "Max Overlap Translation Error M",
+      "type": "number"
+    },
+    "overlap_knot_count": {
+      "minimum": 1,
+      "title": "Overlap Knot Count",
+      "type": "integer"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeSlidingWindowProvenance"
+    },
+    "recovery_id": {
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_sliding_window/v0.1",
+      "default": "slac.continuous_time_sliding_window/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "sliding_fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Sliding Fit Status",
+      "type": "string"
+    },
+    "sliding_holdout_rmse_m": {
+      "minimum": 0.0,
+      "title": "Sliding Holdout Rmse M",
+      "type": "number"
+    },
+    "train_measurement_count": {
+      "minimum": 1,
+      "title": "Train Measurement Count",
+      "type": "integer"
+    },
+    "window_count": {
+      "minimum": 2,
+      "title": "Window Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "interpolation",
+    "seed",
+    "knot_count",
+    "window_count",
+    "overlap_knot_count",
+    "train_measurement_count",
+    "holdout_measurement_count",
+    "batch_fit_status",
+    "sliding_fit_status",
+    "max_overlap_translation_error_m",
+    "max_overlap_rotation_error_rad",
+    "batch_holdout_rmse_m",
+    "sliding_holdout_rmse_m",
+    "known_bad_overlap_translation_error_m",
+    "known_bad_rmse_delta_m",
+    "known_bad_skip_marginalization",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "ContinuousTimeSlidingWindowArtifact",
+  "type": "object"
+}

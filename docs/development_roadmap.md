@@ -109,11 +109,13 @@ accuracy.
    (`build_featdepth_correspondence_from_problem`); remaining gap: publish
    maintained provider artifacts and portfolio evidence.
 4. **Continuous time:** `ContinuousTimeTrajectoryContract`, SE(3) manifold
-   Jacobians, sparse GN/LM fitter, and native LiDAR point-to-plane factors are
-   implemented. The remaining gap is native IMU factor integration and
-   sliding-window marginalization.
-5. **Complete LiDAR-IMU solve:** rotation evidence exists; native translation,
-   clock offset, bias, and intrinsic estimation do not.
+   Jacobians, sparse GN/LM fitter, native LiDAR point-to-plane factors, IMU
+   gyro pre-integration (rotation + shared bias), IMU lever arm, IMU clock
+   offset, and accelerometer bias/gravity are implemented. Sliding-window
+   marginalization with gauge and consistency evidence is implemented.
+5. **Complete LiDAR-IMU solve:** rotation, lever-arm, clock-offset, and
+   accelerometer-bias/gravity evidence exist; native IMU intrinsic estimation
+   does not.
 6. **Lifecycle monitoring:** online adoption gates exist, but there is no
    schema-defined drift event, incumbent/candidate history, or rollback
    decision artifact.
@@ -173,15 +175,16 @@ tranche focuses on continuous-time factor integration and lifecycle monitoring.
 ### P1 — Continuous-time foundation — partially implemented
 
 `ContinuousTimeTrajectoryContract` (`slac.continuous_time_trajectory/v0.1`),
-SE(3) manifold Jacobians, a sparse GN/LM fitter, and native LiDAR
-point-to-plane factors against the knot path are implemented and CLI-wired.
-Remaining work: native IMU pre-integration factors and sliding-window
-marginalization with gauge and consistency evidence.
+SE(3) manifold Jacobians, a sparse GN/LM fitter, native LiDAR point-to-plane
+factors, IMU gyro pre-integration (rotation plus shared gyro bias), IMU
+lever-arm factors, a shared IMU clock offset, accelerometer bias/gravity, and
+sliding-window Schur marginalization against the knot path are implemented and
+CLI-wired.
 
 ### P2 — Native LiDAR-IMU and sliding-window evidence
 
-Build in stages: rotation plus gyro bias, lever arm, clock offset, then
-accelerometer bias/gravity and optional intrinsics. Every stage requires
+Build in stages: rotation plus gyro bias, lever arm, clock offset,
+accelerometer bias/gravity, then optional intrinsics. Every stage requires
 disjoint temporal holdout, per-axis excitation, separability diagnostics, and
 injected signed controls. Add marginalization only with explicit gauge and
 consistency evidence.
@@ -191,6 +194,10 @@ consistency evidence.
 Represent drift detection and adoption as schema-valid events with incumbent,
 candidate, evidence window, decision, and rollback provenance. A weakly
 observable window must not update the installed transform.
+
+**Delivered:** `decide_calibration_lifecycle_window()` adoption gates,
+synthetic replay artifact `slac.calibration_lifecycle/v0.1`, CLI
+`calibrex lifecycle simulate`.
 
 ## Completed since last roadmap revision (2026-08-19)
 
@@ -222,6 +229,39 @@ observable window must not update the installed transform.
   spinning LiDAR + camera (planar-board).
 - **Quickstart tutorial** — `docs/tutorials/your_own_data.md` covering the
   end-to-end flow from bag recording to result interpretation.
+- **Continuous-time sliding-window marginalization** — overlapping knot-window
+  fits with Schur-complement priors, batch consistency checks, holdout, and a
+  skip-marginalization control (`calibrex trajectory recover-sliding-window`,
+  `slac.continuous_time_sliding_window/v0.1`).
+- **Continuous-time IMU accelerometer bias and gravity** — specific-force
+  residuals ``a_kin + b - R^T g`` on the screw-linear knot path, Jacobian
+  tests, synthetic recovery with disjoint temporal holdout and a +0.3 m/s^2 z
+  known-bad accel-bias control (`calibrex trajectory recover-imu-accel-bias`,
+  `slac.continuous_time_imu_accel_bias/v0.1`).
+- **Continuous-time IMU diagonal intrinsics** — per-axis gyro and
+  accelerometer scale factors on the screw-linear knot path, Jacobian tests,
+  synthetic recovery with disjoint temporal holdout and a +0.05 z gyro-scale
+  known-bad control (`calibrex trajectory recover-imu-intrinsics`,
+  `slac.continuous_time_imu_intrinsics/v0.1`).
+- **Calibration lifecycle adoption and rollback** — schema-valid incumbent,
+  candidate, evidence-window, and rollback events with holdout/observability
+  gates; weakly observable windows leave the installed transform unchanged
+  (`calibrex lifecycle simulate`, `slac.calibration_lifecycle/v0.1`).
+- **Continuous-time IMU clock offset** — a shared scalar delay mapping IMU
+  timestamps onto the screw-linear knot path, Jacobian tests, synthetic
+  recovery with disjoint temporal holdout and a +0.02 s known-bad control
+  (`calibrex trajectory recover-imu-clock-offset`,
+  `slac.continuous_time_imu_clock_offset/v0.1`).
+- **Continuous-time IMU lever arm** — gravity-compensated specific-force
+  residuals of a displaced IMU origin on the screw-linear knot path, Jacobian
+  tests, synthetic recovery with disjoint temporal holdout and a +0.15 m z
+  known-bad control (`calibrex trajectory recover-imu-lever-arm`,
+  `slac.continuous_time_imu_lever_arm/v0.1`).
+- **Continuous-time IMU gyro pre-integration** — rotation residuals against
+  the screw-linear knot path with a shared gyro bias, Jacobian tests, synthetic
+  recovery with disjoint temporal holdout and a +0.08 rad/s z known-bad control
+  (`calibrex trajectory recover-imu-preintegration`,
+  `slac.continuous_time_imu_preintegration/v0.1`).
 - **Continuous-time LiDAR point-to-plane factors** — signed-distance residuals
   on the screw-linear knot path, Jacobian tests, synthetic recovery with
   disjoint temporal holdout and a +0.15 m z known-bad control
@@ -303,6 +343,93 @@ schema-valid measurements/fit fields, synthetic recovery artifact
 `slac.continuous_time_lidar_point_to_plane/v0.1` with mid-span temporal
 holdout and a signed +0.15 m z control, CLI
 `calibrex trajectory recover-point-to-plane`.
+
+### 4. Continuous-time IMU gyro pre-integration — implemented
+
+**Why now:** LiDAR plane residuals are on the knot path; LiDAR-IMU evidence
+still needs native inertial factors before lever arm and clock offset.
+
+**Outcome:** add gyro pre-integration residuals with a shared bias, holdout,
+and a signed known-bad control.
+
+**Delivered:** `TrajectoryImuPreintegrationMeasurement` in the sparse fitter,
+optional `estimate_gyro_bias`, synthetic recovery artifact
+`slac.continuous_time_imu_preintegration/v0.1`, CLI
+`calibrex trajectory recover-imu-preintegration`.
+
+### 5. Continuous-time IMU lever arm — implemented
+
+**Why now:** gyro pre-integration recovers rotation and bias; LiDAR-IMU
+translation still needs a native lever-arm factor before clock offset.
+
+**Outcome:** add gravity-compensated specific-force residuals of a displaced
+IMU origin, holdout, and a signed known-bad control.
+
+**Delivered:** `TrajectoryImuLeverArmMeasurement` in the sparse fitter,
+optional `estimate_lever_arm`, synthetic recovery artifact
+`slac.continuous_time_imu_lever_arm/v0.1`, CLI
+`calibrex trajectory recover-imu-lever-arm`.
+
+### 6. Continuous-time IMU clock offset — implemented
+
+**Why now:** rotation, bias, and lever arm are on the knot path; LiDAR-IMU
+still needs a native time delay before accelerometer bias.
+
+**Outcome:** add a shared IMU clock offset, holdout, and a signed known-bad
+control.
+
+**Delivered:** `estimate_imu_clock_offset` in the sparse fitter, synthetic
+recovery artifact `slac.continuous_time_imu_clock_offset/v0.1`, CLI
+`calibrex trajectory recover-imu-clock-offset`.
+
+### 7. Continuous-time IMU accelerometer bias and gravity — implemented
+
+**Why now:** rotation, bias, lever arm, and clock are on the knot path;
+accelerometer specific force still needs a native bias and gravity split
+before optional IMU intrinsics.
+
+**Outcome:** add accelerometer bias and world-frame gravity in the
+specific-force residual, holdout, and a signed known-bad control.
+
+**Delivered:** `estimate_accel_bias` and `estimate_gravity` in the sparse
+fitter, synthetic recovery artifact `slac.continuous_time_imu_accel_bias/v0.1`,
+CLI `calibrex trajectory recover-imu-accel-bias`.
+
+### 8. Continuous-time sliding-window marginalization — implemented
+
+**Why now:** all single-window IMU/LiDAR factors are on the knot path; streaming
+and long-horizon use needs explicit gauge and cross-window consistency evidence.
+
+**Outcome:** add overlapping window fits with Schur knot priors, batch overlap
+checks, holdout, and a skip-marginalization control.
+
+**Delivered:** `knot_marginalization_priors` in the sparse fitter, synthetic
+recovery artifact `slac.continuous_time_sliding_window/v0.1`, CLI
+`calibrex trajectory recover-sliding-window`.
+
+### 9. Continuous-time IMU diagonal intrinsics — implemented
+
+**Why now:** bias, gravity, lever arm, and clock are on the knot path; per-axis
+scale mismatch is the next optional IMU correction before lifecycle artifacts.
+
+**Outcome:** add diagonal gyro and accelerometer scale factors with holdout and a
+signed known-bad gyro-scale control.
+
+**Delivered:** `estimate_gyro_scale` and `estimate_accel_scale` in the sparse
+fitter, synthetic recovery artifact `slac.continuous_time_imu_intrinsics/v0.1`,
+CLI `calibrex trajectory recover-imu-intrinsics`.
+
+### 10. Calibration lifecycle adoption and rollback — implemented
+
+**Why now:** continuous-time IMU factors are on the knot path; streaming adoption
+needs explicit drift, rejection, and rollback provenance separate from batch fit
+results.
+
+**Outcome:** represent incumbent/candidate decisions as schema-valid lifecycle
+events; weakly observable windows must not mutate the installed transform.
+
+**Delivered:** `decide_calibration_lifecycle_window()` gates, synthetic replay
+artifact `slac.calibration_lifecycle/v0.1`, CLI `calibrex lifecycle simulate`.
 
 ## Previous P0 issues (implemented 2026-08-20)
 

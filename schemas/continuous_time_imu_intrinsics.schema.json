@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "ContinuousTimeImuIntrinsicsProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic recovery lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "ContinuousTimeImuIntrinsicsProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Holdout and known-bad evidence for diagonal IMU scale factors.",
+  "properties": {
+    "accel_scale_error": {
+      "minimum": 0.0,
+      "title": "Accel Scale Error",
+      "type": "number"
+    },
+    "fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Fit Status",
+      "type": "string"
+    },
+    "gyro_scale_error": {
+      "minimum": 0.0,
+      "title": "Gyro Scale Error",
+      "type": "number"
+    },
+    "holdout_accel_measurement_count": {
+      "minimum": 1,
+      "title": "Holdout Accel Measurement Count",
+      "type": "integer"
+    },
+    "holdout_gyro_measurement_count": {
+      "minimum": 1,
+      "title": "Holdout Gyro Measurement Count",
+      "type": "integer"
+    },
+    "holdout_imu_rotation_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Holdout Imu Rotation Rmse Rad",
+      "type": "number"
+    },
+    "holdout_lever_arm_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Holdout Lever Arm Rmse M S2",
+      "type": "number"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "knot_count": {
+      "minimum": 2,
+      "title": "Knot Count",
+      "type": "integer"
+    },
+    "known_bad_gyro_scale_delta": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Known Bad Gyro Scale Delta",
+      "type": "array"
+    },
+    "known_bad_holdout_imu_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Known Bad Holdout Imu Rmse Rad",
+      "type": "number"
+    },
+    "known_bad_imu_rmse_delta_rad": {
+      "title": "Known Bad Imu Rmse Delta Rad",
+      "type": "number"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeImuIntrinsicsProvenance"
+    },
+    "recovery_id": {
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_imu_intrinsics/v0.1",
+      "default": "slac.continuous_time_imu_intrinsics/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "train_accel_measurement_count": {
+      "minimum": 1,
+      "title": "Train Accel Measurement Count",
+      "type": "integer"
+    },
+    "train_gyro_measurement_count": {
+      "minimum": 1,
+      "title": "Train Gyro Measurement Count",
+      "type": "integer"
+    },
+    "train_imu_rotation_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Train Imu Rotation Rmse Rad",
+      "type": "number"
+    },
+    "train_lever_arm_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Train Lever Arm Rmse M S2",
+      "type": "number"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "interpolation",
+    "seed",
+    "knot_count",
+    "train_gyro_measurement_count",
+    "train_accel_measurement_count",
+    "holdout_gyro_measurement_count",
+    "holdout_accel_measurement_count",
+    "fit_status",
+    "gyro_scale_error",
+    "accel_scale_error",
+    "train_imu_rotation_rmse_rad",
+    "holdout_imu_rotation_rmse_rad",
+    "train_lever_arm_rmse_m_s2",
+    "holdout_lever_arm_rmse_m_s2",
+    "known_bad_holdout_imu_rmse_rad",
+    "known_bad_imu_rmse_delta_rad",
+    "known_bad_gyro_scale_delta",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "ContinuousTimeImuIntrinsicsArtifact",
+  "type": "object"
+}

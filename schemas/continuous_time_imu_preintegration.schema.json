@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "ContinuousTimeImuPreintegrationProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic recovery lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "ContinuousTimeImuPreintegrationProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Holdout and known-bad evidence for knot-path IMU rotation factors.",
+  "properties": {
+    "fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Fit Status",
+      "type": "string"
+    },
+    "gyro_bias_error_rad_s": {
+      "minimum": 0.0,
+      "title": "Gyro Bias Error Rad S",
+      "type": "number"
+    },
+    "holdout_imu_rotation_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Holdout Imu Rotation Rmse Rad",
+      "type": "number"
+    },
+    "holdout_measurement_count": {
+      "minimum": 1,
+      "title": "Holdout Measurement Count",
+      "type": "integer"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "knot_count": {
+      "minimum": 2,
+      "title": "Knot Count",
+      "type": "integer"
+    },
+    "known_bad_gyro_bias_rad_s": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Known Bad Gyro Bias Rad S",
+      "type": "array"
+    },
+    "known_bad_holdout_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Known Bad Holdout Rmse Rad",
+      "type": "number"
+    },
+    "known_bad_rmse_delta_rad": {
+      "title": "Known Bad Rmse Delta Rad",
+      "type": "number"
+    },
+    "max_knot_rotation_error_rad": {
+      "minimum": 0.0,
+      "title": "Max Knot Rotation Error Rad",
+      "type": "number"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeImuPreintegrationProvenance"
+    },
+    "recovery_id": {
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_imu_preintegration/v0.1",
+      "default": "slac.continuous_time_imu_preintegration/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "train_imu_rotation_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Train Imu Rotation Rmse Rad",
+      "type": "number"
+    },
+    "train_measurement_count": {
+      "minimum": 1,
+      "title": "Train Measurement Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "interpolation",
+    "seed",
+    "knot_count",
+    "train_measurement_count",
+    "holdout_measurement_count",
+    "fit_status",
+    "max_knot_rotation_error_rad",
+    "gyro_bias_error_rad_s",
+    "train_imu_rotation_rmse_rad",
+    "holdout_imu_rotation_rmse_rad",
+    "known_bad_holdout_rmse_rad",
+    "known_bad_rmse_delta_rad",
+    "known_bad_gyro_bias_rad_s",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "ContinuousTimeImuPreintegrationArtifact",
+  "type": "object"
+}

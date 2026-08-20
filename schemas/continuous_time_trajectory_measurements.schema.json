@@ -28,6 +28,97 @@
       "title": "CovarianceInfo",
       "type": "object"
     },
+    "TrajectoryImuGyroSampleArtifact": {
+      "additionalProperties": false,
+      "description": "A body-frame gyro reading at a timestamp.",
+      "properties": {
+        "omega_body_rad_s": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Omega Body Rad S",
+          "type": "array"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "omega_body_rad_s"
+      ],
+      "title": "TrajectoryImuGyroSampleArtifact",
+      "type": "object"
+    },
+    "TrajectoryImuLeverArmMeasurementArtifact": {
+      "additionalProperties": false,
+      "description": "Gravity-compensated specific force used to observe the IMU lever arm.",
+      "properties": {
+        "accel_body_m_s2": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Accel Body M S2",
+          "type": "array"
+        },
+        "measurement_id": {
+          "title": "Measurement Id",
+          "type": "string"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "measurement_id",
+        "timestamp_sec",
+        "accel_body_m_s2"
+      ],
+      "title": "TrajectoryImuLeverArmMeasurementArtifact",
+      "type": "object"
+    },
+    "TrajectoryImuPreintegrationMeasurementArtifact": {
+      "additionalProperties": false,
+      "description": "Gyro samples spanning two timestamps for a rotation pre-integration.",
+      "properties": {
+        "gyro_samples": {
+          "items": {
+            "$ref": "#/$defs/TrajectoryImuGyroSampleArtifact"
+          },
+          "minItems": 2,
+          "title": "Gyro Samples",
+          "type": "array"
+        },
+        "measurement_id": {
+          "title": "Measurement Id",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "measurement_id",
+        "gyro_samples"
+      ],
+      "title": "TrajectoryImuPreintegrationMeasurementArtifact",
+      "type": "object"
+    },
     "TrajectoryMeasurementProvenance": {
       "additionalProperties": false,
       "description": "Generator and immutable input lineage for measurement sets.",
@@ -491,6 +582,114 @@
     "body_frame": {
       "title": "Body Frame",
       "type": "string"
+    },
+    "estimate_accel_bias": {
+      "default": false,
+      "title": "Estimate Accel Bias",
+      "type": "boolean"
+    },
+    "estimate_accel_scale": {
+      "default": false,
+      "title": "Estimate Accel Scale",
+      "type": "boolean"
+    },
+    "estimate_gravity": {
+      "default": false,
+      "title": "Estimate Gravity",
+      "type": "boolean"
+    },
+    "estimate_gyro_bias": {
+      "default": false,
+      "title": "Estimate Gyro Bias",
+      "type": "boolean"
+    },
+    "estimate_gyro_scale": {
+      "default": false,
+      "title": "Estimate Gyro Scale",
+      "type": "boolean"
+    },
+    "estimate_imu_clock_offset": {
+      "default": false,
+      "title": "Estimate Imu Clock Offset",
+      "type": "boolean"
+    },
+    "estimate_lever_arm": {
+      "default": false,
+      "title": "Estimate Lever Arm",
+      "type": "boolean"
+    },
+    "imu_lever_arm_measurements": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryImuLeverArmMeasurementArtifact"
+      },
+      "title": "Imu Lever Arm Measurements",
+      "type": "array"
+    },
+    "imu_preintegration_measurements": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryImuPreintegrationMeasurementArtifact"
+      },
+      "title": "Imu Preintegration Measurements",
+      "type": "array"
+    },
+    "initial_accel_bias_body_m_s2": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Initial Accel Bias Body M S2",
+      "type": "array"
+    },
+    "initial_accel_scale": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Initial Accel Scale",
+      "type": "array"
+    },
+    "initial_gravity_world_m_s2": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Initial Gravity World M S2",
+      "type": "array"
+    },
+    "initial_gyro_bias_rad_s": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Initial Gyro Bias Rad S",
+      "type": "array"
+    },
+    "initial_gyro_scale": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Initial Gyro Scale",
+      "type": "array"
+    },
+    "initial_imu_clock_offset_sec": {
+      "default": 0.0,
+      "title": "Initial Imu Clock Offset Sec",
+      "type": "number"
+    },
+    "initial_lever_arm_body_m": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Initial Lever Arm Body M",
+      "type": "array"
     },
     "measurements_id": {
       "title": "Measurements Id",

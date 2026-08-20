@@ -12,6 +12,7 @@ from calibrex.core.benchmark import (
     benchmark_definition_json_schema,
     benchmark_json_schema,
 )
+from calibrex.core.calibration_lifecycle import calibration_lifecycle_json_schema
 from calibrex.core.camera_lidar_artifacts import (
     bullseye_plot_json_schema,
     calibration_candidate_trace_json_schema,
@@ -35,6 +36,24 @@ from calibrex.core.continuous_time_fit_artifacts import (
     continuous_time_fit_json_schema,
     continuous_time_measurements_json_schema,
 )
+from calibrex.core.continuous_time_sliding_window import (
+    continuous_time_sliding_window_json_schema,
+)
+from calibrex.core.continuous_time_imu_accel_bias import (
+    continuous_time_imu_accel_bias_json_schema,
+)
+from calibrex.core.continuous_time_imu_intrinsics import (
+    continuous_time_imu_intrinsics_json_schema,
+)
+from calibrex.core.continuous_time_imu_clock_offset import (
+    continuous_time_imu_clock_offset_json_schema,
+)
+from calibrex.core.continuous_time_imu_lever_arm import (
+    continuous_time_imu_lever_arm_json_schema,
+)
+from calibrex.core.continuous_time_imu_preintegration import (
+    continuous_time_imu_preintegration_json_schema,
+)
 from calibrex.core.continuous_time_lidar_ablation import (
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
     ContinuousTimeLidarAblationManifest,
@@ -48,6 +67,7 @@ from calibrex.core.continuous_time_lidar_point_to_plane import (
 )
 from calibrex.core.dynamic_window import dynamic_window_consistency_json_schema
 from calibrex.core.empirical_uncertainty import empirical_se3_uncertainty_json_schema
+from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.core.evidence_bundle import (
     evidence_bundle_json_schema,
     evidence_bundle_verification_json_schema,
@@ -88,7 +108,6 @@ from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.depth import depth_provider_json_schema
 from calibrex.data.kitti_benchmark import kitti_benchmark_input_json_schema
 from calibrex.data.manifest import manifest_json_schema
-from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.diagnostics import doctor_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
 from calibrex.evaluation.kitti_falsification_benchmark import (
@@ -118,6 +137,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "doctor.schema.json": doctor_json_schema,
         "environment_readiness.schema.json": environment_readiness_json_schema,
         "calibration_ci.schema.json": calibration_ci_json_schema,
+        "calibration_lifecycle.schema.json": calibration_lifecycle_json_schema,
         "external_run.schema.json": external_run_json_schema,
         "kitti_falsification.schema.json": kitti_falsification_json_schema,
         "kitti_benchmark_input.schema.json": kitti_benchmark_input_json_schema,
@@ -172,6 +192,24 @@ def test_static_schema_files_match_generated_schemas() -> None:
         ),
         "continuous_time_lidar_point_to_plane.schema.json": (
             continuous_time_lidar_point_to_plane_json_schema
+        ),
+        "continuous_time_imu_preintegration.schema.json": (
+            continuous_time_imu_preintegration_json_schema
+        ),
+        "continuous_time_imu_lever_arm.schema.json": (
+            continuous_time_imu_lever_arm_json_schema
+        ),
+        "continuous_time_imu_clock_offset.schema.json": (
+            continuous_time_imu_clock_offset_json_schema
+        ),
+        "continuous_time_imu_accel_bias.schema.json": (
+            continuous_time_imu_accel_bias_json_schema
+        ),
+        "continuous_time_imu_intrinsics.schema.json": (
+            continuous_time_imu_intrinsics_json_schema
+        ),
+        "continuous_time_sliding_window.schema.json": (
+            continuous_time_sliding_window_json_schema
         ),
         "continuous_time_lidar_ablation.schema.json": (
             continuous_time_lidar_ablation_json_schema

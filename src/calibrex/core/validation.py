@@ -12,6 +12,10 @@ from calibrex.calibration_ci import (
     CalibrationCIArtifact,
 )
 from calibrex.core.assessment import ASSESSMENT_SCHEMA_VERSION, AssessmentArtifact
+from calibrex.core.calibration_lifecycle import (
+    CALIBRATION_LIFECYCLE_SCHEMA_VERSION,
+    CalibrationLifecycleArtifact,
+)
 from calibrex.core.benchmark import (
     BENCHMARK_DEFINITION_SCHEMA_VERSION,
     BENCHMARK_SCHEMA_VERSION,
@@ -55,6 +59,26 @@ from calibrex.core.continuous_time_fit_artifacts import (
     ContinuousTimeTrajectoryFitResultArtifact,
     ContinuousTimeTrajectoryMeasurements,
 )
+from calibrex.core.continuous_time_imu_accel_bias import (
+    CONTINUOUS_TIME_IMU_ACCEL_BIAS_SCHEMA_VERSION,
+    ContinuousTimeImuAccelBiasArtifact,
+)
+from calibrex.core.continuous_time_imu_clock_offset import (
+    CONTINUOUS_TIME_IMU_CLOCK_OFFSET_SCHEMA_VERSION,
+    ContinuousTimeImuClockOffsetArtifact,
+)
+from calibrex.core.continuous_time_imu_intrinsics import (
+    CONTINUOUS_TIME_IMU_INTRINSICS_SCHEMA_VERSION,
+    ContinuousTimeImuIntrinsicsArtifact,
+)
+from calibrex.core.continuous_time_imu_lever_arm import (
+    CONTINUOUS_TIME_IMU_LEVER_ARM_SCHEMA_VERSION,
+    ContinuousTimeImuLeverArmArtifact,
+)
+from calibrex.core.continuous_time_imu_preintegration import (
+    CONTINUOUS_TIME_IMU_PREINTEGRATION_SCHEMA_VERSION,
+    ContinuousTimeImuPreintegrationArtifact,
+)
 from calibrex.core.continuous_time_lidar_ablation import (
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION,
     ContinuousTimeLidarAblationManifest,
@@ -67,6 +91,10 @@ from calibrex.core.continuous_time_lidar_point_to_plane import (
     CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION,
     ContinuousTimeLidarPointToPlaneArtifact,
 )
+from calibrex.core.continuous_time_sliding_window import (
+    CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION,
+    ContinuousTimeSlidingWindowArtifact,
+)
 from calibrex.core.dynamic_window import (
     DYNAMIC_WINDOW_CONSISTENCY_SCHEMA_VERSION,
     DynamicWindowConsistencyArtifact,
@@ -74,6 +102,10 @@ from calibrex.core.dynamic_window import (
 from calibrex.core.empirical_uncertainty import (
     EMPIRICAL_SE3_UNCERTAINTY_SCHEMA_VERSION,
     EmpiricalSe3UncertaintyArtifact,
+)
+from calibrex.core.environment_readiness import (
+    ENVIRONMENT_READINESS_SCHEMA_VERSION,
+    EnvironmentReadinessArtifact,
 )
 from calibrex.core.evidence_bundle import (
     EVIDENCE_BUNDLE_SCHEMA_VERSION,
@@ -161,10 +193,6 @@ from calibrex.data.kitti_benchmark import (
     KITTIBenchmarkInputManifest,
 )
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
-from calibrex.core.environment_readiness import (
-    ENVIRONMENT_READINESS_SCHEMA_VERSION,
-    EnvironmentReadinessArtifact,
-)
 from calibrex.diagnostics import DOCTOR_SCHEMA_VERSION, DoctorArtifact
 from calibrex.evaluation.compare import COMPARISON_SCHEMA_VERSION, ResultComparison
 from calibrex.evaluation.kitti_falsification_benchmark import (
@@ -225,6 +253,11 @@ ValidationKind = Literal[
     "capture-readiness",
     "continuous-time-lidar-pair",
     "continuous-time-lidar-point-to-plane",
+    "continuous-time-imu-preintegration",
+    "continuous-time-imu-lever-arm",
+    "continuous-time-imu-clock-offset",
+    "continuous-time-imu-accel-bias",
+    "continuous-time-sliding-window",
     "continuous-time-lidar-ablation",
     "solid-state-cross-dataset-benchmark-config",
     "solid-state-cross-dataset-benchmark",
@@ -251,6 +284,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "doctor": DoctorArtifact,
     "environment-readiness": EnvironmentReadinessArtifact,
     "calibration-ci": CalibrationCIArtifact,
+    "calibration-lifecycle": CalibrationLifecycleArtifact,
     "external-run": ExternalCalibrationRunArtifact,
     "kitti-falsification": KITTIFalsificationBenchmarkArtifact,
     "kitti-benchmark-input": KITTIBenchmarkInputManifest,
@@ -291,6 +325,12 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "capture-readiness": CaptureReadinessArtifact,
     "continuous-time-lidar-pair": ContinuousTimeLidarPairArtifact,
     "continuous-time-lidar-point-to-plane": ContinuousTimeLidarPointToPlaneArtifact,
+    "continuous-time-imu-preintegration": ContinuousTimeImuPreintegrationArtifact,
+    "continuous-time-imu-lever-arm": ContinuousTimeImuLeverArmArtifact,
+    "continuous-time-imu-clock-offset": ContinuousTimeImuClockOffsetArtifact,
+    "continuous-time-imu-accel-bias": ContinuousTimeImuAccelBiasArtifact,
+    "continuous-time-imu-intrinsics": ContinuousTimeImuIntrinsicsArtifact,
+    "continuous-time-sliding-window": ContinuousTimeSlidingWindowArtifact,
     "continuous-time-lidar-ablation": ContinuousTimeLidarAblationManifest,
     "solid-state-cross-dataset-benchmark-config": SolidStateCrossDatasetBenchmarkSpec,
     "solid-state-cross-dataset-benchmark": SolidStateCrossDatasetBenchmarkManifest,
@@ -317,6 +357,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     DOCTOR_SCHEMA_VERSION: "doctor",
     ENVIRONMENT_READINESS_SCHEMA_VERSION: "environment-readiness",
     CALIBRATION_CI_SCHEMA_VERSION: "calibration-ci",
+    CALIBRATION_LIFECYCLE_SCHEMA_VERSION: "calibration-lifecycle",
     EXTERNAL_RUN_SCHEMA_VERSION: "external-run",
     KITTI_FALSIFICATION_SCHEMA_VERSION: "kitti-falsification",
     KITTI_BENCHMARK_INPUT_SCHEMA_VERSION: "kitti-benchmark-input",
@@ -364,6 +405,24 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: "continuous-time-lidar-pair",
     CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION: (
         "continuous-time-lidar-point-to-plane"
+    ),
+    CONTINUOUS_TIME_IMU_PREINTEGRATION_SCHEMA_VERSION: (
+        "continuous-time-imu-preintegration"
+    ),
+    CONTINUOUS_TIME_IMU_LEVER_ARM_SCHEMA_VERSION: (
+        "continuous-time-imu-lever-arm"
+    ),
+    CONTINUOUS_TIME_IMU_CLOCK_OFFSET_SCHEMA_VERSION: (
+        "continuous-time-imu-clock-offset"
+    ),
+    CONTINUOUS_TIME_IMU_ACCEL_BIAS_SCHEMA_VERSION: (
+        "continuous-time-imu-accel-bias"
+    ),
+    CONTINUOUS_TIME_IMU_INTRINSICS_SCHEMA_VERSION: (
+        "continuous-time-imu-intrinsics"
+    ),
+    CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION: (
+        "continuous-time-sliding-window"
     ),
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION: "continuous-time-lidar-ablation",
     SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION: (
