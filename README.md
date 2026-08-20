@@ -24,6 +24,68 @@ adapter-produced LiDAR, camera, IMU, radar, RGB-D, hand-eye, and robot-world
 calibration without reducing the verdict to optimizer convergence or a single
 training residual.
 
+## Public-data gallery
+
+<table>
+  <tr>
+    <td colspan="3">
+      <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3">
+      <sub><b>Real A2D2 camera × LiDAR:</b> front-left camera frames with real
+      camera-view LiDAR returns. A2D2 distributes these points pre-registered into
+      the camera view, so this is visual evidence—not independent extrinsic
+      accuracy.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="33%">
+      <img src="docs/assets/calibration-evidence-demo.gif" alt="Livox public solid-state LiDAR calibration evidence" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public front multi-LiDAR calibration evidence" width="100%">
+    </td>
+    <td width="33%">
+      <img src="docs/assets/a2d2-front-rear-evidence-demo.gif" alt="A2D2 public front-rear LiDAR calibration evidence" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td><sub><b>Livox Horizon ↔ Horizon</b><br>Known-bad controls and holdout point-to-plane evidence.</sub></td>
+    <td><sub><b>A2D2 front pair</b><br>Fixed-rig metadata and support accounting.</sub></td>
+    <td><sub><b>A2D2 front ↔ rear</b><br>A longer baseline with different overlap behavior.</sub></td>
+  </tr>
+  <tr>
+    <td>
+      <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
+    </td>
+    <td>
+      <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
+    </td>
+    <td>
+      <img src="docs/assets/livox-before-after-calibration.gif" alt="Livox real point cloud calibration before and after refinement" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td><sub><b>TIERS moving platform</b><br>A Velodyne VLP-16 motion map supports online Ouster OS1 calibration, with 106 of 108 batches accepted by holdout gates.</sub></td>
+    <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
+    <td><sub><b>Livox before → after</b><br>Real Horizon PCD returns through the native registration refinement replay; the public pair has no transform ground truth.</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/assets/livox-time-offset-sweep.gif" alt="TIERS real solid-state LiDAR time offset sweep" width="100%">
+    </td>
+    <td><sub><b>TIERS time-offset sweep</b><br>Real VLP-16 ↔ Livox Horizon candidate probes. The plot reports the algorithmic +40 ms estimate and re-optimized train/holdout RMSE; the public sequence has no independent clock ground truth.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <sub>Every gallery asset is generated from public raw data. Dataset source,
+  protocol, parameters, and digests are recorded in
+  <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
+</p>
+
 ## LiDAR-camera evidence in five minutes
 
 Run the complete evidence path without ROS or a dataset download. The command
@@ -50,76 +112,10 @@ pipeline and evidence contracts; it is not a real-sensor accuracy claim or a
 standalone camera-LiDAR calibration algorithm. Supply an officially downloaded
 KITTI raw sequence with `--dataset-path` when evaluating real data.
 
-<p align="center">
-  <img src="docs/assets/a2d2-camera-lidar-overlay.gif" alt="A2D2 real camera and LiDAR projection overlay" width="100%">
-</p>
-
-<p align="center">
-  <sub><b>Real A2D2 camera × LiDAR:</b> front-left camera frames with real
-  camera-view LiDAR returns. A2D2 distributes these points pre-registered into
-  the camera view, so this is visual evidence—not independent extrinsic
-  accuracy.</sub>
-</p>
-
 Tried it on your rig? Share a sanitized result or a useful failure case in the
 [v0.4.1 launch discussion](https://github.com/rsasaki0109/Calibrex/discussions/61).
 If the evidence-first workflow earns a place in your calibration stack,
 consider starring Calibrex so other robotics teams can find it.
-
-## Public-data gallery
-
-<table>
-  <tr>
-    <td width="33%">
-      <img src="docs/assets/calibration-evidence-demo.gif" alt="Livox public solid-state LiDAR calibration evidence" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/a2d2-multilidar-evidence-demo.gif" alt="A2D2 public front multi-LiDAR calibration evidence" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/a2d2-front-rear-evidence-demo.gif" alt="A2D2 public front-rear LiDAR calibration evidence" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td><sub><b>Livox Horizon ↔ Horizon</b><br>Known-bad controls and holdout point-to-plane evidence.</sub></td>
-    <td><sub><b>A2D2 front pair</b><br>Fixed-rig metadata and support accounting.</sub></td>
-    <td><sub><b>A2D2 front ↔ rear</b><br>A longer baseline with different overlap behavior.</sub></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td width="33%">
-      <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/online-calibration-loop.gif" alt="TIERS LidarsCali real online solid-state LiDAR calibration" width="100%">
-    </td>
-    <td width="33%">
-      <img src="docs/assets/livox-before-after-calibration.gif" alt="Livox real point cloud calibration before and after refinement" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td><sub><b>TIERS moving platform</b><br>A Velodyne VLP-16 motion map supports online Ouster OS1 calibration, with 106 of 108 batches accepted by holdout gates.</sub></td>
-    <td><sub><b>TIERS LidarsCali online</b><br>Real Livox Horizon ↔ Avia batches replayed through the online gate.</sub></td>
-    <td><sub><b>Livox before → after</b><br>Real Horizon PCD returns through the native registration refinement replay; the public pair has no transform ground truth.</sub></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/assets/livox-time-offset-sweep.gif" alt="TIERS real solid-state LiDAR time offset sweep" width="100%">
-    </td>
-    <td width="50%"><sub><b>TIERS time-offset sweep</b><br>Real VLP-16 ↔ Livox Horizon candidate probes. The plot reports the algorithmic +40 ms estimate and re-optimized train/holdout RMSE; the public sequence has no independent clock ground truth.</sub></td>
-  </tr>
-</table>
-
-<p align="center">
-  <sub>Every gallery asset is generated from public raw data. Dataset source,
-  protocol, parameters, and digests are recorded in
-  <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
-</p>
 
 ## Solid-state LiDAR quickstart
 
@@ -224,6 +220,8 @@ and [Markdown report](docs/assets/solid-state-metrology-evaluation-v01.md).
 
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
+  ·
+  <a href="#public-data-gallery"><strong>Public-data gallery</strong></a>
   ·
   <a href="#five-minute-quickstart"><strong>Five-minute quickstart</strong></a>
   ·
