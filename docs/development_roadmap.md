@@ -109,8 +109,9 @@ accuracy.
    (`build_featdepth_correspondence_from_problem`); remaining gap: publish
    maintained provider artifacts and portfolio evidence.
 4. **Continuous time:** `ContinuousTimeTrajectoryContract`, SE(3) manifold
-   Jacobians, and sparse GN/LM fitter are implemented. The remaining gap is
-   native IMU and LiDAR factor integration and sliding-window marginalization.
+   Jacobians, sparse GN/LM fitter, and native LiDAR point-to-plane factors are
+   implemented. The remaining gap is native IMU factor integration and
+   sliding-window marginalization.
 5. **Complete LiDAR-IMU solve:** rotation evidence exists; native translation,
    clock offset, bias, and intrinsic estimation do not.
 6. **Lifecycle monitoring:** online adoption gates exist, but there is no
@@ -172,9 +173,9 @@ tranche focuses on continuous-time factor integration and lifecycle monitoring.
 ### P1 — Continuous-time foundation — partially implemented
 
 `ContinuousTimeTrajectoryContract` (`slac.continuous_time_trajectory/v0.1`),
-SE(3) manifold Jacobians, and a sparse GN/LM fitter are implemented and
-CLI-wired. Remaining work: native IMU pre-integration factors, LiDAR
-point-to-plane factors against the continuous knot path, and sliding-window
+SE(3) manifold Jacobians, a sparse GN/LM fitter, and native LiDAR
+point-to-plane factors against the knot path are implemented and CLI-wired.
+Remaining work: native IMU pre-integration factors and sliding-window
 marginalization with gauge and consistency evidence.
 
 ### P2 — Native LiDAR-IMU and sliding-window evidence
@@ -221,6 +222,11 @@ observable window must not update the installed transform.
   spinning LiDAR + camera (planar-board).
 - **Quickstart tutorial** — `docs/tutorials/your_own_data.md` covering the
   end-to-end flow from bag recording to result interpretation.
+- **Continuous-time LiDAR point-to-plane factors** — signed-distance residuals
+  on the screw-linear knot path, Jacobian tests, synthetic recovery with
+  disjoint temporal holdout and a +0.15 m z known-bad control
+  (`calibrex trajectory recover-point-to-plane`,
+  `slac.continuous_time_lidar_point_to_plane/v0.1`).
 - **Calibration CI PR workflow template** — `examples/ci/calibration-ci-pr.yml`
   with README, action output contract test, artifact upload in CI smoke, and
   links from `calibration_ci.md` / `your_own_data.md`.
@@ -275,7 +281,7 @@ bootstrap (Issue 3) instead of projection at the vendor initial pose alone;
 opt-in KITTI test uses `CALIBREX_KITTI_DEPTH_PROVIDER` (pinned commit in skip
 message).
 
-### 3. Continuous-time LiDAR point-to-plane factors
+### 3. Continuous-time LiDAR point-to-plane factors — implemented
 
 **Why now:** trajectory contract, SE(3) Jacobians, and sparse GN/LM fitter
 exist; native IMU and LiDAR factors against the knot path are the blocker for
@@ -291,6 +297,12 @@ multi-sensor continuous-time evidence.
 - Disjoint temporal holdout and at least one known-bad control refute over-tight
   reports.
 - Unit tests cover Jacobians and schema-valid fit artifacts; no GPL in core.
+
+**Delivered:** `TrajectoryPointToPlaneMeasurement` in the sparse fitter,
+schema-valid measurements/fit fields, synthetic recovery artifact
+`slac.continuous_time_lidar_point_to_plane/v0.1` with mid-span temporal
+holdout and a signed +0.15 m z control, CLI
+`calibrex trajectory recover-point-to-plane`.
 
 ## Previous P0 issues (implemented 2026-08-20)
 

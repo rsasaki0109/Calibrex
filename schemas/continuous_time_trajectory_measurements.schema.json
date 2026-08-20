@@ -123,6 +123,62 @@
       "title": "TrajectoryPointMeasurementArtifact",
       "type": "object"
     },
+    "TrajectoryPointToPlaneMeasurementArtifact": {
+      "additionalProperties": false,
+      "description": "A body-frame LiDAR return against a world plane at a timestamp.",
+      "properties": {
+        "measurement_id": {
+          "title": "Measurement Id",
+          "type": "string"
+        },
+        "plane_normal_world": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Plane Normal World",
+          "type": "array"
+        },
+        "plane_point_world_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Plane Point World M",
+          "type": "array"
+        },
+        "point_body_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Point Body M",
+          "type": "array"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "measurement_id",
+        "timestamp_sec",
+        "point_body_m",
+        "plane_point_world_m",
+        "plane_normal_world"
+      ],
+      "title": "TrajectoryPointToPlaneMeasurementArtifact",
+      "type": "object"
+    },
     "TrajectoryPoseMeasurementArtifact": {
       "additionalProperties": false,
       "description": "A measured world pose at a timestamp.",
@@ -445,6 +501,13 @@
         "$ref": "#/$defs/TrajectoryPointMeasurementArtifact"
       },
       "title": "Point Measurements",
+      "type": "array"
+    },
+    "point_to_plane_measurements": {
+      "items": {
+        "$ref": "#/$defs/TrajectoryPointToPlaneMeasurementArtifact"
+      },
+      "title": "Point To Plane Measurements",
       "type": "array"
     },
     "pose_measurements": {

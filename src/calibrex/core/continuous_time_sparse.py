@@ -1,12 +1,14 @@
 """Sparse manifold trajectory fitting with analytic SE(3) Jacobians.
 
 The fitter estimates the knot poses of a ``screw_linear`` continuous-time
-trajectory from body-frame point measurements and pose measurements.  Point
-measurements are the native LiDAR/IMU factor form: a body-frame point at a
-timestamp is transformed by the interpolated pose and compared with a world
-target.  Pose measurements are converted internally into four anchor point
-constraints so that every residual uses the analytic point-transform
-Jacobian; no pose-log Jacobian is required.
+trajectory from body-frame point measurements, point-to-plane measurements,
+and pose measurements.  Point measurements are the native LiDAR/IMU factor
+form: a body-frame point at a timestamp is transformed by the interpolated
+pose and compared with a world target.  Point-to-plane measurements compare
+the signed distance of that transformed point to a world plane.  Pose
+measurements are converted internally into four anchor point constraints so
+that every residual uses the analytic point-transform Jacobian; no pose-log
+Jacobian is required.
 
 The normal equations are assembled as a sparse block matrix in which every
 factor touches at most the two knots bracketing its timestamp.  Gauss--Newton
@@ -65,6 +67,37 @@ class TrajectoryPointMeasurement:
 
 
 @dataclass(frozen=True)
+class TrajectoryPointToPlaneMeasurement:
+    """A body-frame LiDAR return against a world plane at a timestamp."""
+
+    measurement_id: str
+    timestamp_sec: float
+    point_body_m: tuple[float, float, float]
+    plane_point_world_m: tuple[float, float, float]
+    plane_normal_world: tuple[float, float, float]
+    weight: float = 1.0
+
+    def __post_init__(self) -> None:
+        if not self.measurement_id:
+            raise ValueError("measurement_id must not be empty")
+        if not math.isfinite(self.timestamp_sec):
+            raise ValueError("point-to-plane timestamp must be finite")
+        values = (
+            *self.point_body_m,
+            *self.plane_point_world_m,
+            *self.plane_normal_world,
+            self.weight,
+        )
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("point-to-plane values must be finite")
+        if self.weight <= 0.0:
+            raise ValueError("point-to-plane weight must be positive")
+        normal = np.asarray(self.plane_normal_world, dtype=float)
+        if float(np.linalg.norm(normal)) <= 1.0e-12:
+            raise ValueError("point-to-plane normal must be non-zero")
+
+
+@dataclass(frozen=True)
 class TrajectoryPoseMeasurement:
     """A measured world pose at a timestamp."""
 
@@ -89,6 +122,7 @@ class ContinuousTimeTrajectoryFitProblem:
     knot_timestamps: tuple[float, ...]
     initial_knot_poses: tuple[SE3, ...]
     point_measurements: tuple[TrajectoryPointMeasurement, ...] = ()
+    point_to_plane_measurements: tuple[TrajectoryPointToPlaneMeasurement, ...] = ()
     pose_measurements: tuple[TrajectoryPoseMeasurement, ...] = ()
     interpolation: Literal["screw_linear"] = "screw_linear"
 
@@ -110,7 +144,11 @@ class ContinuousTimeTrajectoryFitProblem:
             self.knot_timestamps[-1]
         ):
             raise ValueError("knot timestamps must be finite")
-        if not self.point_measurements and not self.pose_measurements:
+        if (
+            not self.point_measurements
+            and not self.point_to_plane_measurements
+            and not self.pose_measurements
+        ):
             raise ValueError("trajectory fit requires at least one measurement")
 
 
@@ -146,6 +184,7 @@ class ContinuousTimeTrajectoryFitResult:
     initial_knot_poses: tuple[SE3, ...]
     final_objective: float
     final_point_rmse: float | None
+    final_point_to_plane_rmse: float | None
     final_pose_rmse: float | None
     max_step_translation_m: float
     max_step_rotation_deg: float
@@ -171,6 +210,7 @@ def fit_continuous_trajectory(
     timestamps = problem.knot_timestamps
     knots = list(problem.initial_knot_poses)
     point_rows: list[tuple[int, tuple[float, float, float]]] = []
+    plane_rows: list[tuple[int, TrajectoryPointToPlaneMeasurement]] = []
     pose_rows: list[tuple[int, SE3]] = []
     for measurement in problem.point_measurements:
         interval = _interval_index(timestamps, measurement.timestamp_sec)
@@ -180,6 +220,14 @@ def fit_continuous_trajectory(
                 "the knot domain"
             )
         point_rows.append((interval, measurement.point_body_m))
+    for measurement in problem.point_to_plane_measurements:
+        interval = _interval_index(timestamps, measurement.timestamp_sec)
+        if interval is None:
+            raise ValueError(
+                f"point-to-plane measurement {measurement.measurement_id!r} is "
+                "outside the knot domain"
+            )
+        plane_rows.append((interval, measurement))
     for measurement in problem.pose_measurements:
         interval = _interval_index(timestamps, measurement.timestamp_sec)
         if interval is None:
@@ -191,7 +239,7 @@ def fit_continuous_trajectory(
 
     damping = settings.initial_damping
     gradient_norm = math.inf
-    objective = _objective(problem, point_rows, pose_rows, knots)
+    objective = _objective(problem, point_rows, plane_rows, pose_rows, knots)
     best_objective = objective
     best_knots = list(knots)
     max_step_translation = 0.0
@@ -226,6 +274,28 @@ def fit_continuous_trajectory(
                 (row_offset, interval + 1, jacobian_right, residual, measurement.weight)
             )
             row_offset += 3
+        for interval, measurement in plane_rows:
+            residual, jacobian_left, jacobian_right = _point_to_plane_residual(
+                knots,
+                timestamps,
+                interval,
+                measurement,
+            )
+            residuals.append(float(residual[0]))
+            weights.append(measurement.weight)
+            blocks.append(
+                (row_offset, interval, jacobian_left, residual, measurement.weight)
+            )
+            blocks.append(
+                (
+                    row_offset,
+                    interval + 1,
+                    jacobian_right,
+                    residual,
+                    measurement.weight,
+                )
+            )
+            row_offset += 1
         for index, (interval, pose) in enumerate(pose_rows):
             weight = problem.pose_measurements[index].weight
             measurement = problem.pose_measurements[index]
@@ -271,9 +341,14 @@ def fit_continuous_trajectory(
         except RuntimeError:
             status = "singular_system"
             break
+        if not np.all(np.isfinite(delta)):
+            status = "singular_system"
+            break
 
         candidate = [se3_exp(knot, delta[6 * i : 6 * i + 6]) for i, knot in enumerate(knots)]
-        candidate_objective = _objective(problem, point_rows, pose_rows, candidate)
+        candidate_objective = _objective(
+            problem, point_rows, plane_rows, pose_rows, candidate
+        )
         step_translation = float(np.max(np.abs(delta.reshape(-1, 6)[:, :3])))
         step_rotation = math.degrees(
             float(np.max(np.abs(delta.reshape(-1, 6)[:, 3:])))
@@ -299,6 +374,7 @@ def fit_continuous_trajectory(
         knots = best_knots
         objective = best_objective
     final_point_rmse = _point_rmse(problem, point_rows, knots)
+    final_point_to_plane_rmse = _point_to_plane_rmse(plane_rows, timestamps, knots)
     final_pose_rmse = _pose_rmse(problem, pose_rows, knots)
     return ContinuousTimeTrajectoryFitResult(
         status=status,
@@ -307,6 +383,7 @@ def fit_continuous_trajectory(
         initial_knot_poses=problem.initial_knot_poses,
         final_objective=objective,
         final_point_rmse=final_point_rmse,
+        final_point_to_plane_rmse=final_point_to_plane_rmse,
         final_pose_rmse=final_pose_rmse,
         max_step_translation_m=max_step_translation,
         max_step_rotation_deg=max_step_rotation_deg,
@@ -334,6 +411,67 @@ def _point_residual(
         left, right, alpha
     )
     return residual, point_jacobian @ jacobian_left, point_jacobian @ jacobian_right
+
+
+def _point_to_plane_residual(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    interval: int,
+    measurement: TrajectoryPointToPlaneMeasurement,
+) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
+    alpha = _alpha(timestamps, interval, measurement.timestamp_sec)
+    left = knots[interval]
+    right = knots[interval + 1]
+    pose = _interpolate(left, right, alpha)
+    world = np.asarray(pose.transform_point(measurement.point_body_m), dtype=float)
+    plane_point = np.asarray(measurement.plane_point_world_m, dtype=float)
+    normal = np.asarray(measurement.plane_normal_world, dtype=float)
+    normal = normal / float(np.linalg.norm(normal))
+    residual = np.asarray([float(normal @ (world - plane_point))], dtype=float)
+    point_jacobian = point_transform_jacobian(
+        pose, np.asarray(measurement.point_body_m)
+    )
+    signed_jacobian = normal.reshape(1, 3) @ point_jacobian
+    jacobian_left, jacobian_right = interpolate_screw_jacobians(left, right, alpha)
+    return residual, signed_jacobian @ jacobian_left, signed_jacobian @ jacobian_right
+
+
+def interpolate_pose_at(
+    knots: tuple[SE3, ...] | list[SE3],
+    timestamps: tuple[float, ...],
+    timestamp_sec: float,
+) -> SE3:
+    """Interpolate a screw-linear pose at ``timestamp_sec``."""
+
+    interval = _interval_index(timestamps, timestamp_sec)
+    if interval is None:
+        raise ValueError("timestamp is outside the knot domain")
+    alpha = _alpha(timestamps, interval, timestamp_sec)
+    return _interpolate(knots[interval], knots[interval + 1], alpha)
+
+
+def point_to_plane_rmse(
+    measurements: tuple[TrajectoryPointToPlaneMeasurement, ...],
+    timestamps: tuple[float, ...],
+    knots: tuple[SE3, ...] | list[SE3],
+) -> float | None:
+    """Return RMS signed distance of plane measurements against ``knots``."""
+
+    if not measurements:
+        return None
+    squared = 0.0
+    for measurement in measurements:
+        interval = _interval_index(timestamps, measurement.timestamp_sec)
+        if interval is None:
+            raise ValueError(
+                f"point-to-plane measurement {measurement.measurement_id!r} is "
+                "outside the knot domain"
+            )
+        residual, _left, _right = _point_to_plane_residual(
+            list(knots), timestamps, interval, measurement
+        )
+        squared += float(residual[0] * residual[0])
+    return math.sqrt(squared / len(measurements))
 
 
 def _anchor_residual(
@@ -395,7 +533,8 @@ def _assemble_sparse_jacobian(
     columns: list[int] = []
     values: list[float] = []
     for row_offset, knot_index, jacobian, _residual, _weight in blocks:
-        for residual_row in range(3):
+        residual_rows = int(jacobian.shape[0])
+        for residual_row in range(residual_rows):
             for parameter in range(6):
                 rows.append(row_offset + residual_row)
                 columns.append(6 * knot_index + parameter)
@@ -427,6 +566,7 @@ def _block_diagonal_scale(
 def _objective(
     problem: ContinuousTimeTrajectoryFitProblem,
     point_rows: list[tuple[int, tuple[float, float, float]]],
+    plane_rows: list[tuple[int, TrajectoryPointToPlaneMeasurement]],
     pose_rows: list[tuple[int, SE3]],
     knots: list[SE3],
 ) -> float:
@@ -442,6 +582,14 @@ def _objective(
             measurement.target_world_m,
         )
         objective += measurement.weight * float(np.sum(residual * residual))
+    for interval, measurement in plane_rows:
+        residual, _left, _right = _point_to_plane_residual(
+            knots,
+            problem.knot_timestamps,
+            interval,
+            measurement,
+        )
+        objective += measurement.weight * float(residual[0] * residual[0])
     for index, (interval, pose) in enumerate(pose_rows):
         measurement = problem.pose_measurements[index]
         weight = measurement.weight
@@ -480,6 +628,22 @@ def _point_rmse(
         squared += float(np.sum(residual * residual))
         count += 3
     return math.sqrt(squared / count) if count else None
+
+
+def _point_to_plane_rmse(
+    plane_rows: list[tuple[int, TrajectoryPointToPlaneMeasurement]],
+    timestamps: tuple[float, ...],
+    knots: list[SE3],
+) -> float | None:
+    if not plane_rows:
+        return None
+    squared = 0.0
+    for interval, measurement in plane_rows:
+        residual, _left, _right = _point_to_plane_residual(
+            knots, timestamps, interval, measurement
+        )
+        squared += float(residual[0] * residual[0])
+    return math.sqrt(squared / len(plane_rows))
 
 
 def _pose_rmse(

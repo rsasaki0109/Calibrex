@@ -43,6 +43,9 @@ from calibrex.core.continuous_time_lidar_ablation import (
 from calibrex.core.continuous_time_lidar_artifacts import (
     continuous_time_lidar_pair_json_schema,
 )
+from calibrex.core.continuous_time_lidar_point_to_plane import (
+    continuous_time_lidar_point_to_plane_json_schema,
+)
 from calibrex.core.dynamic_window import dynamic_window_consistency_json_schema
 from calibrex.core.empirical_uncertainty import empirical_se3_uncertainty_json_schema
 from calibrex.core.evidence_bundle import (
@@ -166,6 +169,9 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "capture_readiness.schema.json": capture_readiness_json_schema,
         "continuous_time_lidar_pair_result.schema.json": (
             continuous_time_lidar_pair_json_schema
+        ),
+        "continuous_time_lidar_point_to_plane.schema.json": (
+            continuous_time_lidar_point_to_plane_json_schema
         ),
         "continuous_time_lidar_ablation.schema.json": (
             continuous_time_lidar_ablation_json_schema

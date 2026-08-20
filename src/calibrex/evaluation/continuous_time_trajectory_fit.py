@@ -19,6 +19,7 @@ from calibrex.core.continuous_time_sparse import (
     ContinuousTimeTrajectoryFitOptions,
     ContinuousTimeTrajectoryFitProblem,
     TrajectoryPointMeasurement,
+    TrajectoryPointToPlaneMeasurement,
     TrajectoryPoseMeasurement,
     fit_continuous_trajectory,
 )
@@ -62,6 +63,7 @@ def run_continuous_time_trajectory_fit(
         iterations=result.iterations,
         final_objective=result.final_objective,
         final_point_rmse=result.final_point_rmse,
+        final_point_to_plane_rmse=result.final_point_to_plane_rmse,
         final_pose_rmse=result.final_pose_rmse,
         max_step_translation_m=result.max_step_translation_m,
         max_step_rotation_deg=result.max_step_rotation_deg,
@@ -117,6 +119,17 @@ def _problem_from_artifacts(
                 weight=item.weight,
             )
             for item in measurements.point_measurements
+        ),
+        point_to_plane_measurements=tuple(
+            TrajectoryPointToPlaneMeasurement(
+                measurement_id=item.measurement_id,
+                timestamp_sec=item.timestamp_sec,
+                point_body_m=tuple(item.point_body_m),
+                plane_point_world_m=tuple(item.plane_point_world_m),
+                plane_normal_world=tuple(item.plane_normal_world),
+                weight=item.weight,
+            )
+            for item in measurements.point_to_plane_measurements
         ),
         pose_measurements=tuple(
             TrajectoryPoseMeasurement(

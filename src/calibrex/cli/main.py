@@ -64,6 +64,9 @@ from calibrex.core.continuous_time_lidar_artifacts import (
     ContinuousTimeLidarPairArtifact,
     continuous_time_lidar_pair_json_schema,
 )
+from calibrex.core.continuous_time_lidar_point_to_plane import (
+    continuous_time_lidar_point_to_plane_json_schema,
+)
 from calibrex.core.dynamic_window import (
     DynamicWindowConsistencyThresholds,
     dynamic_window_consistency_json_schema,
@@ -396,6 +399,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "trajectory-window-drift",
             "capture-readiness",
             "continuous-time-lidar-pair",
+            "continuous-time-lidar-point-to-plane",
             "continuous-time-lidar-ablation",
             "solid-state-cross-dataset-benchmark-config",
             "solid-state-cross-dataset-benchmark",
@@ -1442,6 +1446,15 @@ def _build_parser() -> argparse.ArgumentParser:
     trajectory_fit.add_argument("--initial-damping", type=float, default=1.0e-3)
     trajectory_fit.add_argument("--json", action="store_true")
     trajectory_fit.set_defaults(func=_cmd_trajectory_fit)
+    trajectory_p2p = trajectory_subcommands.add_parser(
+        "recover-point-to-plane",
+        help="synthetic LiDAR point-to-plane recovery with holdout and known-bad",
+    )
+    trajectory_p2p.add_argument("--output", type=Path, required=True)
+    trajectory_p2p.add_argument("--seed", type=int, default=20260820)
+    trajectory_p2p.add_argument("--recovery-id", default="ct-lidar-p2p-synthetic")
+    trajectory_p2p.add_argument("--json", action="store_true")
+    trajectory_p2p.set_defaults(func=_cmd_trajectory_recover_point_to_plane)
 
     visualize = subcommands.add_parser("visualize", help="render result visualizations")
     visualize.add_argument("result", type=Path)
@@ -1594,6 +1607,9 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "trajectory-window-drift": trajectory_window_drift_json_schema,
         "capture-readiness": capture_readiness_json_schema,
         "continuous-time-lidar-pair": continuous_time_lidar_pair_json_schema,
+        "continuous-time-lidar-point-to-plane": (
+            continuous_time_lidar_point_to_plane_json_schema
+        ),
         "continuous-time-lidar-ablation": continuous_time_lidar_ablation_json_schema,
         "solid-state-cross-dataset-benchmark-config": (
             solid_state_cross_dataset_benchmark_config_json_schema
@@ -3610,11 +3626,50 @@ def _cmd_trajectory_fit(args: argparse.Namespace) -> int:
             "iterations": artifact.iterations,
             "final_objective": artifact.final_objective,
             "final_point_rmse": artifact.final_point_rmse,
+            "final_point_to_plane_rmse": artifact.final_point_to_plane_rmse,
             "final_pose_rmse": artifact.final_pose_rmse,
         },
         args.json,
     )
     return 0
+
+
+def _cmd_trajectory_recover_point_to_plane(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_lidar_point_to_plane import (
+        run_synthetic_lidar_point_to_plane_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-point-to-plane",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_lidar_point_to_plane_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "fit_status": artifact.fit_status,
+            "max_knot_error": artifact.max_knot_error,
+            "holdout_point_to_plane_rmse_m": artifact.holdout_point_to_plane_rmse_m,
+            "known_bad_rmse_delta_m": artifact.known_bad_rmse_delta_m,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
 
 
 def _cmd_visualize(args: argparse.Namespace) -> int:

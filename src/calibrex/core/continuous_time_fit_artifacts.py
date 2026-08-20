@@ -94,6 +94,38 @@ class TrajectoryPointMeasurementArtifact(StrictModel):
         return self
 
 
+class TrajectoryPointToPlaneMeasurementArtifact(StrictModel):
+    """A body-frame LiDAR return against a world plane at a timestamp."""
+
+    measurement_id: str
+    timestamp_sec: float
+    point_body_m: list[float] = Field(min_length=3, max_length=3)
+    plane_point_world_m: list[float] = Field(min_length=3, max_length=3)
+    plane_normal_world: list[float] = Field(min_length=3, max_length=3)
+    weight: float = Field(default=1.0, gt=0.0)
+
+    @model_validator(mode="after")
+    def check_measurement(self) -> TrajectoryPointToPlaneMeasurementArtifact:
+        """Reject non-finite or degenerate plane measurements."""
+
+        if not self.measurement_id:
+            raise ValueError("measurement_id must not be empty")
+        if not math.isfinite(self.timestamp_sec):
+            raise ValueError("point-to-plane timestamp must be finite")
+        values = (
+            *self.point_body_m,
+            *self.plane_point_world_m,
+            *self.plane_normal_world,
+            self.weight,
+        )
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("point-to-plane values must be finite")
+        normal_norm = math.sqrt(sum(value * value for value in self.plane_normal_world))
+        if normal_norm <= 1.0e-12:
+            raise ValueError("point-to-plane normal must be non-zero")
+        return self
+
+
 class ContinuousTimeTrajectoryMeasurements(StrictModel):
     """Measurements constraining a continuous-time trajectory fit."""
 
@@ -109,17 +141,26 @@ class ContinuousTimeTrajectoryMeasurements(StrictModel):
     point_measurements: list[TrajectoryPointMeasurementArtifact] = Field(
         default_factory=list
     )
+    point_to_plane_measurements: list[TrajectoryPointToPlaneMeasurementArtifact] = (
+        Field(default_factory=list)
+    )
     provenance: TrajectoryMeasurementProvenance
 
     @model_validator(mode="after")
     def check_measurements(self) -> ContinuousTimeTrajectoryMeasurements:
         """Require at least one measurement and consistent frame IDs."""
 
-        if not self.pose_measurements and not self.point_measurements:
+        if (
+            not self.pose_measurements
+            and not self.point_measurements
+            and not self.point_to_plane_measurements
+        ):
             raise ValueError("measurements set requires at least one measurement")
-        identifiers = [item.measurement_id for item in self.pose_measurements] + [
-            item.measurement_id for item in self.point_measurements
-        ]
+        identifiers = (
+            [item.measurement_id for item in self.pose_measurements]
+            + [item.measurement_id for item in self.point_measurements]
+            + [item.measurement_id for item in self.point_to_plane_measurements]
+        )
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("measurement IDs must be unique")
         for item in self.pose_measurements:
@@ -169,6 +210,7 @@ class ContinuousTimeTrajectoryFitResultArtifact(StrictModel):
     iterations: int = Field(ge=0)
     final_objective: float
     final_point_rmse: float | None = Field(default=None, ge=0.0)
+    final_point_to_plane_rmse: float | None = Field(default=None, ge=0.0)
     final_pose_rmse: float | None = Field(default=None, ge=0.0)
     max_step_translation_m: float = Field(ge=0.0)
     max_step_rotation_deg: float = Field(ge=0.0)

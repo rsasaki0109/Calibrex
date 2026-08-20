@@ -63,6 +63,10 @@ from calibrex.core.continuous_time_lidar_artifacts import (
     CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION,
     ContinuousTimeLidarPairArtifact,
 )
+from calibrex.core.continuous_time_lidar_point_to_plane import (
+    CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION,
+    ContinuousTimeLidarPointToPlaneArtifact,
+)
 from calibrex.core.dynamic_window import (
     DYNAMIC_WINDOW_CONSISTENCY_SCHEMA_VERSION,
     DynamicWindowConsistencyArtifact,
@@ -220,6 +224,7 @@ ValidationKind = Literal[
     "trajectory-window-drift",
     "capture-readiness",
     "continuous-time-lidar-pair",
+    "continuous-time-lidar-point-to-plane",
     "continuous-time-lidar-ablation",
     "solid-state-cross-dataset-benchmark-config",
     "solid-state-cross-dataset-benchmark",
@@ -285,6 +290,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "trajectory-window-drift": TrajectoryWindowDriftArtifact,
     "capture-readiness": CaptureReadinessArtifact,
     "continuous-time-lidar-pair": ContinuousTimeLidarPairArtifact,
+    "continuous-time-lidar-point-to-plane": ContinuousTimeLidarPointToPlaneArtifact,
     "continuous-time-lidar-ablation": ContinuousTimeLidarAblationManifest,
     "solid-state-cross-dataset-benchmark-config": SolidStateCrossDatasetBenchmarkSpec,
     "solid-state-cross-dataset-benchmark": SolidStateCrossDatasetBenchmarkManifest,
@@ -356,6 +362,9 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     TRAJECTORY_WINDOW_DRIFT_SCHEMA_VERSION: "trajectory-window-drift",
     CAPTURE_READINESS_SCHEMA_VERSION: "capture-readiness",
     CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: "continuous-time-lidar-pair",
+    CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION: (
+        "continuous-time-lidar-point-to-plane"
+    ),
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION: "continuous-time-lidar-ablation",
     SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION: (
         "solid-state-cross-dataset-benchmark-config"
