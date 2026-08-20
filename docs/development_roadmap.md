@@ -213,7 +213,7 @@ observable window must not update the installed transform.
 Ordered by the practical-tool criterion: user-facing friction first, then
 evidence depth.
 
-### 1. `calibrex doctor` environment readiness artifact
+### 1. `calibrex doctor` environment readiness artifact — implemented
 
 **Why now:** this is the first command a new user runs.  The current output is
 ad-hoc text.  Making it a schema-valid artifact enables automated CI checks,

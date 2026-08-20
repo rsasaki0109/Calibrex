@@ -147,6 +147,7 @@ from calibrex.data.kitti_camera_lidar_problem import (
 )
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
+from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.diagnostics import (
     build_doctor_artifact,
     doctor_json_schema,
@@ -1519,11 +1520,16 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         _emit(payload, as_json=True)
     else:
         print(f"Calibrex {artifact.environment.calibrex_version}")
-        print(f"Python {artifact.environment.python}")
+        print(f"Python {artifact.environment.python_version}")
         for name, dependency in artifact.environment.dependencies.items():
             state = "ok" if dependency.available else "missing"
             optional = " (optional)" if dependency.optional else ""
-            print(f"{name}: {state}{optional}")
+            version = (
+                f" ({dependency.version})"
+                if dependency.available and dependency.version
+                else ""
+            )
+            print(f"{name}: {state}{optional}{version}")
         if artifact.dataset is not None:
             print(f"Dataset: {artifact.dataset.dataset_type} ({artifact.status.upper()})")
             print(f"  path: {artifact.dataset.path}")
@@ -1531,10 +1537,11 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
                 print(f"  degeneracy: {artifact.quality.degeneracy.grade.upper()}")
                 for recommendation in artifact.quality.recommendations:
                     print(f"  recommendation: {recommendation}")
-            for workflow in artifact.workflows:
-                print(f"  workflow: {workflow.workflow_id} ({workflow.status})")
-                if workflow.next_command is not None:
-                    print(f"  next:     {workflow.next_command}")
+            for suggestion in artifact.workflow_suggestions:
+                print(f"  workflow: {suggestion.workflow_id} ({suggestion.status})")
+                print(f"  template: {suggestion.template_path}")
+                if suggestion.next_command is not None:
+                    print(f"  next:     {suggestion.next_command}")
     return 1 if artifact.status == "fail" else 0
 
 
@@ -1603,6 +1610,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "transforms": transform_artifact_json_schema,
         "dataset-manifest": manifest_json_schema,
         "doctor": doctor_json_schema,
+        "environment-readiness": environment_readiness_json_schema,
         "calibration-ci": calibration_ci_json_schema,
         "external-run": external_run_json_schema,
         "kitti-falsification": kitti_falsification_json_schema,

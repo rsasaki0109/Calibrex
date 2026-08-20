@@ -157,6 +157,10 @@ from calibrex.data.kitti_benchmark import (
     KITTIBenchmarkInputManifest,
 )
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
+from calibrex.core.environment_readiness import (
+    ENVIRONMENT_READINESS_SCHEMA_VERSION,
+    EnvironmentReadinessArtifact,
+)
 from calibrex.diagnostics import DOCTOR_SCHEMA_VERSION, DoctorArtifact
 from calibrex.evaluation.compare import COMPARISON_SCHEMA_VERSION, ResultComparison
 from calibrex.evaluation.kitti_falsification_benchmark import (
@@ -183,6 +187,7 @@ ValidationKind = Literal[
     "transforms",
     "dataset-manifest",
     "doctor",
+    "environment-readiness",
     "calibration-ci",
     "external-run",
     "kitti-falsification",
@@ -239,6 +244,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "transforms": TransformArtifact,
     "dataset-manifest": DatasetManifest,
     "doctor": DoctorArtifact,
+    "environment-readiness": EnvironmentReadinessArtifact,
     "calibration-ci": CalibrationCIArtifact,
     "external-run": ExternalCalibrationRunArtifact,
     "kitti-falsification": KITTIFalsificationBenchmarkArtifact,
@@ -303,6 +309,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     TRANSFORMS_SCHEMA_VERSION: "transforms",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
     DOCTOR_SCHEMA_VERSION: "doctor",
+    ENVIRONMENT_READINESS_SCHEMA_VERSION: "environment-readiness",
     CALIBRATION_CI_SCHEMA_VERSION: "calibration-ci",
     EXTERNAL_RUN_SCHEMA_VERSION: "external-run",
     KITTI_FALSIFICATION_SCHEMA_VERSION: "kitti-falsification",

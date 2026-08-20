@@ -85,6 +85,7 @@ from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.depth import depth_provider_json_schema
 from calibrex.data.kitti_benchmark import kitti_benchmark_input_json_schema
 from calibrex.data.manifest import manifest_json_schema
+from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.diagnostics import doctor_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
 from calibrex.evaluation.kitti_falsification_benchmark import (
@@ -112,6 +113,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "transforms.schema.json": transform_artifact_json_schema,
         "dataset_manifest.schema.json": manifest_json_schema,
         "doctor.schema.json": doctor_json_schema,
+        "environment_readiness.schema.json": environment_readiness_json_schema,
         "calibration_ci.schema.json": calibration_ci_json_schema,
         "external_run.schema.json": external_run_json_schema,
         "kitti_falsification.schema.json": kitti_falsification_json_schema,

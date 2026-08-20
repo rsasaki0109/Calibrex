@@ -1672,7 +1672,7 @@ def test_doctor_writes_schema_valid_dataset_artifact(
         == 0
     )
     payload = json.loads(capsys.readouterr().out)
-    assert payload["schema_version"] == "slac.doctor/v0.1"
+    assert payload["schema_version"] == "slac.environment_readiness/v0.1"
     assert payload["dataset"]["dataset_type"] == "filesystem"
     assert payload["provenance"]["dataset_type_source"] == "explicit"
     assert payload["provenance"]["command"][0:2] == ["calibrex", "doctor"]
