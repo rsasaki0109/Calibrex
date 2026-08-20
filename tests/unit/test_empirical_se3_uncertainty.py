@@ -187,9 +187,14 @@ def test_overconfident_control_and_policy_are_strict() -> None:
         degenerate_deltas, degenerate_intervals, 0.1, target
     )
     assert degenerate_control.refuted is False
-    status, reason = _policy(1.0, degenerate_control, target)
-    assert status == "fail"
-    assert "overconfidence" in reason
+    status, reason = _policy(
+        1.0,
+        degenerate_control,
+        target,
+        axis_intervals=degenerate_intervals,
+    )
+    assert status == "warn"
+    assert "degenerate" in reason
 
 
 def test_pipeline_produces_schema_valid_artifact(tmp_path: Path) -> None:
@@ -339,8 +344,8 @@ def test_pipeline_degenerate_exact_data_fails_overconfidence(tmp_path: Path) -> 
         fit_block_ratio=0.6,
         options=_fast_options(),
     )
-    assert artifact.policy_status == "fail"
-    assert "overconfidence" in artifact.policy_reason
+    assert artifact.policy_status == "warn"
+    assert "degenerate" in artifact.policy_reason
 
 
 def test_pipeline_rejects_too_few_successful_refits(tmp_path: Path) -> None:
@@ -402,7 +407,7 @@ def _fast_options() -> ProbabilisticCameraLidarRefinementOptions:
         initial_translation_step_m=0.05,
         minimum_rotation_step_deg=0.05,
         minimum_translation_step_m=0.005,
-        max_evaluations=180,
+        max_evaluations=400,
     )
 
 

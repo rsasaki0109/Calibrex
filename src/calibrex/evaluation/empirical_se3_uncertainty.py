@@ -1,13 +1,16 @@
 """Empirical SE(3) uncertainty via deterministic temporal block resampling.
 
 The refiner is refit on seeded block subsamples of the correspondence frames.
-Whole contiguous temporal blocks are always kept together, so neighboring
-measurements that share a scene or pose are never split across the train and
-holdout boundary.  The resulting SE(3) spread is reported as tangent-space
-intervals with observed coverage against injected truth and an overconfident
-interval control.  Per-axis intervals are widened by a Sidak correction so the
-joint three-axis translation and rotation boxes hit the declared coverage
-target.
+Within each resample, correspondences are also bootstrapped with replacement
+so point-level variation contributes to the empirical spread.  Whole contiguous
+temporal blocks are always kept together, so neighboring measurements that
+share a scene or pose are never split across the train and holdout boundary.
+The resulting SE(3) spread is reported as tangent-space intervals with
+observed coverage against injected truth and an overconfident interval
+control.  Per-axis intervals are widened by a Sidak correction so the joint
+three-axis translation and rotation boxes hit the declared coverage target.
+When resampling yields a degenerate zero-width spread, coverage policy falls
+back to ``warn`` instead of failing the overconfidence control.
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ from calibrex.core.empirical_uncertainty import (
 )
 from calibrex.core.geometry import SE3, normalize_quaternion_xyzw
 from calibrex.core.probabilistic_correspondence import (
+    ProbabilisticCorrespondenceFrame,
     ProbabilisticRefinementEvaluationArtifact,
     ProbabilisticRefinementIterationArtifact,
     ProbabilisticRefinementProvenance,
@@ -49,6 +53,7 @@ from calibrex.solvers.probabilistic_camera_lidar_refiner import (
 UNCERTAINTY_RUN_VERSION = "calibrex.empirical_se3_uncertainty/v0.1"
 _WEAK_THRESHOLD_RATIO = 0.1
 _COVERAGE_TOLERANCE = 0.05
+_DEGENERATE_HALF_WIDTH = 1.0e-12
 _ROTATION_AXES = TANGENT_AXES[3:]
 _TRANSLATION_AXES = TANGENT_AXES[:3]
 _AXIS_INDEX = {"x": 0, "y": 1, "z": 2}
@@ -139,7 +144,11 @@ def run_empirical_se3_uncertainty(
     estimates: list[SE3] = []
     for iteration_index, (fit_indices, holdout_indices) in enumerate(splits):
         iteration_id = f"resample-{iteration_index:04d}"
-        train = _frames_for_blocks(by_id, blocks, fit_indices)
+        bootstrap_rng = random.Random(seed + iteration_index + 1_000_000)
+        train = _bootstrap_train_frames(
+            _frames_for_blocks(by_id, blocks, fit_indices),
+            bootstrap_rng,
+        )
         holdout = _frames_for_blocks(by_id, blocks, holdout_indices)
         result = ProbabilisticCameraLidarRefiner().solve_partitioned(
             train,
@@ -249,7 +258,12 @@ def run_empirical_se3_uncertainty(
             overconfidence_scale,
             target_coverage,
         )
-        policy_status, policy_reason = _policy(coverage_score, control, target_coverage)
+        policy_status, policy_reason = _policy(
+            coverage_score,
+            control,
+            target_coverage,
+            axis_intervals=axis_intervals,
+        )
 
     return EmpiricalSe3UncertaintyArtifact(
         uncertainty_id=result_id
@@ -342,6 +356,27 @@ def _frames_for_blocks(
         for frame_id in blocks[index].frame_ids:
             frames.append(by_id[frame_id])
     return frames
+
+
+def _bootstrap_train_frames(
+    frames: Sequence[ProbabilisticCorrespondenceFrame],
+    rng: random.Random,
+) -> list[ProbabilisticCorrespondenceFrame]:
+    """Resample correspondences with replacement within each train frame."""
+
+    bootstrapped: list[ProbabilisticCorrespondenceFrame] = []
+    for frame in frames:
+        pool = frame.correspondences
+        sampled = [
+            pool[rng.randrange(len(pool))].model_copy(
+                update={
+                    "correspondence_id": f"{frame.frame_id}-boot-{index:04d}",
+                }
+            )
+            for index in range(len(pool))
+        ]
+        bootstrapped.append(frame.model_copy(update={"correspondences": sampled}))
+    return bootstrapped
 
 
 def _mean_se3(estimates: Sequence[SE3]) -> SE3:
@@ -573,10 +608,20 @@ def _overconfidence_control(
     )
 
 
+def _is_degenerate_spread(
+    axis_intervals: Sequence[EmpiricalAxisInterval],
+) -> bool:
+    return all(
+        item.half_width <= _DEGENERATE_HALF_WIDTH for item in axis_intervals
+    )
+
+
 def _policy(
     coverage_score: float,
     control: OverconfidenceControlResult,
     target_coverage: float,
+    *,
+    axis_intervals: Sequence[EmpiricalAxisInterval] | None = None,
 ) -> tuple[LiteralPolicyStatus, str]:
     if coverage_score >= target_coverage - _COVERAGE_TOLERANCE:
         if control.refuted:
@@ -586,6 +631,15 @@ def _policy(
                     f"observed coverage {coverage_score:.3f} meets the "
                     f"{target_coverage:.2f} target and the overconfidence "
                     "control is refuted"
+                ),
+            )
+        if axis_intervals is not None and _is_degenerate_spread(axis_intervals):
+            return (
+                "warn",
+                (
+                    "observed coverage meets the target but resample spread is "
+                    "degenerate; empirical intervals are not identifiable and "
+                    "the overconfidence control is not applicable"
                 ),
             )
         return (

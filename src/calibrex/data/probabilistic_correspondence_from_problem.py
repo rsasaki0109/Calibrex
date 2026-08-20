@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import Literal
 
@@ -49,7 +50,8 @@ def build_probabilistic_correspondence_from_problem(
     variance = pixel_noise_std * pixel_noise_std
     covariance = [variance, 0.0, 0.0, variance]
     frames: list[ProbabilisticCorrespondenceFrame] = []
-    for binding in problem.observations:
+    for frame_index, binding in enumerate(problem.observations):
+        frame_rng = random.Random(seed + frame_index)
         observation = next(
             item for item in loaded.observations if item.frame_id == binding.frame_id
         )
@@ -83,7 +85,12 @@ def build_probabilistic_correspondence_from_problem(
             ProbabilisticImageCorrespondence(
                 correspondence_id=f"{binding.frame_id}-{index:04d}",
                 point_lidar_m=list(projection.point_lidar_m),
-                image_mean_px=[projection.image_u_px, projection.image_v_px],
+                image_mean_px=[
+                    projection.image_u_px
+                    + frame_rng.gauss(0.0, pixel_noise_std),
+                    projection.image_v_px
+                    + frame_rng.gauss(0.0, pixel_noise_std),
+                ],
                 image_covariance_px2=covariance,
                 outlier_probability=0.02,
                 reliability=0.98,
