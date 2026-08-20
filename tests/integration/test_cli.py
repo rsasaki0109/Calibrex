@@ -1677,6 +1677,18 @@ def test_doctor_writes_schema_valid_dataset_artifact(
     assert payload["provenance"]["dataset_type_source"] == "explicit"
     assert payload["provenance"]["command"][0:2] == ["calibrex", "doctor"]
     assert main(["validate", str(output), "--kind", "doctor", "--json"]) == 0
+    assert (
+        main(
+            [
+                "validate",
+                str(output),
+                "--kind",
+                "environment-readiness",
+                "--json",
+            ]
+        )
+        == 0
+    )
 
 
 def test_calibration_ci_writes_valid_artifacts_and_enforces_status(

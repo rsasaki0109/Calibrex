@@ -1,7 +1,7 @@
 # Development Roadmap
 
 This document is the current development decision for Calibrex as of
-2026-08-19 (updated 2026-08-19). It reconciles the implemented code, the older ADR direction,
+2026-08-19 (updated 2026-08-20). It reconciles the implemented code, the older ADR direction,
 public-data evidence, and relevant research/OSS. It is a planning inventory,
 not a claim that every listed method is production-ready.
 
@@ -96,17 +96,17 @@ accuracy.
 
 ### Portfolio gaps that matter
 
-1. **Evidence scale:** Camera-LiDAR has several native methods but lacks a
-   reproducible, raw, unregistered, full-scale public PASS/known-bad FAIL pair.
-   The full-scale KITTI benchmark is implemented but no PASS+FAIL public pair
-   result has been recorded yet.
+1. **Evidence scale:** Camera-LiDAR now has an opt-in full-scale KITTI falsification
+   pair (`@pytest.mark.kitti`): vendor reference PASS and declared known-bad FAIL.
+   Remaining gap: record and publish the result in portfolio/docs as a maintained
+   benchmark artifact, not only an opt-in test.
 2. **Common external execution adoption:** the schema-versioned external-run
    artifact is implemented and proven by Koide, Kalibr, and iKalibr. Remaining
    adapters such as RIs-Calib, Open3D, and NDT should migrate incrementally.
-3. **Empirical uncertainty:** `slac.empirical_se3_uncertainty/v0.1` is now
-   implemented, CLI-wired, and exercised in a stability-only integration test.
-   The remaining gap is a public workflow with independent ground-truth coverage
-   assessment (PASS/WARN/FAIL rather than INCONCLUSIVE).
+3. **Empirical uncertainty:** `slac.empirical_se3_uncertainty/v0.1` is
+   CLI-wired with synthetic and opt-in KITTI ground-truth integration tests.
+   Remaining gap: a maintained public correspondence source that does not rely
+   on depth-lidar projection from the initial/vendor pose (FeatDepth or similar).
 4. **Continuous time:** `ContinuousTimeTrajectoryContract`, SE(3) manifold
    Jacobians, and sparse GN/LM fitter are implemented. The remaining gap is
    native IMU and LiDAR factor integration and sliding-window marginalization.
@@ -148,12 +148,14 @@ workflow without weakening the research priorities below:
 
 1. extend `calibrex doctor` into a schema-versioned environment and dataset
    readiness artifact with path-based type inference, provisional quality
-   evidence, workflow suggestions, and provenance;
+   evidence, workflow suggestions, and provenance; **done**
+   (`slac.environment_readiness/v0.1`);
 2. publish a reusable GitHub Action that validates, compares, and assesses
    calibration artifacts in pull requests;
 3. complete the generic external-run contract and prove it with Koide and
    Kalibr producers;
-4. finish the full-scale KITTI falsification benchmark; and
+4. finish the full-scale KITTI falsification benchmark; **done** (opt-in
+   `@pytest.mark.kitti` integration test); and
 5. cut an installable release only after clean-wheel, schema-drift, and
    quickstart checks pass.
 
@@ -162,8 +164,9 @@ GPL, visualization-server, or external-solver dependencies to `src/calibrex`.
 
 ### P0 — Evidence and integration hardening
 
-Finish the three implementation issues below. They turn existing breadth into
-repeatable comparative evidence and should land before another paper baseline.
+The three committed P0 issues below are **implemented** (2026-08-20). The next
+tranche focuses on adoption CI, independent correspondence for uncertainty, and
+continuous-time factor integration.
 
 ### P1 — Continuous-time foundation — partially implemented
 
@@ -189,6 +192,18 @@ observable window must not update the installed transform.
 
 ## Completed since last roadmap revision (2026-08-19)
 
+- **`slac.environment_readiness/v0.1` for `calibrex doctor`** — schema-valid
+  artifact with Python/Calibrex/optional dependency versions, dataset path
+  checks, `workflow_suggestions` pointing at `examples/sensor_templates/`, and
+  provenance; validated in unit tests and release smoke.
+- **Full-scale KITTI Camera-LiDAR falsification benchmark** — frame-graph
+  candidate fix, dataset reference consistency gate, `@pytest.mark.kitti` opt-in
+  integration test (vendor reference PASS, known-bad FAIL), and explicit
+  `falsification_passed` CLI flag.
+- **Empirical SE(3) uncertainty — ground-truth workflow** — correspondence
+  bootstrap, pixel mean jitter, degenerate-spread policy; synthetic CLI
+  integration test and opt-in official KITTI test (`CALIBREX_KITTI_RAW_0005` +
+  `CALIBREX_KITTI_DEPTH_PROVIDER`).
 - **Empirical SE(3) uncertainty — public stability-only workflow** (`--stability-only`
   flag, integration test on a KITTI-shaped synthetic fixture, `INCONCLUSIVE` policy
   with honest reporting). Schema `slac.empirical_se3_uncertainty/v0.1`.
@@ -202,85 +217,84 @@ observable window must not update the installed transform.
   spinning LiDAR + camera (planar-board).
 - **Quickstart tutorial** — `docs/tutorials/your_own_data.md` covering the
   end-to-end flow from bag recording to result interpretation.
-- **Empirical SE(3) uncertainty — ground-truth workflow (synthetic + opt-in KITTI)**
-  — integration tests for coverage assessment without `--stability-only`;
-  `build_probabilistic_correspondence_from_problem()` projects digest-verified
-  LiDAR into the camera for official KITTI runs when
-  `CALIBREX_KITTI_RAW_0005` and `CALIBREX_KITTI_DEPTH_PROVIDER` are set.
 
 ## Next implementation issues
 
 Ordered by the practical-tool criterion: user-facing friction first, then
 evidence depth.
 
-### 1. `calibrex doctor` environment readiness artifact — implemented
+### 1. Reusable Calibration CI GitHub Action for pull requests
 
-**Why now:** this is the first command a new user runs.  The current output is
-ad-hoc text.  Making it a schema-valid artifact enables automated CI checks,
-clearer first-run guidance, and diagnostic provenance — all high-value for
-practical users.
+**Why now:** `calibrex ci` and the local action wrapper exist, but users still
+need a copy-pasteable workflow that validates, compares, and assesses calibration
+artifacts on every PR without reading the monorepo action source.
 
-**Outcome:** promote `calibrex doctor` from an ad-hoc check to a
-schema-versioned `slac.environment_readiness/v0.1` artifact with path-based
-dataset-type inference, workflow suggestions, and provenance.
-
-**Acceptance conditions:**
-
-- Define `slac.environment_readiness/v0.1` JSON Schema and Pydantic model.
-- CLI produces a schema-valid YAML artifact covering Python version, installed
-  Calibrex version, optional dependency versions, and dataset path checks.
-- For each detected dataset path, emit at least one `workflow_suggestion` row
-  pointing to the appropriate template in `examples/sensor_templates/`.
-- Unit tests validate schema and round-trip; no new external dependencies
-  enter `src/calibrex`.
-
-### 2. Full-scale KITTI Camera-LiDAR falsification benchmark
-
-**Why now:** the only existing Camera-LiDAR evidence run (`kitti_raw_2011_09_26_drive_0005`)
-uses the full KITTI processing stack (KDE correspondence + multi-sensor SLAC),
-which is not directly comparable to the planar-board baseline.  A dedicated
-falsification run with vendor reference transform closes the evidence gap and
-demonstrates that Calibrex can detect a known-bad calibration on real data.
-
-**Outcome:** run the existing KITTI falsification pipeline on the full
-`2011_09_26_drive_0005_sync` sequence and record an honest PASS/FAIL pair.
+**Outcome:** publish a documented, version-pinned GitHub Action (or workflow
+composite) that runs `calibrex validate`, `compare`, and `assess` on candidate vs
+baseline artifacts and uploads schema-valid outputs.
 
 **Acceptance conditions:**
 
-- Build a `CameraLidarCalibrationProblem` with the KITTI vendor reference
-  transform.
-- Run `calibrex camera-lidar benchmark-rotation` (or `benchmark-six-dof`) and
-  record the `falsification_passed` flag without retuning thresholds.
-- Add a `@pytest.mark.kitti` opt-in integration test asserting
-  `falsification_passed=True` for the positive case and `False` for at least
-  one known-bad rotation perturbation (e.g. 10 deg about Z).
-- Provenance must record sequence ID, frame selection policy, problem SHA-256,
-  and vendor calibration source.
+- Workflow example under `.github/workflows/` or `examples/ci/` that runs on
+  pull requests with configurable candidate/baseline paths.
+- Action outputs `status`, artifact path, and summary path (matching the
+  existing local action contract).
+- Document usage in `docs/tutorials/your_own_data.md` or a dedicated CI tutorial.
+- No new dependencies in `src/calibrex`.
 
-### 3. Empirical SE(3) uncertainty — ground-truth Camera-LiDAR workflow
+### 2. Independent public correspondence for empirical uncertainty
 
-**Status:** synthetic public-workflow integration test and opt-in official KITTI
-test are implemented; remaining gap is a maintained public correspondence source
-that does not rely on depth-lidar projection from the initial pose.
+**Why now:** the opt-in KITTI ground-truth test builds correspondences by
+projecting LiDAR at the vendor initial pose, which yields honest but often
+degenerate uncertainty intervals. Independent depth/feature correspondence is
+the next step toward trustworthy PASS/WARN/FAIL coverage on real data.
 
-**Why now:** the stability-only (`--stability-only`) path is implemented and
-tested.  The full coverage assessment path (with a vendor reference transform)
-is the natural next step and closes the gap between "the tool ran" and "the
-tool told me whether my calibration is trustworthy".
-
-**Outcome:** run `calibrex camera-lidar empirical-uncertainty` without
-`--stability-only` on a public dataset with a vendor or independent reference
-transform, and report PASS/WARN/FAIL coverage.
+**Outcome:** wire a maintained FeatDepth (or equivalent) correspondence provider
+into `calibrex camera-lidar empirical-uncertainty` without self-consistency at
+the initial transform.
 
 **Acceptance conditions:**
 
-- Use the ACFR planar-board result or the KITTI falsification result as the
-  correspondence and problem source.
-- Freeze seed, correspondence input, and problem digest in provenance.
-- Report whether the Sidak-corrected joint family coverage gate is PASS, WARN,
-  or FAIL; do not retune thresholds after seeing the result.
-- Add an opt-in `@pytest.mark.integration` test asserting
-  `policy_status in {"pass", "warn"}` when the data is present.
+- Document pinned provider commit, checkpoint path, and env vars in test skip
+  messages and provenance.
+- Opt-in integration test reports `policy_status in {"pass", "warn"}` when data
+  is present, without retuning coverage thresholds after seeing results.
+- Provider stays outside `src/calibrex` (adapter/artifact boundary only).
+
+### 3. Continuous-time LiDAR point-to-plane factors
+
+**Why now:** trajectory contract, SE(3) Jacobians, and sparse GN/LM fitter
+exist; native IMU and LiDAR factors against the knot path are the blocker for
+multi-sensor continuous-time evidence.
+
+**Outcome:** add native LiDAR point-to-plane residuals tied to
+`ContinuousTimeTrajectoryContract` with holdout and injected signed controls.
+
+**Acceptance conditions:**
+
+- Factor evaluates on synthetic trajectory recovery with frozen seed and digest
+  provenance.
+- Disjoint temporal holdout and at least one known-bad control refute over-tight
+  reports.
+- Unit tests cover Jacobians and schema-valid fit artifacts; no GPL in core.
+
+## Previous P0 issues (implemented 2026-08-20)
+
+### `calibrex doctor` environment readiness artifact
+
+- Schema `slac.environment_readiness/v0.1`, CLI YAML artifact, workflow
+  suggestions to `examples/sensor_templates/`, unit tests and round-trip.
+
+### Full-scale KITTI Camera-LiDAR falsification benchmark
+
+- Vendor-reference PASS and known-bad FAIL via `@pytest.mark.kitti` opt-in test;
+  `falsification_passed` CLI flag; dataset reference consistency gate.
+
+### Empirical SE(3) uncertainty — ground-truth Camera-LiDAR workflow
+
+- Synthetic CLI integration test and opt-in KITTI test with correspondence
+  bootstrap and pixel jitter; `build_probabilistic_correspondence_from_problem()`
+  for digest-verified projection when official data env vars are set.
 
 ## Completion gate for this roadmap
 

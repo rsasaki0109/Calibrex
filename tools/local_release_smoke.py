@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_SCHEMA_COUNT = 53
+EXPECTED_SCHEMA_COUNT = 54
 DEFAULT_VENV = Path("/tmp/calibrex-release-smoke")
 DEFAULT_BUILD_ENV = Path("/tmp/calibrex-release-build")
 DEFAULT_SCHEMA_DIR = Path("/tmp/calibrex-release-schemas")
@@ -47,6 +47,26 @@ def main() -> int:
     smoke_calibrex = _venv_executable(args.venv, "calibrex")
     _run([str(smoke_python), "-m", "pip", "install", str(wheel)])
     _run([str(smoke_calibrex), "doctor", "--json"])
+    readiness_path = args.report_dir / "environment_readiness.yaml"
+    _run(
+        [
+            str(smoke_calibrex),
+            "doctor",
+            "--output",
+            str(readiness_path),
+            "--json",
+        ]
+    )
+    _run(
+        [
+            str(smoke_calibrex),
+            "validate",
+            str(readiness_path),
+            "--kind",
+            "environment-readiness",
+            "--json",
+        ]
+    )
     camera_lidar_demo_dir = args.report_dir / "kitti-lidar-camera-evidence"
     _run(
         [

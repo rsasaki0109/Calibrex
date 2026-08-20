@@ -12,6 +12,27 @@ pip install calibrex
 calibrex doctor          # checks environment and optional dependencies
 ```
 
+Save a schema-valid readiness report for CI or support tickets:
+
+```bash
+calibrex doctor --output readiness.yaml
+calibrex validate readiness.yaml --kind environment-readiness
+```
+
+The artifact (`slac.environment_readiness/v0.1`) records Calibrex and Python
+versions, optional dependency availability, and—when you pass a dataset
+path—inspected streams plus `workflow_suggestions` that point at starter
+templates under `examples/sensor_templates/`.
+
+Inspect a rosbag before calibrating:
+
+```bash
+calibrex doctor /path/to/my_bag --output readiness.yaml
+```
+
+Text output lists each suggestion's `template_path` and a `next_command` you
+can copy (for example `calibrex init --template velodyne_vlp16_pair_rosbag2 ...`).
+
 ---
 
 ## Scenario A — Two spinning LiDARs (rosbag2 / ROS 2)
