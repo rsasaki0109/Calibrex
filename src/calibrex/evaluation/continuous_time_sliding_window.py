@@ -18,6 +18,7 @@ from calibrex.core.continuous_time_sparse import (
     ContinuousTimeTrajectoryFitProblem,
     point_to_plane_rmse,
 )
+from calibrex.core.geometry import SE3
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import se3_exp
 from calibrex.evaluation.continuous_time_lidar_point_to_plane import (
@@ -138,8 +139,8 @@ def run_synthetic_sliding_window_recovery(
 
 
 def _max_overlap_translation_error(
-    reference: tuple,
-    estimate: tuple,
+    reference: tuple[SE3, ...],
+    estimate: tuple[SE3, ...],
     *,
     overlap_start: int,
 ) -> float:

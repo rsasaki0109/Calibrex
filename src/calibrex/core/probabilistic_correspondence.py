@@ -22,12 +22,18 @@ from calibrex.data.depth import DepthCameraIntrinsics, DepthFileReference
 PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION: Literal[
     "slac.probabilistic_correspondence/v0.1"
 ] = "slac.probabilistic_correspondence/v0.1"
-PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION: Literal[
+PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION_V0_1: Literal[
     "slac.probabilistic_pnp_result/v0.1"
 ] = "slac.probabilistic_pnp_result/v0.1"
-PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: Literal[
+PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION: Literal[
+    "slac.probabilistic_pnp_result/v0.2"
+] = "slac.probabilistic_pnp_result/v0.2"
+PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION_V0_1: Literal[
     "slac.probabilistic_refinement_result/v0.1"
 ] = "slac.probabilistic_refinement_result/v0.1"
+PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: Literal[
+    "slac.probabilistic_refinement_result/v0.2"
+] = "slac.probabilistic_refinement_result/v0.2"
 
 
 class CorrespondenceTrainingDeclaration(StrictModel):
@@ -140,6 +146,8 @@ class ProbabilisticCorrespondenceArtifact(StrictModel):
     artifact_id: str
     dataset_id: str
     split_id: str
+    dataset_family: str | None = None
+    sequence_id: str | None = None
     dataset_license_spdx: str | None = None
     provider: CorrespondenceProviderIdentity
     frames: list[ProbabilisticCorrespondenceFrame] = Field(min_length=1)
@@ -186,16 +194,35 @@ class ProbabilisticPnpResultProvenance(StrictModel):
     initialization_artifact_sha256: str | None = Field(
         default=None, pattern=r"^[0-9a-f]{64}$"
     )
+    initializer_calibration_id: str | None = None
+    initializer_calibration_sha256: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+
+    @model_validator(mode="after")
+    def check_initializer_calibration_lineage(
+        self,
+    ) -> ProbabilisticPnpResultProvenance:
+        """Require initializer calibration identity and digest together."""
+
+        if (self.initializer_calibration_id is None) != (
+            self.initializer_calibration_sha256 is None
+        ):
+            raise ValueError(
+                "initializer calibration ID and SHA-256 must be declared together"
+            )
+        return self
 
 
 class ProbabilisticPnpResultArtifact(StrictModel):
     """Schema-valid output of uncertainty-aware robust pose estimation."""
 
     schema_version: Literal[
-        "slac.probabilistic_pnp_result/v0.1"
+        "slac.probabilistic_pnp_result/v0.1",
+        "slac.probabilistic_pnp_result/v0.2",
     ] = PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION
     result_id: str
     status: Literal[
@@ -207,12 +234,17 @@ class ProbabilisticPnpResultArtifact(StrictModel):
     ]
     method: str
     frame_id: str
+    source_frame_ids: list[str] = Field(default_factory=list)
+    frame_selection_rule_id: str | None = None
     initial_transform_camera_lidar: TransformResult | None = None
     transform_camera_lidar: TransformResult | None = None
     selected_correspondence_count: int = Field(ge=0)
     ransac_inlier_count: int = Field(ge=0)
     probabilistic_inlier_count: int = Field(ge=0)
     weighted_reprojection_rmse_px: float | None = Field(default=None, ge=0.0)
+    ransac_inlier_reprojection_rmse_px: float | None = Field(
+        default=None, ge=0.0
+    )
     mean_mahalanobis_error: float | None = Field(default=None, ge=0.0)
     reason: str
     provider: CorrespondenceProviderIdentity
@@ -235,6 +267,21 @@ class ProbabilisticPnpResultArtifact(StrictModel):
             raise ValueError(
                 "probabilistic inlier count exceeds selected correspondences"
             )
+        if self.schema_version == PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION:
+            if not self.source_frame_ids:
+                raise ValueError("PnP result v0.2 requires source frame IDs")
+            if len(self.source_frame_ids) != len(set(self.source_frame_ids)):
+                raise ValueError("PnP source frame IDs must be unique")
+            if self.frame_selection_rule_id is None:
+                raise ValueError("PnP result v0.2 requires a frame selection rule")
+            if self.status == "converged" and (
+                self.ransac_inlier_reprojection_rmse_px is None
+            ):
+                raise ValueError("converged PnP v0.2 requires inlier RMSE")
+            if self.status != "converged" and (
+                self.ransac_inlier_reprojection_rmse_px is not None
+            ):
+                raise ValueError("non-converged PnP cannot report inlier RMSE")
         return self
 
     def save(self, path: str | Path) -> None:
@@ -266,6 +313,43 @@ class ProbabilisticRefinementIterationArtifact(StrictModel):
     accepted: bool
 
 
+class ProbabilisticRefinementAcceptanceArtifact(StrictModel):
+    """Fit-only acceptance decision and initializer rollback evidence."""
+
+    policy_id: str
+    accepted: bool
+    selected_source: Literal["refined_candidate", "initializer_rollback"]
+    candidate_status: Literal[
+        "converged",
+        "max_evaluations",
+        "insufficient_correspondences",
+        "missing_holdout",
+        "at_bound",
+    ]
+    reasons: list[str] = Field(default_factory=list)
+    holdout_used_for_selection: Literal[False] = False
+    initial_train_objective: float
+    candidate_train_objective: float
+    absolute_train_objective_improvement: float | None = None
+    relative_train_objective_improvement: float | None = None
+    initial_train_correspondence_count: int = Field(ge=0)
+    candidate_train_correspondence_count: int = Field(ge=0)
+    minimum_retained_train_correspondence_count: int = Field(ge=0)
+    maximum_candidate_bound_fraction: float = Field(ge=0.0)
+
+    @model_validator(mode="after")
+    def check_selection(self) -> ProbabilisticRefinementAcceptanceArtifact:
+        """Keep decision, selected source, and rejection reasons consistent."""
+
+        if self.accepted != (self.selected_source == "refined_candidate"):
+            raise ValueError("accepted decision and selected source disagree")
+        if self.accepted and self.reasons:
+            raise ValueError("an accepted refinement cannot contain rejection reasons")
+        if not self.accepted and not self.reasons:
+            raise ValueError("a rejected refinement requires at least one reason")
+        return self
+
+
 class ProbabilisticRefinementProvenance(StrictModel):
     """D2D initializer and learned correspondence lineage."""
 
@@ -279,16 +363,38 @@ class ProbabilisticRefinementProvenance(StrictModel):
         default=None,
         pattern=r"^[0-9a-f]{64}$",
     )
+    confidence_calibration_id: str | None = None
+    confidence_calibration_path: str | None = None
+    confidence_calibration_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+
+    @model_validator(mode="after")
+    def check_confidence_calibration(self) -> ProbabilisticRefinementProvenance:
+        """Require confidence-lock identity, path, and digest as one block."""
+
+        values = (
+            self.confidence_calibration_id,
+            self.confidence_calibration_path,
+            self.confidence_calibration_sha256,
+        )
+        if any(value is not None for value in values) and any(
+            value is None for value in values
+        ):
+            raise ValueError("confidence calibration provenance is incomplete")
+        return self
 
 
 class ProbabilisticRefinementResultArtifact(StrictModel):
     """Schema-valid multi-frame refinement with explicit initialization."""
 
     schema_version: Literal[
-        "slac.probabilistic_refinement_result/v0.1"
+        "slac.probabilistic_refinement_result/v0.1",
+        "slac.probabilistic_refinement_result/v0.2",
     ] = PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION
     result_id: str
     status: Literal[
@@ -310,24 +416,31 @@ class ProbabilisticRefinementResultArtifact(StrictModel):
     ] = "problem_initial_transform"
     provider: CorrespondenceProviderIdentity
     initial_transform_camera_lidar: TransformResult
+    candidate_transform_camera_lidar: TransformResult | None = None
     transform_camera_lidar: TransformResult
     reference_transform_camera_lidar: TransformResult | None = None
     initial_rotation_error_deg: float | None = Field(default=None, ge=0.0)
+    candidate_rotation_error_deg: float | None = Field(default=None, ge=0.0)
     final_rotation_error_deg: float | None = Field(default=None, ge=0.0)
     initial_translation_error_m: float | None = Field(default=None, ge=0.0)
+    candidate_translation_error_m: float | None = Field(default=None, ge=0.0)
     final_translation_error_m: float | None = Field(default=None, ge=0.0)
     train_frame_ids: list[str]
     holdout_frame_ids: list[str]
     initial_train_evaluation: ProbabilisticRefinementEvaluationArtifact
+    candidate_train_evaluation: ProbabilisticRefinementEvaluationArtifact | None = None
     final_train_evaluation: ProbabilisticRefinementEvaluationArtifact
     initial_holdout_evaluation: ProbabilisticRefinementEvaluationArtifact
+    candidate_holdout_evaluation: ProbabilisticRefinementEvaluationArtifact | None = None
     final_holdout_evaluation: ProbabilisticRefinementEvaluationArtifact
+    acceptance: ProbabilisticRefinementAcceptanceArtifact | None = None
     trace: list[ProbabilisticRefinementIterationArtifact]
     options: dict[str, int | float | str | bool]
     method: Literal[
         "d2d_initialized_probabilistic_multiframe_refinement/v0.1",
         "probabilistic_multiframe_refinement/v0.2",
-    ] = "probabilistic_multiframe_refinement/v0.2"
+        "probabilistic_multiframe_refinement/v0.3",
+    ] = "probabilistic_multiframe_refinement/v0.3"
     provenance: ProbabilisticRefinementProvenance
 
     @model_validator(mode="after")
@@ -349,6 +462,54 @@ class ProbabilisticRefinementResultArtifact(StrictModel):
             raise ValueError(
                 "reference transform and all four pose errors are one block"
             )
+        candidate_values = (
+            self.candidate_transform_camera_lidar,
+            self.candidate_train_evaluation,
+            self.candidate_holdout_evaluation,
+            self.acceptance,
+        )
+        if (
+            self.schema_version == PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION
+            and any(value is None for value in candidate_values)
+        ):
+            raise ValueError(
+                "v0.2 refinement results require candidate and acceptance evidence"
+            )
+        if self.reference_transform_camera_lidar is None:
+            if (
+                self.candidate_rotation_error_deg is not None
+                or self.candidate_translation_error_m is not None
+            ):
+                raise ValueError(
+                    "candidate pose errors require a reference transform"
+                )
+        elif (
+            self.schema_version == PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION
+            and (
+                self.candidate_rotation_error_deg is None
+                or self.candidate_translation_error_m is None
+            )
+        ):
+            raise ValueError(
+                "v0.2 reference-scored results require candidate pose errors"
+            )
+        if self.acceptance is not None:
+            if self.acceptance.candidate_status != self.status:
+                raise ValueError("acceptance candidate status differs from solver status")
+            if self.acceptance.selected_source == "refined_candidate":
+                expected_transform = self.candidate_transform_camera_lidar
+                expected_train = self.candidate_train_evaluation
+                expected_holdout = self.candidate_holdout_evaluation
+            else:
+                expected_transform = self.initial_transform_camera_lidar
+                expected_train = self.initial_train_evaluation
+                expected_holdout = self.initial_holdout_evaluation
+            if self.transform_camera_lidar != expected_transform:
+                raise ValueError("selected transform does not match acceptance decision")
+            if self.final_train_evaluation != expected_train:
+                raise ValueError("final train evaluation does not match selected transform")
+            if self.final_holdout_evaluation != expected_holdout:
+                raise ValueError("final holdout evaluation does not match selected transform")
         if (
             self.initialization_source == "d2d_candidate_trace"
             and (

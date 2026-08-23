@@ -19,7 +19,6 @@ from pathlib import Path
 from calibrex.core.provenance import sha256_path
 from calibrex.importers.ikalibr import import_ikalibr_result
 
-
 _LIDAR_TOPIC = "/lidar_front"
 _CAMERA_TOPIC = "/camera_left/image_raw"
 _IMU_TOPIC = "/imu/data"
@@ -36,7 +35,7 @@ def _cereal_vec3(x: float, y: float, z: float) -> dict[str, float]:
 
 def _write_result(path: Path) -> None:
     """Write a minimal well-formed iKalibr YAML result file."""
-    import yaml  # noqa: PLC0415
+    import yaml
 
     so3_identity = _cereal_so3(0.0, 0.0, 0.0, 1.0)
     so3_lidar = _cereal_so3(0.0, 0.0, math.sin(math.radians(1.5)), math.cos(math.radians(1.5)))
@@ -77,7 +76,7 @@ def _write_result(path: Path) -> None:
 
 def _write_result_xyzw_format(path: Path) -> None:
     """Write a result file using x/y/z/w key format (e.g. after JSON→YAML conversion)."""
-    import yaml  # noqa: PLC0415
+    import yaml
 
     payload = {
         "CalibParam": {
@@ -109,7 +108,7 @@ def _write_result_xyzw_format(path: Path) -> None:
 
 def _write_result_list_format(path: Path) -> None:
     """Write a result file using list format for quaternion/vector."""
-    import yaml  # noqa: PLC0415
+    import yaml
 
     payload = {
         "CalibParam": {

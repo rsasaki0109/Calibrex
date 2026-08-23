@@ -12,15 +12,15 @@ from calibrex.calibration_ci import (
     CalibrationCIArtifact,
 )
 from calibrex.core.assessment import ASSESSMENT_SCHEMA_VERSION, AssessmentArtifact
-from calibrex.core.calibration_lifecycle import (
-    CALIBRATION_LIFECYCLE_SCHEMA_VERSION,
-    CalibrationLifecycleArtifact,
-)
 from calibrex.core.benchmark import (
     BENCHMARK_DEFINITION_SCHEMA_VERSION,
     BENCHMARK_SCHEMA_VERSION,
     BenchmarkArtifact,
     BenchmarkDefinition,
+)
+from calibrex.core.calibration_lifecycle import (
+    CALIBRATION_LIFECYCLE_SCHEMA_VERSION,
+    CalibrationLifecycleArtifact,
 )
 from calibrex.core.camera_lidar_artifacts import (
     BULLSEYE_PLOT_SCHEMA_VERSION,
@@ -31,6 +31,38 @@ from calibrex.core.camera_lidar_artifacts import (
     CalibrationCandidateTrace,
     CameraLidarBenchmarkProtocol,
     CameraLidarCalibrationProblem,
+)
+from calibrex.core.camera_lidar_confidence_calibration import (
+    CAMERA_LIDAR_CONFIDENCE_CALIBRATION_SCHEMA_VERSION,
+    CameraLidarConfidenceCalibrationArtifact,
+)
+from calibrex.core.camera_lidar_correspondence_export import (
+    CAMERA_LIDAR_CORRESPONDENCE_EXPORT_SCHEMA_VERSION,
+    CameraLidarCorrespondenceExportManifest,
+)
+from calibrex.core.camera_lidar_correspondence_quality import (
+    CAMERA_LIDAR_CORRESPONDENCE_QUALITY_SCHEMA_VERSION,
+    CameraLidarCorrespondenceQualityArtifact,
+)
+from calibrex.core.camera_lidar_failure_analysis import (
+    CAMERA_LIDAR_FAILURE_ANALYSIS_SCHEMA_VERSION,
+    CameraLidarFailureAnalysisArtifact,
+)
+from calibrex.core.camera_lidar_initializer_calibration import (
+    CAMERA_LIDAR_INITIALIZER_CALIBRATION_SCHEMA_VERSION,
+    CameraLidarInitializerCalibrationArtifact,
+)
+from calibrex.core.camera_lidar_pose_initializer_benchmark import (
+    CAMERA_LIDAR_POSE_INITIALIZER_PROTOCOL_SCHEMA_VERSION,
+    CameraLidarPoseInitializerBenchmarkProtocol,
+)
+from calibrex.core.camera_lidar_pose_initializer_failure_analysis import (
+    CAMERA_LIDAR_POSE_INITIALIZER_FAILURE_ANALYSIS_SCHEMA_VERSION,
+    CameraLidarPoseInitializerFailureAnalysis,
+)
+from calibrex.core.camera_lidar_provider_support_comparison import (
+    CAMERA_LIDAR_PROVIDER_SUPPORT_COMPARISON_SCHEMA_VERSION,
+    CameraLidarProviderSupportComparisonArtifact,
 )
 from calibrex.core.camera_lidar_sota_audit import (
     CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION,
@@ -91,6 +123,10 @@ from calibrex.core.continuous_time_lidar_point_to_plane import (
     CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION,
     ContinuousTimeLidarPointToPlaneArtifact,
 )
+from calibrex.core.continuous_time_lidar_train_diagnostics import (
+    CONTINUOUS_TIME_LIDAR_TRAIN_DIAGNOSTICS_SCHEMA_VERSION,
+    ContinuousTimeLidarTrainDiagnostics,
+)
 from calibrex.core.continuous_time_sliding_window import (
     CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION,
     ContinuousTimeSlidingWindowArtifact,
@@ -125,6 +161,14 @@ from calibrex.core.external_run import (
     ExternalCalibrationRunArtifact,
 )
 from calibrex.core.io import read_mapping
+from calibrex.core.koide_handoff import (
+    KOIDE_EXECUTION_LOCK_SCHEMA_VERSION,
+    KoideExecutionLock,
+)
+from calibrex.core.koide_readiness import (
+    KOIDE_READINESS_SCHEMA_VERSION,
+    KoideReadinessArtifact,
+)
 from calibrex.core.livox_time_ablation import (
     LIVOX_TIME_ABLATION_SCHEMA_VERSION,
     LivoxTimeAblationManifest,
@@ -136,7 +180,9 @@ from calibrex.core.online_timeline import (
 from calibrex.core.probabilistic_correspondence import (
     PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION,
     PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION,
+    PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION_V0_1,
     PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION,
+    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION_V0_1,
     ProbabilisticCorrespondenceArtifact,
     ProbabilisticPnpResultArtifact,
     ProbabilisticRefinementResultArtifact,
@@ -188,20 +234,42 @@ from calibrex.core.transform_artifacts import (
     TransformArtifact,
 )
 from calibrex.data.depth import DEPTH_PROVIDER_SCHEMA_VERSION, DepthProviderArtifact
+from calibrex.data.kitti360_lidar_window_integration import (
+    KITTI360_LIDAR_WINDOW_INTEGRATION_SCHEMA_VERSION,
+    KITTI360_LIDAR_WINDOW_INTEGRATION_SCHEMA_VERSION_V0_1,
+    Kitti360LidarWindowIntegrationArtifact,
+)
 from calibrex.data.kitti_benchmark import (
     KITTI_BENCHMARK_INPUT_SCHEMA_VERSION,
     KITTIBenchmarkInputManifest,
 )
+from calibrex.data.kitti_raw_lidar_window_integration import (
+    KITTI_RAW_LIDAR_WINDOW_INTEGRATION_SCHEMA_VERSION,
+    KittiRawLidarWindowIntegrationArtifact,
+)
 from calibrex.data.manifest import DATASET_MANIFEST_SCHEMA_VERSION, DatasetManifest
+from calibrex.data.remote_archive_selection import (
+    REMOTE_ARCHIVE_SELECTION_SCHEMA_VERSION,
+    REMOTE_ARCHIVE_SELECTION_SCHEMA_VERSION_V0_3,
+    RemoteArchiveSelectionArtifact,
+)
 from calibrex.diagnostics import DOCTOR_SCHEMA_VERSION, DoctorArtifact
 from calibrex.evaluation.compare import COMPARISON_SCHEMA_VERSION, ResultComparison
 from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTI_FALSIFICATION_SCHEMA_VERSION,
     KITTIFalsificationBenchmarkArtifact,
 )
+from calibrex.evaluation.koide_pilot import (
+    KOIDE_PILOT_SCHEMA_VERSION,
+    KoidePilotArtifact,
+)
 from calibrex.evaluation.report_compare import (
     REPORT_COMPARISON_SCHEMA_VERSION,
     ReportComparison,
+)
+from calibrex.export.autoware import (
+    AUTOWARE_EXPORT_SCHEMA_VERSION,
+    AutowareExportArtifact,
 )
 
 ValidationKind = Literal[
@@ -218,12 +286,17 @@ ValidationKind = Literal[
     "protocol",
     "transforms",
     "dataset-manifest",
+    "remote-archive-selection",
+    "kitti360-lidar-window-integration",
+    "kitti-raw-lidar-window-integration",
     "doctor",
     "environment-readiness",
     "calibration-ci",
     "external-run",
     "kitti-falsification",
     "kitti-benchmark-input",
+    "koide-pilot",
+    "koide-execution-lock",
     "depth-provider",
     "continuous-time-camera-lidar-problem",
     "continuous-time-camera-lidar-result",
@@ -235,6 +308,14 @@ ValidationKind = Literal[
     "probabilistic-refinement-result",
     "empirical-se3-uncertainty",
     "camera-lidar-problem",
+    "camera-lidar-correspondence-export",
+    "camera-lidar-confidence-calibration",
+    "camera-lidar-provider-support-comparison",
+    "camera-lidar-pose-initializer-protocol",
+    "camera-lidar-pose-initializer-failure-analysis",
+    "camera-lidar-initializer-calibration",
+    "camera-lidar-correspondence-quality",
+    "camera-lidar-failure-analysis",
     "camera-lidar-sota-audit-protocol",
     "camera-lidar-sota-audit-result",
     "camera-lidar-benchmark-protocol",
@@ -251,6 +332,7 @@ ValidationKind = Literal[
     "trajectory",
     "trajectory-window-drift",
     "capture-readiness",
+    "koide-readiness",
     "continuous-time-lidar-pair",
     "continuous-time-lidar-point-to-plane",
     "continuous-time-imu-preintegration",
@@ -258,6 +340,7 @@ ValidationKind = Literal[
     "continuous-time-imu-clock-offset",
     "continuous-time-imu-accel-bias",
     "continuous-time-sliding-window",
+    "continuous-time-lidar-train-diagnostics",
     "continuous-time-lidar-ablation",
     "solid-state-cross-dataset-benchmark-config",
     "solid-state-cross-dataset-benchmark",
@@ -266,6 +349,7 @@ ValidationKind = Literal[
     "solid-state-metrology-evaluation",
     "solid-state-context",
     "livox-time-ablation",
+    "autoware-export",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -281,6 +365,9 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "protocol": ProtocolArtifact,
     "transforms": TransformArtifact,
     "dataset-manifest": DatasetManifest,
+    "remote-archive-selection": RemoteArchiveSelectionArtifact,
+    "kitti360-lidar-window-integration": Kitti360LidarWindowIntegrationArtifact,
+    "kitti-raw-lidar-window-integration": KittiRawLidarWindowIntegrationArtifact,
     "doctor": DoctorArtifact,
     "environment-readiness": EnvironmentReadinessArtifact,
     "calibration-ci": CalibrationCIArtifact,
@@ -288,6 +375,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "external-run": ExternalCalibrationRunArtifact,
     "kitti-falsification": KITTIFalsificationBenchmarkArtifact,
     "kitti-benchmark-input": KITTIBenchmarkInputManifest,
+    "koide-pilot": KoidePilotArtifact,
+    "koide-execution-lock": KoideExecutionLock,
     "depth-provider": DepthProviderArtifact,
     "continuous-time-camera-lidar-problem": (
         ContinuousTimeCameraLidarProblemArtifact
@@ -307,6 +396,16 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "probabilistic-refinement-result": ProbabilisticRefinementResultArtifact,
     "empirical-se3-uncertainty": EmpiricalSe3UncertaintyArtifact,
     "camera-lidar-problem": CameraLidarCalibrationProblem,
+    "camera-lidar-correspondence-export": CameraLidarCorrespondenceExportManifest,
+    "camera-lidar-confidence-calibration": CameraLidarConfidenceCalibrationArtifact,
+    "camera-lidar-provider-support-comparison": (CameraLidarProviderSupportComparisonArtifact),
+    "camera-lidar-pose-initializer-protocol": (CameraLidarPoseInitializerBenchmarkProtocol),
+    "camera-lidar-pose-initializer-failure-analysis": (
+        CameraLidarPoseInitializerFailureAnalysis
+    ),
+    "camera-lidar-initializer-calibration": (CameraLidarInitializerCalibrationArtifact),
+    "camera-lidar-correspondence-quality": CameraLidarCorrespondenceQualityArtifact,
+    "camera-lidar-failure-analysis": CameraLidarFailureAnalysisArtifact,
     "camera-lidar-sota-audit-protocol": CameraLidarSotaAuditProtocol,
     "camera-lidar-sota-audit-result": CameraLidarSotaAuditResult,
     "camera-lidar-benchmark-protocol": CameraLidarBenchmarkProtocol,
@@ -323,6 +422,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "trajectory": TrajectoryArtifact,
     "trajectory-window-drift": TrajectoryWindowDriftArtifact,
     "capture-readiness": CaptureReadinessArtifact,
+    "koide-readiness": KoideReadinessArtifact,
     "continuous-time-lidar-pair": ContinuousTimeLidarPairArtifact,
     "continuous-time-lidar-point-to-plane": ContinuousTimeLidarPointToPlaneArtifact,
     "continuous-time-imu-preintegration": ContinuousTimeImuPreintegrationArtifact,
@@ -331,6 +431,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "continuous-time-imu-accel-bias": ContinuousTimeImuAccelBiasArtifact,
     "continuous-time-imu-intrinsics": ContinuousTimeImuIntrinsicsArtifact,
     "continuous-time-sliding-window": ContinuousTimeSlidingWindowArtifact,
+    "continuous-time-lidar-train-diagnostics": ContinuousTimeLidarTrainDiagnostics,
     "continuous-time-lidar-ablation": ContinuousTimeLidarAblationManifest,
     "solid-state-cross-dataset-benchmark-config": SolidStateCrossDatasetBenchmarkSpec,
     "solid-state-cross-dataset-benchmark": SolidStateCrossDatasetBenchmarkManifest,
@@ -339,6 +440,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "solid-state-metrology-evaluation": SolidStateMetrologyEvaluationArtifact,
     "solid-state-context": SolidStateLidarCalibrationContext,
     "livox-time-ablation": LivoxTimeAblationManifest,
+    "autoware-export": AutowareExportArtifact,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -354,6 +456,11 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     PROTOCOL_SCHEMA_VERSION: "protocol",
     TRANSFORMS_SCHEMA_VERSION: "transforms",
     DATASET_MANIFEST_SCHEMA_VERSION: "dataset-manifest",
+    REMOTE_ARCHIVE_SELECTION_SCHEMA_VERSION: "remote-archive-selection",
+    REMOTE_ARCHIVE_SELECTION_SCHEMA_VERSION_V0_3: "remote-archive-selection",
+    KITTI360_LIDAR_WINDOW_INTEGRATION_SCHEMA_VERSION: ("kitti360-lidar-window-integration"),
+    KITTI360_LIDAR_WINDOW_INTEGRATION_SCHEMA_VERSION_V0_1: ("kitti360-lidar-window-integration"),
+    KITTI_RAW_LIDAR_WINDOW_INTEGRATION_SCHEMA_VERSION: ("kitti-raw-lidar-window-integration"),
     DOCTOR_SCHEMA_VERSION: "doctor",
     ENVIRONMENT_READINESS_SCHEMA_VERSION: "environment-readiness",
     CALIBRATION_CI_SCHEMA_VERSION: "calibration-ci",
@@ -361,6 +468,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     EXTERNAL_RUN_SCHEMA_VERSION: "external-run",
     KITTI_FALSIFICATION_SCHEMA_VERSION: "kitti-falsification",
     KITTI_BENCHMARK_INPUT_SCHEMA_VERSION: "kitti-benchmark-input",
+    KOIDE_PILOT_SCHEMA_VERSION: "koide-pilot",
+    KOIDE_EXECUTION_LOCK_SCHEMA_VERSION: "koide-execution-lock",
     DEPTH_PROVIDER_SCHEMA_VERSION: "depth-provider",
     CONTINUOUS_TIME_CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: (
         "continuous-time-camera-lidar-problem"
@@ -375,20 +484,32 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CONTINUOUS_TIME_FIT_SCHEMA_VERSION: "continuous-time-trajectory-fit",
     PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION: "probabilistic-correspondence",
     PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION: "probabilistic-pnp-result",
+    PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION_V0_1: "probabilistic-pnp-result",
     PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: (
+        "probabilistic-refinement-result"
+    ),
+    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION_V0_1: (
         "probabilistic-refinement-result"
     ),
     EMPIRICAL_SE3_UNCERTAINTY_SCHEMA_VERSION: "empirical-se3-uncertainty",
     CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: "camera-lidar-problem",
-    CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION: (
-        "camera-lidar-sota-audit-protocol"
+    CAMERA_LIDAR_CORRESPONDENCE_EXPORT_SCHEMA_VERSION: ("camera-lidar-correspondence-export"),
+    CAMERA_LIDAR_CONFIDENCE_CALIBRATION_SCHEMA_VERSION: ("camera-lidar-confidence-calibration"),
+    CAMERA_LIDAR_PROVIDER_SUPPORT_COMPARISON_SCHEMA_VERSION: (
+        "camera-lidar-provider-support-comparison"
     ),
-    CAMERA_LIDAR_SOTA_AUDIT_RESULT_SCHEMA_VERSION: (
-        "camera-lidar-sota-audit-result"
+    CAMERA_LIDAR_POSE_INITIALIZER_PROTOCOL_SCHEMA_VERSION: (
+        "camera-lidar-pose-initializer-protocol"
     ),
-    CAMERA_LIDAR_BENCHMARK_PROTOCOL_SCHEMA_VERSION: (
-        "camera-lidar-benchmark-protocol"
+    CAMERA_LIDAR_POSE_INITIALIZER_FAILURE_ANALYSIS_SCHEMA_VERSION: (
+        "camera-lidar-pose-initializer-failure-analysis"
     ),
+    CAMERA_LIDAR_INITIALIZER_CALIBRATION_SCHEMA_VERSION: ("camera-lidar-initializer-calibration"),
+    CAMERA_LIDAR_CORRESPONDENCE_QUALITY_SCHEMA_VERSION: ("camera-lidar-correspondence-quality"),
+    CAMERA_LIDAR_FAILURE_ANALYSIS_SCHEMA_VERSION: "camera-lidar-failure-analysis",
+    CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION: ("camera-lidar-sota-audit-protocol"),
+    CAMERA_LIDAR_SOTA_AUDIT_RESULT_SCHEMA_VERSION: ("camera-lidar-sota-audit-result"),
+    CAMERA_LIDAR_BENCHMARK_PROTOCOL_SCHEMA_VERSION: ("camera-lidar-benchmark-protocol"),
     CALIBRATION_CANDIDATE_TRACE_SCHEMA_VERSION: "calibration-candidate-trace",
     BULLSEYE_PLOT_SCHEMA_VERSION: "bullseye-plot",
     REPORT_SUMMARY_SCHEMA_VERSION: "report-summary",
@@ -402,6 +523,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     TRAJECTORY_SCHEMA_VERSION: "trajectory",
     TRAJECTORY_WINDOW_DRIFT_SCHEMA_VERSION: "trajectory-window-drift",
     CAPTURE_READINESS_SCHEMA_VERSION: "capture-readiness",
+    KOIDE_READINESS_SCHEMA_VERSION: "koide-readiness",
     CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: "continuous-time-lidar-pair",
     CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION: (
         "continuous-time-lidar-point-to-plane"
@@ -424,6 +546,9 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION: (
         "continuous-time-sliding-window"
     ),
+    CONTINUOUS_TIME_LIDAR_TRAIN_DIAGNOSTICS_SCHEMA_VERSION: (
+        "continuous-time-lidar-train-diagnostics"
+    ),
     CONTINUOUS_TIME_LIDAR_ABLATION_SCHEMA_VERSION: "continuous-time-lidar-ablation",
     SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION: (
         "solid-state-cross-dataset-benchmark-config"
@@ -431,9 +556,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     SOLID_STATE_CROSS_DATASET_BENCHMARK_CONFIG_SCHEMA_VERSION_V0_1: (
         "solid-state-cross-dataset-benchmark-config"
     ),
-    SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION: (
-        "solid-state-cross-dataset-benchmark"
-    ),
+    SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION: ("solid-state-cross-dataset-benchmark"),
     SOLID_STATE_CROSS_DATASET_BENCHMARK_SCHEMA_VERSION_V0_1: (
         "solid-state-cross-dataset-benchmark"
     ),
@@ -442,6 +565,7 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     SOLID_STATE_METROLOGY_EVALUATION_SCHEMA_VERSION: "solid-state-metrology-evaluation",
     SOLID_STATE_CONTEXT_SCHEMA_VERSION: "solid-state-context",
     LIVOX_TIME_ABLATION_SCHEMA_VERSION: "livox-time-ablation",
+    AUTOWARE_EXPORT_SCHEMA_VERSION: "autoware-export",
 }
 
 
@@ -474,6 +598,10 @@ def validate_file(path: str | Path, kind: ValidationKind = "auto") -> Validation
     detected_kind = _detect_kind(payload) if kind == "auto" else kind
     model = _model_for_kind(detected_kind)
     validated = model.model_validate(payload)
+    if isinstance(validated, (KoidePilotArtifact, KoideReadinessArtifact)):
+        validated.verify_artifact_digest()
+    elif isinstance(validated, KoideExecutionLock):
+        validated.verify_lock_digest()
     schema_version = _schema_version(validated)
     return ValidationReport(
         path=artifact_path.as_posix(),

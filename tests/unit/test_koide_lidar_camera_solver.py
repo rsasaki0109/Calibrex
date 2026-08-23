@@ -326,3 +326,57 @@ def test_koide_external_run_materializes_malformed_output(tmp_path: Path) -> Non
     assert result.external_run.status == "invalid_output"
     assert result.transforms == {}
     assert any("readable transform" in warning for warning in result.external_run.warnings)
+
+
+def test_koide_solver_imports_native_calib_json_and_generates_inverse(
+    tmp_path: Path,
+) -> None:
+    native_result = tmp_path / "calib.json"
+    native_result.write_text(
+        '{"results": {"T_lidar_camera": [1.2, -0.4, 2.3, 0.1, -0.2, 0.3, 0.9]}}',
+        encoding="utf-8",
+    )
+    config, inspection = _executable_adapter_fixture(
+        tmp_path,
+        command=[],
+        result_path=native_result,
+    )
+
+    result = KoideLidarCameraSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        inspection,
+    )
+
+    assert result.status == "result_loaded"
+    assert set(result.transforms) >= {"T_lidar0_camera0", "T_camera0_lidar0"}
+    assert result.external_run is not None
+    assert result.external_run.execution.mode == "imported"
+    assert result.external_run.parsed_outputs.external_metrics[
+        "koide_native_declared_transform"
+    ] == "T_lidar_camera"
+    native_provenance = result.provenance["koide_lidar_camera_native_import"]
+    assert isinstance(native_provenance, dict)
+    assert native_provenance["source_sha256"] == sha256_path(native_result)
+
+
+def test_koide_solver_materializes_native_parse_errors_as_invalid_output(
+    tmp_path: Path,
+) -> None:
+    native_result = tmp_path / "broken-calib.json"
+    native_result.write_text('{"results": [', encoding="utf-8")
+    config, inspection = _executable_adapter_fixture(
+        tmp_path,
+        command=[],
+        result_path=native_result,
+    )
+
+    result = KoideLidarCameraSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        inspection,
+    )
+
+    assert result.external_run is not None
+    assert result.external_run.status == "invalid_output"
+    assert any("could not read Koide result" in warning for warning in result.warnings)

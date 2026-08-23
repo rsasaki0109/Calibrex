@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -11,7 +12,7 @@ from scipy.linalg import cholesky
 from calibrex.core.geometry import SE3
 from calibrex.core.se3_manifold import se3_exp, se3_log
 
-FloatArray = NDArray[np.float64]
+FloatArray: TypeAlias = NDArray[np.float64]
 
 
 @dataclass(frozen=True)
@@ -125,10 +126,10 @@ def marginalization_prior_blocks(
         eigenvalues, eigenvectors = np.linalg.eigh(symmetrized)
         clipped = np.clip(eigenvalues, 1.0e-9, None)
         weight = eigenvectors @ np.diag(np.sqrt(clipped))
-    jacobian = np.zeros((6, 6), dtype=float)
+    jacobian: NDArray[np.float64] = np.zeros((6, 6), dtype=float)
     epsilon = 1.0e-7
     for axis in range(6):
-        step = np.zeros(6, dtype=float)
+        step: NDArray[np.float64] = np.zeros(6, dtype=float)
         step[axis] = epsilon
         perturbed = se3_log(prior.anchor_pose, se3_exp(knot, step))
         jacobian[:, axis] = (perturbed - delta) / epsilon

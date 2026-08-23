@@ -69,7 +69,7 @@ from calibrex.solvers.borer_rotation_only_solver import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
-BORER_ROTATION_BENCHMARK_VERSION = "calibrex.borer_rotation_benchmark/v0.1"
+BORER_ROTATION_BENCHMARK_VERSION = "calibrex.borer_rotation_benchmark/v0.2"
 
 
 @dataclass(frozen=True)
@@ -702,12 +702,16 @@ def _candidate_trace(
         status=result.status,
         initial_transform_camera_lidar=_transform_result(
             result.initial_transform_camera_lidar,
+            parent=loaded.problem.reference_transform_camera_lidar.parent,
+            child=loaded.problem.reference_transform_camera_lidar.child,
             producer="dataset_provider",
             evidence="dataset_provided",
             note="dataset reference plus frozen perturbation",
         ),
         output_transform_camera_lidar=_transform_result(
             result.transform_camera_lidar,
+            parent=loaded.problem.reference_transform_camera_lidar.parent,
+            child=loaded.problem.reference_transform_camera_lidar.child,
             producer="slac_native",
             evidence="algorithmically_refined",
             note="native D2D rotation-only output; translation fixed",
@@ -829,13 +833,15 @@ def _benchmark_methods() -> list[BenchmarkMethodDefinition]:
 def _transform_result(
     transform: SE3,
     *,
+    parent: str,
+    child: str,
     producer: EstimateProducer,
     evidence: EstimateEvidenceLevel,
     note: str,
 ) -> TransformResult:
     return TransformResult(
-        parent="camera0",
-        child="lidar0",
+        parent=parent,
+        child=child,
         translation_m=list(transform.translation_m),
         rotation_quat_xyzw=list(transform.rotation_quat_xyzw),
         provenance=TransformEstimateProvenance(

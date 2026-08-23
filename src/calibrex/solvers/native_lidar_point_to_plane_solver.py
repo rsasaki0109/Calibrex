@@ -38,7 +38,11 @@ from calibrex.data.rosbag1 import (
 )
 from calibrex.data.rosbag2 import (
     LIDAR_MESSAGE_TYPES as ROSBAG2_LIDAR_MESSAGE_TYPES,
+)
+from calibrex.data.rosbag2 import (
     decode_lidar_message as decode_rosbag2_lidar_message,
+)
+from calibrex.data.rosbag2 import (
     iter_messages as iter_rosbag2_messages,
 )
 from calibrex.evaluation.lidar import (

@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from yaml import YAMLError
+
 from calibrex import __version__
 from calibrex.core.config import CalibrationConfig, FactorConfig
 from calibrex.core.external_run import (
@@ -35,10 +37,15 @@ from calibrex.core.external_run import (
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
 from calibrex.core.io import read_mapping
+from calibrex.core.koide_runner import (
+    KoideRunnerConfig,
+    run_koide_workflow,
+)
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import MetricResult
 from calibrex.data.base import StreamSummary
 from calibrex.data.inspect import DatasetInspection
+from calibrex.importers.koide import KoideNativeCalibration, parse_koide_calib_payload
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 
 ADAPTER_FACTOR_NAMES = (
@@ -62,6 +69,9 @@ class KoideLidarCameraInputs:
     execute: bool
     timeout_sec: float
     working_dir: str | None
+    camera_frame: str | None = None
+    lidar_frame: str | None = None
+    frame_binding_source: str | None = None
 
     @property
     def has_camera(self) -> bool:
@@ -179,9 +189,17 @@ class KoideLidarCameraSolver(SolverAdapter):
 
         del frame_graph
         inputs = _summarize_inputs(config, inspection)
+        if _first_class_runner_requested(config):
+            return _solve_with_first_class_runner(config, inspection, inputs)
         execution = _execute_command(config, inputs) if inputs.execute else AdapterExecutionResult()
+        native_calibration: KoideNativeCalibration | None = None
         try:
-            transforms = _load_transforms(inputs.result_path)
+            transforms, native_calibration = _load_transforms_with_metadata(
+                inputs.result_path,
+                lidar_frame=inputs.lidar_frame,
+                camera_frame=inputs.camera_frame,
+                configured_frames=set(config.frames),
+            )
         except (OSError, ValueError) as exc:
             transforms = {}
             execution = _with_output_error(execution, exc)
@@ -238,6 +256,15 @@ class KoideLidarCameraSolver(SolverAdapter):
             transforms=transforms,
             status=status,
             warnings=warnings,
+            native_calibration=native_calibration,
+        )
+        native_provenance = (
+            native_calibration.provenance(
+                inputs.result_path or "",
+                identity.result_sha256,
+            )
+            if native_calibration is not None
+            else None
         )
         return SolverAdapterResult(
             backend=self.backend,
@@ -255,6 +282,9 @@ class KoideLidarCameraSolver(SolverAdapter):
                 "koide_lidar_camera_execute": inputs.execute,
                 "koide_lidar_camera_timeout_sec": inputs.timeout_sec,
                 "koide_lidar_camera_working_dir": inputs.working_dir,
+                "koide_lidar_camera_camera_frame": inputs.camera_frame,
+                "koide_lidar_camera_lidar_frame": inputs.lidar_frame,
+                "koide_lidar_camera_frame_binding_source": inputs.frame_binding_source,
                 "koide_lidar_camera_execution": execution.as_dict(),
                 "koide_lidar_camera_camera_streams": list(inputs.camera_streams),
                 "koide_lidar_camera_lidar_streams": list(inputs.lidar_streams),
@@ -265,6 +295,7 @@ class KoideLidarCameraSolver(SolverAdapter):
                     name: {"convention": "T_parent_child", **transform.as_dict()}
                     for name, transform in sorted(transforms.items())
                 },
+                "koide_lidar_camera_native_import": native_provenance,
                 "koide_lidar_camera_tool_identity": identity.as_dict(),
                 "external_calibration_run": external_run.model_dump(
                     mode="json",
@@ -290,6 +321,10 @@ def _summarize_inputs(
     command = _command_from_options(options)
     result_path = _result_path_from_options(options)
     working_dir = _working_dir_from_options(options)
+    camera_frame, lidar_frame, frame_binding_source = _resolve_frame_bindings(
+        options,
+        inspection.streams,
+    )
     return KoideLidarCameraInputs(
         camera_streams=_stream_names(inspection.streams, kind="camera"),
         lidar_streams=_stream_names(inspection.streams, kind="lidar"),
@@ -301,6 +336,158 @@ def _summarize_inputs(
         execute=_bool_option(options, "execute", default=False),
         timeout_sec=_float_option(options, "timeout_sec", default=600.0),
         working_dir=str(working_dir) if working_dir is not None else None,
+        camera_frame=camera_frame,
+        lidar_frame=lidar_frame,
+        frame_binding_source=frame_binding_source,
+    )
+
+
+def _first_class_runner_requested(config: CalibrationConfig) -> bool:
+    """Return whether typed Koide workflow options are present.
+
+    Legacy ``command``/``execute`` options continue through the established
+    single-process path.  Explicit workflow/container/profile options opt into
+    the stricter multi-stage runner.
+    """
+
+    options = _adapter_options(config)
+    return any(
+        key in options
+        for key in (
+            "execution_mode",
+            "profile",
+            "stages",
+            "preprocess_command",
+            "initial_guess_command",
+            "calibrate_command",
+            "stage_commands",
+            "container",
+            "container_digest",
+            "image_digest",
+            "readiness_artifact_path",
+            "readiness_artifact_sha256",
+            "strict_readiness",
+        )
+    )
+
+
+def _solve_with_first_class_runner(
+    config: CalibrationConfig,
+    inspection: DatasetInspection,
+    inputs: KoideLidarCameraInputs,
+) -> SolverAdapterResult:
+    """Run the typed workflow and preserve the legacy adapter result shape."""
+
+    options = _adapter_options(config)
+    runner_config = KoideRunnerConfig.from_options(
+        options,
+        dataset_path=config.dataset.path,
+        result_path=inputs.result_path,
+        camera_frame=inputs.camera_frame,
+        lidar_frame=inputs.lidar_frame,
+        camera_streams=inputs.camera_streams,
+        lidar_streams=inputs.lidar_streams,
+    )
+    input_artifacts: list[str | Path] = []
+    if inspection.manifest is not None:
+        input_artifacts.append(inspection.manifest)
+    workflow = run_koide_workflow(
+        runner_config,
+        input_artifacts=input_artifacts,
+    )
+    artifact = workflow.artifact
+    warnings = list(artifact.warnings)
+    readiness_gate_failed = runner_config.strict_readiness and any(
+        "readiness" in warning.lower() for warning in warnings
+    )
+    effective_input_ready = inputs.input_ready and not readiness_gate_failed
+    if readiness_gate_failed:
+        warnings.append("strict Koide readiness gate rejected the input artifact")
+    elif not inputs.input_ready:
+        warnings.append("camera and LiDAR input streams are required before Koide execution")
+    transforms = workflow.transforms
+    digest_fields = artifact.digests.model_dump(mode="python")
+    required_digest_fields = ("config_sha256", "input_sha256", "output_sha256")
+    provenance_complete = all(digest_fields.get(field) for field in required_digest_fields)
+    metrics = {
+        "koide_lidar_camera_adapter_available": MetricResult(
+            value=1.0 if artifact.status not in {"unavailable", "not_executed"} else 0.0,
+            grade="pass" if artifact.status not in {"unavailable", "not_executed"} else "warn",
+            reason=f"typed Koide runner status: {artifact.status}",
+        ),
+        "koide_lidar_camera_input_ready": MetricResult(
+            value=1.0 if effective_input_ready else 0.0,
+            grade="pass" if effective_input_ready else "fail",
+            reason=(
+                "camera and LiDAR streams are available"
+                if effective_input_ready
+                and not readiness_gate_failed
+                else "strict Koide readiness gate rejected the input artifact"
+                if readiness_gate_failed
+                else "camera and LiDAR streams are required"
+            ),
+        ),
+        "koide_lidar_camera_result_available": MetricResult(
+            value=1.0 if transforms else 0.0,
+            grade="pass" if transforms else "warn",
+            reason=(
+                "typed Koide native output was parsed"
+                if transforms
+                else "no readable Koide transform"
+            ),
+        ),
+        "koide_lidar_camera_execution_success": MetricResult(
+            value=1.0 if artifact.status == "success" else 0.0,
+            grade="pass" if artifact.status == "success" else "fail",
+            reason=f"typed Koide runner status: {artifact.status}",
+        ),
+        "koide_lidar_camera_provenance_complete": MetricResult(
+            value=1.0 if provenance_complete else 0.0,
+            grade="pass" if provenance_complete else "warn",
+            reason=(
+                "typed runner config/input/output digests are complete"
+                if provenance_complete
+                else "typed runner requires config, input, and output digests"
+            ),
+        ),
+    }
+    provenance = dict(artifact.to_solver_adapter_result().provenance)
+    provenance.update(
+        {
+            "koide_lidar_camera_status": artifact.status,
+            "koide_lidar_camera_execution_mode": runner_config.execution_mode,
+            "koide_lidar_camera_profile": runner_config.profile,
+            "koide_lidar_camera_stage_results": [
+                stage.model_dump(mode="json", exclude_none=True) for stage in workflow.stages
+            ],
+            "koide_lidar_camera_runner_config": runner_config.model_dump(mode="json"),
+            "koide_lidar_camera_input_ready": effective_input_ready,
+            "koide_lidar_camera_frame_binding_source": inputs.frame_binding_source,
+            "koide_lidar_camera_tool_identity": {
+                "tool_name": artifact.tool.name,
+                "tool_version": artifact.tool.version,
+                "source_repository": artifact.tool.source_repository,
+                "source_commit": artifact.tool.source_commit,
+                "license_spdx": artifact.tool.license_spdx,
+                "adapter_version": artifact.adapter_version,
+                "digests": digest_fields,
+                "complete": provenance_complete,
+            },
+            "license_boundary": (
+                "external typed subprocess/container/precomputed adapter; no external "
+                "calibration code is copied into Calibrex core"
+            ),
+        }
+    )
+    return SolverAdapterResult(
+        backend="koide_lidar_camera",
+        available=artifact.status not in {"unavailable", "not_executed"},
+        status=artifact.status,
+        metrics=metrics,
+        transforms=transforms,
+        provenance=provenance,
+        warnings=warnings,
+        external_run=artifact,
     )
 
 
@@ -317,6 +504,87 @@ def _adapter_options(config: CalibrationConfig) -> dict[str, Any]:
     return factor.options if factor is not None else {}
 
 
+def _resolve_frame_bindings(
+    options: dict[str, Any],
+    streams: list[StreamSummary],
+) -> tuple[str | None, str | None, str | None]:
+    """Resolve explicit native frame names from options or selected streams.
+
+    A stream's configured ``sensor`` name is an explicit binding supplied by
+    the dataset/configuration.  It is used only when exactly one candidate is
+    selected; no positional ``camera0``/``lidar0`` convention is guessed.
+    """
+
+    camera_frame = _text_option(options, "camera_frame")
+    lidar_frame = _text_option(options, "lidar_frame")
+    sources: list[str] = []
+    if camera_frame is not None:
+        sources.append("adapter_options.camera_frame")
+    if lidar_frame is not None:
+        sources.append("adapter_options.lidar_frame")
+
+    camera_stream = _text_option(options, "camera_stream") or _text_option(
+        options, "camera_topic"
+    )
+    lidar_stream = _text_option(options, "lidar_stream") or _text_option(
+        options, "lidar_topic"
+    )
+    camera_frame, camera_source = _frame_from_stream_binding(
+        streams,
+        kind="camera",
+        selected_name=camera_stream,
+        existing=camera_frame,
+    )
+    lidar_frame, lidar_source = _frame_from_stream_binding(
+        streams,
+        kind="lidar",
+        selected_name=lidar_stream,
+        existing=lidar_frame,
+    )
+    if camera_source is not None:
+        sources.append(camera_source)
+    if lidar_source is not None:
+        sources.append(lidar_source)
+    source = "+".join(dict.fromkeys(sources)) if sources else None
+    return camera_frame, lidar_frame, source
+
+
+def _frame_from_stream_binding(
+    streams: list[StreamSummary],
+    *,
+    kind: str,
+    selected_name: str | None,
+    existing: str | None,
+) -> tuple[str | None, str | None]:
+    if existing is not None:
+        return existing, None
+    candidates = [stream for stream in streams if _stream_matches_kind(stream, kind)]
+    if selected_name is not None:
+        candidates = [
+            stream
+            for stream in candidates
+            if stream.name == selected_name or stream.topic == selected_name
+        ]
+    frame_names = sorted(
+        {stream.sensor.strip() for stream in candidates if stream.sensor and stream.sensor.strip()}
+    )
+    if len(frame_names) != 1:
+        return None, None
+    return frame_names[0], "configured_stream_sensor"
+
+
+def _stream_matches_kind(stream: StreamSummary, kind: str) -> bool:
+    name = stream.name.lower()
+    stream_kind = stream.kind.lower()
+    if kind == "camera":
+        return (
+            stream_kind == "image" or "camera" in name
+        ) and stream.message_count != 0
+    return (
+        stream_kind == "pointcloud" or "lidar" in name or "velodyne" in name
+    ) and stream.message_count != 0
+
+
 def _external_tool_identity(
     config: CalibrationConfig,
     inputs: KoideLidarCameraInputs,
@@ -325,11 +593,14 @@ def _external_tool_identity(
     result_path = Path(inputs.result_path) if inputs.result_path is not None else None
     result_exists = result_path is not None and result_path.is_file()
     return KoideExternalToolIdentity(
-        tool_name=_text_option(options, "tool_name") or "koide_lidar_camera",
+        tool_name=_text_option(options, "tool_name")
+        or "direct_visual_lidar_calibration",
         tool_version=_text_option(options, "tool_version"),
         source_repository=_text_option(options, "source_repository"),
         source_commit=_text_option(options, "source_commit"),
         license_spdx=_text_option(options, "license_spdx"),
+        # Keep the established solver artifact version stable; native format
+        # details are carried in the explicit native-import provenance below.
         adapter_version="calibrex.koide_lidar_camera_adapter/v0.2",
         command=inputs.command,
         result_path=inputs.result_path,
@@ -352,8 +623,10 @@ def _external_run_artifact(
     transforms: dict[str, SE3],
     status: str,
     warnings: list[str],
+    native_calibration: KoideNativeCalibration | None,
 ) -> ExternalCalibrationRunArtifact:
     result_path = Path(inputs.result_path) if inputs.result_path is not None else None
+    options = _adapter_options(config)
     artifacts: list[ExternalArtifactDigest] = []
     if inspection.manifest is not None:
         manifest_digest = _external_artifact_digest(
@@ -363,11 +636,32 @@ def _external_run_artifact(
         )
         if manifest_digest is not None:
             artifacts.append(manifest_digest)
+    # Preserve explicit input artifacts from both the typed runner vocabulary
+    # and the older adapter option name.  The CLI appends ``--input-artifact``
+    # values here before invoking the legacy-compatible solver path.
+    for input_path in _configured_input_paths(options):
+        if any(artifact.path == str(input_path) for artifact in artifacts):
+            continue
+        input_digest = _external_artifact_digest(
+            "input",
+            input_path,
+            media_type=(
+                "application/json"
+                if input_path.suffix.lower() == ".json"
+                else "application/yaml"
+            ),
+        )
+        if input_digest is not None:
+            artifacts.append(input_digest)
     if result_path is not None:
         output_digest = _external_artifact_digest(
             "output",
             result_path,
-            media_type="application/yaml",
+            media_type=(
+                "application/json"
+                if result_path.suffix.lower() == ".json"
+                else "application/yaml"
+            ),
         )
         if output_digest is not None:
             artifacts.append(output_digest)
@@ -378,6 +672,8 @@ def _external_run_artifact(
     mode: ExternalExecutionMode = (
         "subprocess"
         if inputs.command is not None
+        else "imported"
+        if native_calibration is not None
         else "precomputed"
         if result_path is not None
         else "imported"
@@ -435,7 +731,11 @@ def _external_run_artifact(
             error=execution.error,
         ),
         artifacts=artifacts,
-        frame_convention="T_parent_child",
+        frame_convention=(
+            native_calibration.declared_convention
+            if native_calibration is not None
+            else "T_parent_child"
+        ),
         time_convention=(
             f"{config.dataset.time_base}; Koide adapter imports no clock-offset estimate"
         ),
@@ -445,7 +745,14 @@ def _external_run_artifact(
         ),
         status=external_status,
         warnings=run_warnings,
-        parsed_outputs=ExternalParsedOutputs(transforms=parsed_transforms),
+        parsed_outputs=ExternalParsedOutputs(
+            transforms=parsed_transforms,
+            external_metrics=(
+                _native_external_metrics(native_calibration, result_path, output_sha256)
+                if native_calibration is not None
+                else {}
+            ),
+        ),
         provenance=ExternalRunProvenance(
             calibrex_version=__version__,
             git_commit=git_commit(),
@@ -471,6 +778,41 @@ def _external_artifact_digest(
         size_bytes=path.stat().st_size,
         media_type=media_type,
     )
+
+
+def _native_external_metrics(
+    calibration: KoideNativeCalibration,
+    result_path: Path | None,
+    result_sha256: str | None,
+) -> dict[str, float | str | bool | None]:
+    """Expose native-format metadata through the generic external-run schema."""
+
+    return {
+        "koide_native_format": "direct_visual_lidar_calibration.calib.json",
+        "koide_native_source_path": str(result_path) if result_path is not None else None,
+        "koide_native_source_sha256": result_sha256,
+        "koide_native_declared_transform": "T_lidar_camera",
+        "koide_native_declared_convention": calibration.declared_convention,
+        "koide_lidar_frame": calibration.lidar_frame,
+        "koide_camera_frame": calibration.camera_frame,
+        "koide_calibrex_forward_transform": (
+            f"T_{calibration.lidar_frame}_{calibration.camera_frame}"
+        ),
+        "koide_calibrex_inverse_transform": (
+            f"T_{calibration.camera_frame}_{calibration.lidar_frame}"
+        ),
+    }
+
+
+def _configured_input_paths(options: dict[str, Any]) -> tuple[Path, ...]:
+    """Return explicit input artifacts declared in legacy or typed options."""
+
+    raw = options.get("input_paths", options.get("input_artifacts", ()))
+    if isinstance(raw, (str, Path)):
+        return (Path(raw),)
+    if not isinstance(raw, (list, tuple)):
+        return ()
+    return tuple(Path(str(value)) for value in raw if value is not None)
 
 
 def _transform_frames(
@@ -670,25 +1012,78 @@ def _sha256_text(value: str | None) -> str | None:
 
 
 def _load_transforms(result_path: str | None) -> dict[str, SE3]:
+    """Load either native Koide or the legacy normalized transform mapping.
+
+    This compatibility wrapper intentionally retains the old private helper
+    signature; the solver uses :func:`_load_transforms_with_metadata` so native
+    parser provenance is not discarded.
+    """
+
+    transforms, _native = _load_transforms_with_metadata(
+        result_path,
+        lidar_frame=None,
+        camera_frame=None,
+    )
+    return transforms
+
+
+def _load_transforms_with_metadata(
+    result_path: str | None,
+    *,
+    lidar_frame: str | None,
+    camera_frame: str | None,
+    configured_frames: set[str] | None = None,
+) -> tuple[dict[str, SE3], KoideNativeCalibration | None]:
+    """Load a result and return parsed transforms plus native metadata."""
+
     if result_path is None:
-        return {}
+        return {}, None
     path = Path(result_path)
     if not path.exists():
-        return {}
-    transforms = _read_transform_mapping(path)
+        return {}, None
+    try:
+        payload = read_mapping(path)
+    except (OSError, YAMLError, ValueError) as exc:
+        raise ValueError(f"could not read Koide result {path}: {exc}") from exc
+    if "results" in payload:
+        if lidar_frame is None or camera_frame is None:
+            raise ValueError(
+                "native Koide calib.json requires explicit lidar_frame and "
+                "camera_frame from adapter options or uniquely configured streams"
+            )
+        if configured_frames is not None and (
+            lidar_frame not in configured_frames or camera_frame not in configured_frames
+        ):
+            raise ValueError(
+                "native Koide frame binding must name frames declared in the "
+                "Calibrex configuration: "
+                f"lidar_frame={lidar_frame!r}, camera_frame={camera_frame!r}"
+            )
+        native = parse_koide_calib_payload(
+            payload,
+            lidar_frame=lidar_frame,
+            camera_frame=camera_frame,
+        )
+        return native.transforms, native
+
+    transforms = _read_transform_mapping_payload(payload)
     t_camera_lidar = transforms.get("T_camera0_lidar0")
     if t_camera_lidar is None:
         t_lidar_camera = transforms.get("T_lidar0_camera0")
         t_camera_lidar = t_lidar_camera.inverse() if t_lidar_camera is not None else None
     if t_camera_lidar is None:
-        return transforms
+        return transforms, None
     transforms.setdefault("T_camera0_lidar0", t_camera_lidar)
     transforms.setdefault("T_lidar0_camera0", t_camera_lidar.inverse())
-    return transforms
+    return transforms, None
 
 
 def _read_transform_mapping(path: Path) -> dict[str, SE3]:
     payload = read_mapping(path)
+    return _read_transform_mapping_payload(payload)
+
+
+def _read_transform_mapping_payload(payload: dict[str, Any]) -> dict[str, SE3]:
     raw_transforms = payload.get("transforms", payload)
     if not isinstance(raw_transforms, dict):
         return {}
@@ -777,12 +1172,19 @@ def _warnings(
         warnings.append("provide camera images for the targetless LiDAR-camera adapter")
     if not inputs.has_lidar:
         warnings.append("provide LiDAR point clouds for the targetless LiDAR-camera adapter")
+    if inputs.result_exists and (
+        inputs.camera_frame is None or inputs.lidar_frame is None
+    ):
+        warnings.append(
+            "native Koide calib.json requires explicit camera_frame and lidar_frame "
+            "from adapter options or uniquely configured streams"
+        )
     if not inputs.command_available and not result_exists:
         warnings.append(
             "configure Koide-style external command or provide a precomputed result_path"
         )
-    if execution.requested and not execution.success:
-        warnings.append(execution.error or "external command did not complete successfully")
+    if execution.error:
+        warnings.append(execution.error)
     if execution.success and not transforms:
         warnings.append("external command succeeded but no readable transform was loaded")
     if result_exists and not transforms:

@@ -50,7 +50,10 @@ from calibrex.data.depth import DepthCameraIntrinsics, DepthFileReference
 pytestmark = pytest.mark.integration
 
 _FRAME_COUNT = 20
-_TRUTH = SE3((0.27, -0.04, 0.08), (0.0, 0.0, math.sin(math.radians(1.5)), math.cos(math.radians(1.5))))
+_TRUTH = SE3(
+    (0.27, -0.04, 0.08),
+    (0.0, 0.0, math.sin(math.radians(1.5)), math.cos(math.radians(1.5))),
+)
 _INITIAL = SE3((0.25, -0.03, 0.07), (0.0, 0.0, 0.0, 1.0))
 _CAMERA = DepthCameraIntrinsics(
     width=1392,

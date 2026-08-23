@@ -17,7 +17,6 @@ from calibrex.core.camera_lidar_artifacts import (
     CameraLidarObservationBinding,
 )
 from calibrex.core.geometry import SE3, quaternion_xyzw_from_rotation_matrix
-from calibrex.core.io import read_mapping
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import (
     EstimateRole,
@@ -31,11 +30,10 @@ from calibrex.data.depth import (
     verify_depth_provider_files,
 )
 from calibrex.data.kitti import read_timestamps
-from calibrex.data.manifest import DatasetManifest
 
 FloatArray: TypeAlias = NDArray[np.float64]
 KITTI360_CAMERA_LIDAR_PROBLEM_BUILDER_VERSION = (
-    "calibrex.kitti360_camera_lidar_problem/v0.1"
+    "calibrex.kitti360_camera_lidar_problem/v0.2"
 )
 
 
@@ -200,6 +198,7 @@ def build_kitti360_camera_lidar_problem(
     lidar_directory: str | Path | None = None,
     lidar_manifest_path: str | Path | None = None,
     camera_stream: str = "image_03",
+    split_id: str = "evaluation",
     dataset_id: str | None = None,
     problem_id: str | None = None,
     rotation_bound_deg: float = 20.0,
@@ -232,25 +231,11 @@ def build_kitti360_camera_lidar_problem(
     ):
         if not directory.is_dir():
             raise ValueError(f"KITTI-360 {label} does not exist: {directory}")
-    if lidar_directory is not None and lidar_manifest_path is None:
+    if (lidar_directory is None) != (lidar_manifest_path is None):
         raise ValueError(
-            "a generated KITTI-360 lidar_directory requires lidar_manifest_path"
+            "generated KITTI-360 LiDAR requires both lidar_directory and "
+            "lidar_manifest_path"
         )
-    manifest: DatasetManifest | None = None
-    if lidar_manifest_path is not None:
-        manifest = DatasetManifest.model_validate(
-            read_mapping(Path(lidar_manifest_path))
-        )
-        stream = manifest.streams.get("velodyne_points")
-        if stream is None or stream.path is None:
-            raise ValueError(
-                "lidar manifest must declare a velodyne_points stream path"
-            )
-        if Path(stream.path).resolve() != lidar_stream:
-            raise ValueError(
-                "lidar manifest velodyne_points path does not match "
-                "lidar_directory"
-            )
 
     provider = load_depth_provider(provider_path)
     provider_digest = _required_digest(provider_path)
@@ -261,6 +246,17 @@ def build_kitti360_camera_lidar_problem(
         provider.observations
     ):
         raise ValueError("depth provider frame IDs must be unique")
+    integrated_outputs: dict[str, Path] | None = None
+    integration_manifest: Path | None = None
+    if lidar_manifest_path is not None:
+        integration_manifest = Path(lidar_manifest_path).resolve()
+        integrated_outputs = _verify_integrated_lidar_binding(
+            integration_manifest,
+            lidar_directory=lidar_stream,
+            frame_ids=[item.frame_id for item in provider.observations],
+            sequence_id=sequence.name,
+            calibration_directory=calibration,
+        )
 
     timestamps = read_timestamps(lidar_timestamps_path)
     timestamp_by_index = {item.index: item.timestamp_ns for item in timestamps}
@@ -273,8 +269,8 @@ def build_kitti360_camera_lidar_problem(
         lidar_timestamps_path,
         camera_timestamps_path,
     ]
-    if lidar_manifest_path is not None:
-        source_files.append(Path(lidar_manifest_path).resolve())
+    if integration_manifest is not None:
+        source_files.append(integration_manifest)
     for observation in provider.observations:
         if not observation.frame_id.isdigit():
             raise ValueError(
@@ -288,7 +284,11 @@ def build_kitti360_camera_lidar_problem(
             observation.image.sha256,
             image_path,
         )
-        lidar_path = lidar_stream / f"{observation.frame_id}.bin"
+        lidar_path = (
+            integrated_outputs[observation.frame_id]
+            if integrated_outputs is not None
+            else lidar_stream / f"{observation.frame_id}.bin"
+        )
         if index not in timestamp_by_index:
             raise ValueError(
                 f"Velodyne timestamps do not cover frame {observation.frame_id}"
@@ -296,7 +296,7 @@ def build_kitti360_camera_lidar_problem(
         bindings.append(
             CameraLidarObservationBinding(
                 frame_id=observation.frame_id,
-                split_id="evaluation",
+                split_id=split_id,
                 depth_observation_frame_id=observation.frame_id,
                 lidar=depth_file_reference(
                     lidar_path,
@@ -306,16 +306,6 @@ def build_kitti360_camera_lidar_problem(
             )
         )
         source_files.extend((image_path, lidar_path))
-    if manifest is not None:
-        declared_output_digest = manifest.provenance.get("output_sha256")
-        observed_output_digest = _source_digest(
-            [Path(binding.lidar.path) for binding in bindings]
-        )
-        if declared_output_digest != observed_output_digest:
-            raise ValueError(
-                "lidar manifest output_sha256 does not match selected scans"
-            )
-
     reference = read_kitti360_velodyne_to_camera_transform(
         calibration,
         camera_stream=camera_stream,
@@ -365,6 +355,72 @@ def build_kitti360_camera_lidar_problem(
             source_sha256=_source_digest(source_files),
         ),
     )
+
+
+def _verify_integrated_lidar_binding(
+    manifest_path: Path,
+    *,
+    lidar_directory: Path,
+    frame_ids: list[str],
+    sequence_id: str,
+    calibration_directory: Path,
+) -> dict[str, Path]:
+    """Verify a KITTI-360 integration artifact and return its outputs."""
+
+    # Local import avoids a module cycle: the integration adapter reuses the
+    # official motion-compensation primitives defined in this module.
+    from calibrex.data.kitti360_lidar_window_integration import (
+        load_kitti360_lidar_window_integration,
+        verify_kitti360_lidar_window_integration_files,
+    )
+
+    artifact = load_kitti360_lidar_window_integration(manifest_path)
+    issues = verify_kitti360_lidar_window_integration_files(artifact)
+    if issues:
+        raise ValueError(
+            "KITTI-360 LiDAR integration verification failed: "
+            + "; ".join(issues)
+        )
+    if artifact.sequence_id != sequence_id:
+        raise ValueError(
+            "KITTI-360 LiDAR integration sequence mismatch: "
+            f"{artifact.sequence_id} != {sequence_id}"
+        )
+    calibration_references = {
+        Path(item.path).name: item for item in artifact.calibration_files
+    }
+    expected_calibration = {
+        name: calibration_directory / name
+        for name in ("calib_cam_to_velo.txt", "calib_cam_to_pose.txt")
+    }
+    if set(calibration_references) != set(expected_calibration):
+        raise ValueError(
+            "KITTI-360 LiDAR integration calibration files are incomplete"
+        )
+    for name, expected_path in expected_calibration.items():
+        if calibration_references[name].sha256 != _required_digest(expected_path):
+            raise ValueError(
+                "KITTI-360 LiDAR integration calibration differs from problem: "
+                + name
+            )
+    normalized_ids = sorted(set(frame_ids), key=int)
+    if artifact.center_frame_ids != normalized_ids:
+        raise ValueError(
+            "KITTI-360 LiDAR integration centers differ from depth observations"
+        )
+    outputs = {
+        item.center_frame_id: Path(item.output.path).resolve()
+        for item in artifact.windows
+    }
+    expected_outputs = {
+        frame_id: (lidar_directory / f"{frame_id}.bin").resolve()
+        for frame_id in normalized_ids
+    }
+    if outputs != expected_outputs:
+        raise ValueError(
+            "KITTI-360 LiDAR integration outputs do not match lidar_directory"
+        )
+    return outputs
 
 
 def _read_opencv_yaml_scalars(path: Path) -> dict[str, float]:

@@ -1,0 +1,617 @@
+{
+  "$defs": {
+    "CameraLidarCorrectionVector": {
+      "additionalProperties": false,
+      "description": "One left-camera-frame SE(3) correction in axis-angle coordinates.",
+      "properties": {
+        "rotation_vector_deg": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rotation Vector Deg",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rotation_vector_deg",
+        "translation_m"
+      ],
+      "title": "CameraLidarCorrectionVector",
+      "type": "object"
+    },
+    "CameraLidarHitDefinition": {
+      "additionalProperties": false,
+      "description": "Prespecified success criterion matching the paper protocol.",
+      "properties": {
+        "comparison": {
+          "const": "strict_less_than",
+          "default": "strict_less_than",
+          "title": "Comparison",
+          "type": "string"
+        },
+        "rotation_error_max_deg": {
+          "exclusiveMinimum": 0.0,
+          "title": "Rotation Error Max Deg",
+          "type": "number"
+        },
+        "translation_error_max_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Translation Error Max M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rotation_error_max_deg",
+        "translation_error_max_m"
+      ],
+      "title": "CameraLidarHitDefinition",
+      "type": "object"
+    },
+    "CameraLidarPoseInitializerFailureCase": {
+      "additionalProperties": false,
+      "description": "Required and observed correction response for one perturbation.",
+      "properties": {
+        "aggregate_predicted_correction": {
+          "$ref": "#/$defs/CameraLidarCorrectionVector"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/CameraLidarPoseInitializerFrameResponse"
+          },
+          "minItems": 1,
+          "title": "Frames",
+          "type": "array"
+        },
+        "hit": {
+          "title": "Hit",
+          "type": "boolean"
+        },
+        "initial_path": {
+          "minLength": 1,
+          "title": "Initial Path",
+          "type": "string"
+        },
+        "initial_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Initial Rotation Error Deg",
+          "type": "number"
+        },
+        "initial_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Initial Sha256",
+          "type": "string"
+        },
+        "initial_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Initial Translation Error M",
+          "type": "number"
+        },
+        "manifest_path": {
+          "minLength": 1,
+          "title": "Manifest Path",
+          "type": "string"
+        },
+        "manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Manifest Sha256",
+          "type": "string"
+        },
+        "output_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Output Rotation Error Deg",
+          "type": "number"
+        },
+        "output_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Output Translation Error M",
+          "type": "number"
+        },
+        "pose_path": {
+          "minLength": 1,
+          "title": "Pose Path",
+          "type": "string"
+        },
+        "pose_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Pose Sha256",
+          "type": "string"
+        },
+        "required_correction": {
+          "$ref": "#/$defs/CameraLidarCorrectionVector"
+        },
+        "rotation_alignment_cosine": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": -1.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Alignment Cosine"
+        },
+        "rotation_orthogonal_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Orthogonal Ratio"
+        },
+        "rotation_parallel_gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Parallel Gain"
+        },
+        "translation_alignment_cosine": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": -1.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Alignment Cosine"
+        },
+        "translation_orthogonal_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Orthogonal Ratio"
+        },
+        "translation_parallel_gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Parallel Gain"
+        },
+        "trial_id": {
+          "minLength": 1,
+          "title": "Trial Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trial_id",
+        "initial_path",
+        "initial_sha256",
+        "manifest_path",
+        "manifest_sha256",
+        "pose_path",
+        "pose_sha256",
+        "initial_rotation_error_deg",
+        "initial_translation_error_m",
+        "required_correction",
+        "aggregate_predicted_correction",
+        "output_rotation_error_deg",
+        "output_translation_error_m",
+        "hit",
+        "frames"
+      ],
+      "title": "CameraLidarPoseInitializerFailureCase",
+      "type": "object"
+    },
+    "CameraLidarPoseInitializerFailureFinding": {
+      "additionalProperties": false,
+      "description": "One evidence-backed diagnostic association, not a causal claim.",
+      "properties": {
+        "caveat": {
+          "minLength": 1,
+          "title": "Caveat",
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "finding_id": {
+          "minLength": 1,
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "candidate_cause"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "supporting_trial_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Trial Ids",
+          "type": "array"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "severity",
+        "confidence",
+        "title",
+        "evidence",
+        "caveat"
+      ],
+      "title": "CameraLidarPoseInitializerFailureFinding",
+      "type": "object"
+    },
+    "CameraLidarPoseInitializerFailureProvenance": {
+      "additionalProperties": false,
+      "description": "Complete source lineage for a pose-initializer failure analysis.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "minLength": 1,
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "minLength": 1,
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Source Paths",
+          "type": "object"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "CameraLidarPoseInitializerFailureProvenance",
+      "type": "object"
+    },
+    "CameraLidarPoseInitializerFailureSummary": {
+      "additionalProperties": false,
+      "description": "Aggregate recovery and single-axis response statistics.",
+      "properties": {
+        "frame_response_count": {
+          "exclusiveMinimum": 0,
+          "title": "Frame Response Count",
+          "type": "integer"
+        },
+        "hit_count": {
+          "minimum": 0,
+          "title": "Hit Count",
+          "type": "integer"
+        },
+        "hit_rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Hit Rate",
+          "type": "number"
+        },
+        "mean_initial_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Mean Initial Rotation Error Deg",
+          "type": "number"
+        },
+        "mean_initial_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Mean Initial Translation Error M",
+          "type": "number"
+        },
+        "mean_output_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Mean Output Rotation Error Deg",
+          "type": "number"
+        },
+        "mean_output_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Mean Output Translation Error M",
+          "type": "number"
+        },
+        "single_axis_rotation_orthogonal_ratio": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Single Axis Rotation Orthogonal Ratio",
+          "type": "object"
+        },
+        "single_axis_rotation_parallel_gain": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Single Axis Rotation Parallel Gain",
+          "type": "object"
+        },
+        "single_axis_translation_orthogonal_ratio": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Single Axis Translation Orthogonal Ratio",
+          "type": "object"
+        },
+        "single_axis_translation_parallel_gain": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Single Axis Translation Parallel Gain",
+          "type": "object"
+        },
+        "trial_count": {
+          "exclusiveMinimum": 0,
+          "title": "Trial Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "trial_count",
+        "frame_response_count",
+        "hit_count",
+        "hit_rate",
+        "mean_initial_rotation_error_deg",
+        "mean_output_rotation_error_deg",
+        "mean_initial_translation_error_m",
+        "mean_output_translation_error_m"
+      ],
+      "title": "CameraLidarPoseInitializerFailureSummary",
+      "type": "object"
+    },
+    "CameraLidarPoseInitializerFrameResponse": {
+      "additionalProperties": false,
+      "description": "Provider correction and resulting error for one frozen frame.",
+      "properties": {
+        "export_path": {
+          "minLength": 1,
+          "title": "Export Path",
+          "type": "string"
+        },
+        "export_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Export Sha256",
+          "type": "string"
+        },
+        "frame_id": {
+          "minLength": 1,
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "output_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "Output Rotation Error Deg",
+          "type": "number"
+        },
+        "output_translation_error_m": {
+          "minimum": 0.0,
+          "title": "Output Translation Error M",
+          "type": "number"
+        },
+        "predicted_correction": {
+          "$ref": "#/$defs/CameraLidarCorrectionVector"
+        }
+      },
+      "required": [
+        "frame_id",
+        "export_path",
+        "export_sha256",
+        "predicted_correction",
+        "output_rotation_error_deg",
+        "output_translation_error_m"
+      ],
+      "title": "CameraLidarPoseInitializerFrameResponse",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-bound response analysis for one frozen pose-initializer matrix.",
+  "properties": {
+    "analysis_id": {
+      "minLength": 1,
+      "title": "Analysis Id",
+      "type": "string"
+    },
+    "benchmark_definition_id": {
+      "minLength": 1,
+      "title": "Benchmark Definition Id",
+      "type": "string"
+    },
+    "benchmark_definition_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Benchmark Definition Sha256",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarPoseInitializerFailureCase"
+      },
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "conclusion": {
+      "minLength": 1,
+      "title": "Conclusion",
+      "type": "string"
+    },
+    "correction_convention": {
+      "const": "left_camera_frame_se3",
+      "default": "left_camera_frame_se3",
+      "title": "Correction Convention",
+      "type": "string"
+    },
+    "dataset_id": {
+      "minLength": 1,
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarPoseInitializerFailureFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "hit": {
+      "$ref": "#/$defs/CameraLidarHitDefinition"
+    },
+    "partition": {
+      "enum": [
+        "development",
+        "evaluation"
+      ],
+      "title": "Partition",
+      "type": "string"
+    },
+    "problem_id": {
+      "minLength": 1,
+      "title": "Problem Id",
+      "type": "string"
+    },
+    "problem_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Problem Sha256",
+      "type": "string"
+    },
+    "protocol_id": {
+      "minLength": 1,
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "protocol_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarPoseInitializerFailureProvenance"
+    },
+    "provider_id": {
+      "minLength": 1,
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_pose_initializer_failure_analysis/v0.1",
+      "default": "slac.camera_lidar_pose_initializer_failure_analysis/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/CameraLidarPoseInitializerFailureSummary"
+    }
+  },
+  "required": [
+    "analysis_id",
+    "protocol_id",
+    "protocol_sha256",
+    "problem_id",
+    "problem_sha256",
+    "benchmark_definition_id",
+    "benchmark_definition_sha256",
+    "dataset_id",
+    "partition",
+    "provider_id",
+    "hit",
+    "summary",
+    "cases",
+    "conclusion",
+    "provenance"
+  ],
+  "title": "CameraLidarPoseInitializerFailureAnalysis",
+  "type": "object"
+}

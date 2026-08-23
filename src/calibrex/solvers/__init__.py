@@ -198,12 +198,15 @@ from calibrex.solvers.point_plane_lidar_camera_solver import (
     evaluate_point_plane_observations,
 )
 from calibrex.solvers.probabilistic_camera_lidar_refiner import (
+    INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID,
     ProbabilisticCameraLidarRefinementOptions,
     ProbabilisticCameraLidarRefinementResult,
     ProbabilisticCameraLidarRefiner,
     ProbabilisticPoseEvaluation,
     ProbabilisticPoseIteration,
+    ProbabilisticRefinementAcceptanceDecision,
     evaluate_probabilistic_camera_lidar_pose,
+    project_camera_point,
 )
 from calibrex.solvers.radar_ego_velocity_solver import (
     RadarDopplerObservation,
@@ -290,6 +293,7 @@ from calibrex.solvers.unicalib_lidar_camera_solver import UniCalibLidarCameraSol
 __all__ = [
     "ACFR_VLP_FORMAT",
     "ACFR_VLP_SOURCE_URL",
+    "INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID",
     "NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND",
     "NATIVE_HAND_EYE_COMPARISON_BACKEND",
     "NATIVE_JOINT_SLAC_BACKEND",
@@ -422,6 +426,7 @@ __all__ = [
     "ProbabilisticCameraLidarRefiner",
     "ProbabilisticPoseEvaluation",
     "ProbabilisticPoseIteration",
+    "ProbabilisticRefinementAcceptanceDecision",
     "RadarDopplerObservation",
     "RadarEgoVelocityResult",
     "RadarEgoVelocitySolver",
@@ -488,6 +493,7 @@ __all__ = [
     "lidar_pair_dataset_files",
     "lidar_pair_solve_inputs",
     "load_lidar_pair",
+    "project_camera_point",
     "radar_joint_spatiotemporal_rmse",
     "radar_spatiotemporal_rmse",
     "radar_trajectory_rotation_rmse",

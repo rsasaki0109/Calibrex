@@ -92,6 +92,14 @@ The solid-state metrics are deliberately separated from accuracy claims:
    windows for its offline holdout; the online adapter records the same
    boundary decision in provenance.
 
+For continuous-time LiDAR-pair refinement, the result also embeds a
+schema-valid `train_diagnostics` artifact. It contains final train residual
+percentiles, fixed range bins, train-side MAD rejection counts, and the
+candidate clock profile. Its `holdout_used_for_selection` field is a schema
+constant set to `false`, so these diagnostics can be used to design the next
+solver variant without accidentally turning the temporal holdout into a tuning
+signal. The standalone contract is `schemas/continuous_time_lidar_train_diagnostics.schema.json`.
+
 The public Horizon-Horizon PCD sample is intentionally limited: it is a
 single source/target pair, so its point-to-plane result is useful geometry
 evidence but not independent temporal validation.  For a publishable claim,

@@ -6,28 +6,214 @@ on 31 July 2026 after reviewing current papers and public implementations.
 
 ## Current position
 
-Calibrex is not SOTA today. The fixed KITTI raw 0005 benchmark proved that the
-native I2I solver could be made 1.719 times faster without changing its result,
-but neither the scalar nor optimized path recovered any of the six prescribed
-`+0.10 m` or `+10 deg` perturbations.
+Calibrex is not SOTA today. The final v0.7 `integrated-r5-numba-v03-v02`
+audit reran KITTI raw 0018 and KITTI-360 drive 0000 without changing the
+frozen `(0.5 deg, 0.5 m)` perturbations, 200 directions, optimizer, or strict
+`<0.5 deg / <0.20 m` hit definition. Every D2D optimization converged with
+zero execution failures, but the accuracy results diverged:
 
-The first geometry-first rotation milestone is now complete on both Phase 1
-datasets. The native D2D solver recovered every frozen `1, 2, 10 deg`
-direction on KITTI raw 0018 and KITTI-360 drive 0000. At `20 deg`, it recovered
-178/200 on KITTI raw and 184/200 on KITTI-360; both datasets have a low median
-but a large p90 or p95, exposing a real direction-dependent capture limit.
-The first full six-DoF cell is also complete on KITTI raw 0018. At the frozen
-`(0.5 deg, 0.25 m)` perturbation, all 200 optimizations completed but only
-84/200 met the strict `<0.5 deg / <0.20 m` hit definition. The zero
-computational failures and 42% hit rate isolate an accuracy/capture limitation
-rather than an execution failure. The remaining seven six-DoF cells,
-independent datasets, and external learned baselines remain open. These are
-therefore reproduction and falsification milestones, not a SOTA claim.
+| Dataset | Strict hits | Bootstrap 95% CI | Frozen gate | Rotation error mean / p95 | Translation error mean / p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| KITTI raw 0018 | 85/200 (42.5%) | 35.5--49.5% | >=88%: fail | 0.5321 / 0.7114 deg | 0.1303 / 0.1771 m |
+| KITTI-360 drive 0000 | 161/200 (80.5%) | 74.5--86.0% | >=76.5%: pass | 0.3340 / 0.7674 deg | 0.03937 / 0.05487 m |
 
-Phase 3 and Phase 4 now have schema-valid native refinement, paired ablation,
-reference-error, trajectory, and audit boundaries, but their current tests are
-synthetic. No U1--U5 or asynchronous real-sequence accuracy result has been
-promoted into this current-position summary.
+The paired D2D rotation-error improvement over the unoptimized perturbation
+is contradicted on KITTI raw (mean `-0.03205 deg`, 95% CI
+`[-0.04500, -0.01928]`) and supported on KITTI-360 (mean `0.16605 deg`,
+95% CI `[0.13601, 0.19400]`). Translation improves on both datasets. The raw
+hit-rate and paired-rotation failures therefore remain capture/accuracy
+limitations even though the solver itself is operational.
+
+The v0.7 safety checkpoint separates an optimized candidate from the published
+output. Candidate acceptance uses fit evidence only; holdout is retained solely
+for evaluation. Non-converged, near-bound, non-finite, support-losing, or
+immaterial candidates retain their status and pose errors but roll back to the
+D2D initializer. The unchanged five-seed falsification runs produced 1,000
+schema-valid cases per dataset:
+
+| Dataset | Candidate acceptance | Failure-aware refined benchmark | Final rotation / translation failures | Final mean error | Assessment |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| KITTI raw 0018 | 992 accepted, 8 rolled back | 471 success, 529 failure | 271 / 28 | 0.4456 deg / 0.1333 m | fail |
+| KITTI-360 drive 0000 | 0 accepted, 1,000 rolled back | 0 success, 1,000 failure | 195 / 0 | 0.3340 deg / 0.03937 m | fail |
+
+On KITTI raw, the 471 valid pairs support a mean rotation improvement of
+`0.05830 deg` with 95% CI `[0.04306, 0.07408]`, but the 52.9% failure-aware
+rate and translation interval crossing zero prevent a refinement claim. On
+KITTI-360, all results roll back before optimization: 600 report
+`missing_holdout`, 400 report `insufficient_correspondences`, and no paired
+refined accuracy statistic exists. The known-bad summaries also fail
+(raw: 7,501/12,000 supported detections; KITTI-360: 2,400/12,000), so both
+overall assessments fail the holdout, known-bad, and decision-boundary gates.
+
+Post-hoc correspondence-quality reports localize this support failure without
+affecting selection. A final raw rollback case accepts 112/2,834 matches
+(3.95%), with 2,589 below confidence, 85 behind the camera, 48 outside the
+image, and only 7/25 frames meeting minimum support. The final KITTI-360
+rollback case accepts 33/2,269 (1.45%): 2,233 are below confidence, three are
+behind the camera, only 2/25 frames meet minimum support, and its train/holdout
+counts are 27/6 against required minima 24/8. Both have aggregate rank six,
+but frame-level support is too sparse; raw is graded `warn` and KITTI-360
+`fail`. Provider confidence calibration and frame-level support are therefore
+the next development gate.
+
+The v0.7 provider/PnP lock was selected only on KITTI-360 drive 0002 as a
+development sequence. A fixed grid of seven confidence thresholds and five
+RANSAC reprojection thresholds was evaluated with seeds `0--4`; two of the 35
+candidates passed the prespecified recovery gate, and the deterministic
+highest-confidence/lowest-threshold rule selected `confidence=0.4` and
+`RANSAC=32 px`. The lock also fixes four minimum total correspondences, four
+per frame, four supporting frames, RANSAC confidence `0.999`, 10,000
+iterations, and Mahalanobis threshold `3.0`. Its schema-valid artifact is
+`initializer-calibration-v05-integrated-r5-v01.yaml`, with SHA-256
+`67984d38a3213419b054074be031ddde1d1255f00ce36bf4ca74e7c6909c6d68`.
+It explicitly excludes KITTI raw 0018 and KITTI-360 drive 0000, declares that
+evaluation data was not used for selection, and keeps SOTA release permission
+false. The SuperGlue checkpoint remains non-redistributable under its
+non-commercial license reference, and possible training overlap with the
+KITTI family is unknown. The official D2D protocol and fit-only acceptance
+policy remain fixed implementation/protocol settings and are not retuned from
+intermediate evaluation outcomes.
+
+That development lock applies to aggregate PnP only. The multi-frame
+reprojection refiner has a different objective and does not repurpose the
+PnP-selected `0.4` confidence threshold. Its v0.7 falsification run retains
+the source-prespecified defaults (`minimum_confidence=0.25` and the recorded
+fit-only acceptance thresholds) because no independently accepted refinement
+calibration exists. This is an untuned safety/failure evaluation, not evidence
+that the refinement thresholds are accuracy-optimal.
+
+A post-v0.7 provider-support comparison now makes that missing refiner lock
+machine-enforceable. Three geometric v0.2 confidence calibrations for the same
+KITTI-360 drive 0002 development problem were compared under the same 13-point
+confidence grid, ten split seeds, 25% holdout, geometric gates, and explicit
+exclusion of raw 0018 and KITTI-360 drive 0000. Adapter v0.5 is the diagnostic
+leader at confidence `0.01`: 1,558 accepted correspondences, 82 geometric
+inliers, minimum train support 37, and 24% frame geometric support. Its minimum
+holdout geometric support is nevertheless zero. Adapter v0.3 and v0.4 also
+have zero minimum holdout geometric support, with only 4 and 2 aggregate
+geometric inliers at their diagnostic points. Therefore all three remain
+runtime-ineligible, the comparison status is `rejected`, and no threshold or
+provider is locked. The schema-valid
+`provider-support-comparison-v01-rejected.yaml` artifact has SHA-256
+`5785bc36ba5c65063e9b264c69bc5cde934d9f2c31ac1663f3ede62e3bc396f1`.
+
+A second independent development capture was then materialized from
+KITTI-360 drive 0003. Twenty-five center frames uniformly cover the safe pose
+range 6--1025; each center has an official, CRC/SHA-256-pinned +/-5-frame
+Velodyne window, official-pose motion compensation, a pinned MiDaS v3.1 depth
+map, and the same Koide virtual-LiDAR SuperGlue adapter. The 550-member window
+selection, 25 integrated clouds, and both provider artifacts are separate from
+the v0.7 evaluation data. Outdoor SuperGlue produces 1,858 raw
+correspondences; at the diagnostic confidence `0.01`, 1,049 remain but only 10
+are 8-pixel geometric inliers. Its minimum train/holdout counts are 2/0 and
+only 4% of frames contain four geometric inliers. The standard indoor
+checkpoint fails the provider boundary with only two valid matches in one
+frame. Retaining score-below-0.01 matches makes the export complete without
+changing the fixed calibration grid; at `0.01`, indoor retains 276
+correspondences and zero geometric inliers. Both calibrations are rejected and
+runtime-ineligible. The schema-valid outdoor-versus-indoor comparison has
+SHA-256
+`530e088668362c9f3c6b53068272fbe3edb787eb2d76ebc61347238f2cc15d5e`.
+
+Two disjoint development captures now exhibit the same geometric failure, so
+additional confidence, checkpoint, or MI-schedule retuning is not the next
+action. A materially different cross-modal correspondence construction must
+first produce nonzero worst-split geometric holdout support.
+
+I2PNet was then audited as that materially different RGB--LiDAR candidate on
+two endpoint frames from the KITTI raw 0018 development run. The adapter pins
+the official MIT repository at commit
+`7675f7f362be5c5ccbaab6ccea63a37ca377c633` and the official KITTI-large
+checkpoint at SHA-256
+`1c56e7a362075db53c073aa4e8d38492811a8f52983740b3627d3085c80f422a`.
+It accepts only an explicit provenance-bearing initial transform and never
+accepts the problem/reference artifact. The fine cost-volume weighting layer
+in this checkpoint is effectively zero and gives a uniform 32-candidate
+distribution, so the diagnostic export instead captures the learned coarse
+global cost volume. That export is also too diffuse: 377 correspondences have
+mean reliability `0.000032333`, far below the prespecified `0.01` diagnostic
+gate, and accepted projections at the dataset reference have mean/median
+reprojection errors of `314.11/279.80 px`. The correspondence verdict is
+therefore `rejected`; it must not be used by PnP or the probabilistic refiner.
+
+The model's intended direct pose output is materially different. From a fixed
+development perturbation of `10 deg / 1.37049 m`, the two individual frames
+reach `0.17947 deg / 0.06565 m` and `0.08438 deg / 0.10295 m`;
+quaternion/translation aggregation reaches `0.04847 deg / 0.08211 m`. This is
+promising initializer
+evidence only, not a correspondence success or holdout claim. The schema-valid
+manifest, provider-neutral diagnostic artifact, and pose result have SHA-256
+values `30b302d5c7e2ffea973b811bd093ea1548258e87f1c1bd61a430cf52120c0195`,
+`84c4b83e328311080b88713853ed8a58f9ce2573017c83529a81964c33371d4d`, and
+`888cfb821734614dc8ed0554610c882c344303caf931082f44593fc81b32cb96`.
+
+The next development gate is now complete. A frozen protocol excludes those
+two exploratory endpoint frames and uses frames 115, 1381, and 2646 for four
+previously unseen axis-specific and coupled perturbations. The adapter uses
+frame-derived NumPy/Torch seeds, deterministic PyTorch algorithms, and a fixed
+cuBLAS workspace; two isolated same-frame executions produced bitwise-equal
+correspondence arrays and pose output. I2PNet completed all four provider runs,
+but the strict `<0.5 deg` and `<0.2 m` hit rate was 0/4. Mean rotation error
+changed from `8.10464` to `6.70429 deg`, while mean translation error changed
+from `0.40395` to `0.37994 m`. The Y-rotation trial recovered from `5.0` to
+`0.21140 deg`, but retained `0.27752 m` translation error; X, Z, and coupled
+trials also missed the joint gate. The schema-valid protocol, benchmark
+definition, and aggregate benchmark have SHA-256 values
+`191d3a84d2dbfe91ae7603f2d1f953f738be5c1d7ddca95c356eb59d80cfcb34`,
+`9791d444e65387e19ed1a3b88eb0606d40264a4b7cc153ca12ae56827d4c7852`, and
+`1b107eb62ae209b75de54b7671f7922f9d885a8774a46e1846e778e720d8a9f8`.
+This is development-only evidence. The available KITTI-360 material exposes
+an `image_03` MEI fisheye stream rather than the rectified pinhole input
+required by the official KITTI-large checkpoint, so the evaluation lock was
+not opened. The next valid gate requires a disjoint rectified-pinhole sequence
+and then an independent non-KITTI rig; no release or SOTA claim changes.
+
+The digest-bound response analysis sharpens the development diagnosis. Across
+the three single-axis trials, signed parallel rotation gain is `0.002904` on X,
+`0.957952` on Y, and `-0.000960` on Z. Signed translation gain is `1.374653`
+on X, `-0.023960` on Y, and `0.949139` on Z. Translation orthogonal leakage,
+normalized by required correction magnitude, is `1.077527`, `0.431134`, and
+`0.705795` respectively. Thus the checkpoint responds strongly to pitch and
+X/Z translation while nearly suppressing roll, yaw, and Y translation; this
+axis anisotropy is inconsistent with one global composition-order error. The
+analysis replays all 12 frame corrections and binds all protocol, problem,
+definition, initial, manifest, pose, export, analyzer, and schema-source
+digests. Its schema-valid artifact SHA-256 is
+`78a741cbfd27b56f101a64b2bf67443ef7e4d7af1fda1bbc1fcf0e35ea521bc0`.
+This remains a medium-confidence candidate cause limited to the current
+checkpoint and development sequence, not proof of an architectural defect.
+
+The optional Numba CPU projection adapter remains outside the dependency-free
+core default. Exact backend identity is required in every trace, and aggregate
+or resume paths reject mixed solvers. An independent pure-matrix audit
+recomputed all 200 traces and 400 protocol trials per dataset, including
+initial transforms, strict-hit decisions, final pose errors, solver identity,
+and provenance. All checks passed; maximum recomputation disagreement was
+`7.53e-12 deg` on raw and `2.85e-11 deg` on KITTI-360. Final-source trial 000
+was also rerun for 289 objective evaluations on each dataset. The canonical
+payloads excluding runtime/execution provenance were exactly equal, with
+SHA-256 `51acf159304f5bcc78ddf4ac37166b08fd05cc6f599dfff7ac323b741d5822f4`
+for raw and
+`4b588e1a6418475c0ad31ccb58cfc4dfec8dbc66305e84f13952fdf0e09736f4`
+for KITTI-360.
+
+Koide and UniCalib readiness artifacts are schema-valid, MIT-licensed,
+subprocess-bound, and intentionally `not_executed`. They contain no output
+transform tied to the frozen inputs, so their metrics are non-comparable.
+UniCalib also lacks checkpoint/train-test isolation; its documented
+KITTI-360 input uses rectified `image_00`, whereas this frozen problem uses the
+`image_03` MEI camera. No independent non-KITTI rig is available.
+
+The digest-frozen learned-targetless SOTA audit therefore returns `refuted`.
+Only KITTI-360 counts as an achieved dataset family, independent-rig coverage
+is zero, raw contradicts the hit and paired-rotation gates, and both
+failure-aware refiners contradict the zero-failure gate. The audit protocol
+and result SHA-256 values are
+`47781a33a112b9b5d45f832c0d6142a5a47c6ecbc318423369d3fbca2e37df61`
+and
+`65459d73debb13016b138bac6dd7eedbbcdb589067d47be77b06371946193fca`.
+These are reproduction, safety, and falsification milestones; no SOTA claim is
+allowed.
 
 ## Claim ladder
 
@@ -510,6 +696,10 @@ Deliver:
 
 Implementation checkpoint:
 
+The entries in this Phase 2 checkpoint are historical execution milestones.
+The final v0.7 integrated-r5 results and digests in **Current position** and
+the v0.7 release-audit subsection supersede them for current comparisons.
+
 - The first frozen real KITTI-360 six-DoF smoke completed from a paired
   `(0.5 deg, 0.5 m)` perturbation. The bounded native solver converged in
   `165.90 s` and returned `0.2505 deg / 2.08e-17 m`, satisfying the strict
@@ -547,6 +737,18 @@ Implementation checkpoint:
   `8dbc26f921468480470700fd309a8a3361333f71feab002786425e2bac1a9750`.
   All 200 trace schemas, trial identities, problem/protocol identities, and
   benchmark source digests were independently checked.
+- The corresponding KITTI-360 full cell also completed all 200 trials. Native
+  D2D errors were rotation mean/median/p90/p95/max
+  `0.3203/0.3062/0.5803/0.6943/0.8648 deg` and translation
+  `0.03069/0.03188/0.05199/0.05776/0.07050 m`; 170/200 passed the strict
+  hit definition. Mean/median/p90 runtime was `365.55/356.85/493.21 s`,
+  with a maximum of `631.15 s`. Its schema-valid problem, protocol,
+  definition, and benchmark digests are
+  `f097d9e4b7fcb7ddafb5fb3285687cdf9d5fcd8ce53e93c18b74cb469cf52d8e`,
+  `b718eea98cdf114cdac5c9c360716308ec22d42ac13e4f27baf852f5e8a0e530`,
+  `b6aaaef7fd56fcceacee8a2939d707663b3d04b931ac642148f2364ec1f3b23a`,
+  and `20f2993fdaa924edbbe4cd8303240697c71f6de6c534e198e4c1670e241502bf`
+  respectively.
 
 Gate:
 
@@ -603,6 +805,64 @@ Implementation checkpoint:
   intervals are all retained. Its optional `--initial-trace` pins the same
   actual D2D output across every method and split. Real U1--U5 provider output
   is still required before these ablations support a paper claim.
+- `calibrex camera-lidar benchmark-probabilistic-falsification` joins
+  digest-matched D2D candidates to probabilistic multi-frame refinement. It
+  requires a schema-valid `six_dof` D2D protocol and either one trace for a
+  focused smoke or a complete `--trace-dir` containing one trace per protocol
+  perturbation. The full mode runs each D2D initialization trial with seeded
+  disjoint capture-frame holdouts, evaluates twelve signed roll/pitch/yaw and
+  x/y/z known-bad controls per split, and emits schema-valid results,
+  assessment/protocol/policy sidecars, and a raw-recomputed evidence bundle.
+  A known-bad threshold failure is retained as an explicit `fail`; it does not
+  disappear behind a successful solver status. The single-trace mode is a
+  diagnostic subset and is labeled as incomplete D2D coverage in the evidence.
+- The initializer-preserving evidence contract is identified as
+  `camera_lidar_targetless_6dof_refinement/v0.2`. A rollback remains a safe
+  published pose, but it is a failed refinement trial rather than a successful
+  no-op; method failure rate and paired confidence intervals therefore cannot
+  be improved by silently returning the initializer.
+- Every integrated run also emits `failure-analysis.json`. It reloads and
+  digest-checks the protocol, D2D traces, and refinement results, then retains
+  per-case D2D/refinement rotation and translation failures, p90 pose errors,
+  holdout degradation, and explicitly non-causal diagnostic findings.
+
+Example invocation:
+
+```bash
+calibrex camera-lidar benchmark-probabilistic-falsification \
+  /path/to/correspondence.yaml /path/to/problem.yaml \
+  --protocol /path/to/six-dof-protocol.yaml \
+  --trace-dir /path/to/six-dof-traces \
+  --output-dir /path/to/falsification
+```
+
+The complete real-data sequence is intentionally two commands. First execute
+and retain every fixed six-DoF D2D trial; then feed that trace directory into
+the probabilistic pack:
+
+```bash
+calibrex camera-lidar benchmark-six-dof \
+  /path/to/problem.yaml /path/to/six-dof-protocol.yaml \
+  --trace-dir /path/to/six-dof-traces \
+  --definition-output /path/to/six-dof-definition.yaml \
+  --output /path/to/six-dof-benchmark.yaml \
+  --workers 4 --projection-backend numba_cpu --resume
+
+calibrex camera-lidar benchmark-probabilistic-falsification \
+  /path/to/correspondence.yaml /path/to/problem.yaml \
+  --protocol /path/to/six-dof-protocol.yaml \
+  --trace-dir /path/to/six-dof-traces \
+  --output-dir /path/to/falsification
+```
+
+The falsification command verifies every trace against the problem and
+protocol SHA-256 values before running refinement, so a partial, stale, or
+cross-sequence trace directory is rejected rather than silently sampled.
+All traces in a complete directory must also share one exact solver/backend
+identity, preventing a numerically mixed run from entering the evidence pack.
+The optional `numba_cpu` backend must be selected explicitly; omitting the
+flag retains the dependency-free NumPy implementation. Backend identity and
+dependency version are pinned in each trace and cannot be mixed by `--resume`.
 - Each refinement result records the problem's digest-pinned reference
   transform plus initial/final Euclidean translation and
   quaternion-geodesic rotation errors. The paired ablation aggregates these
@@ -611,9 +871,125 @@ Implementation checkpoint:
   the SOTA audit rather than being inferred from a pixel objective.
 - The current adapter is a typed, provenance-complete evaluation boundary; it
   is not yet evidence for the U1--U5 accuracy or runtime gates. D2D-seeded
-  multi-frame refinement and paired synthetic ablations are implemented; a
-  real shared-depth provider, frozen U1--U5 executions, and paired real-data
-  confidence intervals remain required.
+  multi-frame refinement, paired synthetic ablations, and the integrated
+  falsification/evidence pack are implemented; a real shared-depth provider,
+  frozen U1--U5 executions, and paired real-data confidence intervals remain
+  required.
+
+### v0.6 real-data execution log (10 August 2026)
+
+This subsection is a historical record and is superseded by the v0.7
+integrated-r5 release audit below. Its correspondence counts, six-DoF cells,
+and falsification outcomes must not be quoted as the current result.
+
+The first real-data v0.6 lock uses 25 endpoint-inclusive frames from KITTI raw
+`2011_09_30_drive_0018_sync/image_02` and KITTI-360
+`2013_05_28_drive_0000_sync/image_03`. The correspondence boundary is the
+Koide virtual-LiDAR SuperPoint/SuperGlue adapter, with its MIT Koide commit,
+non-commercial SuperGlue commit/checkpoints, per-file SHA-256 values, and
+dataset license recorded in the export and provider-neutral artifacts. The
+adapter is a subprocess-side tool; no external GPL or ROS dependency enters
+`src/calibrex`.
+
+The regenerated provider artifacts contain 978 raw and 1,146 KITTI-360
+correspondences. Both export manifests and provider-neutral artifacts validate
+against their schemas. The raw 200-perturbation six-DoF D2D source is complete;
+its integrated 1,000-case probabilistic falsification bundle is also complete
+and verification-valid. Its measured result is a policy `fail`: D2D initializes
+425/1,000 cases, rotation failure is 575/1,000, translation failure is
+65/1,000, and every probabilistic result is retained as
+`insufficient_correspondences`. A relaxed diagnostic confirms that the
+optimizer itself runs (292 iterations) but moves the raw estimate from
+`0.434 deg / 0.144 m` to `3.867 deg / 0.258 m`; this is provider-quality
+evidence, not a calibration claim.
+
+A one-perturbation KITTI-360 smoke path first completed the full
+D2D-trace → probabilistic-refinement → failure-analysis → evidence-bundle
+chain with valid schemas and verification. The subsequent complete
+200-perturbation path ran 1,000 probabilistic cases (five seeded holdouts per
+D2D trace) and retained every result. D2D initialized 850/1,000 cases; the
+probabilistic refiner converged in 0/1,000, with rotation and translation
+failure in 1,000/1,000. Mean final reference errors were `3.5427 deg` and
+`0.4431 m`; p90 values were `3.8161 deg` and `0.4704 m`. The known-bad pack
+contained 12,000 controls, with 7,463 mandatory supported detections and a
+0.6219 materialized pass fraction, but its declared summary still failed.
+The overall assessment is `fail` for three policy gates (holdout support,
+known-bad controls, and the decision boundary); `verification.json` is valid
+with zero issues and all 1,007 bundle artifacts checked. This is evidence of
+the current provider/refinement failure mode, not a calibration claim.
+
+The key KITTI-360 v0.6 artifact digests are:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| SuperGlue correspondence export | `7e604969d46bbb5fb0f4916363d050b5d01f8804de23600bc51efeca4f7e61f4` |
+| Correspondence artifact | `cf9956d872b0a96325f783c2774f59f35659d25175750d231969959fa20c7998` |
+| Six-DoF benchmark | `20f2993fdaa924edbbe4cd8303240697c71f6de6c534e198e4c1670e241502bf` |
+| Falsification benchmark | `15b727aee7c318cf5cabb8391927a51a3df149021e7f327ac84cf0e3637221a7` |
+| Failure analysis | `461e39215fa7c95d37385b26aea84b5cafcd9ab965d4619f9608a8f1b2e75c0a` |
+| Evidence bundle | `350703e3464ef54346ab36a9472e72deefa4b44aa03f85ce3915707fd9b4c7c0` |
+| Bundle verification | `015b9b996672b0fb7688baf60ddd7731fff266c19d560fe20f446f926d22e401` |
+
+External baseline comparison and any SOTA wording remain deferred until the
+provider/refinement failure tail is understood and independent accuracy gates
+are available.
+
+### v0.7 integrated-r5 release audit (11 August 2026)
+
+The v0.7 release sequence freezes provider/PnP settings only on the disjoint
+KITTI-360 drive 0002 development sequence. Its 35-candidate, five-seed grid
+selects `minimum_confidence=0.4` and `RANSAC=32 px`; the lock excludes both
+evaluation sequences, declares `evaluation_data_used_for_selection=false`,
+and keeps `release_sota_claim_allowed=false`. The multi-frame refiner does not
+reuse that PnP threshold. It retains the source-prespecified
+`minimum_confidence=0.25` and fit-only acceptance policy as an untuned
+safety/failure evaluation.
+
+The official evaluation artifacts contain 2,834 raw and 2,269 KITTI-360
+correspondences over the same 25 endpoint-inclusive frames. Both D2D packs use
+the same 200 frozen `(0.5 deg, 0.5 m)` perturbations and strict
+`<0.5 deg / <0.20 m` gate. Independent matrix/quaternion auditing reproduced
+all 200 trace inputs, outputs, hits, solver identities, and both 200-trial
+protocol definitions. Final-source trial-000 reruns repeated 289 evaluations
+per dataset and were canonically exact after excluding runtime and execution
+provenance.
+
+Each probabilistic pack contains exactly 1,000 current-run result files, with
+no missing, unexpected, or stale names. Its saved verification was recomputed
+from the bundle: all 1,007 artifacts and 203 raw inputs passed digest and
+linkage checks. Raw has 2,226 successful verification claims and 1,004
+documented skips; KITTI-360 has 2,228 successful claims and 1,004 skips after
+also checking the saved verification record. Neither has a failed
+verification claim.
+
+The principal immutable digests are:
+
+| Artifact | KITTI raw 0018 SHA-256 | KITTI-360 drive 0000 SHA-256 |
+| --- | --- | --- |
+| Correspondence artifact | `da5b8473717b5c2f8d51d80b89b4642819f97e22230c03d8e2e636ad1abaf625` | `2f7f6e45c3d9881c5320623ffe535919e7e34a023da8ee49d3f84b2455af5c0e` |
+| Six-DoF benchmark | `da520214e3d9e6c183ef65eecfe4c2823bbd24629be440ce462f0e18e61bd329` | `307cea7137ecdddf15f206d4870030b5c2f2d236e9d947c2d3bf2f64888bf9c1` |
+| Falsification benchmark | `c3db90c23cda6cd7e7b7e3f927bcb41f21eb985aaf45be11c1c70b520b29d607` | `f2430c4f23d386a817aa1e65e17e7ba5e7dc655f26b729b2629249d3611a21d0` |
+| Failure analysis | `36be1e8278fed4c6176de99ad58fe1f07cc50db434fba962ecdc0103a38a78aa` | `057f7119abf01dde493f8ede367dded864e286c229c61d55d8719bf2f32ef605` |
+| Falsification bundle | `f3d5bc9cc983598e6dba781504db0d34e520fc8cebe377c86387c133537aed4f` | `93ff9f8485b3ef9fbe379981c6a782c0c0de8c3543e5269590eecc6481c8253c` |
+| Bundle verification | `723daccb7df404243e6c8664bc67f0830b42b46eb92e6b67ea1fc6aaafc80afd` | `305f6dc49219d52fe8f198a8fdbbd8f974f6a50b57cfea3019629adf6fb5d81a` |
+| Selected-pose quality report | `51ac5da493a99b3ed1fc7e5a72bc9ddbca9afd43ddfc5431ccf657ef3927030a` | `133d9de875ce172084bb4e1123341a163d90f44b3442a87ee64e9e2f33863a25` |
+| Independent trace audit log | `0d80f4a976653382acc63fc8241b0989e1cdeb7dac5eda9947284590c6caaf45` | `f3bc480c3bab3429988e557b3c17fd52a21fc56c0266b6c1f55bcf38811b7cfa` |
+
+The final learned-targetless audit binds these artifacts plus the development
+lock, quality reports, external readiness audits, and nested verifications.
+It is schema-valid and returns `refuted`: raw D2D contradicts its hit and
+paired-rotation gates, both refiners contradict zero failure, KITTI-360 has no
+paired refined result, external comparisons are not executed, and independent
+rig coverage is zero. No SOTA claim follows from v0.7.
+
+Release checks pass with Ruff, strict mypy over 206 source files, and the full
+827-test collection (`815 passed, 12 skipped`). A clean Python 3.12 venv with
+system site-packages disabled installs the wheel, passes `pip check`, imports
+Calibrex from the installed wheel, and validates a final quality artifact. The
+wheel and sdist SHA-256 values are respectively
+`9d33fb35e2019fd64a99c30f23dcf64548284abc8f99dd7723b1950a652750d0`
+and
+`b9a1652577d42251291d3803bea0110f744fa6d4467137cbc05baf9de114ed88`.
 
 Gate:
 
@@ -737,19 +1113,31 @@ Final claim gate:
 - No primary metric, failure rate, or worst-stratum result is materially worse.
 - All claims map to schema-valid artifacts and can be independently rerun.
 
-## First implementation issues
+## Next implementation issues
 
 The first three PR-sized issues are:
 
-1. **Generic external-run artifact + UniCalib adapter.**
-   This follows the existing development roadmap and establishes a real SOTA
-   baseline before native algorithm work.
-2. **Depth-map/provider schemas + deterministic D2D evaluator.**
-   This creates the GPL/ROS/CUDA-safe boundary and verifies objective topology
-   without optimization.
-3. **Rotation-only bounded D2D optimizer + exact paper protocol.**
-   This is the first go/no-go experiment and must land before six-DoF or
-   learned refinement.
+1. **Implement a materially different cross-modal correspondence provider.**
+   The like-for-like comparison boundary is implemented, and drive 0002 plus
+   the new disjoint drive 0003 capture both fail the geometric holdout gate.
+   Outdoor/indoor SuperGlue checkpoint variation does not recover geometry.
+   Replace the virtual-intensity matching construction, preserve
+   checkpoint/license isolation, and require a schema-valid lock on both
+   development captures before any evaluation rerun. Do not continue
+   confidence or matcher-threshold retuning against the same zero-support
+   family.
+2. **Refinement objective and acceptance calibration.**
+   On disjoint development captures with adequate train and holdout support,
+   compare reprojection-only, geometry-aware robust SE(3), probabilistic PnP,
+   and coarse-to-fine variants. Keep fit-only initializer-preserving acceptance,
+   retain every rejected candidate, and freeze the provider/refiner thresholds
+   before any evaluation rerun.
+3. **Comparable baselines and independent-rig evidence.**
+   Execute Koide and UniCalib on projection-compatible copies of the exact
+   frozen protocol, recompute Calibrex metrics, bind checkpoint/train-test
+   isolation, and add at least one non-KITTI rig. Reopen the SOTA audit only
+   after raw capture, refiner failure, external comparison, and rig-coverage
+   gates are all independently satisfied.
 
 ## Expected outcome
 
@@ -762,6 +1150,7 @@ network.” It is a hybrid system:
 4. unusually strong provenance, falsification, failure retention, and
    cross-dataset reproducibility.
 
-If Phase 1 reaches the published D2D capture range, the project has a credible
-analytical-SOTA path. If Phase 3 also clears the UniCalib gates across held-out
-rigs, Calibrex can pursue a general targetless SOTA claim.
+The next credible claim requires the raw D2D capture gate, both failure-aware
+refinement gates, exact external rescoring, and independent-rig coverage to
+pass together. Until then, the publishable contribution is the auditable
+calibration and falsification framework, not an accuracy-SOTA label.

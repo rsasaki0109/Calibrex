@@ -7,6 +7,9 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
+from calibrex.core.continuous_time_lidar_train_diagnostics import (
+    ContinuousTimeLidarTrainDiagnostics,
+)
 from calibrex.core.result import StrictModel, TransformResult
 
 CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: Literal[
@@ -123,6 +126,7 @@ class ContinuousTimeLidarPairArtifact(StrictModel):
     reason: str
     options: ContinuousTimeLidarPairOptionsArtifact
     iterations: list[ContinuousTimeLidarPairIterationArtifact] = Field(default_factory=list)
+    train_diagnostics: ContinuousTimeLidarTrainDiagnostics | None = None
     provenance: ContinuousTimeLidarPairProvenance
 
 

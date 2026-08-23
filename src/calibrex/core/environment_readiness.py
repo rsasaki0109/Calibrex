@@ -253,7 +253,8 @@ def _dependency(name: str, *, optional: bool = False) -> ReadinessDependency:
 
 
 def _installed_version(module_name: str) -> str | None:
-    from importlib.metadata import PackageNotFoundError, version as pkg_version
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as pkg_version
 
     distribution = _PACKAGE_DISTRIBUTIONS.get(module_name, module_name)
     try:

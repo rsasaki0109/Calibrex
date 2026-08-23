@@ -1,0 +1,522 @@
+{
+  "$defs": {
+    "KoideContainerConfig": {
+      "additionalProperties": false,
+      "description": "Container isolation controls for a Koide stage.",
+      "properties": {
+        "cpus": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cpus"
+        },
+        "engine": {
+          "default": "docker",
+          "enum": [
+            "docker",
+            "podman"
+          ],
+          "title": "Engine",
+          "type": "string"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "image_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Digest"
+        },
+        "input_dir": {
+          "format": "path",
+          "title": "Input Dir",
+          "type": "string"
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory"
+        },
+        "network_mode": {
+          "const": "none",
+          "default": "none",
+          "title": "Network Mode",
+          "type": "string"
+        },
+        "output_dir": {
+          "format": "path",
+          "title": "Output Dir",
+          "type": "string"
+        },
+        "workdir": {
+          "default": "/calibrex/output",
+          "title": "Workdir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input_dir",
+        "output_dir"
+      ],
+      "title": "KoideContainerConfig",
+      "type": "object"
+    },
+    "KoideStageConfig": {
+      "additionalProperties": false,
+      "description": "One argv-only stage in the official preprocess/initialise/calibrate flow.",
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "name": {
+          "enum": [
+            "preprocess",
+            "initial_guess",
+            "calibrate"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        }
+      },
+      "required": [
+        "name",
+        "argv"
+      ],
+      "title": "KoideStageConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Public, schema-validatable configuration for a Koide workflow.\n\n``FactorConfig.options`` remains an open compatibility map.  Callers that\nwant typed validation can use this model directly or\n:func:`koide_runner_config_from_options`; the Calibrex pipeline invokes the\nsame validation for the Koide factor without changing other factor APIs.",
+  "properties": {
+    "automatic_initial_guess": {
+      "default": false,
+      "title": "Automatic Initial Guess",
+      "type": "boolean"
+    },
+    "camera_frame": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Camera Frame"
+    },
+    "camera_streams": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Camera Streams",
+      "type": "array"
+    },
+    "checkpoint_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checkpoint Path"
+    },
+    "checkpoint_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checkpoint Sha256"
+    },
+    "config_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Config Path"
+    },
+    "container": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/KoideContainerConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dataset_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset Path"
+    },
+    "execution_mode": {
+      "default": "subprocess",
+      "enum": [
+        "subprocess",
+        "container",
+        "precomputed"
+      ],
+      "title": "Execution Mode",
+      "type": "string"
+    },
+    "holdout_data_ids_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Data Ids Sha256"
+    },
+    "initial_guess_mode": {
+      "default": "manual",
+      "enum": [
+        "manual",
+        "precomputed",
+        "automatic"
+      ],
+      "title": "Initial Guess Mode",
+      "type": "string"
+    },
+    "input_paths": {
+      "items": {
+        "format": "path",
+        "type": "string"
+      },
+      "title": "Input Paths",
+      "type": "array"
+    },
+    "license_spdx": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "MIT",
+      "title": "License Spdx"
+    },
+    "lidar_frame": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lidar Frame"
+    },
+    "lidar_streams": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Lidar Streams",
+      "type": "array"
+    },
+    "manual_initial_guess_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Manual Initial Guess Path"
+    },
+    "precomputed_initial_guess_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Precomputed Initial Guess Path"
+    },
+    "profile": {
+      "default": "commercial",
+      "enum": [
+        "commercial",
+        "research-noncommercial"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "provider": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider"
+    },
+    "provider_license_spdx": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider License Spdx"
+    },
+    "readiness_artifact_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Readiness Artifact Path"
+    },
+    "readiness_artifact_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Readiness Artifact Sha256"
+    },
+    "result_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Path"
+    },
+    "source_commit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Commit"
+    },
+    "source_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Path"
+    },
+    "source_repository": {
+      "default": "https://github.com/koide3/direct_visual_lidar_calibration",
+      "title": "Source Repository",
+      "type": "string"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/KoideStageConfig"
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "strict_readiness": {
+      "default": false,
+      "title": "Strict Readiness",
+      "type": "boolean"
+    },
+    "timeout_seconds": {
+      "default": 600.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "tool_name": {
+      "default": "direct_visual_lidar_calibration",
+      "title": "Tool Name",
+      "type": "string"
+    },
+    "tool_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tool Path"
+    },
+    "tool_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tool Version"
+    },
+    "training_data_ids_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Training Data Ids Sha256"
+    },
+    "training_isolation_declared": {
+      "default": false,
+      "title": "Training Isolation Declared",
+      "type": "boolean"
+    },
+    "training_isolation_evidence": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Training Isolation Evidence"
+    },
+    "working_dir": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Working Dir"
+    }
+  },
+  "title": "KoideRunnerConfig",
+  "type": "object"
+}

@@ -18,7 +18,7 @@ from calibrex.core.continuous_time_sparse import (
     interpolate_pose_at,
     point_to_plane_rmse,
 )
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, _tuple3
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import se3_exp, se3_log
 
@@ -151,7 +151,7 @@ def _measurements(
             TrajectoryPointToPlaneMeasurement(
                 measurement_id=f"{prefix}-{index:04d}",
                 timestamp_sec=timestamp,
-                point_body_m=tuple(float(value) for value in noisy_body),
+                point_body_m=_tuple3(noisy_body),
                 plane_point_world_m=plane_point,
                 plane_normal_world=plane_normal,
             )
@@ -172,7 +172,7 @@ def _sample_plane_point(
     tangent_a /= float(np.linalg.norm(tangent_a))
     tangent_b = np.cross(normal, tangent_a)
     point = origin + rng.uniform(-0.4, 0.4) * tangent_a + rng.uniform(-0.4, 0.4) * tangent_b
-    return tuple(float(value) for value in point)
+    return _tuple3(point)
 
 
 def _policy(

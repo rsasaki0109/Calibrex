@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -83,6 +84,7 @@ def _variant_config(
     output_dir: Path,
     holdout_start_fraction: float,
     sampling_seed: int,
+    continuous_time_options: Mapping[str, object] | None = None,
 ) -> dict[str, Any]:
     config = deepcopy(base)
     project = dict(config.get("project") or {})
@@ -92,6 +94,7 @@ def _variant_config(
     factors = dict(pipeline.get("factors") or {})
     factor = dict(factors.get("lidar_rig_point_to_plane") or {})
     options = dict(factor.get("options") or {})
+    options.update(continuous_time_options or {})
     options["continuous_time_holdout_start_fraction"] = holdout_start_fraction
     options["continuous_time_sampling_seed"] = sampling_seed
     factor["options"] = options
@@ -187,6 +190,7 @@ def run_replicates(
                         output_dir=replicate_dir,
                         holdout_start_fraction=fraction,
                         sampling_seed=seed,
+                        continuous_time_options=dataset_spec.continuous_time_options,
                     ),
                 )
                 run_ablation(
@@ -208,6 +212,10 @@ def run_replicates(
                         notes=[
                             f"holdout_start_fraction={fraction}",
                             f"sampling_seed={seed}",
+                            *(
+                                f"{key}={value}"
+                                for key, value in dataset_spec.continuous_time_options.items()
+                            ),
                         ],
                     ).model_dump(mode="json")
                 )

@@ -120,6 +120,7 @@
         "container_digest": {
           "anyOf": [
             {
+              "pattern": "^(?:[^@\\s]+@)?sha256:[0-9a-f]{64}$",
               "type": "string"
             },
             {
@@ -128,6 +129,19 @@
           ],
           "default": null,
           "title": "Container Digest"
+        },
+        "cpu_limit": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cpu Limit"
         },
         "duration_seconds": {
           "anyOf": [
@@ -154,6 +168,25 @@
           "default": null,
           "title": "Error"
         },
+        "input_mounts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Input Mounts",
+          "type": "array"
+        },
+        "memory_limit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Limit"
+        },
         "mode": {
           "enum": [
             "subprocess",
@@ -163,6 +196,30 @@
           ],
           "title": "Mode",
           "type": "string"
+        },
+        "network_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Network Mode"
+        },
+        "output_mount": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Mount"
         },
         "return_code": {
           "anyOf": [
@@ -175,6 +232,13 @@
           ],
           "default": null,
           "title": "Return Code"
+        },
+        "stages": {
+          "items": {
+            "$ref": "#/$defs/ExternalStageExecution"
+          },
+          "title": "Stages",
+          "type": "array"
         },
         "stderr_sha256": {
           "anyOf": [
@@ -336,6 +400,92 @@
       "title": "ExternalParsedOutputs",
       "type": "object"
     },
+    "ExternalRunDigests": {
+      "additionalProperties": false,
+      "description": "Content identities needed to reproduce an external calibration run.",
+      "properties": {
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "container_digest": {
+          "anyOf": [
+            {
+              "pattern": "^(?:[^@\\s]+@)?sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Digest"
+        },
+        "input_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Sha256"
+        },
+        "output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Sha256"
+        },
+        "source_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Sha256"
+        },
+        "tool_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Sha256"
+        }
+      },
+      "title": "ExternalRunDigests",
+      "type": "object"
+    },
     "ExternalRunProvenance": {
       "additionalProperties": false,
       "description": "Lineage of the adapter artifact itself.",
@@ -396,6 +546,136 @@
         "calibrex_version"
       ],
       "title": "ExternalRunProvenance",
+      "type": "object"
+    },
+    "ExternalStageExecution": {
+      "additionalProperties": false,
+      "description": "Bounded facts for one stage of a multi-stage external workflow.\n\nStage stdout/stderr are intentionally retained only as a short tail and a\nSHA-256 digest.  This keeps an evidence artifact useful for debugging while\navoiding unbounded or potentially sensitive process logs.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "return_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Return Code"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "running",
+            "success",
+            "failed",
+            "timeout",
+            "unavailable",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "stderr_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stderr Sha256"
+        },
+        "stderr_tail": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stderr Tail"
+        },
+        "stdout_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stdout Sha256"
+        },
+        "stdout_tail": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stdout Tail"
+        },
+        "timed_out": {
+          "default": false,
+          "title": "Timed Out",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "ExternalStageExecution",
       "type": "object"
     },
     "ExternalToolIdentity": {
@@ -536,6 +816,9 @@
       },
       "title": "Artifacts",
       "type": "array"
+    },
+    "digests": {
+      "$ref": "#/$defs/ExternalRunDigests"
     },
     "execution": {
       "$ref": "#/$defs/ExternalExecution"

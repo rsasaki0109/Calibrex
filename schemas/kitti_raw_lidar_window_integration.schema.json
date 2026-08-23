@@ -1,0 +1,421 @@
+{
+  "$defs": {
+    "KittiRawIntegrationFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed regular file consumed by raw integration.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "KittiRawIntegrationFileReference",
+      "type": "object"
+    },
+    "KittiRawLidarIntegratedWindow": {
+      "additionalProperties": false,
+      "description": "Point accounting and output for one raw center frame.",
+      "properties": {
+        "center_frame_id": {
+          "pattern": "^[0-9]{10}$",
+          "title": "Center Frame Id",
+          "type": "string"
+        },
+        "output": {
+          "$ref": "#/$defs/KittiRawLidarScanReference"
+        },
+        "range_discarded_point_count": {
+          "minimum": 0,
+          "title": "Range Discarded Point Count",
+          "type": "integer"
+        },
+        "range_retained_point_count": {
+          "exclusiveMinimum": 0,
+          "title": "Range Retained Point Count",
+          "type": "integer"
+        },
+        "source_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Frame Ids",
+          "type": "array"
+        },
+        "source_point_count": {
+          "exclusiveMinimum": 0,
+          "title": "Source Point Count",
+          "type": "integer"
+        },
+        "voxel_discarded_point_count": {
+          "minimum": 0,
+          "title": "Voxel Discarded Point Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "center_frame_id",
+        "source_frame_ids",
+        "source_point_count",
+        "range_discarded_point_count",
+        "range_retained_point_count",
+        "voxel_discarded_point_count",
+        "output"
+      ],
+      "title": "KittiRawLidarIntegratedWindow",
+      "type": "object"
+    },
+    "KittiRawLidarScanReference": {
+      "additionalProperties": false,
+      "description": "One packed little-endian float32 XYZI scan.",
+      "properties": {
+        "encoding": {
+          "const": "little_endian_float32_xyzi",
+          "default": "little_endian_float32_xyzi",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "frame_id": {
+          "pattern": "^[0-9]{10}$",
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "point_count": {
+          "exclusiveMinimum": 0,
+          "title": "Point Count",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "frame_id",
+        "point_count"
+      ],
+      "title": "KittiRawLidarScanReference",
+      "type": "object"
+    },
+    "KittiRawLidarWindowIntegrationParameters": {
+      "additionalProperties": false,
+      "description": "Frozen raw pose-chain, filtering, and voxel policy.",
+      "properties": {
+        "minimum_range_m": {
+          "minimum": 0.0,
+          "title": "Minimum Range M",
+          "type": "number"
+        },
+        "motion_compensation": {
+          "const": "azimuth_weighted_oxts_pose_delta/v0.1",
+          "default": "azimuth_weighted_oxts_pose_delta/v0.1",
+          "title": "Motion Compensation",
+          "type": "string"
+        },
+        "neighbor_radius_frames": {
+          "minimum": 0,
+          "title": "Neighbor Radius Frames",
+          "type": "integer"
+        },
+        "output_coordinate_frame": {
+          "const": "center_velodyne",
+          "default": "center_velodyne",
+          "title": "Output Coordinate Frame",
+          "type": "string"
+        },
+        "output_encoding": {
+          "const": "little_endian_float32_xyzi",
+          "default": "little_endian_float32_xyzi",
+          "title": "Output Encoding",
+          "type": "string"
+        },
+        "pose_origin_frame_id": {
+          "pattern": "^[0-9]{10}$",
+          "title": "Pose Origin Frame Id",
+          "type": "string"
+        },
+        "range_filter_frame": {
+          "const": "source_velodyne_after_motion_compensation",
+          "default": "source_velodyne_after_motion_compensation",
+          "title": "Range Filter Frame",
+          "type": "string"
+        },
+        "transform_convention": {
+          "const": "T_center_velodyne_source_velodyne=inverse(T_world_imu_center*T_imu_velodyne)*(T_world_imu_source*T_imu_velodyne)/v0.1",
+          "default": "T_center_velodyne_source_velodyne=inverse(T_world_imu_center*T_imu_velodyne)*(T_world_imu_source*T_imu_velodyne)/v0.1",
+          "title": "Transform Convention",
+          "type": "string"
+        },
+        "voxel_reducer": {
+          "enum": [
+            "none",
+            "sorted_voxel_centroid_xyz_mean_intensity/v0.1"
+          ],
+          "title": "Voxel Reducer",
+          "type": "string"
+        },
+        "voxel_resolution_m": {
+          "minimum": 0.0,
+          "title": "Voxel Resolution M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "neighbor_radius_frames",
+        "pose_origin_frame_id",
+        "minimum_range_m",
+        "voxel_resolution_m",
+        "voxel_reducer"
+      ],
+      "title": "KittiRawLidarWindowIntegrationParameters",
+      "type": "object"
+    },
+    "KittiRawLidarWindowIntegrationProvenance": {
+      "additionalProperties": false,
+      "description": "Generator and immutable source digests for raw integration.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 3,
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_sha256"
+      ],
+      "title": "KittiRawLidarWindowIntegrationProvenance",
+      "type": "object"
+    },
+    "KittiRawResolvedOxtsPose": {
+      "additionalProperties": false,
+      "description": "Official OXTS packet and derived ``T_world_imu`` for one frame.",
+      "properties": {
+        "frame_id": {
+          "pattern": "^[0-9]{10}$",
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "method": {
+          "const": "official_oxts_mercator_rpy/v0.1",
+          "default": "official_oxts_mercator_rpy/v0.1",
+          "title": "Method",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "frame_id",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "KittiRawResolvedOxtsPose",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid lineage for center-frame KITTI raw LiDAR maps.",
+  "properties": {
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "center_frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Center Frame Ids",
+      "type": "array"
+    },
+    "dataset_family": {
+      "const": "KITTI raw",
+      "default": "KITTI raw",
+      "title": "Dataset Family",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_license_spdx": {
+      "title": "Dataset License Spdx",
+      "type": "string"
+    },
+    "imu_to_velodyne_calibration": {
+      "$ref": "#/$defs/KittiRawIntegrationFileReference"
+    },
+    "output_set_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Output Set Sha256",
+      "type": "string"
+    },
+    "parameters": {
+      "$ref": "#/$defs/KittiRawLidarWindowIntegrationParameters"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KittiRawLidarWindowIntegrationProvenance"
+    },
+    "resolved_poses": {
+      "items": {
+        "$ref": "#/$defs/KittiRawResolvedOxtsPose"
+      },
+      "minItems": 1,
+      "title": "Resolved Poses",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.kitti_raw_lidar_window_integration/v0.1",
+      "default": "slac.kitti_raw_lidar_window_integration/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selection_manifest": {
+      "$ref": "#/$defs/KittiRawIntegrationFileReference"
+    },
+    "sequence_id": {
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "source_scans": {
+      "items": {
+        "$ref": "#/$defs/KittiRawLidarScanReference"
+      },
+      "minItems": 1,
+      "title": "Source Scans",
+      "type": "array"
+    },
+    "timestamp_files": {
+      "items": {
+        "$ref": "#/$defs/KittiRawIntegrationFileReference"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Timestamp Files",
+      "type": "array"
+    },
+    "windows": {
+      "items": {
+        "$ref": "#/$defs/KittiRawLidarIntegratedWindow"
+      },
+      "minItems": 1,
+      "title": "Windows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "dataset_id",
+    "sequence_id",
+    "dataset_license_spdx",
+    "selection_manifest",
+    "imu_to_velodyne_calibration",
+    "timestamp_files",
+    "center_frame_ids",
+    "parameters",
+    "source_scans",
+    "resolved_poses",
+    "windows",
+    "output_set_sha256",
+    "provenance"
+  ],
+  "title": "KittiRawLidarWindowIntegrationArtifact",
+  "type": "object"
+}

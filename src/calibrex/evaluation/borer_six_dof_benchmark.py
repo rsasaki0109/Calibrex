@@ -10,6 +10,9 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
+from typing import Literal
+
+import numpy as np
 
 from calibrex.core.benchmark import (
     BenchmarkArtifact,
@@ -46,7 +49,11 @@ from calibrex.evaluation.borer_rotation_benchmark import (
     LoadedCameraLidarProblem,
     load_borer_problem,
 )
-from calibrex.solvers.borer_depth_to_depth_solver import DepthToDepthOptions
+from calibrex.solvers.borer_depth_to_depth_solver import (
+    DepthPairProjector,
+    DepthToDepthOptions,
+    project_depth_pairs,
+)
 from calibrex.solvers.borer_six_dof_solver import (
     BorerSixDofOptions,
     BorerSixDofResult,
@@ -54,7 +61,8 @@ from calibrex.solvers.borer_six_dof_solver import (
     apply_local_se3_delta,
 )
 
-BORER_SIX_DOF_BENCHMARK_VERSION = "calibrex.borer_six_dof_benchmark/v0.1"
+BORER_SIX_DOF_BENCHMARK_VERSION = "calibrex.borer_six_dof_benchmark/v0.3"
+ProjectionBackend = Literal["numpy", "numba_cpu"]
 
 
 @dataclass(frozen=True)
@@ -76,6 +84,7 @@ def run_borer_six_dof_benchmark(
     bootstrap_samples: int = 2000,
     workers: int = 1,
     resume: bool = False,
+    projection_backend: ProjectionBackend = "numpy",
 ) -> tuple[BenchmarkDefinition, BenchmarkArtifact]:
     """Execute every frozen six-DoF perturbation and retain all outcomes."""
 
@@ -92,6 +101,11 @@ def run_borer_six_dof_benchmark(
         raise ValueError("protocol problem_sha256 does not match the problem artifact")
     if protocol.frame_ids != [item.frame_id for item in loaded.problem.observations]:
         raise ValueError("protocol frame IDs do not match the problem artifact")
+    options = _solver_options(
+        protocol,
+        projection_backend=projection_backend,
+    )
+    expected_solver = _trace_solver_identity(options.projection_backend)
 
     trace_root = Path(trace_directory)
     trace_root.mkdir(parents=True, exist_ok=True)
@@ -106,6 +120,7 @@ def run_borer_six_dof_benchmark(
                     perturbation=perturbation,
                     problem_sha256=loaded.problem_sha256,
                     protocol_sha256=protocol_digest,
+                    expected_solver=expected_solver,
                 )
             else:
                 pending.append(perturbation)
@@ -115,7 +130,7 @@ def run_borer_six_dof_benchmark(
         _execute_trials(
             pending,
             loaded=loaded,
-            options=_solver_options(protocol),
+            options=options,
             workers=workers,
         )
     )
@@ -258,6 +273,11 @@ def run_borer_six_dof_benchmark(
             "The external monocular-depth provider is a frozen input.",
             "Dataset-reference extrinsics are not independent metrology.",
             "The paired rotation/translation direction policy is Calibrex-frozen.",
+            (
+                "Per-trial runtime retains the explicitly recorded projection "
+                "backend and concurrent chunk contention; it is not a standalone "
+                "single-process latency claim."
+            ),
         ],
         provenance=BenchmarkProvenance(
             generator="calibrex.evaluation.borer_six_dof_benchmark",
@@ -335,17 +355,21 @@ def _candidate_trace(
         trial_id=perturbation.trial_id,
         problem_sha256=loaded.problem_sha256,
         protocol_sha256=protocol_digest,
-        solver=result.method,
+        solver=_trace_solver_identity(result.projection_backend),
         solver_version=BORER_SIX_DOF_BENCHMARK_VERSION,
         status=result.status,
         initial_transform_camera_lidar=_transform_result(
             result.initial_transform_camera_lidar,
+            parent=loaded.problem.reference_transform_camera_lidar.parent,
+            child=loaded.problem.reference_transform_camera_lidar.child,
             producer="dataset_provider",
             evidence="dataset_provided",
             note="dataset reference plus frozen paired perturbation",
         ),
         output_transform_camera_lidar=_transform_result(
             result.transform_camera_lidar,
+            parent=loaded.problem.reference_transform_camera_lidar.parent,
+            child=loaded.problem.reference_transform_camera_lidar.child,
             producer="slac_native",
             evidence="algorithmically_refined",
             note="native D2D six-DoF output",
@@ -393,8 +417,13 @@ def _candidate_trace(
     )
 
 
-def _solver_options(protocol: CameraLidarBenchmarkProtocol) -> BorerSixDofOptions:
+def _solver_options(
+    protocol: CameraLidarBenchmarkProtocol,
+    *,
+    projection_backend: ProjectionBackend = "numpy",
+) -> BorerSixDofOptions:
     values = protocol.optimizer_options
+    projector, backend_identity = _projection_runtime(projection_backend)
     return BorerSixDofOptions(
         rotation_bound_deg=float(values["rotation_bound_deg"]),
         translation_bound_m=float(values["translation_bound_m"]),
@@ -409,6 +438,38 @@ def _solver_options(protocol: CameraLidarBenchmarkProtocol) -> BorerSixDofOption
             min_visible_points=protocol.min_visible_points,
             use_z_buffer=True,
         ),
+        projector=projector,
+        projection_backend=backend_identity,
+    )
+
+
+def _projection_runtime(
+    backend: ProjectionBackend,
+) -> tuple[DepthPairProjector, str]:
+    if backend == "numpy":
+        return (
+            project_depth_pairs,
+            "calibrex.numpy_depth_pair_projector/v0.2"
+            f";numpy={np.__version__}",
+        )
+    if backend == "numba_cpu":
+        try:
+            from calibrex.solvers.numba_depth_to_depth_adapter import (
+                numba_depth_pair_projector_identity,
+                project_depth_pairs_numba,
+            )
+        except ImportError as exc:
+            raise ValueError(
+                "numba_cpu projection requires the optional calibrex[numba] dependency"
+            ) from exc
+        return project_depth_pairs_numba, numba_depth_pair_projector_identity()
+    raise ValueError(f"unsupported D2D projection backend: {backend}")
+
+
+def _trace_solver_identity(projection_backend: str) -> str:
+    return (
+        "bounded_se3_pattern_search/v0.1"
+        f";projection_backend={projection_backend}"
     )
 
 
@@ -418,6 +479,7 @@ def _validated_trace(
     perturbation: CameraLidarPerturbation,
     problem_sha256: str,
     protocol_sha256: str,
+    expected_solver: str,
 ) -> CalibrationCandidateTrace:
     trace = load_calibration_candidate_trace(path)
     if (
@@ -425,6 +487,7 @@ def _validated_trace(
         or trace.problem_sha256 != problem_sha256
         or trace.protocol_sha256 != protocol_sha256
         or trace.solver_version != BORER_SIX_DOF_BENCHMARK_VERSION
+        or trace.solver != expected_solver
     ):
         raise ValueError(f"resumed six-DoF trace identity mismatch: {path}")
     return trace
@@ -433,13 +496,15 @@ def _validated_trace(
 def _transform_result(
     transform: SE3,
     *,
+    parent: str,
+    child: str,
     producer: EstimateProducer,
     evidence: EstimateEvidenceLevel,
     note: str,
 ) -> TransformResult:
     return TransformResult(
-        parent="camera0",
-        child="lidar0",
+        parent=parent,
+        child=child,
         translation_m=list(transform.translation_m),
         rotation_quat_xyzw=list(transform.rotation_quat_xyzw),
         provenance=TransformEstimateProvenance(

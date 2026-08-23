@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypedDict
 
 import numpy as np
 
@@ -30,6 +30,20 @@ _THRESHOLDS = CalibrationLifecycleGateThresholds(
 _KNOWN_BAD_WEAK_WINDOW_INDEX = 1
 _KNOWN_BAD_HOLDOUT_WINDOW_INDEX = 2
 _ROLLBACK_SOURCE_EVENT_INDEX = 0
+
+
+class _SyntheticWindow(TypedDict):
+    start_s: float
+    end_s: float
+    translation_m: tuple[float, float, float]
+    rotation_vec: tuple[float, float, float]
+    train_count: int
+    holdout_count: int
+    holdout_rmse_m: float
+    rank: int
+    condition_number: float
+    weak_directions: list[str]
+    drift_score: float
 
 
 def run_synthetic_calibration_lifecycle(
@@ -188,7 +202,7 @@ def run_synthetic_calibration_lifecycle(
     )
 
 
-def _synthetic_windows(rng: np.random.Generator) -> list[dict[str, object]]:
+def _synthetic_windows(rng: np.random.Generator) -> list[_SyntheticWindow]:
     return [
         {
             "start_s": 0.0,

@@ -240,7 +240,7 @@ def run_probabilistic_refinement_ablation(
                 label=method_id.replace("_", " "),
                 implementation="calibrex_native",
                 tool_name="Calibrex probabilistic multi-frame refiner",
-                tool_version="0.1",
+                tool_version="0.3",
                 source_commit=git_commit(),
                 license_spdx="Apache-2.0",
             )

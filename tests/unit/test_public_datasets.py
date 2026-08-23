@@ -290,6 +290,24 @@ def test_solid_state_benchmark_v02_spec_declares_paired_replicates() -> None:
     )
 
 
+def test_solid_state_benchmark_v04_freezes_train_selected_mad_candidate() -> None:
+    spec = SolidStateCrossDatasetBenchmarkSpec.model_validate(
+        read_mapping(
+            Path(
+                "examples/public_datasets/solid_state_cross_dataset_benchmark_v04.yaml"
+            )
+        )
+    )
+
+    assert spec.protocol.name.endswith("mad25_solid_state_lidar")
+    assert all(
+        dataset.continuous_time_options == {
+            "continuous_time_outlier_mad_scale": 2.5
+        }
+        for dataset in spec.datasets
+    )
+
+
 def test_tiers_indoor02_motion_configs_compile() -> None:
     for path in [
         "examples/public_datasets/tiers_lidars_dataset_indoor02/online_motion_config.yaml",

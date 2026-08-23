@@ -36,6 +36,7 @@ from calibrex.core.empirical_uncertainty import (
 from calibrex.core.geometry import SE3, normalize_quaternion_xyzw
 from calibrex.core.probabilistic_correspondence import (
     ProbabilisticCorrespondenceFrame,
+    ProbabilisticRefinementAcceptanceArtifact,
     ProbabilisticRefinementEvaluationArtifact,
     ProbabilisticRefinementIterationArtifact,
     ProbabilisticRefinementProvenance,
@@ -156,6 +157,11 @@ def run_empirical_se3_uncertainty(
             initial_transform,
             settings,
         )
+        # Keep the solver's candidate spread as uncertainty evidence even when
+        # the fit-only acceptance policy rolls back the selected output.  The
+        # per-resample artifact retains both candidate and selected transforms,
+        # so callers can distinguish estimator variability from deployment
+        # eligibility without hiding a rejected candidate.
         succeeded = result.status in {"converged", "at_bound"}
         output = output_root / f"{iteration_id}.yaml"
         _iteration_artifact(
@@ -190,7 +196,7 @@ def run_empirical_se3_uncertainty(
             )
         )
         if succeeded:
-            estimates.append(result.transform_camera_lidar)
+            estimates.append(result.candidate_transform_camera_lidar)
 
     if len(estimates) < 2:
         raise ValueError(
@@ -723,6 +729,12 @@ def _iteration_artifact(
     )
     if reference is not None:
         reference_se3 = reference.as_se3()
+        candidate_rotation_error = _rotation_error_deg(
+            result.candidate_transform_camera_lidar, reference_se3
+        )
+        candidate_translation_error = _translation_error_m(
+            result.candidate_transform_camera_lidar, reference_se3
+        )
         final_rotation_error = _rotation_error_deg(
             result.transform_camera_lidar, reference_se3
         )
@@ -736,6 +748,8 @@ def _iteration_artifact(
             result.initial_transform_camera_lidar, reference_se3
         )
     else:
+        candidate_rotation_error = None
+        candidate_translation_error = None
         initial_rotation_error = None
         initial_translation_error = None
         final_rotation_error = None
@@ -749,18 +763,28 @@ def _iteration_artifact(
         initialization_source="problem_initial_transform",
         provider=provider,
         initial_transform_camera_lidar=initial_transform,
+        candidate_transform_camera_lidar=_transform(
+            camera_frame, lidar_frame, result.candidate_transform_camera_lidar
+        ),
         transform_camera_lidar=output_transform,
         reference_transform_camera_lidar=reference,
         initial_rotation_error_deg=initial_rotation_error,
+        candidate_rotation_error_deg=candidate_rotation_error,
         final_rotation_error_deg=final_rotation_error,
         initial_translation_error_m=initial_translation_error,
+        candidate_translation_error_m=candidate_translation_error,
         final_translation_error_m=final_translation_error,
         train_frame_ids=list(result.train_frame_ids),
         holdout_frame_ids=list(result.holdout_frame_ids),
         initial_train_evaluation=_evaluation(result.initial_train_evaluation),
+        candidate_train_evaluation=_evaluation(result.candidate_train_evaluation),
         final_train_evaluation=_evaluation(result.final_train_evaluation),
         initial_holdout_evaluation=_evaluation(result.initial_holdout_evaluation),
+        candidate_holdout_evaluation=_evaluation(result.candidate_holdout_evaluation),
         final_holdout_evaluation=_evaluation(result.final_holdout_evaluation),
+        acceptance=ProbabilisticRefinementAcceptanceArtifact(
+            **asdict(result.acceptance)
+        ),
         trace=[
             ProbabilisticRefinementIterationArtifact(
                 evaluation=item.evaluation,

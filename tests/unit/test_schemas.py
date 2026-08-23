@@ -19,6 +19,30 @@ from calibrex.core.camera_lidar_artifacts import (
     camera_lidar_benchmark_protocol_json_schema,
     camera_lidar_problem_json_schema,
 )
+from calibrex.core.camera_lidar_confidence_calibration import (
+    camera_lidar_confidence_calibration_json_schema,
+)
+from calibrex.core.camera_lidar_correspondence_export import (
+    camera_lidar_correspondence_export_json_schema,
+)
+from calibrex.core.camera_lidar_correspondence_quality import (
+    camera_lidar_correspondence_quality_json_schema,
+)
+from calibrex.core.camera_lidar_failure_analysis import (
+    camera_lidar_failure_analysis_json_schema,
+)
+from calibrex.core.camera_lidar_initializer_calibration import (
+    camera_lidar_initializer_calibration_json_schema,
+)
+from calibrex.core.camera_lidar_pose_initializer_benchmark import (
+    camera_lidar_pose_initializer_protocol_json_schema,
+)
+from calibrex.core.camera_lidar_pose_initializer_failure_analysis import (
+    camera_lidar_pose_initializer_failure_analysis_json_schema,
+)
+from calibrex.core.camera_lidar_provider_support_comparison import (
+    camera_lidar_provider_support_comparison_json_schema,
+)
 from calibrex.core.camera_lidar_sota_audit import (
     camera_lidar_sota_audit_protocol_json_schema,
     camera_lidar_sota_audit_result_json_schema,
@@ -36,17 +60,14 @@ from calibrex.core.continuous_time_fit_artifacts import (
     continuous_time_fit_json_schema,
     continuous_time_measurements_json_schema,
 )
-from calibrex.core.continuous_time_sliding_window import (
-    continuous_time_sliding_window_json_schema,
-)
 from calibrex.core.continuous_time_imu_accel_bias import (
     continuous_time_imu_accel_bias_json_schema,
 )
-from calibrex.core.continuous_time_imu_intrinsics import (
-    continuous_time_imu_intrinsics_json_schema,
-)
 from calibrex.core.continuous_time_imu_clock_offset import (
     continuous_time_imu_clock_offset_json_schema,
+)
+from calibrex.core.continuous_time_imu_intrinsics import (
+    continuous_time_imu_intrinsics_json_schema,
 )
 from calibrex.core.continuous_time_imu_lever_arm import (
     continuous_time_imu_lever_arm_json_schema,
@@ -65,6 +86,12 @@ from calibrex.core.continuous_time_lidar_artifacts import (
 from calibrex.core.continuous_time_lidar_point_to_plane import (
     continuous_time_lidar_point_to_plane_json_schema,
 )
+from calibrex.core.continuous_time_lidar_train_diagnostics import (
+    continuous_time_lidar_train_diagnostics_json_schema,
+)
+from calibrex.core.continuous_time_sliding_window import (
+    continuous_time_sliding_window_json_schema,
+)
 from calibrex.core.dynamic_window import dynamic_window_consistency_json_schema
 from calibrex.core.empirical_uncertainty import empirical_se3_uncertainty_json_schema
 from calibrex.core.environment_readiness import environment_readiness_json_schema
@@ -75,6 +102,9 @@ from calibrex.core.evidence_bundle import (
 )
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
 from calibrex.core.external_run import external_run_json_schema
+from calibrex.core.koide_handoff import koide_execution_lock_json_schema
+from calibrex.core.koide_readiness import koide_readiness_json_schema
+from calibrex.core.koide_runner import koide_runner_json_schema
 from calibrex.core.livox_time_ablation import (
     LIVOX_TIME_ABLATION_SCHEMA_VERSION,
     LivoxTimeAblationManifest,
@@ -106,13 +136,21 @@ from calibrex.core.trajectory import trajectory_json_schema
 from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
 from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.data.depth import depth_provider_json_schema
+from calibrex.data.kitti360_lidar_window_integration import (
+    kitti360_lidar_window_integration_json_schema,
+)
 from calibrex.data.kitti_benchmark import kitti_benchmark_input_json_schema
+from calibrex.data.kitti_raw_lidar_window_integration import (
+    kitti_raw_lidar_window_integration_json_schema,
+)
 from calibrex.data.manifest import manifest_json_schema
+from calibrex.data.remote_archive_selection import remote_archive_selection_json_schema
 from calibrex.diagnostics import doctor_json_schema
 from calibrex.evaluation.compare import compare_results, comparison_json_schema
 from calibrex.evaluation.kitti_falsification_benchmark import (
     kitti_falsification_json_schema,
 )
+from calibrex.evaluation.koide_pilot import koide_pilot_json_schema
 from calibrex.evaluation.report_compare import (
     compare_reports,
     report_comparison_json_schema,
@@ -134,6 +172,13 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "protocol.schema.json": protocol_json_schema,
         "transforms.schema.json": transform_artifact_json_schema,
         "dataset_manifest.schema.json": manifest_json_schema,
+        "remote_archive_selection.schema.json": remote_archive_selection_json_schema,
+        "kitti360_lidar_window_integration.schema.json": (
+            kitti360_lidar_window_integration_json_schema
+        ),
+        "kitti_raw_lidar_window_integration.schema.json": (
+            kitti_raw_lidar_window_integration_json_schema
+        ),
         "doctor.schema.json": doctor_json_schema,
         "environment_readiness.schema.json": environment_readiness_json_schema,
         "calibration_ci.schema.json": calibration_ci_json_schema,
@@ -168,6 +213,30 @@ def test_static_schema_files_match_generated_schemas() -> None:
             empirical_se3_uncertainty_json_schema
         ),
         "camera_lidar_problem.schema.json": camera_lidar_problem_json_schema,
+        "camera_lidar_correspondence_export.schema.json": (
+            camera_lidar_correspondence_export_json_schema
+        ),
+        "camera_lidar_confidence_calibration.schema.json": (
+            camera_lidar_confidence_calibration_json_schema
+        ),
+        "camera_lidar_initializer_calibration.schema.json": (
+            camera_lidar_initializer_calibration_json_schema
+        ),
+        "camera_lidar_provider_support_comparison.schema.json": (
+            camera_lidar_provider_support_comparison_json_schema
+        ),
+        "camera_lidar_pose_initializer_protocol.schema.json": (
+            camera_lidar_pose_initializer_protocol_json_schema
+        ),
+        "camera_lidar_pose_initializer_failure_analysis.schema.json": (
+            camera_lidar_pose_initializer_failure_analysis_json_schema
+        ),
+        "camera_lidar_correspondence_quality.schema.json": (
+            camera_lidar_correspondence_quality_json_schema
+        ),
+        "camera_lidar_failure_analysis.schema.json": (
+            camera_lidar_failure_analysis_json_schema
+        ),
         "camera_lidar_sota_audit_protocol.schema.json": (
             camera_lidar_sota_audit_protocol_json_schema
         ),
@@ -187,6 +256,10 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "trajectory.schema.json": trajectory_json_schema,
         "trajectory_window_drift.schema.json": trajectory_window_drift_json_schema,
         "capture_readiness.schema.json": capture_readiness_json_schema,
+        "koide_readiness.schema.json": koide_readiness_json_schema,
+        "koide_execution_lock.schema.json": koide_execution_lock_json_schema,
+        "koide_pilot.schema.json": koide_pilot_json_schema,
+        "koide_runner_config.schema.json": koide_runner_json_schema,
         "continuous_time_lidar_pair_result.schema.json": (
             continuous_time_lidar_pair_json_schema
         ),
@@ -210,6 +283,9 @@ def test_static_schema_files_match_generated_schemas() -> None:
         ),
         "continuous_time_sliding_window.schema.json": (
             continuous_time_sliding_window_json_schema
+        ),
+        "continuous_time_lidar_train_diagnostics.schema.json": (
+            continuous_time_lidar_train_diagnostics_json_schema
         ),
         "continuous_time_lidar_ablation.schema.json": (
             continuous_time_lidar_ablation_json_schema

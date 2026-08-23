@@ -11,10 +11,12 @@ from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3
 from calibrex.solvers.borer_depth_to_depth_solver import (
+    DepthPairProjector,
     DepthToDepthEvaluation,
     DepthToDepthObservation,
     DepthToDepthOptions,
     evaluate_depth_to_depth_mi,
+    project_depth_pairs,
     resolve_depth_to_depth_options,
 )
 from calibrex.solvers.borer_rotation_only_solver import apply_local_euler_delta
@@ -38,6 +40,12 @@ class BorerSixDofOptions:
     improvement_tolerance: float = 1.0e-9
     objective: SixDofObjective = "mutual_information"
     d2d: DepthToDepthOptions = field(default_factory=DepthToDepthOptions)
+    projector: DepthPairProjector = field(
+        default=project_depth_pairs,
+        repr=False,
+        compare=False,
+    )
+    projection_backend: str = "calibrex.numpy_depth_pair_projector/v0.2"
 
     def __post_init__(self) -> None:
         if self.rotation_bound_deg <= 0.0 or self.translation_bound_m <= 0.0:
@@ -60,6 +68,8 @@ class BorerSixDofOptions:
             raise ValueError("max_evaluations must be at least 13")
         if self.improvement_tolerance < 0.0:
             raise ValueError("improvement_tolerance must be non-negative")
+        if not self.projection_backend.strip():
+            raise ValueError("projection_backend must be non-empty")
 
 
 @dataclass(frozen=True)
@@ -92,6 +102,7 @@ class BorerSixDofResult:
     final_rotation_step_deg: float
     final_translation_step_m: float
     stopping_reason: str
+    projection_backend: str = "calibrex.numpy_depth_pair_projector/v0.2"
     method: str = "bounded_se3_pattern_search/v0.1"
     primary_source: str = "https://arxiv.org/abs/2311.01905"
 
@@ -137,6 +148,7 @@ class BorerSixDofResult:
             "final_rotation_step_deg": self.final_rotation_step_deg,
             "final_translation_step_m": self.final_translation_step_m,
             "stopping_reason": self.stopping_reason,
+            "projection_backend": self.projection_backend,
         }
 
 
@@ -157,6 +169,7 @@ class BorerSixDofSolver:
             observations,
             initial_transform_camera_lidar,
             settings.d2d,
+            projector=settings.projector,
         )
         if initial_evaluation.evaluated_frame_count == 0:
             return _insufficient_result(
@@ -220,6 +233,7 @@ class BorerSixDofSolver:
                             delta[3:],
                         ),
                         settings.d2d,
+                        projector=settings.projector,
                     )
                     score = _score(result, settings.objective)
                     evaluation_count += 1
@@ -283,6 +297,7 @@ class BorerSixDofSolver:
                 if converged
                 else "maximum objective evaluations reached"
             ),
+            projection_backend=settings.projection_backend,
         )
 
 
@@ -360,4 +375,5 @@ def _insufficient_result(
         final_rotation_step_deg=settings.initial_rotation_step_deg,
         final_translation_step_m=settings.initial_translation_step_m,
         stopping_reason="no frame met min_visible_points",
+        projection_backend=settings.projection_backend,
     )

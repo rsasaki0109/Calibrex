@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass, field, replace
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,6 +18,7 @@ from calibrex.core.geometry import SE3
 from calibrex.data.depth import DepthScaleConvention
 
 FloatArray: TypeAlias = NDArray[np.float64]
+IntArray: TypeAlias = NDArray[np.int64]
 DepthProjectionKind = Literal["pinhole", "double_sphere", "mei"]
 
 
@@ -109,6 +110,20 @@ class DepthPairProjection:
     projected_count_before_visibility: int
 
 
+class DepthPairProjector(Protocol):
+    """Typed projection backend preserving the native D2D semantics."""
+
+    def __call__(
+        self,
+        observation: DepthToDepthObservation,
+        transform_camera_lidar: SE3,
+        *,
+        use_z_buffer: bool = True,
+    ) -> DepthPairProjection:
+        """Project one observation into deterministic paired depth features."""
+        ...
+
+
 @dataclass(frozen=True)
 class LidarImageCorrespondenceProjection:
     """One LiDAR point projected into the image with sub-pixel coordinates."""
@@ -139,7 +154,7 @@ class DepthToDepthEvaluation:
     evaluated_frame_count: int
     skipped_frame_ids: tuple[str, ...]
     frames: tuple[DepthToDepthFrameEvaluation, ...]
-    method: str = "borer_depth_to_depth_mutual_information/v0.1"
+    method: str = "borer_depth_to_depth_mutual_information/v0.2"
     primary_source: str = "https://arxiv.org/abs/2311.01905"
 
     def as_dict(self) -> dict[str, object]:
@@ -203,9 +218,11 @@ def project_depth_pairs(
     if use_z_buffer and valid_indices.size:
         camera_range = np.linalg.norm(points_camera[valid_indices], axis=1)
         pixel_linear = pixel_v * observation.camera.width + pixel_u
-        by_depth = np.argsort(camera_range, kind="stable")
-        _pixels, first = np.unique(pixel_linear[by_depth], return_index=True)
-        selected = by_depth[first]
+        selected = _z_buffer_nearest_indices(
+            pixel_linear,
+            camera_range,
+            pixel_count=observation.camera.width * observation.camera.height,
+        )
         valid_indices = valid_indices[selected]
         pixel_u = pixel_u[selected]
         pixel_v = pixel_v[selected]
@@ -315,16 +332,47 @@ def project_lidar_image_correspondences(
         selected = sorted(rng.sample(range(len(projections)), max_points))
         projections = [projections[index] for index in selected]
     return tuple(projections)
+def _z_buffer_nearest_indices(
+    pixel_linear: IntArray,
+    camera_range: FloatArray,
+    *,
+    pixel_count: int,
+) -> IntArray:
+    """Select the stable nearest input index for each occupied pixel in O(N)."""
+
+    if pixel_linear.size == 0:
+        return np.empty(0, dtype=np.int64)
+    minimum_range: FloatArray = np.full(
+        pixel_count, np.inf, dtype=np.float64
+    )
+    np.minimum.at(minimum_range, pixel_linear, camera_range)
+    nearest_candidates = np.flatnonzero(
+        camera_range == minimum_range[pixel_linear]
+    )
+    del minimum_range
+    sentinel = pixel_linear.size
+    selected_by_pixel: IntArray = np.full(
+        pixel_count, sentinel, dtype=np.int64
+    )
+    np.minimum.at(
+        selected_by_pixel,
+        pixel_linear[nearest_candidates],
+        nearest_candidates,
+    )
+    return selected_by_pixel[selected_by_pixel < sentinel]
 
 
 def evaluate_depth_to_depth_mi(
     observations: tuple[DepthToDepthObservation, ...] | list[DepthToDepthObservation],
     transform_camera_lidar: SE3,
     options: DepthToDepthOptions | None = None,
+    *,
+    projector: DepthPairProjector | None = None,
 ) -> DepthToDepthEvaluation:
     """Average per-frame histogram MI exactly once for a fixed pose."""
 
     settings = options or DepthToDepthOptions()
+    project = projector or project_depth_pairs
     if not observations or not any(
         np.any(np.isfinite(item.depth_map) & (item.depth_map > 0.0))
         and item.lidar_points.size
@@ -343,7 +391,7 @@ def evaluate_depth_to_depth_mi(
     frames = []
     skipped = []
     for observation in observations:
-        pairs = project_depth_pairs(
+        pairs = project(
             observation,
             transform_camera_lidar,
             use_z_buffer=settings.use_z_buffer,

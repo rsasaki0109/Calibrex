@@ -19,7 +19,6 @@ from calibrex.core.continuous_time_sparse import (
     ContinuousTimeTrajectoryFitProblem,
     build_dense_knot_normal_equations,
 )
-from calibrex.core.geometry import SE3
 from calibrex.core.se3_manifold import se3_exp
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.continuous_time_sliding_window import (

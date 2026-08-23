@@ -374,58 +374,58 @@ def fit_continuous_trajectory(
     pose_rows: list[tuple[int, SE3]] = []
     imu_rows: list[TrajectoryImuPreintegrationMeasurement] = []
     lever_rows: list[TrajectoryImuLeverArmMeasurement] = []
-    for measurement in problem.point_measurements:
-        interval = _interval_index(timestamps, measurement.timestamp_sec)
+    for point_measurement in problem.point_measurements:
+        interval = _interval_index(timestamps, point_measurement.timestamp_sec)
         if interval is None:
             raise ValueError(
-                f"point measurement {measurement.measurement_id!r} is outside "
+                f"point measurement {point_measurement.measurement_id!r} is outside "
                 "the knot domain"
             )
-        point_rows.append((interval, measurement.point_body_m))
-    for measurement in problem.point_to_plane_measurements:
-        interval = _interval_index(timestamps, measurement.timestamp_sec)
+        point_rows.append((interval, point_measurement.point_body_m))
+    for plane_measurement in problem.point_to_plane_measurements:
+        interval = _interval_index(timestamps, plane_measurement.timestamp_sec)
         if interval is None:
             raise ValueError(
-                f"point-to-plane measurement {measurement.measurement_id!r} is "
+                f"point-to-plane measurement {plane_measurement.measurement_id!r} is "
                 "outside the knot domain"
             )
-        plane_rows.append((interval, measurement))
-    for measurement in problem.pose_measurements:
-        interval = _interval_index(timestamps, measurement.timestamp_sec)
+        plane_rows.append((interval, plane_measurement))
+    for pose_measurement in problem.pose_measurements:
+        interval = _interval_index(timestamps, pose_measurement.timestamp_sec)
         if interval is None:
             raise ValueError(
-                f"pose measurement {measurement.measurement_id!r} is outside "
+                f"pose measurement {pose_measurement.measurement_id!r} is outside "
                 "the knot domain"
             )
-        pose_rows.append((interval, measurement.pose_world_body))
-    for measurement in problem.imu_preintegration_measurements:
+        pose_rows.append((interval, pose_measurement.pose_world_body))
+    for imu_measurement in problem.imu_preintegration_measurements:
         if (
             _interval_index(
                 timestamps,
-                _imu_body_time(measurement.start_time_sec, clock_offset),
+                _imu_body_time(imu_measurement.start_time_sec, clock_offset),
             )
             is None
             or _interval_index(
                 timestamps,
-                _imu_body_time(measurement.end_time_sec, clock_offset),
+                _imu_body_time(imu_measurement.end_time_sec, clock_offset),
             )
             is None
         ):
             raise ValueError(
-                f"IMU pre-integration {measurement.measurement_id!r} is outside "
+                f"IMU pre-integration {imu_measurement.measurement_id!r} is outside "
                 "the knot domain"
             )
-        imu_rows.append(measurement)
-    for measurement in problem.imu_lever_arm_measurements:
+        imu_rows.append(imu_measurement)
+    for lever_measurement in problem.imu_lever_arm_measurements:
         if _interval_index(
             timestamps,
-            _imu_body_time(measurement.timestamp_sec, clock_offset),
+            _imu_body_time(lever_measurement.timestamp_sec, clock_offset),
         ) is None:
             raise ValueError(
-                f"lever-arm measurement {measurement.measurement_id!r} is outside "
+                f"lever-arm measurement {lever_measurement.measurement_id!r} is outside "
                 "the knot domain"
             )
-        lever_rows.append(measurement)
+        lever_rows.append(lever_measurement)
 
     damping = settings.initial_damping
     gradient_norm = math.inf
@@ -499,27 +499,27 @@ def fit_continuous_trajectory(
             blocks.append((row_offset, 6 * interval, jacobian_left))
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
             row_offset += 3
-        for interval, measurement in plane_rows:
+        for interval, plane_measurement in plane_rows:
             residual, jacobian_left, jacobian_right = _point_to_plane_residual(
                 knots,
                 timestamps,
                 interval,
-                measurement,
+                plane_measurement,
             )
             residuals.append(float(residual[0]))
-            weights.append(measurement.weight)
+            weights.append(plane_measurement.weight)
             blocks.append((row_offset, 6 * interval, jacobian_left))
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
             row_offset += 1
         for index, (interval, pose) in enumerate(pose_rows):
             weight = problem.pose_measurements[index].weight
-            measurement = problem.pose_measurements[index]
+            pose_measurement = problem.pose_measurements[index]
             for anchor in _ANCHOR_POINTS:
                 residual, jacobian_left, jacobian_right = _anchor_residual(
                     knots,
                     timestamps,
                     interval,
-                    measurement.timestamp_sec,
+                    pose_measurement.timestamp_sec,
                     anchor,
                     pose,
                 )
@@ -528,7 +528,7 @@ def fit_continuous_trajectory(
                 blocks.append((row_offset, 6 * interval, jacobian_left))
                 blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
                 row_offset += 3
-        for measurement in imu_rows:
+        for imu_measurement in imu_rows:
             (
                 residual,
                 knot_blocks,
@@ -536,10 +536,10 @@ def fit_continuous_trajectory(
                 jacobian_clock,
                 jacobian_gyro_scale,
             ) = _imu_preintegration_residual(
-                knots, timestamps, measurement, gyro_bias, clock_offset, gyro_scale
+                knots, timestamps, imu_measurement, gyro_bias, clock_offset, gyro_scale
             )
             residuals.extend(float(value) for value in residual)
-            weights.extend([measurement.weight] * 3)
+            weights.extend([imu_measurement.weight] * 3)
             for knot_index, jacobian in knot_blocks:
                 blocks.append((row_offset, 6 * knot_index, jacobian))
             if estimate_bias:
@@ -549,7 +549,7 @@ def fit_continuous_trajectory(
             if estimate_gyro_scale:
                 blocks.append((row_offset, gyro_scale_offset, jacobian_gyro_scale))
             row_offset += 3
-        for measurement in lever_rows:
+        for lever_measurement in lever_rows:
             (
                 residual,
                 jacobian_lever,
@@ -560,7 +560,7 @@ def fit_continuous_trajectory(
             ) = _lever_arm_residual(
                 knots,
                 timestamps,
-                measurement,
+                lever_measurement,
                 lever_arm,
                 clock_offset,
                 accel_bias,
@@ -568,7 +568,7 @@ def fit_continuous_trajectory(
                 accel_scale,
             )
             residuals.extend(float(value) for value in residual)
-            weights.extend([measurement.weight] * 3)
+            weights.extend([lever_measurement.weight] * 3)
             if estimate_lever:
                 blocks.append((row_offset, lever_offset, jacobian_lever))
             if estimate_clock:
@@ -1026,7 +1026,7 @@ def _lever_arm_kinematics_residual(
     predicted = scale * kinematic + accel_bias
     residual = predicted - np.asarray(measurement.accel_body_m_s2, dtype=float)
     jacobian_lever = skew(alpha) + skew(omega) @ skew(omega)
-    jacobian_accel = np.eye(3, dtype=float)
+    jacobian_accel: NDArray[np.float64] = np.eye(3, dtype=float)
     jacobian_gravity = -np.diag(scale) @ rotation.T
     jacobian_accel_scale = np.diag(kinematic)
     return (
@@ -1204,7 +1204,7 @@ def _integrate_gyro(
     phis: list[FloatArray] = []
     dts: list[float] = []
     raws: list[FloatArray] = []
-    delta_rotation = np.eye(3, dtype=float)
+    delta_rotation: NDArray[np.float64] = np.eye(3, dtype=float)
     for left, right in pairwise(samples):
         dt = right.timestamp_sec - left.timestamp_sec
         raw = np.asarray(left.omega_body_rad_s, dtype=float) - bias
@@ -1216,22 +1216,22 @@ def _integrate_gyro(
         dts.append(dt)
         raws.append(raw)
         delta_rotation = delta_rotation @ rotation
-    jacobian_bias = np.zeros((3, 3), dtype=float)
-    suffix = np.eye(3, dtype=float)
+    jacobian_bias: NDArray[np.float64] = np.zeros((3, 3), dtype=float)
+    suffix: NDArray[np.float64] = np.eye(3, dtype=float)
     for rotation, phi, dt in zip(
         reversed(rotations), reversed(phis), reversed(dts), strict=True
     ):
         right_jacobian_inverse = so3_left_jacobian_inverse(-phi)
         jacobian_bias = jacobian_bias + suffix.T @ (right_jacobian_inverse * (-dt))
         suffix = rotation @ suffix
-    jacobian_scale = np.zeros((3, 3), dtype=float)
+    jacobian_scale: NDArray[np.float64] = np.zeros((3, 3), dtype=float)
     suffix = np.eye(3, dtype=float)
     for rotation, phi, dt, raw in zip(
         reversed(rotations), reversed(phis), reversed(dts), reversed(raws), strict=True
     ):
         right_jacobian_inverse = so3_left_jacobian_inverse(-phi)
         for axis in range(3):
-            tangent = np.zeros(3, dtype=float)
+            tangent: NDArray[np.float64] = np.zeros(3, dtype=float)
             tangent[axis] = raw[axis] * dt
             jacobian_scale[:, axis] += suffix.T @ (right_jacobian_inverse @ tangent)
         suffix = rotation @ suffix
@@ -1319,7 +1319,7 @@ def _block_diagonal_scale(
     normal: csc_matrix, knot_count: int, parameter_count: int
 ) -> csc_matrix:
     diagonal = normal.diagonal()
-    scaled = np.zeros(parameter_count, dtype=float)
+    scaled: NDArray[np.float64] = np.zeros(parameter_count, dtype=float)
     for knot in range(knot_count):
         block = diagonal[6 * knot : 6 * knot + 6]
         block_max = float(np.max(np.abs(block))) if block.size else 0.0
@@ -1330,7 +1330,7 @@ def _block_diagonal_scale(
         extra_max = float(np.max(np.abs(extra))) if extra.size else 0.0
         if extra_max > 0.0:
             scaled[6 * knot_count : parameter_count] = extra_max
-    indices = np.arange(parameter_count, dtype=int)
+    indices: NDArray[np.int64] = np.arange(parameter_count, dtype=np.int64)
     return csc_matrix(
         (scaled, (indices, indices)),
         shape=(parameter_count, parameter_count),
@@ -1355,56 +1355,56 @@ def _objective(
 ) -> float:
     objective = 0.0
     for index, (interval, point_body) in enumerate(point_rows):
-        measurement = problem.point_measurements[index]
+        point_measurement = problem.point_measurements[index]
         residual, _left, _right = _point_residual(
             knots,
             problem.knot_timestamps,
             interval,
-            measurement.timestamp_sec,
+            point_measurement.timestamp_sec,
             point_body,
-            measurement.target_world_m,
+            point_measurement.target_world_m,
         )
-        objective += measurement.weight * float(np.sum(residual * residual))
-    for interval, measurement in plane_rows:
+        objective += point_measurement.weight * float(np.sum(residual * residual))
+    for interval, plane_measurement in plane_rows:
         residual, _left, _right = _point_to_plane_residual(
             knots,
             problem.knot_timestamps,
             interval,
-            measurement,
+            plane_measurement,
         )
-        objective += measurement.weight * float(residual[0] * residual[0])
+        objective += plane_measurement.weight * float(residual[0] * residual[0])
     for index, (interval, pose) in enumerate(pose_rows):
-        measurement = problem.pose_measurements[index]
-        weight = measurement.weight
+        pose_measurement = problem.pose_measurements[index]
+        weight = pose_measurement.weight
         for anchor in _ANCHOR_POINTS:
             residual, _left, _right = _anchor_residual(
                 knots,
                 problem.knot_timestamps,
                 interval,
-                measurement.timestamp_sec,
+                pose_measurement.timestamp_sec,
                 anchor,
                 pose,
             )
             objective += weight * float(np.sum(residual * residual))
-    for measurement in imu_rows:
+    for imu_measurement in imu_rows:
         try:
             residual, _knots, _bias, _clock, _scale = _imu_preintegration_residual(
                 knots,
                 problem.knot_timestamps,
-                measurement,
+                imu_measurement,
                 gyro_bias,
                 clock_offset_sec,
                 gyro_scale,
             )
         except ValueError:
             return math.inf
-        objective += measurement.weight * float(np.sum(residual * residual))
-    for measurement in lever_rows:
+        objective += imu_measurement.weight * float(np.sum(residual * residual))
+    for lever_measurement in lever_rows:
         try:
             residual, _lever, _clock, _accel, _gravity, _scale = _lever_arm_residual(
                 knots,
                 problem.knot_timestamps,
-                measurement,
+                lever_measurement,
                 lever_arm,
                 clock_offset_sec,
                 accel_bias,
@@ -1413,7 +1413,7 @@ def _objective(
             )
         except ValueError:
             return math.inf
-        objective += measurement.weight * float(np.sum(residual * residual))
+        objective += lever_measurement.weight * float(np.sum(residual * residual))
     for prior in problem.knot_marginalization_priors:
         delta = se3_log(prior.anchor_pose, knots[prior.knot_index])
         objective += float(delta.T @ prior.information @ delta)
@@ -1507,49 +1507,49 @@ def build_dense_knot_normal_equations(
     residuals: list[float] = []
     weights: list[float] = []
     row_offset = 0
-    for measurement in problem.point_measurements:
-        interval = _interval_index(timestamps, measurement.timestamp_sec)
+    for point_measurement in problem.point_measurements:
+        interval = _interval_index(timestamps, point_measurement.timestamp_sec)
         if interval is None:
             raise ValueError(
-                f"point measurement {measurement.measurement_id!r} is outside "
+                f"point measurement {point_measurement.measurement_id!r} is outside "
                 "the knot domain"
             )
         residual, jacobian_left, jacobian_right = _point_residual(
             knots,
             timestamps,
             interval,
-            measurement.timestamp_sec,
-            measurement.point_body_m,
-            measurement.target_world_m,
+            point_measurement.timestamp_sec,
+            point_measurement.point_body_m,
+            point_measurement.target_world_m,
         )
         residuals.extend(float(value) for value in residual)
-        weights.extend([measurement.weight] * 3)
+        weights.extend([point_measurement.weight] * 3)
         blocks.append((row_offset, 6 * interval, jacobian_left))
         blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
         row_offset += 3
-    for measurement in problem.point_to_plane_measurements:
-        interval = _interval_index(timestamps, measurement.timestamp_sec)
+    for plane_measurement in problem.point_to_plane_measurements:
+        interval = _interval_index(timestamps, plane_measurement.timestamp_sec)
         if interval is None:
             raise ValueError(
-                f"point-to-plane measurement {measurement.measurement_id!r} is "
+                f"point-to-plane measurement {plane_measurement.measurement_id!r} is "
                 "outside the knot domain"
             )
         residual, jacobian_left, jacobian_right = _point_to_plane_residual(
             knots,
             timestamps,
             interval,
-            measurement,
+            plane_measurement,
         )
         residuals.append(float(residual[0]))
-        weights.append(measurement.weight)
+        weights.append(plane_measurement.weight)
         blocks.append((row_offset, 6 * interval, jacobian_left))
         blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
         row_offset += 1
-    for measurement in problem.pose_measurements:
-        interval = _interval_index(timestamps, measurement.timestamp_sec)
+    for pose_measurement in problem.pose_measurements:
+        interval = _interval_index(timestamps, pose_measurement.timestamp_sec)
         if interval is None:
             raise ValueError(
-                f"pose measurement {measurement.measurement_id!r} is outside "
+                f"pose measurement {pose_measurement.measurement_id!r} is outside "
                 "the knot domain"
             )
         for anchor in _ANCHOR_POINTS:
@@ -1557,12 +1557,12 @@ def build_dense_knot_normal_equations(
                 knots,
                 timestamps,
                 interval,
-                measurement.timestamp_sec,
+                pose_measurement.timestamp_sec,
                 anchor,
-                measurement.pose_world_body,
+                pose_measurement.pose_world_body,
             )
             residuals.extend(float(value) for value in residual)
-            weights.extend([measurement.weight] * 3)
+            weights.extend([pose_measurement.weight] * 3)
             blocks.append((row_offset, 6 * interval, jacobian_left))
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
             row_offset += 3

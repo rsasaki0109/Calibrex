@@ -1397,6 +1397,12 @@ def test_schema_commands(tmp_path: Path) -> None:
     transforms_schema = tmp_path / "transforms.schema.json"
     manifest_schema = tmp_path / "dataset_manifest.schema.json"
     kitti_benchmark_input_schema = tmp_path / "kitti_benchmark_input.schema.json"
+    camera_lidar_pose_initializer_schema = (
+        tmp_path / "camera_lidar_pose_initializer_protocol.schema.json"
+    )
+    camera_lidar_pose_initializer_failure_schema = (
+        tmp_path / "camera_lidar_pose_initializer_failure_analysis.schema.json"
+    )
     report_summary_schema = tmp_path / "report_summary.schema.json"
     report_metrics_schema = tmp_path / "report_metrics.schema.json"
     report_observability_schema = tmp_path / "report_observability.schema.json"
@@ -1408,6 +1414,9 @@ def test_schema_commands(tmp_path: Path) -> None:
     trajectory_window_drift_schema = tmp_path / "trajectory_window_drift.schema.json"
     capture_readiness_schema = tmp_path / "capture_readiness.schema.json"
     continuous_time_lidar_schema = tmp_path / "continuous_time_lidar_pair_result.schema.json"
+    continuous_time_lidar_train_diagnostics_schema = (
+        tmp_path / "continuous_time_lidar_train_diagnostics.schema.json"
+    )
     continuous_time_lidar_ablation_schema = tmp_path / "continuous_time_lidar_ablation.schema.json"
     assert main(["schema", "all", "--output-dir", str(all_schema_dir)]) == 0
     assert main(["schema", "config", "--output", str(config_schema)]) == 0
@@ -1476,6 +1485,28 @@ def test_schema_commands(tmp_path: Path) -> None:
         main(
             [
                 "schema",
+                "camera-lidar-pose-initializer-protocol",
+                "--output",
+                str(camera_lidar_pose_initializer_schema),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "schema",
+                "camera-lidar-pose-initializer-failure-analysis",
+                "--output",
+                str(camera_lidar_pose_initializer_failure_schema),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "schema",
                 "continuous-time-lidar-ablation",
                 "--output",
                 str(continuous_time_lidar_ablation_schema),
@@ -1490,6 +1521,17 @@ def test_schema_commands(tmp_path: Path) -> None:
                 "continuous-time-lidar-pair",
                 "--output",
                 str(continuous_time_lidar_schema),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "schema",
+                "continuous-time-lidar-train-diagnostics",
+                "--output",
+                str(continuous_time_lidar_train_diagnostics_schema),
             ]
         )
         == 0
@@ -1516,6 +1558,8 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert transforms_schema.exists()
     assert manifest_schema.exists()
     assert kitti_benchmark_input_schema.exists()
+    assert camera_lidar_pose_initializer_schema.exists()
+    assert camera_lidar_pose_initializer_failure_schema.exists()
     assert report_summary_schema.exists()
     assert report_metrics_schema.exists()
     assert report_observability_schema.exists()
@@ -1527,6 +1571,7 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert trajectory_window_drift_schema.exists()
     assert capture_readiness_schema.exists()
     assert continuous_time_lidar_schema.exists()
+    assert continuous_time_lidar_train_diagnostics_schema.exists()
     assert continuous_time_lidar_ablation_schema.exists()
     for filename in [
         "config.schema.json",
@@ -1540,6 +1585,8 @@ def test_schema_commands(tmp_path: Path) -> None:
         "transforms.schema.json",
         "dataset_manifest.schema.json",
         "kitti_benchmark_input.schema.json",
+        "camera_lidar_pose_initializer_protocol.schema.json",
+        "camera_lidar_pose_initializer_failure_analysis.schema.json",
         "report_summary.schema.json",
         "report_metrics.schema.json",
         "report_observability.schema.json",
@@ -1549,8 +1596,9 @@ def test_schema_commands(tmp_path: Path) -> None:
         "evidence_bundle_verification.schema.json",
         "online_timeline.schema.json",
         "trajectory_window_drift.schema.json",
-        "capture_readiness.schema.json",
+            "capture_readiness.schema.json",
             "continuous_time_lidar_pair_result.schema.json",
+            "continuous_time_lidar_train_diagnostics.schema.json",
             "continuous_time_lidar_ablation.schema.json",
     ]:
         assert (all_schema_dir / filename).exists()
@@ -1566,6 +1614,12 @@ def test_schema_commands(tmp_path: Path) -> None:
     transforms_schema_payload = json.loads(transforms_schema.read_text(encoding="utf-8"))
     kitti_benchmark_input_schema_payload = json.loads(
         kitti_benchmark_input_schema.read_text(encoding="utf-8")
+    )
+    camera_lidar_pose_initializer_schema_payload = json.loads(
+        camera_lidar_pose_initializer_schema.read_text(encoding="utf-8")
+    )
+    camera_lidar_pose_initializer_failure_schema_payload = json.loads(
+        camera_lidar_pose_initializer_failure_schema.read_text(encoding="utf-8")
     )
     metrics_schema = json.loads(report_metrics_schema.read_text(encoding="utf-8"))
     evidence_schema = json.loads(report_evidence_schema.read_text(encoding="utf-8"))
@@ -1596,6 +1650,12 @@ def test_schema_commands(tmp_path: Path) -> None:
     assert kitti_benchmark_input_schema_payload["properties"]["schema_version"]["const"] == (
         "slac.kitti_benchmark_input/v0.1"
     )
+    assert camera_lidar_pose_initializer_schema_payload["properties"]["schema_version"][
+        "const"
+    ] == "slac.camera_lidar_pose_initializer_protocol/v0.1"
+    assert camera_lidar_pose_initializer_failure_schema_payload["properties"][
+        "schema_version"
+    ]["const"] == "slac.camera_lidar_pose_initializer_failure_analysis/v0.1"
     assert metrics_schema["properties"]["schema_version"]["const"] == ("slac.report.metrics/v0.1")
     assert evidence_schema["properties"]["schema_version"]["const"] == ("slac.report.evidence/v0.1")
     assert bundle_schema["properties"]["schema_version"]["const"] == ("slac.evidence_bundle/v0.1")

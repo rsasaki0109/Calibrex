@@ -30,7 +30,7 @@ from calibrex.data.depth import (
 from calibrex.data.kitti import read_calibration_file, read_timestamps
 
 FloatArray: TypeAlias = NDArray[np.float64]
-KITTI_CAMERA_LIDAR_PROBLEM_BUILDER_VERSION = "calibrex.kitti_camera_lidar_problem/v0.1"
+KITTI_CAMERA_LIDAR_PROBLEM_BUILDER_VERSION = "calibrex.kitti_camera_lidar_problem/v0.2"
 
 
 def uniform_kitti_frame_ids(
@@ -110,6 +110,8 @@ def build_kitti_raw_camera_lidar_problem(
     depth_provider_path: str | Path,
     *,
     camera_stream: str = "image_02",
+    lidar_directory: str | Path | None = None,
+    lidar_manifest_path: str | Path | None = None,
     dataset_id: str | None = None,
     problem_id: str | None = None,
     rotation_bound_deg: float = 20.0,
@@ -123,12 +125,22 @@ def build_kitti_raw_camera_lidar_problem(
     if not sequence.is_dir():
         raise ValueError(f"KITTI raw sequence does not exist: {sequence}")
     expected_stream = sequence / camera_stream / "data"
-    lidar_stream = sequence / "velodyne_points" / "data"
+    lidar_stream = (
+        Path(lidar_directory).resolve()
+        if lidar_directory is not None
+        else sequence / "velodyne_points" / "data"
+    )
     lidar_timestamps_path = sequence / "velodyne_points" / "timestamps.txt"
+    imu_to_velodyne_path = sequence.parent / "calib_imu_to_velo.txt"
     if not expected_stream.is_dir():
         raise ValueError(f"KITTI camera stream does not exist: {expected_stream}")
     if not lidar_stream.is_dir():
         raise ValueError(f"KITTI Velodyne stream does not exist: {lidar_stream}")
+    if (lidar_directory is None) != (lidar_manifest_path is None):
+        raise ValueError(
+            "generated KITTI raw LiDAR requires both lidar_directory and "
+            "lidar_manifest_path"
+        )
 
     provider = load_depth_provider(provider_path)
     provider_digest = _required_digest(provider_path)
@@ -140,6 +152,18 @@ def build_kitti_raw_camera_lidar_problem(
         raise ValueError("depth provider verification failed: " + "; ".join(provider_issues))
     if len({item.frame_id for item in provider.observations}) != len(provider.observations):
         raise ValueError("depth provider frame IDs must be unique")
+    integrated_outputs: dict[str, Path] | None = None
+    integration_manifest: Path | None = None
+    if lidar_manifest_path is not None:
+        integration_manifest = Path(lidar_manifest_path).resolve()
+        integrated_outputs = _verify_integrated_lidar_binding(
+            integration_manifest,
+            lidar_directory=lidar_stream,
+            frame_ids=[item.frame_id for item in provider.observations],
+            sequence_id=sequence.name,
+            lidar_timestamps_path=lidar_timestamps_path,
+            imu_to_velodyne_path=imu_to_velodyne_path,
+        )
 
     lidar_timestamps = read_timestamps(lidar_timestamps_path)
     if not lidar_timestamps:
@@ -152,6 +176,8 @@ def build_kitti_raw_camera_lidar_problem(
         sequence.parent / "calib_velo_to_cam.txt",
         lidar_timestamps_path,
     ]
+    if integration_manifest is not None:
+        source_files.extend((integration_manifest, imu_to_velodyne_path))
     for observation in provider.observations:
         if not observation.frame_id.isdigit():
             raise ValueError(f"KITTI frame ID must be decimal: {observation.frame_id!r}")
@@ -163,7 +189,11 @@ def build_kitti_raw_camera_lidar_problem(
             observation.image.sha256,
             image_path,
         )
-        lidar_path = lidar_stream / f"{observation.frame_id}.bin"
+        lidar_path = (
+            integrated_outputs[observation.frame_id]
+            if integrated_outputs is not None
+            else lidar_stream / f"{observation.frame_id}.bin"
+        )
         if index not in timestamp_by_index:
             raise ValueError(f"Velodyne timestamp does not cover frame {observation.frame_id}")
         lidar_reference = depth_file_reference(
@@ -212,7 +242,13 @@ def build_kitti_raw_camera_lidar_problem(
         initial_transform_camera_lidar=initial_result,
         time_convention=(
             "KITTI per-stream capture timestamps in UTC nanoseconds; "
-            "same numeric frame IDs are paired"
+            "same numeric frame IDs are paired; "
+            + (
+                "Velodyne scans use provenance-pinned OXTS motion-compensated "
+                "center-frame windows"
+                if integrated_outputs is not None
+                else "raw scans are not motion compensated"
+            )
         ),
         rotation_bound_deg=rotation_bound_deg,
         translation_bound_m=translation_bound_m,
@@ -225,6 +261,74 @@ def build_kitti_raw_camera_lidar_problem(
             source_sha256=_source_digest(source_files),
         ),
     )
+
+
+def _verify_integrated_lidar_binding(
+    manifest_path: Path,
+    *,
+    lidar_directory: Path,
+    frame_ids: list[str],
+    sequence_id: str,
+    lidar_timestamps_path: Path,
+    imu_to_velodyne_path: Path,
+) -> dict[str, Path]:
+    """Verify raw integrated outputs, sequence, centers, and timestamps."""
+
+    from calibrex.data.kitti_raw_lidar_window_integration import (
+        load_kitti_raw_lidar_window_integration,
+        verify_kitti_raw_lidar_window_integration_files,
+    )
+
+    artifact = load_kitti_raw_lidar_window_integration(manifest_path)
+    issues = verify_kitti_raw_lidar_window_integration_files(artifact)
+    if issues:
+        raise ValueError(
+            "KITTI raw LiDAR integration verification failed: "
+            + "; ".join(issues)
+        )
+    if artifact.sequence_id != sequence_id:
+        raise ValueError(
+            "KITTI raw LiDAR integration sequence mismatch: "
+            f"{artifact.sequence_id} != {sequence_id}"
+        )
+    if artifact.imu_to_velodyne_calibration.sha256 != _required_digest(
+        imu_to_velodyne_path
+    ):
+        raise ValueError(
+            "KITTI raw LiDAR integration IMU calibration differs from problem"
+        )
+    normalized_ids = sorted(set(frame_ids), key=int)
+    if artifact.center_frame_ids != normalized_ids:
+        raise ValueError(
+            "KITTI raw LiDAR integration centers differ from depth observations"
+        )
+    outputs = {
+        item.center_frame_id: Path(item.output.path).resolve()
+        for item in artifact.windows
+    }
+    expected_outputs = {
+        frame_id: (lidar_directory / f"{frame_id}.bin").resolve()
+        for frame_id in normalized_ids
+    }
+    if outputs != expected_outputs:
+        raise ValueError(
+            "KITTI raw LiDAR integration outputs do not match lidar_directory"
+        )
+    timestamp_digest = _required_digest(lidar_timestamps_path)
+    pointcloud_timestamps = [
+        item
+        for item in artifact.timestamp_files
+        if Path(item.path).parent.name == "velodyne_points"
+    ]
+    if len(pointcloud_timestamps) != 1:
+        raise ValueError(
+            "KITTI raw LiDAR integration does not identify one pointcloud timestamp file"
+        )
+    if pointcloud_timestamps[0].sha256 != timestamp_digest:
+        raise ValueError(
+            "KITTI raw LiDAR integration timestamps differ from the problem sequence"
+        )
+    return outputs
 
 
 def _camera_suffix(camera_stream: str) -> str:

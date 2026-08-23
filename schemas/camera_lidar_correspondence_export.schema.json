@@ -1,0 +1,396 @@
+{
+  "$defs": {
+    "CameraLidarCorrespondenceExportFrame": {
+      "additionalProperties": false,
+      "description": "One provider-generated NPZ export and its sensor-frame metadata.",
+      "properties": {
+        "camera_frame": {
+          "title": "Camera Frame",
+          "type": "string"
+        },
+        "capture_time_ns": {
+          "title": "Capture Time Ns",
+          "type": "integer"
+        },
+        "export": {
+          "$ref": "#/$defs/DepthFileReference"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "intrinsics": {
+          "$ref": "#/$defs/DepthCameraIntrinsics"
+        },
+        "lidar_frame": {
+          "title": "Lidar Frame",
+          "type": "string"
+        }
+      },
+      "required": [
+        "frame_id",
+        "capture_time_ns",
+        "camera_frame",
+        "lidar_frame",
+        "intrinsics",
+        "export"
+      ],
+      "title": "CameraLidarCorrespondenceExportFrame",
+      "type": "object"
+    },
+    "CorrespondenceProviderIdentity": {
+      "additionalProperties": false,
+      "description": "Identity and redistribution boundary of the external provider.",
+      "properties": {
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DepthFileReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checkpoint_redistribution": {
+          "title": "Checkpoint Redistribution",
+          "type": "string"
+        },
+        "license_spdx": {
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "source_commit": {
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_repository": {
+          "title": "Source Repository",
+          "type": "string"
+        },
+        "training": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrespondenceTrainingDeclaration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "version",
+        "source_repository",
+        "source_commit",
+        "license_spdx",
+        "checkpoint_redistribution"
+      ],
+      "title": "CorrespondenceProviderIdentity",
+      "type": "object"
+    },
+    "CorrespondenceTrainingDeclaration": {
+      "additionalProperties": false,
+      "description": "Training-corpus relationship for a learned correspondence provider.",
+      "properties": {
+        "evaluation_overlap": {
+          "enum": [
+            "none",
+            "possible",
+            "confirmed",
+            "unknown"
+          ],
+          "title": "Evaluation Overlap",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "test_data_used_for_online_refinement": {
+          "title": "Test Data Used For Online Refinement",
+          "type": "boolean"
+        },
+        "training_datasets": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Training Datasets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "training_datasets",
+        "evaluation_overlap",
+        "test_data_used_for_online_refinement",
+        "evidence"
+      ],
+      "title": "CorrespondenceTrainingDeclaration",
+      "type": "object"
+    },
+    "DepthCameraIntrinsics": {
+      "additionalProperties": false,
+      "description": "Camera intrinsics aligned with the depth grid.",
+      "properties": {
+        "alpha": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1.0,
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alpha"
+        },
+        "cx": {
+          "title": "Cx",
+          "type": "number"
+        },
+        "cy": {
+          "title": "Cy",
+          "type": "number"
+        },
+        "distortion": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Distortion",
+          "type": "array"
+        },
+        "distortion_model": {
+          "default": "none",
+          "title": "Distortion Model",
+          "type": "string"
+        },
+        "fx": {
+          "exclusiveMinimum": 0.0,
+          "title": "Fx",
+          "type": "number"
+        },
+        "fy": {
+          "exclusiveMinimum": 0.0,
+          "title": "Fy",
+          "type": "number"
+        },
+        "height": {
+          "exclusiveMinimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "projection": {
+          "default": "pinhole",
+          "enum": [
+            "pinhole",
+            "double_sphere",
+            "mei"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "xi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Xi"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "fx",
+        "fy",
+        "cx",
+        "cy"
+      ],
+      "title": "DepthCameraIntrinsics",
+      "type": "object"
+    },
+    "DepthFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed depth-provider input or output file.",
+      "properties": {
+        "encoding": {
+          "title": "Encoding",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "encoding"
+      ],
+      "title": "DepthFileReference",
+      "type": "object"
+    },
+    "ProbabilisticCorrespondenceProvenance": {
+      "additionalProperties": false,
+      "description": "Generator, command, and input lineage for correspondence output.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "ProbabilisticCorrespondenceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid provider boundary for KITTI-family correspondence exports.",
+  "properties": {
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "dataset_family": {
+      "enum": [
+        "kitti_raw",
+        "kitti_360"
+      ],
+      "title": "Dataset Family",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_license_spdx": {
+      "minLength": 1,
+      "title": "Dataset License Spdx",
+      "type": "string"
+    },
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarCorrespondenceExportFrame"
+      },
+      "minItems": 1,
+      "title": "Frames",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProbabilisticCorrespondenceProvenance"
+    },
+    "provider": {
+      "$ref": "#/$defs/CorrespondenceProviderIdentity"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_correspondence_export/v0.1",
+      "default": "slac.camera_lidar_correspondence_export/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence_id": {
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "split_id": {
+      "title": "Split Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "dataset_id",
+    "dataset_family",
+    "sequence_id",
+    "split_id",
+    "dataset_license_spdx",
+    "provider",
+    "frames",
+    "provenance"
+  ],
+  "title": "CameraLidarCorrespondenceExportManifest",
+  "type": "object"
+}

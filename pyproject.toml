@@ -65,6 +65,9 @@ open3d = [
 opencv = [
   "opencv-python-headless>=4.8,<5",
 ]
+numba = [
+  "numba>=0.59",
+]
 autonomous = [
   "mcap>=1.1",
 ]
@@ -104,7 +107,7 @@ calibrex = [
 
 [tool.pytest.ini_options]
 addopts = "-q"
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 markers = [
     "integration: end-to-end tests that may be slow or require optional data",
@@ -137,4 +140,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["numpy", "numpy.*", "lz4", "lz4.*", "zstandard", "zstandard.*"]
 follow_imports = "skip"
+ignore_missing_imports = true
+
+# SciPy does not ship runtime type metadata in the supported dependency range;
+# keep the untyped boundary explicit while annotating all values crossing it.
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*"]
 ignore_missing_imports = true

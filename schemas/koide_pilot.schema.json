@@ -1,0 +1,1214 @@
+{
+  "$defs": {
+    "KoidePilotExecutionManifest": {
+      "additionalProperties": false,
+      "description": "Exact execution intent and environment evidence for a pilot.",
+      "properties": {
+        "attempted": {
+          "default": false,
+          "title": "Attempted",
+          "type": "boolean"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "container_digest": {
+          "anyOf": [
+            {
+              "pattern": "^(?:[^@\\s]+@)?sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Digest"
+        },
+        "docker_available": {
+          "default": false,
+          "title": "Docker Available",
+          "type": "boolean"
+        },
+        "engine": {
+          "default": "none",
+          "enum": [
+            "docker",
+            "podman",
+            "none"
+          ],
+          "title": "Engine",
+          "type": "string"
+        },
+        "podman_available": {
+          "default": false,
+          "title": "Podman Available",
+          "type": "boolean"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_repository": {
+          "default": "https://github.com/koide3/direct_visual_lidar_calibration",
+          "title": "Source Repository",
+          "type": "string"
+        },
+        "status": {
+          "default": "not_attempted",
+          "enum": [
+            "not_attempted",
+            "attempted",
+            "blocked",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "KoidePilotExecutionManifest",
+      "type": "object"
+    },
+    "KoidePilotInputDigest": {
+      "additionalProperties": false,
+      "description": "One digest-bound source used by the pilot.",
+      "properties": {
+        "frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Id"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "KoidePilotInputDigest",
+      "type": "object"
+    },
+    "KoidePilotKnownBadControl": {
+      "additionalProperties": false,
+      "description": "One mandatory signed six-DoF known-bad control.",
+      "properties": {
+        "amount": {
+          "exclusiveMinimum": 0.0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "candidate_holdout_depth_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Depth Edge Alignment"
+        },
+        "candidate_holdout_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Edge Alignment"
+        },
+        "candidate_holdout_projection_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Projection Ratio"
+        },
+        "control_holdout_depth_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Holdout Depth Edge Alignment"
+        },
+        "control_holdout_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Holdout Edge Alignment"
+        },
+        "control_holdout_projection_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Holdout Projection Ratio"
+        },
+        "control_id": {
+          "title": "Control Id",
+          "type": "string"
+        },
+        "detected": {
+          "default": false,
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "dof": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Dof",
+          "type": "string"
+        },
+        "metric_delta_depth_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric Delta Depth Edge Alignment"
+        },
+        "metric_delta_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric Delta Edge Alignment"
+        },
+        "metric_delta_projection_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric Delta Projection Ratio"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "sign": {
+          "enum": [
+            "+",
+            "-"
+          ],
+          "title": "Sign",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "control_id",
+        "dof",
+        "sign",
+        "amount",
+        "unit",
+        "status",
+        "reason"
+      ],
+      "title": "KoidePilotKnownBadControl",
+      "type": "object"
+    },
+    "KoidePilotMetricSet": {
+      "additionalProperties": false,
+      "description": "Train/holdout projection evidence for one frozen pose.",
+      "properties": {
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "evaluation_policy": {
+          "default": "frozen candidate; deterministic timestamp-ordered frame split; holdout is never used for fitting",
+          "title": "Evaluation Policy",
+          "type": "string"
+        },
+        "holdout_depth_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Depth Edge Alignment"
+        },
+        "holdout_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Edge Alignment"
+        },
+        "holdout_frame_count": {
+          "minimum": 0,
+          "title": "Holdout Frame Count",
+          "type": "integer"
+        },
+        "holdout_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Holdout Frame Ids",
+          "type": "array"
+        },
+        "holdout_projection_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Projection Ratio"
+        },
+        "scored_frame_count": {
+          "minimum": 0,
+          "title": "Scored Frame Count",
+          "type": "integer"
+        },
+        "train_depth_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Depth Edge Alignment"
+        },
+        "train_edge_alignment": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Edge Alignment"
+        },
+        "train_frame_count": {
+          "minimum": 0,
+          "title": "Train Frame Count",
+          "type": "integer"
+        },
+        "train_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Train Frame Ids",
+          "type": "array"
+        },
+        "train_projection_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Projection Ratio"
+        },
+        "training_isolation_declared": {
+          "default": false,
+          "title": "Training Isolation Declared",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "train_frame_count",
+        "holdout_frame_count",
+        "scored_frame_count"
+      ],
+      "title": "KoidePilotMetricSet",
+      "type": "object"
+    },
+    "KoidePilotProvenance": {
+      "additionalProperties": false,
+      "description": "Complete lineage for the pilot decision.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "calibrex_version": {
+          "default": "0.4.1",
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "candidate_output_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Output Path"
+        },
+        "candidate_output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Output Sha256"
+        },
+        "candidate_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Path"
+        },
+        "candidate_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Path"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "dataset_path": {
+          "title": "Dataset Path",
+          "type": "string"
+        },
+        "dataset_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Sha256"
+        },
+        "fitting_frame_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fitting Frame Ids Sha256"
+        },
+        "fitting_input_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Fitting Input Digests",
+          "type": "object"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "holdout_frame_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Frame Ids Sha256"
+        },
+        "holdout_input_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Holdout Input Digests",
+          "type": "object"
+        },
+        "input_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Digests",
+          "type": "object"
+        },
+        "input_manifest_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Manifest Path"
+        },
+        "input_manifest_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Manifest Sha256"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "protocol_id": {
+          "default": "koide_external_candidate_kitti_holdout/v0.1",
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "readiness_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readiness Path"
+        },
+        "readiness_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readiness Sha256"
+        },
+        "tool_name": {
+          "default": "calibrex.koide-pilot",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_path"
+      ],
+      "title": "KoidePilotProvenance",
+      "type": "object"
+    },
+    "KoidePilotReferenceDelta": {
+      "additionalProperties": false,
+      "description": "SE(3) candidate-to-reference comparison.",
+      "properties": {
+        "candidate_id": {
+          "default": "koide_external_candidate",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "convention": {
+          "default": "reference.inverse().compose(candidate); T_camera_lidar",
+          "title": "Convention",
+          "type": "string"
+        },
+        "declared": {
+          "title": "Declared",
+          "type": "boolean"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "reference_candidate_id": {
+          "default": "kitti_dataset_reference",
+          "title": "Reference Candidate Id",
+          "type": "string"
+        },
+        "rotation_delta_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Delta Deg"
+        },
+        "translation_delta_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Delta M"
+        }
+      },
+      "required": [
+        "declared",
+        "reason"
+      ],
+      "title": "KoidePilotReferenceDelta",
+      "type": "object"
+    },
+    "KoidePilotThresholds": {
+      "additionalProperties": false,
+      "description": "Frozen evaluation and adoption gates.\n\nThe defaults are intentionally conservative for a small pilot.  A\npublished run should serialize this object and never rely on defaults at\nreview time.",
+      "properties": {
+        "holdout_ratio": {
+          "default": 0.2,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Holdout Ratio",
+          "type": "number"
+        },
+        "known_bad_min_metric_delta": {
+          "default": 0.01,
+          "exclusiveMinimum": 0.0,
+          "title": "Known Bad Min Metric Delta",
+          "type": "number"
+        },
+        "known_bad_rotation_deg": {
+          "default": 5.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Known Bad Rotation Deg",
+          "type": "number"
+        },
+        "known_bad_translation_m": {
+          "default": 0.25,
+          "exclusiveMinimum": 0.0,
+          "title": "Known Bad Translation M",
+          "type": "number"
+        },
+        "max_candidate_reference_rotation_deg": {
+          "default": 2.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Candidate Reference Rotation Deg",
+          "type": "number"
+        },
+        "max_candidate_reference_translation_m": {
+          "default": 0.1,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Candidate Reference Translation M",
+          "type": "number"
+        },
+        "max_frames": {
+          "default": 50,
+          "minimum": 2,
+          "title": "Max Frames",
+          "type": "integer"
+        },
+        "max_points": {
+          "default": 4000,
+          "minimum": 1,
+          "title": "Max Points",
+          "type": "integer"
+        },
+        "min_holdout_depth_edge_alignment": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Holdout Depth Edge Alignment",
+          "type": "number"
+        },
+        "min_holdout_edge_alignment": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Holdout Edge Alignment",
+          "type": "number"
+        },
+        "min_holdout_frames": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Min Holdout Frames",
+          "type": "integer"
+        },
+        "min_holdout_projection_ratio": {
+          "default": 0.5,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Holdout Projection Ratio",
+          "type": "number"
+        },
+        "min_known_bad_detectable_fraction": {
+          "default": 0.8,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Known Bad Detectable Fraction",
+          "type": "number"
+        },
+        "require_candidate_reference_comparison": {
+          "default": true,
+          "title": "Require Candidate Reference Comparison",
+          "type": "boolean"
+        },
+        "require_readiness_ready": {
+          "default": true,
+          "title": "Require Readiness Ready",
+          "type": "boolean"
+        },
+        "require_training_isolation": {
+          "default": true,
+          "title": "Require Training Isolation",
+          "type": "boolean"
+        },
+        "split_seed": {
+          "default": 20260823,
+          "title": "Split Seed",
+          "type": "integer"
+        }
+      },
+      "title": "KoidePilotThresholds",
+      "type": "object"
+    },
+    "KoidePilotTransform": {
+      "additionalProperties": false,
+      "description": "A frame-bound transform used in candidate/reference scoring.",
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "source_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Sha256"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "KoidePilotTransform",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid frozen candidate acceptance and adoption decision.",
+  "properties": {
+    "admissible": {
+      "default": false,
+      "title": "Admissible",
+      "type": "boolean"
+    },
+    "adoption_decision": {
+      "enum": [
+        "ADOPT",
+        "ADOPT_WITH_WARNING",
+        "DO_NOT_ADOPT",
+        "INCONCLUSIVE",
+        "BLOCKED"
+      ],
+      "title": "Adoption Decision",
+      "type": "string"
+    },
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "camera_frame": {
+      "title": "Camera Frame",
+      "type": "string"
+    },
+    "camera_stream": {
+      "default": "image_02",
+      "title": "Camera Stream",
+      "type": "string"
+    },
+    "candidate_metrics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/KoidePilotMetricSet"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_to_reference": {
+      "$ref": "#/$defs/KoidePilotReferenceDelta"
+    },
+    "candidate_transform_camera_lidar": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/KoidePilotTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dataset_path": {
+      "title": "Dataset Path",
+      "type": "string"
+    },
+    "execution": {
+      "$ref": "#/$defs/KoidePilotExecutionManifest"
+    },
+    "external_run_status": {
+      "default": "missing",
+      "title": "External Run Status",
+      "type": "string"
+    },
+    "fitting_input_files": {
+      "items": {
+        "$ref": "#/$defs/KoidePilotInputDigest"
+      },
+      "title": "Fitting Input Files",
+      "type": "array"
+    },
+    "holdout_frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Holdout Frame Ids",
+      "type": "array"
+    },
+    "holdout_input_files": {
+      "items": {
+        "$ref": "#/$defs/KoidePilotInputDigest"
+      },
+      "title": "Holdout Input Files",
+      "type": "array"
+    },
+    "input_files": {
+      "items": {
+        "$ref": "#/$defs/KoidePilotInputDigest"
+      },
+      "title": "Input Files",
+      "type": "array"
+    },
+    "known_bad_controls": {
+      "items": {
+        "$ref": "#/$defs/KoidePilotKnownBadControl"
+      },
+      "title": "Known Bad Controls",
+      "type": "array"
+    },
+    "known_bad_detectable_fraction": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Known Bad Detectable Fraction"
+    },
+    "known_bad_detected_count": {
+      "default": 0,
+      "title": "Known Bad Detected Count",
+      "type": "integer"
+    },
+    "known_bad_required_count": {
+      "default": 12,
+      "title": "Known Bad Required Count",
+      "type": "integer"
+    },
+    "lidar_frame": {
+      "title": "Lidar Frame",
+      "type": "string"
+    },
+    "lidar_stream": {
+      "default": "velodyne_points",
+      "title": "Lidar Stream",
+      "type": "string"
+    },
+    "pilot_id": {
+      "title": "Pilot Id",
+      "type": "string"
+    },
+    "protocol_id": {
+      "default": "koide_external_candidate_kitti_holdout/v0.1",
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KoidePilotProvenance"
+    },
+    "readiness_status": {
+      "enum": [
+        "ready",
+        "warn",
+        "blocked",
+        "missing"
+      ],
+      "title": "Readiness Status",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "reference_metrics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/KoidePilotMetricSet"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reference_transform_camera_lidar": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/KoidePilotTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "slac.koide_pilot/v0.1",
+      "default": "slac.koide_pilot/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Frame Ids",
+      "type": "array"
+    },
+    "split_policy": {
+      "default": "timestamp-ordered, seeded, frame-disjoint split; candidate frozen before scoring",
+      "title": "Split Policy",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "INCONCLUSIVE",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/KoidePilotThresholds"
+    },
+    "train_frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Train Frame Ids",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "pilot_id",
+    "status",
+    "adoption_decision",
+    "reason",
+    "dataset_path",
+    "camera_frame",
+    "lidar_frame",
+    "thresholds",
+    "readiness_status",
+    "candidate_to_reference",
+    "execution",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "KoidePilotArtifact",
+  "type": "object"
+}

@@ -1,0 +1,385 @@
+{
+  "$defs": {
+    "RemoteArchiveSelectedMember": {
+      "additionalProperties": false,
+      "description": "One verified archive member materialized as a local dataset file.",
+      "properties": {
+        "compressed_size_bytes": {
+          "minimum": 0,
+          "title": "Compressed Size Bytes",
+          "type": "integer"
+        },
+        "crc32": {
+          "pattern": "^[0-9a-f]{8}$",
+          "title": "Crc32",
+          "type": "string"
+        },
+        "frame_id": {
+          "pattern": "^[0-9]{10}$",
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "local_path": {
+          "title": "Local Path",
+          "type": "string"
+        },
+        "local_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Local Sha256",
+          "type": "string"
+        },
+        "local_size_bytes": {
+          "minimum": 0,
+          "title": "Local Size Bytes",
+          "type": "integer"
+        },
+        "member_path": {
+          "title": "Member Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "image",
+            "pointcloud",
+            "pose"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "uncompressed_size_bytes": {
+          "minimum": 0,
+          "title": "Uncompressed Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "frame_id",
+        "member_path",
+        "crc32",
+        "compressed_size_bytes",
+        "uncompressed_size_bytes",
+        "local_path",
+        "local_sha256",
+        "local_size_bytes"
+      ],
+      "title": "RemoteArchiveSelectedMember",
+      "type": "object"
+    },
+    "RemoteArchiveSelectedMetadataMember": {
+      "additionalProperties": false,
+      "description": "One stream-level metadata member materialized from an archive.",
+      "properties": {
+        "compressed_size_bytes": {
+          "minimum": 0,
+          "title": "Compressed Size Bytes",
+          "type": "integer"
+        },
+        "crc32": {
+          "pattern": "^[0-9a-f]{8}$",
+          "title": "Crc32",
+          "type": "string"
+        },
+        "local_path": {
+          "title": "Local Path",
+          "type": "string"
+        },
+        "local_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Local Sha256",
+          "type": "string"
+        },
+        "local_size_bytes": {
+          "minimum": 0,
+          "title": "Local Size Bytes",
+          "type": "integer"
+        },
+        "member_path": {
+          "title": "Member Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "image_timestamps",
+            "pointcloud_timestamps",
+            "pose_timestamps"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "uncompressed_size_bytes": {
+          "minimum": 0,
+          "title": "Uncompressed Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "member_path",
+        "crc32",
+        "compressed_size_bytes",
+        "uncompressed_size_bytes",
+        "local_path",
+        "local_sha256",
+        "local_size_bytes"
+      ],
+      "title": "RemoteArchiveSelectedMetadataMember",
+      "type": "object"
+    },
+    "RemoteArchiveSelectionProvenance": {
+      "additionalProperties": false,
+      "description": "Downloader identity, command, and local metadata input digests.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "RemoteArchiveSelectionProvenance",
+      "type": "object"
+    },
+    "RemoteArchiveSource": {
+      "additionalProperties": false,
+      "description": "HTTP identity for one range-addressed upstream archive.",
+      "properties": {
+        "accept_ranges": {
+          "title": "Accept Ranges",
+          "type": "boolean"
+        },
+        "etag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Etag"
+        },
+        "last_modified": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Modified"
+        },
+        "role": {
+          "enum": [
+            "image",
+            "pointcloud",
+            "pose",
+            "multi_stream"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "url",
+        "size_bytes",
+        "accept_ranges"
+      ],
+      "title": "RemoteArchiveSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Endpoint-inclusive image/point-cloud subset with immutable lineage.",
+  "properties": {
+    "archives": {
+      "items": {
+        "$ref": "#/$defs/RemoteArchiveSource"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Archives",
+      "type": "array"
+    },
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "center_frame_ids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Center Frame Ids"
+    },
+    "dataset_family": {
+      "title": "Dataset Family",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_license_spdx": {
+      "title": "Dataset License Spdx",
+      "type": "string"
+    },
+    "frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Frame Ids",
+      "type": "array"
+    },
+    "members": {
+      "items": {
+        "$ref": "#/$defs/RemoteArchiveSelectedMember"
+      },
+      "minItems": 4,
+      "title": "Members",
+      "type": "array"
+    },
+    "metadata_members": {
+      "items": {
+        "$ref": "#/$defs/RemoteArchiveSelectedMetadataMember"
+      },
+      "title": "Metadata Members",
+      "type": "array"
+    },
+    "output_root": {
+      "title": "Output Root",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/RemoteArchiveSelectionProvenance"
+    },
+    "requested_frame_count": {
+      "minimum": 2,
+      "title": "Requested Frame Count",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": "slac.remote_archive_selection/v0.2",
+      "enum": [
+        "slac.remote_archive_selection/v0.1",
+        "slac.remote_archive_selection/v0.2",
+        "slac.remote_archive_selection/v0.3"
+      ],
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selection_policy": {
+      "default": "endpoint_inclusive_same_numeric_frame_id/v0.1",
+      "enum": [
+        "endpoint_inclusive_same_numeric_frame_id/v0.1",
+        "centered_same_numeric_frame_windows/v0.2",
+        "center_images_with_centered_pointcloud_pose_windows/v0.3"
+      ],
+      "title": "Selection Policy",
+      "type": "string"
+    },
+    "sequence_id": {
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "stream_frame_ids": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "propertyNames": {
+            "enum": [
+              "image",
+              "pointcloud",
+              "pose"
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stream Frame Ids"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "dataset_family",
+    "dataset_id",
+    "sequence_id",
+    "dataset_license_spdx",
+    "requested_frame_count",
+    "frame_ids",
+    "archives",
+    "members",
+    "output_root",
+    "provenance"
+  ],
+  "title": "RemoteArchiveSelectionArtifact",
+  "type": "object"
+}

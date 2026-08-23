@@ -1,0 +1,310 @@
+{
+  "$defs": {
+    "KoideLockContainerPolicy": {
+      "additionalProperties": false,
+      "description": "Calibrex isolation policy applied around the official image.",
+      "properties": {
+        "engine": {
+          "default": "docker",
+          "enum": [
+            "docker",
+            "podman"
+          ],
+          "title": "Engine",
+          "type": "string"
+        },
+        "network_mode": {
+          "const": "none",
+          "default": "none",
+          "title": "Network Mode",
+          "type": "string"
+        },
+        "input_mount_readonly": {
+          "const": true,
+          "default": true,
+          "title": "Input Mount Readonly",
+          "type": "boolean"
+        },
+        "output_mount_writable": {
+          "const": true,
+          "default": true,
+          "title": "Output Mount Writable",
+          "type": "boolean"
+        },
+        "rootfs_readonly": {
+          "const": true,
+          "default": true,
+          "title": "Rootfs Readonly",
+          "type": "boolean"
+        },
+        "source_image": {
+          "default": "koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb",
+          "title": "Source Image",
+          "type": "string"
+        }
+      },
+      "title": "KoideLockContainerPolicy",
+      "type": "object"
+    },
+    "KoideLockDatasetContract": {
+      "additionalProperties": false,
+      "description": "Capture requirements stated by the upstream data-collection guide.",
+      "properties": {
+        "capture_format": {
+          "const": "ros2-bag",
+          "default": "ros2-bag",
+          "title": "Capture Format",
+          "type": "string"
+        },
+        "required_message_types": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Required Message Types",
+          "type": "array"
+        },
+        "camera_intrinsics_precalibrated": {
+          "const": true,
+          "default": true,
+          "title": "Camera Intrinsics Precalibrated",
+          "type": "boolean"
+        },
+        "rigid_mount_required": {
+          "const": true,
+          "default": true,
+          "title": "Rigid Mount Required",
+          "type": "boolean"
+        },
+        "minimum_pairings": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Minimum Pairings",
+          "type": "integer"
+        },
+        "operator_capture_note": {
+          "minLength": 1,
+          "title": "Operator Capture Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator_capture_note"
+      ],
+      "title": "KoideLockDatasetContract",
+      "type": "object"
+    },
+    "KoideLockImage": {
+      "additionalProperties": false,
+      "description": "Published image pin and explicit rebuild limitation.",
+      "properties": {
+        "repository": {
+          "default": "koide3/direct_visual_lidar_calibration",
+          "title": "Repository",
+          "type": "string"
+        },
+        "tag": {
+          "default": "humble",
+          "enum": [
+            "humble",
+            "jazzy",
+            "noetic"
+          ],
+          "title": "Tag",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "base_image": {
+          "default": "koide3/gtsam_docker:humble",
+          "title": "Base Image",
+          "type": "string"
+        },
+        "base_image_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Image Digest"
+        },
+        "base_image_digest_required_for_rebuild": {
+          "const": true,
+          "default": true,
+          "title": "Base Image Digest Required For Rebuild",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "digest"
+      ],
+      "title": "KoideLockImage",
+      "type": "object"
+    },
+    "KoideLockSource": {
+      "additionalProperties": false,
+      "description": "Pinned upstream source identity and official references.",
+      "properties": {
+        "repository": {
+          "default": "https://github.com/koide3/direct_visual_lidar_calibration",
+          "title": "Repository",
+          "type": "string"
+        },
+        "commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "license_spdx": {
+          "const": "MIT",
+          "default": "MIT",
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "documentation_urls": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Documentation Urls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "commit",
+        "documentation_urls"
+      ],
+      "title": "KoideLockSource",
+      "type": "object"
+    },
+    "KoideLockStage": {
+      "additionalProperties": false,
+      "description": "One argv-only command copied from the upstream official example.",
+      "properties": {
+        "name": {
+          "enum": [
+            "preprocess",
+            "initial_guess",
+            "calibrate"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "official_documentation_url": {
+          "title": "Official Documentation Url",
+          "type": "string"
+        },
+        "requires_manual_gui": {
+          "default": false,
+          "title": "Requires Manual Gui",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "argv",
+        "official_documentation_url"
+      ],
+      "title": "KoideLockStage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-bound handoff contract; this is not evidence that Koide ran.",
+  "properties": {
+    "schema_version": {
+      "const": "slac.koide_execution_lock/v0.1",
+      "default": "slac.koide_execution_lock/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "lock_id": {
+      "minLength": 1,
+      "title": "Lock Id",
+      "type": "string"
+    },
+    "profile": {
+      "const": "commercial",
+      "default": "commercial",
+      "title": "Profile",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/KoideLockSource"
+    },
+    "image": {
+      "$ref": "#/$defs/KoideLockImage"
+    },
+    "container": {
+      "$ref": "#/$defs/KoideLockContainerPolicy"
+    },
+    "initial_guess_mode": {
+      "default": "manual",
+      "enum": [
+        "manual",
+        "precomputed"
+      ],
+      "title": "Initial Guess Mode",
+      "type": "string"
+    },
+    "superglue_policy": {
+      "const": "excluded",
+      "default": "excluded",
+      "title": "Superglue Policy",
+      "type": "string"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/KoideLockStage"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Stages",
+      "type": "array"
+    },
+    "dataset_contract": {
+      "$ref": "#/$defs/KoideLockDatasetContract"
+    },
+    "operator_steps": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Operator Steps",
+      "type": "array"
+    },
+    "lock_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Lock Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "lock_id",
+    "source",
+    "image",
+    "container",
+    "stages",
+    "dataset_contract",
+    "operator_steps",
+    "lock_sha256"
+  ],
+  "title": "KoideExecutionLock",
+  "type": "object"
+}

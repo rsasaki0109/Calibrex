@@ -383,6 +383,396 @@
       "title": "ContinuousTimeLidarPairProvenance",
       "type": "object"
     },
+    "ContinuousTimeLidarTrainDiagnostics": {
+      "additionalProperties": false,
+      "description": "Detailed evidence that is safe to use for train-only solver decisions.",
+      "properties": {
+        "final_residuals": {
+          "$ref": "#/$defs/ContinuousTimeLidarTrainResidualSummary"
+        },
+        "holdout_used_for_selection": {
+          "const": false,
+          "default": false,
+          "title": "Holdout Used For Selection",
+          "type": "boolean"
+        },
+        "profile": {
+          "items": {
+            "$ref": "#/$defs/ContinuousTimeLidarTrainProfilePoint"
+          },
+          "title": "Profile",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ContinuousTimeLidarTrainDiagnosticsProvenance"
+        },
+        "range_bins": {
+          "items": {
+            "$ref": "#/$defs/ContinuousTimeLidarTrainRangeBin"
+          },
+          "minItems": 1,
+          "title": "Range Bins",
+          "type": "array"
+        },
+        "sampled_source_record_count": {
+          "minimum": 0,
+          "title": "Sampled Source Record Count",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "slac.continuous_time_lidar_train_diagnostics/v0.1",
+          "default": "slac.continuous_time_lidar_train_diagnostics/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "selected_time_offset_sec": {
+          "title": "Selected Time Offset Sec",
+          "type": "number"
+        },
+        "selection_metric": {
+          "const": "train_rmse_m",
+          "default": "train_rmse_m",
+          "title": "Selection Metric",
+          "type": "string"
+        },
+        "train_candidate_correspondence_count": {
+          "minimum": 0,
+          "title": "Train Candidate Correspondence Count",
+          "type": "integer"
+        },
+        "train_correspondence_count": {
+          "minimum": 0,
+          "title": "Train Correspondence Count",
+          "type": "integer"
+        },
+        "train_outlier_rejected_count": {
+          "minimum": 0,
+          "title": "Train Outlier Rejected Count",
+          "type": "integer"
+        },
+        "train_outlier_rejection_rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Train Outlier Rejection Rate",
+          "type": "number"
+        },
+        "train_target_point_count": {
+          "minimum": 0,
+          "title": "Train Target Point Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sampled_source_record_count",
+        "train_target_point_count",
+        "train_candidate_correspondence_count",
+        "train_correspondence_count",
+        "train_outlier_rejected_count",
+        "train_outlier_rejection_rate",
+        "selected_time_offset_sec",
+        "final_residuals",
+        "range_bins",
+        "provenance"
+      ],
+      "title": "ContinuousTimeLidarTrainDiagnostics",
+      "type": "object"
+    },
+    "ContinuousTimeLidarTrainDiagnosticsProvenance": {
+      "additionalProperties": false,
+      "description": "Input digests and generation metadata for train diagnostics.",
+      "properties": {
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 2,
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "ContinuousTimeLidarTrainDiagnosticsProvenance",
+      "type": "object"
+    },
+    "ContinuousTimeLidarTrainProfilePoint": {
+      "additionalProperties": false,
+      "description": "One clock-profile step with train-only candidate evidence.",
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "candidate_offsets_sec": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Candidate Offsets Sec",
+          "type": "array"
+        },
+        "candidate_train_rmse_m": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Candidate Train Rmse M",
+          "type": "array"
+        },
+        "iteration": {
+          "minimum": 1,
+          "title": "Iteration",
+          "type": "integer"
+        },
+        "selected_offset_sec": {
+          "title": "Selected Offset Sec",
+          "type": "number"
+        },
+        "train_correspondence_count": {
+          "minimum": 0,
+          "title": "Train Correspondence Count",
+          "type": "integer"
+        },
+        "train_outlier_rejected_count": {
+          "minimum": 0,
+          "title": "Train Outlier Rejected Count",
+          "type": "integer"
+        },
+        "train_rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Rmse M"
+        }
+      },
+      "required": [
+        "iteration",
+        "candidate_offsets_sec",
+        "candidate_train_rmse_m",
+        "selected_offset_sec",
+        "train_correspondence_count",
+        "train_outlier_rejected_count",
+        "accepted"
+      ],
+      "title": "ContinuousTimeLidarTrainProfilePoint",
+      "type": "object"
+    },
+    "ContinuousTimeLidarTrainRangeBin": {
+      "additionalProperties": false,
+      "description": "Residual summary for one deterministic LiDAR-range interval.",
+      "properties": {
+        "correspondence_count": {
+          "minimum": 0,
+          "title": "Correspondence Count",
+          "type": "integer"
+        },
+        "lower_bound_m": {
+          "minimum": 0.0,
+          "title": "Lower Bound M",
+          "type": "number"
+        },
+        "residuals": {
+          "$ref": "#/$defs/ContinuousTimeLidarTrainResidualSummary"
+        },
+        "upper_bound_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upper Bound M"
+        }
+      },
+      "required": [
+        "lower_bound_m",
+        "correspondence_count",
+        "residuals"
+      ],
+      "title": "ContinuousTimeLidarTrainRangeBin",
+      "type": "object"
+    },
+    "ContinuousTimeLidarTrainResidualSummary": {
+      "additionalProperties": false,
+      "description": "Distribution summary of residuals from the final train factor.",
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "max_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max M"
+        },
+        "mean_abs_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Abs M"
+        },
+        "mean_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean M"
+        },
+        "median_abs_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Abs M"
+        },
+        "min_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min M"
+        },
+        "p95_abs_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P95 Abs M"
+        },
+        "p99_abs_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P99 Abs M"
+        },
+        "rmse_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rmse M"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "title": "ContinuousTimeLidarTrainResidualSummary",
+      "type": "object"
+    },
     "CovarianceInfo": {
       "additionalProperties": false,
       "properties": {
@@ -817,6 +1207,17 @@
       "minimum": 0,
       "title": "Train Correspondence Count",
       "type": "integer"
+    },
+    "train_diagnostics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContinuousTimeLidarTrainDiagnostics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "trajectory_model": {
       "const": "piecewise_se3_fixed_odometry",

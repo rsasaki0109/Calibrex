@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from calibrex.core.exceptions import ConfigError
 from calibrex.core.io import read_mapping
+from calibrex.core.koide_runner import koide_runner_config_from_options
 from calibrex.core.solid_state import SolidStateEvaluationConfig, SolidStateLidarProfile
 
 CONFIG_SCHEMA_VERSION: Literal["slac.config/v0.1"] = "slac.config/v0.1"
@@ -214,6 +215,26 @@ class PipelineConfig(StrictModel):
     type: str = "multi_sensor_slac"
     frontends: list[str] = Field(default_factory=list)
     factors: dict[str, FactorConfig] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_typed_external_adapters(self) -> PipelineConfig:
+        """Validate first-class external adapter options without closing the generic map.
+
+        ``FactorConfig.options`` intentionally remains backward-compatible and
+        open-ended for third-party factors.  Koide options, however, have a
+        public typed boundary so unsafe commercial automatic-initial-guess
+        configurations are rejected as early as config loading.
+        """
+
+        for name in (
+            "koide_lidar_camera",
+            "direct_visual_lidar_calibration",
+            "lidar_camera_targetless_baseline",
+        ):
+            factor = self.factors.get(name)
+            if factor is not None and factor.enabled:
+                koide_runner_config_from_options(factor.options)
+        return self
 
 
 class SolverConfig(StrictModel):

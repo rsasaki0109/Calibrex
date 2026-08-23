@@ -31,10 +31,11 @@ def render_solid_state_cross_dataset_benchmark_markdown(
     aggregate = manifest.aggregate
     median_improvement = _number(aggregate.median_holdout_improvement_percent, digits=2)
     lines = [
-        "# Solid-state LiDAR benchmark v0.2",
+        "# Solid-state LiDAR benchmark",
         "",
         f"- Schema: `{manifest.schema_version}`",
         f"- Tool: `{manifest.tool}` ({manifest.tool_version})",
+        f"- Protocol: `{manifest.protocol.name}`",
         f"- Spec SHA-256: `{manifest.spec_sha256}`",
         f"- Provenance sources: `{len(manifest.provenance.source_paths)}`",
         "",
@@ -126,12 +127,15 @@ def render_solid_state_cross_dataset_benchmark_markdown(
             "",
             "## Reproduction",
             "",
+            "Use the materialized spec recorded in `spec_path` above; the output "
+            "filename is a local choice.",
+            "",
             "```powershell",
             "python tools/run_solid_state_cross_dataset_benchmark.py "
-            "examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml "
-            "--output outputs/solid_state_cross_dataset_benchmark_v02.yaml "
-            "--markdown-output outputs/solid_state_cross_dataset_benchmark_v02.md "
-            "--html-output outputs/solid_state_cross_dataset_benchmark_v02.html",
+            "<materialized-spec.yaml> `",
+            "  --output outputs/solid_state_cross_dataset_benchmark.yaml `",
+            "  --markdown-output outputs/solid_state_cross_dataset_benchmark.md `",
+            "  --html-output outputs/solid_state_cross_dataset_benchmark.html",
             "```",
             "",
         ]
@@ -204,7 +208,7 @@ def render_solid_state_cross_dataset_benchmark_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solid-state LiDAR benchmark v0.2</title>
+<title>Solid-state LiDAR benchmark</title>
 <style>
 body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1100px;
 line-height: 1.45; color: #202124; }}
@@ -217,7 +221,7 @@ code {{ background: #f1f3f4; padding: .1rem .25rem; }}
 </style>
 </head>
 <body>
-<h1>Solid-state LiDAR benchmark v0.2</h1>
+<h1>Solid-state LiDAR benchmark</h1>
 <p>{escape(aggregate.conclusion)}</p>
 <p>
 <span class="metric"><strong>Datasets:</strong>
@@ -243,7 +247,8 @@ Temporal-holdout evidence is not an absolute-GT or universal-SOTA claim.</div>
 <th>Winner</th><th>Failures</th></tr></thead>
 <tbody>{''.join(replicate_rows)}</tbody></table>
 <h2>Provenance</h2>
-<p>Schema <code>{escape(manifest.schema_version)}</code>; spec SHA-256
+<p>Protocol <code>{escape(manifest.protocol.name)}</code>; schema
+<code>{escape(manifest.schema_version)}</code>; spec SHA-256
 <code>{escape(manifest.spec_sha256)}</code>; source artifacts
 {len(manifest.provenance.source_paths)}.</p>
 </body>

@@ -76,7 +76,6 @@ from calibrex.core.external_run import (
     ExternalToolIdentity,
     ExternalTransformOutput,
 )
-from calibrex.core.geometry import quaternion_xyzw_from_rotation_matrix
 from calibrex.core.io import read_mapping
 from calibrex.core.provenance import git_commit, sha256_path
 
@@ -262,7 +261,6 @@ def _parse_result(payload: dict[str, object]) -> ExternalParsedOutputs:
                 rotation_quat_xyzw=quat_xyzw,
             )
 
-    to_key = _TEMPORAL_MAP.get("Lk", "TO_LkToBr")
     for sensor_tag, temporal_key in _TEMPORAL_MAP.items():
         to_map = temporal.get(temporal_key, {})
         if not isinstance(to_map, dict):

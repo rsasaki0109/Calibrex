@@ -8,7 +8,7 @@ from bisect import bisect_left
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from math import acos, atan2, cos, floor, pi, radians, sin, sqrt
+from math import acos, atan2, cos, floor, log, pi, radians, sin, sqrt, tan
 from pathlib import Path
 
 from calibrex.core.evidence import (
@@ -615,6 +615,15 @@ def read_oxts_packet(path: str | Path) -> KITTIOXTSPacket:
 
     values = _read_oxts_values(Path(path))
     return _packet_from_oxts_values(values)
+
+
+def kitti_oxts_pose_world_imu(
+    packet: KITTIOXTSPacket,
+    origin: KITTIOXTSPacket,
+) -> SE3:
+    """Convert OXTS to ``T_world_imu`` with the KITTI Mercator convention."""
+
+    return _oxts_packet_to_world_ego(packet, origin)
 
 
 def summarize_oxts_motion(root: str | Path) -> OXTSMotionStats:
@@ -1981,17 +1990,29 @@ def _oxts_pose_records(
 
     origin = packets[0][1]
     return [
-        (timestamp_ns, _oxts_packet_to_world_ego(packet, origin))
+        (timestamp_ns, kitti_oxts_pose_world_imu(packet, origin))
         for timestamp_ns, packet in packets
     ]
 
 
 def _oxts_packet_to_world_ego(packet: KITTIOXTSPacket, origin: KITTIOXTSPacket) -> SE3:
-    latitude_scale = pi * 6378137.0 / 180.0
-    longitude_scale = latitude_scale * cos(radians(origin.lat_deg))
+    earth_radius_m = 6378137.0
+    scale = cos(radians(origin.lat_deg))
+
+    def mercator_xy(value: KITTIOXTSPacket) -> tuple[float, float]:
+        x_value = scale * radians(value.lon_deg) * earth_radius_m
+        y_value = (
+            scale
+            * earth_radius_m
+            * log(tan(pi * (90.0 + value.lat_deg) / 360.0))
+        )
+        return x_value, y_value
+
+    packet_x, packet_y = mercator_xy(packet)
+    origin_x, origin_y = mercator_xy(origin)
     translation = (
-        (packet.lon_deg - origin.lon_deg) * longitude_scale,
-        (packet.lat_deg - origin.lat_deg) * latitude_scale,
+        packet_x - origin_x,
+        packet_y - origin_y,
         packet.alt_m - origin.alt_m,
     )
     return SE3(

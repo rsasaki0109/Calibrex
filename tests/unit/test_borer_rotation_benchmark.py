@@ -13,11 +13,13 @@ from calibrex.core.camera_lidar_artifacts import (
     load_calibration_candidate_trace,
     load_camera_lidar_benchmark_protocol,
 )
+from calibrex.core.external_run import load_external_run
 from calibrex.core.provenance import sha256_path
 from calibrex.core.result import (
     TransformEstimateProvenance,
     TransformResult,
 )
+from calibrex.core.validation import validate_file
 from calibrex.data.depth import (
     DepthCameraIntrinsics,
     DepthImageTransform,
@@ -83,7 +85,7 @@ def _write_problem(tmp_path: Path) -> Path:
             DepthMapObservation(
                 frame_id="000000",
                 capture_time_ns=0,
-                source_frame="camera0",
+                source_frame="camera_2",
                 image=depth_file_reference(image_path, encoding="fixture"),
                 depth=depth_file_reference(depth_path, encoding="npy_float32"),
                 intrinsics=DepthCameraIntrinsics(
@@ -119,8 +121,8 @@ def _write_problem(tmp_path: Path) -> Path:
     provider_digest = sha256_path(provider_path)
     assert provider_digest is not None
     transform = TransformResult(
-        parent="camera0",
-        child="lidar0",
+        parent="camera_2",
+        child="lidar",
         translation_m=[0.0, 0.0, 0.0],
         rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
         provenance=TransformEstimateProvenance(
@@ -216,6 +218,80 @@ def test_six_dof_protocol_cli_writes_valid_artifact(tmp_path: Path) -> None:
     protocol = load_camera_lidar_benchmark_protocol(output)
     assert protocol.degrees_of_freedom == "six_dof"
     assert len(protocol.perturbations) == 4
+    assert protocol.provenance.command == [
+        "calibrex",
+        "camera-lidar",
+        "freeze-six-dof-protocol",
+        str(problem_path),
+        "--output",
+        str(output),
+        "--perturbation-count",
+        "4",
+        "--rotation-deg",
+        "0.5",
+        "--translation-m",
+        "0.25",
+        "--histogram-bins",
+        "32",
+        "--min-visible-points",
+        "64",
+        "--rotation-bound-deg",
+        "2.0",
+        "--translation-bound-m",
+        "1.0",
+        "--initial-rotation-step-deg",
+        "0.25",
+        "--initial-translation-step-m",
+        "0.1",
+        "--minimum-rotation-step-deg",
+        "0.01",
+        "--minimum-translation-step-m",
+        "0.005",
+        "--max-evaluations",
+        "800",
+    ]
+
+
+def test_external_baseline_audit_retains_not_executed_release_gate(
+    tmp_path: Path,
+) -> None:
+    problem_path = _write_problem(tmp_path)
+    protocol = build_borer_six_dof_protocol(
+        problem_path,
+        perturbation_count=4,
+        rotation_magnitude_deg=0.5,
+        translation_magnitude_m=0.25,
+    )
+    protocol_path = tmp_path / "external-audit-protocol.yaml"
+    protocol.save(protocol_path)
+    output_directory = tmp_path / "external-audit"
+
+    status = main(
+        [
+            "camera-lidar",
+            "audit-external-baselines",
+            str(problem_path),
+            str(protocol_path),
+            "--output-dir",
+            str(output_directory),
+            "--koide-source-commit",
+            "a" * 40,
+            "--unicalib-source-commit",
+            "b" * 40,
+            "--json",
+        ]
+    )
+
+    assert status == 2
+    koide_path = output_directory / "koide.external-run.yaml"
+    unicalib_path = output_directory / "unicalib.external-run.yaml"
+    assert validate_file(koide_path, "external-run").valid
+    assert validate_file(unicalib_path, "external-run").valid
+    assert load_external_run(koide_path).status == "not_executed"
+    unicalib = load_external_run(unicalib_path)
+    assert unicalib.status == "not_executed"
+    assert unicalib.train_data_isolation.declared is False
+    assert unicalib.parsed_outputs.external_metrics_comparable is False
 
 
 def test_six_dof_benchmark_retains_schema_valid_traces(tmp_path: Path) -> None:
@@ -261,6 +337,10 @@ def test_six_dof_benchmark_retains_schema_valid_traces(tmp_path: Path) -> None:
         "ty_delta_m",
         "tz_delta_m",
     }
+    assert trace.initial_transform_camera_lidar.parent == "camera_2"
+    assert trace.initial_transform_camera_lidar.child == "lidar"
+    assert trace.output_transform_camera_lidar.parent == "camera_2"
+    assert trace.output_transform_camera_lidar.child == "lidar"
 
     status = main(
         [
@@ -284,6 +364,11 @@ def test_six_dof_benchmark_retains_schema_valid_traces(tmp_path: Path) -> None:
     )
 
     assert status == 0
+    definition_text = (tmp_path / "six-dof-definition.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "--projection-backend numpy" in definition_text
+    assert "--bootstrap-samples 100" in definition_text
 
 
 def test_borer_rotation_benchmark_retains_trials_and_traces(
@@ -410,6 +495,31 @@ def test_borer_rotation_cli_freezes_and_executes_protocol(tmp_path: Path) -> Non
 
     assert freeze_status == 0
     assert benchmark_status == 0
+    protocol = load_camera_lidar_benchmark_protocol(protocol_path)
+    assert protocol.provenance.command == [
+        "calibrex",
+        "camera-lidar",
+        "freeze-rotation-protocol",
+        str(problem_path),
+        "--output",
+        str(protocol_path),
+        "--perturbation-count",
+        "2",
+        "--rotation-deg",
+        "2.0",
+        "--histogram-bins",
+        "20",
+        "--min-visible-points",
+        "100",
+        "--bound-deg",
+        "4.0",
+        "--initial-step-deg",
+        "2.0",
+        "--minimum-step-deg",
+        "0.5",
+        "--max-evaluations",
+        "60",
+    ]
     assert protocol_path.is_file()
     assert definition_path.is_file()
     assert benchmark_path.is_file()

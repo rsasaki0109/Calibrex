@@ -211,6 +211,31 @@
           ],
           "default": null,
           "title": "Initialization Artifact Sha256"
+        },
+        "initializer_calibration_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initializer Calibration Id"
+        },
+        "initializer_calibration_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initializer Calibration Sha256"
         }
       },
       "required": [
@@ -557,6 +582,18 @@
       "title": "Frame Id",
       "type": "string"
     },
+    "frame_selection_rule_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Frame Selection Rule Id"
+    },
     "initial_transform_camera_lidar": {
       "anyOf": [
         {
@@ -621,6 +658,19 @@
       "title": "Ransac Inlier Count",
       "type": "integer"
     },
+    "ransac_inlier_reprojection_rmse_px": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ransac Inlier Reprojection Rmse Px"
+    },
     "reason": {
       "title": "Reason",
       "type": "string"
@@ -630,8 +680,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "slac.probabilistic_pnp_result/v0.1",
-      "default": "slac.probabilistic_pnp_result/v0.1",
+      "default": "slac.probabilistic_pnp_result/v0.2",
+      "enum": [
+        "slac.probabilistic_pnp_result/v0.1",
+        "slac.probabilistic_pnp_result/v0.2"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
@@ -639,6 +692,13 @@
       "minimum": 0,
       "title": "Selected Correspondence Count",
       "type": "integer"
+    },
+    "source_frame_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Frame Ids",
+      "type": "array"
     },
     "status": {
       "enum": [

@@ -7,6 +7,7 @@ import pytest
 
 from calibrex.cli.main import main
 from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+from calibrex.core.provenance import sha256_path
 from calibrex.data.depth import (
     DepthCameraIntrinsics,
     DepthImageTransform,
@@ -21,9 +22,44 @@ from calibrex.data.kitti_camera_lidar_problem import (
     build_kitti_raw_camera_lidar_problem,
     read_rectified_velodyne_to_camera_transform,
 )
+from calibrex.data.kitti_raw_lidar_window_integration import (
+    integrate_kitti_raw_lidar_windows,
+)
+from calibrex.data.remote_archive_selection import (
+    REMOTE_ARCHIVE_SELECTION_SCHEMA_VERSION_V0_3,
+    RemoteArchiveSelectedMember,
+    RemoteArchiveSelectedMetadataMember,
+    RemoteArchiveSelectionArtifact,
+    RemoteArchiveSelectionProvenance,
+    RemoteArchiveSource,
+)
 from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
 
 _DIGEST = "0" * 64
+
+
+def _required_digest(path: Path) -> str:
+    digest = sha256_path(path)
+    assert digest is not None
+    return digest
+
+
+def _selected_member(
+    role: str,
+    frame_id: str,
+    path: Path,
+) -> RemoteArchiveSelectedMember:
+    return RemoteArchiveSelectedMember(
+        role=role,  # type: ignore[arg-type]
+        frame_id=frame_id,
+        member_path=f"archive/{role}/{path.name}",
+        crc32="00000000",
+        compressed_size_bytes=path.stat().st_size,
+        uncompressed_size_bytes=path.stat().st_size,
+        local_path=str(path.resolve()),
+        local_sha256=_required_digest(path),
+        local_size_bytes=path.stat().st_size,
+    )
 
 
 def _write_fixture(root: Path) -> tuple[Path, Path]:
@@ -112,6 +148,136 @@ def _write_fixture(root: Path) -> tuple[Path, Path]:
     return sequence, provider_path
 
 
+def _write_integrated_lidar_fixture(
+    root: Path,
+    sequence: Path,
+) -> tuple[Path, Path]:
+    center_frame_ids = ["0000000000", "0000000001"]
+    pose_frame_ids = ["0000000000", "0000000001", "0000000002"]
+    pose_directory = sequence / "oxts" / "data"
+    pose_directory.mkdir(parents=True)
+    pose_values = [
+        49.0,
+        8.0,
+        100.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    ]
+    for frame_id in pose_frame_ids:
+        (pose_directory / f"{frame_id}.txt").write_text(
+            " ".join(str(value) for value in pose_values),
+            encoding="utf-8",
+        )
+    timestamp_text = (
+        "2011-09-30 12:00:00.000000000\n"
+        "2011-09-30 12:00:00.100000000\n"
+        "2011-09-30 12:00:00.200000000\n"
+    )
+    image_timestamps = sequence / "image_02" / "timestamps.txt"
+    pose_timestamps = sequence / "oxts" / "timestamps.txt"
+    image_timestamps.write_text(timestamp_text, encoding="utf-8")
+    pose_timestamps.write_text(timestamp_text, encoding="utf-8")
+    pointcloud_timestamps = sequence / "velodyne_points" / "timestamps.txt"
+    pointcloud_timestamps.write_text(timestamp_text, encoding="utf-8")
+    members = [
+        _selected_member(role, frame_id, path)
+        for frame_id in center_frame_ids
+        for role, path in (
+            ("image", sequence / "image_02" / "data" / f"{frame_id}.png"),
+            (
+                "pointcloud",
+                sequence / "velodyne_points" / "data" / f"{frame_id}.bin",
+            ),
+        )
+    ] + [
+        _selected_member(
+            "pose",
+            frame_id,
+            pose_directory / f"{frame_id}.txt",
+        )
+        for frame_id in pose_frame_ids
+    ]
+    metadata = [
+        RemoteArchiveSelectedMetadataMember(
+            role=role,  # type: ignore[arg-type]
+            member_path=f"archive/{role}.txt",
+            crc32="00000000",
+            compressed_size_bytes=path.stat().st_size,
+            uncompressed_size_bytes=path.stat().st_size,
+            local_path=str(path.resolve()),
+            local_sha256=_required_digest(path),
+            local_size_bytes=path.stat().st_size,
+        )
+        for role, path in (
+            ("image_timestamps", image_timestamps),
+            ("pointcloud_timestamps", pointcloud_timestamps),
+            ("pose_timestamps", pose_timestamps),
+        )
+    ]
+    selection = RemoteArchiveSelectionArtifact(
+        schema_version=REMOTE_ARCHIVE_SELECTION_SCHEMA_VERSION_V0_3,
+        artifact_id="kitti-raw-problem-integration-fixture",
+        dataset_family="KITTI raw",
+        dataset_id="kitti_raw_2011_09_30_drive_0018",
+        sequence_id=sequence.name,
+        dataset_license_spdx="LicenseRef-KITTI",
+        selection_policy="center_images_with_centered_pointcloud_pose_windows/v0.3",
+        requested_frame_count=3,
+        frame_ids=pose_frame_ids,
+        center_frame_ids=center_frame_ids,
+        stream_frame_ids={
+            "image": center_frame_ids,
+            "pointcloud": center_frame_ids,
+            "pose": pose_frame_ids,
+        },
+        archives=[
+            RemoteArchiveSource(
+                role="multi_stream",
+                url="https://example.test/raw.zip",
+                size_bytes=1,
+                accept_ranges=True,
+            )
+        ],
+        members=members,
+        metadata_members=metadata,
+        output_root=str(sequence.resolve()),
+        provenance=RemoteArchiveSelectionProvenance(
+            generator="pytest",
+            generator_version="fixture",
+        ),
+    )
+    selection_path = root / "raw-selection.yaml"
+    selection.save(selection_path)
+    calibration = sequence.parent / "calib_imu_to_velo.txt"
+    calibration.write_text(
+        "R: 1 0 0 0 1 0 0 0 1\nT: 0 0 0\n",
+        encoding="utf-8",
+    )
+    output_directory = root / "integrated"
+    artifact = integrate_kitti_raw_lidar_windows(
+        selection_path,
+        calibration,
+        center_frame_ids,
+        neighbor_radius_frames=0,
+        output_directory=output_directory,
+        minimum_range_m=0.0,
+        voxel_resolution_m=0.0,
+    )
+    manifest = root / "raw-integration.yaml"
+    artifact.save(manifest)
+    return output_directory, manifest
+
+
 def test_rectified_transform_includes_selected_camera_origin_offset(
     tmp_path: Path,
 ) -> None:
@@ -164,6 +330,63 @@ def test_build_kitti_problem_cli_writes_valid_artifact(
     assert load_camera_lidar_problem(output).problem_id.endswith("-image_02-d2d")
     assert len(load_borer_problem(output).observations) == 2
     assert '"frame_count": 2' in capsys.readouterr().out
+
+
+def test_build_kitti_problem_binds_verified_integrated_lidar(
+    tmp_path: Path,
+) -> None:
+    sequence, provider_path = _write_fixture(tmp_path)
+    generated, manifest = _write_integrated_lidar_fixture(tmp_path, sequence)
+
+    with pytest.raises(ValueError, match="requires both"):
+        build_kitti_raw_camera_lidar_problem(
+            sequence,
+            provider_path,
+            lidar_directory=generated,
+        )
+
+    problem = build_kitti_raw_camera_lidar_problem(
+        sequence,
+        provider_path,
+        lidar_directory=generated,
+        lidar_manifest_path=manifest,
+    )
+
+    assert "OXTS motion-compensated" in problem.time_convention
+    assert [item.lidar.path for item in problem.observations] == [
+        str(generated / f"{frame_id:010d}.bin") for frame_id in range(2)
+    ]
+
+    output = tmp_path / "integrated-problem.yaml"
+    assert main(
+        [
+            "camera-lidar",
+            "build-kitti-problem",
+            str(sequence),
+            str(provider_path),
+            "--lidar-directory",
+            str(generated),
+            "--lidar-manifest",
+            str(manifest),
+            "--output",
+            str(output),
+        ]
+    ) == 0
+    assert load_camera_lidar_problem(output).observations[0].lidar.path == str(
+        generated / "0000000000.bin"
+    )
+    assert "--translation-bound-m" in load_camera_lidar_problem(
+        output
+    ).provenance.command
+
+    (generated / "0000000000.bin").write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="integration verification failed"):
+        build_kitti_raw_camera_lidar_problem(
+            sequence,
+            provider_path,
+            lidar_directory=generated,
+            lidar_manifest_path=manifest,
+        )
 
 
 def test_builder_rejects_provider_image_from_another_stream(tmp_path: Path) -> None:

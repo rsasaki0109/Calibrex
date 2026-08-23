@@ -46,6 +46,61 @@
   explicitly synthetic rather than a real-sensor accuracy claim. Added direct
   generator parity and strict end-to-end tests plus README commands that
   validate the result and verify its digest-bound provenance bundle.
+- Added an external-only I2PNet KITTI-large adapter with pinned MIT source,
+  checkpoint/archive/input digests, an explicit non-reference initial-transform
+  contract, a Windows-safe pure-Torch neighbor backend, deterministic
+  frame-derived NumPy/Torch sampling, enforced deterministic CUDA execution,
+  and schema-valid diagnostic correspondence and aggregate pose outputs. The
+  first two-frame KITTI raw development audit rejects the diffuse cost-volume
+  correspondences
+  (mean reliability `0.000032333` below the fixed `0.01` gate), while the
+  intended direct pose output improves the fixed `10 deg / 1.37049 m`
+  perturbation to `0.04847 deg / 0.08211 m`. Added a frozen, schema-valid pose
+  initializer protocol and subprocess runner that binds the problem, adapter,
+  checkpoint, frames, perturbations, failure policy, and every generated
+  initial/manifest/pose digest. Its disjoint three-frame, four-perturbation
+  development matrix completes all trials but records 0/4 strict hits at the
+  prespecified `<0.5 deg` and `<0.2 m` gate; mean error changes from
+  `8.1046 deg / 0.40395 m` to `6.7043 deg / 0.37994 m`. This remains
+  initializer-development evidence and does not alter a release or SOTA gate.
+- Added a digest-bound pose-initializer failure-analysis artifact and external
+  I2PNet analyzer. It replays all 12 frame corrections, reproduces benchmark
+  metrics, and decomposes each required/predicted correction into signed
+  parallel gain and orthogonal leakage. The frozen single-axis rotation gains
+  are `x=0.002904`, `y=0.957952`, and `z=-0.000960`; translation gains are
+  `x=1.374653`, `y=-0.023960`, and `z=0.949139`. This identifies a strong
+  development-set axis anisotropy without claiming a causal network defect.
+- Added a schema-valid, development-only Camera-LiDAR provider-support
+  comparison and CLI. It requires every confidence calibration to share the
+  exact problem, threshold grid, split seeds, support gates, and excluded
+  evaluation datasets; ranks a support-first diagnostic point while keeping
+  rejected calibrations runtime-ineligible; and records complete source
+  digests and provider identity. The first KITTI-360 drive 0002 comparison
+  rejects adapter v0.3, v0.4, and v0.5 because every candidate has zero
+  worst-split geometric holdout inliers. Adapter v0.5 is retained only as the
+  diagnostic leader, not as a runtime lock or SOTA result. A second disjoint
+  development capture on drive 0003 also rejects the outdoor and indoor
+  SuperGlue checkpoints: outdoor retains 10/1,049 geometric inliers at its
+  diagnostic point and indoor retains 0/276, while both have zero worst-split
+  holdout support. Diagnostic tie-breaking now prefers frame and accepted
+  support when every geometric metric is tied, instead of reporting an empty
+  highest-threshold operating point.
+- Completed the Camera-LiDAR v0.7 `integrated-r5-numba-v03-v02` release audit
+  without retuning the two evaluation sequences. At the frozen
+  `(0.5 deg, 0.5 m)` six-DoF cell, KITTI raw 0018 reached 85/200 strict hits
+  and failed its 88% gate, while KITTI-360 drive 0000 reached 161/200 and
+  passed its 76.5% gate; both had zero D2D execution failures. The paired
+  five-seed falsification packs retain all 1,000 cases per dataset. Raw records
+  529 failure-aware refinement failures, while KITTI-360 rolls back all 1,000
+  unsupported candidates. Both raw-recomputed 1,007-artifact bundles verify,
+  and the digest-frozen learned-targetless SOTA audit returns `refuted` with
+  external comparable baselines and independent-rig evidence still missing.
+- Added schema-valid post-hoc Camera-LiDAR correspondence-quality diagnostics
+  for initializer, candidate, and selected poses. The final reports expose the
+  provider bottleneck directly: 112/2,834 accepted correspondences and 7/25
+  supported frames on raw, versus 33/2,269 and 2/25 on KITTI-360. These reports
+  record that holdout was not used for selection and are provenance-bound to
+  the exact refinement result and correspondence artifact.
 - Added the Phase 3 provider-neutral probabilistic 2D--3D correspondence
   artifact and an optional Apache-2.0 OpenCV PnP-RANSAC adapter with
   confidence filtering, covariance-aware diagnostics, tests, and complete
@@ -57,14 +112,22 @@
   covariance/outlier/reliability weighting, robust loss, bounded SE(3)
   correction, disjoint frame holdout, complete candidate traces, and explicit
   uncertainty ablation switches.
+- Added the v0.2 integrated falsification contract around that refiner. A
+  candidate is selected from fit evidence only and rolls back to the D2D
+  initializer on non-convergence, negligible improvement, correspondence
+  support loss, non-finite evidence, or correction-bound proximity. Rejected
+  candidates and holdout outcomes remain in the evidence, complete trace
+  directories must share one solver/backend identity, and reusable run IDs no
+  longer embed the obsolete `v06` release label.
 - Added explicit D2D candidate-trace initialization for probabilistic
   multi-frame refinement and its paired ablations. The trace must pin the same
   problem digest and frame pair; results record its ID, digest, solver status,
   and hit decision. Runs without a trace declare `problem_initial_transform`
   and are not mislabeled as solved-D2D initialization evidence. The generic
   method ID is now
-  `probabilistic_multiframe_refinement/v0.2`; the old v0.1 ID remains accepted
-  for artifact compatibility.
+  `probabilistic_multiframe_refinement/v0.3`; the v0.2 and old v0.1 IDs remain
+  accepted for artifact compatibility. Generated result and benchmark method
+  provenance now record the same v0.3 implementation version.
 - Added a paired probabilistic-refinement ablation benchmark that executes the
   full estimator and three one-factor removals over fixed frame-split seeds,
   retains every schema-valid result, and reports failure-aware paired
@@ -110,6 +173,12 @@
   an external FeatDepth provider adapter, rectified KITTI problem construction,
   deterministic parallel execution, and a 200/200-hit KITTI raw 0018
   rotation-only reproduction gate.
+- Replaced the D2D z-buffer's global stable sort with an exactly equivalent
+  linear reduction and added an optional fused Numba CPU projection adapter.
+  Six-DoF v0.3 traces pin the backend and dependency version, refuse mixed
+  backend resume or mixed full-trace falsification input, and preserve the
+  NumPy default; full 325-evaluation and official-frame regressions retain
+  identical numerical results.
 - Completed the frozen KITTI raw 0018 rotation matrix at `1, 2, 10, 20 deg`
   with 200 deterministic directions per level. The `1, 2, 10 deg` levels
   recovered 200/200; `20 deg` recovered 178/200 with zero computational

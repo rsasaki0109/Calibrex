@@ -1,0 +1,462 @@
+{
+  "$defs": {
+    "KoideProfileGuidance": {
+      "additionalProperties": false,
+      "description": "Minimum capture guidance for a declared LiDAR hardware profile.",
+      "properties": {
+        "hardware_profile": {
+          "enum": [
+            "generic",
+            "livox",
+            "ouster",
+            "velodyne"
+          ],
+          "title": "Hardware Profile",
+          "type": "string"
+        },
+        "instructions": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Instructions",
+          "type": "array"
+        },
+        "minimum_azimuth_fov_deg": {
+          "maximum": 360.0,
+          "minimum": 0.0,
+          "title": "Minimum Azimuth Fov Deg",
+          "type": "number"
+        },
+        "minimum_capture_duration_s": {
+          "minimum": 0.0,
+          "title": "Minimum Capture Duration S",
+          "type": "number"
+        },
+        "minimum_elevation_fov_deg": {
+          "maximum": 180.0,
+          "minimum": 0.0,
+          "title": "Minimum Elevation Fov Deg",
+          "type": "number"
+        },
+        "minimum_points_per_frame": {
+          "minimum": 1,
+          "title": "Minimum Points Per Frame",
+          "type": "integer"
+        },
+        "minimum_static_start_duration_s": {
+          "minimum": 0.0,
+          "title": "Minimum Static Start Duration S",
+          "type": "number"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hardware_profile",
+        "source",
+        "minimum_capture_duration_s",
+        "minimum_static_start_duration_s",
+        "minimum_points_per_frame",
+        "minimum_azimuth_fov_deg",
+        "minimum_elevation_fov_deg",
+        "instructions"
+      ],
+      "title": "KoideProfileGuidance",
+      "type": "object"
+    },
+    "KoideReadinessCheck": {
+      "additionalProperties": false,
+      "description": "One auditable input check and its action-oriented evidence.",
+      "properties": {
+        "action": {
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "observed_value": {
+          "title": "Observed Value"
+        },
+        "provenance": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Provenance",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "required_for_ready": {
+          "default": true,
+          "title": "Required For Ready",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "blocked",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "observed_value",
+        "evidence",
+        "action",
+        "reason",
+        "provenance"
+      ],
+      "title": "KoideReadinessCheck",
+      "type": "object"
+    },
+    "KoideReadinessProvenance": {
+      "additionalProperties": false,
+      "description": "Complete lineage for the preflight decision.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding provenance.artifact_sha256",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "calibrex_version": {
+          "default": "0.4.1",
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Path"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "dataset_path": {
+          "title": "Dataset Path",
+          "type": "string"
+        },
+        "dataset_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Sha256"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Digests",
+          "type": "object"
+        },
+        "manifest_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manifest Path"
+        },
+        "manifest_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manifest Sha256"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "protocol_version": {
+          "default": "koide-targetless-input/v0.1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.koide-readiness",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_path"
+      ],
+      "title": "KoideReadinessProvenance",
+      "type": "object"
+    },
+    "KoideReadinessThresholds": {
+      "additionalProperties": false,
+      "description": "Explicit, reproducible gates used by the Koide preflight.\n\nThese thresholds are intentionally separate from evaluation/holdout\nthresholds.  They answer only whether a capture contains enough usable\nevidence to attempt fitting.",
+      "properties": {
+        "max_moving_object_risk": {
+          "default": 0.5,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Max Moving Object Risk",
+          "type": "number"
+        },
+        "max_sync_delta_ms": {
+          "default": 50.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Sync Delta Ms",
+          "type": "number"
+        },
+        "min_capture_duration_s": {
+          "default": 3.0,
+          "minimum": 0.0,
+          "title": "Min Capture Duration S",
+          "type": "number"
+        },
+        "min_fov_azimuth_deg": {
+          "default": 45.0,
+          "maximum": 360.0,
+          "minimum": 0.0,
+          "title": "Min Fov Azimuth Deg",
+          "type": "number"
+        },
+        "min_fov_elevation_deg": {
+          "default": 10.0,
+          "maximum": 180.0,
+          "minimum": 0.0,
+          "title": "Min Fov Elevation Deg",
+          "type": "number"
+        },
+        "min_image_texture_score": {
+          "default": 0.03,
+          "minimum": 0.0,
+          "title": "Min Image Texture Score",
+          "type": "number"
+        },
+        "min_motion_path_length_m": {
+          "default": 0.5,
+          "minimum": 0.0,
+          "title": "Min Motion Path Length M",
+          "type": "number"
+        },
+        "min_points_per_frame": {
+          "default": 100,
+          "minimum": 1,
+          "title": "Min Points Per Frame",
+          "type": "integer"
+        },
+        "min_sampled_point_count": {
+          "default": 500,
+          "minimum": 1,
+          "title": "Min Sampled Point Count",
+          "type": "integer"
+        },
+        "min_scene_geometry_count": {
+          "default": 3,
+          "minimum": 1,
+          "title": "Min Scene Geometry Count",
+          "type": "integer"
+        },
+        "min_static_start_duration_s": {
+          "default": 0.5,
+          "minimum": 0.0,
+          "title": "Min Static Start Duration S",
+          "type": "number"
+        }
+      },
+      "title": "KoideReadinessThresholds",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid, evidence-bearing Koide input decision.",
+  "properties": {
+    "camera_streams": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Camera Streams",
+      "type": "array"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/KoideReadinessCheck"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "dataset_path": {
+      "title": "Dataset Path",
+      "type": "string"
+    },
+    "hardware_profile": {
+      "enum": [
+        "generic",
+        "livox",
+        "ouster",
+        "velodyne"
+      ],
+      "title": "Hardware Profile",
+      "type": "string"
+    },
+    "hardware_profile_declared": {
+      "title": "Hardware Profile Declared",
+      "type": "boolean"
+    },
+    "lidar_streams": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Lidar Streams",
+      "type": "array"
+    },
+    "profile": {
+      "enum": [
+        "commercial",
+        "research-noncommercial"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "profile_declared": {
+      "title": "Profile Declared",
+      "type": "boolean"
+    },
+    "profile_guidance": {
+      "$ref": "#/$defs/KoideProfileGuidance"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KoideReadinessProvenance"
+    },
+    "recommendations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Recommendations",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.koide_readiness/v0.1",
+      "default": "slac.koide_readiness/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "warn",
+        "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/KoideReadinessThresholds"
+    }
+  },
+  "required": [
+    "status",
+    "profile",
+    "profile_declared",
+    "hardware_profile",
+    "hardware_profile_declared",
+    "dataset_path",
+    "thresholds",
+    "profile_guidance",
+    "checks",
+    "recommendations",
+    "provenance"
+  ],
+  "title": "KoideReadinessArtifact",
+  "type": "object"
+}

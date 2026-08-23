@@ -16,6 +16,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
+from calibrex.core.continuous_time_lidar_train_diagnostics import (
+    ContinuousTimeLidarTrainDiagnosticsData,
+    TrainProfilePointData,
+    build_train_range_bins,
+    summarize_train_residuals,
+)
 from calibrex.core.geometry import SE3, Vector3
 from calibrex.core.time import apply_time_offset_ns
 from calibrex.data.adaptive_voxel import (
@@ -111,6 +117,8 @@ class ContinuousTimeLidarPairIteration:
     accepted: bool
     candidate_train_rmse_m: tuple[float | None, ...] = ()
     candidate_holdout_rmse_m: tuple[float | None, ...] = ()
+    train_correspondence_count: int = 0
+    train_outlier_rejected_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -131,6 +139,7 @@ class ContinuousTimeLidarPairResult:
     outlier_rejected_count: int
     observability: LidarRigPointToPlaneEvaluation | None
     iterations: tuple[ContinuousTimeLidarPairIteration, ...]
+    train_diagnostics: ContinuousTimeLidarTrainDiagnosticsData | None = None
     trajectory_model: Literal["piecewise_se3_fixed_odometry"] = (
         "piecewise_se3_fixed_odometry"
     )
@@ -149,12 +158,16 @@ class _OffsetEvaluation:
     train_correspondence_count: int
     holdout_correspondence_count: int
     holdout_rmse_m: float | None
+    train_outlier_rejected_count: int
+    holdout_outlier_rejected_count: int
+    train_candidate_correspondence_count: int
     outlier_rejected_count: int
 
 
 @dataclass(frozen=True)
 class _FactorBuild:
     factor: LidarRigPointToPlaneFactor
+    candidate_correspondence_count: int
     outlier_rejected_count: int
 
 
@@ -311,6 +324,8 @@ class ContinuousTimeLidarPairSolver:
                     train_rmse_m=selected_rmse,
                     holdout_rmse_m=selected.holdout_rmse_m,
                     accepted=accepted,
+                    train_correspondence_count=selected.train_correspondence_count,
+                    train_outlier_rejected_count=selected.train_outlier_rejected_count,
                 )
             )
             if accepted:
@@ -350,6 +365,42 @@ class ContinuousTimeLidarPairSolver:
             current = refined
 
         evaluation = current.train_factor.evaluate(current.solver_result.correction)
+        final_residuals = current.train_factor.residuals(
+            current.solver_result.correction
+        )
+        final_ranges = [
+            math.sqrt(
+                observation.point_lidar_m[0] ** 2
+                + observation.point_lidar_m[1] ** 2
+                + observation.point_lidar_m[2] ** 2
+            )
+            for observation in current.train_factor.observations
+        ]
+        train_diagnostics = ContinuousTimeLidarTrainDiagnosticsData(
+            sampled_source_record_count=len(source_records),
+            train_target_point_count=len(train_indices),
+            train_candidate_correspondence_count=(
+                current.train_candidate_correspondence_count
+            ),
+            train_correspondence_count=current.train_correspondence_count,
+            train_outlier_rejected_count=current.train_outlier_rejected_count,
+            selected_time_offset_sec=current.offset_sec,
+            final_residuals=summarize_train_residuals(final_residuals),
+            range_bins=build_train_range_bins(final_ranges, final_residuals),
+            profile=tuple(
+                TrainProfilePointData(
+                    iteration=item.iteration,
+                    candidate_offsets_sec=item.candidate_offsets_sec,
+                    candidate_train_rmse_m=item.candidate_train_rmse_m,
+                    selected_offset_sec=item.selected_offset_sec,
+                    train_rmse_m=item.train_rmse_m,
+                    train_correspondence_count=item.train_correspondence_count,
+                    train_outlier_rejected_count=item.train_outlier_rejected_count,
+                    accepted=item.accepted,
+                )
+                for item in trace
+            ),
+        )
         return ContinuousTimeLidarPairResult(
             status=status,
             reason=reason,
@@ -365,6 +416,7 @@ class ContinuousTimeLidarPairSolver:
             outlier_rejected_count=current.outlier_rejected_count,
             observability=evaluation,
             iterations=tuple(trace),
+            train_diagnostics=train_diagnostics,
         )
 
     def _evaluate_offset(
@@ -398,7 +450,7 @@ class ContinuousTimeLidarPairSolver:
         )
         holdout_factor = None
         holdout_rmse = None
-        outlier_rejected_count = train_build.outlier_rejected_count
+        holdout_outlier_rejected_count = 0
         if holdout_indices:
             holdout_build = self._factor_for_indices(
                 problem,
@@ -412,7 +464,7 @@ class ContinuousTimeLidarPairSolver:
             )
             if holdout_build is not None:
                 holdout_factor = holdout_build.factor
-                outlier_rejected_count += holdout_build.outlier_rejected_count
+                holdout_outlier_rejected_count = holdout_build.outlier_rejected_count
                 holdout_rmse = _rmse(holdout_factor.residuals(solver_result.correction))
         return _OffsetEvaluation(
             offset_sec=offset_sec,
@@ -424,7 +476,14 @@ class ContinuousTimeLidarPairSolver:
                 len(holdout_factor.observations) if holdout_factor is not None else 0
             ),
             holdout_rmse_m=holdout_rmse,
-            outlier_rejected_count=outlier_rejected_count,
+            train_outlier_rejected_count=train_build.outlier_rejected_count,
+            holdout_outlier_rejected_count=holdout_outlier_rejected_count,
+            train_candidate_correspondence_count=(
+                train_build.candidate_correspondence_count
+            ),
+            outlier_rejected_count=(
+                train_build.outlier_rejected_count + holdout_outlier_rejected_count
+            ),
         )
 
     def _factor_for_indices(
@@ -465,6 +524,7 @@ class ContinuousTimeLidarPairSolver:
         )
         if len(observations) < settings.min_correspondences:
             return None
+        candidate_correspondence_count = len(observations)
         outlier_rejected_count = 0
         if settings.outlier_policy == "mad":
             filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
@@ -488,6 +548,7 @@ class ContinuousTimeLidarPairSolver:
                 observations=observations,
                 sensor=problem.sensor,
             ),
+            candidate_correspondence_count=candidate_correspondence_count,
             outlier_rejected_count=outlier_rejected_count,
         )
 

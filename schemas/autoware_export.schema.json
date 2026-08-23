@@ -1,0 +1,507 @@
+{
+  "$defs": {
+    "AutowareExportConfig": {
+      "additionalProperties": false,
+      "description": "Resolved and user-selectable export policy.\n\n``base_frame`` and ``sensor_frames`` are optional at the input boundary.\nThe builder resolves them from a result frame graph only when that\nresolution is unique; mapping-only exports must provide a unique parent\nor an explicit base frame.  ``invert_transforms`` names source transform\nkeys that need to be inverted before export.",
+      "properties": {
+        "base_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Frame"
+        },
+        "include_legacy_transforms": {
+          "default": true,
+          "title": "Include Legacy Transforms",
+          "type": "boolean"
+        },
+        "include_static_tf": {
+          "default": true,
+          "title": "Include Static Tf",
+          "type": "boolean"
+        },
+        "invert_transforms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Invert Transforms",
+          "type": "array"
+        },
+        "protocol_version": {
+          "default": "autoware.sensor_kit_calibration/v1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sensor_frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensor Frames",
+          "type": "array"
+        },
+        "transform_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Transform Names",
+          "type": "array"
+        }
+      },
+      "title": "AutowareExportConfig",
+      "type": "object"
+    },
+    "AutowareExportProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage and digest fields carried by the export artifact.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical export document excluding provenance.artifact_sha256 and artifact_sha256",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "protocol_version": {
+          "default": "autoware.sensor_kit_calibration/v1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "source_quality_grade": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "warn",
+                "fail"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Quality Grade"
+        },
+        "source_result_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Result Path"
+        },
+        "source_result_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Result Sha256"
+        },
+        "source_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Run Id"
+        },
+        "source_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Sha256"
+        },
+        "tool_name": {
+          "default": "calibrex.autoware-export",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "AutowareExportProvenance",
+      "type": "object"
+    },
+    "AutowareSensorCalibration": {
+      "additionalProperties": false,
+      "description": "One sensor pose in the format consumed by Autoware.",
+      "properties": {
+        "pitch": {
+          "title": "Pitch",
+          "type": "number"
+        },
+        "roll": {
+          "title": "Roll",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "yaw": {
+          "title": "Yaw",
+          "type": "number"
+        },
+        "z": {
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z",
+        "roll",
+        "pitch",
+        "yaw"
+      ],
+      "title": "AutowareSensorCalibration",
+      "type": "object"
+    },
+    "AutowareStaticTransform": {
+      "additionalProperties": false,
+      "description": "One static TF edge and its ROS 2 CLI arguments.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "quaternion_order": {
+          "const": "xyzw",
+          "default": "xyzw",
+          "title": "Quaternion Order",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw",
+        "command"
+      ],
+      "title": "AutowareStaticTransform",
+      "type": "object"
+    },
+    "AutowareTransformRecord": {
+      "additionalProperties": false,
+      "description": "Audit record retaining the source edge and any exact inversion.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "inverse_applied": {
+          "default": false,
+          "title": "Inverse Applied",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "quality_grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Quality Grade",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "rotation_rpy_rad": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rotation Rpy Rad",
+          "type": "array"
+        },
+        "source_child_frame": {
+          "title": "Source Child Frame",
+          "type": "string"
+        },
+        "source_parent_frame": {
+          "title": "Source Parent Frame",
+          "type": "string"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "source_parent_frame",
+        "source_child_frame",
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw",
+        "rotation_rpy_rad"
+      ],
+      "title": "AutowareTransformRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "description": "Typed, schema-valid representation of an Autoware export bundle.",
+  "properties": {
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "calibration": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "$ref": "#/$defs/AutowareSensorCalibration"
+        },
+        "type": "object"
+      },
+      "title": "Calibration",
+      "type": "object"
+    },
+    "export_config": {
+      "$ref": "#/$defs/AutowareExportConfig"
+    },
+    "format": {
+      "const": "slac.autoware/v0.1",
+      "default": "slac.autoware/v0.1",
+      "title": "Format",
+      "type": "string"
+    },
+    "frame_convention": {
+      "const": "T_parent_child",
+      "default": "T_parent_child",
+      "title": "Frame Convention",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/AutowareExportProvenance"
+    },
+    "quality_grade": {
+      "anyOf": [
+        {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quality Grade"
+    },
+    "quaternion_order": {
+      "const": "xyzw",
+      "default": "xyzw",
+      "title": "Quaternion Order",
+      "type": "string"
+    },
+    "rotation_unit": {
+      "const": "rad",
+      "default": "rad",
+      "title": "Rotation Unit",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.autoware_export/v0.1",
+      "default": "slac.autoware_export/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensors": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Sensors",
+      "type": "array"
+    },
+    "source_run": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Run"
+    },
+    "static_tf": {
+      "items": {
+        "$ref": "#/$defs/AutowareStaticTransform"
+      },
+      "title": "Static Tf",
+      "type": "array"
+    },
+    "transforms": {
+      "items": {
+        "$ref": "#/$defs/AutowareTransformRecord"
+      },
+      "title": "Transforms",
+      "type": "array"
+    },
+    "translation_unit": {
+      "const": "m",
+      "default": "m",
+      "title": "Translation Unit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "calibration",
+    "export_config",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "AutowareExportArtifact",
+  "type": "object"
+}

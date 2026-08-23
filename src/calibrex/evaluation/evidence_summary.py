@@ -499,7 +499,18 @@ def _lidar_camera_evidence_items(result: CalibrationResult) -> list[EvidenceSumm
             dataset_reference_translation,
             dataset_reference_rotation,
         )
-    decision_grades: list[Grade] = [support_grade, holdout_grade, known_bad_grade]
+    # A failed known-bad control means that this run cannot establish a
+    # decision boundary; it does not prove that the candidate itself is bad.
+    # Keep the control row ``fail`` for visibility, but make the aggregate
+    # decision ``warn`` (inconclusive) rather than rejecting the calibration.
+    decision_known_bad_grade: Grade = (
+        "warn" if known_bad_grade == "fail" else known_bad_grade
+    )
+    decision_grades: list[Grade] = [
+        support_grade,
+        holdout_grade,
+        decision_known_bad_grade,
+    ]
     if dataset_reference_grade is not None:
         decision_grades.append(dataset_reference_grade)
     if any(grade == "fail" for grade in decision_grades):

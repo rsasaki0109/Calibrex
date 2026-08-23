@@ -102,6 +102,11 @@ def test_continuous_time_profile_reoptimizes_extrinsic_and_clock() -> None:
 
     assert result.status in {"converged", "max_iterations"}
     assert result.observability is not None
+    assert result.train_diagnostics is not None
+    assert result.train_diagnostics.final_residuals.count == result.train_correspondence_count
+    assert len(result.train_diagnostics.range_bins) == 6
+    assert result.train_diagnostics.train_target_point_count == split
+    assert not hasattr(result.train_diagnostics, "holdout_rmse_m")
     assert result.train_correspondence_count >= 6
     assert result.final_train_rmse_m is not None
     assert result.initial_train_rmse_m is not None

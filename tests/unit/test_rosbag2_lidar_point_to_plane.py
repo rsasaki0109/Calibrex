@@ -14,8 +14,6 @@ import math
 import struct
 from pathlib import Path
 
-import pytest
-
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     _load_rosbag2_lidar_pair,
     lidar_pair_solve_inputs,
@@ -131,6 +129,7 @@ def _write_two_lidar_bag(path: Path, *, msg_count: int = 6) -> None:
 def _make_config(bag_path: Path) -> object:
     """Return a minimal CalibrationConfig for a two-lidar rosbag2."""
     import yaml
+
     from calibrex.core.config import CalibrationConfig
 
     raw = yaml.safe_load(f"""

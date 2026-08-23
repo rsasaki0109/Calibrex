@@ -102,6 +102,29 @@ transforms:
     rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
 ```
 
+The official Koide `calib.json` is also accepted directly.  Its native
+`results.T_lidar_camera` vector is `[x, y, z, qx, qy, qz, qw]` and maps camera
+points into the LiDAR frame.  Declare the corresponding Calibrex frames in the
+adapter options (or use uniquely configured stream `sensor` names):
+
+```yaml
+pipeline:
+  factors:
+    koide_lidar_camera:
+      enabled: true
+      options:
+        result_path: outputs/external/calib.json
+        lidar_frame: lidar0
+        camera_frame: camera0
+```
+
+Calibrex stores this as `T_lidar0_camera0` and materializes the exact inverse
+`T_camera0_lidar0`; it never assumes `camera0` or `lidar0` when the frame
+binding is ambiguous or missing.  The generated external-run artifact records
+the native format, source path and SHA-256, declared convention, frame names,
+and the inverse-generation decision.  A malformed vector (including a zero
+quaternion) is reported as `invalid_output`.
+
 When the transform is present, Calibrex converts it into the configured frame
 graph, for example updating `T_base_link_lidar0` through `T_base_link_camera0 *
 T_camera0_lidar0`.

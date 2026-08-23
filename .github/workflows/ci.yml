@@ -20,7 +20,15 @@ jobs:
       - name: Schema generation
         run: |
           calibrex schema all --output-dir /tmp/calibrex-schemas
-          test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" -eq 62
+          test "$(find /tmp/calibrex-schemas -maxdepth 1 -name '*.schema.json' | wc -l)" \
+            -eq "$(find schemas -maxdepth 1 -name '*.schema.json' | wc -l)"
+          diff -ru schemas /tmp/calibrex-schemas
+      - name: Koide schema and CLI smoke
+        run: |
+          calibrex schema koide-pilot --output /tmp/koide-pilot.schema.json
+          test -s /tmp/koide-pilot.schema.json
+          calibrex schema koide-runner --output /tmp/koide-runner.schema.json
+          test -s /tmp/koide-runner.schema.json
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

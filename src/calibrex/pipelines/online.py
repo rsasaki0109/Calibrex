@@ -92,6 +92,10 @@ from calibrex.core.continuous_time_lidar_artifacts import (
     ContinuousTimeLidarPairOptionsArtifact,
     ContinuousTimeLidarPairProvenance,
 )
+from calibrex.core.continuous_time_lidar_train_diagnostics import (
+    ContinuousTimeLidarTrainDiagnosticsProvenance,
+    train_diagnostics_artifact_from_data,
+)
 from calibrex.core.exceptions import ConfigError, DatasetError
 from calibrex.core.frames import FrameGraph, FrameNode
 from calibrex.core.geometry import SE3, Vector3
@@ -4059,6 +4063,7 @@ def evaluate_continuous_time_lidar_pair(
     notes = [
         "continuous-time profile re-solves the six-DoF extrinsic at every clock candidate",
         "target holdout is the latest capture frame group and is never used for optimization",
+        "train diagnostics summarize only the selected train factor and train profile",
         (
             "trajectory_model is piecewise SE(3) interpolation of supplied odometry; "
             "trajectory knots are fixed"
@@ -4087,6 +4092,22 @@ def evaluate_continuous_time_lidar_pair(
                 "adaptive correspondences use the adaptive plane map without a "
                 "uniform fallback"
             )
+    train_diagnostics = None
+    if solved.train_diagnostics is not None:
+        train_diagnostics = train_diagnostics_artifact_from_data(
+            solved.train_diagnostics,
+            provenance=ContinuousTimeLidarTrainDiagnosticsProvenance(
+                source_paths=source_paths,
+                source_sha256=source_sha256,
+                tool_version=__version__,
+                git_commit=git_commit(),
+                notes=[
+                    "all residual summaries and profile candidates are train-only",
+                    "holdout_used_for_selection is fixed false by the diagnostics schema",
+                    "range bins use target LiDAR point range in meters",
+                ],
+            ),
+        )
     return ContinuousTimeLidarPairArtifact(
         config_path=str(config_file),
         dataset_path=str(bag_path),
@@ -4160,6 +4181,7 @@ def evaluate_continuous_time_lidar_pair(
             )
             for item in solved.iterations
         ],
+        train_diagnostics=train_diagnostics,
         provenance=ContinuousTimeLidarPairProvenance(
             source_paths=source_paths,
             source_sha256=source_sha256,

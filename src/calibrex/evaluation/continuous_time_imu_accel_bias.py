@@ -20,7 +20,7 @@ from calibrex.core.continuous_time_sparse import (
     imu_lever_arm_rmse,
     predicted_imu_specific_force,
 )
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, _tuple3
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import se3_exp, se3_log
 
@@ -221,7 +221,7 @@ def _measurements(
             TrajectoryImuLeverArmMeasurement(
                 measurement_id=f"{prefix}-{index:04d}",
                 timestamp_sec=time,
-                accel_body_m_s2=tuple(float(value) for value in noisy),
+                accel_body_m_s2=_tuple3(noisy),
             )
         )
     return tuple(measurements)

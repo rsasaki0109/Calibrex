@@ -19,13 +19,14 @@ right-trivialized and verified against finite differences in the test suite.
 from __future__ import annotations
 
 import math
+from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, normalize_quaternion_xyzw
 
-FloatArray = NDArray[np.float64]
+FloatArray: TypeAlias = NDArray[np.float64]
 
 # Rotation vector axis convention: the rotation vector magnitude is the angle
 # in radians and the unit direction is the rotation axis.
@@ -175,7 +176,7 @@ def se3_left_jacobian(
         b_prime = (angle * (1.0 - math.cos(angle)) - 3.0 * (angle - math.sin(angle))) / angle**4
         cross_w_v = np.cross(w, v)
         cross_w_cross = np.cross(w, cross_w_v)
-        d_v = np.zeros((3, 3), dtype=float)
+        d_v: NDArray[np.float64] = np.zeros((3, 3), dtype=float)
         for j in range(3):
             unit = np.zeros(3)
             unit[j] = 1.0

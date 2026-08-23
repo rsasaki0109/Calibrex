@@ -6,6 +6,7 @@ import math
 from typing import Literal
 
 import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.continuous_time_imu_intrinsics import (
     ContinuousTimeImuIntrinsicsArtifact,
@@ -24,7 +25,7 @@ from calibrex.core.continuous_time_sparse import (
     interpolate_pose_at,
     predicted_imu_specific_force,
 )
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, _tuple3
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import se3_exp, se3_log
 
@@ -237,7 +238,7 @@ def _gyro_measurements(
             samples.append(
                 TrajectoryImuGyroSample(
                     timestamp_sec=float(body_time),
-                    omega_body_rad_s=tuple(float(value) for value in noisy),
+                    omega_body_rad_s=_tuple3(noisy),
                 )
             )
         measurements.append(
@@ -275,7 +276,7 @@ def _accel_measurements(
             TrajectoryImuLeverArmMeasurement(
                 measurement_id=f"{prefix}-accel-{index:04d}",
                 timestamp_sec=time,
-                accel_body_m_s2=tuple(float(value) for value in noisy),
+                accel_body_m_s2=_tuple3(noisy),
             )
         )
     return tuple(measurements)
@@ -285,7 +286,7 @@ def _body_rate(
     knots: tuple[SE3, ...],
     timestamps: tuple[float, ...],
     timestamp_sec: float,
-) -> np.ndarray:
+) -> NDArray[np.float64]:
     epsilon = 1.0e-3
     t0 = min(max(timestamp_sec, timestamps[0]), timestamps[-1] - epsilon)
     t1 = t0 + epsilon

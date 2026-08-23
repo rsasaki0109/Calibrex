@@ -35,6 +35,16 @@ ExternalRunStatus = Literal[
     "digest_mismatch",
 ]
 
+ExternalStageStatus = Literal[
+    "pending",
+    "running",
+    "success",
+    "failed",
+    "timeout",
+    "unavailable",
+    "skipped",
+]
+
 
 class ExternalArtifactDigest(StrictModel):
     """Digest and role of one external-run input or output."""
@@ -69,13 +79,37 @@ class ExternalToolIdentity(StrictModel):
         return self
 
 
+class ExternalStageExecution(StrictModel):
+    """Bounded facts for one stage of a multi-stage external workflow.
+
+    Stage stdout/stderr are intentionally retained only as a short tail and a
+    SHA-256 digest.  This keeps an evidence artifact useful for debugging while
+    avoiding unbounded or potentially sensitive process logs.
+    """
+
+    name: str
+    command: list[str] = Field(default_factory=list)
+    status: ExternalStageStatus
+    return_code: int | None = None
+    timed_out: bool = False
+    duration_seconds: float | None = Field(default=None, ge=0.0)
+    stdout_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    stderr_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    stdout_tail: str | None = Field(default=None, max_length=4000)
+    stderr_tail: str | None = Field(default=None, max_length=4000)
+    error: str | None = None
+
+
 class ExternalExecution(StrictModel):
     """Bounded execution facts without unbounded external process output."""
 
     mode: ExternalExecutionMode
     command: list[str] = Field(default_factory=list)
     working_directory: str | None = None
-    container_digest: str | None = None
+    container_digest: str | None = Field(
+        default=None,
+        pattern=r"^(?:[^@\s]+@)?sha256:[0-9a-f]{64}$",
+    )
     timeout_seconds: float | None = Field(default=None, gt=0.0)
     attempted: bool = False
     return_code: int | None = None
@@ -86,6 +120,12 @@ class ExternalExecution(StrictModel):
     stdout_tail: str | None = Field(default=None, max_length=4000)
     stderr_tail: str | None = Field(default=None, max_length=4000)
     error: str | None = None
+    stages: list[ExternalStageExecution] = Field(default_factory=list)
+    network_mode: str | None = None
+    cpu_limit: float | None = Field(default=None, gt=0.0)
+    memory_limit: str | None = None
+    input_mounts: list[str] = Field(default_factory=list)
+    output_mount: str | None = None
 
     @model_validator(mode="after")
     def require_container_digest(self) -> ExternalExecution:
@@ -95,6 +135,20 @@ class ExternalExecution(StrictModel):
             msg = "container execution requires container_digest"
             raise ValueError(msg)
         return self
+
+
+class ExternalRunDigests(StrictModel):
+    """Content identities needed to reproduce an external calibration run."""
+
+    tool_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    source_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    container_digest: str | None = Field(
+        default=None,
+        pattern=r"^(?:[^@\s]+@)?sha256:[0-9a-f]{64}$",
+    )
+    config_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    input_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    output_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class ExternalDataIsolation(StrictModel):
@@ -165,6 +219,7 @@ class ExternalCalibrationRunArtifact(StrictModel):
     tool: ExternalToolIdentity
     execution: ExternalExecution
     artifacts: list[ExternalArtifactDigest] = Field(default_factory=list)
+    digests: ExternalRunDigests = Field(default_factory=ExternalRunDigests)
     frame_convention: str
     time_convention: str
     train_data_isolation: ExternalDataIsolation

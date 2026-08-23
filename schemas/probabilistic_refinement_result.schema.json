@@ -167,6 +167,118 @@
       "title": "DepthFileReference",
       "type": "object"
     },
+    "ProbabilisticRefinementAcceptanceArtifact": {
+      "additionalProperties": false,
+      "description": "Fit-only acceptance decision and initializer rollback evidence.",
+      "properties": {
+        "absolute_train_objective_improvement": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Absolute Train Objective Improvement"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "candidate_status": {
+          "enum": [
+            "converged",
+            "max_evaluations",
+            "insufficient_correspondences",
+            "missing_holdout",
+            "at_bound"
+          ],
+          "title": "Candidate Status",
+          "type": "string"
+        },
+        "candidate_train_correspondence_count": {
+          "minimum": 0,
+          "title": "Candidate Train Correspondence Count",
+          "type": "integer"
+        },
+        "candidate_train_objective": {
+          "title": "Candidate Train Objective",
+          "type": "number"
+        },
+        "holdout_used_for_selection": {
+          "const": false,
+          "default": false,
+          "title": "Holdout Used For Selection",
+          "type": "boolean"
+        },
+        "initial_train_correspondence_count": {
+          "minimum": 0,
+          "title": "Initial Train Correspondence Count",
+          "type": "integer"
+        },
+        "initial_train_objective": {
+          "title": "Initial Train Objective",
+          "type": "number"
+        },
+        "maximum_candidate_bound_fraction": {
+          "minimum": 0.0,
+          "title": "Maximum Candidate Bound Fraction",
+          "type": "number"
+        },
+        "minimum_retained_train_correspondence_count": {
+          "minimum": 0,
+          "title": "Minimum Retained Train Correspondence Count",
+          "type": "integer"
+        },
+        "policy_id": {
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "relative_train_objective_improvement": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Train Objective Improvement"
+        },
+        "selected_source": {
+          "enum": [
+            "refined_candidate",
+            "initializer_rollback"
+          ],
+          "title": "Selected Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_id",
+        "accepted",
+        "selected_source",
+        "candidate_status",
+        "initial_train_objective",
+        "candidate_train_objective",
+        "initial_train_correspondence_count",
+        "candidate_train_correspondence_count",
+        "minimum_retained_train_correspondence_count",
+        "maximum_candidate_bound_fraction"
+      ],
+      "title": "ProbabilisticRefinementAcceptanceArtifact",
+      "type": "object"
+    },
     "ProbabilisticRefinementEvaluationArtifact": {
       "additionalProperties": false,
       "description": "Schema-valid robust multi-frame reprojection evidence.",
@@ -276,6 +388,43 @@
           },
           "title": "Command",
           "type": "array"
+        },
+        "confidence_calibration_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Calibration Id"
+        },
+        "confidence_calibration_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Calibration Path"
+        },
+        "confidence_calibration_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Calibration Sha256"
         },
         "correspondence_artifact_sha256": {
           "pattern": "^[0-9a-f]{64}$",
@@ -613,6 +762,76 @@
   "additionalProperties": false,
   "description": "Schema-valid multi-frame refinement with explicit initialization.",
   "properties": {
+    "acceptance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProbabilisticRefinementAcceptanceArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_holdout_evaluation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProbabilisticRefinementEvaluationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_rotation_error_deg": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Rotation Error Deg"
+    },
+    "candidate_train_evaluation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProbabilisticRefinementEvaluationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_transform_camera_lidar": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TransformResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_translation_error_m": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Translation Error M"
+    },
     "correspondence_artifact_id": {
       "title": "Correspondence Artifact Id",
       "type": "string"
@@ -741,10 +960,11 @@
       "title": "Initialization Trace Status"
     },
     "method": {
-      "default": "probabilistic_multiframe_refinement/v0.2",
+      "default": "probabilistic_multiframe_refinement/v0.3",
       "enum": [
         "d2d_initialized_probabilistic_multiframe_refinement/v0.1",
-        "probabilistic_multiframe_refinement/v0.2"
+        "probabilistic_multiframe_refinement/v0.2",
+        "probabilistic_multiframe_refinement/v0.3"
       ],
       "title": "Method",
       "type": "string"
@@ -795,8 +1015,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "slac.probabilistic_refinement_result/v0.1",
-      "default": "slac.probabilistic_refinement_result/v0.1",
+      "default": "slac.probabilistic_refinement_result/v0.2",
+      "enum": [
+        "slac.probabilistic_refinement_result/v0.1",
+        "slac.probabilistic_refinement_result/v0.2"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

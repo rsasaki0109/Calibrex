@@ -28,6 +28,13 @@ EVIDENCE_BUNDLE_VERIFICATION_SCHEMA_VERSION: Literal[
     "slac.evidence_bundle.verification/v0.1"
 ] = "slac.evidence_bundle.verification/v0.1"
 BundleArtifactKind = Literal[
+    "benchmark",
+    "benchmark-definition",
+    "camera-lidar-problem",
+    "calibration-candidate-trace",
+    "probabilistic-correspondence",
+    "probabilistic-refinement-result",
+    "camera-lidar-failure-analysis",
     "assessment",
     "policy",
     "protocol",

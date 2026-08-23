@@ -22,8 +22,8 @@ from calibrex.core.continuous_time_sparse import (
     build_dense_knot_normal_equations,
     fit_continuous_trajectory,
 )
-from calibrex.core.geometry import SE3
-from calibrex.core.se3_manifold import se3_exp, se3_log
+from calibrex.core.geometry import SE3, _tuple3
+from calibrex.core.se3_manifold import se3_log
 
 
 @dataclass(frozen=True)
@@ -243,7 +243,7 @@ def _corrupt_priors(
             KnotMarginalizationPrior(
                 knot_index=prior.knot_index,
                 anchor_pose=SE3(
-                    translation_m=tuple(float(value) for value in translation),
+                    translation_m=_tuple3(translation),
                     rotation_quat_xyzw=anchor.rotation_quat_xyzw,
                 ),
                 information=np.array(prior.information, copy=True),
@@ -263,7 +263,7 @@ def _shift_overlap_initial(
         pose = shifted[index]
         translation = np.asarray(pose.translation_m, dtype=float) + delta
         shifted[index] = SE3(
-            translation_m=tuple(float(value) for value in translation),
+            translation_m=_tuple3(translation),
             rotation_quat_xyzw=pose.rotation_quat_xyzw,
         )
     return tuple(shifted)

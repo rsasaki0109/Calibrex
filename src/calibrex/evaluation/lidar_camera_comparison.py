@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -132,18 +132,79 @@ def evaluate_lidar_camera_candidates_on_kitti(
     max_points: int,
     holdout_ratio: float,
     split_seed: int,
+    frame_ids: Sequence[str] | None = None,
+    train_frame_ids: Sequence[str] | None = None,
+    holdout_frame_ids: Sequence[str] | None = None,
 ) -> dict[str, LidarCameraCandidateScore]:
-    """Evaluate all candidates on exactly the same KITTI frame IDs."""
+    """Evaluate all candidates on exactly the same KITTI frame IDs.
 
-    pairs = find_camera_lidar_pairs(dataset_path, max_pairs=max_frames)
-    frame_ids = tuple(f"camera:{pair.camera_index}:lidar:{pair.lidar_index}" for pair in pairs)
-    train_indices, holdout_indices = _nonempty_split(len(pairs), holdout_ratio, split_seed)
-    train_ids = tuple(frame_ids[index] for index in train_indices)
-    holdout_ids = tuple(frame_ids[index] for index in holdout_indices)
+    When a benchmark manifest supplies an explicit frame inventory, callers
+    must pass it through ``frame_ids``.  Optional train/holdout IDs then bind
+    the score to the independently declared split instead of silently
+    re-splitting whatever frames happen to be present on disk.
+    """
+
+    available_pairs = find_camera_lidar_pairs(
+        dataset_path,
+        max_pairs=max_frames if frame_ids is None else max(max_frames, 100_000),
+    )
+    available_by_id = {
+        f"camera:{pair.camera_index}:lidar:{pair.lidar_index}": pair
+        for pair in available_pairs
+    }
+    selected_ids = (
+        tuple(frame_ids)
+        if frame_ids is not None
+        else tuple(available_by_id)
+    )
+    pairs = [available_by_id[item] for item in selected_ids if item in available_by_id]
+    if frame_ids is not None and len(pairs) != len(selected_ids):
+        missing = sorted(set(selected_ids) - set(available_by_id))
+        raise ValueError(f"KITTI evaluation frame inventory is unavailable: {missing[:5]}")
+    if not pairs:
+        # Preserve the evaluator's historical result shape for an empty
+        # dataset: every requested candidate still receives a zero-score
+        # record.  An explicitly declared inventory that is unavailable has
+        # already failed above, so this branch only covers the legacy,
+        # implicit empty-dataset diagnostic path.
+        return {
+            candidate_id: LidarCameraCandidateScore(
+                candidate_id=candidate_id,
+                train_frame_ids=(),
+                holdout_frame_ids=(),
+                train_projection_ratio=None,
+                holdout_projection_ratio=None,
+                train_edge_alignment=None,
+                holdout_edge_alignment=None,
+                train_depth_edge_alignment=None,
+                holdout_depth_edge_alignment=None,
+                scored_frame_count=0,
+                transform_camera_lidar=transform,
+                training_isolation_declared=isolated,
+            )
+            for candidate_id, (transform, isolated) in sorted(candidates.items())
+        }
+    selected_ids = tuple(
+        f"camera:{pair.camera_index}:lidar:{pair.lidar_index}" for pair in pairs
+    )
+    if train_frame_ids is None and holdout_frame_ids is None:
+        train_indices, holdout_indices = _nonempty_split(len(pairs), holdout_ratio, split_seed)
+        train_ids = tuple(selected_ids[index] for index in train_indices)
+        holdout_ids = tuple(selected_ids[index] for index in holdout_indices)
+    elif train_frame_ids is None or holdout_frame_ids is None:
+        raise ValueError("train_frame_ids and holdout_frame_ids must be supplied together")
+    else:
+        train_ids = tuple(train_frame_ids)
+        holdout_ids = tuple(holdout_frame_ids)
+        selected_set = set(selected_ids)
+        if set(train_ids) | set(holdout_ids) != selected_set:
+            raise ValueError("train/holdout frame IDs do not cover the selected inventory")
+        if set(train_ids) & set(holdout_ids):
+            raise ValueError("train and holdout frame IDs overlap")
     output: dict[str, LidarCameraCandidateScore] = {}
     for candidate_id, (transform, isolated) in sorted(candidates.items()):
         frames: list[_FrameScore] = []
-        for frame_id, pair in zip(frame_ids, pairs, strict=True):
+        for frame_id, pair in zip(selected_ids, pairs, strict=True):
             projection = project_velodyne_to_camera(
                 dataset_path,
                 camera_path=pair.camera_path,

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -8,7 +7,6 @@ import pytest
 
 from calibrex.cli.main import main
 from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
-from calibrex.core.io import write_mapping
 from calibrex.core.provenance import sha256_path
 from calibrex.data.depth import (
     DepthImageTransform,
@@ -26,22 +24,42 @@ from calibrex.data.kitti360_camera_lidar_problem import (
     read_kitti360_poses,
     read_kitti360_velodyne_to_camera_transform,
 )
-from calibrex.data.manifest import DatasetManifest, StreamManifest
+from calibrex.data.kitti360_lidar_window_integration import (
+    integrate_kitti360_lidar_windows,
+)
+from calibrex.data.remote_archive_selection import (
+    RemoteArchiveSelectedMember,
+    RemoteArchiveSelectionArtifact,
+    RemoteArchiveSelectionProvenance,
+    RemoteArchiveSource,
+)
 from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
 
 _DIGEST = "0" * 64
 
 
-def _paths_digest(paths: list[Path]) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(paths, key=lambda item: str(item.resolve())):
-        file_digest = sha256_path(path)
-        assert file_digest is not None
-        digest.update(str(path.resolve()).encode())
-        digest.update(b"\0")
-        digest.update(file_digest.encode())
-        digest.update(b"\n")
-    return digest.hexdigest()
+def _required_digest(path: Path) -> str:
+    digest = sha256_path(path)
+    assert digest is not None
+    return digest
+
+
+def _selected_member(
+    role: str,
+    frame_id: str,
+    path: Path,
+) -> RemoteArchiveSelectedMember:
+    return RemoteArchiveSelectedMember(
+        role=role,  # type: ignore[arg-type]
+        frame_id=frame_id,
+        member_path=f"archive/{role}/{path.name}",
+        crc32="00000000",
+        compressed_size_bytes=path.stat().st_size,
+        uncompressed_size_bytes=path.stat().st_size,
+        local_path=str(path.resolve()),
+        local_sha256=_required_digest(path),
+        local_size_bytes=path.stat().st_size,
+    )
 
 
 def _matrix_line(name: str, matrix: np.ndarray) -> str:
@@ -146,6 +164,81 @@ def _write_fixture(root: Path) -> tuple[Path, Path, Path]:
     return sequence, calibration, provider_path
 
 
+def _write_integrated_lidar_fixture(
+    root: Path,
+    sequence: Path,
+    calibration: Path,
+) -> tuple[Path, Path]:
+    frame_ids = ["0000000000", "0000000001"]
+    image_directory = sequence / "image_03" / "data_rgb"
+    lidar_directory = sequence / "velodyne_points" / "data"
+    second_image = image_directory / "0000000001.png"
+    second_scan = lidar_directory / "0000000001.bin"
+    second_image.write_bytes(b"image-0000000001")
+    np.asarray([[2.0, 0.0, 5.0, 0.6]], dtype=np.float32).tofile(second_scan)
+    members = [
+        _selected_member(role, frame_id, path)
+        for frame_id in frame_ids
+        for role, path in (
+            ("image", image_directory / f"{frame_id}.png"),
+            ("pointcloud", lidar_directory / f"{frame_id}.bin"),
+        )
+    ]
+    selection = RemoteArchiveSelectionArtifact(
+        artifact_id="kitti360-problem-integration-fixture",
+        dataset_family="KITTI-360",
+        dataset_id="kitti360_2013_05_28_drive_0000",
+        sequence_id=sequence.name,
+        dataset_license_spdx="CC-BY-NC-SA-3.0",
+        selection_policy="centered_same_numeric_frame_windows/v0.2",
+        requested_frame_count=2,
+        frame_ids=frame_ids,
+        archives=[
+            RemoteArchiveSource(
+                role="image",
+                url="https://example.test/images.zip",
+                size_bytes=1,
+                accept_ranges=True,
+            ),
+            RemoteArchiveSource(
+                role="pointcloud",
+                url="https://example.test/lidar.zip",
+                size_bytes=1,
+                accept_ranges=True,
+            ),
+        ],
+        members=members,
+        output_root=str(sequence.resolve()),
+        provenance=RemoteArchiveSelectionProvenance(
+            generator="pytest",
+            generator_version="fixture",
+        ),
+    )
+    selection_path = root / "kitti360-selection.yaml"
+    selection.save(selection_path)
+    identity = np.eye(4, dtype=float)
+    pose_values = " ".join(str(value) for value in identity[:3, :].reshape(-1))
+    poses = root / "poses.txt"
+    poses.write_text(
+        f"0 {pose_values}\n1 {pose_values}\n",
+        encoding="utf-8",
+    )
+    output_directory = root / "integrated"
+    artifact = integrate_kitti360_lidar_windows(
+        selection_path,
+        poses,
+        calibration,
+        [0],
+        neighbor_radius_frames=0,
+        output_directory=output_directory,
+        minimum_range_m=0.0,
+        voxel_resolution_m=0.0,
+    )
+    manifest_path = root / "integration.yaml"
+    artifact.save(manifest_path)
+    return output_directory, manifest_path
+
+
 def test_reads_mei_intrinsics_and_official_transform_chain(tmp_path: Path) -> None:
     _, calibration, _ = _write_fixture(tmp_path)
 
@@ -169,6 +262,7 @@ def test_build_and_cli_write_schema_valid_kitti360_problem(
     assert direct.dataset_family == "KITTI-360"
     assert "not motion compensated" in direct.time_convention
     assert direct.reference_transform_camera_lidar.parent == "camera_3"
+    assert direct.observations[0].split_id == "evaluation"
 
     output = tmp_path / "problem.yaml"
     status = main(
@@ -181,12 +275,16 @@ def test_build_and_cli_write_schema_valid_kitti360_problem(
             str(calibration),
             "--output",
             str(output),
+            "--split-id",
+            "development",
             "--json",
         ]
     )
 
     assert status == 0
-    assert load_camera_lidar_problem(output).dataset_family == "KITTI-360"
+    saved_problem = load_camera_lidar_problem(output)
+    assert saved_problem.dataset_family == "KITTI-360"
+    assert saved_problem.observations[0].split_id == "development"
     loaded = load_borer_problem(output)
     assert loaded.observations[0].camera.projection == "mei"
     assert loaded.observations[0].camera.distortion == pytest.approx(
@@ -228,13 +326,14 @@ def test_generated_lidar_directory_requires_matching_valid_manifest(
     tmp_path: Path,
 ) -> None:
     sequence, calibration, provider_path = _write_fixture(tmp_path)
-    generated = tmp_path / "compensated"
-    generated.mkdir()
-    source = sequence / "velodyne_points" / "data" / "0000000000.bin"
-    target = generated / source.name
-    target.write_bytes(source.read_bytes())
+    generated, manifest_path = _write_integrated_lidar_fixture(
+        tmp_path,
+        sequence,
+        calibration,
+    )
+    target = generated / "0000000000.bin"
 
-    with pytest.raises(ValueError, match="requires lidar_manifest_path"):
+    with pytest.raises(ValueError, match="requires both"):
         build_kitti360_camera_lidar_problem(
             sequence,
             provider_path,
@@ -242,22 +341,6 @@ def test_generated_lidar_directory_requires_matching_valid_manifest(
             lidar_directory=generated,
         )
 
-    manifest_path = generated / "manifest.yaml"
-    manifest = DatasetManifest(
-        name="compensated-fixture",
-        streams={
-            "velodyne_points": StreamManifest(
-                kind="pointcloud",
-                count=1,
-                path=str(generated),
-            )
-        },
-        provenance={
-            "generator": "test",
-            "output_sha256": _paths_digest([target]),
-        },
-    )
-    write_mapping(manifest_path, manifest.model_dump(mode="json"))
     problem = build_kitti360_camera_lidar_problem(
         sequence,
         provider_path,
@@ -269,8 +352,30 @@ def test_generated_lidar_directory_requires_matching_valid_manifest(
     assert "official motion compensation adapter" in problem.time_convention
     assert problem.observations[0].lidar.path == str(target)
 
+    output = tmp_path / "integrated-problem.yaml"
+    assert main(
+        [
+            "camera-lidar",
+            "build-kitti360-problem",
+            str(sequence),
+            str(provider_path),
+            "--calibration-root",
+            str(calibration),
+            "--lidar-directory",
+            str(generated),
+            "--lidar-manifest",
+            str(manifest_path),
+            "--output",
+            str(output),
+        ]
+    ) == 0
+    assert load_camera_lidar_problem(output).observations[0].lidar.path == str(target)
+    assert "--translation-bound-m" in load_camera_lidar_problem(
+        output
+    ).provenance.command
+
     target.write_bytes(b"changed")
-    with pytest.raises(ValueError, match="output_sha256"):
+    with pytest.raises(ValueError, match="integration verification failed"):
         build_kitti360_camera_lidar_problem(
             sequence,
             provider_path,

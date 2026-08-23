@@ -8,6 +8,7 @@ from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthToDepthCameraModel,
     DepthToDepthObservation,
     DepthToDepthOptions,
+    _z_buffer_nearest_indices,
     evaluate_depth_to_depth_mi,
     project_depth_pairs,
     project_lidar_image_correspondences,
@@ -92,6 +93,29 @@ def test_projection_z_buffer_keeps_nearest_point() -> None:
     assert buffered.projected_count_before_visibility == 2
     assert buffered.lidar_range_m.tolist() == [5.0]
     assert unbuffered.lidar_range_m.tolist() == [10.0, 5.0]
+
+
+def test_linear_z_buffer_matches_stable_depth_sort_with_ties() -> None:
+    rng = np.random.default_rng(42)
+    pixel_count = 257
+    pixel_linear = rng.integers(
+        0,
+        pixel_count,
+        size=10_000,
+        dtype=np.int64,
+    )
+    camera_range = rng.integers(1, 50, size=10_000).astype(np.float64)
+    by_depth = np.argsort(camera_range, kind="stable")
+    _pixels, first = np.unique(pixel_linear[by_depth], return_index=True)
+    expected = by_depth[first]
+
+    observed = _z_buffer_nearest_indices(
+        pixel_linear,
+        camera_range,
+        pixel_count=pixel_count,
+    )
+
+    assert np.array_equal(observed, expected)
 
 
 def test_double_sphere_projection_accepts_front_and_rejects_back() -> None:

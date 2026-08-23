@@ -171,6 +171,22 @@ with MAD rejection disabled lost all 9 paired conditions (mean improvement
 **−22.42%** versus `uniform_none`) and was not adopted. This is a diagnostic
 decision, not a new holdout-tuned protocol variant.
 
+The v0.4 candidate was selected from train-only diagnostics on AgRob. It fixes
+`continuous_time_outlier_mad_scale=2.5`; the early, middle, and late seed-0
+train probes all reduced train RMSE while retaining rank 6. The candidate is
+declared in
+`examples/public_datasets/solid_state_cross_dataset_benchmark_v04.yaml`, and
+the selection table is recorded in
+[the train-only note](../assets/solid-state-cross-dataset-benchmark-v04-train-selection.md).
+The independent 3×3×3 v0.4 temporal-holdout matrix is now complete in the
+[v0.4 benchmark report](../assets/solid-state-cross-dataset-benchmark-v04.md):
+adaptive wins **25/27** replicates with mean improvement **57.20%** and
+bootstrap 95% CI **[45.69, 67.43]%**. AgRob improves to 7/9 adaptive wins,
+while TIERS and GLIM remain 9/9. The report retains nine `max_iterations`
+variant failures under the declared `require_converged: false` policy, so the
+result is a candidate-evidence upgrade with a follow-up budget-sensitivity
+item, not an absolute accuracy or universal SOTA claim.
+
 Never use the holdout score to choose a seed, crop, motion window, adaptive
 fallback, or threshold and then call that same score an independent result.
 

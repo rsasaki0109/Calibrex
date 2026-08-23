@@ -11,7 +11,11 @@ from calibrex.core.camera_lidar_artifacts import (
     load_calibration_candidate_trace,
     load_camera_lidar_problem,
 )
+from calibrex.core.camera_lidar_confidence_calibration import (
+    load_camera_lidar_confidence_calibration,
+)
 from calibrex.core.probabilistic_correspondence import (
+    ProbabilisticRefinementAcceptanceArtifact,
     ProbabilisticRefinementEvaluationArtifact,
     ProbabilisticRefinementIterationArtifact,
     ProbabilisticRefinementProvenance,
@@ -20,6 +24,9 @@ from calibrex.core.probabilistic_correspondence import (
 )
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import TransformResult
+from calibrex.evaluation.camera_lidar_confidence_calibration import (
+    refinement_options_from_camera_lidar_confidence_calibration,
+)
 from calibrex.solvers.probabilistic_camera_lidar_refiner import (
     ProbabilisticCameraLidarRefinementOptions,
     ProbabilisticCameraLidarRefinementResult,
@@ -27,12 +34,15 @@ from calibrex.solvers.probabilistic_camera_lidar_refiner import (
     ProbabilisticPoseEvaluation,
 )
 
+PROBABILISTIC_CAMERA_LIDAR_RUN_VERSION = "0.3"
+
 
 def run_probabilistic_camera_lidar_refinement(
     correspondence_path: str | Path,
     initialization_problem_path: str | Path,
     *,
     initialization_trace_path: str | Path | None = None,
+    confidence_calibration_path: str | Path | None = None,
     result_id: str | None = None,
     options: ProbabilisticCameraLidarRefinementOptions | None = None,
     command: list[str] | None = None,
@@ -43,6 +53,10 @@ def run_probabilistic_camera_lidar_refinement(
     problem_file = Path(initialization_problem_path)
     correspondence = load_probabilistic_correspondence(correspondence_file)
     problem = load_camera_lidar_problem(problem_file)
+    if correspondence.dataset_id != problem.dataset_id:
+        raise ValueError(
+            "probabilistic correspondence and initialization problem dataset IDs differ"
+        )
     correspondence_digest = sha256_path(correspondence_file)
     problem_digest = sha256_path(problem_file)
     if correspondence_digest is None or problem_digest is None:
@@ -60,7 +74,81 @@ def run_probabilistic_camera_lidar_refinement(
         {item.lidar_frame for item in frames}
     ) != 1:
         raise ValueError("all correspondence frames must share camera/LiDAR IDs")
-    settings = options or ProbabilisticCameraLidarRefinementOptions()
+    camera_frame = frames[0].camera_frame
+    lidar_frame = frames[0].lidar_frame
+    for transform in (
+        problem.initial_transform_camera_lidar,
+        problem.reference_transform_camera_lidar,
+    ):
+        if transform.parent != camera_frame or transform.child != lidar_frame:
+            raise ValueError(
+                "camera-LiDAR problem transform frames do not match correspondence frames"
+            )
+    confidence_calibration_id: str | None = None
+    confidence_calibration_digest: str | None = None
+    confidence_calibration_file: Path | None = None
+    if confidence_calibration_path is not None:
+        confidence_calibration_file = Path(confidence_calibration_path).resolve()
+        confidence_calibration = load_camera_lidar_confidence_calibration(
+            confidence_calibration_file
+        )
+        if confidence_calibration.schema_version != (
+            "slac.camera_lidar_confidence_calibration/v0.2"
+        ):
+            raise ValueError(
+                "legacy support-only confidence calibrations cannot be used at runtime"
+            )
+        locked_calibration_options = (
+            confidence_calibration.locked_refinement_options
+        )
+        if (
+            confidence_calibration.status != "locked"
+            or locked_calibration_options is None
+        ):
+            raise ValueError(
+                "confidence calibration was rejected on development geometry"
+            )
+        confidence_calibration_digest = sha256_path(confidence_calibration_file)
+        if confidence_calibration_digest is None:
+            raise ValueError("confidence calibration lock must be a readable file")
+        confidence_calibration_id = confidence_calibration.calibration_id
+        if correspondence.provider != confidence_calibration.provider:
+            raise ValueError(
+                "correspondence provider identity differs from confidence calibration"
+            )
+        if problem.dataset_id == confidence_calibration.dataset_id:
+            if (
+                problem_digest != confidence_calibration.problem_sha256
+                or correspondence_digest
+                != confidence_calibration.correspondence_artifact_sha256
+            ):
+                raise ValueError(
+                    "development inputs differ from confidence calibration sources"
+                )
+        elif (
+            problem.dataset_id
+            not in confidence_calibration.evaluation_dataset_ids_excluded
+        ):
+            raise ValueError(
+                "target dataset is neither the development source nor a locked "
+                "evaluation dataset"
+            )
+        split_seed = (
+            options.split_seed
+            if options is not None
+            else locked_calibration_options.evaluation_split_seeds[0]
+        )
+        locked_options = (
+            refinement_options_from_camera_lidar_confidence_calibration(
+                confidence_calibration,
+                split_seed=split_seed,
+            )
+        )
+        if options is not None and options != locked_options:
+            raise ValueError("runtime refinement options differ from confidence lock")
+        settings = locked_options
+    else:
+        settings = options or ProbabilisticCameraLidarRefinementOptions()
     initialization_trace_id: str | None = None
     initialization_trace_status: str | None = None
     initialization_trace_hit: bool | None = None
@@ -95,8 +183,8 @@ def run_probabilistic_camera_lidar_refinement(
         correspondence.artifact_id,
         problem.problem_id,
         correspondence.provider,
-        frames[0].camera_frame,
-        frames[0].lidar_frame,
+        camera_frame,
+        lidar_frame,
         result,
         reference_transform=problem.reference_transform_camera_lidar,
         initialization_trace_id=initialization_trace_id,
@@ -107,6 +195,13 @@ def run_probabilistic_camera_lidar_refinement(
         correspondence_sha256=correspondence_digest,
         problem_sha256=problem_digest,
         initialization_trace_sha256=initialization_trace_digest,
+        confidence_calibration_id=confidence_calibration_id,
+        confidence_calibration_path=(
+            str(confidence_calibration_file)
+            if confidence_calibration_file is not None
+            else None
+        ),
+        confidence_calibration_sha256=confidence_calibration_digest,
         command=command or [],
     )
 
@@ -127,6 +222,9 @@ def _artifact(
     correspondence_sha256: str,
     problem_sha256: str,
     initialization_trace_sha256: str | None,
+    confidence_calibration_id: str | None,
+    confidence_calibration_path: str | None,
+    confidence_calibration_sha256: str | None,
     command: list[str],
 ) -> ProbabilisticRefinementResultArtifact:
     initial_transform = _transform(
@@ -138,6 +236,11 @@ def _artifact(
         camera_frame,
         lidar_frame,
         result.transform_camera_lidar,
+    )
+    candidate_transform = _transform(
+        camera_frame,
+        lidar_frame,
+        result.candidate_transform_camera_lidar,
     )
     return ProbabilisticRefinementResultArtifact(
         result_id=result_id,
@@ -155,10 +258,15 @@ def _artifact(
         ),
         provider=provider,
         initial_transform_camera_lidar=initial_transform,
+        candidate_transform_camera_lidar=candidate_transform,
         transform_camera_lidar=output_transform,
         reference_transform_camera_lidar=reference_transform,
         initial_rotation_error_deg=_rotation_error_deg(
             initial_transform,
+            reference_transform,
+        ),
+        candidate_rotation_error_deg=_rotation_error_deg(
+            candidate_transform,
             reference_transform,
         ),
         final_rotation_error_deg=_rotation_error_deg(
@@ -167,6 +275,10 @@ def _artifact(
         ),
         initial_translation_error_m=_translation_error_m(
             initial_transform,
+            reference_transform,
+        ),
+        candidate_translation_error_m=_translation_error_m(
+            candidate_transform,
             reference_transform,
         ),
         final_translation_error_m=_translation_error_m(
@@ -178,12 +290,21 @@ def _artifact(
         initial_train_evaluation=_evaluation(
             result.initial_train_evaluation
         ),
+        candidate_train_evaluation=_evaluation(
+            result.candidate_train_evaluation
+        ),
         final_train_evaluation=_evaluation(result.final_train_evaluation),
         initial_holdout_evaluation=_evaluation(
             result.initial_holdout_evaluation
         ),
+        candidate_holdout_evaluation=_evaluation(
+            result.candidate_holdout_evaluation
+        ),
         final_holdout_evaluation=_evaluation(
             result.final_holdout_evaluation
+        ),
+        acceptance=ProbabilisticRefinementAcceptanceArtifact(
+            **asdict(result.acceptance)
         ),
         trace=[
             ProbabilisticRefinementIterationArtifact(
@@ -205,12 +326,15 @@ def _artifact(
         ),
         provenance=ProbabilisticRefinementProvenance(
             generator=__name__,
-            generator_version="0.1",
+            generator_version=PROBABILISTIC_CAMERA_LIDAR_RUN_VERSION,
             git_commit=git_commit(),
             command=command,
             correspondence_artifact_sha256=correspondence_sha256,
             initialization_problem_sha256=problem_sha256,
             initialization_trace_sha256=initialization_trace_sha256,
+            confidence_calibration_id=confidence_calibration_id,
+            confidence_calibration_path=confidence_calibration_path,
+            confidence_calibration_sha256=confidence_calibration_sha256,
         ),
     )
 

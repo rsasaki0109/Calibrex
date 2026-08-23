@@ -113,7 +113,8 @@ calibrex ci outputs/my_calib/result.yaml \
   --enforce
 ```
 
-Copy the PR workflow from [`examples/ci/`](../../examples/ci/) into
+Copy the PR workflow from [`examples/ci/`](https://github.com/rsasaki0109/Calibrex/tree/main/examples/ci)
+into
 `.github/workflows/` for GitHub Actions.
 
 Example excerpt:

@@ -24,6 +24,41 @@ adapter-produced LiDAR, camera, IMU, radar, RGB-D, hand-eye, and robot-world
 calibration without reducing the verdict to optimizer convergence or a single
 training residual.
 
+## LiDAR-camera evidence in five minutes
+
+Run the complete evidence path without ROS or a dataset download. The command
+evaluates the bundled deterministic KITTI-shaped fixture, writes a
+schema-valid result and review report, and verifies a digest-bound provenance
+bundle:
+
+```bash
+# Install the versioned GitHub Release wheel described in the Install section.
+
+calibrex demo kitti-lidar-camera-evidence \
+  --output-dir outputs/kitti-lidar-camera-evidence \
+  --strict-assessment
+calibrex validate outputs/kitti-lidar-camera-evidence/result.yaml
+calibrex verify outputs/kitti-lidar-camera-evidence/bundle.json
+```
+
+Open `outputs/kitti-lidar-camera-evidence/report.html` to inspect the projection
+evidence and known-bad perturbation probes. The checked fixture detects 16 of
+24 mandatory perturbation cases and passes all six falsification-policy gates
+in under one minute in the clean Windows wheel smoke test. This verifies the
+pipeline and evidence contracts; it is not a real-sensor accuracy claim or a
+standalone camera-LiDAR calibration algorithm. Supply an officially downloaded
+KITTI raw sequence with `--dataset-path` when evaluating real data.
+
+<p align="center">
+  <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
+</p>
+
+<p align="center">
+  <sub>Real TIERS Indoor02 moving-platform replay: a Velodyne VLP-16 motion map
+  supports online Ouster OS1 calibration, with 106 of 108 batches accepted by
+  holdout gates.</sub>
+</p>
+
 ## Public-data gallery
 
 <table>
@@ -153,7 +188,18 @@ calibrex validate \
 ```
 
 The timed artifact records the config and bag SHA-256, transform convention,
-candidate offsets, train/holdout RMSE, and fixed-odometry provenance. On the
+candidate offsets, train/holdout RMSE, and fixed-odometry provenance. It also
+embeds `train_diagnostics` with final train residual percentiles, deterministic
+range bins, MAD rejection counts, and a train-only clock profile. The standalone
+diagnostic contract is available with:
+
+```bash
+calibrex schema continuous-time-lidar-train-diagnostics \
+  --output schemas/continuous_time_lidar_train_diagnostics.schema.json
+```
+
+The diagnostic profile fixes `holdout_used_for_selection: false`; use the
+pair-result holdout fields only for final evaluation. On the
 checked public run, the selected offset was **+40 ms** and train RMSE changed
 from **0.0957 m to 0.0240 m**, with **0.0242 m** holdout RMSE. This is an
 algorithmic estimate under the declared holdout: the public sequence has no
@@ -368,6 +414,20 @@ counterexample rather than hidden: its result varies across split and seed.
 The full checked summary is the [v0.3 benchmark report](docs/assets/solid-state-cross-dataset-benchmark-v03.md).
 These are ground-truth-free temporal-holdout results, not a universal SOTA
 claim. Reproduce the runs and inspect the [public-dataset protocol](docs/tutorials/public_datasets.md#cross-dataset-solid-state-benchmark).
+
+The public-only v0.4 candidate is documented separately: `mad_scale=2.5` was
+fixed from AgRob train-only diagnostics before the v0.4 holdout matrix. See
+the [train-only selection note](docs/assets/solid-state-cross-dataset-benchmark-v04-train-selection.md),
+the schema-valid [v0.4 declaration](examples/public_datasets/solid_state_cross_dataset_benchmark_v04.yaml),
+and the completed [v0.4 benchmark report](docs/assets/solid-state-cross-dataset-benchmark-v04.md).
+
+The v0.4 public-only matrix scores **27/27** paired replicates: adaptive wins
+**25/27**, mean holdout improvement is **57.20%**, and the bootstrap 95% CI is
+**[45.69, 67.43]%**. AgRob improves to adaptive **7/9**, while TIERS and the
+GLIM identity control remain **9/9**. Nine of 54 variant artifacts hit the
+declared `max_iterations` category and remain visible in the report; this is
+comparative temporal-holdout evidence, not an absolute-GT or universal-SOTA
+claim.
 
 <details>
 <summary><b>What is implemented in the current alpha?</b></summary>

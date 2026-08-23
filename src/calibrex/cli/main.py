@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
+import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -14,7 +16,6 @@ from calibrex.calibration_ci import (
     calibration_ci_json_schema,
     run_calibration_ci,
 )
-from calibrex.core.calibration_lifecycle import calibration_lifecycle_json_schema
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assess_evidence_file,
@@ -28,12 +29,41 @@ from calibrex.core.benchmark import (
     render_benchmark_markdown,
     update_benchmark_table_in_markdown,
 )
+from calibrex.core.calibration_lifecycle import calibration_lifecycle_json_schema
 from calibrex.core.camera_lidar_artifacts import (
     bullseye_plot_json_schema,
     calibration_candidate_trace_json_schema,
     camera_lidar_benchmark_protocol_json_schema,
     camera_lidar_problem_json_schema,
     load_camera_lidar_problem,
+)
+from calibrex.core.camera_lidar_confidence_calibration import (
+    camera_lidar_confidence_calibration_json_schema,
+    load_camera_lidar_confidence_calibration,
+)
+from calibrex.core.camera_lidar_correspondence_export import (
+    build_probabilistic_correspondence_artifact,
+    camera_lidar_correspondence_export_json_schema,
+)
+from calibrex.core.camera_lidar_correspondence_quality import (
+    camera_lidar_correspondence_quality_json_schema,
+)
+from calibrex.core.camera_lidar_failure_analysis import (
+    camera_lidar_failure_analysis_json_schema,
+)
+from calibrex.core.camera_lidar_initializer_calibration import (
+    CameraLidarInitializerRecoveryGate,
+    camera_lidar_initializer_calibration_json_schema,
+    load_camera_lidar_initializer_calibration,
+)
+from calibrex.core.camera_lidar_pose_initializer_benchmark import (
+    camera_lidar_pose_initializer_protocol_json_schema,
+)
+from calibrex.core.camera_lidar_pose_initializer_failure_analysis import (
+    camera_lidar_pose_initializer_failure_analysis_json_schema,
+)
+from calibrex.core.camera_lidar_provider_support_comparison import (
+    camera_lidar_provider_support_comparison_json_schema,
 )
 from calibrex.core.camera_lidar_sota_audit import (
     camera_lidar_sota_audit_protocol_json_schema,
@@ -61,11 +91,11 @@ from calibrex.core.continuous_time_fit_artifacts import (
 from calibrex.core.continuous_time_imu_accel_bias import (
     continuous_time_imu_accel_bias_json_schema,
 )
-from calibrex.core.continuous_time_imu_intrinsics import (
-    continuous_time_imu_intrinsics_json_schema,
-)
 from calibrex.core.continuous_time_imu_clock_offset import (
     continuous_time_imu_clock_offset_json_schema,
+)
+from calibrex.core.continuous_time_imu_intrinsics import (
+    continuous_time_imu_intrinsics_json_schema,
 )
 from calibrex.core.continuous_time_imu_lever_arm import (
     continuous_time_imu_lever_arm_json_schema,
@@ -82,6 +112,9 @@ from calibrex.core.continuous_time_lidar_artifacts import (
 )
 from calibrex.core.continuous_time_lidar_point_to_plane import (
     continuous_time_lidar_point_to_plane_json_schema,
+)
+from calibrex.core.continuous_time_lidar_train_diagnostics import (
+    continuous_time_lidar_train_diagnostics_json_schema,
 )
 from calibrex.core.continuous_time_sliding_window import (
     continuous_time_sliding_window_json_schema,
@@ -111,9 +144,16 @@ from calibrex.core.exceptions import BenchmarkError, CalibrexError
 from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
+from calibrex.core.koide_handoff import load_koide_execution_lock
+from calibrex.core.koide_readiness import (
+    evaluate_koide_readiness_from_config,
+    koide_readiness_json_schema,
+)
+from calibrex.core.koide_runner import koide_runner_json_schema
 from calibrex.core.livox_time_ablation import livox_time_ablation_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
+    load_probabilistic_correspondence,
     probabilistic_correspondence_json_schema,
     probabilistic_pnp_result_json_schema,
     probabilistic_refinement_result_json_schema,
@@ -161,6 +201,9 @@ from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.kitti360_camera_lidar_problem import (
     build_kitti360_camera_lidar_problem,
 )
+from calibrex.data.kitti360_lidar_window_integration import (
+    kitti360_lidar_window_integration_json_schema,
+)
 from calibrex.data.kitti_benchmark import (
     build_kitti_raw_0005_benchmark_input,
     kitti_benchmark_input_json_schema,
@@ -168,8 +211,12 @@ from calibrex.data.kitti_benchmark import (
 from calibrex.data.kitti_camera_lidar_problem import (
     build_kitti_raw_camera_lidar_problem,
 )
+from calibrex.data.kitti_raw_lidar_window_integration import (
+    kitti_raw_lidar_window_integration_json_schema,
+)
 from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
+from calibrex.data.remote_archive_selection import remote_archive_selection_json_schema
 from calibrex.diagnostics import (
     build_doctor_artifact,
     doctor_json_schema,
@@ -180,7 +227,29 @@ from calibrex.evaluation.borer_rotation_benchmark import (
     run_borer_rotation_benchmark,
 )
 from calibrex.evaluation.borer_six_dof_benchmark import (
+    ProjectionBackend,
     run_borer_six_dof_benchmark,
+)
+from calibrex.evaluation.camera_lidar_confidence_calibration import (
+    DEFAULT_CONFIDENCE_THRESHOLDS,
+    calibrate_camera_lidar_confidence,
+    refinement_options_from_camera_lidar_confidence_calibration,
+)
+from calibrex.evaluation.camera_lidar_correspondence_quality import (
+    analyze_camera_lidar_correspondence_quality,
+)
+from calibrex.evaluation.camera_lidar_external_baseline_audit import (
+    materialize_camera_lidar_external_baseline_audit,
+)
+from calibrex.evaluation.camera_lidar_initializer_calibration import (
+    DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS,
+    DEFAULT_INITIALIZER_RANDOM_SEEDS,
+    DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX,
+    calibrate_camera_lidar_initializer,
+    initializer_options_from_camera_lidar_calibration,
+)
+from calibrex.evaluation.camera_lidar_provider_support_comparison import (
+    compare_camera_lidar_provider_support,
 )
 from calibrex.evaluation.camera_lidar_sota_audit import (
     audit_camera_lidar_sota_claim,
@@ -213,12 +282,20 @@ from calibrex.evaluation.kitti_falsification_benchmark import (
     kitti_falsification_json_schema,
     run_kitti_falsification_benchmark,
 )
+from calibrex.evaluation.koide_pilot import (
+    export_koide_pilot_autoware,
+    koide_pilot_json_schema,
+    run_koide_pilot,
+)
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
 from calibrex.evaluation.metrics import evaluate_quality
 from calibrex.evaluation.motion import motion_metrics_from_inspection
 from calibrex.evaluation.pandey_recovery_benchmark import (
     load_kitti_i2i_benchmark_data,
     run_kitti_i2i_recovery_benchmark,
+)
+from calibrex.evaluation.probabilistic_camera_lidar_falsification import (
+    run_probabilistic_camera_lidar_falsification,
 )
 from calibrex.evaluation.probabilistic_camera_lidar_run import (
     run_probabilistic_camera_lidar_refinement,
@@ -235,10 +312,16 @@ from calibrex.evaluation.report_compare import (
 )
 from calibrex.evaluation.thresholds import ThresholdProfile, apply_metric_thresholds
 from calibrex.evaluation.timing import timing_metrics_from_inspection
-from calibrex.export.autoware import export_autoware_transforms, export_autoware_yaml
+from calibrex.export.autoware import (
+    AutowareExportConfig,
+    autoware_export_json_schema,
+    build_autoware_export,
+    write_autoware_export,
+)
 from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
+from calibrex.importers.koide import import_koide_result
 from calibrex.init_templates import (
     list_sensor_template_names,
     template_summary,
@@ -252,6 +335,7 @@ from calibrex.pipelines.online import (
     evaluate_rosbag2_trajectory_window_drift,
     run_online_calibration,
 )
+from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
     OpenCvProbabilisticPnpAdapter,
     OpenCvProbabilisticPnpOptions,
@@ -381,6 +465,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     doctor.add_argument("path", type=Path, nargs="?")
     doctor.add_argument(
+        "--workflow",
+        choices=["environment", "koide"],
+        default="environment",
+        help="run the standard environment doctor or the Koide input preflight",
+    )
+    doctor.add_argument(
+        "--config",
+        type=Path,
+        help="CalibrationConfig used by --workflow koide",
+    )
+    doctor.add_argument(
         "--type",
         choices=[
             "auto",
@@ -417,6 +512,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "dynamic-window-consistency",
             "trajectory-window-drift",
             "capture-readiness",
+            "koide-readiness",
             "continuous-time-lidar-pair",
             "continuous-time-lidar-point-to-plane",
             "continuous-time-imu-preintegration",
@@ -424,6 +520,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "continuous-time-imu-clock-offset",
             "continuous-time-imu-accel-bias",
             "continuous-time-sliding-window",
+            "continuous-time-lidar-train-diagnostics",
             "continuous-time-lidar-ablation",
             "solid-state-cross-dataset-benchmark-config",
             "solid-state-cross-dataset-benchmark",
@@ -437,12 +534,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "protocol",
             "transforms",
             "dataset-manifest",
+            "remote-archive-selection",
+            "kitti360-lidar-window-integration",
+            "kitti-raw-lidar-window-integration",
             "doctor",
             "calibration-ci",
             "calibration-lifecycle",
             "external-run",
             "kitti-falsification",
             "kitti-benchmark-input",
+            "koide-pilot",
+            "koide-runner",
             "depth-provider",
             "continuous-time-camera-lidar-problem",
             "continuous-time-camera-lidar-result",
@@ -454,6 +556,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "probabilistic-refinement-result",
             "empirical-se3-uncertainty",
             "camera-lidar-problem",
+            "camera-lidar-correspondence-export",
+            "camera-lidar-confidence-calibration",
+            "camera-lidar-provider-support-comparison",
+            "camera-lidar-pose-initializer-protocol",
+            "camera-lidar-pose-initializer-failure-analysis",
+            "camera-lidar-initializer-calibration",
+            "camera-lidar-correspondence-quality",
+            "camera-lidar-failure-analysis",
             "camera-lidar-sota-audit-protocol",
             "camera-lidar-sota-audit-result",
             "camera-lidar-benchmark-protocol",
@@ -464,6 +574,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "online-timeline",
             "solid-state-context",
             "livox-time-ablation",
+            "autoware-export",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -585,10 +696,7 @@ def _build_parser() -> argparse.ArgumentParser:
     init.add_argument("--output", type=Path, help="output config file or directory")
     init.add_argument(
         "--template",
-        help=(
-            "copy a working sensor template config "
-            "(for example velodyne_vlp16_pair_rosbag2)"
-        ),
+        help=("copy a working sensor template config (for example velodyne_vlp16_pair_rosbag2)"),
     )
     init.add_argument(
         "--list-templates",
@@ -835,9 +943,7 @@ def _build_parser() -> argparse.ArgumentParser:
     capture_readiness.add_argument(
         "--output", type=Path, required=True, help="write the readiness artifact"
     )
-    capture_readiness.add_argument(
-        "--json", action="store_true", help="emit machine-readable JSON"
-    )
+    capture_readiness.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     capture_readiness.add_argument(
         "--enforce",
         action="store_true",
@@ -1035,6 +1141,8 @@ def _build_parser() -> argparse.ArgumentParser:
     build_kitti_problem.add_argument("depth_provider", type=Path)
     build_kitti_problem.add_argument("--output", type=Path, required=True)
     build_kitti_problem.add_argument("--camera-stream", default="image_02")
+    build_kitti_problem.add_argument("--lidar-directory", type=Path)
+    build_kitti_problem.add_argument("--lidar-manifest", type=Path)
     build_kitti_problem.add_argument("--dataset-id")
     build_kitti_problem.add_argument("--problem-id")
     build_kitti_problem.add_argument("--rotation-bound-deg", type=float, default=20.0)
@@ -1056,19 +1164,26 @@ def _build_parser() -> argparse.ArgumentParser:
     build_kitti360_problem.add_argument("--lidar-directory", type=Path)
     build_kitti360_problem.add_argument("--lidar-manifest", type=Path)
     build_kitti360_problem.add_argument("--camera-stream", default="image_03")
+    build_kitti360_problem.add_argument("--split-id", default="evaluation")
     build_kitti360_problem.add_argument("--dataset-id")
     build_kitti360_problem.add_argument("--problem-id")
-    build_kitti360_problem.add_argument(
-        "--rotation-bound-deg", type=float, default=20.0
-    )
+    build_kitti360_problem.add_argument("--rotation-bound-deg", type=float, default=20.0)
     build_kitti360_problem.add_argument(
         "--translation-bound-m",
         type=float,
         default=0.0,
     )
     build_kitti360_problem.add_argument("--json", action="store_true")
-    build_kitti360_problem.set_defaults(
-        func=_cmd_camera_lidar_build_kitti360_problem
+    build_kitti360_problem.set_defaults(func=_cmd_camera_lidar_build_kitti360_problem)
+    build_probabilistic_correspondence = camera_lidar_subcommands.add_parser(
+        "build-probabilistic-correspondence",
+        help="validate provider NPZ exports and build a probabilistic correspondence artifact",
+    )
+    build_probabilistic_correspondence.add_argument("export_manifest", type=Path)
+    build_probabilistic_correspondence.add_argument("--output", type=Path, required=True)
+    build_probabilistic_correspondence.add_argument("--json", action="store_true")
+    build_probabilistic_correspondence.set_defaults(
+        func=_cmd_camera_lidar_build_probabilistic_correspondence
     )
     build_a2d2_problem = camera_lidar_subcommands.add_parser(
         "build-a2d2-problem",
@@ -1076,21 +1191,78 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     build_a2d2_problem.add_argument("data_directory", type=Path)
     build_a2d2_problem.add_argument("depth_provider", type=Path)
-    build_a2d2_problem.add_argument(
-        "--lidar-output-directory", type=Path, required=True
-    )
-    build_a2d2_problem.add_argument(
-        "--lidar-manifest-output", type=Path, required=True
-    )
+    build_a2d2_problem.add_argument("--lidar-output-directory", type=Path, required=True)
+    build_a2d2_problem.add_argument("--lidar-manifest-output", type=Path, required=True)
     build_a2d2_problem.add_argument("--output", type=Path, required=True)
     build_a2d2_problem.add_argument("--problem-id")
-    build_a2d2_problem.add_argument(
-        "--rotation-bound-deg", type=float, default=20.0
-    )
+    build_a2d2_problem.add_argument("--rotation-bound-deg", type=float, default=20.0)
     build_a2d2_problem.add_argument("--json", action="store_true")
-    build_a2d2_problem.set_defaults(
-        func=_cmd_camera_lidar_build_a2d2_problem
+    build_a2d2_problem.set_defaults(func=_cmd_camera_lidar_build_a2d2_problem)
+    koide_pilot = camera_lidar_subcommands.add_parser(
+        "benchmark-koide-pilot",
+        help=(
+            "accept a frozen external Koide candidate on a KITTI frame/temporal "
+            "holdout with mandatory six-DoF controls"
+        ),
     )
+    koide_pilot.add_argument("dataset_path", type=Path)
+    koide_pilot.add_argument(
+        "--candidate",
+        type=Path,
+        help="official native calib.json or schema-valid external-run artifact",
+    )
+    koide_pilot.add_argument("--config", type=Path, required=False)
+    koide_pilot.add_argument("--readiness", type=Path, required=False)
+    koide_pilot.add_argument("--input-manifest", type=Path)
+    koide_pilot.add_argument("--output-dir", type=Path, required=True)
+    koide_pilot.add_argument("--camera-frame", default="camera0")
+    koide_pilot.add_argument("--lidar-frame", default="lidar0")
+    koide_pilot.add_argument("--camera-stream", default="image_02")
+    koide_pilot.add_argument("--lidar-stream", default="velodyne_points")
+    koide_pilot.add_argument("--max-frames", type=_positive_int, default=50)
+    koide_pilot.add_argument("--max-points", type=_positive_int, default=4000)
+    koide_pilot.add_argument("--holdout-ratio", type=float, default=0.2)
+    koide_pilot.add_argument("--split-seed", type=int, default=20260823)
+    koide_pilot.add_argument("--min-holdout-projection-ratio", type=float, default=0.50)
+    koide_pilot.add_argument("--min-holdout-edge-alignment", type=float, default=0.20)
+    koide_pilot.add_argument("--min-holdout-depth-edge-alignment", type=float, default=0.20)
+    koide_pilot.add_argument("--known-bad-min-metric-delta", type=float, default=0.01)
+    koide_pilot.add_argument(
+        "--official-command",
+        help="exact official command as one shell-like string (recorded, never shell-executed)",
+    )
+    koide_pilot.add_argument("--tool-source-commit")
+    koide_pilot.add_argument("--container-digest")
+    koide_pilot.add_argument("--json", action="store_true")
+    koide_pilot.set_defaults(func=_cmd_camera_lidar_benchmark_koide_pilot)
+    koide_handoff = camera_lidar_subcommands.add_parser(
+        "koide-handoff",
+        help=(
+            "validate the pinned commercial Koide lock and print the exact next "
+            "operator actions; never executes Docker or Koide"
+        ),
+    )
+    koide_handoff.add_argument(
+        "--lock",
+        type=Path,
+        default=Path("examples/official/koide_execution_lock.yaml"),
+        help="schema-valid immutable Koide execution lock",
+    )
+    koide_handoff.add_argument("--json", action="store_true")
+    koide_handoff.set_defaults(func=_cmd_camera_lidar_koide_handoff)
+    koide_export = camera_lidar_subcommands.add_parser(
+        "export-koide-pilot",
+        help="export only an admissible Koide pilot candidate to Autoware",
+    )
+    koide_export.add_argument("pilot", type=Path)
+    koide_export.add_argument("--output", type=Path, required=True)
+    koide_export.add_argument("--base-frame", required=True)
+    koide_export.add_argument("--sensor-frame")
+    koide_export.add_argument("--static-tf-output", type=Path)
+    koide_export.add_argument("--manifest-output", type=Path)
+    koide_export.add_argument("--force", action="store_true")
+    koide_export.add_argument("--json", action="store_true")
+    koide_export.set_defaults(func=_cmd_camera_lidar_export_koide_pilot)
     freeze_rotation = camera_lidar_subcommands.add_parser(
         "freeze-rotation-protocol",
         help="freeze the explicit Borer Fibonacci-sphere rotation protocol",
@@ -1113,36 +1285,20 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     freeze_six_dof.add_argument("problem", type=Path)
     freeze_six_dof.add_argument("--output", type=Path, required=True)
-    freeze_six_dof.add_argument(
-        "--perturbation-count", type=_positive_int, default=200
-    )
+    freeze_six_dof.add_argument("--perturbation-count", type=_positive_int, default=200)
     freeze_six_dof.add_argument("--rotation-deg", type=float, default=0.5)
     freeze_six_dof.add_argument("--translation-m", type=float, default=0.5)
     freeze_six_dof.add_argument("--histogram-bins", type=_positive_int, default=32)
-    freeze_six_dof.add_argument(
-        "--min-visible-points", type=_positive_int, default=64
-    )
+    freeze_six_dof.add_argument("--min-visible-points", type=_positive_int, default=64)
     freeze_six_dof.add_argument("--rotation-bound-deg", type=float, default=2.0)
     freeze_six_dof.add_argument("--translation-bound-m", type=float, default=1.0)
-    freeze_six_dof.add_argument(
-        "--initial-rotation-step-deg", type=float, default=0.25
-    )
-    freeze_six_dof.add_argument(
-        "--initial-translation-step-m", type=float, default=0.10
-    )
-    freeze_six_dof.add_argument(
-        "--minimum-rotation-step-deg", type=float, default=0.01
-    )
-    freeze_six_dof.add_argument(
-        "--minimum-translation-step-m", type=float, default=0.005
-    )
-    freeze_six_dof.add_argument(
-        "--max-evaluations", type=_positive_int, default=800
-    )
+    freeze_six_dof.add_argument("--initial-rotation-step-deg", type=float, default=0.25)
+    freeze_six_dof.add_argument("--initial-translation-step-m", type=float, default=0.10)
+    freeze_six_dof.add_argument("--minimum-rotation-step-deg", type=float, default=0.01)
+    freeze_six_dof.add_argument("--minimum-translation-step-m", type=float, default=0.005)
+    freeze_six_dof.add_argument("--max-evaluations", type=_positive_int, default=800)
     freeze_six_dof.add_argument("--json", action="store_true")
-    freeze_six_dof.set_defaults(
-        func=_cmd_camera_lidar_freeze_six_dof_protocol
-    )
+    freeze_six_dof.set_defaults(func=_cmd_camera_lidar_freeze_six_dof_protocol)
     benchmark_rotation = camera_lidar_subcommands.add_parser(
         "benchmark-rotation",
         help="execute a frozen native D2D rotation recovery protocol",
@@ -1171,20 +1327,20 @@ def _build_parser() -> argparse.ArgumentParser:
     benchmark_six_dof.add_argument("problem", type=Path)
     benchmark_six_dof.add_argument("protocol", type=Path)
     benchmark_six_dof.add_argument("--trace-dir", type=Path, required=True)
-    benchmark_six_dof.add_argument(
-        "--definition-output", type=Path, required=True
-    )
+    benchmark_six_dof.add_argument("--definition-output", type=Path, required=True)
     benchmark_six_dof.add_argument("--output", type=Path, required=True)
-    benchmark_six_dof.add_argument(
-        "--bootstrap-samples", type=_positive_int, default=2000
-    )
+    benchmark_six_dof.add_argument("--bootstrap-samples", type=_positive_int, default=2000)
     benchmark_six_dof.add_argument("--workers", type=_positive_int, default=1)
+    benchmark_six_dof.add_argument(
+        "--projection-backend",
+        choices=("numpy", "numba_cpu"),
+        default="numpy",
+        help="exact D2D projection implementation (default: numpy)",
+    )
     benchmark_six_dof.add_argument("--resume", action="store_true")
     benchmark_six_dof.add_argument("--required-hit-rate", type=float)
     benchmark_six_dof.add_argument("--json", action="store_true")
-    benchmark_six_dof.set_defaults(
-        func=_cmd_camera_lidar_benchmark_six_dof
-    )
+    benchmark_six_dof.set_defaults(func=_cmd_camera_lidar_benchmark_six_dof)
     probabilistic_pnp = camera_lidar_subcommands.add_parser(
         "refine-probabilistic-pnp",
         help="solve a schema-valid probabilistic 2D-3D correspondence frame",
@@ -1198,50 +1354,77 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="camera-LiDAR problem whose D2D output/initial pose seeds PnP",
     )
-    probabilistic_pnp.add_argument(
-        "--minimum-confidence", type=float, default=0.25
-    )
-    probabilistic_pnp.add_argument(
-        "--minimum-correspondences", type=_positive_int, default=6
-    )
-    probabilistic_pnp.add_argument(
-        "--ransac-reprojection-threshold-px", type=float, default=4.0
-    )
-    probabilistic_pnp.add_argument(
-        "--ransac-confidence", type=float, default=0.999
-    )
-    probabilistic_pnp.add_argument(
-        "--ransac-iterations", type=_positive_int, default=1000
-    )
-    probabilistic_pnp.add_argument(
-        "--mahalanobis-inlier-threshold", type=float, default=3.0
-    )
+    probabilistic_pnp.add_argument("--minimum-confidence", type=float, default=0.25)
+    probabilistic_pnp.add_argument("--minimum-correspondences", type=_positive_int, default=6)
+    probabilistic_pnp.add_argument("--ransac-reprojection-threshold-px", type=float, default=4.0)
+    probabilistic_pnp.add_argument("--ransac-confidence", type=float, default=0.999)
+    probabilistic_pnp.add_argument("--ransac-iterations", type=_positive_int, default=1000)
+    probabilistic_pnp.add_argument("--mahalanobis-inlier-threshold", type=float, default=3.0)
     probabilistic_pnp.add_argument("--random-seed", type=int, default=0)
     probabilistic_pnp.add_argument("--json", action="store_true")
-    probabilistic_pnp.set_defaults(
-        func=_cmd_camera_lidar_refine_probabilistic_pnp
+    probabilistic_pnp.set_defaults(func=_cmd_camera_lidar_refine_probabilistic_pnp)
+    probabilistic_pnp_aggregate = camera_lidar_subcommands.add_parser(
+        "refine-probabilistic-pnp-aggregate",
+        help=(
+            "solve one shared pose from reference-free confidence-supported probabilistic frames"
+        ),
+    )
+    probabilistic_pnp_aggregate.add_argument("correspondence_artifact", type=Path)
+    probabilistic_pnp_aggregate.add_argument("--output", type=Path, required=True)
+    probabilistic_pnp_aggregate.add_argument("--result-id")
+    probabilistic_pnp_aggregate.add_argument(
+        "--initial-problem",
+        type=Path,
+        help="camera-LiDAR problem whose D2D output/initial pose seeds PnP",
+    )
+    probabilistic_pnp_aggregate.add_argument(
+        "--initializer-calibration",
+        type=Path,
+        help="development lock supplying every aggregate PnP threshold",
+    )
+    probabilistic_pnp_aggregate.add_argument("--minimum-confidence", type=float, default=0.25)
+    probabilistic_pnp_aggregate.add_argument(
+        "--minimum-correspondences", type=_positive_int, default=6
+    )
+    probabilistic_pnp_aggregate.add_argument(
+        "--minimum-frame-correspondences", type=_positive_int, default=4
+    )
+    probabilistic_pnp_aggregate.add_argument("--minimum-frames", type=_positive_int, default=2)
+    probabilistic_pnp_aggregate.add_argument(
+        "--ransac-reprojection-threshold-px", type=float, default=4.0
+    )
+    probabilistic_pnp_aggregate.add_argument("--ransac-confidence", type=float, default=0.999)
+    probabilistic_pnp_aggregate.add_argument(
+        "--ransac-iterations", type=_positive_int, default=1000
+    )
+    probabilistic_pnp_aggregate.add_argument(
+        "--mahalanobis-inlier-threshold", type=float, default=3.0
+    )
+    probabilistic_pnp_aggregate.add_argument("--random-seed", type=int, default=0)
+    probabilistic_pnp_aggregate.add_argument("--json", action="store_true")
+    probabilistic_pnp_aggregate.set_defaults(
+        func=_cmd_camera_lidar_refine_probabilistic_pnp_aggregate
     )
     probabilistic_multiframe = camera_lidar_subcommands.add_parser(
         "refine-probabilistic-multiframe",
         help="refine one shared D2D pose from all probabilistic frames",
     )
-    probabilistic_multiframe.add_argument(
-        "correspondence_artifact", type=Path
-    )
+    probabilistic_multiframe.add_argument("correspondence_artifact", type=Path)
     probabilistic_multiframe.add_argument("initial_problem", type=Path)
     probabilistic_multiframe.add_argument(
         "--initial-trace",
         type=Path,
         help="schema-valid D2D candidate trace whose output pose initializes refinement",
     )
+    probabilistic_multiframe.add_argument(
+        "--confidence-calibration",
+        type=Path,
+        help="development lock that supplies every runtime refinement threshold",
+    )
     probabilistic_multiframe.add_argument("--output", type=Path, required=True)
     probabilistic_multiframe.add_argument("--result-id")
-    probabilistic_multiframe.add_argument(
-        "--minimum-confidence", type=float, default=0.25
-    )
-    probabilistic_multiframe.add_argument(
-        "--holdout-ratio", type=float, default=0.25
-    )
+    probabilistic_multiframe.add_argument("--minimum-confidence", type=float, default=0.25)
+    probabilistic_multiframe.add_argument("--holdout-ratio", type=float, default=0.25)
     probabilistic_multiframe.add_argument("--split-seed", type=int, default=0)
     probabilistic_multiframe.add_argument(
         "--minimum-train-correspondences", type=_positive_int, default=24
@@ -1249,53 +1432,257 @@ def _build_parser() -> argparse.ArgumentParser:
     probabilistic_multiframe.add_argument(
         "--minimum-holdout-correspondences", type=_positive_int, default=8
     )
+    probabilistic_multiframe.add_argument("--max-evaluations", type=_positive_int, default=400)
     probabilistic_multiframe.add_argument(
-        "--max-evaluations", type=_positive_int, default=400
+        "--minimum-absolute-train-objective-improvement",
+        type=float,
+        default=1.0e-6,
     )
     probabilistic_multiframe.add_argument(
-        "--without-covariance", action="store_true"
+        "--minimum-relative-train-objective-improvement",
+        type=float,
+        default=1.0e-4,
     )
     probabilistic_multiframe.add_argument(
-        "--without-outlier-probability", action="store_true"
+        "--maximum-train-correspondence-loss-fraction",
+        type=float,
+        default=0.05,
     )
     probabilistic_multiframe.add_argument(
-        "--without-reliability", action="store_true"
+        "--maximum-accepted-bound-fraction",
+        type=float,
+        default=0.95,
     )
+    probabilistic_multiframe.add_argument("--without-covariance", action="store_true")
+    probabilistic_multiframe.add_argument("--without-outlier-probability", action="store_true")
+    probabilistic_multiframe.add_argument("--without-reliability", action="store_true")
     probabilistic_multiframe.add_argument("--json", action="store_true")
-    probabilistic_multiframe.set_defaults(
-        func=_cmd_camera_lidar_refine_probabilistic_multiframe
+    probabilistic_multiframe.set_defaults(func=_cmd_camera_lidar_refine_probabilistic_multiframe)
+    probabilistic_quality = camera_lidar_subcommands.add_parser(
+        "diagnose-probabilistic-correspondence",
+        help="write post-hoc frame support and six-DoF observability diagnostics",
+    )
+    probabilistic_quality.add_argument("correspondence_artifact", type=Path)
+    probabilistic_quality.add_argument("refinement_result", type=Path)
+    probabilistic_quality.add_argument("--output", type=Path, required=True)
+    probabilistic_quality.add_argument("--report-id")
+    probabilistic_quality.add_argument(
+        "--pose-role",
+        choices=["initializer", "candidate", "selected"],
+        default="initializer",
+    )
+    probabilistic_quality.add_argument(
+        "--minimum-frame-correspondences", type=_positive_int, default=4
+    )
+    probabilistic_quality.add_argument("--json", action="store_true")
+    probabilistic_quality.set_defaults(func=_cmd_camera_lidar_diagnose_probabilistic_correspondence)
+    probabilistic_confidence_calibration = camera_lidar_subcommands.add_parser(
+        "calibrate-probabilistic-confidence",
+        help="lock provider and refinement thresholds on a development split",
+    )
+    probabilistic_confidence_calibration.add_argument("correspondence_artifact", type=Path)
+    probabilistic_confidence_calibration.add_argument("initial_problem", type=Path)
+    probabilistic_confidence_calibration.add_argument("--output", type=Path, required=True)
+    probabilistic_confidence_calibration.add_argument("--calibration-id")
+    probabilistic_confidence_calibration.add_argument(
+        "--thresholds",
+        default=",".join(f"{value:g}" for value in DEFAULT_CONFIDENCE_THRESHOLDS),
+        help="ascending comma-separated effective confidence thresholds",
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--calibration-split-seeds", default="0,1,2,3,4,5,6,7,8,9"
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--evaluation-split-seeds", default="0,1,2,3,4"
+    )
+    probabilistic_confidence_calibration.add_argument("--holdout-ratio", type=float, default=0.25)
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-train-correspondences", type=_positive_int, default=24
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-holdout-correspondences", type=_positive_int, default=8
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-frame-correspondences", type=_positive_int, default=4
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-frame-support-rate", type=float, default=0.95
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-full-rank-frame-rate", type=float, default=0.95
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--development-reprojection-inlier-threshold-px",
+        type=float,
+        default=8.0,
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-geometric-inlier-rate", type=float, default=0.25
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-frame-geometric-inlier-count",
+        type=_positive_int,
+        default=4,
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--minimum-frame-geometric-support-rate", type=float, default=0.95
+    )
+    probabilistic_confidence_calibration.add_argument(
+        "--excluded-evaluation-dataset-ids",
+        required=True,
+        help="comma-separated evaluation dataset IDs that were not read",
+    )
+    probabilistic_confidence_calibration.add_argument("--json", action="store_true")
+    probabilistic_confidence_calibration.set_defaults(
+        func=_cmd_camera_lidar_calibrate_probabilistic_confidence
+    )
+    provider_support_comparison = camera_lidar_subcommands.add_parser(
+        "compare-probabilistic-provider-support",
+        help="compare like-for-like development provider support calibrations",
+    )
+    provider_support_comparison.add_argument("confidence_calibrations", type=Path, nargs="+")
+    provider_support_comparison.add_argument("--output", type=Path, required=True)
+    provider_support_comparison.add_argument("--comparison-id")
+    provider_support_comparison.add_argument("--json", action="store_true")
+    provider_support_comparison.set_defaults(
+        func=_cmd_camera_lidar_compare_probabilistic_provider_support
+    )
+    probabilistic_initializer_calibration = camera_lidar_subcommands.add_parser(
+        "calibrate-probabilistic-pnp-initializer",
+        help="freeze aggregate PnP options on a development sequence",
+    )
+    probabilistic_initializer_calibration.add_argument("correspondence_artifact", type=Path)
+    probabilistic_initializer_calibration.add_argument("initial_problem", type=Path)
+    probabilistic_initializer_calibration.add_argument("--output", type=Path, required=True)
+    probabilistic_initializer_calibration.add_argument("--calibration-id")
+    probabilistic_initializer_calibration.add_argument(
+        "--confidence-thresholds",
+        default=",".join(f"{value:g}" for value in DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS),
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--ransac-reprojection-thresholds-px",
+        default=",".join(f"{value:g}" for value in DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX),
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--random-seeds",
+        default=",".join(str(value) for value in DEFAULT_INITIALIZER_RANDOM_SEEDS),
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--minimum-correspondences", type=_positive_int, default=4
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--minimum-frame-correspondences", type=_positive_int, default=4
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--minimum-frames", type=_positive_int, default=4
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--ransac-confidence", type=float, default=0.999
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--ransac-iterations", type=_positive_int, default=10000
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--mahalanobis-inlier-threshold", type=float, default=3.0
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--rotation-error-max-deg", type=float, default=0.5
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--translation-error-max-m", type=float, default=0.20
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--gate-minimum-selected-frame-count", type=_positive_int, default=4
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--gate-minimum-selected-correspondence-count",
+        type=_positive_int,
+        default=16,
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--gate-minimum-ransac-inlier-count", type=_positive_int, default=12
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--gate-maximum-ransac-inlier-rmse-px", type=float, default=8.0
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--gate-maximum-seed-rotation-delta-deg", type=float, default=0.01
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--gate-maximum-seed-translation-delta-m", type=float, default=0.005
+    )
+    probabilistic_initializer_calibration.add_argument(
+        "--excluded-evaluation-dataset-ids",
+        required=True,
+        help="comma-separated evaluation dataset IDs that were not read",
+    )
+    probabilistic_initializer_calibration.add_argument("--json", action="store_true")
+    probabilistic_initializer_calibration.set_defaults(
+        func=_cmd_camera_lidar_calibrate_probabilistic_pnp_initializer
     )
     probabilistic_ablation = camera_lidar_subcommands.add_parser(
         "benchmark-probabilistic-ablation",
         help="run paired covariance/outlier/reliability ablations",
     )
-    probabilistic_ablation.add_argument(
-        "correspondence_artifact", type=Path
-    )
+    probabilistic_ablation.add_argument("correspondence_artifact", type=Path)
     probabilistic_ablation.add_argument("initial_problem", type=Path)
     probabilistic_ablation.add_argument(
         "--initial-trace",
         type=Path,
         help="use one digest-pinned D2D output for every paired ablation",
     )
-    probabilistic_ablation.add_argument(
-        "--result-dir", type=Path, required=True
-    )
-    probabilistic_ablation.add_argument(
-        "--definition-output", type=Path, required=True
-    )
+    probabilistic_ablation.add_argument("--result-dir", type=Path, required=True)
+    probabilistic_ablation.add_argument("--definition-output", type=Path, required=True)
     probabilistic_ablation.add_argument("--output", type=Path, required=True)
     probabilistic_ablation.add_argument(
         "--split-seeds",
         default="0,1,2,3,4",
         help="comma-separated deterministic frame-split seeds",
     )
-    probabilistic_ablation.add_argument(
+    probabilistic_ablation.add_argument("--bootstrap-samples", type=_positive_int, default=2000)
+    probabilistic_ablation.add_argument("--json", action="store_true")
+    probabilistic_ablation.set_defaults(func=_cmd_camera_lidar_benchmark_probabilistic_ablation)
+    probabilistic_falsification = camera_lidar_subcommands.add_parser(
+        "benchmark-probabilistic-falsification",
+        help="run the integrated D2D-seeded six-DoF refinement falsification pack",
+    )
+    probabilistic_falsification.add_argument("correspondence_artifact", type=Path)
+    probabilistic_falsification.add_argument("initial_problem", type=Path)
+    probabilistic_trace_source = probabilistic_falsification.add_mutually_exclusive_group(
+        required=True
+    )
+    probabilistic_trace_source.add_argument("--initial-trace", type=Path)
+    probabilistic_trace_source.add_argument(
+        "--trace-dir",
+        type=Path,
+        help=(
+            "complete D2D trace directory with one <trial_id>.trace.yaml per protocol perturbation"
+        ),
+    )
+    probabilistic_falsification.add_argument(
+        "--protocol",
+        type=Path,
+        required=True,
+        help="schema-valid fixed six-DoF D2D protocol for the initialization trace",
+    )
+    probabilistic_falsification.add_argument("--output-dir", type=Path, required=True)
+    probabilistic_falsification.add_argument(
+        "--split-seeds",
+        default="0,1,2,3,4",
+        help="comma-separated deterministic frame-split seeds",
+    )
+    probabilistic_falsification.add_argument("--known-bad-rotation-deg", type=float, default=5.0)
+    probabilistic_falsification.add_argument("--known-bad-translation-m", type=float, default=0.5)
+    probabilistic_falsification.add_argument(
+        "--known-bad-min-holdout-rmse-delta-px", type=float, default=0.5
+    )
+    probabilistic_falsification.add_argument("--max-final-holdout-rmse-px", type=float)
+    probabilistic_falsification.add_argument(
         "--bootstrap-samples", type=_positive_int, default=2000
     )
-    probabilistic_ablation.add_argument("--json", action="store_true")
-    probabilistic_ablation.set_defaults(
-        func=_cmd_camera_lidar_benchmark_probabilistic_ablation
+    probabilistic_falsification.add_argument("--json", action="store_true")
+    probabilistic_falsification.set_defaults(
+        func=_cmd_camera_lidar_benchmark_probabilistic_falsification
     )
     continuous_time = camera_lidar_subcommands.add_parser(
         "refine-continuous-time",
@@ -1305,47 +1692,29 @@ def _build_parser() -> argparse.ArgumentParser:
     continuous_time.add_argument("--output", type=Path, required=True)
     continuous_time.add_argument("--result-id")
     continuous_time.add_argument("--json", action="store_true")
-    continuous_time.set_defaults(
-        func=_cmd_camera_lidar_refine_continuous_time
-    )
+    continuous_time.set_defaults(func=_cmd_camera_lidar_refine_continuous_time)
     attach_continuous_trajectory = camera_lidar_subcommands.add_parser(
         "attach-continuous-trajectory",
         help="attach a recorded T_world_body trajectory to a frozen problem",
     )
     attach_continuous_trajectory.add_argument("problem", type=Path)
     attach_continuous_trajectory.add_argument("trajectory", type=Path)
-    attach_continuous_trajectory.add_argument(
-        "--output", type=Path, required=True
-    )
+    attach_continuous_trajectory.add_argument("--output", type=Path, required=True)
     attach_continuous_trajectory.add_argument("--problem-id")
     attach_continuous_trajectory.add_argument("--json", action="store_true")
-    attach_continuous_trajectory.set_defaults(
-        func=_cmd_camera_lidar_attach_continuous_trajectory
-    )
+    attach_continuous_trajectory.set_defaults(func=_cmd_camera_lidar_attach_continuous_trajectory)
     continuous_time_ablation = camera_lidar_subcommands.add_parser(
         "benchmark-continuous-time-ablation",
         help="run paired clock/per-point-time/covariance ablations",
     )
     continuous_time_ablation.add_argument("problem", type=Path)
-    continuous_time_ablation.add_argument(
-        "--result-dir", type=Path, required=True
-    )
-    continuous_time_ablation.add_argument(
-        "--definition-output", type=Path, required=True
-    )
-    continuous_time_ablation.add_argument(
-        "--output", type=Path, required=True
-    )
-    continuous_time_ablation.add_argument(
-        "--split-seeds", default="0,1,2,3,4"
-    )
-    continuous_time_ablation.add_argument(
-        "--bootstrap-samples", type=_positive_int, default=2000
-    )
+    continuous_time_ablation.add_argument("--result-dir", type=Path, required=True)
+    continuous_time_ablation.add_argument("--definition-output", type=Path, required=True)
+    continuous_time_ablation.add_argument("--output", type=Path, required=True)
+    continuous_time_ablation.add_argument("--split-seeds", default="0,1,2,3,4")
+    continuous_time_ablation.add_argument("--bootstrap-samples", type=_positive_int, default=2000)
     continuous_time_ablation.add_argument("--json", action="store_true")
-    continuous_time_ablation.set_defaults(
-        func=_cmd_camera_lidar_benchmark_continuous_time_ablation
-    )
+    continuous_time_ablation.set_defaults(func=_cmd_camera_lidar_benchmark_continuous_time_ablation)
     sota_audit = camera_lidar_subcommands.add_parser(
         "audit-sota",
         help="evaluate a digest-frozen Camera-LiDAR SOTA claim protocol",
@@ -1355,6 +1724,17 @@ def _build_parser() -> argparse.ArgumentParser:
     sota_audit.add_argument("--audit-id")
     sota_audit.add_argument("--json", action="store_true")
     sota_audit.set_defaults(func=_cmd_camera_lidar_audit_sota)
+    baseline_audit = camera_lidar_subcommands.add_parser(
+        "audit-external-baselines",
+        help="materialize Koide/UniCalib license and comparability readiness records",
+    )
+    baseline_audit.add_argument("problem", type=Path)
+    baseline_audit.add_argument("protocol", type=Path)
+    baseline_audit.add_argument("--output-dir", type=Path, required=True)
+    baseline_audit.add_argument("--koide-source-commit", required=True)
+    baseline_audit.add_argument("--unicalib-source-commit", required=True)
+    baseline_audit.add_argument("--json", action="store_true")
+    baseline_audit.set_defaults(func=_cmd_camera_lidar_audit_external_baselines)
 
     empirical_uncertainty = camera_lidar_subcommands.add_parser(
         "empirical-uncertainty",
@@ -1363,43 +1743,56 @@ def _build_parser() -> argparse.ArgumentParser:
     empirical_uncertainty.add_argument("correspondence", type=Path)
     empirical_uncertainty.add_argument("initial_problem", type=Path)
     empirical_uncertainty.add_argument(
-        "--result-dir", type=Path, required=True,
+        "--result-dir",
+        type=Path,
+        required=True,
         help="directory holding one schema-valid refit artifact per resample",
     )
     empirical_uncertainty.add_argument("--output", type=Path, required=True)
     empirical_uncertainty.add_argument("--uncertainty-id")
     empirical_uncertainty.add_argument(
-        "--block-length", type=_positive_int, default=5,
+        "--block-length",
+        type=_positive_int,
+        default=5,
         help="frames per contiguous temporal block (default 5)",
     )
     empirical_uncertainty.add_argument(
-        "--target-coverage", type=_coverage_ratio, default=0.9,
+        "--target-coverage",
+        type=_coverage_ratio,
+        default=0.9,
         help="target interval coverage in (0, 1) (default 0.9)",
     )
     empirical_uncertainty.add_argument(
-        "--resample-count", type=_positive_int, default=20,
+        "--resample-count",
+        type=_positive_int,
+        default=20,
         help="number of deterministic block subsamples (default 20)",
     )
     empirical_uncertainty.add_argument(
-        "--seed", type=int, default=0,
+        "--seed",
+        type=int,
+        default=0,
         help="deterministic block-subsample seed (default 0)",
     )
     empirical_uncertainty.add_argument(
-        "--fit-block-ratio", type=_fit_ratio, default=0.6,
+        "--fit-block-ratio",
+        type=_fit_ratio,
+        default=0.6,
         help="fraction of blocks used for fitting (default 0.6)",
     )
     empirical_uncertainty.add_argument(
-        "--overconfidence-scale", type=_overconfidence_scale, default=0.1,
+        "--overconfidence-scale",
+        type=_overconfidence_scale,
+        default=0.1,
         help="interval scale tested by the overconfidence control (default 0.1)",
     )
     empirical_uncertainty.add_argument(
-        "--stability-only", action="store_true",
+        "--stability-only",
+        action="store_true",
         help="report the empirical spread without a coverage claim",
     )
     empirical_uncertainty.add_argument("--json", action="store_true")
-    empirical_uncertainty.set_defaults(
-        func=_cmd_camera_lidar_empirical_uncertainty
-    )
+    empirical_uncertainty.set_defaults(func=_cmd_camera_lidar_empirical_uncertainty)
 
     external_run = subcommands.add_parser(
         "external-run",
@@ -1434,6 +1827,46 @@ def _build_parser() -> argparse.ArgumentParser:
     kalibr_import.add_argument("--training-isolation-evidence")
     kalibr_import.add_argument("--json", action="store_true")
     kalibr_import.set_defaults(func=_cmd_external_run_import_kalibr)
+
+    koide_import = external_run_subcommands.add_parser(
+        "import-koide",
+        help="import a Koide direct_visual_lidar_calibration calib.json result",
+    )
+    koide_import.add_argument("source", type=Path)
+    koide_import.add_argument("--output", type=Path, required=True)
+    koide_import.add_argument("--lidar-frame", required=True)
+    koide_import.add_argument("--camera-frame", required=True)
+    koide_import.add_argument(
+        "--input-artifact",
+        type=Path,
+        action="append",
+        default=[],
+        help="digest-bound Koide fitting input; may be repeated",
+    )
+    koide_import.add_argument("--expected-source-sha256")
+    koide_import.add_argument("--tool-version")
+    koide_import.add_argument("--source-commit")
+    koide_import.add_argument(
+        "--license-spdx",
+        default="MIT",
+        help="SPDX ID for the imported tool, or 'unknown'",
+    )
+    koide_import.add_argument("--training-isolation-declared", action="store_true")
+    koide_import.add_argument("--training-isolation-evidence")
+    koide_import.add_argument("--training-data-ids-sha256")
+    koide_import.add_argument("--holdout-data-ids-sha256")
+    koide_import.add_argument("--json", action="store_true")
+    koide_import.set_defaults(func=_cmd_external_run_import_koide)
+
+    koide_run = external_run_subcommands.add_parser(
+        "run-koide",
+        help="run the typed Koide preprocess/initial_guess/calibrate workflow from a config",
+    )
+    koide_run.add_argument("config", type=Path)
+    koide_run.add_argument("--output", type=Path, required=True)
+    koide_run.add_argument("--input-artifact", type=Path, action="append", default=[])
+    koide_run.add_argument("--json", action="store_true")
+    koide_run.set_defaults(func=_cmd_external_run_koide)
 
     trajectory = subcommands.add_parser(
         "trajectory",
@@ -1522,9 +1955,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     trajectory_intrinsics.add_argument("--output", type=Path, required=True)
     trajectory_intrinsics.add_argument("--seed", type=int, default=20260820)
-    trajectory_intrinsics.add_argument(
-        "--recovery-id", default="ct-imu-intrinsics-synthetic"
-    )
+    trajectory_intrinsics.add_argument("--recovery-id", default="ct-imu-intrinsics-synthetic")
     trajectory_intrinsics.add_argument("--json", action="store_true")
     trajectory_intrinsics.set_defaults(func=_cmd_trajectory_recover_imu_intrinsics)
     trajectory_window = trajectory_subcommands.add_parser(
@@ -1533,9 +1964,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     trajectory_window.add_argument("--output", type=Path, required=True)
     trajectory_window.add_argument("--seed", type=int, default=20260820)
-    trajectory_window.add_argument(
-        "--recovery-id", default="ct-sliding-window-synthetic"
-    )
+    trajectory_window.add_argument("--recovery-id", default="ct-sliding-window-synthetic")
     trajectory_window.add_argument("--json", action="store_true")
     trajectory_window.set_defaults(func=_cmd_trajectory_recover_sliding_window)
 
@@ -1551,9 +1980,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     lifecycle_simulate.add_argument("--output", type=Path, required=True)
     lifecycle_simulate.add_argument("--seed", type=int, default=20260820)
-    lifecycle_simulate.add_argument(
-        "--lifecycle-id", default="calibration-lifecycle-synthetic"
-    )
+    lifecycle_simulate.add_argument("--lifecycle-id", default="calibration-lifecycle-synthetic")
     lifecycle_simulate.add_argument("--json", action="store_true")
     lifecycle_simulate.set_defaults(func=_cmd_lifecycle_simulate)
 
@@ -1611,12 +2038,80 @@ def _build_parser() -> argparse.ArgumentParser:
         help="input artifact kind; continuous-time exports its refined transform",
     )
     export.add_argument("--output", type=Path, required=True)
+    export.add_argument(
+        "--base-frame",
+        help="explicit Autoware parent frame; required when transform parents are ambiguous",
+    )
+    export.add_argument(
+        "--sensor-frame",
+        dest="sensor_frames",
+        action="append",
+        default=[],
+        help="sensor child frame to export; may be repeated",
+    )
+    export.add_argument(
+        "--transform",
+        dest="transform_names",
+        action="append",
+        default=[],
+        help="exact source transform key to export; may be repeated",
+    )
+    export.add_argument(
+        "--invert",
+        dest="invert_transforms",
+        action="append",
+        default=[],
+        help="exact source transform key to invert before export; may be repeated",
+    )
+    export.add_argument(
+        "--static-tf-output",
+        type=Path,
+        help="ROS 2 static_transform_publisher launch snippet (default: output sibling)",
+    )
+    export.add_argument(
+        "--manifest-output",
+        type=Path,
+        help="schema-valid provenance manifest (default: output sibling)",
+    )
+    export.add_argument(
+        "--force",
+        action="store_true",
+        help="allow replacement of existing export outputs",
+    )
+    export.add_argument("--json", action="store_true", help="emit machine-readable summary")
     export.set_defaults(func=_cmd_export)
 
     return parser
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
+    if args.workflow == "koide":
+        if args.config is None:
+            _die("doctor --workflow koide requires --config CONFIG")
+        koide_artifact = evaluate_koide_readiness_from_config(
+            args.config,
+            command=_doctor_command(args),
+        )
+        payload = koide_artifact.model_dump(mode="json", exclude_none=False)
+        if args.output is not None:
+            koide_artifact.save(args.output)
+            payload = koide_artifact.with_artifact_digest().model_dump(
+                mode="json", exclude_none=False
+            )
+        if args.json:
+            _emit(payload, as_json=True)
+        else:
+            print(
+                f"Koide readiness: {koide_artifact.status.upper()} "
+                f"({koide_artifact.hardware_profile}); dataset={koide_artifact.dataset_path}"
+            )
+            for check in koide_artifact.checks:
+                print(f"  {check.name}: {check.status} - {check.reason}")
+            for recommendation in koide_artifact.recommendations:
+                print(f"  next: {recommendation}")
+            if args.output is not None:
+                print(f"  artifact: {args.output}")
+        return 1 if koide_artifact.status == "blocked" else 0
     explicit_type = None
     if args.path is not None and args.type != "auto":
         explicit_type = cast(DatasetType, str(args.type).replace("-", "_"))
@@ -1639,9 +2134,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             state = "ok" if dependency.available else "missing"
             optional = " (optional)" if dependency.optional else ""
             version = (
-                f" ({dependency.version})"
-                if dependency.available and dependency.version
-                else ""
+                f" ({dependency.version})" if dependency.available and dependency.version else ""
             )
             print(f"{name}: {state}{optional}{version}")
         if artifact.dataset is not None:
@@ -1661,6 +2154,10 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
 def _doctor_command(args: argparse.Namespace) -> list[str]:
     command = ["calibrex", "doctor"]
+    if args.workflow != "environment":
+        command.extend(["--workflow", str(args.workflow)])
+    if args.config is not None:
+        command.extend(["--config", str(args.config)])
     if args.path is not None:
         command.append(str(args.path))
     if args.type != "auto":
@@ -1707,23 +2204,19 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "dynamic-window-consistency": dynamic_window_consistency_json_schema,
         "trajectory-window-drift": trajectory_window_drift_json_schema,
         "capture-readiness": capture_readiness_json_schema,
+        "koide-readiness": koide_readiness_json_schema,
         "continuous-time-lidar-pair": continuous_time_lidar_pair_json_schema,
-        "continuous-time-lidar-point-to-plane": (
-            continuous_time_lidar_point_to_plane_json_schema
-        ),
-        "continuous-time-imu-preintegration": (
-            continuous_time_imu_preintegration_json_schema
-        ),
+        "continuous-time-lidar-point-to-plane": (continuous_time_lidar_point_to_plane_json_schema),
+        "continuous-time-imu-preintegration": (continuous_time_imu_preintegration_json_schema),
         "continuous-time-imu-lever-arm": continuous_time_imu_lever_arm_json_schema,
-        "continuous-time-imu-clock-offset": (
-            continuous_time_imu_clock_offset_json_schema
-        ),
+        "continuous-time-imu-clock-offset": (continuous_time_imu_clock_offset_json_schema),
         "continuous-time-imu-accel-bias": continuous_time_imu_accel_bias_json_schema,
-        "continuous-time-imu-intrinsics": (
-            continuous_time_imu_intrinsics_json_schema
-        ),
+        "continuous-time-imu-intrinsics": (continuous_time_imu_intrinsics_json_schema),
         "calibration-lifecycle": calibration_lifecycle_json_schema,
         "continuous-time-sliding-window": continuous_time_sliding_window_json_schema,
+        "continuous-time-lidar-train-diagnostics": (
+            continuous_time_lidar_train_diagnostics_json_schema
+        ),
         "continuous-time-lidar-ablation": continuous_time_lidar_ablation_json_schema,
         "solid-state-cross-dataset-benchmark-config": (
             solid_state_cross_dataset_benchmark_config_json_schema
@@ -1739,40 +2232,45 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "protocol": protocol_json_schema,
         "transforms": transform_artifact_json_schema,
         "dataset-manifest": manifest_json_schema,
+        "remote-archive-selection": remote_archive_selection_json_schema,
+        "kitti360-lidar-window-integration": (kitti360_lidar_window_integration_json_schema),
+        "kitti-raw-lidar-window-integration": (kitti_raw_lidar_window_integration_json_schema),
         "doctor": doctor_json_schema,
         "environment-readiness": environment_readiness_json_schema,
         "calibration-ci": calibration_ci_json_schema,
         "external-run": external_run_json_schema,
         "kitti-falsification": kitti_falsification_json_schema,
         "kitti-benchmark-input": kitti_benchmark_input_json_schema,
+        "koide-pilot": koide_pilot_json_schema,
+        "koide-runner": koide_runner_json_schema,
         "depth-provider": depth_provider_json_schema,
-        "continuous-time-camera-lidar-problem": (
-            continuous_time_camera_lidar_problem_json_schema
-        ),
-        "continuous-time-camera-lidar-result": (
-            continuous_time_camera_lidar_result_json_schema
-        ),
+        "continuous-time-camera-lidar-problem": (continuous_time_camera_lidar_problem_json_schema),
+        "continuous-time-camera-lidar-result": (continuous_time_camera_lidar_result_json_schema),
         "continuous-time-trajectory": continuous_time_trajectory_json_schema,
-        "continuous-time-trajectory-measurements": (
-            continuous_time_measurements_json_schema
-        ),
+        "continuous-time-trajectory-measurements": (continuous_time_measurements_json_schema),
         "continuous-time-trajectory-fit": continuous_time_fit_json_schema,
         "probabilistic-correspondence": probabilistic_correspondence_json_schema,
         "probabilistic-pnp-result": probabilistic_pnp_result_json_schema,
-        "probabilistic-refinement-result": (
-            probabilistic_refinement_result_json_schema
-        ),
+        "probabilistic-refinement-result": (probabilistic_refinement_result_json_schema),
         "empirical-se3-uncertainty": empirical_se3_uncertainty_json_schema,
         "camera-lidar-problem": camera_lidar_problem_json_schema,
-        "camera-lidar-sota-audit-protocol": (
-            camera_lidar_sota_audit_protocol_json_schema
+        "camera-lidar-correspondence-export": (camera_lidar_correspondence_export_json_schema),
+        "camera-lidar-confidence-calibration": (camera_lidar_confidence_calibration_json_schema),
+        "camera-lidar-provider-support-comparison": (
+            camera_lidar_provider_support_comparison_json_schema
         ),
-        "camera-lidar-sota-audit-result": (
-            camera_lidar_sota_audit_result_json_schema
+        "camera-lidar-pose-initializer-protocol": (
+            camera_lidar_pose_initializer_protocol_json_schema
         ),
-        "camera-lidar-benchmark-protocol": (
-            camera_lidar_benchmark_protocol_json_schema
+        "camera-lidar-pose-initializer-failure-analysis": (
+            camera_lidar_pose_initializer_failure_analysis_json_schema
         ),
+        "camera-lidar-initializer-calibration": (camera_lidar_initializer_calibration_json_schema),
+        "camera-lidar-correspondence-quality": (camera_lidar_correspondence_quality_json_schema),
+        "camera-lidar-failure-analysis": camera_lidar_failure_analysis_json_schema,
+        "camera-lidar-sota-audit-protocol": (camera_lidar_sota_audit_protocol_json_schema),
+        "camera-lidar-sota-audit-result": (camera_lidar_sota_audit_result_json_schema),
+        "camera-lidar-benchmark-protocol": (camera_lidar_benchmark_protocol_json_schema),
         "calibration-candidate-trace": calibration_candidate_trace_json_schema,
         "bullseye-plot": bullseye_plot_json_schema,
         "evidence-bundle": evidence_bundle_json_schema,
@@ -1780,6 +2278,7 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "online-timeline": online_timeline_json_schema,
         "solid-state-context": solid_state_context_json_schema,
         "livox-time-ablation": livox_time_ablation_json_schema,
+        "autoware-export": autoware_export_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -1797,11 +2296,16 @@ def _report_artifact_schema_generator(kind: str) -> Callable[[], dict[str, Any]]
 def _schema_filename(kind: str) -> str:
     if kind == "continuous-time-lidar-pair":
         return "continuous_time_lidar_pair_result.schema.json"
+    if kind == "koide-runner":
+        return "koide_runner_config.schema.json"
     return f"{kind.replace('-', '_')}.schema.json"
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:
-    report = validate_file(args.path, cast(ValidationKind, args.kind))
+    try:
+        report = validate_file(args.path, cast(ValidationKind, args.kind))
+    except (OSError, ValueError) as exc:
+        _die(str(exc))
     payload = report.model_dump(mode="json")
     _emit(payload, args.json)
     return 0
@@ -2359,9 +2863,7 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
     artifact = evaluate_rosbag2_trajectory_window_drift(
         args.config,
         reference_result_path=args.reference_result,
-        use_point_time_offsets=(
-            None if args.deskew == "config" else args.deskew == "on"
-        ),
+        use_point_time_offsets=(None if args.deskew == "config" else args.deskew == "on"),
         odometry_burst_policy=(
             None if args.odometry_burst_policy == "config" else args.odometry_burst_policy
         ),
@@ -2373,10 +2875,7 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif not args.output:
-        print(
-            f"trajectory window drift: {artifact.grade} "
-            f"({artifact.interpretation})"
-        )
+        print(f"trajectory window drift: {artifact.grade} ({artifact.interpretation})")
     return 0
 
 
@@ -2781,6 +3280,102 @@ def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
     return 0 if artifact.status == "success" else 1
 
 
+def _cmd_external_run_import_koide(args: argparse.Namespace) -> int:
+    """Import one Koide native result through the typed external-run boundary."""
+
+    if args.source.resolve() == args.output.resolve():
+        _die("external-run output must not overwrite the Koide source artifact")
+    license_spdx = (
+        None
+        if str(args.license_spdx).strip().lower() == "unknown"
+        else str(args.license_spdx).strip()
+    )
+    artifact = import_koide_result(
+        args.source,
+        lidar_frame=args.lidar_frame,
+        camera_frame=args.camera_frame,
+        input_artifacts=tuple(args.input_artifact),
+        expected_source_sha256=args.expected_source_sha256,
+        tool_version=args.tool_version,
+        source_commit=args.source_commit,
+        license_spdx=license_spdx,
+        training_isolation_declared=args.training_isolation_declared,
+        training_isolation_evidence=args.training_isolation_evidence,
+        training_data_ids_sha256=args.training_data_ids_sha256,
+        holdout_data_ids_sha256=args.holdout_data_ids_sha256,
+    )
+    artifact.save(args.output)
+    _emit(
+        {
+            "status": artifact.status,
+            "external_run": str(args.output),
+            "source": str(args.source),
+            "source_sha256": artifact.provenance.source_artifact_sha256,
+            "transform_count": len(artifact.parsed_outputs.transforms),
+            "warnings": artifact.warnings,
+        },
+        args.json,
+    )
+    return 0 if artifact.status == "success" else 1
+
+
+def _cmd_external_run_koide(args: argparse.Namespace) -> int:
+    """Run the typed Koide workflow declared by a Calibrex config."""
+
+    if args.config.resolve() == args.output.resolve():
+        _die("Koide external-run output must not overwrite the config")
+    config = load_config(args.config)
+    # ``--input-artifact`` is a CLI-level provenance input.  Preserve the
+    # factor's declared paths and append these explicit files before the
+    # solver builds its typed runner config, so they are actually digest-bound
+    # in the resulting external-run artifact.
+    if args.input_artifact:
+        for factor_name in (
+            "koide_lidar_camera",
+            "direct_visual_lidar_calibration",
+            "lidar_camera_targetless_baseline",
+        ):
+            factor = config.pipeline.factors.get(factor_name)
+            if factor is None or not factor.enabled:
+                continue
+            raw_paths = factor.options.get(
+                "input_paths",
+                factor.options.get("input_artifacts", []),
+            )
+            if isinstance(raw_paths, (str, Path)):
+                paths = [str(raw_paths)]
+            elif isinstance(raw_paths, (list, tuple)):
+                paths = [str(path) for path in raw_paths]
+            else:
+                paths = []
+            for path in args.input_artifact:
+                text_path = str(path)
+                if text_path not in paths:
+                    paths.append(text_path)
+            factor.options["input_paths"] = paths
+            break
+    inspection = inspect_dataset(config.dataset)
+    result = KoideLidarCameraSolver().solve(
+        config,
+        FrameGraph.from_config(config),
+        inspection,
+    )
+    if result.external_run is None:
+        _die("Koide factor did not produce an external-run artifact")
+    result.external_run.save(args.output)
+    _emit(
+        {
+            "status": result.external_run.status,
+            "external_run": str(args.output),
+            "transform_count": len(result.external_run.parsed_outputs.transforms),
+            "stage_count": len(result.external_run.execution.stages),
+            "warnings": result.external_run.warnings,
+        },
+        args.json,
+    )
+    return 0 if result.external_run.status == "success" else 1
+
+
 def _cmd_kitti_lock_benchmark_input(args: argparse.Namespace) -> int:
     command = f"calibrex kitti lock-benchmark-input {args.path} --output {args.output}"
     manifest = build_kitti_raw_0005_benchmark_input(args.path, command=command)
@@ -2870,10 +3465,30 @@ def _cmd_kitti_benchmark_i2i(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_freeze_rotation_protocol(args: argparse.Namespace) -> int:
-    command = (
-        f"calibrex camera-lidar freeze-rotation-protocol {args.problem} "
-        f"--output {args.output}"
-    )
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "freeze-rotation-protocol",
+        str(args.problem),
+        "--output",
+        str(args.output),
+        "--perturbation-count",
+        str(args.perturbation_count),
+        "--rotation-deg",
+        str(args.rotation_deg),
+        "--histogram-bins",
+        str(args.histogram_bins),
+        "--min-visible-points",
+        str(args.min_visible_points),
+        "--bound-deg",
+        str(args.bound_deg),
+        "--initial-step-deg",
+        str(args.initial_step_deg),
+        "--minimum-step-deg",
+        str(args.minimum_step_deg),
+        "--max-evaluations",
+        str(args.max_evaluations),
+    ]
     try:
         protocol = build_borer_rotation_protocol(
             args.problem,
@@ -2885,7 +3500,7 @@ def _cmd_camera_lidar_freeze_rotation_protocol(args: argparse.Namespace) -> int:
             initial_step_deg=args.initial_step_deg,
             minimum_step_deg=args.minimum_step_deg,
             max_evaluations=args.max_evaluations,
-            command=tuple(command.split()),
+            command=tuple(command),
         )
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
@@ -2906,11 +3521,38 @@ def _cmd_camera_lidar_freeze_rotation_protocol(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_freeze_six_dof_protocol(args: argparse.Namespace) -> int:
-    command = (
-        f"calibrex camera-lidar freeze-six-dof-protocol {args.problem} "
-        f"--output {args.output} --rotation-deg {args.rotation_deg} "
-        f"--translation-m {args.translation_m}"
-    )
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "freeze-six-dof-protocol",
+        str(args.problem),
+        "--output",
+        str(args.output),
+        "--perturbation-count",
+        str(args.perturbation_count),
+        "--rotation-deg",
+        str(args.rotation_deg),
+        "--translation-m",
+        str(args.translation_m),
+        "--histogram-bins",
+        str(args.histogram_bins),
+        "--min-visible-points",
+        str(args.min_visible_points),
+        "--rotation-bound-deg",
+        str(args.rotation_bound_deg),
+        "--translation-bound-m",
+        str(args.translation_bound_m),
+        "--initial-rotation-step-deg",
+        str(args.initial_rotation_step_deg),
+        "--initial-translation-step-m",
+        str(args.initial_translation_step_m),
+        "--minimum-rotation-step-deg",
+        str(args.minimum_rotation_step_deg),
+        "--minimum-translation-step-m",
+        str(args.minimum_translation_step_m),
+        "--max-evaluations",
+        str(args.max_evaluations),
+    ]
     try:
         protocol = build_borer_six_dof_protocol(
             args.problem,
@@ -2926,7 +3568,7 @@ def _cmd_camera_lidar_freeze_six_dof_protocol(args: argparse.Namespace) -> int:
             minimum_rotation_step_deg=args.minimum_rotation_step_deg,
             minimum_translation_step_m=args.minimum_translation_step_m,
             max_evaluations=args.max_evaluations,
-            command=tuple(command.split()),
+            command=tuple(command),
         )
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
@@ -2947,22 +3589,152 @@ def _cmd_camera_lidar_freeze_six_dof_protocol(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_camera_lidar_benchmark_koide_pilot(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.koide_pilot import KoidePilotThresholds
+
+    try:
+        thresholds = KoidePilotThresholds(
+            max_frames=args.max_frames,
+            max_points=args.max_points,
+            holdout_ratio=args.holdout_ratio,
+            split_seed=args.split_seed,
+            min_holdout_projection_ratio=args.min_holdout_projection_ratio,
+            min_holdout_edge_alignment=args.min_holdout_edge_alignment,
+            min_holdout_depth_edge_alignment=args.min_holdout_depth_edge_alignment,
+            known_bad_min_metric_delta=args.known_bad_min_metric_delta,
+        )
+        artifact = run_koide_pilot(
+            args.dataset_path,
+            args.candidate,
+            output_directory=args.output_dir,
+            config_path=args.config,
+            readiness_path=args.readiness,
+            input_manifest_path=args.input_manifest,
+            camera_frame=args.camera_frame,
+            lidar_frame=args.lidar_frame,
+            camera_stream=args.camera_stream,
+            lidar_stream=args.lidar_stream,
+            thresholds=thresholds,
+            command=[
+                "calibrex",
+                "camera-lidar",
+                "benchmark-koide-pilot",
+                str(args.dataset_path),
+            ],
+            official_command=(
+                shlex.split(args.official_command) if args.official_command else ()
+            ),
+            tool_source_commit=args.tool_source_commit,
+            container_digest=args.container_digest,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        _die(str(exc))
+    payload = {
+        "status": artifact.status,
+        "adoption_decision": artifact.adoption_decision,
+        "admissible": artifact.admissible,
+        "reason": artifact.reason,
+        "pilot": str(args.output_dir / "pilot.json"),
+        "execution_manifest": str(args.output_dir / "execution-manifest.yaml"),
+        "known_bad_detected_count": artifact.known_bad_detected_count,
+        "known_bad_required_count": artifact.known_bad_required_count,
+    }
+    _emit(payload, as_json=args.json)
+    return 0 if artifact.status in {"PASS", "WARN", "INCONCLUSIVE"} else 1
+
+
+def _cmd_camera_lidar_koide_handoff(args: argparse.Namespace) -> int:
+    """Validate the immutable Koide lock and print operator next actions."""
+
+    try:
+        lock = load_koide_execution_lock(args.lock)
+    except (OSError, ValueError) as exc:
+        _die(str(exc))
+    payload = {
+        "status": "handoff_only",
+        "executes_external_process": False,
+        "lock": str(args.lock),
+        "lock_id": lock.lock_id,
+        "lock_sha256": lock.lock_sha256,
+        "profile": lock.profile,
+        "initial_guess_mode": lock.initial_guess_mode,
+        "superglue_policy": lock.superglue_policy,
+        "source_repository": lock.source.repository,
+        "source_commit": lock.source.commit,
+        "license_spdx": lock.source.license_spdx,
+        "image_digest": lock.image.digest,
+        "base_image": lock.image.base_image,
+        "base_image_digest": lock.image.base_image_digest,
+        "base_image_digest_required_for_rebuild": (
+            lock.image.base_image_digest_required_for_rebuild
+        ),
+        "runtime": {
+            "docker_available": shutil.which("docker") is not None,
+            "podman_available": shutil.which("podman") is not None,
+            "ros2_available": shutil.which("ros2") is not None,
+            "colcon_available": shutil.which("colcon") is not None,
+        },
+        "next_actions": lock.operator_steps,
+        "stages": [stage.model_dump(mode="json") for stage in lock.stages],
+    }
+    _emit(payload, args.json)
+    return 0
+
+
+def _cmd_camera_lidar_export_koide_pilot(args: argparse.Namespace) -> int:
+    try:
+        paths = export_koide_pilot_autoware(
+            args.pilot,
+            args.output,
+            base_frame=args.base_frame,
+            sensor_frame=args.sensor_frame,
+            static_tf_output=args.static_tf_output,
+            manifest_output=args.manifest_output,
+            overwrite=args.force,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        _die(str(exc))
+    payload = {"status": "ok", **{name: str(path) for name, path in paths.items()}}
+    _emit(payload, as_json=args.json)
+    return 0
+
+
 def _cmd_camera_lidar_build_kitti_problem(args: argparse.Namespace) -> int:
-    command = (
-        "calibrex camera-lidar build-kitti-problem "
-        f"{args.sequence_path} {args.depth_provider} --output {args.output} "
-        f"--camera-stream {args.camera_stream}"
-    )
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "build-kitti-problem",
+        str(args.sequence_path),
+        str(args.depth_provider),
+        "--output",
+        str(args.output),
+        "--camera-stream",
+        args.camera_stream,
+        "--rotation-bound-deg",
+        str(args.rotation_bound_deg),
+        "--translation-bound-m",
+        str(args.translation_bound_m),
+    ]
+    if args.lidar_directory is not None:
+        command.extend(["--lidar-directory", str(args.lidar_directory)])
+    if args.lidar_manifest is not None:
+        command.extend(["--lidar-manifest", str(args.lidar_manifest)])
+    if args.dataset_id is not None:
+        command.extend(["--dataset-id", args.dataset_id])
+    if args.problem_id is not None:
+        command.extend(["--problem-id", args.problem_id])
     try:
         problem = build_kitti_raw_camera_lidar_problem(
             args.sequence_path,
             args.depth_provider,
             camera_stream=args.camera_stream,
+            lidar_directory=args.lidar_directory,
+            lidar_manifest_path=args.lidar_manifest,
             dataset_id=args.dataset_id,
             problem_id=args.problem_id,
             rotation_bound_deg=args.rotation_bound_deg,
             translation_bound_m=args.translation_bound_m,
-            command=tuple(command.split()),
+            command=tuple(command),
         )
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
@@ -2993,6 +3765,12 @@ def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
         str(args.output),
         "--camera-stream",
         args.camera_stream,
+        "--split-id",
+        args.split_id,
+        "--rotation-bound-deg",
+        str(args.rotation_bound_deg),
+        "--translation-bound-m",
+        str(args.translation_bound_m),
     ]
     if args.calibration_root is not None:
         command.extend(["--calibration-root", str(args.calibration_root)])
@@ -3000,6 +3778,10 @@ def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
         command.extend(["--lidar-directory", str(args.lidar_directory)])
     if args.lidar_manifest is not None:
         command.extend(["--lidar-manifest", str(args.lidar_manifest)])
+    if args.dataset_id is not None:
+        command.extend(["--dataset-id", args.dataset_id])
+    if args.problem_id is not None:
+        command.extend(["--problem-id", args.problem_id])
     try:
         problem = build_kitti360_camera_lidar_problem(
             args.sequence_path,
@@ -3008,6 +3790,7 @@ def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
             lidar_directory=args.lidar_directory,
             lidar_manifest_path=args.lidar_manifest,
             camera_stream=args.camera_stream,
+            split_id=args.split_id,
             dataset_id=args.dataset_id,
             problem_id=args.problem_id,
             rotation_bound_deg=args.rotation_bound_deg,
@@ -3025,6 +3808,40 @@ def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
             "sequence_id": problem.sequence_id,
             "frame_count": len(problem.observations),
             "depth_provider_sha256": problem.depth_provider_sha256,
+            "output": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_build_probabilistic_correspondence(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "build-probabilistic-correspondence",
+        str(args.export_manifest),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        artifact = build_probabilistic_correspondence_artifact(
+            args.export_manifest,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "artifact_id": artifact.artifact_id,
+            "dataset_id": artifact.dataset_id,
+            "frame_count": len(artifact.frames),
+            "correspondence_count": sum(len(frame.correspondences) for frame in artifact.frames),
+            "provider": artifact.provider.provider,
             "output": str(args.output),
         },
         args.json,
@@ -3055,9 +3872,7 @@ def _cmd_camera_lidar_build_a2d2_problem(
             output_lidar_directory=args.lidar_output_directory,
             generated_manifest_path=args.lidar_manifest_output,
             command=command,
-            problem_id=(
-                args.problem_id or "a2d2-frontleft-preregistered-d2d"
-            ),
+            problem_id=(args.problem_id or "a2d2-frontleft-preregistered-d2d"),
             rotation_bound_deg=args.rotation_bound_deg,
         )
         problem.save(args.output)
@@ -3072,9 +3887,7 @@ def _cmd_camera_lidar_build_a2d2_problem(
             "depth_provider_sha256": problem.depth_provider_sha256,
             "lidar_manifest": str(args.lidar_manifest_output),
             "output": str(args.output),
-            "accuracy_limitation": (
-                "A2D2 source points are pre-registered into the camera view"
-            ),
+            "accuracy_limitation": ("A2D2 source points are pre-registered into the camera view"),
         },
         args.json,
     )
@@ -3108,9 +3921,8 @@ def _cmd_camera_lidar_benchmark_rotation(args: argparse.Namespace) -> int:
     bullseye_output = args.bullseye_output or args.output.with_name(
         f"{args.output.stem}_bullseye.svg"
     )
-    bullseye_artifact_output = (
-        args.bullseye_artifact_output
-        or args.output.with_name(f"{args.output.stem}_bullseye.json")
+    bullseye_artifact_output = args.bullseye_artifact_output or args.output.with_name(
+        f"{args.output.stem}_bullseye.json"
     )
     try:
         write_bullseye_plot(
@@ -3160,8 +3972,12 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
     command = (
         f"calibrex camera-lidar benchmark-six-dof {args.problem} {args.protocol} "
         f"--trace-dir {args.trace_dir} --definition-output "
-        f"{args.definition_output} --output {args.output} --workers {args.workers}"
+        f"{args.definition_output} --output {args.output} --workers {args.workers} "
+        f"--projection-backend {args.projection_backend} "
+        f"--bootstrap-samples {args.bootstrap_samples}"
     )
+    if args.required_hit_rate is not None:
+        command += f" --required-hit-rate {args.required_hit_rate}"
     if args.resume:
         command += " --resume"
     try:
@@ -3173,6 +3989,10 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
             bootstrap_samples=args.bootstrap_samples,
             workers=args.workers,
             resume=args.resume,
+            projection_backend=cast(
+                ProjectionBackend,
+                args.projection_backend,
+            ),
         )
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
@@ -3191,6 +4011,7 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
             "definition": str(args.definition_output),
             "benchmark": str(args.output),
             "trace_directory": str(args.trace_dir),
+            "projection_backend": args.projection_backend,
             "trial_count": summary.trial_count,
             "success_count": summary.success_count,
             "failure_count": summary.failure_count,
@@ -3213,9 +4034,7 @@ def _cmd_camera_lidar_refine_probabilistic_pnp(
     options = OpenCvProbabilisticPnpOptions(
         minimum_confidence=args.minimum_confidence,
         minimum_correspondences=args.minimum_correspondences,
-        ransac_reprojection_threshold_px=(
-            args.ransac_reprojection_threshold_px
-        ),
+        ransac_reprojection_threshold_px=(args.ransac_reprojection_threshold_px),
         ransac_confidence=args.ransac_confidence,
         ransac_iterations=args.ransac_iterations,
         mahalanobis_inlier_threshold=args.mahalanobis_inlier_threshold,
@@ -3240,9 +4059,7 @@ def _cmd_camera_lidar_refine_probabilistic_pnp(
         initial_transform = problem.initial_transform_camera_lidar.as_se3()
         initialization_digest = sha256_path(args.initial_problem)
         if initialization_digest is None:
-            raise CalibrexError(
-                f"initialization problem is not readable: {args.initial_problem}"
-            )
+            raise CalibrexError(f"initialization problem is not readable: {args.initial_problem}")
         command.extend(["--initial-problem", str(args.initial_problem)])
     try:
         result = OpenCvProbabilisticPnpAdapter().solve_artifact(
@@ -3253,10 +4070,7 @@ def _cmd_camera_lidar_refine_probabilistic_pnp(
             initialization_artifact_sha256=initialization_digest,
         )
         artifact = result.to_artifact(
-            result_id=(
-                args.result_id
-                or f"{result.artifact_id}-{args.frame_id}-opencv-pnp"
-            ),
+            result_id=(args.result_id or f"{result.artifact_id}-{args.frame_id}-opencv-pnp"),
             options=options,
             command=command,
         )
@@ -3268,16 +4082,164 @@ def _cmd_camera_lidar_refine_probabilistic_pnp(
             "status": result.status,
             "result": str(args.output),
             "frame_id": args.frame_id,
-            "selected_correspondence_count": (
-                result.selected_correspondence_count
-            ),
+            "selected_correspondence_count": (result.selected_correspondence_count),
             "ransac_inlier_count": result.ransac_inlier_count,
-            "probabilistic_inlier_count": (
-                result.probabilistic_inlier_count
-            ),
-            "weighted_reprojection_rmse_px": (
-                result.weighted_reprojection_rmse_px
-            ),
+            "probabilistic_inlier_count": (result.probabilistic_inlier_count),
+            "weighted_reprojection_rmse_px": (result.weighted_reprojection_rmse_px),
+            "ransac_inlier_reprojection_rmse_px": (result.ransac_inlier_reprojection_rmse_px),
+            "mean_mahalanobis_error": result.mean_mahalanobis_error,
+        },
+        args.json,
+    )
+    return 0 if result.status == "converged" else 2
+
+
+def _cmd_camera_lidar_refine_probabilistic_pnp_aggregate(
+    args: argparse.Namespace,
+) -> int:
+    initializer_calibration_id = None
+    initializer_calibration_digest = None
+    try:
+        if args.initializer_calibration is not None:
+            custom_option_flags = (
+                args.minimum_confidence != 0.25
+                or args.minimum_correspondences != 6
+                or args.minimum_frame_correspondences != 4
+                or args.minimum_frames != 2
+                or args.ransac_reprojection_threshold_px != 4.0
+                or args.ransac_confidence != 0.999
+                or args.ransac_iterations != 1000
+                or args.mahalanobis_inlier_threshold != 3.0
+            )
+            if custom_option_flags:
+                raise ValueError(
+                    "initializer calibration cannot be combined with solver option overrides"
+                )
+            if args.initial_problem is not None:
+                raise ValueError(
+                    "locked aggregate PnP forbids an initial problem because "
+                    "development calibration used no pose initializer"
+                )
+            calibration = load_camera_lidar_initializer_calibration(args.initializer_calibration)
+            correspondence = load_probabilistic_correspondence(args.correspondence_artifact)
+            if correspondence.provider != calibration.provider:
+                raise ValueError("correspondence provider identity differs from initializer lock")
+            allowed_dataset_ids = {
+                calibration.dataset_id,
+                *calibration.evaluation_dataset_ids_excluded,
+            }
+            if correspondence.dataset_id not in allowed_dataset_ids:
+                raise ValueError("correspondence dataset was not prespecified by initializer lock")
+            options = initializer_options_from_camera_lidar_calibration(
+                calibration,
+                random_seed=args.random_seed,
+            )
+            initializer_calibration_id = calibration.calibration_id
+            initializer_calibration_digest = sha256_path(args.initializer_calibration)
+            if initializer_calibration_digest is None:
+                raise ValueError(
+                    "initializer calibration artifact is not readable: "
+                    f"{args.initializer_calibration}"
+                )
+        else:
+            options = OpenCvProbabilisticPnpOptions(
+                minimum_confidence=args.minimum_confidence,
+                minimum_correspondences=args.minimum_correspondences,
+                minimum_frame_correspondences=(args.minimum_frame_correspondences),
+                minimum_frames=args.minimum_frames,
+                ransac_reprojection_threshold_px=(args.ransac_reprojection_threshold_px),
+                ransac_confidence=args.ransac_confidence,
+                ransac_iterations=args.ransac_iterations,
+                mahalanobis_inlier_threshold=(args.mahalanobis_inlier_threshold),
+                random_seed=args.random_seed,
+            )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "refine-probabilistic-pnp-aggregate",
+        str(args.correspondence_artifact),
+        "--output",
+        str(args.output),
+    ]
+    if args.initializer_calibration is not None:
+        command.extend(
+            [
+                "--initializer-calibration",
+                str(args.initializer_calibration),
+                "--random-seed",
+                str(options.random_seed),
+            ]
+        )
+    else:
+        command.extend(
+            [
+                "--minimum-confidence",
+                str(options.minimum_confidence),
+                "--minimum-correspondences",
+                str(options.minimum_correspondences),
+                "--minimum-frame-correspondences",
+                str(options.minimum_frame_correspondences),
+                "--minimum-frames",
+                str(options.minimum_frames),
+                "--ransac-reprojection-threshold-px",
+                str(options.ransac_reprojection_threshold_px),
+                "--ransac-confidence",
+                str(options.ransac_confidence),
+                "--ransac-iterations",
+                str(options.ransac_iterations),
+                "--mahalanobis-inlier-threshold",
+                str(options.mahalanobis_inlier_threshold),
+                "--random-seed",
+                str(options.random_seed),
+            ]
+        )
+    if args.result_id is not None:
+        command.extend(["--result-id", args.result_id])
+    initial_transform = None
+    initialization_digest = None
+    if args.initial_problem is not None:
+        try:
+            problem = load_camera_lidar_problem(args.initial_problem)
+        except (OSError, ValueError) as exc:
+            raise CalibrexError(str(exc)) from exc
+        initial_transform = problem.initial_transform_camera_lidar.as_se3()
+        initialization_digest = sha256_path(args.initial_problem)
+        if initialization_digest is None:
+            raise CalibrexError(f"initialization problem is not readable: {args.initial_problem}")
+        command.extend(["--initial-problem", str(args.initial_problem)])
+    try:
+        result = OpenCvProbabilisticPnpAdapter().solve_artifact_aggregate(
+            args.correspondence_artifact,
+            options,
+            initial_transform_camera_lidar=initial_transform,
+            initialization_artifact_sha256=initialization_digest,
+            initializer_calibration_id=initializer_calibration_id,
+            initializer_calibration_sha256=initializer_calibration_digest,
+        )
+        artifact = result.to_artifact(
+            result_id=(args.result_id or f"{result.artifact_id}-aggregate-opencv-pnp"),
+            options=options,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": result.status,
+            "result": str(args.output),
+            "frame_id": result.frame_id,
+            "source_frame_ids": list(result.source_frame_ids),
+            "frame_selection_rule_id": result.frame_selection_rule_id,
+            "initializer_calibration_id": initializer_calibration_id,
+            "initializer_calibration_sha256": initializer_calibration_digest,
+            "selected_correspondence_count": (result.selected_correspondence_count),
+            "ransac_inlier_count": result.ransac_inlier_count,
+            "probabilistic_inlier_count": (result.probabilistic_inlier_count),
+            "weighted_reprojection_rmse_px": (result.weighted_reprojection_rmse_px),
+            "ransac_inlier_reprojection_rmse_px": (result.ransac_inlier_reprojection_rmse_px),
             "mean_mahalanobis_error": result.mean_mahalanobis_error,
         },
         args.json,
@@ -3289,21 +4251,52 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
     args: argparse.Namespace,
 ) -> int:
     try:
-        options = ProbabilisticCameraLidarRefinementOptions(
-            holdout_ratio=args.holdout_ratio,
-            split_seed=args.split_seed,
-            minimum_confidence=args.minimum_confidence,
-            minimum_train_correspondences=(
-                args.minimum_train_correspondences
-            ),
-            minimum_holdout_correspondences=(
-                args.minimum_holdout_correspondences
-            ),
-            max_evaluations=args.max_evaluations,
-            use_covariance=not args.without_covariance,
-            use_outlier_probability=not args.without_outlier_probability,
-            use_reliability=not args.without_reliability,
-        )
+        if args.confidence_calibration is not None:
+            custom_option_flags = (
+                args.minimum_confidence != 0.25
+                or args.holdout_ratio != 0.25
+                or args.minimum_train_correspondences != 24
+                or args.minimum_holdout_correspondences != 8
+                or args.max_evaluations != 400
+                or args.minimum_absolute_train_objective_improvement != 1.0e-6
+                or args.minimum_relative_train_objective_improvement != 1.0e-4
+                or args.maximum_train_correspondence_loss_fraction != 0.05
+                or args.maximum_accepted_bound_fraction != 0.95
+                or args.without_covariance
+                or args.without_outlier_probability
+                or args.without_reliability
+            )
+            if custom_option_flags:
+                raise ValueError(
+                    "confidence calibration cannot be combined with solver option overrides"
+                )
+            calibration = load_camera_lidar_confidence_calibration(args.confidence_calibration)
+            options = refinement_options_from_camera_lidar_confidence_calibration(
+                calibration,
+                split_seed=args.split_seed,
+            )
+        else:
+            options = ProbabilisticCameraLidarRefinementOptions(
+                holdout_ratio=args.holdout_ratio,
+                split_seed=args.split_seed,
+                minimum_confidence=args.minimum_confidence,
+                minimum_train_correspondences=(args.minimum_train_correspondences),
+                minimum_holdout_correspondences=(args.minimum_holdout_correspondences),
+                max_evaluations=args.max_evaluations,
+                minimum_absolute_train_objective_improvement=(
+                    args.minimum_absolute_train_objective_improvement
+                ),
+                minimum_relative_train_objective_improvement=(
+                    args.minimum_relative_train_objective_improvement
+                ),
+                maximum_train_correspondence_loss_fraction=(
+                    args.maximum_train_correspondence_loss_fraction
+                ),
+                maximum_accepted_bound_fraction=(args.maximum_accepted_bound_fraction),
+                use_covariance=not args.without_covariance,
+                use_outlier_probability=not args.without_outlier_probability,
+                use_reliability=not args.without_reliability,
+            )
         command = [
             "calibrex",
             "camera-lidar",
@@ -3312,13 +4305,18 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
             str(args.initial_problem),
             "--output",
             str(args.output),
+            "--split-seed",
+            str(args.split_seed),
         ]
         if args.initial_trace is not None:
             command.extend(["--initial-trace", str(args.initial_trace)])
+        if args.confidence_calibration is not None:
+            command.extend(["--confidence-calibration", str(args.confidence_calibration)])
         result = run_probabilistic_camera_lidar_refinement(
             args.correspondence_artifact,
             args.initial_problem,
             initialization_trace_path=args.initial_trace,
+            confidence_calibration_path=args.confidence_calibration,
             result_id=args.result_id,
             options=options,
             command=command,
@@ -3326,6 +4324,11 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
         result.save(args.output)
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
+    acceptance = result.acceptance
+    if acceptance is None:
+        raise CalibrexError(
+            "new probabilistic refinement output is missing its acceptance decision"
+        )
     _emit(
         {
             "status": result.status,
@@ -3334,6 +4337,10 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
             "initialization_trace_id": result.initialization_trace_id,
             "initialization_trace_status": result.initialization_trace_status,
             "initialization_trace_hit": result.initialization_trace_hit,
+            "confidence_calibration_id": (result.provenance.confidence_calibration_id),
+            "candidate_accepted": acceptance.accepted,
+            "selected_source": acceptance.selected_source,
+            "acceptance_reasons": acceptance.reasons,
             "train_frame_count": len(result.train_frame_ids),
             "holdout_frame_count": len(result.holdout_frame_ids),
             "initial_holdout_rmse_px": (
@@ -3345,9 +4352,7 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
             "final_rotation_error_deg": result.final_rotation_error_deg,
             "final_translation_error_m": result.final_translation_error_m,
             "use_covariance": result.options["use_covariance"],
-            "use_outlier_probability": (
-                result.options["use_outlier_probability"]
-            ),
+            "use_outlier_probability": (result.options["use_outlier_probability"]),
             "use_reliability": result.options["use_reliability"],
         },
         args.json,
@@ -3355,15 +4360,327 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
     return 0 if result.status == "converged" else 2
 
 
+def _cmd_camera_lidar_diagnose_probabilistic_correspondence(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "diagnose-probabilistic-correspondence",
+        str(args.correspondence_artifact),
+        str(args.refinement_result),
+        "--pose-role",
+        args.pose_role,
+        "--minimum-frame-correspondences",
+        str(args.minimum_frame_correspondences),
+        "--output",
+        str(args.output),
+    ]
+    try:
+        report = analyze_camera_lidar_correspondence_quality(
+            args.correspondence_artifact,
+            args.refinement_result,
+            pose_role=args.pose_role,
+            report_id=args.report_id,
+            minimum_frame_correspondences=args.minimum_frame_correspondences,
+            command=command,
+        )
+        report.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "grade": report.summary.grade,
+            "report": str(args.output),
+            "report_id": report.report_id,
+            "pose_role": report.pose_role,
+            "frame_count": report.summary.frame_count,
+            "accepted_correspondence_count": (report.summary.accepted_correspondence_count),
+            "accepted_correspondence_rate": (report.summary.accepted_correspondence_rate),
+            "aggregate_information_rank": (report.summary.aggregate_observability.rank),
+            "gate_reasons": report.summary.gate_reasons,
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_calibrate_probabilistic_confidence(
+    args: argparse.Namespace,
+) -> int:
+    try:
+        thresholds = tuple(
+            float(value.strip()) for value in args.thresholds.split(",") if value.strip()
+        )
+        calibration_seeds = tuple(
+            int(value.strip()) for value in args.calibration_split_seeds.split(",") if value.strip()
+        )
+        evaluation_seeds = tuple(
+            int(value.strip()) for value in args.evaluation_split_seeds.split(",") if value.strip()
+        )
+    except ValueError as exc:
+        raise CalibrexError(f"invalid confidence calibration list: {exc}") from exc
+    excluded_dataset_ids = [
+        value.strip() for value in args.excluded_evaluation_dataset_ids.split(",") if value.strip()
+    ]
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "calibrate-probabilistic-confidence",
+        str(args.correspondence_artifact),
+        str(args.initial_problem),
+        "--output",
+        str(args.output),
+        "--thresholds",
+        args.thresholds,
+        "--calibration-split-seeds",
+        args.calibration_split_seeds,
+        "--evaluation-split-seeds",
+        args.evaluation_split_seeds,
+        "--holdout-ratio",
+        str(args.holdout_ratio),
+        "--minimum-train-correspondences",
+        str(args.minimum_train_correspondences),
+        "--minimum-holdout-correspondences",
+        str(args.minimum_holdout_correspondences),
+        "--minimum-frame-correspondences",
+        str(args.minimum_frame_correspondences),
+        "--minimum-frame-support-rate",
+        str(args.minimum_frame_support_rate),
+        "--minimum-full-rank-frame-rate",
+        str(args.minimum_full_rank_frame_rate),
+        "--development-reprojection-inlier-threshold-px",
+        str(args.development_reprojection_inlier_threshold_px),
+        "--minimum-geometric-inlier-rate",
+        str(args.minimum_geometric_inlier_rate),
+        "--minimum-frame-geometric-inlier-count",
+        str(args.minimum_frame_geometric_inlier_count),
+        "--minimum-frame-geometric-support-rate",
+        str(args.minimum_frame_geometric_support_rate),
+        "--excluded-evaluation-dataset-ids",
+        args.excluded_evaluation_dataset_ids,
+    ]
+    try:
+        calibration = calibrate_camera_lidar_confidence(
+            args.correspondence_artifact,
+            args.initial_problem,
+            thresholds=thresholds,
+            calibration_split_seeds=calibration_seeds,
+            evaluation_split_seeds=evaluation_seeds,
+            holdout_ratio=args.holdout_ratio,
+            minimum_train_correspondences=args.minimum_train_correspondences,
+            minimum_holdout_correspondences=(args.minimum_holdout_correspondences),
+            minimum_frame_correspondences=args.minimum_frame_correspondences,
+            minimum_frame_support_rate=args.minimum_frame_support_rate,
+            minimum_full_rank_frame_rate=args.minimum_full_rank_frame_rate,
+            development_reprojection_inlier_threshold_px=(
+                args.development_reprojection_inlier_threshold_px
+            ),
+            minimum_geometric_inlier_rate=args.minimum_geometric_inlier_rate,
+            minimum_frame_geometric_inlier_count=(args.minimum_frame_geometric_inlier_count),
+            minimum_frame_geometric_support_rate=(args.minimum_frame_geometric_support_rate),
+            evaluation_dataset_ids_excluded=excluded_dataset_ids,
+            calibration_id=args.calibration_id,
+            command=command,
+        )
+        calibration.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": calibration.status,
+            "calibration": str(args.output),
+            "calibration_id": calibration.calibration_id,
+            "development_dataset_id": calibration.dataset_id,
+            "selected_minimum_confidence": (calibration.selected_minimum_confidence),
+            "passing_thresholds": [
+                item.minimum_confidence for item in calibration.candidates if item.gate_pass
+            ],
+            "evaluation_dataset_ids_excluded": (calibration.evaluation_dataset_ids_excluded),
+            "release_sota_claim_allowed": calibration.release_sota_claim_allowed,
+        },
+        args.json,
+    )
+    return 0 if calibration.status == "locked" else 2
+
+
+def _cmd_camera_lidar_compare_probabilistic_provider_support(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "compare-probabilistic-provider-support",
+        *(str(path) for path in args.confidence_calibrations),
+        "--output",
+        str(args.output),
+    ]
+    if args.comparison_id is not None:
+        command.extend(["--comparison-id", args.comparison_id])
+    try:
+        comparison = compare_camera_lidar_provider_support(
+            args.confidence_calibrations,
+            comparison_id=args.comparison_id,
+            command=command,
+        )
+        comparison.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    leader = next(
+        item
+        for item in comparison.candidates
+        if item.candidate_id == comparison.diagnostic_leader_candidate_id
+    )
+    _emit(
+        {
+            "status": comparison.status,
+            "comparison": str(args.output),
+            "comparison_id": comparison.comparison_id,
+            "selected_candidate_id": comparison.selected_candidate_id,
+            "diagnostic_leader_candidate_id": (comparison.diagnostic_leader_candidate_id),
+            "diagnostic_leader_provider_version": leader.provider.version,
+            "diagnostic_leader_threshold": (leader.diagnostic.minimum_confidence),
+            "diagnostic_leader_worst_split_geometric_inliers": (
+                leader.worst_split_geometric_inlier_count
+            ),
+            "evaluation_dataset_ids_excluded": (
+                comparison.protocol.evaluation_dataset_ids_excluded
+            ),
+            "release_sota_claim_allowed": comparison.release_sota_claim_allowed,
+        },
+        args.json,
+    )
+    return 0 if comparison.status == "locked" else 2
+
+
+def _cmd_camera_lidar_calibrate_probabilistic_pnp_initializer(
+    args: argparse.Namespace,
+) -> int:
+    try:
+        confidence_thresholds = tuple(
+            float(value.strip()) for value in args.confidence_thresholds.split(",") if value.strip()
+        )
+        reprojection_thresholds = tuple(
+            float(value.strip())
+            for value in args.ransac_reprojection_thresholds_px.split(",")
+            if value.strip()
+        )
+        random_seeds = tuple(
+            int(value.strip()) for value in args.random_seeds.split(",") if value.strip()
+        )
+        gate = CameraLidarInitializerRecoveryGate(
+            rotation_error_max_deg=args.rotation_error_max_deg,
+            translation_error_max_m=args.translation_error_max_m,
+            minimum_selected_frame_count=(args.gate_minimum_selected_frame_count),
+            minimum_selected_correspondence_count=(args.gate_minimum_selected_correspondence_count),
+            minimum_ransac_inlier_count=(args.gate_minimum_ransac_inlier_count),
+            maximum_ransac_inlier_reprojection_rmse_px=(args.gate_maximum_ransac_inlier_rmse_px),
+            maximum_seed_rotation_delta_deg=(args.gate_maximum_seed_rotation_delta_deg),
+            maximum_seed_translation_delta_m=(args.gate_maximum_seed_translation_delta_m),
+        )
+    except ValueError as exc:
+        raise CalibrexError(f"invalid initializer calibration option: {exc}") from exc
+    excluded_dataset_ids = [
+        value.strip() for value in args.excluded_evaluation_dataset_ids.split(",") if value.strip()
+    ]
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "calibrate-probabilistic-pnp-initializer",
+        str(args.correspondence_artifact),
+        str(args.initial_problem),
+        "--output",
+        str(args.output),
+        "--confidence-thresholds",
+        args.confidence_thresholds,
+        "--ransac-reprojection-thresholds-px",
+        args.ransac_reprojection_thresholds_px,
+        "--random-seeds",
+        args.random_seeds,
+        "--minimum-correspondences",
+        str(args.minimum_correspondences),
+        "--minimum-frame-correspondences",
+        str(args.minimum_frame_correspondences),
+        "--minimum-frames",
+        str(args.minimum_frames),
+        "--ransac-confidence",
+        str(args.ransac_confidence),
+        "--ransac-iterations",
+        str(args.ransac_iterations),
+        "--mahalanobis-inlier-threshold",
+        str(args.mahalanobis_inlier_threshold),
+        "--rotation-error-max-deg",
+        str(args.rotation_error_max_deg),
+        "--translation-error-max-m",
+        str(args.translation_error_max_m),
+        "--gate-minimum-selected-frame-count",
+        str(args.gate_minimum_selected_frame_count),
+        "--gate-minimum-selected-correspondence-count",
+        str(args.gate_minimum_selected_correspondence_count),
+        "--gate-minimum-ransac-inlier-count",
+        str(args.gate_minimum_ransac_inlier_count),
+        "--gate-maximum-ransac-inlier-rmse-px",
+        str(args.gate_maximum_ransac_inlier_rmse_px),
+        "--gate-maximum-seed-rotation-delta-deg",
+        str(args.gate_maximum_seed_rotation_delta_deg),
+        "--gate-maximum-seed-translation-delta-m",
+        str(args.gate_maximum_seed_translation_delta_m),
+        "--excluded-evaluation-dataset-ids",
+        args.excluded_evaluation_dataset_ids,
+    ]
+    if args.calibration_id is not None:
+        command.extend(["--calibration-id", args.calibration_id])
+    try:
+        calibration = calibrate_camera_lidar_initializer(
+            args.correspondence_artifact,
+            args.initial_problem,
+            confidence_thresholds=confidence_thresholds,
+            ransac_reprojection_thresholds_px=reprojection_thresholds,
+            random_seeds=random_seeds,
+            minimum_correspondences=args.minimum_correspondences,
+            minimum_frame_correspondences=(args.minimum_frame_correspondences),
+            minimum_frames=args.minimum_frames,
+            ransac_confidence=args.ransac_confidence,
+            ransac_iterations=args.ransac_iterations,
+            mahalanobis_inlier_threshold=(args.mahalanobis_inlier_threshold),
+            recovery_gate=gate,
+            evaluation_dataset_ids_excluded=excluded_dataset_ids,
+            calibration_id=args.calibration_id,
+            command=command,
+        )
+        calibration.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    locked = calibration.locked_initializer_options
+    _emit(
+        {
+            "status": calibration.status,
+            "calibration": str(args.output),
+            "calibration_id": calibration.calibration_id,
+            "development_dataset_id": calibration.dataset_id,
+            "candidate_count": len(calibration.candidates),
+            "passing_candidate_count": sum(item.gate_pass for item in calibration.candidates),
+            "selected_candidate_id": calibration.selected_candidate_id,
+            "selected_minimum_confidence": (
+                locked.minimum_confidence if locked is not None else None
+            ),
+            "selected_ransac_reprojection_threshold_px": (
+                locked.ransac_reprojection_threshold_px if locked is not None else None
+            ),
+            "evaluation_dataset_ids_excluded": (calibration.evaluation_dataset_ids_excluded),
+            "release_sota_claim_allowed": calibration.release_sota_claim_allowed,
+        },
+        args.json,
+    )
+    return 0 if calibration.status == "locked" else 2
+
+
 def _cmd_camera_lidar_benchmark_probabilistic_ablation(
     args: argparse.Namespace,
 ) -> int:
     try:
-        seeds = tuple(
-            int(value.strip())
-            for value in args.split_seeds.split(",")
-            if value.strip()
-        )
+        seeds = tuple(int(value.strip()) for value in args.split_seeds.split(",") if value.strip())
     except ValueError as exc:
         raise CalibrexError("--split-seeds must contain integers") from exc
     command = (
@@ -3404,6 +4721,71 @@ def _cmd_camera_lidar_benchmark_probabilistic_ablation(
     return 0
 
 
+def _cmd_camera_lidar_benchmark_probabilistic_falsification(
+    args: argparse.Namespace,
+) -> int:
+    try:
+        seeds = tuple(int(value.strip()) for value in args.split_seeds.split(",") if value.strip())
+    except ValueError as exc:
+        raise CalibrexError("--split-seeds must contain integers") from exc
+    command = (
+        "calibrex camera-lidar benchmark-probabilistic-falsification "
+        f"{args.correspondence_artifact} {args.initial_problem} "
+        f"--protocol {args.protocol} --output-dir {args.output_dir} "
+        f"--split-seeds {args.split_seeds} "
+        f"--known-bad-rotation-deg {args.known_bad_rotation_deg} "
+        f"--known-bad-translation-m {args.known_bad_translation_m} "
+        f"--known-bad-min-holdout-rmse-delta-px "
+        f"{args.known_bad_min_holdout_rmse_delta_px} "
+        f"--bootstrap-samples {args.bootstrap_samples}"
+    )
+    if args.initial_trace is not None:
+        command += f" --initial-trace {args.initial_trace}"
+    else:
+        command += f" --trace-dir {args.trace_dir}"
+    if args.max_final_holdout_rmse_px is not None:
+        command += f" --max-final-holdout-rmse-px {args.max_final_holdout_rmse_px}"
+    try:
+        artifacts = run_probabilistic_camera_lidar_falsification(
+            args.correspondence_artifact,
+            args.initial_problem,
+            initialization_trace_path=args.initial_trace,
+            initialization_trace_directory=args.trace_dir,
+            benchmark_protocol_path=args.protocol,
+            output_directory=args.output_dir,
+            command=command,
+            split_seeds=seeds,
+            known_bad_rotation_deg=args.known_bad_rotation_deg,
+            known_bad_translation_m=args.known_bad_translation_m,
+            known_bad_min_holdout_rmse_delta_px=(args.known_bad_min_holdout_rmse_delta_px),
+            max_final_holdout_rmse_px=args.max_final_holdout_rmse_px,
+            bootstrap_samples=args.bootstrap_samples,
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifacts.assessment.status,
+            "assessment": str(artifacts.assessment_path),
+            "benchmark": str(artifacts.benchmark_path),
+            "definition": str(artifacts.definition_path),
+            "evidence": str(artifacts.evidence_path),
+            "failure_analysis": str(artifacts.failure_analysis_path),
+            "bundle": str(artifacts.bundle_path),
+            "verification": str(artifacts.verification_path),
+            "verification_valid": artifacts.verification.valid,
+            "result_count": len(artifacts.result_paths),
+            "known_bad_case_count": len(artifacts.evidence.cases),
+            "rotation_failure_count": (artifacts.failure_analysis.summary.rotation_failure_count),
+            "translation_failure_count": (
+                artifacts.failure_analysis.summary.translation_failure_count
+            ),
+        },
+        args.json,
+    )
+    return 0 if artifacts.assessment.status == "pass" and artifacts.verification.valid else 2
+
+
 def _cmd_camera_lidar_refine_continuous_time(
     args: argparse.Namespace,
 ) -> int:
@@ -3431,9 +4813,7 @@ def _cmd_camera_lidar_refine_continuous_time(
             "estimated_time_offset_sec": result.estimated_time_offset_sec,
             "final_rotation_error_deg": result.final_rotation_error_deg,
             "final_translation_error_m": result.final_translation_error_m,
-            "final_time_offset_error_sec": (
-                result.final_time_offset_error_sec
-            ),
+            "final_time_offset_error_sec": (result.final_time_offset_error_sec),
             "time_observability_rank": result.time_observability_rank,
             "trajectory_model": result.trajectory_model,
             "train_correspondence_count": (
@@ -3482,9 +4862,7 @@ def _cmd_camera_lidar_attach_continuous_trajectory(
             "problem": str(args.output),
             "problem_id": problem.problem_id,
             "trajectory_pose_count": (
-                len(problem.body_trajectory.poses)
-                if problem.body_trajectory is not None
-                else 0
+                len(problem.body_trajectory.poses) if problem.body_trajectory is not None else 0
             ),
             "trajectory_source_sha256": (
                 problem.body_trajectory.source_sha256
@@ -3501,11 +4879,7 @@ def _cmd_camera_lidar_benchmark_continuous_time_ablation(
     args: argparse.Namespace,
 ) -> int:
     try:
-        seeds = tuple(
-            int(value.strip())
-            for value in args.split_seeds.split(",")
-            if value.strip()
-        )
+        seeds = tuple(int(value.strip()) for value in args.split_seeds.split(",") if value.strip())
     except ValueError as exc:
         raise CalibrexError("--split-seeds must contain integers") from exc
     command = (
@@ -3564,16 +4938,9 @@ def _cmd_camera_lidar_audit_sota(args: argparse.Namespace) -> int:
             "status": "ok",
             "audit": str(args.output),
             "verdict": audit.verdict,
-            "achieved_dataset_families": (
-                audit.achieved_dataset_families
-            ),
-            "achieved_independent_rig_count": (
-                audit.achieved_independent_rig_count
-            ),
-            "requirement_status": {
-                item.requirement_id: item.status
-                for item in audit.requirements
-            },
+            "achieved_dataset_families": (audit.achieved_dataset_families),
+            "achieved_independent_rig_count": (audit.achieved_independent_rig_count),
+            "requirement_status": {item.requirement_id: item.status for item in audit.requirements},
         },
         args.json,
     )
@@ -3618,17 +4985,11 @@ def _cmd_camera_lidar_empirical_uncertainty(
             "uncertainty": str(args.output),
             "policy_status": artifact.policy_status,
             "coverage_score": artifact.coverage_score,
-            "observed_coverage_translation": (
-                artifact.observed_coverage_translation
-            ),
+            "observed_coverage_translation": (artifact.observed_coverage_translation),
             "observed_coverage_rotation": artifact.observed_coverage_rotation,
             "observed_coverage_joint": artifact.observed_coverage_joint,
-            "interval_halfwidth_translation_m": (
-                artifact.interval_halfwidth_translation_m
-            ),
-            "interval_halfwidth_rotation_deg": (
-                artifact.interval_halfwidth_rotation_deg
-            ),
+            "interval_halfwidth_translation_m": (artifact.interval_halfwidth_translation_m),
+            "interval_halfwidth_rotation_deg": (artifact.interval_halfwidth_rotation_deg),
             "resample_files": len(artifact.iterations),
         },
         args.json,
@@ -4024,9 +5385,7 @@ def _cmd_lifecycle_simulate(args: argparse.Namespace) -> int:
             "adoption_count": artifact.adoption_count,
             "rejection_count": artifact.rejection_count,
             "rollback_count": artifact.rollback_count,
-            "weak_observability_installed_delta_m": (
-                artifact.weak_observability_installed_delta_m
-            ),
+            "weak_observability_installed_delta_m": (artifact.weak_observability_installed_delta_m),
         },
         args.json,
     )
@@ -4072,6 +5431,48 @@ def _cmd_trajectory_recover_sliding_window(args: argparse.Namespace) -> int:
     return 0 if artifact.policy_status != "fail" else 2
 
 
+def _cmd_camera_lidar_audit_external_baselines(
+    args: argparse.Namespace,
+) -> int:
+    command = [
+        "calibrex",
+        "camera-lidar",
+        "audit-external-baselines",
+        str(args.problem),
+        str(args.protocol),
+        "--output-dir",
+        str(args.output_dir),
+        "--koide-source-commit",
+        args.koide_source_commit,
+        "--unicalib-source-commit",
+        args.unicalib_source_commit,
+    ]
+    try:
+        artifacts = materialize_camera_lidar_external_baseline_audit(
+            args.problem,
+            args.protocol,
+            output_directory=args.output_dir,
+            koide_source_commit=args.koide_source_commit,
+            unicalib_source_commit=args.unicalib_source_commit,
+            command=command,
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "incomplete",
+            "comparable_external_baseline_count": 0,
+            "koide_status": artifacts.koide.status,
+            "koide_audit": str(artifacts.koide_path),
+            "unicalib_status": artifacts.unicalib.status,
+            "unicalib_audit": str(artifacts.unicalib_path),
+            "release_gate": "blocked",
+        },
+        args.json,
+    )
+    return 2
+
+
 def _cmd_visualize(args: argparse.Namespace) -> int:
     result = load_result(args.result)
     if args.reference_result:
@@ -4113,28 +5514,75 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
-    if args.kind == "continuous-time-lidar-pair":
-        artifact = ContinuousTimeLidarPairArtifact.model_validate(
-            read_mapping(args.result)
+    if args.format == "autoware":
+        try:
+            config = AutowareExportConfig(
+                base_frame=args.base_frame,
+                sensor_frames=list(args.sensor_frames),
+                transform_names=list(args.transform_names),
+                invert_transforms=list(args.invert_transforms),
+            )
+        except ValueError as exc:
+            _die(f"invalid Autoware export configuration: {exc}")
+        static_tf_output = args.static_tf_output or args.output.with_name(
+            f"{args.output.stem}.static_tf.launch.py"
         )
+        manifest_output = args.manifest_output or args.output.with_name(
+            f"{args.output.stem}.manifest.yaml"
+        )
+        if args.kind == "continuous-time-lidar-pair":
+            artifact = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(args.result))
+            transforms = {artifact.variable: artifact.refined_transform}
+            export_artifact = build_autoware_export(
+                transforms,
+                config=config,
+                source_path=args.result,
+                source_run=artifact.variable,
+                quality_grade=artifact.refined_transform.quality.grade,
+                command=["calibrex", "export", str(args.result), "--format", "autoware"],
+            )
+        else:
+            result = load_result(args.result)
+            export_artifact = build_autoware_export(
+                result,
+                config=config,
+                source_path=args.result,
+                command=["calibrex", "export", str(args.result), "--format", "autoware"],
+            )
+        paths = write_autoware_export(
+            export_artifact,
+            args.output,
+            static_tf_output=static_tf_output,
+            manifest_output=manifest_output,
+            overwrite=args.force,
+        )
+        summary = {
+            "status": "ok",
+            "calibration": str(paths["calibration"]),
+            "static_tf": str(paths["static_tf"]),
+            "manifest": str(paths["manifest"]),
+            "artifact_sha256": export_artifact.artifact_sha256,
+            "source_result_sha256": export_artifact.provenance.source_result_sha256,
+            "schema_version": export_artifact.schema_version,
+        }
+        if args.json:
+            _emit(summary, as_json=True)
+        else:
+            print(f"wrote {paths['calibration']}")
+            print(f"wrote {paths['static_tf']}")
+            print(f"wrote {paths['manifest']}")
+        return 0
+    if args.kind == "continuous-time-lidar-pair":
+        artifact = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(args.result))
         transforms = {artifact.variable: artifact.refined_transform}
         if args.format == "ros-tf":
             export_ros_tf_transforms(transforms, args.output)
-        elif args.format == "autoware":
-            export_autoware_transforms(
-                transforms,
-                args.output,
-                source_run=artifact.provenance.tool_name,
-                quality_grade=artifact.refined_transform.quality.grade,
-            )
         else:
             _die(f"unsupported export format: {args.format}")
     else:
         result = load_result(args.result)
         if args.format == "ros-tf":
             export_ros_tf_yaml(result, args.output)
-        elif args.format == "autoware":
-            export_autoware_yaml(result, args.output)
         else:
             _die(f"unsupported export format: {args.format}")
     print(f"wrote {args.output}")

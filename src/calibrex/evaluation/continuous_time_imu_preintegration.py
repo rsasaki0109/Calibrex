@@ -6,6 +6,7 @@ import math
 from typing import Literal
 
 import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.continuous_time_imu_preintegration import (
     ContinuousTimeImuPreintegrationArtifact,
@@ -21,7 +22,7 @@ from calibrex.core.continuous_time_sparse import (
     imu_preintegration_rmse,
     interpolate_pose_at,
 )
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import SE3, _tuple3
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import se3_exp, se3_log
 
@@ -64,7 +65,7 @@ def run_synthetic_imu_preintegration_recovery(
         se3_exp(knot, np.concatenate([np.zeros(3), rng.normal(0.0, 0.03, 3)]))
         for knot in truth
     )
-    initial_bias = tuple(
+    initial_bias = _tuple3(
         float(value + rng.normal(0.0, 0.01)) for value in _TRUE_GYRO_BIAS_RAD_S
     )
     result = fit_continuous_trajectory(
@@ -181,7 +182,7 @@ def _measurements(
             samples.append(
                 TrajectoryImuGyroSample(
                     timestamp_sec=float(time),
-                    omega_body_rad_s=tuple(float(value) for value in noisy),
+                    omega_body_rad_s=_tuple3(noisy),
                 )
             )
         measurements.append(
@@ -197,7 +198,7 @@ def _body_rate(
     knots: tuple[SE3, ...],
     timestamps: tuple[float, ...],
     timestamp_sec: float,
-) -> np.ndarray:
+) -> NDArray[np.float64]:
     epsilon = 1.0e-3
     t0 = min(max(timestamp_sec, timestamps[0]), timestamps[-1] - epsilon)
     t1 = t0 + epsilon

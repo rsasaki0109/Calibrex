@@ -1,0 +1,887 @@
+{
+  "$defs": {
+    "CameraLidarConfidenceCalibrationCandidate": {
+      "additionalProperties": false,
+      "description": "Support, geometry, and observability gates for one confidence threshold.",
+      "properties": {
+        "accepted_correspondence_count": {
+          "minimum": 0,
+          "title": "Accepted Correspondence Count",
+          "type": "integer"
+        },
+        "accepted_correspondence_rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Accepted Correspondence Rate",
+          "type": "number"
+        },
+        "aggregate_observability": {
+          "$ref": "#/$defs/CameraLidarPoseObservability"
+        },
+        "frames_meeting_geometric_minimum_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frames Meeting Geometric Minimum Count"
+        },
+        "frames_meeting_geometric_minimum_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frames Meeting Geometric Minimum Rate"
+        },
+        "frames_meeting_minimum_count": {
+          "minimum": 0,
+          "title": "Frames Meeting Minimum Count",
+          "type": "integer"
+        },
+        "frames_meeting_minimum_rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Frames Meeting Minimum Rate",
+          "type": "number"
+        },
+        "full_rank_frame_count": {
+          "minimum": 0,
+          "title": "Full Rank Frame Count",
+          "type": "integer"
+        },
+        "full_rank_frame_rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Full Rank Frame Rate",
+          "type": "number"
+        },
+        "gate_pass": {
+          "title": "Gate Pass",
+          "type": "boolean"
+        },
+        "gate_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Gate Reasons",
+          "type": "array"
+        },
+        "geometric_inlier_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geometric Inlier Count"
+        },
+        "geometric_inlier_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geometric Inlier Rate"
+        },
+        "minimum_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Minimum Confidence",
+          "type": "number"
+        },
+        "minimum_holdout_correspondence_count_across_seeds": {
+          "minimum": 0,
+          "title": "Minimum Holdout Correspondence Count Across Seeds",
+          "type": "integer"
+        },
+        "minimum_holdout_geometric_inlier_count_across_seeds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Holdout Geometric Inlier Count Across Seeds"
+        },
+        "minimum_train_correspondence_count_across_seeds": {
+          "minimum": 0,
+          "title": "Minimum Train Correspondence Count Across Seeds",
+          "type": "integer"
+        },
+        "minimum_train_geometric_inlier_count_across_seeds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Train Geometric Inlier Count Across Seeds"
+        },
+        "reprojection_error_px": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarDistributionSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "minimum_confidence",
+        "accepted_correspondence_count",
+        "accepted_correspondence_rate",
+        "frames_meeting_minimum_count",
+        "frames_meeting_minimum_rate",
+        "full_rank_frame_count",
+        "full_rank_frame_rate",
+        "minimum_train_correspondence_count_across_seeds",
+        "minimum_holdout_correspondence_count_across_seeds",
+        "aggregate_observability",
+        "gate_pass"
+      ],
+      "title": "CameraLidarConfidenceCalibrationCandidate",
+      "type": "object"
+    },
+    "CameraLidarDistributionSummary": {
+      "additionalProperties": false,
+      "description": "Deterministic scalar distribution summary.",
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean"
+        },
+        "median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median"
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "p10": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P10"
+        },
+        "p90": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P90"
+        },
+        "p95": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P95"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "title": "CameraLidarDistributionSummary",
+      "type": "object"
+    },
+    "CameraLidarPoseObservability": {
+      "additionalProperties": false,
+      "description": "Scale-normalized local six-DoF information diagnostics.",
+      "properties": {
+        "axis_information_fraction": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Axis Information Fraction",
+          "type": "object"
+        },
+        "condition_number": {
+          "anyOf": [
+            {
+              "minimum": 1.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition Number"
+        },
+        "factor_count": {
+          "minimum": 0,
+          "title": "Factor Count",
+          "type": "integer"
+        },
+        "parameter_order": {
+          "items": {
+            "enum": [
+              "rx",
+              "ry",
+              "rz",
+              "tx",
+              "ty",
+              "tz"
+            ],
+            "type": "string"
+          },
+          "title": "Parameter Order",
+          "type": "array"
+        },
+        "parameter_scales": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "title": "Parameter Scales",
+          "type": "array"
+        },
+        "rank": {
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "singular_values": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "title": "Singular Values",
+          "type": "array"
+        },
+        "weak_axes": {
+          "items": {
+            "enum": [
+              "rx",
+              "ry",
+              "rz",
+              "tx",
+              "ty",
+              "tz"
+            ],
+            "type": "string"
+          },
+          "title": "Weak Axes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parameter_order",
+        "parameter_scales",
+        "factor_count",
+        "singular_values",
+        "rank",
+        "axis_information_fraction",
+        "weak_axes"
+      ],
+      "title": "CameraLidarPoseObservability",
+      "type": "object"
+    },
+    "CameraLidarProviderSupportCandidate": {
+      "additionalProperties": false,
+      "description": "One provider calibration and its support-first diagnostic operating point.",
+      "properties": {
+        "calibration_id": {
+          "title": "Calibration Id",
+          "type": "string"
+        },
+        "calibration_path": {
+          "title": "Calibration Path",
+          "type": "string"
+        },
+        "calibration_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Calibration Sha256",
+          "type": "string"
+        },
+        "calibration_status": {
+          "enum": [
+            "locked",
+            "rejected"
+          ],
+          "title": "Calibration Status",
+          "type": "string"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "correspondence_artifact_id": {
+          "title": "Correspondence Artifact Id",
+          "type": "string"
+        },
+        "correspondence_artifact_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Correspondence Artifact Sha256",
+          "type": "string"
+        },
+        "diagnostic": {
+          "$ref": "#/$defs/CameraLidarConfidenceCalibrationCandidate"
+        },
+        "diagnostic_rank": {
+          "minimum": 1,
+          "title": "Diagnostic Rank",
+          "type": "integer"
+        },
+        "diagnostic_selection_rule_id": {
+          "const": "selected_lock_or_geometry_then_support/v0.1",
+          "default": "selected_lock_or_geometry_then_support/v0.1",
+          "title": "Diagnostic Selection Rule Id",
+          "type": "string"
+        },
+        "pareto_dominated_by": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pareto Dominated By",
+          "type": "array"
+        },
+        "passing_thresholds": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Passing Thresholds",
+          "type": "array"
+        },
+        "provider": {
+          "$ref": "#/$defs/CorrespondenceProviderIdentity"
+        },
+        "runtime_eligible": {
+          "title": "Runtime Eligible",
+          "type": "boolean"
+        },
+        "worst_split_geometric_inlier_count": {
+          "minimum": 0,
+          "title": "Worst Split Geometric Inlier Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "calibration_id",
+        "calibration_path",
+        "calibration_sha256",
+        "correspondence_artifact_id",
+        "correspondence_artifact_sha256",
+        "provider",
+        "calibration_status",
+        "runtime_eligible",
+        "diagnostic",
+        "worst_split_geometric_inlier_count",
+        "diagnostic_rank"
+      ],
+      "title": "CameraLidarProviderSupportCandidate",
+      "type": "object"
+    },
+    "CameraLidarProviderSupportComparisonProvenance": {
+      "additionalProperties": false,
+      "description": "Exact calibration sources and generator identity.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 2,
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "CameraLidarProviderSupportComparisonProvenance",
+      "type": "object"
+    },
+    "CameraLidarProviderSupportProtocol": {
+      "additionalProperties": false,
+      "description": "Common development protocol required from every compared calibration.",
+      "properties": {
+        "calibration_holdout_ratio": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Calibration Holdout Ratio",
+          "type": "number"
+        },
+        "calibration_split_seeds": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Calibration Split Seeds",
+          "type": "array"
+        },
+        "confidence_thresholds": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "title": "Confidence Thresholds",
+          "type": "array"
+        },
+        "dataset_id": {
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "development_reprojection_inlier_threshold_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Development Reprojection Inlier Threshold Px",
+          "type": "number"
+        },
+        "evaluation_data_used_for_selection": {
+          "const": false,
+          "default": false,
+          "title": "Evaluation Data Used For Selection",
+          "type": "boolean"
+        },
+        "evaluation_dataset_ids_excluded": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evaluation Dataset Ids Excluded",
+          "type": "array"
+        },
+        "minimum_frame_correspondence_count": {
+          "minimum": 1,
+          "title": "Minimum Frame Correspondence Count",
+          "type": "integer"
+        },
+        "minimum_frame_geometric_inlier_count": {
+          "minimum": 1,
+          "title": "Minimum Frame Geometric Inlier Count",
+          "type": "integer"
+        },
+        "minimum_frame_geometric_support_rate": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Minimum Frame Geometric Support Rate",
+          "type": "number"
+        },
+        "minimum_frame_support_rate": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Minimum Frame Support Rate",
+          "type": "number"
+        },
+        "minimum_full_rank_frame_rate": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Minimum Full Rank Frame Rate",
+          "type": "number"
+        },
+        "minimum_geometric_inlier_rate": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Minimum Geometric Inlier Rate",
+          "type": "number"
+        },
+        "problem_id": {
+          "title": "Problem Id",
+          "type": "string"
+        },
+        "problem_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Problem Sha256",
+          "type": "string"
+        },
+        "reference_pose_used_for_development_calibration": {
+          "const": true,
+          "default": true,
+          "title": "Reference Pose Used For Development Calibration",
+          "type": "boolean"
+        },
+        "runtime_holdout_used_for_pose_selection": {
+          "const": false,
+          "default": false,
+          "title": "Runtime Holdout Used For Pose Selection",
+          "type": "boolean"
+        },
+        "sequence_id": {
+          "title": "Sequence Id",
+          "type": "string"
+        },
+        "split_id": {
+          "const": "development",
+          "default": "development",
+          "title": "Split Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_id",
+        "sequence_id",
+        "problem_id",
+        "problem_sha256",
+        "evaluation_dataset_ids_excluded",
+        "confidence_thresholds",
+        "calibration_holdout_ratio",
+        "calibration_split_seeds",
+        "minimum_frame_correspondence_count",
+        "minimum_frame_support_rate",
+        "minimum_full_rank_frame_rate",
+        "development_reprojection_inlier_threshold_px",
+        "minimum_geometric_inlier_rate",
+        "minimum_frame_geometric_inlier_count",
+        "minimum_frame_geometric_support_rate"
+      ],
+      "title": "CameraLidarProviderSupportProtocol",
+      "type": "object"
+    },
+    "CorrespondenceProviderIdentity": {
+      "additionalProperties": false,
+      "description": "Identity and redistribution boundary of the external provider.",
+      "properties": {
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DepthFileReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checkpoint_redistribution": {
+          "title": "Checkpoint Redistribution",
+          "type": "string"
+        },
+        "license_spdx": {
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "source_commit": {
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_repository": {
+          "title": "Source Repository",
+          "type": "string"
+        },
+        "training": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrespondenceTrainingDeclaration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "version",
+        "source_repository",
+        "source_commit",
+        "license_spdx",
+        "checkpoint_redistribution"
+      ],
+      "title": "CorrespondenceProviderIdentity",
+      "type": "object"
+    },
+    "CorrespondenceTrainingDeclaration": {
+      "additionalProperties": false,
+      "description": "Training-corpus relationship for a learned correspondence provider.",
+      "properties": {
+        "evaluation_overlap": {
+          "enum": [
+            "none",
+            "possible",
+            "confirmed",
+            "unknown"
+          ],
+          "title": "Evaluation Overlap",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "test_data_used_for_online_refinement": {
+          "title": "Test Data Used For Online Refinement",
+          "type": "boolean"
+        },
+        "training_datasets": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Training Datasets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "training_datasets",
+        "evaluation_overlap",
+        "test_data_used_for_online_refinement",
+        "evidence"
+      ],
+      "title": "CorrespondenceTrainingDeclaration",
+      "type": "object"
+    },
+    "DepthFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed depth-provider input or output file.",
+      "properties": {
+        "encoding": {
+          "title": "Encoding",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "encoding"
+      ],
+      "title": "DepthFileReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Development-only comparison that cannot select a rejected provider.",
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarProviderSupportCandidate"
+      },
+      "minItems": 2,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "comparison_id": {
+      "title": "Comparison Id",
+      "type": "string"
+    },
+    "diagnostic_leader_candidate_id": {
+      "title": "Diagnostic Leader Candidate Id",
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "#/$defs/CameraLidarProviderSupportProtocol"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarProviderSupportComparisonProvenance"
+    },
+    "release_sota_claim_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Release Sota Claim Allowed",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_provider_support_comparison/v0.1",
+      "default": "slac.camera_lidar_provider_support_comparison/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_candidate_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Candidate Id"
+    },
+    "selection_rule_id": {
+      "const": "runtime_eligible_then_geometry_support/v0.1",
+      "default": "runtime_eligible_then_geometry_support/v0.1",
+      "title": "Selection Rule Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "locked",
+        "rejected"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "comparison_id",
+    "status",
+    "protocol",
+    "candidates",
+    "diagnostic_leader_candidate_id",
+    "provenance"
+  ],
+  "title": "CameraLidarProviderSupportComparisonArtifact",
+  "type": "object"
+}

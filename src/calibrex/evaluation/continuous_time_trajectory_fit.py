@@ -26,6 +26,7 @@ from calibrex.core.continuous_time_sparse import (
     TrajectoryPoseMeasurement,
     fit_continuous_trajectory,
 )
+from calibrex.core.geometry import _tuple3
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import TransformResult
 
@@ -144,8 +145,8 @@ def _problem_from_artifacts(
             TrajectoryPointMeasurement(
                 measurement_id=item.measurement_id,
                 timestamp_sec=item.timestamp_sec,
-                point_body_m=tuple(item.point_body_m),
-                target_world_m=tuple(item.target_world_m),
+                point_body_m=_tuple3(item.point_body_m),
+                target_world_m=_tuple3(item.target_world_m),
                 weight=item.weight,
             )
             for item in measurements.point_measurements
@@ -154,9 +155,9 @@ def _problem_from_artifacts(
             TrajectoryPointToPlaneMeasurement(
                 measurement_id=item.measurement_id,
                 timestamp_sec=item.timestamp_sec,
-                point_body_m=tuple(item.point_body_m),
-                plane_point_world_m=tuple(item.plane_point_world_m),
-                plane_normal_world=tuple(item.plane_normal_world),
+                point_body_m=_tuple3(item.point_body_m),
+                plane_point_world_m=_tuple3(item.plane_point_world_m),
+                plane_normal_world=_tuple3(item.plane_normal_world),
                 weight=item.weight,
             )
             for item in measurements.point_to_plane_measurements
@@ -176,7 +177,7 @@ def _problem_from_artifacts(
                 gyro_samples=tuple(
                     TrajectoryImuGyroSample(
                         timestamp_sec=sample.timestamp_sec,
-                        omega_body_rad_s=tuple(sample.omega_body_rad_s),
+                        omega_body_rad_s=_tuple3(sample.omega_body_rad_s),
                     )
                     for sample in item.gyro_samples
                 ),
@@ -188,23 +189,23 @@ def _problem_from_artifacts(
             TrajectoryImuLeverArmMeasurement(
                 measurement_id=item.measurement_id,
                 timestamp_sec=item.timestamp_sec,
-                accel_body_m_s2=tuple(item.accel_body_m_s2),
+                accel_body_m_s2=_tuple3(item.accel_body_m_s2),
                 weight=item.weight,
             )
             for item in measurements.imu_lever_arm_measurements
         ),
-        initial_gyro_bias_rad_s=tuple(measurements.initial_gyro_bias_rad_s),
-        initial_lever_arm_body_m=tuple(measurements.initial_lever_arm_body_m),
+        initial_gyro_bias_rad_s=_tuple3(measurements.initial_gyro_bias_rad_s),
+        initial_lever_arm_body_m=_tuple3(measurements.initial_lever_arm_body_m),
         initial_imu_clock_offset_sec=measurements.initial_imu_clock_offset_sec,
-        initial_accel_bias_body_m_s2=tuple(measurements.initial_accel_bias_body_m_s2),
-        initial_gravity_world_m_s2=tuple(measurements.initial_gravity_world_m_s2),
+        initial_accel_bias_body_m_s2=_tuple3(measurements.initial_accel_bias_body_m_s2),
+        initial_gravity_world_m_s2=_tuple3(measurements.initial_gravity_world_m_s2),
         estimate_gyro_bias=measurements.estimate_gyro_bias,
         estimate_lever_arm=measurements.estimate_lever_arm,
         estimate_imu_clock_offset=measurements.estimate_imu_clock_offset,
         estimate_accel_bias=measurements.estimate_accel_bias,
         estimate_gravity=measurements.estimate_gravity,
-        initial_gyro_scale=tuple(measurements.initial_gyro_scale),
-        initial_accel_scale=tuple(measurements.initial_accel_scale),
+        initial_gyro_scale=_tuple3(measurements.initial_gyro_scale),
+        initial_accel_scale=_tuple3(measurements.initial_accel_scale),
         estimate_gyro_scale=measurements.estimate_gyro_scale,
         estimate_accel_scale=measurements.estimate_accel_scale,
         interpolation="screw_linear",

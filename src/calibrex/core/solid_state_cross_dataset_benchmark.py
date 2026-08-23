@@ -31,6 +31,8 @@ SolidStateCrossDatasetBenchmarkSchemaVersion = Literal[
     "slac.solid_state_cross_dataset_benchmark/v0.2",
 ]
 
+SolidStateContinuousTimeOptionValue = float | int | bool | str | None
+
 BenchmarkReferenceMode = Literal[
     "absolute_extrinsic",
     "identity_control",
@@ -106,6 +108,9 @@ class SolidStateCrossDatasetBenchmarkSpecDataset(StrictModel):
     family: str
     dataset_manifest_path: str
     config_path: str
+    continuous_time_options: dict[str, SolidStateContinuousTimeOptionValue] = Field(
+        default_factory=dict
+    )
     ablation_manifest_path: str
     reference_mode: BenchmarkReferenceMode
     absolute_extrinsic_ground_truth: bool = False
@@ -115,6 +120,22 @@ class SolidStateCrossDatasetBenchmarkSpecDataset(StrictModel):
         default_factory=list
     )
     notes: list[str] = Field(default_factory=list)
+
+    @field_validator("continuous_time_options")
+    @classmethod
+    def validate_continuous_time_options(
+        cls,
+        value: dict[str, SolidStateContinuousTimeOptionValue],
+    ) -> dict[str, SolidStateContinuousTimeOptionValue]:
+        invalid = [
+            key for key in value if not key.startswith("continuous_time_")
+        ]
+        if invalid:
+            raise ValueError(
+                "continuous_time_options keys must start with "
+                f"'continuous_time_': {invalid}"
+            )
+        return value
 
 
 class SolidStateCrossDatasetBenchmarkSpec(StrictModel):

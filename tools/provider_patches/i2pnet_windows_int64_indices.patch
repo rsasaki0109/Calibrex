@@ -1,0 +1,35 @@
+diff --git a/src/projectPN/fused_conv_select/fused_conv_g.cpp b/src/projectPN/fused_conv_select/fused_conv_g.cpp
+--- a/src/projectPN/fused_conv_select/fused_conv_g.cpp
++++ b/src/projectPN/fused_conv_select/fused_conv_g.cpp
+@@ -0,0 +1 @@
++#include <cstdint>
+@@ -55,3 +56,3 @@
+-	long *selected_b_idx = selected_b_idx_tensor.data<long>();
+-	long *selected_h_idx = selected_h_idx_tensor.data<long>();
+-	long *selected_w_idx = selected_w_idx_tensor.data<long>();
++	int64_t *selected_b_idx = selected_b_idx_tensor.data<int64_t>();
++	int64_t *selected_h_idx = selected_h_idx_tensor.data<int64_t>();
++	int64_t *selected_w_idx = selected_w_idx_tensor.data<int64_t>();
+diff --git a/src/projectPN/fused_conv_select/fused_conv_go.cu b/src/projectPN/fused_conv_select/fused_conv_go.cu
+--- a/src/projectPN/fused_conv_select/fused_conv_go.cu
++++ b/src/projectPN/fused_conv_select/fused_conv_go.cu
+@@ -3,0 +4 @@
++#include <cstdint>
+@@ -15 +16 @@
+-                                        long *selected_b_idx, long *selected_h_idx, long *selected_w_idx,
++                                        int64_t *selected_b_idx, int64_t *selected_h_idx, int64_t *selected_w_idx,
+@@ -246 +247 @@
+-                              long *selected_b_idx, long *selected_h_idx, long *selected_w_idx, float *valid_idx,
++                              int64_t *selected_b_idx, int64_t *selected_h_idx, int64_t *selected_w_idx, float *valid_idx,
+diff --git a/src/projectPN/fused_conv_select/fused_conv_gpu.h b/src/projectPN/fused_conv_select/fused_conv_gpu.h
+--- a/src/projectPN/fused_conv_select/fused_conv_gpu.h
++++ b/src/projectPN/fused_conv_select/fused_conv_gpu.h
+@@ -3,0 +4 @@
++#include <cstdint>
+@@ -51,3 +52,3 @@
+-	long *selected_b_idx,
+-	long *selected_h_idx,
+-	long *selected_w_idx,
++	int64_t *selected_b_idx,
++	int64_t *selected_h_idx,
++	int64_t *selected_w_idx,

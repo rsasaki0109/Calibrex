@@ -1,0 +1,1169 @@
+{
+  "$defs": {
+    "CameraLidarInitializerCalibrationCandidate": {
+      "additionalProperties": false,
+      "description": "All seed outcomes and hard-gate summary for one solver setting.",
+      "properties": {
+        "all_seeds_converged": {
+          "title": "All Seeds Converged",
+          "type": "boolean"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "gate_pass": {
+          "title": "Gate Pass",
+          "type": "boolean"
+        },
+        "gate_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Gate Reasons",
+          "type": "array"
+        },
+        "maximum_pairwise_seed_rotation_delta_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Pairwise Seed Rotation Delta Deg"
+        },
+        "maximum_pairwise_seed_translation_delta_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Pairwise Seed Translation Delta M"
+        },
+        "maximum_ransac_inlier_reprojection_rmse_px": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Ransac Inlier Reprojection Rmse Px"
+        },
+        "maximum_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Rotation Error Deg"
+        },
+        "maximum_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Translation Error M"
+        },
+        "minimum_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Minimum Confidence",
+          "type": "number"
+        },
+        "minimum_ransac_inlier_count": {
+          "minimum": 0,
+          "title": "Minimum Ransac Inlier Count",
+          "type": "integer"
+        },
+        "minimum_selected_correspondence_count": {
+          "minimum": 0,
+          "title": "Minimum Selected Correspondence Count",
+          "type": "integer"
+        },
+        "minimum_selected_frame_count": {
+          "minimum": 0,
+          "title": "Minimum Selected Frame Count",
+          "type": "integer"
+        },
+        "ransac_reprojection_threshold_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Ransac Reprojection Threshold Px",
+          "type": "number"
+        },
+        "seed_results": {
+          "items": {
+            "$ref": "#/$defs/CameraLidarInitializerSeedResult"
+          },
+          "minItems": 1,
+          "title": "Seed Results",
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "minimum_confidence",
+        "ransac_reprojection_threshold_px",
+        "seed_results",
+        "all_seeds_converged",
+        "minimum_selected_frame_count",
+        "minimum_selected_correspondence_count",
+        "minimum_ransac_inlier_count",
+        "gate_pass"
+      ],
+      "title": "CameraLidarInitializerCalibrationCandidate",
+      "type": "object"
+    },
+    "CameraLidarInitializerCalibrationProvenance": {
+      "additionalProperties": false,
+      "description": "Digest-bound inputs and exact command for an initializer lock.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 2,
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "CameraLidarInitializerCalibrationProvenance",
+      "type": "object"
+    },
+    "CameraLidarInitializerRecoveryGate": {
+      "additionalProperties": false,
+      "description": "Prespecified development recovery and reproducibility requirements.",
+      "properties": {
+        "maximum_ransac_inlier_reprojection_rmse_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Maximum Ransac Inlier Reprojection Rmse Px",
+          "type": "number"
+        },
+        "maximum_seed_rotation_delta_deg": {
+          "minimum": 0.0,
+          "title": "Maximum Seed Rotation Delta Deg",
+          "type": "number"
+        },
+        "maximum_seed_translation_delta_m": {
+          "minimum": 0.0,
+          "title": "Maximum Seed Translation Delta M",
+          "type": "number"
+        },
+        "minimum_ransac_inlier_count": {
+          "minimum": 4,
+          "title": "Minimum Ransac Inlier Count",
+          "type": "integer"
+        },
+        "minimum_selected_correspondence_count": {
+          "minimum": 4,
+          "title": "Minimum Selected Correspondence Count",
+          "type": "integer"
+        },
+        "minimum_selected_frame_count": {
+          "minimum": 1,
+          "title": "Minimum Selected Frame Count",
+          "type": "integer"
+        },
+        "rotation_error_max_deg": {
+          "exclusiveMinimum": 0.0,
+          "title": "Rotation Error Max Deg",
+          "type": "number"
+        },
+        "translation_error_max_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Translation Error Max M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rotation_error_max_deg",
+        "translation_error_max_m",
+        "minimum_selected_frame_count",
+        "minimum_selected_correspondence_count",
+        "minimum_ransac_inlier_count",
+        "maximum_ransac_inlier_reprojection_rmse_px",
+        "maximum_seed_rotation_delta_deg",
+        "maximum_seed_translation_delta_m"
+      ],
+      "title": "CameraLidarInitializerRecoveryGate",
+      "type": "object"
+    },
+    "CameraLidarInitializerSeedResult": {
+      "additionalProperties": false,
+      "description": "One deterministic OpenCV seed outcome for a grid candidate.",
+      "properties": {
+        "random_seed": {
+          "title": "Random Seed",
+          "type": "integer"
+        },
+        "ransac_inlier_count": {
+          "minimum": 0,
+          "title": "Ransac Inlier Count",
+          "type": "integer"
+        },
+        "ransac_inlier_reprojection_rmse_px": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ransac Inlier Reprojection Rmse Px"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Error Deg"
+        },
+        "selected_correspondence_count": {
+          "minimum": 0,
+          "title": "Selected Correspondence Count",
+          "type": "integer"
+        },
+        "source_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Frame Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "converged",
+            "unavailable",
+            "failed",
+            "insufficient_correspondences",
+            "unsupported_camera"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "transform_camera_lidar": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransformResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Error M"
+        }
+      },
+      "required": [
+        "random_seed",
+        "status",
+        "selected_correspondence_count",
+        "ransac_inlier_count",
+        "reason"
+      ],
+      "title": "CameraLidarInitializerSeedResult",
+      "type": "object"
+    },
+    "CameraLidarLockedInitializerOptions": {
+      "additionalProperties": false,
+      "description": "Exact provider-independent aggregate PnP options frozen on development.",
+      "properties": {
+        "adapter_version": {
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "evaluation_random_seeds": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Evaluation Random Seeds",
+          "type": "array"
+        },
+        "frame_selection_rule_id": {
+          "const": "minimum_effective_confidence_and_frame_correspondence_support/v0.1",
+          "default": "minimum_effective_confidence_and_frame_correspondence_support/v0.1",
+          "title": "Frame Selection Rule Id",
+          "type": "string"
+        },
+        "initialization_source": {
+          "const": "none",
+          "default": "none",
+          "title": "Initialization Source",
+          "type": "string"
+        },
+        "mahalanobis_inlier_threshold": {
+          "exclusiveMinimum": 0.0,
+          "title": "Mahalanobis Inlier Threshold",
+          "type": "number"
+        },
+        "method": {
+          "const": "opencv_probabilistic_aggregate_pnp_ransac/v0.3",
+          "default": "opencv_probabilistic_aggregate_pnp_ransac/v0.3",
+          "title": "Method",
+          "type": "string"
+        },
+        "minimum_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Minimum Confidence",
+          "type": "number"
+        },
+        "minimum_correspondences": {
+          "minimum": 4,
+          "title": "Minimum Correspondences",
+          "type": "integer"
+        },
+        "minimum_frame_correspondences": {
+          "minimum": 4,
+          "title": "Minimum Frame Correspondences",
+          "type": "integer"
+        },
+        "minimum_frames": {
+          "minimum": 1,
+          "title": "Minimum Frames",
+          "type": "integer"
+        },
+        "opencv_version": {
+          "title": "Opencv Version",
+          "type": "string"
+        },
+        "ransac_confidence": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Ransac Confidence",
+          "type": "number"
+        },
+        "ransac_iterations": {
+          "minimum": 1,
+          "title": "Ransac Iterations",
+          "type": "integer"
+        },
+        "ransac_reprojection_threshold_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Ransac Reprojection Threshold Px",
+          "type": "number"
+        }
+      },
+      "required": [
+        "adapter_version",
+        "opencv_version",
+        "minimum_confidence",
+        "minimum_correspondences",
+        "minimum_frame_correspondences",
+        "minimum_frames",
+        "ransac_reprojection_threshold_px",
+        "ransac_confidence",
+        "ransac_iterations",
+        "mahalanobis_inlier_threshold",
+        "evaluation_random_seeds"
+      ],
+      "title": "CameraLidarLockedInitializerOptions",
+      "type": "object"
+    },
+    "CorrespondenceProviderIdentity": {
+      "additionalProperties": false,
+      "description": "Identity and redistribution boundary of the external provider.",
+      "properties": {
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DepthFileReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checkpoint_redistribution": {
+          "title": "Checkpoint Redistribution",
+          "type": "string"
+        },
+        "license_spdx": {
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "source_commit": {
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_repository": {
+          "title": "Source Repository",
+          "type": "string"
+        },
+        "training": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrespondenceTrainingDeclaration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "version",
+        "source_repository",
+        "source_commit",
+        "license_spdx",
+        "checkpoint_redistribution"
+      ],
+      "title": "CorrespondenceProviderIdentity",
+      "type": "object"
+    },
+    "CorrespondenceTrainingDeclaration": {
+      "additionalProperties": false,
+      "description": "Training-corpus relationship for a learned correspondence provider.",
+      "properties": {
+        "evaluation_overlap": {
+          "enum": [
+            "none",
+            "possible",
+            "confirmed",
+            "unknown"
+          ],
+          "title": "Evaluation Overlap",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "test_data_used_for_online_refinement": {
+          "title": "Test Data Used For Online Refinement",
+          "type": "boolean"
+        },
+        "training_datasets": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Training Datasets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "training_datasets",
+        "evaluation_overlap",
+        "test_data_used_for_online_refinement",
+        "evidence"
+      ],
+      "title": "CorrespondenceTrainingDeclaration",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "DepthFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed depth-provider input or output file.",
+      "properties": {
+        "encoding": {
+          "title": "Encoding",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "encoding"
+      ],
+      "title": "DepthFileReference",
+      "type": "object"
+    },
+    "ProbabilisticPnpToolIdentity": {
+      "additionalProperties": false,
+      "description": "External pose-estimator identity and license boundary.",
+      "properties": {
+        "api_reference": {
+          "title": "Api Reference",
+          "type": "string"
+        },
+        "execution_mode": {
+          "enum": [
+            "optional_import",
+            "subprocess",
+            "container"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "name",
+        "source_url",
+        "api_reference",
+        "license_spdx",
+        "execution_mode"
+      ],
+      "title": "ProbabilisticPnpToolIdentity",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reference-scored development grid and immutable aggregate-PnP lock.",
+  "properties": {
+    "adapter_version": {
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "calibration_id": {
+      "title": "Calibration Id",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarInitializerCalibrationCandidate"
+      },
+      "minItems": 2,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "correspondence_artifact_id": {
+      "title": "Correspondence Artifact Id",
+      "type": "string"
+    },
+    "correspondence_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Correspondence Artifact Sha256",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "evaluation_data_used_for_selection": {
+      "const": false,
+      "default": false,
+      "title": "Evaluation Data Used For Selection",
+      "type": "boolean"
+    },
+    "evaluation_dataset_ids_excluded": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Evaluation Dataset Ids Excluded",
+      "type": "array"
+    },
+    "frame_selection_rule_id": {
+      "const": "minimum_effective_confidence_and_frame_correspondence_support/v0.1",
+      "default": "minimum_effective_confidence_and_frame_correspondence_support/v0.1",
+      "title": "Frame Selection Rule Id",
+      "type": "string"
+    },
+    "locked_initializer_options": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraLidarLockedInitializerOptions"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "mahalanobis_inlier_threshold": {
+      "exclusiveMinimum": 0.0,
+      "title": "Mahalanobis Inlier Threshold",
+      "type": "number"
+    },
+    "method": {
+      "const": "opencv_probabilistic_aggregate_pnp_ransac/v0.3",
+      "default": "opencv_probabilistic_aggregate_pnp_ransac/v0.3",
+      "title": "Method",
+      "type": "string"
+    },
+    "minimum_correspondences": {
+      "minimum": 4,
+      "title": "Minimum Correspondences",
+      "type": "integer"
+    },
+    "minimum_frame_correspondences": {
+      "minimum": 4,
+      "title": "Minimum Frame Correspondences",
+      "type": "integer"
+    },
+    "minimum_frames": {
+      "minimum": 1,
+      "title": "Minimum Frames",
+      "type": "integer"
+    },
+    "problem_id": {
+      "title": "Problem Id",
+      "type": "string"
+    },
+    "problem_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Problem Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarInitializerCalibrationProvenance"
+    },
+    "provider": {
+      "$ref": "#/$defs/CorrespondenceProviderIdentity"
+    },
+    "random_seeds": {
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Random Seeds",
+      "type": "array"
+    },
+    "ransac_confidence": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Ransac Confidence",
+      "type": "number"
+    },
+    "ransac_iterations": {
+      "minimum": 1,
+      "title": "Ransac Iterations",
+      "type": "integer"
+    },
+    "recovery_gate": {
+      "$ref": "#/$defs/CameraLidarInitializerRecoveryGate"
+    },
+    "reference_pose_used_for_development_calibration": {
+      "const": true,
+      "default": true,
+      "title": "Reference Pose Used For Development Calibration",
+      "type": "boolean"
+    },
+    "release_sota_claim_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Release Sota Claim Allowed",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_initializer_calibration/v0.1",
+      "default": "slac.camera_lidar_initializer_calibration/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_candidate_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Candidate Id"
+    },
+    "selection_rule_id": {
+      "const": "highest_confidence_then_lowest_ransac_threshold_passing_recovery/v0.1",
+      "default": "highest_confidence_then_lowest_ransac_threshold_passing_recovery/v0.1",
+      "title": "Selection Rule Id",
+      "type": "string"
+    },
+    "sequence_id": {
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "split_id": {
+      "const": "development",
+      "title": "Split Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "locked",
+        "rejected"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "tool": {
+      "$ref": "#/$defs/ProbabilisticPnpToolIdentity"
+    }
+  },
+  "required": [
+    "status",
+    "calibration_id",
+    "dataset_id",
+    "sequence_id",
+    "split_id",
+    "problem_id",
+    "problem_sha256",
+    "correspondence_artifact_id",
+    "correspondence_artifact_sha256",
+    "provider",
+    "tool",
+    "adapter_version",
+    "evaluation_dataset_ids_excluded",
+    "random_seeds",
+    "minimum_correspondences",
+    "minimum_frame_correspondences",
+    "minimum_frames",
+    "ransac_confidence",
+    "ransac_iterations",
+    "mahalanobis_inlier_threshold",
+    "recovery_gate",
+    "candidates",
+    "provenance"
+  ],
+  "title": "CameraLidarInitializerCalibrationArtifact",
+  "type": "object"
+}

@@ -1,0 +1,816 @@
+{
+  "$defs": {
+    "CameraLidarFailureAnalysisProvenance": {
+      "additionalProperties": false,
+      "description": "Digest-bound inputs used to derive the failure analysis.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generator": {
+          "default": "calibrex.evaluation.camera_lidar_failure_analysis",
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "default": "v0.1",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Source Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source_paths",
+        "source_sha256"
+      ],
+      "title": "CameraLidarFailureAnalysisProvenance",
+      "type": "object"
+    },
+    "CameraLidarFailureCase": {
+      "additionalProperties": false,
+      "description": "One D2D initialization and probabilistic refinement outcome.",
+      "properties": {
+        "acceptance_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Acceptance Reasons",
+          "type": "array"
+        },
+        "candidate_accepted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Accepted"
+        },
+        "candidate_holdout_degradation": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Degradation"
+        },
+        "candidate_holdout_rmse_px": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Rmse Px"
+        },
+        "candidate_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Rotation Error Deg"
+        },
+        "candidate_rotation_failure": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Rotation Failure"
+        },
+        "candidate_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Translation Error M"
+        },
+        "candidate_translation_failure": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Translation Failure"
+        },
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "d2d_initial_hit": {
+          "title": "D2D Initial Hit",
+          "type": "boolean"
+        },
+        "d2d_initial_rotation_error_deg": {
+          "minimum": 0.0,
+          "title": "D2D Initial Rotation Error Deg",
+          "type": "number"
+        },
+        "d2d_initial_translation_error_m": {
+          "minimum": 0.0,
+          "title": "D2D Initial Translation Error M",
+          "type": "number"
+        },
+        "d2d_status": {
+          "title": "D2D Status",
+          "type": "string"
+        },
+        "diagnosis": {
+          "title": "Diagnosis",
+          "type": "string"
+        },
+        "failure_categories": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failure Categories",
+          "type": "array"
+        },
+        "final_holdout_rmse_px": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Holdout Rmse Px"
+        },
+        "final_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Rotation Error Deg"
+        },
+        "final_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Translation Error M"
+        },
+        "holdout_degradation": {
+          "title": "Holdout Degradation",
+          "type": "boolean"
+        },
+        "initial_holdout_rmse_px": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial Holdout Rmse Px"
+        },
+        "initial_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial Rotation Error Deg"
+        },
+        "initial_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial Translation Error M"
+        },
+        "initialization_trace_path": {
+          "title": "Initialization Trace Path",
+          "type": "string"
+        },
+        "initialization_trace_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Initialization Trace Sha256",
+          "type": "string"
+        },
+        "refinement_status": {
+          "title": "Refinement Status",
+          "type": "string"
+        },
+        "result_path": {
+          "title": "Result Path",
+          "type": "string"
+        },
+        "result_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Result Sha256",
+          "type": "string"
+        },
+        "rotation_failure": {
+          "title": "Rotation Failure",
+          "type": "boolean"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "selected_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "refined_candidate",
+                "initializer_rollback"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Source"
+        },
+        "translation_failure": {
+          "title": "Translation Failure",
+          "type": "boolean"
+        },
+        "trial_id": {
+          "title": "Trial Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "trial_id",
+        "seed",
+        "result_path",
+        "result_sha256",
+        "initialization_trace_path",
+        "initialization_trace_sha256",
+        "d2d_status",
+        "refinement_status",
+        "d2d_initial_hit",
+        "d2d_initial_rotation_error_deg",
+        "d2d_initial_translation_error_m",
+        "rotation_failure",
+        "translation_failure",
+        "holdout_degradation",
+        "diagnosis"
+      ],
+      "title": "CameraLidarFailureCase",
+      "type": "object"
+    },
+    "CameraLidarFailureFinding": {
+      "additionalProperties": false,
+      "description": "An observed pattern with an explicit non-causal caveat.",
+      "properties": {
+        "caveat": {
+          "title": "Caveat",
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "candidate_cause"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "supporting_case_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Case Ids",
+          "type": "array"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "severity",
+        "confidence",
+        "title",
+        "evidence",
+        "caveat"
+      ],
+      "title": "CameraLidarFailureFinding",
+      "type": "object"
+    },
+    "CameraLidarFailureSummary": {
+      "additionalProperties": false,
+      "description": "Aggregate pose and holdout failure statistics.",
+      "properties": {
+        "candidate_accepted_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Accepted Count"
+        },
+        "candidate_accepted_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Accepted Rate"
+        },
+        "candidate_holdout_degradation_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Degradation Count"
+        },
+        "candidate_holdout_degradation_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Holdout Degradation Rate"
+        },
+        "candidate_rotation_failure_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Rotation Failure Count"
+        },
+        "candidate_rotation_failure_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Rotation Failure Rate"
+        },
+        "candidate_translation_failure_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Translation Failure Count"
+        },
+        "candidate_translation_failure_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Translation Failure Rate"
+        },
+        "case_count": {
+          "minimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "d2d_initial_hit_count": {
+          "minimum": 0,
+          "title": "D2D Initial Hit Count",
+          "type": "integer"
+        },
+        "d2d_initial_hit_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "D2D Initial Hit Rate"
+        },
+        "diagnosis_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Diagnosis Counts",
+          "type": "object"
+        },
+        "holdout_degradation_count": {
+          "minimum": 0,
+          "title": "Holdout Degradation Count",
+          "type": "integer"
+        },
+        "holdout_degradation_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Degradation Rate"
+        },
+        "initializer_rollback_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initializer Rollback Count"
+        },
+        "initializer_rollback_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initializer Rollback Rate"
+        },
+        "mean_final_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Final Rotation Error Deg"
+        },
+        "mean_final_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Final Translation Error M"
+        },
+        "p90_final_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P90 Final Rotation Error Deg"
+        },
+        "p90_final_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P90 Final Translation Error M"
+        },
+        "refinement_converged_count": {
+          "minimum": 0,
+          "title": "Refinement Converged Count",
+          "type": "integer"
+        },
+        "refinement_converged_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refinement Converged Rate"
+        },
+        "rotation_failure_count": {
+          "minimum": 0,
+          "title": "Rotation Failure Count",
+          "type": "integer"
+        },
+        "rotation_failure_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Failure Rate"
+        },
+        "scored_case_count": {
+          "minimum": 0,
+          "title": "Scored Case Count",
+          "type": "integer"
+        },
+        "translation_failure_count": {
+          "minimum": 0,
+          "title": "Translation Failure Count",
+          "type": "integer"
+        },
+        "translation_failure_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Failure Rate"
+        }
+      },
+      "required": [
+        "case_count",
+        "scored_case_count",
+        "d2d_initial_hit_count",
+        "refinement_converged_count",
+        "rotation_failure_count",
+        "translation_failure_count",
+        "holdout_degradation_count"
+      ],
+      "title": "CameraLidarFailureSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Observed translation/rotation failure profile for one frozen run.",
+  "properties": {
+    "analysis_scope": {
+      "title": "Analysis Scope",
+      "type": "string"
+    },
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarFailureCase"
+      },
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "conclusion": {
+      "title": "Conclusion",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarFailureFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "protocol_path": {
+      "title": "Protocol Path",
+      "type": "string"
+    },
+    "protocol_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarFailureAnalysisProvenance"
+    },
+    "rotation_threshold_deg": {
+      "exclusiveMinimum": 0.0,
+      "title": "Rotation Threshold Deg",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_failure_analysis/v0.1",
+      "default": "slac.camera_lidar_failure_analysis/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/CameraLidarFailureSummary"
+    },
+    "translation_threshold_m": {
+      "exclusiveMinimum": 0.0,
+      "title": "Translation Threshold M",
+      "type": "number"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "dataset_id",
+    "protocol_id",
+    "protocol_sha256",
+    "protocol_path",
+    "rotation_threshold_deg",
+    "translation_threshold_m",
+    "analysis_scope",
+    "summary",
+    "cases",
+    "conclusion",
+    "provenance"
+  ],
+  "title": "CameraLidarFailureAnalysisArtifact",
+  "type": "object"
+}

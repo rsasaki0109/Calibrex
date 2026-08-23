@@ -1,0 +1,87 @@
+schema_version: slac.koide_execution_lock/v0.1
+lock_id: koide-commercial-humble-manual-v20260824
+profile: commercial
+source:
+  repository: https://github.com/koide3/direct_visual_lidar_calibration
+  commit: 02a0dc039f5509708f384be4ff3228e0ae09352d
+  license_spdx: MIT
+  documentation_urls:
+    - https://koide3.github.io/direct_visual_lidar_calibration/installation/
+    - https://koide3.github.io/direct_visual_lidar_calibration/docker/
+    - https://koide3.github.io/direct_visual_lidar_calibration/collection/
+    - https://koide3.github.io/direct_visual_lidar_calibration/example/
+    - https://github.com/koide3/direct_visual_lidar_calibration/tree/02a0dc039f5509708f384be4ff3228e0ae09352d
+image:
+  repository: koide3/direct_visual_lidar_calibration
+  tag: humble
+  digest: koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb
+  base_image: koide3/gtsam_docker:humble
+  base_image_digest: null
+  base_image_digest_required_for_rebuild: true
+container:
+  engine: docker
+  network_mode: none
+  input_mount_readonly: true
+  output_mount_writable: true
+  rootfs_readonly: true
+  source_image: koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb
+initial_guess_mode: manual
+superglue_policy: excluded
+stages:
+  - name: preprocess
+    argv: [ros2, run, direct_visual_lidar_calibration, preprocess, -a, /tmp/input_bags, /tmp/preprocessed]
+    official_documentation_url: https://koide3.github.io/direct_visual_lidar_calibration/docker/
+    requires_manual_gui: false
+  - name: initial_guess
+    argv: [ros2, run, direct_visual_lidar_calibration, initial_guess_manual, /tmp/preprocessed]
+    official_documentation_url: https://koide3.github.io/direct_visual_lidar_calibration/example/
+    requires_manual_gui: true
+  - name: calibrate
+    argv: [ros2, run, direct_visual_lidar_calibration, calibrate, /tmp/preprocessed]
+    official_documentation_url: https://koide3.github.io/direct_visual_lidar_calibration/example/
+    requires_manual_gui: false
+dataset_contract:
+  capture_format: ros2-bag
+  required_message_types:
+    - sensor_msgs/msg/Image
+    - sensor_msgs/msg/PointCloud2
+    - sensor_msgs/msg/CameraInfo
+  camera_intrinsics_precalibrated: true
+  rigid_mount_required: true
+  minimum_pairings: 1
+  operator_capture_note: >-
+    Calibrate camera intrinsics first, rigidly fix the camera and LiDAR, record
+    Image and PointCloud2 messages (CameraInfo is recommended), and keep the
+    sensor at rest at the beginning of each bag. The upstream guide recommends
+    10-15 seconds stationary for a non-repetitive Livox and slow up/down motion
+    for a spinning Ouster; several bags improve results.
+operator_steps:
+  - >-
+    Use a user-owned ROS 2 bag with the declared Image, PointCloud2, and
+    CameraInfo topics; do not use the A2D2 sample as a Koide score input.
+  - >-
+    Run `calibrex doctor --workflow koide --config <config.yaml> --output
+    <readiness.yaml>` and stop unless the readiness artifact is ready.
+  - >-
+    Pull and verify the pinned image digest with Docker or Podman; the local
+    host must provide the container runtime and a GUI for manual initialization.
+  - >-
+    Run the three locked stages in order: preprocess, initial_guess_manual,
+    then calibrate. Keep input mounts read-only, output writable only, and
+    networking disabled.
+  - >-
+    Import the native `calib.json` with `calibrex external-run import-koide`,
+    supplying the exact fitting input inventory, source commit, MIT license,
+    and training-isolation evidence.
+  - >-
+    Run `calibrex camera-lidar benchmark-koide-pilot` on a supported KITTI raw
+    sequence with a frozen, frame-disjoint holdout; A2D2 remains a readiness
+    diagnostic and is explicitly unsupported by this pilot.
+  - >-
+    Export to Autoware only when the pilot is `PASS` with
+    `adoption_decision: ADOPT`; a blocked, warning, or imported-only artifact
+    is not an accepted calibration.
+  - >-
+    If rebuilding the image, resolve and record the base image digest first;
+    the upstream Dockerfile publishes only the mutable base tag in this lock.
+lock_sha256: acb4add1590992e060fb43e09f998644e6a8d65410406c1df09bba267c675f28

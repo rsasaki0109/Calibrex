@@ -391,6 +391,18 @@
       "title": "Artifact Id",
       "type": "string"
     },
+    "dataset_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset Family"
+    },
     "dataset_id": {
       "title": "Dataset Id",
       "type": "string"
@@ -426,6 +438,18 @@
       "default": "slac.probabilistic_correspondence/v0.1",
       "title": "Schema Version",
       "type": "string"
+    },
+    "sequence_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sequence Id"
     },
     "split_id": {
       "title": "Split Id",
