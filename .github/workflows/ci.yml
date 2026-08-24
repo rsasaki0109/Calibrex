@@ -65,6 +65,19 @@ jobs:
           calibrex camera-imu-service verify \
             /tmp/camera-imu-service/evaluation/evaluation.yaml \
             --plan /tmp/camera-imu-service/plan/plan.yaml --json
+      - name: Synthetic radar service smoke
+        run: |
+          calibrex validate examples/radar_service/synthetic/plan.yaml \
+            --kind radar-service-plan --json
+          calibrex radar-service plan \
+            examples/radar_service/synthetic/plan.yaml \
+            --output /tmp/radar-service/plan/plan.yaml --json
+          calibrex radar-service evaluate \
+            /tmp/radar-service/plan/plan.yaml \
+            --output /tmp/radar-service/evaluation/evaluation.yaml --json
+          calibrex radar-service verify \
+            /tmp/radar-service/evaluation/evaluation.yaml \
+            --plan /tmp/radar-service/plan/plan.yaml --json
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

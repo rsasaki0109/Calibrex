@@ -138,6 +138,10 @@ from calibrex.core.probabilistic_correspondence import (
     probabilistic_pnp_result_json_schema,
     probabilistic_refinement_result_json_schema,
 )
+from calibrex.core.radar_service import (
+    radar_service_evaluation_json_schema,
+    radar_service_plan_json_schema,
+)
 from calibrex.core.report_artifacts import report_artifact_json_schema
 from calibrex.core.result import load_result, result_json_schema
 from calibrex.core.solid_state import solid_state_context_json_schema
@@ -190,6 +194,8 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "multi_lidar_service_evaluation.schema.json": multi_lidar_service_evaluation_json_schema,
         "camera_imu_service_plan.schema.json": camera_imu_service_plan_json_schema,
         "camera_imu_service_evaluation.schema.json": camera_imu_service_evaluation_json_schema,
+        "radar_service_plan.schema.json": radar_service_plan_json_schema,
+        "radar_service_evaluation.schema.json": radar_service_evaluation_json_schema,
         "comparison.schema.json": comparison_json_schema,
         "report_comparison.schema.json": report_comparison_json_schema,
         "dynamic_window_consistency.schema.json": dynamic_window_consistency_json_schema,

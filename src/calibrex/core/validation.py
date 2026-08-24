@@ -222,6 +222,12 @@ from calibrex.core.probabilistic_correspondence import (
     ProbabilisticPnpResultArtifact,
     ProbabilisticRefinementResultArtifact,
 )
+from calibrex.core.radar_service import (
+    RADAR_SERVICE_EVALUATION_SCHEMA_VERSION,
+    RADAR_SERVICE_PLAN_SCHEMA_VERSION,
+    RadarServiceEvaluation,
+    RadarServicePlan,
+)
 from calibrex.core.raw_replay import (
     FIELD_REPLACEMENT_PILOT_SCHEMA_VERSION,
     RAW_REPLAY_COMPARISON_SCHEMA_VERSION,
@@ -430,6 +436,8 @@ ValidationKind = Literal[
     "multi-lidar-service-evaluation",
     "camera-imu-service-plan",
     "camera-imu-service-evaluation",
+    "radar-service-plan",
+    "radar-service-evaluation",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -543,6 +551,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "multi-lidar-service-evaluation": MultiLidarServiceEvaluation,
     "camera-imu-service-plan": CameraImuServicePlan,
     "camera-imu-service-evaluation": CameraImuServiceEvaluation,
+    "radar-service-plan": RadarServicePlan,
+    "radar-service-evaluation": RadarServiceEvaluation,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -690,6 +700,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     MULTI_LIDAR_SERVICE_EVALUATION_SCHEMA_VERSION: "multi-lidar-service-evaluation",
     CAMERA_IMU_SERVICE_PLAN_SCHEMA_VERSION: "camera-imu-service-plan",
     CAMERA_IMU_SERVICE_EVALUATION_SCHEMA_VERSION: "camera-imu-service-evaluation",
+    RADAR_SERVICE_PLAN_SCHEMA_VERSION: "radar-service-plan",
+    RADAR_SERVICE_EVALUATION_SCHEMA_VERSION: "radar-service-evaluation",
 }
 
 
@@ -743,6 +755,8 @@ def validate_file(
             MultiLidarServiceEvaluation,
             CameraImuServicePlan,
             CameraImuServiceEvaluation,
+            RadarServicePlan,
+            RadarServiceEvaluation,
         ),
     ):
         validated.verify_artifact_digest()

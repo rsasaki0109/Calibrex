@@ -203,6 +203,13 @@ from calibrex.core.probabilistic_correspondence import (
     probabilistic_refinement_result_json_schema,
 )
 from calibrex.core.provenance import sha256_path
+from calibrex.core.radar_service import (
+    build_radar_service_plan,
+    evaluate_radar_service,
+    radar_service_evaluation_json_schema,
+    radar_service_plan_json_schema,
+    verify_radar_service,
+)
 from calibrex.core.raw_replay import (
     compare_raw_replays,
     field_replacement_pilot_json_schema,
@@ -674,6 +681,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "multi-lidar-service-evaluation",
             "camera-imu-service-plan",
             "camera-imu-service-evaluation",
+            "radar-service-plan",
+            "radar-service-evaluation",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -863,6 +872,45 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     camera_imu_verify.add_argument("--json", action="store_true")
     camera_imu_verify.set_defaults(func=_cmd_camera_imu_service_verify)
+
+    radar_service = subcommands.add_parser(
+        "radar-service",
+        help="digest-bound, read-only automotive radar replacement planning and evaluation",
+    )
+    radar_service_subcommands = radar_service.add_subparsers(
+        dest="radar_service_command", required=True
+    )
+    radar_plan = radar_service_subcommands.add_parser(
+        "plan", help="verify inputs and write a read-only radar replacement plan"
+    )
+    radar_plan.add_argument("definition", type=Path)
+    radar_plan.add_argument("--output", type=Path, required=True)
+    radar_plan.add_argument("--json", action="store_true")
+    radar_plan.set_defaults(func=_cmd_radar_service_plan)
+
+    radar_evaluate = radar_service_subcommands.add_parser(
+        "evaluate", help="evaluate replay, evidence, metric, and component gates"
+    )
+    radar_evaluate.add_argument("plan", type=Path)
+    radar_evaluate.add_argument(
+        "--candidate-replay",
+        type=Path,
+        help="candidate raw-replay result (defaults to the plan reference)",
+    )
+    radar_evaluate.add_argument("--output", type=Path, required=True)
+    radar_evaluate.add_argument("--evaluation-id")
+    radar_evaluate.add_argument("--json", action="store_true")
+    radar_evaluate.set_defaults(func=_cmd_radar_service_evaluate)
+
+    radar_verify = radar_service_subcommands.add_parser(
+        "verify", help="verify a radar plan or evaluation and all source digests"
+    )
+    radar_verify.add_argument("artifact", type=Path)
+    radar_verify.add_argument(
+        "--plan", type=Path, help="plan to bind when verifying an evaluation"
+    )
+    radar_verify.add_argument("--json", action="store_true")
+    radar_verify.set_defaults(func=_cmd_radar_service_verify)
 
     verify = subcommands.add_parser(
         "verify",
@@ -2863,6 +2911,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "multi-lidar-service-evaluation": multi_lidar_service_evaluation_json_schema,
         "camera-imu-service-plan": camera_imu_service_plan_json_schema,
         "camera-imu-service-evaluation": camera_imu_service_evaluation_json_schema,
+        "radar-service-plan": radar_service_plan_json_schema,
+        "radar-service-evaluation": radar_service_evaluation_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -3144,6 +3194,60 @@ def _cmd_camera_imu_service_evaluate(args: argparse.Namespace) -> int:
 
 def _cmd_camera_imu_service_verify(args: argparse.Namespace) -> int:
     verification = verify_camera_imu_service(args.artifact, plan=args.plan)
+    _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
+    return 0 if verification.valid else 1
+
+
+def _cmd_radar_service_plan(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "radar-service",
+        "plan",
+        str(args.definition),
+        "--output",
+        str(args.output),
+    ]
+    plan = build_radar_service_plan(args.definition, output=args.output, command=command)
+    _emit(
+        {
+            **plan.model_dump(mode="json", exclude_none=False),
+            "plan": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_radar_service_evaluate(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "radar-service",
+        "evaluate",
+        str(args.plan),
+        "--output",
+        str(args.output),
+    ]
+    if args.candidate_replay is not None:
+        command.extend(["--candidate-replay", str(args.candidate_replay)])
+    evaluation = evaluate_radar_service(
+        args.plan,
+        candidate_replay=args.candidate_replay,
+        output=args.output,
+        evaluation_id=args.evaluation_id,
+        command=command,
+    )
+    _emit(
+        {
+            **evaluation.model_dump(mode="json", exclude_none=False),
+            "evaluation": str(args.output),
+        },
+        args.json,
+    )
+    return 0 if evaluation.status == "READY" else 1
+
+
+def _cmd_radar_service_verify(args: argparse.Namespace) -> int:
+    verification = verify_radar_service(args.artifact, plan=args.plan)
     _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
     return 0 if verification.valid else 1
 

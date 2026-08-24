@@ -1,0 +1,15 @@
+{
+  "role": "holdout",
+  "protocol_id": "radar_serial_mount_replacement_synthetic/v0.1",
+  "capture_id": "radar-capture-synthetic-v01",
+  "doppler_sign_convention": "positive_away",
+  "frame_convention": "radar_sensor_frame_x_forward_y_left_z_up",
+  "metric_observations": [
+    {"metric_id": "range_bias_m", "value": 0.03, "unit": "m", "split": "holdout", "status": "PASS"},
+    {"metric_id": "azimuth_bias_deg", "value": 0.4, "unit": "deg", "split": "holdout", "status": "PASS"},
+    {"metric_id": "doppler_scale_error_ratio", "value": 0.01, "unit": "ratio", "split": "holdout", "status": "PASS"},
+    {"metric_id": "time_offset_s", "value": 0.001, "unit": "s", "split": "holdout", "status": "PASS"},
+    {"metric_id": "radar_lidar_association_rmse_m", "value": 0.08, "unit": "m", "split": "holdout", "status": "PASS"},
+    {"metric_id": "fov_overlap_ratio", "value": 0.9, "unit": "ratio", "split": "holdout", "status": "PASS"}
+  ]
+}

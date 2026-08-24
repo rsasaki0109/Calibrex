@@ -1,0 +1,141 @@
+schema_version: slac.radar_service_plan/v0.1
+plan_id: synthetic-radar-service
+vehicle_id: vehicle-synthetic
+sensor_kit_id: kit-synthetic
+old_radar:
+  sensor_id: radar-old
+  serial: RADAR-OLD-001
+  model: synthetic-radar
+  firmware: '1.0'
+  mount: front-bumper
+  frame: radar_old
+  sensor_type: radar
+  sensor_kit_id: null
+new_radar:
+  sensor_id: radar-new
+  serial: RADAR-NEW-002
+  model: synthetic-radar
+  firmware: '1.0'
+  mount: front-bumper
+  frame: radar_new
+  sensor_type: radar
+  sensor_kit_id: null
+candidate_replay:
+  role: candidate_replay
+  path: candidate-replay.json
+  sha256: cb0e0fe8900a751342b817890cafce5c40c19731e5627c13060cb1c8755f646c
+  size_bytes: null
+  schema_version: null
+  artifact_sha256: null
+  payload: null
+required_evidence_roles:
+- protocol
+- capture
+- holdout
+- known_bad
+- observability
+- radar_lidar_association
+- radar_camera
+evidence:
+  protocol:
+    role: protocol
+    path: protocol.json
+    sha256: 63e0b4761ef2f7eb9d0ea307e840be8252bde773b3d575812a27a86f4e1a4cf9
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  capture:
+    role: capture
+    path: capture.json
+    sha256: 29ff984de36ce7c8087bea31be2ffb8adaed625e671622808712cba8e6b91837
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  holdout:
+    role: holdout
+    path: holdout.json
+    sha256: 72820306dc9207b71b2656e180267bd81d3e00962b7e8dee55cd77a82185fe09
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  known_bad:
+    role: known_bad
+    path: known_bad.json
+    sha256: a09947b19496ad5bd9f9bafe989f5af37d15afb2c406d8ba9e9747fee16277d1
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  observability:
+    role: observability
+    path: observability.json
+    sha256: b127e01026054cf82456eabc947869c2fba0d901482c2fa3572e971cab0af89b
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  radar_lidar_association:
+    role: radar_lidar_association
+    path: radar-lidar-association.json
+    sha256: 28492883eb27b5f57e825ffbdbddde7111c762c68f2e1f66db66952b8573f92f
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  radar_camera:
+    role: radar_camera
+    path: radar-camera.json
+    sha256: 6cc85d53dfac4dd7bf24a4d5c87707f59d8845a1c9b0a5737ab8a68856bc7b4f
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+metric_observations: []
+mutable_components:
+- radar_extrinsics
+- radar_time_offset
+observed_changed_components: []
+baseline_components: {}
+candidate_components: {}
+doppler_sign_convention: positive_away
+frame_convention: radar_sensor_frame_x_forward_y_left_z_up
+max_abs_range_bias_m: 0.1
+max_abs_azimuth_bias_deg: 1.0
+max_doppler_scale_error_ratio: 0.05
+max_time_offset_abs_s: 0.01
+max_radar_lidar_association_rmse_m: 0.2
+min_fov_overlap_ratio: 0.8
+min_known_bad_delta: 0.1
+min_observability_rank: 5.0
+protocol_id: radar_serial_mount_replacement_synthetic/v0.1
+capture_id: radar-capture-synthetic-v01
+lifecycle_artifacts: {}
+autoware_artifacts: {}
+provenance:
+  producer: calibrex
+  tool_name: calibrex.radar-service
+  tool_version: 0.4.1
+  generated_at: '2026-08-24T10:50:32.270059+00:00'
+  git_commit: 9fcb552
+  command:
+  - calibrex
+  - radar-service
+  - plan
+  - examples\radar_service\synthetic\plan.yaml
+  - --output
+  - examples\radar_service\synthetic\plan.yaml
+  input_sha256:
+    evidence:protocol: 63e0b4761ef2f7eb9d0ea307e840be8252bde773b3d575812a27a86f4e1a4cf9
+    evidence:capture: 29ff984de36ce7c8087bea31be2ffb8adaed625e671622808712cba8e6b91837
+    evidence:holdout: 72820306dc9207b71b2656e180267bd81d3e00962b7e8dee55cd77a82185fe09
+    evidence:known_bad: a09947b19496ad5bd9f9bafe989f5af37d15afb2c406d8ba9e9747fee16277d1
+    evidence:observability: b127e01026054cf82456eabc947869c2fba0d901482c2fa3572e971cab0af89b
+    evidence:radar_lidar_association: 28492883eb27b5f57e825ffbdbddde7111c762c68f2e1f66db66952b8573f92f
+    evidence:radar_camera: 6cc85d53dfac4dd7bf24a4d5c87707f59d8845a1c9b0a5737ab8a68856bc7b4f
+    candidate_replay: cb0e0fe8900a751342b817890cafce5c40c19731e5627c13060cb1c8755f646c
+  artifact_sha256: 5bb2ebefd4a3e1b82b2dd29bcb201869d6ef5542550b4e52713449f19beecde2
+  artifact_digest_scope: canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at
+artifact_sha256: 5bb2ebefd4a3e1b82b2dd29bcb201869d6ef5542550b4e52713449f19beecde2
