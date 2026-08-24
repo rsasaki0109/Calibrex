@@ -377,6 +377,237 @@
       "title": "QualitySummary",
       "type": "object"
     },
+    "ResultProvenance": {
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "git_commit": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "git_commit"
+              ]
+            },
+            {
+              "properties": {
+                "git_commit_unavailable_reason": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "git_commit_unavailable_reason"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "config_sha256": {
+                  "pattern": "^[0-9a-fA-F]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "config_sha256"
+              ]
+            },
+            {
+              "properties": {
+                "config_digest_unavailable_reason": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "config_digest_unavailable_reason"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "input_sha256": {
+                  "pattern": "^[0-9a-fA-F]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "input_sha256"
+              ]
+            },
+            {
+              "properties": {
+                "input_digest_unavailable_reason": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "input_digest_unavailable_reason"
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Versioned generation metadata for a calibration result.\n\nResult provenance deliberately allows additional pipeline-specific fields.\nThe fields below are the stable minimum required to identify how a new\nresult was produced.  Legacy v0.1 files may contain an unstructured map;\nthose files remain readable through :func:`load_result`, but are not\nproduction-admissible until explicitly migrated.",
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "items": {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          ],
+          "title": "Command"
+        },
+        "config_digest_unavailable_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Digest Unavailable Reason"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Config Sha256"
+        },
+        "generated_at": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "git_commit_unavailable_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit Unavailable Reason"
+        },
+        "input_digest_unavailable_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Digest Unavailable Reason"
+        },
+        "input_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Sha256"
+        },
+        "producer": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Producer",
+          "type": "string"
+        },
+        "provenance_version": {
+          "const": "slac.result.provenance/v0.1",
+          "default": "slac.result.provenance/v0.1",
+          "title": "Provenance Version",
+          "type": "string"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provenance_version",
+        "producer",
+        "tool_name",
+        "tool_version",
+        "generated_at",
+        "command",
+        "config_sha256",
+        "input_sha256"
+      ],
+      "title": "ResultProvenance",
+      "type": "object"
+    },
     "RunInfo": {
       "additionalProperties": false,
       "properties": {
@@ -430,9 +661,22 @@
           "type": "string"
         },
         "provenance": {
-          "additionalProperties": true,
-          "title": "Provenance",
-          "type": "object"
+          "description": "Versioned provenance for new results. Legacy v0.1 maps are readable but are not production-admissible.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ResultProvenance"
+            },
+            {
+              "additionalProperties": true,
+              "minProperties": 1,
+              "not": {
+                "required": [
+                  "provenance_version"
+                ]
+              },
+              "type": "object"
+            }
+          ]
         },
         "slac_version": {
           "title": "Slac Version",

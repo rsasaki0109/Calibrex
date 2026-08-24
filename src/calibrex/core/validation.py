@@ -262,7 +262,12 @@ from calibrex.core.report_artifacts import (
     ReportObservabilityArtifact,
     ReportSummaryArtifact,
 )
-from calibrex.core.result import RESULT_SCHEMA_VERSION, CalibrationResult, StrictModel
+from calibrex.core.result import (
+    RESULT_SCHEMA_VERSION,
+    CalibrationResult,
+    StrictModel,
+    result_provenance_issues,
+)
 from calibrex.core.solid_state import (
     SOLID_STATE_CONTEXT_SCHEMA_VERSION,
     SolidStateLidarCalibrationContext,
@@ -696,6 +701,11 @@ class ValidationReport(StrictModel):
     schema_version: str
     valid: bool = True
     input_verification: CaptureManifestVerification | None = Field(default=None, exclude=True)
+    production_valid: bool = Field(default=True, exclude=True)
+    admissibility: Literal["admissible", "blocked"] = Field(
+        default="admissible", exclude=True
+    )
+    provenance_issues: list[str] = Field(default_factory=list, exclude=True)
 
 
 def validation_kinds() -> tuple[str, ...]:
@@ -763,6 +773,19 @@ def validate_file(
     elif verify_inputs:
         raise CalibrexError("--verify-inputs is only supported for capture-manifest artifacts")
     schema_version = _schema_version(validated)
+    if detected_kind == "result":
+        result = validated
+        assert isinstance(result, CalibrationResult)
+        provenance_issues = result_provenance_issues(result.run.provenance)
+        return ValidationReport(
+            path=artifact_path.as_posix(),
+            kind=detected_kind,
+            schema_version=schema_version,
+            valid=not provenance_issues,
+            production_valid=not provenance_issues,
+            admissibility="admissible" if not provenance_issues else "blocked",
+            provenance_issues=provenance_issues,
+        )
     return ValidationReport(
         path=artifact_path.as_posix(),
         kind=detected_kind,

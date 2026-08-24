@@ -3000,6 +3000,14 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as exc:
         _die(str(exc))
     payload = report.model_dump(mode="json")
+    if report.kind == "result":
+        payload.update(
+            {
+                "production_valid": report.production_valid,
+                "admissibility": report.admissibility,
+                "provenance_issues": report.provenance_issues,
+            }
+        )
     if report.input_verification is not None:
         payload["input_verification"] = report.input_verification.model_dump(
             mode="json",

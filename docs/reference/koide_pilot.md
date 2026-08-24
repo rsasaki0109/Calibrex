@@ -35,8 +35,10 @@ For the maintained commercial handoff, first validate
 `examples/official/koide_execution_lock.yaml` and run
 `calibrex camera-lidar koide-handoff`. The lock pins the official source/image,
 uses `initial_guess_manual`, and excludes SuperGlue. Its `base_image_digest`
-is intentionally unresolved because the upstream Dockerfile publishes only a
-mutable base tag; an operator must resolve that digest before rebuilding.
+may remain null because the upstream Dockerfile publishes only a mutable base
+tag. The final pinned image digest is sufficient to execute the maintained
+workflow. A null base digest keeps source rebuilds non-reproducible and those
+rebuilds remain blocked; never invent a base digest from the mutable tag.
 
 ```bash
 calibrex camera-lidar benchmark-koide-pilot \

@@ -119,6 +119,8 @@ from calibrex.core.result import (
     TransformEstimateProvenance,
     TransformQuality,
     TransformResult,
+    build_result_provenance,
+    save_result,
 )
 from calibrex.core.solid_state import (
     SolidStateCaptureWindow,
@@ -4815,25 +4817,35 @@ def _unavailable_result(
 ) -> CalibrationResult:
     output_dir = options.output_dir or config.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
+    config_sha256 = sha256_path(config_file)
+    dataset_sha256 = sha256_path(Path(config.dataset.path))
     result = CalibrationResult(
         run=RunInfo(
             id=_run_id(config.project.name),
             slac_version=__version__,
             git_commit=git_commit(),
-            config_sha256=sha256_path(config_file),
-            dataset_sha256=sha256_path(Path(config.dataset.path)),
+            config_sha256=config_sha256,
+            dataset_sha256=dataset_sha256,
             status="warning",
             domain=config.project.domain,
-            provenance={
-                "pipeline": "online_calibration",
-                "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
-                "solver_adapter_status": "unavailable",
-                "dataset_type": config.dataset.type,
-                "dataset_path": config.dataset.path,
-                "online_batch_size": options.batch_size,
-                "dry_run": False,
-                **_dataset_manifest_provenance(config_file),
-            },
+            provenance=build_result_provenance(
+                producer="calibrex",
+                tool_name="calibrex",
+                tool_version=__version__,
+                command=["calibrex", "calibrate", "--online", str(config_file)],
+                config_sha256=config_sha256,
+                input_sha256=dataset_sha256,
+                extra={
+                    "pipeline": "online_calibration",
+                    "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+                    "solver_adapter_status": "unavailable",
+                    "dataset_type": config.dataset.type,
+                    "dataset_path": config.dataset.path,
+                    "online_batch_size": options.batch_size,
+                    "dry_run": False,
+                    **_dataset_manifest_provenance(config_file),
+                },
+            ),
         ),
         frame_graph=frame_graph.snapshot(),
         solid_state=_solid_state_context_for_config(config, config_file),
@@ -4851,7 +4863,7 @@ def _unavailable_result(
         result.run.provenance["solid_state_evaluation_config"] = (
             config.evaluation.solid_state.model_dump(mode="json")
         )
-    result.save(output_dir / config.outputs.result)
+    save_result(result, output_dir / config.outputs.result)
     write_report_artifacts(result, output_dir, html_filename=config.outputs.report)
     return result
 
@@ -4976,39 +4988,49 @@ def _build_result(
     dual_temporal_result: DualTemporalEvidenceResult | None = None
     trajectory_result: TrajectoryEvidenceResult | None = None
     trajectory_metrics: dict[str, MetricResult] = {}
-    run_provenance: dict[str, Any] = {
-        "pipeline": "online_calibration",
-        "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
-        "solver_adapter_status": final_snapshot.gate_status,
-        "dataset_type": config.dataset.type,
-        "dataset_path": config.dataset.path,
-        "online_variable": variable,
-        "online_source_sensor": source_sensor,
-        "online_target_sensor": target_sensor,
-        "online_batch_size": batch_size,
-        "online_rolling_window": session.rolling_window,
-        "online_holdout_ratio": session.holdout_ratio,
-        "online_seed": session.seed,
-        "online_accumulation_batches": session.accumulation_batches,
-        "online_max_accumulated_train_points": session.max_accumulated_train_points,
-        "online_batch_count": len(history),
-        "online_accepted_batch_count": accepted_count,
-        "online_rejected_batch_count": rejected_count,
-        "online_inconclusive_batch_count": inconclusive_count,
-        "online_final_rolling_rmse_m": final_snapshot.rolling_rmse_m,
-        "online_final_gate_status": final_snapshot.gate_status,
-        "online_gate_min_rank": session.gate_thresholds.min_rank,
-        "online_gate_max_holdout_rmse_m": session.gate_thresholds.max_holdout_rmse_m,
-        "online_gate_max_rolling_regression_m": (
-            session.gate_thresholds.max_rolling_regression_m
-        ),
-        "online_gate_max_odometry_extrapolation_s": (
-            session.gate_thresholds.max_odometry_extrapolation_s
-        ),
-        "dry_run": False,
-        **_dataset_manifest_provenance(config_file),
-        **(replay_provenance or {}),
-    }
+    config_sha256 = sha256_path(config_file)
+    dataset_sha256 = sha256_path(Path(config.dataset.path))
+    run_provenance: dict[str, Any] = build_result_provenance(
+        producer="calibrex",
+        tool_name="calibrex",
+        tool_version=__version__,
+        command=["calibrex", "calibrate", "--online", str(config_file)],
+        config_sha256=config_sha256,
+        input_sha256=dataset_sha256,
+        extra={
+            "pipeline": "online_calibration",
+            "solver_adapter": ONLINE_LIDAR_POINT_TO_PLANE_BACKEND,
+            "solver_adapter_status": final_snapshot.gate_status,
+            "dataset_type": config.dataset.type,
+            "dataset_path": config.dataset.path,
+            "online_variable": variable,
+            "online_source_sensor": source_sensor,
+            "online_target_sensor": target_sensor,
+            "online_batch_size": batch_size,
+            "online_rolling_window": session.rolling_window,
+            "online_holdout_ratio": session.holdout_ratio,
+            "online_seed": session.seed,
+            "online_accumulation_batches": session.accumulation_batches,
+            "online_max_accumulated_train_points": session.max_accumulated_train_points,
+            "online_batch_count": len(history),
+            "online_accepted_batch_count": accepted_count,
+            "online_rejected_batch_count": rejected_count,
+            "online_inconclusive_batch_count": inconclusive_count,
+            "online_final_rolling_rmse_m": final_snapshot.rolling_rmse_m,
+            "online_final_gate_status": final_snapshot.gate_status,
+            "online_gate_min_rank": session.gate_thresholds.min_rank,
+            "online_gate_max_holdout_rmse_m": session.gate_thresholds.max_holdout_rmse_m,
+            "online_gate_max_rolling_regression_m": (
+                session.gate_thresholds.max_rolling_regression_m
+            ),
+            "online_gate_max_odometry_extrapolation_s": (
+                session.gate_thresholds.max_odometry_extrapolation_s
+            ),
+            "dry_run": False,
+            **_dataset_manifest_provenance(config_file),
+            **(replay_provenance or {}),
+        },
+    )
     if target_stream:
         source_window_count = _int_or_none(
             (replay_provenance or {}).get("rosbag1_source_message_count")
@@ -5224,7 +5246,7 @@ def _build_result(
     output_dir.mkdir(parents=True, exist_ok=True)
     result.artifacts.html_report = str(output_dir / config.outputs.report)
     evaluate_quality(result, strict=options.strict)
-    result.save(output_dir / config.outputs.result)
+    save_result(result, output_dir / config.outputs.result)
 
     timeline_path = output_dir / _TIMELINE_FILENAME
     timeline_artifact = build_online_timeline_artifact(
@@ -5247,7 +5269,7 @@ def _build_result(
         timeline_artifact.model_dump(mode="json", exclude_none=True),
     )
     result.run.provenance["online_timeline_path"] = str(timeline_path)
-    result.save(output_dir / config.outputs.result)
+    save_result(result, output_dir / config.outputs.result)
 
     if (
         motion_compensated
@@ -5268,7 +5290,7 @@ def _build_result(
             trajectory_artifact.model_dump(mode="json", exclude_none=True),
         )
         result.run.provenance["trajectory_path"] = str(trajectory_path)
-        result.save(output_dir / config.outputs.result)
+        save_result(result, output_dir / config.outputs.result)
 
     return result
 

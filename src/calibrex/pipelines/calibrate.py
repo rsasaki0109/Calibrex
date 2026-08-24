@@ -32,6 +32,8 @@ from calibrex.core.result import (
     TransformEstimateProvenance,
     TransformQuality,
     TransformResult,
+    build_result_provenance,
+    save_result,
 )
 from calibrex.core.solid_state import build_solid_state_context
 from calibrex.data.downloads import (
@@ -188,7 +190,7 @@ def run_calibration(
     )
     write_camera_lidar_overlay_artifact(result, output_dir / config.outputs.artifacts_dir)
     write_rig_3d_artifact(result, output_dir / config.outputs.artifacts_dir)
-    result.save(result_path)
+    save_result(result, result_path)
     write_report_artifacts(result, output_dir, html_filename=config.outputs.report)
     return result
 
@@ -996,6 +998,23 @@ def _build_provisional_result(
             "capture windows are populated by adapters when per-window telemetry is available",
         ],
     )
+    result_provenance = build_result_provenance(
+        producer="calibrex",
+        tool_name="calibrex",
+        tool_version=__version__,
+        command=["calibrex", "calibrate", str(config_path)],
+        config_sha256=config_sha256,
+        input_sha256=dataset_sha256,
+        extra={
+            "pipeline": config.pipeline.type,
+            "solver_backend": config.solver.backend,
+            "max_iterations": config.solver.max_iterations,
+            "seed": options.seed if options.seed is not None else config.solver.seed,
+            "dataset_type": config.dataset.type,
+            "dataset_path": config.dataset.path,
+            "dry_run": False,
+        },
+    )
     return CalibrationResult(
         run=RunInfo(
             id=run_id,
@@ -1005,15 +1024,7 @@ def _build_provisional_result(
             dataset_sha256=dataset_sha256,
             status="warning",
             domain=config.project.domain,
-            provenance={
-                "pipeline": config.pipeline.type,
-                "solver_backend": config.solver.backend,
-                "max_iterations": config.solver.max_iterations,
-                "seed": options.seed if options.seed is not None else config.solver.seed,
-                "dataset_type": config.dataset.type,
-                "dataset_path": config.dataset.path,
-                "dry_run": False,
-            },
+            provenance=result_provenance,
         ),
         frame_graph=frame_graph.snapshot(),
         solid_state=solid_state_context,
