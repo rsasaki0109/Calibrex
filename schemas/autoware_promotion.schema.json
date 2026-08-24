@@ -1,0 +1,759 @@
+{
+  "$defs": {
+    "AutowarePromotionApplication": {
+      "additionalProperties": false,
+      "description": "Apply/rollback state retained in the promotion artifact.",
+      "properties": {
+        "admission_label": {
+          "default": "developer-only",
+          "enum": [
+            "production-admissible",
+            "developer-only",
+            "not-admissible"
+          ],
+          "title": "Admission Label",
+          "type": "string"
+        },
+        "applied_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applied At"
+        },
+        "backup_root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backup Root"
+        },
+        "output_file_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Output File Digests",
+          "type": "object"
+        },
+        "output_manifest_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Manifest Sha256"
+        },
+        "rollback_inventory": {
+          "items": {
+            "$ref": "#/$defs/AutowarePromotionRollback"
+          },
+          "title": "Rollback Inventory",
+          "type": "array"
+        },
+        "rolled_back_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rolled Back At"
+        },
+        "smoke_artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Smoke Artifact Sha256"
+        },
+        "status": {
+          "default": "planned",
+          "enum": [
+            "planned",
+            "applied",
+            "rolled_back"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "title": "AutowarePromotionApplication",
+      "type": "object"
+    },
+    "AutowarePromotionCandidate": {
+      "additionalProperties": false,
+      "description": "Digest-bound candidate input used by a promotion plan.",
+      "properties": {
+        "adoption_decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "ADOPT",
+                "ADOPT_WITH_WARNING",
+                "DO_NOT_ADOPT",
+                "BLOCKED"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adoption Decision"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "kind": {
+          "enum": [
+            "koide-pilot",
+            "result"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "format": "path",
+          "title": "Path",
+          "type": "string"
+        },
+        "quality_grade": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "warn",
+                "fail"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Grade"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Run Id"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "sha256"
+      ],
+      "title": "AutowarePromotionCandidate",
+      "type": "object"
+    },
+    "AutowarePromotionDiagnostic": {
+      "additionalProperties": false,
+      "description": "Machine-readable package or candidate gate result.",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "AutowarePromotionDiagnostic",
+      "type": "object"
+    },
+    "AutowarePromotionFile": {
+      "additionalProperties": false,
+      "description": "One inspected package file and its content digest.",
+      "properties": {
+        "exists": {
+          "default": true,
+          "title": "Exists",
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "sensor_kit_calibration",
+            "sensors_calibration",
+            "urdf",
+            "xacro",
+            "sensor_parameters",
+            "topic_parameters",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "root": {
+          "enum": [
+            "workspace_root",
+            "package_root",
+            "individual_params_root",
+            "sensor_kit_description_root"
+          ],
+          "title": "Root",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "size_bytes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "root"
+      ],
+      "title": "AutowarePromotionFile",
+      "type": "object"
+    },
+    "AutowarePromotionPatch": {
+      "additionalProperties": false,
+      "description": "Deterministic text replacement generated by ``plan``.",
+      "properties": {
+        "after_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "After Sha256",
+          "type": "string"
+        },
+        "before_exists": {
+          "default": true,
+          "title": "Before Exists",
+          "type": "boolean"
+        },
+        "before_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Sha256"
+        },
+        "operation": {
+          "default": "replace",
+          "enum": [
+            "replace",
+            "create"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "replacement_text": {
+          "title": "Replacement Text",
+          "type": "string"
+        },
+        "unified_diff": {
+          "title": "Unified Diff",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "after_sha256",
+        "replacement_text",
+        "unified_diff"
+      ],
+      "title": "AutowarePromotionPatch",
+      "type": "object"
+    },
+    "AutowarePromotionPolicy": {
+      "additionalProperties": false,
+      "description": "Admission and package validation policy.\n\nEmpty allowlists mean that the package-aware defaults are used.  Supplying\nan allowlist makes it explicit which frames, topics, or files the caller\npermits a candidate to affect.",
+      "properties": {
+        "allow_warnings": {
+          "default": false,
+          "title": "Allow Warnings",
+          "type": "boolean"
+        },
+        "allowed_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Files",
+          "type": "array"
+        },
+        "allowed_frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Frames",
+          "type": "array"
+        },
+        "allowed_topics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Topics",
+          "type": "array"
+        },
+        "backup_directory": {
+          "default": ".calibrex/promotions",
+          "title": "Backup Directory",
+          "type": "string"
+        },
+        "base_frame": {
+          "default": "base_link",
+          "title": "Base Frame",
+          "type": "string"
+        },
+        "profile": {
+          "default": "production",
+          "enum": [
+            "production",
+            "developer"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "require_generic_result_pass": {
+          "default": true,
+          "title": "Require Generic Result Pass",
+          "type": "boolean"
+        },
+        "require_koide_pass_adopt": {
+          "default": true,
+          "title": "Require Koide Pass Adopt",
+          "type": "boolean"
+        },
+        "require_sensor_kit_base_edge": {
+          "default": true,
+          "title": "Require Sensor Kit Base Edge",
+          "type": "boolean"
+        },
+        "require_smoke_for_apply": {
+          "default": false,
+          "title": "Require Smoke For Apply",
+          "type": "boolean"
+        },
+        "require_urdf_or_xacro": {
+          "default": true,
+          "title": "Require Urdf Or Xacro",
+          "type": "boolean"
+        },
+        "required_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Files",
+          "type": "array"
+        },
+        "sensor_kit_base_frame": {
+          "default": "sensor_kit_base_link",
+          "title": "Sensor Kit Base Frame",
+          "type": "string"
+        },
+        "validate_topic_frame_bindings": {
+          "default": true,
+          "title": "Validate Topic Frame Bindings",
+          "type": "boolean"
+        }
+      },
+      "title": "AutowarePromotionPolicy",
+      "type": "object"
+    },
+    "AutowarePromotionProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage and self-digest scope for every promotion artifact.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical promotion artifact excluding artifact_sha256, provenance.artifact_sha256, and provenance.generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "protocol_id": {
+          "default": "autoware_sensor_kit_promotion/v0.1",
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.autoware-promotion",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "AutowarePromotionProvenance",
+      "type": "object"
+    },
+    "AutowarePromotionRollback": {
+      "additionalProperties": false,
+      "description": "One exact backup entry produced by an applied promotion.",
+      "properties": {
+        "after_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "After Sha256",
+          "type": "string"
+        },
+        "backup_path": {
+          "title": "Backup Path",
+          "type": "string"
+        },
+        "backup_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backup Sha256"
+        },
+        "before_exists": {
+          "title": "Before Exists",
+          "type": "boolean"
+        },
+        "before_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Sha256"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "backup_path",
+        "before_exists",
+        "after_sha256"
+      ],
+      "title": "AutowarePromotionRollback",
+      "type": "object"
+    },
+    "AutowarePromotionRoots": {
+      "additionalProperties": false,
+      "description": "Explicit filesystem scope for one promotion.\n\nAll paths are resolved before use.  ``workspace_root`` is the outer safety\nboundary; the package roots identify the package locations within it.  A\ncaller may point ``package_root`` at a workspace checkout when a real\nAutoware meta-repository contains several sibling packages.",
+      "properties": {
+        "individual_params_root": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Individual Params Root"
+        },
+        "package_root": {
+          "format": "path",
+          "title": "Package Root",
+          "type": "string"
+        },
+        "sensor_kit_description_root": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor Kit Description Root"
+        },
+        "workspace_root": {
+          "format": "path",
+          "title": "Workspace Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_root",
+        "package_root"
+      ],
+      "title": "AutowarePromotionRoots",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete, schema-valid plan/verification/application contract.",
+  "properties": {
+    "admission_label": {
+      "default": "developer-only",
+      "enum": [
+        "production-admissible",
+        "developer-only",
+        "not-admissible"
+      ],
+      "title": "Admission Label",
+      "type": "string"
+    },
+    "application": {
+      "$ref": "#/$defs/AutowarePromotionApplication"
+    },
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "baseline_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Manifest Sha256",
+      "type": "string"
+    },
+    "candidate": {
+      "$ref": "#/$defs/AutowarePromotionCandidate"
+    },
+    "decision": {
+      "enum": [
+        "ADOPT",
+        "ADOPT_WITH_WARNING",
+        "DO_NOT_ADOPT",
+        "BLOCKED"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/AutowarePromotionDiagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "generated_patches": {
+      "items": {
+        "$ref": "#/$defs/AutowarePromotionPatch"
+      },
+      "title": "Generated Patches",
+      "type": "array"
+    },
+    "package_manifest": {
+      "items": {
+        "$ref": "#/$defs/AutowarePromotionFile"
+      },
+      "title": "Package Manifest",
+      "type": "array"
+    },
+    "policy": {
+      "$ref": "#/$defs/AutowarePromotionPolicy"
+    },
+    "promotion_id": {
+      "title": "Promotion Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/AutowarePromotionProvenance"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "rollback_inventory": {
+      "items": {
+        "$ref": "#/$defs/AutowarePromotionRollback"
+      },
+      "title": "Rollback Inventory",
+      "type": "array"
+    },
+    "roots": {
+      "$ref": "#/$defs/AutowarePromotionRoots"
+    },
+    "schema_version": {
+      "const": "slac.autoware_promotion/v0.1",
+      "default": "slac.autoware_promotion/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_kit_id": {
+      "title": "Sensor Kit Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "vehicle_id": {
+      "title": "Vehicle Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "promotion_id",
+    "vehicle_id",
+    "sensor_kit_id",
+    "roots",
+    "policy",
+    "candidate",
+    "baseline_manifest_sha256",
+    "status",
+    "decision",
+    "reason",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "AutowarePromotionArtifact",
+  "type": "object"
+}

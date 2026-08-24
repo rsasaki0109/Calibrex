@@ -330,6 +330,25 @@ from calibrex.export.autoware import (
     build_autoware_export,
     write_autoware_export,
 )
+from calibrex.export.autoware_promotion import (
+    AutowarePromotionPolicy,
+    AutowarePromotionRoots,
+    apply_autoware_promotion,
+    autoware_promotion_json_schema,
+    build_autoware_promotion_plan,
+    load_autoware_promotion,
+    rollback_autoware_promotion,
+    verify_autoware_promotion,
+)
+from calibrex.export.autoware_smoke import (
+    AutowareSmokeCommand,
+    AutowareSmokeConfig,
+    AutowareSmokePolicy,
+    autoware_smoke_json_schema,
+    import_autoware_smoke,
+    run_autoware_smoke,
+    verify_autoware_smoke,
+)
 from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
@@ -591,6 +610,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "solid-state-context",
             "livox-time-ablation",
             "autoware-export",
+            "autoware-promotion",
+            "autoware-smoke",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -2105,6 +2126,121 @@ def _build_parser() -> argparse.ArgumentParser:
     capture_verify.add_argument("--json", action="store_true")
     capture_verify.set_defaults(func=_cmd_capture_verify)
 
+    autoware = subcommands.add_parser(
+        "autoware",
+        help="ROS-independent Autoware package adapters",
+    )
+    autoware_subcommands = autoware.add_subparsers(dest="autoware_command", required=True)
+    promotion = autoware_subcommands.add_parser(
+        "promotion",
+        help="plan, verify, apply, or roll back a sensor-kit promotion",
+    )
+    promotion_subcommands = promotion.add_subparsers(dest="promotion_command", required=True)
+    promotion_plan = promotion_subcommands.add_parser(
+        "plan",
+        help="inspect a package and generate a deterministic dry-run plan",
+    )
+    promotion_plan.add_argument("candidate", type=Path)
+    promotion_plan.add_argument("--workspace-root", type=Path, required=True)
+    promotion_plan.add_argument("--package-root", type=Path, required=True)
+    promotion_plan.add_argument("--individual-params-root", type=Path)
+    promotion_plan.add_argument("--sensor-kit-description-root", type=Path)
+    promotion_plan.add_argument("--vehicle-id", required=True)
+    promotion_plan.add_argument("--sensor-kit-id", required=True)
+    promotion_plan.add_argument("--baseline-manifest-sha256")
+    promotion_plan.add_argument("--base-frame", default="base_link")
+    promotion_plan.add_argument("--sensor-kit-base-frame", default="sensor_kit_base_link")
+    promotion_plan.add_argument("--allowed-frame", action="append", default=[])
+    promotion_plan.add_argument("--allowed-topic", action="append", default=[])
+    promotion_plan.add_argument("--allowed-file", action="append", default=[])
+    promotion_plan.add_argument("--required-file", action="append", default=[])
+    promotion_plan.add_argument("--allow-warnings", action="store_true")
+    promotion_plan.add_argument(
+        "--profile", choices=["production", "developer"], default="production"
+    )
+    promotion_plan.add_argument("--require-smoke-for-apply", action="store_true")
+    promotion_plan.add_argument("--output", type=Path, required=True)
+    promotion_plan.add_argument("--json", action="store_true")
+    promotion_plan.set_defaults(func=_cmd_autoware_promotion_plan)
+
+    promotion_verify = promotion_subcommands.add_parser(
+        "verify",
+        help="re-read a plan's package and candidate without writing source files",
+    )
+    promotion_verify.add_argument("plan", type=Path)
+    promotion_verify.add_argument("--output", type=Path)
+    promotion_verify.add_argument("--json", action="store_true")
+    promotion_verify.set_defaults(func=_cmd_autoware_promotion_verify)
+
+    promotion_apply = promotion_subcommands.add_parser(
+        "apply",
+        help="atomically apply an admissible PASS/ADOPT plan",
+    )
+    promotion_apply.add_argument("plan", type=Path)
+    promotion_apply.add_argument(
+        "--smoke-artifact",
+        type=Path,
+        help="digest-bound PASS smoke artifact required for production plans",
+    )
+    promotion_apply.add_argument("--output", type=Path)
+    promotion_apply.add_argument("--json", action="store_true")
+    promotion_apply.set_defaults(func=_cmd_autoware_promotion_apply)
+
+    promotion_rollback = promotion_subcommands.add_parser(
+        "rollback",
+        help="restore the exact files recorded by an applied promotion",
+    )
+    promotion_rollback.add_argument("plan", type=Path)
+    promotion_rollback.add_argument("--output", type=Path)
+    promotion_rollback.add_argument("--json", action="store_true")
+    promotion_rollback.set_defaults(func=_cmd_autoware_promotion_rollback)
+
+    smoke = autoware_subcommands.add_parser(
+        "smoke",
+        help="run, import, or verify downstream Autoware smoke evidence",
+    )
+    smoke_subcommands = smoke.add_subparsers(dest="smoke_command", required=True)
+    smoke_run = smoke_subcommands.add_parser("run", help="run argv-only smoke stages")
+    smoke_run.add_argument("plan", type=Path)
+    smoke_run.add_argument(
+        "--mode",
+        choices=["subprocess", "container", "precomputed"],
+        default="subprocess",
+    )
+    smoke_run.add_argument("--profile", choices=["production", "developer"], default="production")
+    smoke_run.add_argument(
+        "--stage-command",
+        action="append",
+        default=[],
+        metavar="STAGE=JSON_ARGV",
+        help='stage command, e.g. xacro_urdf=["python","-c","pass"] (repeatable)',
+    )
+    smoke_run.add_argument("--precomputed", type=Path)
+    smoke_run.add_argument("--container-digest")
+    smoke_run.add_argument("--environment-digest")
+    smoke_run.add_argument("--tool-digest")
+    smoke_run.add_argument("--timeout", type=float, default=120.0)
+    smoke_run.add_argument("--output", type=Path, required=True)
+    smoke_run.add_argument("--json", action="store_true")
+    smoke_run.set_defaults(func=_cmd_autoware_smoke_run)
+
+    smoke_import = smoke_subcommands.add_parser(
+        "import", help="import precomputed smoke evidence and bind it to a plan"
+    )
+    smoke_import.add_argument("artifact", type=Path)
+    smoke_import.add_argument("--plan", type=Path, required=True)
+    smoke_import.add_argument("--output", type=Path, required=True)
+    smoke_import.add_argument("--json", action="store_true")
+    smoke_import.set_defaults(func=_cmd_autoware_smoke_import)
+
+    smoke_verify = smoke_subcommands.add_parser(
+        "verify", help="verify smoke self-digest and exact plan binding"
+    )
+    smoke_verify.add_argument("artifact", type=Path)
+    smoke_verify.add_argument("--plan", type=Path, required=True)
+    smoke_verify.add_argument("--json", action="store_true")
+    smoke_verify.set_defaults(func=_cmd_autoware_smoke_verify)
+
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
     inspect.add_argument("path", type=Path)
     inspect.add_argument(
@@ -2392,6 +2528,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "solid-state-context": solid_state_context_json_schema,
         "livox-time-ablation": livox_time_ablation_json_schema,
         "autoware-export": autoware_export_json_schema,
+        "autoware-promotion": autoware_promotion_json_schema,
+        "autoware-smoke": autoware_smoke_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -5751,6 +5889,191 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
     else:
         _emit_inspection(inspection)
     return 0
+
+
+def _promotion_policy_from_args(args: argparse.Namespace) -> AutowarePromotionPolicy:
+    return AutowarePromotionPolicy(
+        base_frame=args.base_frame,
+        sensor_kit_base_frame=args.sensor_kit_base_frame,
+        allowed_frames=list(args.allowed_frame),
+        allowed_topics=list(args.allowed_topic),
+        allowed_files=list(args.allowed_file),
+        required_files=list(args.required_file),
+        allow_warnings=bool(args.allow_warnings),
+        profile=args.profile,
+        require_smoke_for_apply=bool(args.require_smoke_for_apply),
+    )
+
+
+def _cmd_autoware_promotion_plan(args: argparse.Namespace) -> int:
+    roots = AutowarePromotionRoots(
+        workspace_root=args.workspace_root,
+        package_root=args.package_root,
+        individual_params_root=args.individual_params_root,
+        sensor_kit_description_root=args.sensor_kit_description_root,
+    )
+    artifact = build_autoware_promotion_plan(
+        args.candidate,
+        roots=roots,
+        vehicle_id=args.vehicle_id,
+        sensor_kit_id=args.sensor_kit_id,
+        baseline_manifest_sha256=args.baseline_manifest_sha256,
+        policy=_promotion_policy_from_args(args),
+        command=["calibrex", "autoware", "promotion", "plan", str(args.candidate)],
+    )
+    artifact.save(args.output)
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["plan"] = str(args.output)
+    summary = {
+        "plan": str(args.output),
+        "status": artifact.status,
+        "decision": artifact.decision,
+        "reason": artifact.reason,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0 if artifact.status == "PASS" else 1
+
+
+def _cmd_autoware_promotion_verify(args: argparse.Namespace) -> int:
+    artifact = verify_autoware_promotion(
+        args.plan, command=["calibrex", "autoware", "promotion", "verify", str(args.plan)]
+    )
+    # Verification is a read-only operation by default.  Persist a refreshed
+    # artifact only when the caller explicitly supplies --output.
+    destination = args.output
+    if destination is not None:
+        artifact.save(destination)
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["plan"] = str(destination or args.plan)
+    summary = {
+        "plan": str(destination or args.plan),
+        "status": artifact.status,
+        "decision": artifact.decision,
+        "reason": artifact.reason,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0 if artifact.status == "PASS" else 1
+
+
+def _cmd_autoware_promotion_apply(args: argparse.Namespace) -> int:
+    artifact = apply_autoware_promotion(
+        args.plan,
+        smoke_artifact=args.smoke_artifact,
+        output_path=args.output,
+    )
+    destination = args.output or args.plan
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["plan"] = str(destination)
+    summary = {
+        "plan": str(destination),
+        "status": artifact.status,
+        "decision": artifact.decision,
+        "application": artifact.application.status,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0
+
+
+def _cmd_autoware_promotion_rollback(args: argparse.Namespace) -> int:
+    artifact = rollback_autoware_promotion(args.plan, output_path=args.output)
+    destination = args.output or args.plan
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["plan"] = str(destination)
+    summary = {
+        "plan": str(destination),
+        "status": artifact.status,
+        "decision": artifact.decision,
+        "application": artifact.application.status,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0
+
+
+def _cmd_autoware_smoke_run(args: argparse.Namespace) -> int:
+    commands: list[AutowareSmokeCommand] = []
+    for specification in args.stage_command:
+        if "=" not in specification:
+            _die("--stage-command must be STAGE=JSON_ARGV")
+        stage, raw_argv = specification.split("=", 1)
+        try:
+            argv = json.loads(raw_argv)
+        except json.JSONDecodeError as exc:
+            _die(f"invalid --stage-command JSON: {exc}")
+        if not isinstance(argv, list) or any(not isinstance(item, str) for item in argv):
+            _die("--stage-command JSON must be an array of strings")
+        commands.append(AutowareSmokeCommand(stage=stage, argv=argv))
+    try:
+        artifact = run_autoware_smoke(
+            args.plan,
+            config=AutowareSmokeConfig(
+                mode=args.mode,
+                profile=args.profile,
+                commands=commands,
+                container_digest=args.container_digest,
+                environment_digest=args.environment_digest,
+                tool_digest=args.tool_digest,
+                precomputed_path=args.precomputed,
+                policy=AutowareSmokePolicy(
+                    profile=args.profile,
+                    stage_timeout_seconds=args.timeout,
+                ),
+                command=["calibrex", "autoware", "smoke", "run", str(args.plan)],
+            ),
+            output_path=args.output,
+        )
+    except (CalibrexError, ValueError, OSError) as exc:
+        _die(f"Autoware smoke failed: {exc}")
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["artifact"] = str(args.output)
+    summary = {
+        "artifact": str(args.output),
+        "status": artifact.status,
+        "admission_label": artifact.admission_label,
+        "reason": artifact.reason,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0 if artifact.status == "PASS" else 1
+
+
+def _cmd_autoware_smoke_import(args: argparse.Namespace) -> int:
+    try:
+        artifact = import_autoware_smoke(
+            args.artifact,
+            promotion=load_autoware_promotion(args.plan),
+            output_path=args.output,
+        )
+    except (CalibrexError, ValueError, OSError) as exc:
+        _die(f"Autoware smoke import failed: {exc}")
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["artifact"] = str(args.output)
+    summary = {
+        "artifact": str(args.output),
+        "status": artifact.status,
+        "admission_label": artifact.admission_label,
+        "reason": artifact.reason,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0 if artifact.status == "PASS" else 1
+
+
+def _cmd_autoware_smoke_verify(args: argparse.Namespace) -> int:
+    try:
+        artifact = verify_autoware_smoke(
+            args.artifact,
+            promotion=load_autoware_promotion(args.plan),
+        )
+    except (CalibrexError, ValueError, OSError) as exc:
+        _die(f"Autoware smoke verification failed: {exc}")
+    payload = artifact.model_dump(mode="json", exclude_none=False)
+    payload["artifact"] = str(args.artifact)
+    summary = {
+        "artifact": str(args.artifact),
+        "status": artifact.status,
+        "admission_label": artifact.admission_label,
+        "reason": artifact.reason,
+    }
+    _emit(payload if args.json else summary, args.json)
+    return 0 if artifact.status == "PASS" else 1
 
 
 def _cmd_export(args: argparse.Namespace) -> int:

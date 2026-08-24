@@ -1,0 +1,444 @@
+{
+  "$defs": {
+    "AutowareSmokePolicy": {
+      "additionalProperties": false,
+      "description": "Execution and admission policy captured in every smoke artifact.",
+      "properties": {
+        "max_output_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 67108864,
+          "title": "Max Output Bytes",
+          "type": "integer"
+        },
+        "network": {
+          "default": "none",
+          "enum": [
+            "none",
+            "host"
+          ],
+          "title": "Network",
+          "type": "string"
+        },
+        "output_tail_chars": {
+          "default": 4096,
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "title": "Output Tail Chars",
+          "type": "integer"
+        },
+        "profile": {
+          "default": "production",
+          "enum": [
+            "production",
+            "developer"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "read_only_workspace": {
+          "default": true,
+          "title": "Read Only Workspace",
+          "type": "boolean"
+        },
+        "require_immutable_container": {
+          "default": true,
+          "title": "Require Immutable Container",
+          "type": "boolean"
+        },
+        "required_stages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Stages",
+          "type": "array"
+        },
+        "resource_cpu_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Cpu Seconds"
+        },
+        "resource_memory_bytes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Memory Bytes"
+        },
+        "stage_timeout_seconds": {
+          "default": 120.0,
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Stage Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AutowareSmokePolicy",
+      "type": "object"
+    },
+    "AutowareSmokeProvenance": {
+      "additionalProperties": false,
+      "description": "Producer and self-digest lineage for smoke evidence.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical smoke artifact excluding artifact_sha256, provenance.artifact_sha256, and provenance.generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "protocol_id": {
+          "default": "autoware_sensor_kit_smoke/v0.1",
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.autoware-smoke",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "AutowareSmokeProvenance",
+      "type": "object"
+    },
+    "AutowareSmokeStage": {
+      "additionalProperties": false,
+      "description": "Result and evidence for one smoke stage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "cwd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cwd"
+        },
+        "duration_seconds": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "evidence": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "object"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "provenance": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Provenance",
+          "type": "object"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "stage": {
+          "title": "Stage",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "TIMEOUT",
+            "SKIPPED",
+            "NOT_RUN"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "stderr_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Stderr Sha256",
+          "type": "string"
+        },
+        "stderr_tail": {
+          "default": "",
+          "title": "Stderr Tail",
+          "type": "string"
+        },
+        "stdout_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Stdout Sha256",
+          "type": "string"
+        },
+        "stdout_tail": {
+          "default": "",
+          "title": "Stdout Tail",
+          "type": "string"
+        },
+        "timed_out": {
+          "default": false,
+          "title": "Timed Out",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "stage",
+        "status",
+        "stdout_sha256",
+        "stderr_sha256"
+      ],
+      "title": "AutowareSmokeStage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-bound downstream smoke evidence for exactly one promotion plan.",
+  "properties": {
+    "admission_label": {
+      "enum": [
+        "production-admissible",
+        "developer-only",
+        "not-admissible"
+      ],
+      "title": "Admission Label",
+      "type": "string"
+    },
+    "allowed_commands": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Allowed Commands",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "candidate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Sha256",
+      "type": "string"
+    },
+    "container_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Container Digest"
+    },
+    "environment_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Environment Digest",
+      "type": "string"
+    },
+    "isolation_enforced": {
+      "default": true,
+      "title": "Isolation Enforced",
+      "type": "boolean"
+    },
+    "mode": {
+      "enum": [
+        "subprocess",
+        "container",
+        "precomputed"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "package_baseline_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Baseline Manifest Sha256",
+      "type": "string"
+    },
+    "package_root": {
+      "title": "Package Root",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/AutowareSmokePolicy"
+    },
+    "profile": {
+      "enum": [
+        "production",
+        "developer"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "promotion_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Artifact Sha256",
+      "type": "string"
+    },
+    "promotion_id": {
+      "title": "Promotion Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/AutowareSmokeProvenance"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.autoware_smoke/v0.1",
+      "default": "slac.autoware_smoke/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "smoke_id": {
+      "title": "Smoke Id",
+      "type": "string"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/AutowareSmokeStage"
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "tool_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Digest",
+      "type": "string"
+    },
+    "workspace_baseline_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workspace Baseline Manifest Sha256",
+      "type": "string"
+    },
+    "workspace_root": {
+      "title": "Workspace Root",
+      "type": "string"
+    }
+  },
+  "required": [
+    "smoke_id",
+    "promotion_id",
+    "promotion_artifact_sha256",
+    "candidate_sha256",
+    "workspace_baseline_manifest_sha256",
+    "package_baseline_manifest_sha256",
+    "workspace_root",
+    "package_root",
+    "profile",
+    "mode",
+    "policy",
+    "environment_digest",
+    "tool_digest",
+    "status",
+    "admission_label",
+    "reason",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "AutowareSmokeArtifact",
+  "type": "object"
+}

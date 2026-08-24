@@ -160,6 +160,8 @@ from calibrex.evaluation.report_compare import (
     compare_reports,
     report_comparison_json_schema,
 )
+from calibrex.export.autoware_promotion import autoware_promotion_json_schema
+from calibrex.export.autoware_smoke import autoware_smoke_json_schema
 from calibrex.visualization.report import write_report_artifacts
 
 
@@ -313,6 +315,8 @@ def test_static_schema_files_match_generated_schemas() -> None:
         ),
         "solid_state_context.schema.json": solid_state_context_json_schema,
         "livox_time_ablation.schema.json": livox_time_ablation_json_schema,
+        "autoware_promotion.schema.json": autoware_promotion_json_schema,
+        "autoware_smoke.schema.json": autoware_smoke_json_schema,
         "report_summary.schema.json": lambda: report_artifact_json_schema("report-summary"),
         "report_metrics.schema.json": lambda: report_artifact_json_schema("report-metrics"),
         "report_observability.schema.json": lambda: report_artifact_json_schema(

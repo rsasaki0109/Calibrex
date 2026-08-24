@@ -282,6 +282,14 @@ from calibrex.export.autoware import (
     AUTOWARE_EXPORT_SCHEMA_VERSION,
     AutowareExportArtifact,
 )
+from calibrex.export.autoware_promotion import (
+    AUTOWARE_PROMOTION_SCHEMA_VERSION,
+    AutowarePromotionArtifact,
+)
+from calibrex.export.autoware_smoke import (
+    AUTOWARE_SMOKE_SCHEMA_VERSION,
+    AutowareSmokeArtifact,
+)
 
 ValidationKind = Literal[
     "auto",
@@ -364,6 +372,8 @@ ValidationKind = Literal[
     "solid-state-context",
     "livox-time-ablation",
     "autoware-export",
+    "autoware-promotion",
+    "autoware-smoke",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -458,6 +468,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "solid-state-context": SolidStateLidarCalibrationContext,
     "livox-time-ablation": LivoxTimeAblationManifest,
     "autoware-export": AutowareExportArtifact,
+    "autoware-promotion": AutowarePromotionArtifact,
+    "autoware-smoke": AutowareSmokeArtifact,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -586,6 +598,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     SOLID_STATE_CONTEXT_SCHEMA_VERSION: "solid-state-context",
     LIVOX_TIME_ABLATION_SCHEMA_VERSION: "livox-time-ablation",
     AUTOWARE_EXPORT_SCHEMA_VERSION: "autoware-export",
+    AUTOWARE_PROMOTION_SCHEMA_VERSION: "autoware-promotion",
+    AUTOWARE_SMOKE_SCHEMA_VERSION: "autoware-smoke",
 }
 
 
