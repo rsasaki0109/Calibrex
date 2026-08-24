@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from calibrex.calibration_ci import (
     CALIBRATION_CI_SCHEMA_VERSION,
@@ -69,6 +69,13 @@ from calibrex.core.camera_lidar_sota_audit import (
     CAMERA_LIDAR_SOTA_AUDIT_RESULT_SCHEMA_VERSION,
     CameraLidarSotaAuditProtocol,
     CameraLidarSotaAuditResult,
+)
+from calibrex.core.capture_manifest import (
+    CAPTURE_MANIFEST_SCHEMA_VERSION,
+    CAPTURE_MANIFEST_VERIFICATION_SCHEMA_VERSION,
+    CaptureManifest,
+    CaptureManifestVerification,
+    verify_capture_manifest_inputs,
 )
 from calibrex.core.capture_readiness import (
     CAPTURE_READINESS_SCHEMA_VERSION,
@@ -172,6 +179,10 @@ from calibrex.core.koide_readiness import (
 from calibrex.core.livox_time_ablation import (
     LIVOX_TIME_ABLATION_SCHEMA_VERSION,
     LivoxTimeAblationManifest,
+)
+from calibrex.core.mcap_integrity import (
+    MCAP_INTEGRITY_SCHEMA_VERSION,
+    McapIntegrityEvidence,
 )
 from calibrex.core.online_timeline import (
     ONLINE_TIMELINE_SCHEMA_VERSION,
@@ -332,6 +343,9 @@ ValidationKind = Literal[
     "trajectory",
     "trajectory-window-drift",
     "capture-readiness",
+    "capture-manifest",
+    "capture-manifest-verification",
+    "mcap-integrity",
     "koide-readiness",
     "continuous-time-lidar-pair",
     "continuous-time-lidar-point-to-plane",
@@ -422,6 +436,9 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "trajectory": TrajectoryArtifact,
     "trajectory-window-drift": TrajectoryWindowDriftArtifact,
     "capture-readiness": CaptureReadinessArtifact,
+    "capture-manifest": CaptureManifest,
+    "capture-manifest-verification": CaptureManifestVerification,
+    "mcap-integrity": McapIntegrityEvidence,
     "koide-readiness": KoideReadinessArtifact,
     "continuous-time-lidar-pair": ContinuousTimeLidarPairArtifact,
     "continuous-time-lidar-point-to-plane": ContinuousTimeLidarPointToPlaneArtifact,
@@ -523,6 +540,9 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     TRAJECTORY_SCHEMA_VERSION: "trajectory",
     TRAJECTORY_WINDOW_DRIFT_SCHEMA_VERSION: "trajectory-window-drift",
     CAPTURE_READINESS_SCHEMA_VERSION: "capture-readiness",
+    CAPTURE_MANIFEST_SCHEMA_VERSION: "capture-manifest",
+    CAPTURE_MANIFEST_VERIFICATION_SCHEMA_VERSION: "capture-manifest-verification",
+    MCAP_INTEGRITY_SCHEMA_VERSION: "mcap-integrity",
     KOIDE_READINESS_SCHEMA_VERSION: "koide-readiness",
     CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: "continuous-time-lidar-pair",
     CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION: (
@@ -576,6 +596,7 @@ class ValidationReport(StrictModel):
     kind: str
     schema_version: str
     valid: bool = True
+    input_verification: CaptureManifestVerification | None = Field(default=None, exclude=True)
 
 
 def validation_kinds() -> tuple[str, ...]:
@@ -590,7 +611,12 @@ def validation_kind_choices() -> tuple[str, ...]:
     return ("auto", *validation_kinds())
 
 
-def validate_file(path: str | Path, kind: ValidationKind = "auto") -> ValidationReport:
+def validate_file(
+    path: str | Path,
+    kind: ValidationKind = "auto",
+    *,
+    verify_inputs: bool = False,
+) -> ValidationReport:
     """Validate a schema-versioned Calibrex artifact."""
 
     artifact_path = Path(path)
@@ -602,6 +628,19 @@ def validate_file(path: str | Path, kind: ValidationKind = "auto") -> Validation
         validated.verify_artifact_digest()
     elif isinstance(validated, KoideExecutionLock):
         validated.verify_lock_digest()
+    elif isinstance(validated, CaptureManifest):
+        validated.verify_artifact_digest()
+        if verify_inputs:
+            verification = verify_capture_manifest_inputs(artifact_path)
+            return ValidationReport(
+                path=artifact_path.as_posix(),
+                kind=detected_kind,
+                schema_version=_schema_version(validated),
+                valid=verification.valid,
+                input_verification=verification,
+            )
+    elif verify_inputs:
+        raise CalibrexError("--verify-inputs is only supported for capture-manifest artifacts")
     schema_version = _schema_version(validated)
     return ValidationReport(
         path=artifact_path.as_posix(),

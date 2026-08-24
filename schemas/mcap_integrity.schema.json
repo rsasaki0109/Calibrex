@@ -1,0 +1,291 @@
+{
+  "additionalProperties": false,
+  "description": "Bounded, schema-valid evidence from an MCAP framing/integrity scan.\n\n``unknown`` is intentionally distinct from ``blocked``.  For example, a\nwriter may omit the optional DataEnd or summary CRC, or a compressed chunk\nmay carry an uncompressed CRC that cannot be checked without the codec.\nThose facts are reported as unknown rather than being treated as a valid\nCRC.  A malformed frame, dangling channel/schema reference, or a mismatch\nin an encoded CRC is a blocking condition.",
+  "properties": {
+    "channel_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Channel Count",
+      "type": "integer"
+    },
+    "chunk_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Chunk Count",
+      "type": "integer"
+    },
+    "chunk_crc_status": {
+      "default": "not_applicable",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Chunk Crc Status",
+      "type": "string"
+    },
+    "compression_status": {
+      "default": "not_applicable",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Compression Status",
+      "type": "string"
+    },
+    "crc_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Crc Status",
+      "type": "string"
+    },
+    "data_crc_encoded": {
+      "default": false,
+      "title": "Data Crc Encoded",
+      "type": "boolean"
+    },
+    "data_crc_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Data Crc Status",
+      "type": "string"
+    },
+    "data_end_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Data End Status",
+      "type": "string"
+    },
+    "data_records_checked": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Data Records Checked",
+      "type": "integer"
+    },
+    "errors": {
+      "items": {
+        "maxLength": 512,
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Errors",
+      "type": "array"
+    },
+    "file_size_bytes": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File Size Bytes"
+    },
+    "footer_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Footer Status",
+      "type": "string"
+    },
+    "framing_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Framing Status",
+      "type": "string"
+    },
+    "header_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Header Status",
+      "type": "string"
+    },
+    "index_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Index Count",
+      "type": "integer"
+    },
+    "index_present": {
+      "default": false,
+      "title": "Index Present",
+      "type": "boolean"
+    },
+    "index_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Index Status",
+      "type": "string"
+    },
+    "links_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Links Status",
+      "type": "string"
+    },
+    "magic_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Magic Status",
+      "type": "string"
+    },
+    "message_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Message Count",
+      "type": "integer"
+    },
+    "records_checked": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Records Checked",
+      "type": "integer"
+    },
+    "schema_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Schema Count",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "slac.mcap_integrity/v0.1",
+      "default": "slac.mcap_integrity/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "default": "warn",
+      "enum": [
+        "pass",
+        "warn",
+        "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "summary_crc_encoded": {
+      "default": false,
+      "title": "Summary Crc Encoded",
+      "type": "boolean"
+    },
+    "summary_crc_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Summary Crc Status",
+      "type": "string"
+    },
+    "summary_offset_present": {
+      "default": false,
+      "title": "Summary Offset Present",
+      "type": "boolean"
+    },
+    "summary_offset_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Summary Offset Status",
+      "type": "string"
+    },
+    "summary_present": {
+      "default": false,
+      "title": "Summary Present",
+      "type": "boolean"
+    },
+    "summary_records_checked": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Summary Records Checked",
+      "type": "integer"
+    },
+    "summary_status": {
+      "default": "unknown",
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable",
+        "blocked"
+      ],
+      "title": "Summary Status",
+      "type": "string"
+    },
+    "unsupported_compressions": {
+      "items": {
+        "maxLength": 128,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Unsupported Compressions",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "maxLength": 512,
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "title": "McapIntegrityEvidence",
+  "type": "object"
+}

@@ -9,7 +9,7 @@ import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, NoReturn, cast
+from typing import Any, Literal, NoReturn, cast
 
 from calibrex import __version__
 from calibrex.calibration_ci import (
@@ -68,6 +68,14 @@ from calibrex.core.camera_lidar_provider_support_comparison import (
 from calibrex.core.camera_lidar_sota_audit import (
     camera_lidar_sota_audit_protocol_json_schema,
     camera_lidar_sota_audit_result_json_schema,
+)
+from calibrex.core.capture_manifest import (
+    SensorIdentity,
+    SensorType,
+    capture_manifest_json_schema,
+    capture_manifest_verification_json_schema,
+    inspect_capture,
+    verify_capture_manifest_inputs,
 )
 from calibrex.core.capture_readiness import capture_readiness_json_schema
 from calibrex.core.config import (
@@ -144,13 +152,17 @@ from calibrex.core.exceptions import BenchmarkError, CalibrexError
 from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
-from calibrex.core.koide_handoff import load_koide_execution_lock
+from calibrex.core.koide_handoff import (
+    koide_execution_lock_json_schema,
+    load_koide_execution_lock,
+)
 from calibrex.core.koide_readiness import (
     evaluate_koide_readiness_from_config,
     koide_readiness_json_schema,
 )
 from calibrex.core.koide_runner import koide_runner_json_schema
 from calibrex.core.livox_time_ablation import livox_time_ablation_json_schema
+from calibrex.core.mcap_integrity import mcap_integrity_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     load_probabilistic_correspondence,
@@ -512,7 +524,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "dynamic-window-consistency",
             "trajectory-window-drift",
             "capture-readiness",
+            "capture-manifest",
+            "capture-manifest-verification",
+            "mcap-integrity",
             "koide-readiness",
+            "koide-execution-lock",
             "continuous-time-lidar-pair",
             "continuous-time-lidar-point-to-plane",
             "continuous-time-imu-preintegration",
@@ -590,6 +606,14 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=validation_kind_choices(),
         default="auto",
         help="artifact kind; defaults to schema_version auto-detection",
+    )
+    validate.add_argument(
+        "--verify-inputs",
+        action="store_true",
+        help=(
+            "for capture-manifest, recompute source/config paths as well as the "
+            "portable self-digest; relocated/missing inputs fail"
+        ),
     )
     validate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     validate.set_defaults(func=_cmd_validate)
@@ -1996,6 +2020,91 @@ def _build_parser() -> argparse.ArgumentParser:
     visualize.add_argument("--json", action="store_true")
     visualize.set_defaults(func=_cmd_visualize)
 
+    capture = subcommands.add_parser(
+        "capture",
+        help="capture/session inventory and readiness evidence",
+    )
+    capture_subcommands = capture.add_subparsers(dest="capture_command")
+    capture_subcommands.required = True
+    capture_inspect = capture_subcommands.add_parser(
+        "inspect",
+        help="inspect a bag or plain-file source into a capture manifest",
+    )
+    capture_inspect.add_argument("path", type=Path)
+    capture_inspect.add_argument(
+        "--type",
+        choices=["auto", "files", "filesystem", "rosbag1", "rosbag2", "mcap"],
+        default="auto",
+        help=(
+            "source format; defaults to path-based inference. MCAP inspection "
+            "also emits bounded official framing/CRC/link evidence"
+        ),
+    )
+    capture_inspect.add_argument("--capture-id")
+    capture_inspect.add_argument("--session-id")
+    capture_inspect.add_argument("--vehicle-id")
+    capture_inspect.add_argument("--sensor-kit-id")
+    capture_inspect.add_argument(
+        "--sensor",
+        action="append",
+        default=[],
+        metavar="ID:TYPE[:SERIAL[:MODEL[:FIRMWARE[:MOUNT[:FRAME]]]]]]",
+        help="sensor identity; may be repeated",
+    )
+    capture_inspect.add_argument(
+        "--readiness-profile",
+        choices=["strict", "declared"],
+        default="strict",
+        help=(
+            "strict treats every discovered stream as required; declared uses "
+            "--required-stream/--required-kind and explicit optional critical streams"
+        ),
+    )
+    capture_inspect.add_argument(
+        "--required-stream",
+        action="append",
+        default=[],
+        help="stream ID required for calibration intake; may be repeated",
+    )
+    capture_inspect.add_argument(
+        "--optional-stream",
+        action="append",
+        default=[],
+        help="stream ID explicitly treated as non-gating; may be repeated",
+    )
+    capture_inspect.add_argument(
+        "--required-kind",
+        action="append",
+        choices=[
+            "image",
+            "camera_info",
+            "depth_image",
+            "rgbd",
+            "pointcloud",
+            "imu",
+            "radar",
+            "odometry",
+            "metadata",
+            "trajectory",
+            "file",
+            "other",
+        ],
+        default=[],
+        help="stream kind required for calibration intake; may be repeated",
+    )
+    capture_inspect.add_argument("--config", type=Path)
+    capture_inspect.add_argument("--sample-limit", type=_positive_int, default=4)
+    capture_inspect.add_argument("--output", type=Path)
+    capture_inspect.add_argument("--json", action="store_true")
+    capture_inspect.set_defaults(func=_cmd_capture_inspect)
+    capture_verify = capture_subcommands.add_parser(
+        "verify",
+        help="verify a saved capture manifest and recompute declared input digests",
+    )
+    capture_verify.add_argument("manifest", type=Path)
+    capture_verify.add_argument("--json", action="store_true")
+    capture_verify.set_defaults(func=_cmd_capture_verify)
+
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
     inspect.add_argument("path", type=Path)
     inspect.add_argument(
@@ -2204,7 +2313,11 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "dynamic-window-consistency": dynamic_window_consistency_json_schema,
         "trajectory-window-drift": trajectory_window_drift_json_schema,
         "capture-readiness": capture_readiness_json_schema,
+        "capture-manifest": capture_manifest_json_schema,
+        "capture-manifest-verification": capture_manifest_verification_json_schema,
+        "mcap-integrity": mcap_integrity_json_schema,
         "koide-readiness": koide_readiness_json_schema,
+        "koide-execution-lock": koide_execution_lock_json_schema,
         "continuous-time-lidar-pair": continuous_time_lidar_pair_json_schema,
         "continuous-time-lidar-point-to-plane": (continuous_time_lidar_point_to_plane_json_schema),
         "continuous-time-imu-preintegration": (continuous_time_imu_preintegration_json_schema),
@@ -2303,12 +2416,21 @@ def _schema_filename(kind: str) -> str:
 
 def _cmd_validate(args: argparse.Namespace) -> int:
     try:
-        report = validate_file(args.path, cast(ValidationKind, args.kind))
+        report = validate_file(
+            args.path,
+            cast(ValidationKind, args.kind),
+            verify_inputs=bool(args.verify_inputs),
+        )
     except (OSError, ValueError) as exc:
         _die(str(exc))
     payload = report.model_dump(mode="json")
+    if report.input_verification is not None:
+        payload["input_verification"] = report.input_verification.model_dump(
+            mode="json",
+            exclude_none=False,
+        )
     _emit(payload, args.json)
-    return 0
+    return 0 if report.valid else 1
 
 
 def _cmd_benchmark(args: argparse.Namespace) -> int:
@@ -5495,6 +5617,124 @@ def _cmd_visualize(args: argparse.Namespace) -> int:
     }
     _emit(payload, args.json)
     return 0
+
+
+def _cmd_capture_inspect(args: argparse.Namespace) -> int:
+    sensors: list[SensorIdentity] = []
+    for specification in args.sensor:
+        try:
+            sensors.append(_parse_capture_sensor(specification))
+        except ValueError as exc:
+            _die(str(exc))
+    command = ["calibrex", "capture", "inspect", str(args.path)]
+    if args.type != "auto":
+        command.extend(["--type", str(args.type)])
+    for option, value in (
+        ("--capture-id", args.capture_id),
+        ("--session-id", args.session_id),
+        ("--vehicle-id", args.vehicle_id),
+        ("--sensor-kit-id", args.sensor_kit_id),
+    ):
+        if value is not None:
+            command.extend([option, str(value)])
+    for specification in args.sensor:
+        command.extend(["--sensor", specification])
+    if args.readiness_profile != "strict":
+        command.extend(["--readiness-profile", str(args.readiness_profile)])
+    for stream_id in args.required_stream:
+        command.extend(["--required-stream", stream_id])
+    for stream_id in args.optional_stream:
+        command.extend(["--optional-stream", stream_id])
+    for stream_kind in args.required_kind:
+        command.extend(["--required-kind", stream_kind])
+    if args.config is not None:
+        command.extend(["--config", str(args.config)])
+    if args.sample_limit != 4:
+        command.extend(["--sample-limit", str(args.sample_limit)])
+    if args.output is not None:
+        command.extend(["--output", str(args.output)])
+    if args.json:
+        command.append("--json")
+    manifest = inspect_capture(
+        args.path,
+        source_format=str(args.type),
+        capture_id=args.capture_id,
+        session_id=args.session_id,
+        vehicle_id=args.vehicle_id,
+        sensor_kit_id=args.sensor_kit_id,
+        sensors=sensors,
+        config_path=args.config,
+        command=command,
+        readiness_profile=cast(Literal["strict", "declared"], args.readiness_profile),
+        required_streams=tuple(args.required_stream),
+        optional_streams=tuple(args.optional_stream),
+        required_stream_kinds=tuple(args.required_kind),
+        sample_limit=args.sample_limit,
+    )
+    if args.output is not None:
+        manifest.save(args.output)
+    payload = manifest.model_dump(mode="json", exclude_none=False)
+    if args.json:
+        _emit(payload, as_json=True)
+    else:
+        print(f"Capture manifest: {manifest.status.upper()}")
+        print(f"  source: {args.path}")
+        print(f"  streams: {len(manifest.streams)}")
+        print(f"  sensors: {len(manifest.sensors)}")
+        if manifest.source is not None and manifest.source.mcap_integrity is not None:
+            print(f"  mcap_integrity: {manifest.source.mcap_integrity.status}")
+        print(f"  summary: {manifest.summary}")
+        for check in manifest.checks:
+            print(f"  {check.check_id}: {check.status} - {check.reason}")
+        for action in manifest.actions:
+            print(f"  next: {action.message}")
+        print(f"  artifact_sha256: {manifest.artifact_sha256}")
+        if args.output is not None:
+            print(f"  artifact: {args.output}")
+    return 0
+
+
+def _cmd_capture_verify(args: argparse.Namespace) -> int:
+    """Verify a capture manifest and its declared external inputs."""
+
+    try:
+        report = verify_capture_manifest_inputs(args.manifest)
+    except (OSError, ValueError) as exc:
+        _die(str(exc))
+    payload = report.model_dump(mode="json", exclude_none=False)
+    if args.json:
+        _emit(payload, as_json=True)
+    else:
+        print(f"Capture manifest verification: {'PASS' if report.valid else 'FAIL'}")
+        print(f"  manifest: {args.manifest}")
+        print(f"  self_digest: {report.self_digest_status}")
+        for item in report.inputs:
+            print(f"  {item.role}:{item.identifier}: {item.status} - {item.reason}")
+        print(f"  summary: {report.summary}")
+    return 0 if report.valid else 1
+
+
+def _parse_capture_sensor(specification: str) -> SensorIdentity:
+    fields = specification.split(":")
+    if len(fields) < 2 or not fields[0] or not fields[1]:
+        raise ValueError(
+            "--sensor must be ID:TYPE[:SERIAL[:MODEL[:FIRMWARE[:MOUNT[:FRAME]]]]]"
+        )
+    if len(fields) > 7:
+        raise ValueError("--sensor accepts at most seven colon-separated fields")
+    values = fields + [None] * (7 - len(fields))
+    try:
+        return SensorIdentity(
+            sensor_id=values[0] or "",
+            type=cast(SensorType, values[1]),
+            serial=values[2],
+            model=values[3],
+            firmware=values[4],
+            mount_id=values[5],
+            frame_id=values[6],
+        )
+    except ValueError as exc:
+        raise ValueError(f"invalid --sensor {specification!r}: {exc}") from exc
 
 
 def _cmd_inspect(args: argparse.Namespace) -> int:

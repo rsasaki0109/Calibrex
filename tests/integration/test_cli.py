@@ -48,6 +48,68 @@ def _sha256_file_for_test(path: Path) -> tuple[str, int]:
     return digest.hexdigest(), size_bytes
 
 
+def test_capture_verify_cli_revalidates_inputs_and_validate_option(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = tmp_path / "capture.bin"
+    config = tmp_path / "config.yaml"
+    manifest = tmp_path / "capture-manifest.json"
+    source.write_bytes(b"capture")
+    config.write_text("profile: commercial\n", encoding="utf-8")
+    assert (
+        main(
+            [
+                "capture",
+                "inspect",
+                str(source),
+                "--type",
+                "files",
+                "--capture-id",
+                "capture-1",
+                "--session-id",
+                "session-1",
+                "--vehicle-id",
+                "vehicle-1",
+                "--sensor-kit-id",
+                "kit-1",
+                "--config",
+                str(config),
+                "--output",
+                str(manifest),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    assert main(["capture", "verify", str(manifest), "--json"]) == 0
+    verification = json.loads(capsys.readouterr().out)
+    assert verification["valid"] is True
+    source.write_bytes(b"changed")
+    assert main(["capture", "verify", str(manifest), "--json"]) == 1
+    verification = json.loads(capsys.readouterr().out)
+    assert verification["inputs"][0]["status"] == "mismatch"
+    assert main(["validate", str(manifest), "--kind", "capture-manifest"]) == 0
+    capsys.readouterr()
+    assert (
+        main(
+            [
+                "validate",
+                str(manifest),
+                "--kind",
+                "capture-manifest",
+                "--verify-inputs",
+                "--json",
+            ]
+        )
+        == 1
+    )
+    validation = json.loads(capsys.readouterr().out)
+    assert validation["valid"] is False
+    assert validation["input_verification"]["inputs"][0]["status"] == "mismatch"
+
+
 def _refresh_bundle_artifact_for_test(
     bundle_path: Path,
     artifact_path: Path,

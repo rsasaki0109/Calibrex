@@ -21,7 +21,10 @@ Bare storage files without ``metadata.yaml`` are read as stored.
 CDR decoding supports ``sensor_msgs/msg/PointCloud2``, Livox
 ``livox_interfaces/msg/CustomMsg`` and compatible driver aliases,
 ``nav_msgs/msg/Odometry``, and
-``sensor_msgs/msg/Imu``. Livox custom points are normalized without importing
+``sensor_msgs/msg/Imu``. Standard ``sensor_msgs/msg/Image`` and
+``sensor_msgs/msg/CameraInfo`` payloads, and the pinned standard
+``radar_msgs/msg/RadarScan`` payload are also decoded without importing ROS.
+Livox custom points are normalized without importing
 ROS or the vendor driver, preserving ``timebase`` and ``offset_time``.
 """
 
@@ -41,16 +44,22 @@ import yaml
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_cdr import (
+    decode_ros2_camera_info,
+    decode_ros2_image,
     decode_ros2_imu,
     decode_ros2_livox_custommsg,
     decode_ros2_odometry,
     decode_ros2_pointcloud2,
+    decode_ros2_radar_scan,
 )
 from calibrex.data.ros_messages import (
+    CameraInfoMessage,
+    ImageMessage,
     ImuMessage,
     LivoxCustomMessage,
     OdometryMessage,
     PointCloud2Message,
+    RadarScanMessage,
     require_numpy,
 )
 
@@ -65,8 +74,11 @@ OP_CHUNK = 0x06
 OP_DATA_END = 0x0F
 
 POINTCLOUD2_TYPE = "sensor_msgs/msg/PointCloud2"
+IMAGE_TYPE = "sensor_msgs/msg/Image"
+CAMERA_INFO_TYPE = "sensor_msgs/msg/CameraInfo"
 ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
 IMU_TYPE = "sensor_msgs/msg/Imu"
+RADAR_SCAN_TYPE = "radar_msgs/msg/RadarScan"
 LIVOX_CUSTOMMSG_TYPE = "livox_interfaces/msg/CustomMsg"
 LIVOX_CUSTOMMSG_TYPES = frozenset(
     {
@@ -76,7 +88,16 @@ LIVOX_CUSTOMMSG_TYPES = frozenset(
     }
 )
 LIDAR_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, *LIVOX_CUSTOMMSG_TYPES})
-DECODED_MESSAGE_TYPES = frozenset({*LIDAR_MESSAGE_TYPES, ODOMETRY_TYPE, IMU_TYPE})
+DECODED_MESSAGE_TYPES = frozenset(
+    {
+        *LIDAR_MESSAGE_TYPES,
+        ODOMETRY_TYPE,
+        IMU_TYPE,
+        RADAR_SCAN_TYPE,
+        IMAGE_TYPE,
+        CAMERA_INFO_TYPE,
+    }
+)
 _INSPECT_MESSAGE_TYPES = DECODED_MESSAGE_TYPES
 _DEFAULT_DISTANCE_BIN_EDGES_M = (0.0, 10.0, 20.0, 40.0, 80.0)
 
@@ -89,9 +110,18 @@ class Rosbag2Connection:
     topic: str
     message_type: str
     serialization_format: str = "cdr"
+    offered_qos_profiles: str | None = None
 
 
-Rosbag2DecodedMessage = PointCloud2Message | LivoxCustomMessage | OdometryMessage | ImuMessage
+Rosbag2DecodedMessage = (
+    PointCloud2Message
+    | LivoxCustomMessage
+    | OdometryMessage
+    | ImuMessage
+    | ImageMessage
+    | CameraInfoMessage
+    | RadarScanMessage
+)
 
 
 @dataclass(frozen=True)
@@ -125,6 +155,18 @@ class Rosbag2TopicStreamStats:
     sampled_point_time_max_s: float | None = None
     sampled_point_time_reference_first_ns: int | None = None
     sampled_point_time_reference_last_ns: int | None = None
+    # RadarScan evidence is kept separate from LiDAR point geometry because
+    # RadarReturn has no xyz payload and carries signed Doppler velocity.
+    sampled_radar_return_count: int | None = None
+    radar_range_min_m: float | None = None
+    radar_range_max_m: float | None = None
+    radar_azimuth_span_rad: float | None = None
+    radar_elevation_span_rad: float | None = None
+    radar_doppler_min_mps: float | None = None
+    radar_doppler_max_mps: float | None = None
+    radar_doppler_span_mps: float | None = None
+    radar_duplicate_return_count: int | None = None
+    radar_diversity_status: str | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return a JSON/YAML-friendly representation."""
@@ -171,6 +213,16 @@ class Rosbag2TopicStreamStats:
             "sampled_point_time_reference_last_ns": (
                 self.sampled_point_time_reference_last_ns
             ),
+            "sampled_radar_return_count": self.sampled_radar_return_count,
+            "radar_range_min_m": self.radar_range_min_m,
+            "radar_range_max_m": self.radar_range_max_m,
+            "radar_azimuth_span_rad": self.radar_azimuth_span_rad,
+            "radar_elevation_span_rad": self.radar_elevation_span_rad,
+            "radar_doppler_min_mps": self.radar_doppler_min_mps,
+            "radar_doppler_max_mps": self.radar_doppler_max_mps,
+            "radar_doppler_span_mps": self.radar_doppler_span_mps,
+            "radar_duplicate_return_count": self.radar_duplicate_return_count,
+            "radar_diversity_status": self.radar_diversity_status,
         }
 
 
@@ -266,6 +318,12 @@ class Rosbag2Reader:
                 if connection.message_type in LIDAR_MESSAGE_TYPES
                 else "imu"
                 if connection.message_type == IMU_TYPE
+                else "image"
+                if connection.message_type == IMAGE_TYPE
+                else "camera_info"
+                if connection.message_type == CAMERA_INFO_TYPE
+                else "radar"
+                if connection.message_type == RADAR_SCAN_TYPE
                 else "odometry"
             )
             summaries.append(
@@ -306,6 +364,26 @@ class Rosbag2Reader:
         """Yield normalized PointCloud2 or Livox CustomMsg messages."""
 
         yield from read_lidar_messages(self.path, topic=topic)
+
+    def read_images(self, topic: str | None = None) -> Iterator[ImageMessage]:
+        """Yield validated ROS 2 Image messages without pixel copies."""
+
+        yield from read_image_messages(self.path, topic=topic)
+
+    def read_camera_info(self, topic: str | None = None) -> Iterator[CameraInfoMessage]:
+        """Yield validated ROS 2 CameraInfo messages."""
+
+        yield from read_camera_info_messages(self.path, topic=topic)
+
+    def read_radar_scans(self, topic: str | None = None) -> Iterator[RadarScanMessage]:
+        """Yield normalized ROS 2 ``radar_msgs/msg/RadarScan`` messages."""
+
+        yield from read_radar_scan_messages(self.path, topic=topic)
+
+    def read_radar_messages(self, topic: str | None = None) -> Iterator[RadarScanMessage]:
+        """Compatibility alias for :meth:`read_radar_scans`."""
+
+        yield from self.read_radar_scans(topic=topic)
 
 
 def iter_messages(
@@ -478,18 +556,29 @@ def _iter_sqlite_messages(
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
-        topic_rows = conn.execute(
-            "SELECT id, name, type, serialization_format FROM topics"
-        ).fetchall()
-        connections = {
-            int(topic_id): Rosbag2Connection(
+        try:
+            topic_rows = conn.execute(
+                "SELECT id, name, type, serialization_format, offered_qos_profiles FROM topics"
+            ).fetchall()
+            has_qos_profiles = True
+        except sqlite3.OperationalError:
+            topic_rows = conn.execute(
+                "SELECT id, name, type, serialization_format FROM topics"
+            ).fetchall()
+            has_qos_profiles = False
+        connections: dict[int, Rosbag2Connection] = {}
+        for row in topic_rows:
+            topic_id, name, message_type, serialization_format = row[:4]
+            qos_profiles = row[4] if has_qos_profiles and len(row) > 4 else None
+            connections[int(topic_id)] = Rosbag2Connection(
                 topic_id=int(topic_id),
                 topic=str(name),
                 message_type=str(message_type),
                 serialization_format=str(serialization_format),
+                offered_qos_profiles=(
+                    str(qos_profiles) if qos_profiles else None
+                ),
             )
-            for topic_id, name, message_type, serialization_format in topic_rows
-        }
         allowed_topic_ids: set[int] | None = None
         if topics is not None:
             allowed_topic_ids = {
@@ -784,6 +873,64 @@ def read_pointcloud2_messages(
         yield decode_pointcloud2(connection.topic, timestamp_ns, data)
 
 
+def read_image_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+    include_data: bool = False,
+) -> Iterator[ImageMessage]:
+    """Yield validated ROS 2 Image messages, optionally retaining image bytes."""
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != IMAGE_TYPE:
+            continue
+        yield decode_image(
+            connection.topic,
+            timestamp_ns,
+            data,
+            include_data=include_data,
+        )
+
+
+def read_camera_info_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[CameraInfoMessage]:
+    """Yield validated ROS 2 CameraInfo messages, optionally by topic."""
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != CAMERA_INFO_TYPE:
+            continue
+        yield decode_camera_info(connection.topic, timestamp_ns, data)
+
+
+def read_radar_scan_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[RadarScanMessage]:
+    """Yield decoded ROS 2 ``radar_msgs/msg/RadarScan`` messages."""
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != RADAR_SCAN_TYPE:
+            continue
+        yield decode_radar_scan(connection.topic, timestamp_ns, data)
+
+
+def read_radar_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[RadarScanMessage]:
+    """Compatibility alias for :func:`read_radar_scan_messages`."""
+
+    yield from read_radar_scan_messages(path, topic=topic)
+
+
 def read_lidar_messages(
     path: str | Path,
     *,
@@ -803,8 +950,14 @@ def decode_rosbag2_message(
     message_type: str,
     timestamp_ns: int,
     data: bytes,
+    *,
+    include_image_data: bool = False,
 ) -> Rosbag2DecodedMessage:
-    """Decode a supported rosbag2 CDR payload."""
+    """Decode a supported rosbag2 CDR payload.
+
+    Image bytes are omitted by default so inspection remains bounded while
+    still validating the serialized payload completely.
+    """
 
     if message_type == POINTCLOUD2_TYPE:
         return decode_pointcloud2(topic, timestamp_ns, data)
@@ -814,6 +967,17 @@ def decode_rosbag2_message(
         return decode_odometry(topic, timestamp_ns, data)
     if message_type == IMU_TYPE:
         return decode_imu(topic, timestamp_ns, data)
+    if message_type == IMAGE_TYPE:
+        return decode_image(
+            topic,
+            timestamp_ns,
+            data,
+            include_data=include_image_data,
+        )
+    if message_type == CAMERA_INFO_TYPE:
+        return decode_camera_info(topic, timestamp_ns, data)
+    if message_type == RADAR_SCAN_TYPE:
+        return decode_radar_scan(topic, timestamp_ns, data)
     msg = f"unsupported rosbag2 message type: {message_type!r}"
     raise DatasetError(msg)
 
@@ -875,6 +1039,41 @@ def decode_imu(topic: str, timestamp_ns: int, data: bytes) -> ImuMessage:
     """Decode a CDR ``sensor_msgs/msg/Imu`` payload."""
 
     return decode_ros2_imu(topic, timestamp_ns, data)
+
+
+def decode_image(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    include_data: bool = True,
+) -> ImageMessage:
+    """Decode a ROS 2 Image payload through the CDR adapter."""
+
+    return decode_ros2_image(
+        topic,
+        timestamp_ns,
+        data,
+        include_data=include_data,
+    )
+
+
+def decode_camera_info(topic: str, timestamp_ns: int, data: bytes) -> CameraInfoMessage:
+    """Decode a ROS 2 CameraInfo payload through the CDR adapter."""
+
+    return decode_ros2_camera_info(topic, timestamp_ns, data)
+
+
+def decode_radar_scan(topic: str, timestamp_ns: int, data: bytes) -> RadarScanMessage:
+    """Decode a CDR ``radar_msgs/msg/RadarScan`` payload."""
+
+    return decode_ros2_radar_scan(topic, timestamp_ns, data)
+
+
+def decode_radar(topic: str, timestamp_ns: int, data: bytes) -> RadarScanMessage:
+    """Compatibility alias for :func:`decode_radar_scan`."""
+
+    return decode_radar_scan(topic, timestamp_ns, data)
 
 
 def read_imu_messages(
@@ -941,6 +1140,16 @@ def summarize_rosbag2(
     elevation_max: dict[str, float] = {}
     distance_bin_counts: dict[str, list[int]] = {}
     odometry_samples: dict[str, list[OdometryMessage]] = {}
+    radar_return_count: dict[str, int] = {}
+    radar_range_min: dict[str, float] = {}
+    radar_range_max: dict[str, float] = {}
+    radar_azimuth_span: dict[str, float] = {}
+    radar_elevation_span: dict[str, float] = {}
+    radar_doppler_min: dict[str, float] = {}
+    radar_doppler_max: dict[str, float] = {}
+    radar_doppler_span: dict[str, float] = {}
+    radar_duplicate_count: dict[str, int] = {}
+    radar_diversity_status: dict[str, str] = {}
 
     try:
         for connection, timestamp_ns, data in iter_messages(bag_path):
@@ -1024,6 +1233,26 @@ def summarize_rosbag2(
                     point_time_reference_first_ns,
                     point_time_reference_last_ns,
                 )
+            elif isinstance(message, (ImageMessage, CameraInfoMessage)):
+                if message.frame_id:
+                    sample_frame_id.setdefault(topic, message.frame_id)
+            elif isinstance(message, RadarScanMessage):
+                if message.frame_id:
+                    sample_frame_id.setdefault(topic, message.frame_id)
+                _accumulate_radar_evidence(
+                    message,
+                    topic,
+                    radar_return_count,
+                    radar_range_min,
+                    radar_range_max,
+                    radar_azimuth_span,
+                    radar_elevation_span,
+                    radar_doppler_min,
+                    radar_doppler_max,
+                    radar_doppler_span,
+                    radar_duplicate_count,
+                    radar_diversity_status,
+                )
     except DatasetError as exc:
         return Rosbag2DatasetStats(
             status="malformed",
@@ -1068,6 +1297,16 @@ def summarize_rosbag2(
             sampled_point_time_max_s=point_time_max_s.get(topic),
             sampled_point_time_reference_first_ns=point_time_reference_first_ns.get(topic),
             sampled_point_time_reference_last_ns=point_time_reference_last_ns.get(topic),
+            sampled_radar_return_count=radar_return_count.get(topic),
+            radar_range_min_m=radar_range_min.get(topic),
+            radar_range_max_m=radar_range_max.get(topic),
+            radar_azimuth_span_rad=radar_azimuth_span.get(topic),
+            radar_elevation_span_rad=radar_elevation_span.get(topic),
+            radar_doppler_min_mps=radar_doppler_min.get(topic),
+            radar_doppler_max_mps=radar_doppler_max.get(topic),
+            radar_doppler_span_mps=radar_doppler_span.get(topic),
+            radar_duplicate_return_count=radar_duplicate_count.get(topic),
+            radar_diversity_status=radar_diversity_status.get(topic),
         )
         for topic in sorted(counts)
     )
@@ -1084,6 +1323,59 @@ def summarize_rosbag2(
         },
         reason=None if streams else "no supported decoded topics found",
     )
+
+
+def _accumulate_radar_evidence(
+    message: RadarScanMessage,
+    topic: str,
+    return_counts: dict[str, int],
+    range_min: dict[str, float],
+    range_max: dict[str, float],
+    azimuth_span: dict[str, float],
+    elevation_span: dict[str, float],
+    doppler_min: dict[str, float],
+    doppler_max: dict[str, float],
+    doppler_span: dict[str, float],
+    duplicate_counts: dict[str, int],
+    diversity_status: dict[str, str],
+) -> None:
+    """Merge one bounded RadarScan into topic-level intake evidence."""
+
+    return_counts[topic] = return_counts.get(topic, 0) + message.return_count
+    if message.range_min_m is not None:
+        range_min[topic] = min(range_min.get(topic, message.range_min_m), message.range_min_m)
+    if message.range_max_m is not None:
+        range_max[topic] = max(range_max.get(topic, message.range_max_m), message.range_max_m)
+    if message.azimuth_span_rad is not None:
+        azimuth_span[topic] = max(
+            azimuth_span.get(topic, message.azimuth_span_rad), message.azimuth_span_rad
+        )
+    if message.elevation_span_rad is not None:
+        elevation_span[topic] = max(
+            elevation_span.get(topic, message.elevation_span_rad), message.elevation_span_rad
+        )
+    if message.doppler_min_mps is not None:
+        doppler_min[topic] = min(
+            doppler_min.get(topic, message.doppler_min_mps), message.doppler_min_mps
+        )
+    if message.doppler_max_mps is not None:
+        doppler_max[topic] = max(
+            doppler_max.get(topic, message.doppler_max_mps), message.doppler_max_mps
+        )
+    if message.doppler_span_mps is not None:
+        doppler_span[topic] = max(
+            doppler_span.get(topic, message.doppler_span_mps), message.doppler_span_mps
+        )
+    duplicate_counts[topic] = duplicate_counts.get(topic, 0) + message.duplicate_return_count
+    previous = diversity_status.get(topic)
+    # Strong dominates weak, while empty remains visible until a non-empty
+    # sample proves otherwise.
+    if previous == "strong" or message.diversity_status == "strong":
+        diversity_status[topic] = "strong"
+    elif previous == "weak" or message.diversity_status == "weak":
+        diversity_status[topic] = "weak"
+    else:
+        diversity_status[topic] = message.diversity_status
 
 
 def _summarize_odometry_motion(

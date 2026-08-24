@@ -1,0 +1,135 @@
+{
+  "$defs": {
+    "CaptureInputVerification": {
+      "additionalProperties": false,
+      "description": "Recomputed digest evidence for one manifest input path.",
+      "properties": {
+        "expected_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Sha256"
+        },
+        "identifier": {
+          "title": "Identifier",
+          "type": "string"
+        },
+        "observed_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Sha256"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "source",
+            "config",
+            "metadata"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "verified",
+            "missing",
+            "mismatch",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "identifier",
+        "path",
+        "status",
+        "reason"
+      ],
+      "title": "CaptureInputVerification",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Typed production verification report for a capture manifest.\n\n``load_capture_manifest`` intentionally performs only schema and\nself-digest verification so a manifest can be moved with its source.  This\nreport is the explicit, fail-closed operation that revalidates every\nsource/config path still available from the manifest's directory.",
+  "properties": {
+    "expected_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Artifact Sha256",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/CaptureInputVerification"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "manifest_path": {
+      "title": "Manifest Path",
+      "type": "string"
+    },
+    "observed_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observed Artifact Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.capture_manifest.verification/v0.1",
+      "default": "slac.capture_manifest.verification/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "self_digest_status": {
+      "enum": [
+        "verified",
+        "missing",
+        "mismatch",
+        "unknown"
+      ],
+      "title": "Self Digest Status",
+      "type": "string"
+    },
+    "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+    },
+    "valid": {
+      "default": false,
+      "title": "Valid",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "manifest_path",
+    "self_digest_status",
+    "expected_artifact_sha256",
+    "observed_artifact_sha256"
+  ],
+  "title": "CaptureManifestVerification",
+  "type": "object"
+}

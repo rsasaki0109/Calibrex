@@ -47,6 +47,10 @@ from calibrex.core.camera_lidar_sota_audit import (
     camera_lidar_sota_audit_protocol_json_schema,
     camera_lidar_sota_audit_result_json_schema,
 )
+from calibrex.core.capture_manifest import (
+    capture_manifest_json_schema,
+    capture_manifest_verification_json_schema,
+)
 from calibrex.core.capture_readiness import capture_readiness_json_schema
 from calibrex.core.config import config_json_schema
 from calibrex.core.continuous_time_camera_lidar_artifacts import (
@@ -110,6 +114,7 @@ from calibrex.core.livox_time_ablation import (
     LivoxTimeAblationManifest,
     livox_time_ablation_json_schema,
 )
+from calibrex.core.mcap_integrity import mcap_integrity_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     probabilistic_correspondence_json_schema,
@@ -256,6 +261,9 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "trajectory.schema.json": trajectory_json_schema,
         "trajectory_window_drift.schema.json": trajectory_window_drift_json_schema,
         "capture_readiness.schema.json": capture_readiness_json_schema,
+        "capture_manifest.schema.json": capture_manifest_json_schema,
+        "capture_manifest_verification.schema.json": capture_manifest_verification_json_schema,
+        "mcap_integrity.schema.json": mcap_integrity_json_schema,
         "koide_readiness.schema.json": koide_readiness_json_schema,
         "koide_execution_lock.schema.json": koide_execution_lock_json_schema,
         "koide_pilot.schema.json": koide_pilot_json_schema,

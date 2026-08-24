@@ -9,7 +9,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_SCHEMA_COUNT = 62
+# Keep the clean-wheel smoke aligned with the checked-in schema inventory.
+# ``calibrex schema all`` must reproduce every static schema, including the
+# capture-manifest and MCAP-integrity contracts.
+EXPECTED_SCHEMA_COUNT = 82
 DEFAULT_VENV = Path("/tmp/calibrex-release-smoke")
 DEFAULT_BUILD_ENV = Path("/tmp/calibrex-release-build")
 DEFAULT_SCHEMA_DIR = Path("/tmp/calibrex-release-schemas")

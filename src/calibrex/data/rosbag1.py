@@ -13,6 +13,10 @@ Scope
 * Deserialize ``sensor_msgs/PointCloud2`` and ``livox_ros_driver/CustomMsg``
   payloads into numpy arrays (``x``, ``y``, ``z`` and intensity or reflectivity
   when present) with nanosecond timestamps.
+* Deserialize standard ``sensor_msgs/Image`` and ``sensor_msgs/CameraInfo``
+  payloads into ROS-independent typed records; image bytes are optional.
+* Deserialize the pinned standard ``radar_msgs/RadarScan`` payload into a
+  bounded ROS-independent typed record.
 
 The reader follows the same ``streams()`` / ``records()`` surface used by the
 other dataset adapters in :mod:`calibrex.data`.
@@ -33,13 +37,28 @@ from typing import BinaryIO
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_messages import (
+    MAX_CAMERA_INFO_DISTORTION_COEFFICIENTS,
+    MAX_IMAGE_BYTES,
+    MAX_IMAGE_ENCODING_LENGTH,
+    MAX_IMAGE_HEIGHT,
+    MAX_IMAGE_WIDTH,
+    MAX_RADAR_PAYLOAD_BYTES,
+    MAX_RADAR_RETURNS,
+    MAX_ROS_STRING_BYTES,
+    CameraInfoMessage,
+    ImageMessage,
     LivoxCustomMessage,
     PointCloud2Message,
     PointField,
+    RadarReturn,
+    RadarScanMessage,
+    RegionOfInterest,
     decode_point_time_offsets,
     decode_pointcloud_payload,
     filter_nonfinite_pointcloud_rows,
     require_numpy,
+    validate_camera_info_metadata,
+    validate_image_metadata,
 )
 
 BAG_MAGIC = b"#ROSBAG V2.0\n"
@@ -53,10 +72,23 @@ OP_CHUNK_INFO = 0x06
 OP_CONNECTION = 0x07
 
 POINTCLOUD2_TYPE = "sensor_msgs/PointCloud2"
+IMAGE_TYPE = "sensor_msgs/Image"
+CAMERA_INFO_TYPE = "sensor_msgs/CameraInfo"
+RADAR_SCAN_TYPE = "radar_msgs/RadarScan"
 LIVOX_CUSTOMMSG_TYPE = "livox_ros_driver/CustomMsg"
 POSE_STAMPED_TYPE = "geometry_msgs/PoseStamped"
 LIDAR_MESSAGE_TYPES = frozenset({POINTCLOUD2_TYPE, LIVOX_CUSTOMMSG_TYPE})
+RADAR_MESSAGE_TYPES = frozenset({RADAR_SCAN_TYPE})
 _LIDAR_MESSAGE_TYPES = LIDAR_MESSAGE_TYPES
+DECODED_MESSAGE_TYPES = frozenset(
+    {
+        POINTCLOUD2_TYPE,
+        IMAGE_TYPE,
+        CAMERA_INFO_TYPE,
+        LIVOX_CUSTOMMSG_TYPE,
+        RADAR_SCAN_TYPE,
+    }
+)
 _LIVOX_CUSTOM_POINT_STEP = 19
 _DEFAULT_DISTANCE_BIN_EDGES_M = (0.0, 10.0, 20.0, 40.0, 80.0)
 _BAG_HEADER_PADDING_SCAN_LIMIT = 16 * 1024 * 1024
@@ -152,6 +184,48 @@ class Rosbag1PointCloudStreamStats:
 
 
 @dataclass(frozen=True)
+class Rosbag1RadarStreamStats:
+    """Bounded RadarScan evidence sampled from a ROS 1 bag topic."""
+
+    topic: str
+    message_type: str
+    message_count: int
+    sampled_message_count: int
+    sampled_return_count: int
+    sample_frame_id: str | None = None
+    range_min_m: float | None = None
+    range_max_m: float | None = None
+    azimuth_span_rad: float | None = None
+    elevation_span_rad: float | None = None
+    doppler_min_mps: float | None = None
+    doppler_max_mps: float | None = None
+    doppler_span_mps: float | None = None
+    duplicate_return_count: int = 0
+    diversity_status: str = "unknown"
+
+    def as_dict(self) -> dict[str, object]:
+        """Return JSON/YAML-friendly RadarScan evidence."""
+
+        return {
+            "topic": self.topic,
+            "message_type": self.message_type,
+            "message_count": self.message_count,
+            "sampled_message_count": self.sampled_message_count,
+            "sampled_return_count": self.sampled_return_count,
+            "sample_frame_id": self.sample_frame_id,
+            "range_min_m": self.range_min_m,
+            "range_max_m": self.range_max_m,
+            "azimuth_span_rad": self.azimuth_span_rad,
+            "elevation_span_rad": self.elevation_span_rad,
+            "doppler_min_mps": self.doppler_min_mps,
+            "doppler_max_mps": self.doppler_max_mps,
+            "doppler_span_mps": self.doppler_span_mps,
+            "duplicate_return_count": self.duplicate_return_count,
+            "diversity_status": self.diversity_status,
+        }
+
+
+@dataclass(frozen=True)
 class Rosbag1DatasetStats:
     """Bag-level statistics returned to ``calibrex inspect``."""
 
@@ -159,6 +233,7 @@ class Rosbag1DatasetStats:
     connection_count: int
     pointcloud_topic_count: int
     streams: tuple[Rosbag1PointCloudStreamStats, ...] = ()
+    radar_streams: tuple[Rosbag1RadarStreamStats, ...] = ()
     reason: str | None = None
 
     def as_dict(self) -> dict[str, object]:
@@ -169,6 +244,7 @@ class Rosbag1DatasetStats:
             "connection_count": self.connection_count,
             "pointcloud_topic_count": self.pointcloud_topic_count,
             "streams": [stream.as_dict() for stream in self.streams],
+            "radar_streams": [stream.as_dict() for stream in self.radar_streams],
             "reason": self.reason,
         }
 
@@ -180,16 +256,17 @@ class Rosbag1Reader:
         self.path = Path(path)
 
     def streams(self) -> list[StreamSummary]:
-        """Return one stream per supported LiDAR topic in the bag."""
+        """Return one stream per supported LiDAR or Radar topic in the bag."""
 
-        counts, connections = _lidar_topic_counts(self.path)
+        counts, connections = _supported_sensor_topic_counts(self.path)
         summaries: list[StreamSummary] = []
         for topic in sorted(counts):
             connection = connections[topic]
+            kind = "radar" if connection.message_type in RADAR_MESSAGE_TYPES else "pointcloud"
             summaries.append(
                 StreamSummary(
                     name=topic,
-                    kind="pointcloud",
+                    kind=kind,
                     message_count=counts[topic],
                     topic=topic,
                     sensor=connection.message_type,
@@ -216,6 +293,26 @@ class Rosbag1Reader:
         """Yield decoded ``PointCloud2`` messages for ``topic``."""
 
         yield from read_pointcloud2_messages(self.path, topic=topic)
+
+    def read_images(self, topic: str | None = None) -> Iterator[ImageMessage]:
+        """Yield validated ``sensor_msgs/Image`` messages without pixel copies."""
+
+        yield from read_image_messages(self.path, topic=topic)
+
+    def read_camera_info(self, topic: str | None = None) -> Iterator[CameraInfoMessage]:
+        """Yield validated ``sensor_msgs/CameraInfo`` messages."""
+
+        yield from read_camera_info_messages(self.path, topic=topic)
+
+    def read_radar_scans(self, topic: str | None = None) -> Iterator[RadarScanMessage]:
+        """Yield normalized ROS 1 ``radar_msgs/RadarScan`` messages."""
+
+        yield from read_radar_scan_messages(self.path, topic=topic)
+
+    def read_radar_messages(self, topic: str | None = None) -> Iterator[RadarScanMessage]:
+        """Compatibility alias for :meth:`read_radar_scans`."""
+
+        yield from self.read_radar_scans(topic=topic)
 
 
 def _read_exact(source: BinaryIO, size: int) -> bytes:
@@ -498,6 +595,21 @@ def _lidar_topic_counts(
     return counts, connections
 
 
+def _supported_sensor_topic_counts(
+    path: str | Path,
+) -> tuple[dict[str, int], dict[str, Rosbag1Connection]]:
+    """Count exact built-in LiDAR and Radar topics for ``Reader.streams``."""
+
+    counts: dict[str, int] = {}
+    connections: dict[str, Rosbag1Connection] = {}
+    for connection, _timestamp_ns, _data in iter_messages(path):
+        if connection.message_type not in {*LIDAR_MESSAGE_TYPES, *RADAR_MESSAGE_TYPES}:
+            continue
+        counts[connection.topic] = counts.get(connection.topic, 0) + 1
+        connections.setdefault(connection.topic, connection)
+    return counts, connections
+
+
 def read_pointcloud2_messages(
     path: str | Path,
     *,
@@ -510,6 +622,398 @@ def read_pointcloud2_messages(
         if connection.message_type != POINTCLOUD2_TYPE:
             continue
         yield decode_pointcloud2(connection.topic, timestamp_ns, data)
+
+
+def read_image_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+    include_data: bool = False,
+) -> Iterator[ImageMessage]:
+    """Yield validated ROS 1 Image messages.
+
+    ``include_data`` defaults to ``False`` because capture inventory needs
+    payload validation and frame evidence, not a second in-memory image copy.
+    """
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != IMAGE_TYPE:
+            continue
+        yield decode_image(
+            connection.topic,
+            timestamp_ns,
+            data,
+            include_data=include_data,
+        )
+
+
+def read_camera_info_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[CameraInfoMessage]:
+    """Yield validated ROS 1 CameraInfo messages, optionally by topic."""
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != CAMERA_INFO_TYPE:
+            continue
+        yield decode_camera_info(connection.topic, timestamp_ns, data)
+
+
+def read_radar_scan_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[RadarScanMessage]:
+    """Yield decoded ROS 1 ``radar_msgs/RadarScan`` messages."""
+
+    topics = {topic} if topic is not None else None
+    for connection, timestamp_ns, data in iter_messages(path, topics=topics):
+        if connection.message_type != RADAR_SCAN_TYPE:
+            continue
+        yield decode_radar_scan(connection.topic, timestamp_ns, data)
+
+
+def read_radar_messages(
+    path: str | Path,
+    *,
+    topic: str | None = None,
+) -> Iterator[RadarScanMessage]:
+    """Compatibility alias for :func:`read_radar_scan_messages`."""
+
+    yield from read_radar_scan_messages(path, topic=topic)
+
+
+def decode_rosbag1_message(
+    topic: str,
+    message_type: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    include_image_data: bool = False,
+) -> (
+    PointCloud2Message
+    | LivoxCustomMessage
+    | ImageMessage
+    | CameraInfoMessage
+    | RadarScanMessage
+):
+    """Decode one supported ROS 1 standard/vendor payload.
+
+    This is the typed adapter entry point used by capture inventory.  It never
+    imports ROS packages and keeps Image pixel bytes optional.
+    """
+
+    if message_type == POINTCLOUD2_TYPE:
+        return decode_pointcloud2(topic, timestamp_ns, data)
+    if message_type == LIVOX_CUSTOMMSG_TYPE:
+        return decode_livox_custommsg(topic, timestamp_ns, data)
+    if message_type == IMAGE_TYPE:
+        return decode_image(
+            topic,
+            timestamp_ns,
+            data,
+            include_data=include_image_data,
+        )
+    if message_type == CAMERA_INFO_TYPE:
+        return decode_camera_info(topic, timestamp_ns, data)
+    if message_type == RADAR_SCAN_TYPE:
+        return decode_radar_scan(topic, timestamp_ns, data)
+    msg = f"unsupported ROS 1 message type: {message_type!r}"
+    raise DatasetError(msg)
+
+
+def decode_radar_scan(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    max_returns: int = MAX_RADAR_RETURNS,
+    max_payload_bytes: int = MAX_RADAR_PAYLOAD_BYTES,
+) -> RadarScanMessage:
+    """Deserialize a ROS 1 ``radar_msgs/RadarScan`` payload.
+
+    ROS 1 serialization is little-endian and does not apply CDR padding.  The
+    pinned message definition is ``Header header`` followed by an unbounded
+    ``RadarReturn[]`` sequence of five ``float32`` fields.
+    """
+
+    if len(data) > max_payload_bytes:
+        raise DatasetError(
+            f"radar_msgs/RadarScan payload length {len(data)} exceeds safe bound "
+            f"{max_payload_bytes}"
+        )
+    offset = 0
+    _sequence, offset = _read_u32_bounded(data, offset, "RadarScan header sequence")
+    stamp_secs, offset = _read_u32_bounded(data, offset, "RadarScan header seconds")
+    stamp_nsecs, offset = _read_u32_bounded(data, offset, "RadarScan header nanoseconds")
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("radar_msgs/RadarScan header nanoseconds are outside [0, 1e9)")
+    frame_length, frame_offset = _read_u32_bounded(
+        data, offset, "RadarScan frame_id length"
+    )
+    if frame_length == 0 or frame_length > MAX_ROS_STRING_BYTES:
+        raise DatasetError("ROS 1 RadarScan frame_id length is outside safe bounds")
+    frame_end = _checked_end(data, frame_offset, frame_length, "RadarScan frame_id")
+    if data[frame_end - 1] != 0:
+        raise DatasetError("ROS 1 RadarScan frame_id is missing its NUL terminator")
+    try:
+        frame_id = data[frame_offset : frame_end - 1].decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise DatasetError("ROS 1 RadarScan frame_id is not valid UTF-8") from exc
+    offset = frame_end
+    count, offset = _read_u32_bounded(data, offset, "RadarScan return count")
+    if count > max_returns:
+        raise DatasetError(
+            f"radar_msgs/RadarScan return count {count} exceeds safe bound {max_returns}"
+        )
+    required_bytes = int(count) * 5 * 4
+    if len(data) - offset < required_bytes:
+        raise DatasetError(
+            "truncated radar_msgs/RadarScan return sequence: "
+            f"declared {count} returns need {required_bytes} bytes, "
+            f"only {max(0, len(data) - offset)} remain"
+        )
+    returns: list[RadarReturn] = []
+    for _ in range(int(count)):
+        values = struct.unpack_from("<5f", data, offset)
+        offset += 5 * 4
+        returns.append(
+            RadarReturn(
+                range=float(values[0]),
+                azimuth=float(values[1]),
+                elevation=float(values[2]),
+                doppler_velocity=float(values[3]),
+                amplitude=float(values[4]),
+            )
+        )
+    if offset != len(data):
+        raise DatasetError(
+            f"radar_msgs/RadarScan payload has {len(data) - offset} trailing byte(s)"
+        )
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return RadarScanMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        returns=tuple(returns),
+        source_spec=RADAR_SCAN_TYPE,
+        header_stamp_ns=header_stamp_ns,
+    )
+
+
+def decode_ros1_radar_scan(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+) -> RadarScanMessage:
+    """Named ROS 1 RadarScan decoder alias for adapter callers."""
+
+    return decode_radar_scan(topic, timestamp_ns, data)
+
+
+def decode_ros1_radar(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+) -> RadarScanMessage:
+    """Compatibility alias for :func:`decode_radar_scan`."""
+
+    return decode_radar_scan(topic, timestamp_ns, data)
+
+
+def decode_image(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    include_data: bool = True,
+    max_width: int = MAX_IMAGE_WIDTH,
+    max_height: int = MAX_IMAGE_HEIGHT,
+    max_data_bytes: int = MAX_IMAGE_BYTES,
+) -> ImageMessage:
+    """Deserialize and validate a ROS 1 ``sensor_msgs/Image`` payload.
+
+    Every length is checked before slicing.  ``include_data=False`` still
+    validates the full serialized array length but avoids retaining image
+    bytes in the typed record.
+    """
+
+    offset = 0
+    _sequence, offset = _read_u32_bounded(data, offset, "Image header sequence")
+    stamp_secs, offset = _read_u32_bounded(data, offset, "Image header seconds")
+    stamp_nsecs, offset = _read_u32_bounded(data, offset, "Image header nanoseconds")
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("sensor_msgs/Image header nanoseconds are outside [0, 1e9)")
+    frame_id, offset = _read_string_bounded(
+        data,
+        offset,
+        max_length=MAX_ROS_STRING_BYTES,
+        field_name="Image frame_id",
+    )
+    height, offset = _read_u32_bounded(data, offset, "Image height")
+    width, offset = _read_u32_bounded(data, offset, "Image width")
+    encoding, offset = _read_string_bounded(
+        data,
+        offset,
+        max_length=MAX_IMAGE_ENCODING_LENGTH,
+        field_name="Image encoding",
+    )
+    is_bigendian, offset = _read_u8_bounded(data, offset, "Image is_bigendian")
+    step, offset = _read_u32_bounded(data, offset, "Image step")
+    data_length, offset = _read_u32_bounded(data, offset, "Image data length")
+    validate_image_metadata(
+        height=height,
+        width=width,
+        encoding=encoding,
+        is_bigendian=is_bigendian,
+        step=step,
+        data_length=data_length,
+        max_width=max_width,
+        max_height=max_height,
+        max_data_bytes=max_data_bytes,
+    )
+    end = _checked_end(data, offset, data_length, "Image data")
+    if end != len(data):
+        raise DatasetError(
+            f"sensor_msgs/Image payload has {len(data) - end} trailing byte(s)"
+        )
+    image_data = bytes(data[offset:end]) if include_data else None
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return ImageMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        height=int(height),
+        width=int(width),
+        encoding=encoding,
+        is_bigendian=bool(is_bigendian),
+        step=int(step),
+        data_length=int(data_length),
+        data=image_data,
+        header_stamp_ns=header_stamp_ns,
+    )
+
+
+def decode_camera_info(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    max_width: int = MAX_IMAGE_WIDTH,
+    max_height: int = MAX_IMAGE_HEIGHT,
+    max_distortion_coefficients: int = MAX_CAMERA_INFO_DISTORTION_COEFFICIENTS,
+) -> CameraInfoMessage:
+    """Deserialize and validate a ROS 1 ``sensor_msgs/CameraInfo`` payload."""
+
+    offset = 0
+    _sequence, offset = _read_u32_bounded(data, offset, "CameraInfo header sequence")
+    stamp_secs, offset = _read_u32_bounded(data, offset, "CameraInfo header seconds")
+    stamp_nsecs, offset = _read_u32_bounded(data, offset, "CameraInfo header nanoseconds")
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("sensor_msgs/CameraInfo header nanoseconds are outside [0, 1e9)")
+    frame_id, offset = _read_string_bounded(
+        data,
+        offset,
+        max_length=MAX_ROS_STRING_BYTES,
+        field_name="CameraInfo frame_id",
+    )
+    height, offset = _read_u32_bounded(data, offset, "CameraInfo height")
+    width, offset = _read_u32_bounded(data, offset, "CameraInfo width")
+    distortion_model, offset = _read_string_bounded(
+        data,
+        offset,
+        max_length=MAX_ROS_STRING_BYTES,
+        field_name="CameraInfo distortion_model",
+    )
+    distortion_count, offset = _read_u32_bounded(data, offset, "CameraInfo D length")
+    if distortion_count > max_distortion_coefficients:
+        raise DatasetError("sensor_msgs/CameraInfo D sequence is too long")
+    d, offset = _read_f64_array_bounded(data, offset, int(distortion_count), "CameraInfo D")
+    k, offset = _read_f64_array_bounded(data, offset, 9, "CameraInfo K")
+    r, offset = _read_f64_array_bounded(data, offset, 9, "CameraInfo R")
+    p, offset = _read_f64_array_bounded(data, offset, 12, "CameraInfo P")
+    binning_x, offset = _read_u32_bounded(data, offset, "CameraInfo binning_x")
+    binning_y, offset = _read_u32_bounded(data, offset, "CameraInfo binning_y")
+    roi_x, offset = _read_u32_bounded(data, offset, "CameraInfo ROI x_offset")
+    roi_y, offset = _read_u32_bounded(data, offset, "CameraInfo ROI y_offset")
+    roi_height, offset = _read_u32_bounded(data, offset, "CameraInfo ROI height")
+    roi_width, offset = _read_u32_bounded(data, offset, "CameraInfo ROI width")
+    do_rectify, offset = _read_u8_bounded(data, offset, "CameraInfo ROI do_rectify")
+    if do_rectify not in (0, 1):
+        raise DatasetError("sensor_msgs/CameraInfo ROI do_rectify must be 0 or 1")
+    roi = RegionOfInterest(
+        x_offset=int(roi_x),
+        y_offset=int(roi_y),
+        height=int(roi_height),
+        width=int(roi_width),
+        do_rectify=bool(do_rectify),
+    )
+    validate_camera_info_metadata(
+        height=int(height),
+        width=int(width),
+        distortion_model=distortion_model,
+        d=d,
+        k=k,
+        r=r,
+        p=p,
+        binning_x=int(binning_x),
+        binning_y=int(binning_y),
+        roi=roi,
+        max_width=max_width,
+        max_height=max_height,
+        max_distortion_coefficients=max_distortion_coefficients,
+    )
+    if offset != len(data):
+        raise DatasetError(
+            f"sensor_msgs/CameraInfo payload has {len(data) - offset} trailing byte(s)"
+        )
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return CameraInfoMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        height=int(height),
+        width=int(width),
+        distortion_model=distortion_model,
+        d=d,
+        k=k,
+        r=r,
+        p=p,
+        binning_x=int(binning_x),
+        binning_y=int(binning_y),
+        roi=roi,
+        header_stamp_ns=header_stamp_ns,
+    )
+
+
+def decode_ros1_image(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    include_data: bool = True,
+) -> ImageMessage:
+    """Named ROS 1 adapter alias for callers that prefer explicit serializer names."""
+
+    return decode_image(
+        topic,
+        timestamp_ns,
+        data,
+        include_data=include_data,
+    )
+
+
+def decode_ros1_camera_info(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+) -> CameraInfoMessage:
+    """Named ROS 1 CameraInfo adapter alias."""
+
+    return decode_camera_info(topic, timestamp_ns, data)
 
 
 def decode_bag_lidar_message(
@@ -766,10 +1270,48 @@ def summarize_rosbag1(
     distance_bin_counts: dict[str, list[int]] = {}
     first_ts: dict[str, int] = {}
     last_ts: dict[str, int] = {}
+    radar_counts: dict[str, int] = {}
+    radar_connections: dict[str, Rosbag1Connection] = {}
+    radar_sampled_counts: dict[str, int] = {}
+    radar_return_counts: dict[str, int] = {}
+    radar_frames: dict[str, str] = {}
+    radar_range_min: dict[str, float] = {}
+    radar_range_max: dict[str, float] = {}
+    radar_azimuth_span: dict[str, float] = {}
+    radar_elevation_span: dict[str, float] = {}
+    radar_doppler_min: dict[str, float] = {}
+    radar_doppler_max: dict[str, float] = {}
+    radar_doppler_span: dict[str, float] = {}
+    radar_duplicates: dict[str, int] = {}
+    radar_diversity: dict[str, str] = {}
 
     try:
         for connection, timestamp_ns, data in iter_messages(bag_path):
             topic = connection.topic
+            if connection.message_type in RADAR_MESSAGE_TYPES:
+                radar_counts[topic] = radar_counts.get(topic, 0) + 1
+                radar_connections.setdefault(topic, connection)
+                if radar_sampled_counts.get(topic, 0) >= sample_limit:
+                    continue
+                radar_message = decode_radar_scan(topic, timestamp_ns, data)
+                radar_sampled_counts[topic] = radar_sampled_counts.get(topic, 0) + 1
+                if radar_message.frame_id:
+                    radar_frames.setdefault(topic, radar_message.frame_id)
+                _accumulate_radar_evidence_ros1(
+                    radar_message,
+                    topic,
+                    radar_return_counts,
+                    radar_range_min,
+                    radar_range_max,
+                    radar_azimuth_span,
+                    radar_elevation_span,
+                    radar_doppler_min,
+                    radar_doppler_max,
+                    radar_doppler_span,
+                    radar_duplicates,
+                    radar_diversity,
+                )
+                continue
             if connection.message_type not in _LIDAR_MESSAGE_TYPES:
                 continue
             counts[topic] = counts.get(topic, 0) + 1
@@ -825,7 +1367,7 @@ def summarize_rosbag1(
     except DatasetError as exc:
         return Rosbag1DatasetStats(
             status="malformed",
-            connection_count=len(connections),
+            connection_count=len({*connections, *radar_connections}),
             pointcloud_topic_count=len(counts),
             reason=str(exc),
         )
@@ -860,14 +1402,86 @@ def summarize_rosbag1(
         )
         for topic in sorted(counts)
     )
-    status = "scored" if streams else "empty"
+    radar_streams = tuple(
+        Rosbag1RadarStreamStats(
+            topic=topic,
+            message_type=radar_connections[topic].message_type,
+            message_count=radar_counts[topic],
+            sampled_message_count=radar_sampled_counts.get(topic, 0),
+            sampled_return_count=radar_return_counts.get(topic, 0),
+            sample_frame_id=radar_frames.get(topic),
+            range_min_m=radar_range_min.get(topic),
+            range_max_m=radar_range_max.get(topic),
+            azimuth_span_rad=radar_azimuth_span.get(topic),
+            elevation_span_rad=radar_elevation_span.get(topic),
+            doppler_min_mps=radar_doppler_min.get(topic),
+            doppler_max_mps=radar_doppler_max.get(topic),
+            doppler_span_mps=radar_doppler_span.get(topic),
+            duplicate_return_count=radar_duplicates.get(topic, 0),
+            diversity_status=radar_diversity.get(topic, "unknown"),
+        )
+        for topic in sorted(radar_counts)
+    )
+    status = "scored" if streams or radar_streams else "empty"
     return Rosbag1DatasetStats(
         status=status,
-        connection_count=len(connections),
+        connection_count=len({*connections, *radar_connections}),
         pointcloud_topic_count=len(counts),
         streams=streams,
-        reason=None if streams else "no supported LiDAR topics found",
+        radar_streams=radar_streams,
+        reason=None if streams or radar_streams else "no supported LiDAR or Radar topics found",
     )
+
+
+def _accumulate_radar_evidence_ros1(
+    message: RadarScanMessage,
+    topic: str,
+    return_counts: dict[str, int],
+    range_min: dict[str, float],
+    range_max: dict[str, float],
+    azimuth_span: dict[str, float],
+    elevation_span: dict[str, float],
+    doppler_min: dict[str, float],
+    doppler_max: dict[str, float],
+    doppler_span: dict[str, float],
+    duplicate_counts: dict[str, int],
+    diversity_status: dict[str, str],
+) -> None:
+    """Merge one bounded RadarScan into ROS 1 inspect evidence."""
+
+    return_counts[topic] = return_counts.get(topic, 0) + message.return_count
+    if message.range_min_m is not None:
+        range_min[topic] = min(range_min.get(topic, message.range_min_m), message.range_min_m)
+    if message.range_max_m is not None:
+        range_max[topic] = max(range_max.get(topic, message.range_max_m), message.range_max_m)
+    if message.azimuth_span_rad is not None:
+        azimuth_span[topic] = max(
+            azimuth_span.get(topic, message.azimuth_span_rad), message.azimuth_span_rad
+        )
+    if message.elevation_span_rad is not None:
+        elevation_span[topic] = max(
+            elevation_span.get(topic, message.elevation_span_rad), message.elevation_span_rad
+        )
+    if message.doppler_min_mps is not None:
+        doppler_min[topic] = min(
+            doppler_min.get(topic, message.doppler_min_mps), message.doppler_min_mps
+        )
+    if message.doppler_max_mps is not None:
+        doppler_max[topic] = max(
+            doppler_max.get(topic, message.doppler_max_mps), message.doppler_max_mps
+        )
+    if message.doppler_span_mps is not None:
+        doppler_span[topic] = max(
+            doppler_span.get(topic, message.doppler_span_mps), message.doppler_span_mps
+        )
+    duplicate_counts[topic] = duplicate_counts.get(topic, 0) + message.duplicate_return_count
+    previous = diversity_status.get(topic)
+    if previous == "strong" or message.diversity_status == "strong":
+        diversity_status[topic] = "strong"
+    elif previous == "weak" or message.diversity_status == "weak":
+        diversity_status[topic] = "weak"
+    else:
+        diversity_status[topic] = message.diversity_status
 
 
 def _accumulate_bounds(
@@ -1038,5 +1652,64 @@ def _read_string(data: bytes, offset: int) -> tuple[str, int]:
     length, offset = _read_uint32(data, offset)
     text = data[offset : offset + length].decode("utf-8", errors="replace")
     return text, offset + length
+
+
+def _read_u32_bounded(data: bytes, offset: int, field_name: str) -> tuple[int, int]:
+    """Read one ROS 1 uint32 while preserving a field-specific error."""
+
+    if offset < 0 or offset + 4 > len(data):
+        raise DatasetError(f"truncated ROS 1 {field_name}")
+    return int(struct.unpack_from("<I", data, offset)[0]), offset + 4
+
+
+def _read_u8_bounded(data: bytes, offset: int, field_name: str) -> tuple[int, int]:
+    """Read one ROS 1 uint8 with an explicit bounds check."""
+
+    if offset < 0 or offset >= len(data):
+        raise DatasetError(f"truncated ROS 1 {field_name}")
+    return int(data[offset]), offset + 1
+
+
+def _checked_end(data: bytes, offset: int, length: int, field_name: str) -> int:
+    """Return a bounded end offset without allowing integer wrap or truncation."""
+
+    if length < 0 or offset < 0 or length > len(data) - offset:
+        raise DatasetError(f"truncated ROS 1 {field_name}")
+    return offset + length
+
+
+def _read_string_bounded(
+    data: bytes,
+    offset: int,
+    *,
+    max_length: int,
+    field_name: str,
+) -> tuple[str, int]:
+    """Read a length-prefixed UTF-8 string without unbounded slicing."""
+
+    length, offset = _read_u32_bounded(data, offset, f"{field_name} length")
+    if length > max_length:
+        raise DatasetError(f"ROS 1 {field_name} length {length} exceeds bound {max_length}")
+    end = _checked_end(data, offset, length, field_name)
+    try:
+        text = data[offset:end].decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise DatasetError(f"ROS 1 {field_name} is not valid UTF-8") from exc
+    return text, end
+
+
+def _read_f64_array_bounded(
+    data: bytes,
+    offset: int,
+    count: int,
+    field_name: str,
+) -> tuple[tuple[float, ...], int]:
+    """Read a fixed/declared ROS 1 float64 array with bounds protection."""
+
+    if count < 0 or count > (len(data) - offset) // 8:
+        raise DatasetError(f"truncated ROS 1 {field_name}")
+    end = offset + count * 8
+    values = tuple(float(value) for value in struct.unpack_from(f"<{count}d", data, offset))
+    return values, end
 
 

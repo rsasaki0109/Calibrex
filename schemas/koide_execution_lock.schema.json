@@ -13,17 +13,17 @@
           "title": "Engine",
           "type": "string"
         },
-        "network_mode": {
-          "const": "none",
-          "default": "none",
-          "title": "Network Mode",
-          "type": "string"
-        },
         "input_mount_readonly": {
           "const": true,
           "default": true,
           "title": "Input Mount Readonly",
           "type": "boolean"
+        },
+        "network_mode": {
+          "const": "none",
+          "default": "none",
+          "title": "Network Mode",
+          "type": "string"
         },
         "output_mount_writable": {
           "const": true,
@@ -50,31 +50,17 @@
       "additionalProperties": false,
       "description": "Capture requirements stated by the upstream data-collection guide.",
       "properties": {
-        "capture_format": {
-          "const": "ros2-bag",
-          "default": "ros2-bag",
-          "title": "Capture Format",
-          "type": "string"
-        },
-        "required_message_types": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 2,
-          "title": "Required Message Types",
-          "type": "array"
-        },
         "camera_intrinsics_precalibrated": {
           "const": true,
           "default": true,
           "title": "Camera Intrinsics Precalibrated",
           "type": "boolean"
         },
-        "rigid_mount_required": {
-          "const": true,
-          "default": true,
-          "title": "Rigid Mount Required",
-          "type": "boolean"
+        "capture_format": {
+          "const": "ros2-bag",
+          "default": "ros2-bag",
+          "title": "Capture Format",
+          "type": "string"
         },
         "minimum_pairings": {
           "default": 1,
@@ -86,6 +72,20 @@
           "minLength": 1,
           "title": "Operator Capture Note",
           "type": "string"
+        },
+        "required_message_types": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Required Message Types",
+          "type": "array"
+        },
+        "rigid_mount_required": {
+          "const": true,
+          "default": true,
+          "title": "Rigid Mount Required",
+          "type": "boolean"
         }
       },
       "required": [
@@ -98,26 +98,6 @@
       "additionalProperties": false,
       "description": "Published image pin and explicit rebuild limitation.",
       "properties": {
-        "repository": {
-          "default": "koide3/direct_visual_lidar_calibration",
-          "title": "Repository",
-          "type": "string"
-        },
-        "tag": {
-          "default": "humble",
-          "enum": [
-            "humble",
-            "jazzy",
-            "noetic"
-          ],
-          "title": "Tag",
-          "type": "string"
-        },
-        "digest": {
-          "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
-          "title": "Digest",
-          "type": "string"
-        },
         "base_image": {
           "default": "koide3/gtsam_docker:humble",
           "title": "Base Image",
@@ -141,6 +121,26 @@
           "default": true,
           "title": "Base Image Digest Required For Rebuild",
           "type": "boolean"
+        },
+        "digest": {
+          "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "repository": {
+          "default": "koide3/direct_visual_lidar_calibration",
+          "title": "Repository",
+          "type": "string"
+        },
+        "tag": {
+          "default": "humble",
+          "enum": [
+            "humble",
+            "jazzy",
+            "noetic"
+          ],
+          "title": "Tag",
+          "type": "string"
         }
       },
       "required": [
@@ -153,20 +153,9 @@
       "additionalProperties": false,
       "description": "Pinned upstream source identity and official references.",
       "properties": {
-        "repository": {
-          "default": "https://github.com/koide3/direct_visual_lidar_calibration",
-          "title": "Repository",
-          "type": "string"
-        },
         "commit": {
           "pattern": "^[0-9a-f]{40}$",
           "title": "Commit",
-          "type": "string"
-        },
-        "license_spdx": {
-          "const": "MIT",
-          "default": "MIT",
-          "title": "License Spdx",
           "type": "string"
         },
         "documentation_urls": {
@@ -176,6 +165,17 @@
           "minItems": 1,
           "title": "Documentation Urls",
           "type": "array"
+        },
+        "license_spdx": {
+          "const": "MIT",
+          "default": "MIT",
+          "title": "License Spdx",
+          "type": "string"
+        },
+        "repository": {
+          "default": "https://github.com/koide3/direct_visual_lidar_calibration",
+          "title": "Repository",
+          "type": "string"
         }
       },
       "required": [
@@ -189,6 +189,14 @@
       "additionalProperties": false,
       "description": "One argv-only command copied from the upstream official example.",
       "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
         "name": {
           "enum": [
             "preprocess",
@@ -197,14 +205,6 @@
           ],
           "title": "Name",
           "type": "string"
-        },
-        "argv": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Argv",
-          "type": "array"
         },
         "official_documentation_url": {
           "title": "Official Documentation Url",
@@ -228,31 +228,14 @@
   "additionalProperties": false,
   "description": "Digest-bound handoff contract; this is not evidence that Koide ran.",
   "properties": {
-    "schema_version": {
-      "const": "slac.koide_execution_lock/v0.1",
-      "default": "slac.koide_execution_lock/v0.1",
-      "title": "Schema Version",
-      "type": "string"
+    "container": {
+      "$ref": "#/$defs/KoideLockContainerPolicy"
     },
-    "lock_id": {
-      "minLength": 1,
-      "title": "Lock Id",
-      "type": "string"
-    },
-    "profile": {
-      "const": "commercial",
-      "default": "commercial",
-      "title": "Profile",
-      "type": "string"
-    },
-    "source": {
-      "$ref": "#/$defs/KoideLockSource"
+    "dataset_contract": {
+      "$ref": "#/$defs/KoideLockDatasetContract"
     },
     "image": {
       "$ref": "#/$defs/KoideLockImage"
-    },
-    "container": {
-      "$ref": "#/$defs/KoideLockContainerPolicy"
     },
     "initial_guess_mode": {
       "default": "manual",
@@ -263,11 +246,38 @@
       "title": "Initial Guess Mode",
       "type": "string"
     },
-    "superglue_policy": {
-      "const": "excluded",
-      "default": "excluded",
-      "title": "Superglue Policy",
+    "lock_id": {
+      "minLength": 1,
+      "title": "Lock Id",
       "type": "string"
+    },
+    "lock_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Lock Sha256",
+      "type": "string"
+    },
+    "operator_steps": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Operator Steps",
+      "type": "array"
+    },
+    "profile": {
+      "const": "commercial",
+      "default": "commercial",
+      "title": "Profile",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.koide_execution_lock/v0.1",
+      "default": "slac.koide_execution_lock/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/KoideLockSource"
     },
     "stages": {
       "items": {
@@ -278,20 +288,10 @@
       "title": "Stages",
       "type": "array"
     },
-    "dataset_contract": {
-      "$ref": "#/$defs/KoideLockDatasetContract"
-    },
-    "operator_steps": {
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "title": "Operator Steps",
-      "type": "array"
-    },
-    "lock_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Lock Sha256",
+    "superglue_policy": {
+      "const": "excluded",
+      "default": "excluded",
+      "title": "Superglue Policy",
       "type": "string"
     }
   },

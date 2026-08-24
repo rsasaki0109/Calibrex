@@ -1,0 +1,1808 @@
+{
+  "$defs": {
+    "CaptureAction": {
+      "additionalProperties": false,
+      "description": "Actionable remediation or evidence-collection step.",
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "priority": {
+          "default": "required",
+          "enum": [
+            "required",
+            "recommended",
+            "informational"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        }
+      },
+      "required": [
+        "action_id",
+        "message"
+      ],
+      "title": "CaptureAction",
+      "type": "object"
+    },
+    "CaptureCheck": {
+      "additionalProperties": false,
+      "description": "One deterministic readiness check and its reason.",
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action"
+        },
+        "check_id": {
+          "title": "Check Id",
+          "type": "string"
+        },
+        "observed": {
+          "additionalProperties": true,
+          "title": "Observed",
+          "type": "object"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "subject",
+        "reason"
+      ],
+      "title": "CaptureCheck",
+      "type": "object"
+    },
+    "CaptureManifestProvenance": {
+      "additionalProperties": false,
+      "description": "Generation and input identity for a capture manifest.",
+      "properties": {
+        "adapter_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Adapter Versions",
+          "type": "object"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Path"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "unknown",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "CaptureManifestProvenance",
+      "type": "object"
+    },
+    "CaptureQoS": {
+      "additionalProperties": false,
+      "description": "Transport QoS inventory with explicit unknown values.",
+      "properties": {
+        "deadline_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline Ns"
+        },
+        "depth": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Depth"
+        },
+        "durability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Durability"
+        },
+        "history": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "History"
+        },
+        "lifespan_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lifespan Ns"
+        },
+        "liveliness": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Liveliness"
+        },
+        "reliability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reliability"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "title": "CaptureQoS",
+      "type": "object"
+    },
+    "ClockBinding": {
+      "additionalProperties": false,
+      "description": "Evidence that two streams share or are related by a clock.",
+      "properties": {
+        "binding_id": {
+          "default": "",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "offset_ns": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset Ns"
+        },
+        "relation": {
+          "default": "unknown",
+          "enum": [
+            "same_clock",
+            "offset",
+            "unknown"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "source_clock_domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Clock Domain"
+        },
+        "source_stream": {
+          "title": "Source Stream",
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target_clock_domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Clock Domain"
+        },
+        "target_stream": {
+          "title": "Target Stream",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_stream",
+        "target_stream"
+      ],
+      "title": "ClockBinding",
+      "type": "object"
+    },
+    "CrossStreamBinding": {
+      "additionalProperties": false,
+      "description": "Generic JSON-safe clock/frame binding for adapter authors.",
+      "properties": {
+        "binding_id": {
+          "default": "",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "clock",
+            "frame"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "offset_ns": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset Ns"
+        },
+        "relation": {
+          "default": "unknown",
+          "title": "Relation",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_stream": {
+          "title": "Source Stream",
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        },
+        "target_stream": {
+          "title": "Target Stream",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source_stream",
+        "target_stream"
+      ],
+      "title": "CrossStreamBinding",
+      "type": "object"
+    },
+    "FrameBinding": {
+      "additionalProperties": false,
+      "description": "Evidence that a stream is expressed in a named frame relationship.",
+      "properties": {
+        "binding_id": {
+          "default": "",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "relation": {
+          "default": "unknown",
+          "enum": [
+            "same_frame",
+            "transform",
+            "unknown"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "source_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Frame"
+        },
+        "source_stream": {
+          "title": "Source Stream",
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Frame"
+        },
+        "target_stream": {
+          "title": "Target Stream",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_stream",
+        "target_stream"
+      ],
+      "title": "FrameBinding",
+      "type": "object"
+    },
+    "McapIntegrityEvidence": {
+      "additionalProperties": false,
+      "description": "Bounded, schema-valid evidence from an MCAP framing/integrity scan.\n\n``unknown`` is intentionally distinct from ``blocked``.  For example, a\nwriter may omit the optional DataEnd or summary CRC, or a compressed chunk\nmay carry an uncompressed CRC that cannot be checked without the codec.\nThose facts are reported as unknown rather than being treated as a valid\nCRC.  A malformed frame, dangling channel/schema reference, or a mismatch\nin an encoded CRC is a blocking condition.",
+      "properties": {
+        "channel_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Channel Count",
+          "type": "integer"
+        },
+        "chunk_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Chunk Count",
+          "type": "integer"
+        },
+        "chunk_crc_status": {
+          "default": "not_applicable",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Chunk Crc Status",
+          "type": "string"
+        },
+        "compression_status": {
+          "default": "not_applicable",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Compression Status",
+          "type": "string"
+        },
+        "crc_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Crc Status",
+          "type": "string"
+        },
+        "data_crc_encoded": {
+          "default": false,
+          "title": "Data Crc Encoded",
+          "type": "boolean"
+        },
+        "data_crc_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Data Crc Status",
+          "type": "string"
+        },
+        "data_end_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Data End Status",
+          "type": "string"
+        },
+        "data_records_checked": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Data Records Checked",
+          "type": "integer"
+        },
+        "errors": {
+          "items": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Errors",
+          "type": "array"
+        },
+        "file_size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Size Bytes"
+        },
+        "footer_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Footer Status",
+          "type": "string"
+        },
+        "framing_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Framing Status",
+          "type": "string"
+        },
+        "header_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Header Status",
+          "type": "string"
+        },
+        "index_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Index Count",
+          "type": "integer"
+        },
+        "index_present": {
+          "default": false,
+          "title": "Index Present",
+          "type": "boolean"
+        },
+        "index_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Index Status",
+          "type": "string"
+        },
+        "links_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Links Status",
+          "type": "string"
+        },
+        "magic_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Magic Status",
+          "type": "string"
+        },
+        "message_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Message Count",
+          "type": "integer"
+        },
+        "records_checked": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Records Checked",
+          "type": "integer"
+        },
+        "schema_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Schema Count",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "slac.mcap_integrity/v0.1",
+          "default": "slac.mcap_integrity/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary_crc_encoded": {
+          "default": false,
+          "title": "Summary Crc Encoded",
+          "type": "boolean"
+        },
+        "summary_crc_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Summary Crc Status",
+          "type": "string"
+        },
+        "summary_offset_present": {
+          "default": false,
+          "title": "Summary Offset Present",
+          "type": "boolean"
+        },
+        "summary_offset_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Summary Offset Status",
+          "type": "string"
+        },
+        "summary_present": {
+          "default": false,
+          "title": "Summary Present",
+          "type": "boolean"
+        },
+        "summary_records_checked": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Summary Records Checked",
+          "type": "integer"
+        },
+        "summary_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable",
+            "blocked"
+          ],
+          "title": "Summary Status",
+          "type": "string"
+        },
+        "unsupported_compressions": {
+          "items": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Unsupported Compressions",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "title": "McapIntegrityEvidence",
+      "type": "object"
+    },
+    "SensorIdentity": {
+      "additionalProperties": false,
+      "description": "Physical sensor identity and mounting/frame lineage.\n\n``type`` is intentionally a small core vocabulary.  Vendor-specific\nmessage names belong in :class:`StreamInventory.message_type`, not in the\ncore API.",
+      "properties": {
+        "adapter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter"
+        },
+        "firmware": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Firmware"
+        },
+        "frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Id"
+        },
+        "identity_status": {
+          "default": "unknown",
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ],
+          "title": "Identity Status",
+          "type": "string"
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manufacturer"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "mount_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mount Id"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "sensor_id": {
+          "default": "",
+          "title": "Sensor Id",
+          "type": "string"
+        },
+        "serial": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serial"
+        },
+        "type": {
+          "default": "other",
+          "enum": [
+            "camera",
+            "camera_info",
+            "lidar",
+            "imu",
+            "radar",
+            "odometry",
+            "other"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "SensorIdentity",
+      "type": "object"
+    },
+    "SourceInventory": {
+      "additionalProperties": false,
+      "description": "Immutable identity and container evidence for one capture source.",
+      "properties": {
+        "compression_format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compression Format"
+        },
+        "compression_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compression Mode"
+        },
+        "crc_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Crc Status",
+          "type": "string"
+        },
+        "exists": {
+          "default": false,
+          "title": "Exists",
+          "type": "boolean"
+        },
+        "file_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Count"
+        },
+        "format": {
+          "default": "files",
+          "enum": [
+            "rosbag1",
+            "rosbag2",
+            "mcap",
+            "files"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "index_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Index Status",
+          "type": "string"
+        },
+        "mcap_integrity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McapIntegrityEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "metadata_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata Path"
+        },
+        "metadata_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata Sha256"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "path": {
+          "default": "",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        },
+        "source_id": {
+          "default": "source-0",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "storage_identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Storage Identifier"
+        },
+        "storage_status": {
+          "default": "unknown",
+          "enum": [
+            "known",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Storage Status",
+          "type": "string"
+        }
+      },
+      "title": "SourceInventory",
+      "type": "object"
+    },
+    "StreamInventory": {
+      "additionalProperties": false,
+      "description": "Portable inventory for one topic, file stream, or timestamped source.",
+      "properties": {
+        "calibration_status": {
+          "default": "not_applicable",
+          "enum": [
+            "calibrated",
+            "uncalibrated",
+            "mixed",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Calibration Status",
+          "type": "string"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "clock_domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clock Domain"
+        },
+        "decode_status": {
+          "default": "unknown",
+          "enum": [
+            "supported",
+            "unsupported",
+            "unknown"
+          ],
+          "title": "Decode Status",
+          "type": "string"
+        },
+        "duplicate_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicate Count"
+        },
+        "first_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Timestamp Ns"
+        },
+        "frame_conflict": {
+          "default": false,
+          "title": "Frame Conflict",
+          "type": "boolean"
+        },
+        "frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Id"
+        },
+        "kind": {
+          "default": "other",
+          "enum": [
+            "image",
+            "camera_info",
+            "depth_image",
+            "rgbd",
+            "pointcloud",
+            "imu",
+            "radar",
+            "odometry",
+            "metadata",
+            "trajectory",
+            "file",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "last_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Timestamp Ns"
+        },
+        "message_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Count"
+        },
+        "message_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Type"
+        },
+        "missing_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Count"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "out_of_order_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Out Of Order Count"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "qos": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CaptureQoS"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "radar_azimuth_span_rad": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Azimuth Span Rad"
+        },
+        "radar_diversity_status": {
+          "default": "not_applicable",
+          "enum": [
+            "strong",
+            "weak",
+            "empty",
+            "unknown",
+            "not_applicable"
+          ],
+          "title": "Radar Diversity Status",
+          "type": "string"
+        },
+        "radar_doppler_span_mps": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Doppler Span Mps"
+        },
+        "radar_duplicate_return_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Duplicate Return Count"
+        },
+        "radar_elevation_span_rad": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Elevation Span Rad"
+        },
+        "radar_range_max_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Range Max M"
+        },
+        "radar_range_min_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Range Min M"
+        },
+        "radar_return_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radar Return Count"
+        },
+        "rate_hz": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rate Hz"
+        },
+        "sensor_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor Id"
+        },
+        "serialization_format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serialization Format"
+        },
+        "source_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Sha256"
+        },
+        "stream_id": {
+          "default": "",
+          "title": "Stream Id",
+          "type": "string"
+        },
+        "time_span_ns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Span Ns"
+        },
+        "time_span_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Span S"
+        },
+        "timestamp_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp Source"
+        },
+        "topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic"
+        },
+        "unknown_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown Fields",
+          "type": "array"
+        }
+      },
+      "title": "StreamInventory",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-validating capture/session inventory and trust decision.",
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/CaptureAction"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "bindings": {
+      "items": {
+        "$ref": "#/$defs/CrossStreamBinding"
+      },
+      "title": "Bindings",
+      "type": "array"
+    },
+    "capture_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capture Id"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/CaptureCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "clock_bindings": {
+      "items": {
+        "$ref": "#/$defs/ClockBinding"
+      },
+      "title": "Clock Bindings",
+      "type": "array"
+    },
+    "frame_bindings": {
+      "items": {
+        "$ref": "#/$defs/FrameBinding"
+      },
+      "title": "Frame Bindings",
+      "type": "array"
+    },
+    "optional_streams": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Optional Streams",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CaptureManifestProvenance"
+    },
+    "readiness_profile": {
+      "default": "strict",
+      "enum": [
+        "strict",
+        "declared"
+      ],
+      "title": "Readiness Profile",
+      "type": "string"
+    },
+    "required_stream_kinds": {
+      "items": {
+        "enum": [
+          "image",
+          "camera_info",
+          "depth_image",
+          "rgbd",
+          "pointcloud",
+          "imu",
+          "radar",
+          "odometry",
+          "metadata",
+          "trajectory",
+          "file",
+          "other"
+        ],
+        "type": "string"
+      },
+      "title": "Required Stream Kinds",
+      "type": "array"
+    },
+    "required_streams": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Streams",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.capture_manifest/v0.1",
+      "default": "slac.capture_manifest/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_kit_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sensor Kit Id"
+    },
+    "sensors": {
+      "items": {
+        "$ref": "#/$defs/SensorIdentity"
+      },
+      "title": "Sensors",
+      "type": "array"
+    },
+    "session_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceInventory"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "status": {
+      "default": "blocked",
+      "enum": [
+        "ready",
+        "warn",
+        "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "streams": {
+      "items": {
+        "$ref": "#/$defs/StreamInventory"
+      },
+      "title": "Streams",
+      "type": "array"
+    },
+    "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+    },
+    "vehicle_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vehicle Id"
+    }
+  },
+  "required": [
+    "artifact_sha256"
+  ],
+  "title": "CaptureManifest",
+  "type": "object"
+}

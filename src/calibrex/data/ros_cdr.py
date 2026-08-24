@@ -7,15 +7,31 @@ from typing import TYPE_CHECKING, Any
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros_messages import (
+    MAX_CAMERA_INFO_DISTORTION_COEFFICIENTS,
+    MAX_IMAGE_BYTES,
+    MAX_IMAGE_ENCODING_LENGTH,
+    MAX_IMAGE_HEIGHT,
+    MAX_IMAGE_WIDTH,
+    MAX_RADAR_PAYLOAD_BYTES,
+    MAX_RADAR_RETURNS,
+    MAX_ROS_STRING_BYTES,
+    RADAR_SCAN_ROS2_TYPE,
+    CameraInfoMessage,
+    ImageMessage,
     ImuMessage,
     LivoxCustomMessage,
     OdometryMessage,
     PointCloud2Message,
     PointField,
+    RadarReturn,
+    RadarScanMessage,
+    RegionOfInterest,
     decode_point_time_offsets,
     decode_pointcloud_payload,
     filter_nonfinite_pointcloud_rows,
     require_numpy,
+    validate_camera_info_metadata,
+    validate_image_metadata,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
@@ -65,6 +81,12 @@ class CdrReader:
         """Return the current read cursor."""
 
         return self._offset
+
+    @property
+    def remaining(self) -> int:
+        """Return the number of unread serialized bytes."""
+
+        return len(self._data) - self._offset
 
     def align(self, alignment: int) -> None:
         """Advance the cursor to the next ``alignment``-byte boundary.
@@ -151,20 +173,28 @@ class CdrReader:
         self._offset += 8
         return float(value)
 
-    def read_string(self) -> str:
+    def read_string(self, *, max_length: int | None = None) -> str:
         """Read a length-prefixed UTF-8 string (length includes the NUL terminator)."""
 
         length = self.read_uint32()
         if length == 0:
-            return ""
+            raise DatasetError("invalid zero-length CDR string")
+        if max_length is not None and length - 1 > max_length:
+            raise DatasetError(
+                f"CDR string length {length - 1} exceeds safe bound {max_length}"
+            )
         if self._offset + length > len(self._data):
             msg = "truncated CDR string"
             raise DatasetError(msg)
         raw = self._data[self._offset : self._offset + length]
         self._offset += length
-        if raw[-1:] == b"\x00":
-            raw = raw[:-1]
-        return raw.decode("utf-8", errors="replace")
+        if raw[-1:] != b"\x00":
+            raise DatasetError("CDR string is missing its NUL terminator")
+        raw = raw[:-1]
+        try:
+            return raw.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise DatasetError("invalid UTF-8 CDR string") from exc
 
     def read_byte_sequence(self) -> bytes:
         """Read a length-prefixed byte sequence."""
@@ -179,6 +209,27 @@ class CdrReader:
         self._offset += length
         return payload
 
+    def read_bounded_byte_sequence(
+        self,
+        *,
+        max_length: int,
+        copy: bool = True,
+    ) -> tuple[int, bytes | None]:
+        """Read a bounded byte sequence, optionally without copying its bytes."""
+
+        length = self.read_uint32()
+        if length > max_length:
+            raise DatasetError(
+                f"CDR byte sequence length {length} exceeds safe bound {max_length}"
+            )
+        if self._offset + length > len(self._data):
+            raise DatasetError("truncated CDR byte sequence")
+        payload = (
+            self._data[self._offset : self._offset + length] if copy else None
+        )
+        self._offset += length
+        return int(length), payload
+
     def read_float64_array(self, count: int) -> tuple[float, ...]:
         """Read ``count`` float64 values with per-element alignment."""
 
@@ -186,6 +237,227 @@ class CdrReader:
         for _ in range(count):
             values.append(self.read_float64())
         return tuple(values)
+
+
+def decode_ros2_radar_scan(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    max_returns: int = MAX_RADAR_RETURNS,
+    max_payload_bytes: int = MAX_RADAR_PAYLOAD_BYTES,
+) -> RadarScanMessage:
+    """Deserialize a ROS 2 CDR ``radar_msgs/msg/RadarScan`` payload.
+
+    The pinned upstream definition is ``Header header; RadarReturn[] returns``;
+    each return is exactly five aligned ``float32`` values.  The sequence count
+    and complete serialized payload are checked before iterating so hostile
+    bags cannot trigger unbounded allocation or partial normalization.
+    """
+
+    if len(data) > max_payload_bytes:
+        raise DatasetError(
+            f"radar_msgs/msg/RadarScan payload length {len(data)} exceeds safe "
+            f"bound {max_payload_bytes}"
+        )
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError(
+            "radar_msgs/msg/RadarScan header nanoseconds are outside [0, 1e9)"
+        )
+    frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    count = reader.read_uint32()
+    if count > max_returns:
+        raise DatasetError(
+            f"radar_msgs/msg/RadarScan return count {count} exceeds safe bound "
+            f"{max_returns}"
+        )
+    required_bytes = int(count) * 5 * 4
+    if required_bytes > reader.remaining:
+        raise DatasetError(
+            "truncated radar_msgs/msg/RadarScan return sequence: "
+            f"declared {count} returns need {required_bytes} bytes, "
+            f"only {reader.remaining} remain"
+        )
+    returns = tuple(
+        RadarReturn(
+            range=reader.read_float32(),
+            azimuth=reader.read_float32(),
+            elevation=reader.read_float32(),
+            doppler_velocity=reader.read_float32(),
+            amplitude=reader.read_float32(),
+        )
+        for _ in range(int(count))
+    )
+    if reader.remaining:
+        raise DatasetError(
+            "radar_msgs/msg/RadarScan payload has "
+            f"{reader.remaining} trailing byte(s)"
+        )
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return RadarScanMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        returns=returns,
+        source_spec=RADAR_SCAN_ROS2_TYPE,
+        header_stamp_ns=header_stamp_ns,
+    )
+
+
+def decode_ros2_radar(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+) -> RadarScanMessage:
+    """Compatibility alias for the ROS 2 RadarScan decoder."""
+
+    return decode_ros2_radar_scan(topic, timestamp_ns, data)
+
+
+def decode_ros2_image(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    include_data: bool = True,
+    max_width: int = MAX_IMAGE_WIDTH,
+    max_height: int = MAX_IMAGE_HEIGHT,
+    max_data_bytes: int = MAX_IMAGE_BYTES,
+) -> ImageMessage:
+    """Deserialize and validate a ROS 2 CDR ``sensor_msgs/msg/Image`` payload."""
+
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("sensor_msgs/msg/Image header nanoseconds are outside [0, 1e9)")
+    frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    height = reader.read_uint32()
+    width = reader.read_uint32()
+    encoding = reader.read_string(max_length=MAX_IMAGE_ENCODING_LENGTH)
+    is_bigendian = reader.read_uint8()
+    step = reader.read_uint32()
+    data_length, image_data = reader.read_bounded_byte_sequence(
+        max_length=max_data_bytes,
+        copy=include_data,
+    )
+    validate_image_metadata(
+        height=height,
+        width=width,
+        encoding=encoding,
+        is_bigendian=is_bigendian,
+        step=step,
+        data_length=data_length,
+        max_width=max_width,
+        max_height=max_height,
+        max_data_bytes=max_data_bytes,
+    )
+    if reader.remaining:
+        raise DatasetError(
+            f"sensor_msgs/msg/Image payload has {reader.remaining} trailing byte(s)"
+        )
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return ImageMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        height=int(height),
+        width=int(width),
+        encoding=encoding,
+        is_bigendian=bool(is_bigendian),
+        step=int(step),
+        data_length=int(data_length),
+        data=image_data,
+        header_stamp_ns=header_stamp_ns,
+    )
+
+
+def decode_ros2_camera_info(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    max_width: int = MAX_IMAGE_WIDTH,
+    max_height: int = MAX_IMAGE_HEIGHT,
+    max_distortion_coefficients: int = MAX_CAMERA_INFO_DISTORTION_COEFFICIENTS,
+) -> CameraInfoMessage:
+    """Deserialize and validate a ROS 2 CDR ``sensor_msgs/msg/CameraInfo``."""
+
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError(
+            "sensor_msgs/msg/CameraInfo header nanoseconds are outside [0, 1e9)"
+        )
+    frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    height = reader.read_uint32()
+    width = reader.read_uint32()
+    distortion_model = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    distortion_count = reader.read_uint32()
+    if distortion_count > max_distortion_coefficients:
+        raise DatasetError("sensor_msgs/msg/CameraInfo D sequence is too long")
+    d = reader.read_float64_array(int(distortion_count))
+    k = reader.read_float64_array(9)
+    r = reader.read_float64_array(9)
+    p = reader.read_float64_array(12)
+    binning_x = reader.read_uint32()
+    binning_y = reader.read_uint32()
+    roi_x = reader.read_uint32()
+    roi_y = reader.read_uint32()
+    roi_height = reader.read_uint32()
+    roi_width = reader.read_uint32()
+    roi_do_rectify = reader.read_uint8()
+    if roi_do_rectify not in (0, 1):
+        raise DatasetError(
+            "sensor_msgs/msg/CameraInfo ROI do_rectify must be 0 or 1"
+        )
+    roi = RegionOfInterest(
+        x_offset=roi_x,
+        y_offset=roi_y,
+        height=roi_height,
+        width=roi_width,
+        do_rectify=bool(roi_do_rectify),
+    )
+    validate_camera_info_metadata(
+        height=int(height),
+        width=int(width),
+        distortion_model=distortion_model,
+        d=d,
+        k=k,
+        r=r,
+        p=p,
+        binning_x=int(binning_x),
+        binning_y=int(binning_y),
+        roi=roi,
+        max_width=max_width,
+        max_height=max_height,
+        max_distortion_coefficients=max_distortion_coefficients,
+    )
+    if reader.remaining:
+        raise DatasetError(
+            f"sensor_msgs/msg/CameraInfo payload has {reader.remaining} trailing byte(s)"
+        )
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return CameraInfoMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        height=int(height),
+        width=int(width),
+        distortion_model=distortion_model,
+        d=d,
+        k=k,
+        r=r,
+        p=p,
+        binning_x=int(binning_x),
+        binning_y=int(binning_y),
+        roi=roi,
+        header_stamp_ns=header_stamp_ns,
+    )
 
 
 def decode_ros2_pointcloud2(
