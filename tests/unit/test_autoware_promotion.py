@@ -15,6 +15,7 @@ from calibrex.core.result import (
     RunInfo,
     TransformQuality,
     TransformResult,
+    build_result_provenance,
 )
 from calibrex.export.autoware_promotion import (
     AutowarePromotionError,
@@ -96,7 +97,23 @@ def _package(tmp_path: Path) -> tuple[AutowarePromotionRoots, Path, Path, Path]:
 
 def _candidate(tmp_path: Path, *, grade: str = "pass") -> Path:
     result = CalibrationResult(
-        run=RunInfo(id="run-1", slac_version="test"),
+        run=RunInfo(
+            id="run-1",
+            slac_version="test",
+            provenance=build_result_provenance(
+                producer="calibrex",
+                tool_name="calibrex.autoware-promotion-fixture",
+                tool_version="test",
+                command=["pytest", "tests/unit/test_autoware_promotion.py"],
+                extra={
+                    "fixture": "synthetic Autoware promotion candidate",
+                    "provenance_note": (
+                        "unit-test candidate has no external configuration or input "
+                        "artifact; the builder records those unavailable digests explicitly"
+                    ),
+                },
+            ),
+        ),
         frame_graph=FrameGraphSnapshot(
             root="base_link",
             frames={

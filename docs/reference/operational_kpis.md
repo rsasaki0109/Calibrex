@@ -32,7 +32,9 @@ deployment smoke test.
    and LiDAR frame names, profile (`commercial` by default), and thresholds.
 2. **Run strict readiness.** Require complete camera intrinsics, usable image
    and point inputs, frame binding, time/synchronization evidence, and a
-   self-verifying readiness artifact. Unknown required checks are a block.
+   self-verifying readiness artifact. The artifact status must be exactly
+   `ready`, every check must be `pass`, and the required-check unknown count
+   must be zero; otherwise external execution is blocked.
 3. **Run the external calibrator.** Use the official Koide workflow with a
    fixed source revision and an immutable container image reference
    (`repository@sha256:<64 hex>`). The current repository does not supply an

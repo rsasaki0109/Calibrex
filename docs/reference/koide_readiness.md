@@ -52,8 +52,10 @@ options:
   strict_readiness: true
 ```
 
-Strict execution refuses a blocked artifact or any changed input digest before
-starting an external stage. The Koide implementation, ROS dependencies, model
+Strict execution is fail-closed: the artifact status must be exactly `ready`,
+every readiness check must be `pass` (so no `warn` or `unknown` evidence can
+enter execution), and all declared input digests must still verify before an
+external stage starts. The Koide implementation, ROS dependencies, model
 weights, and GPL code remain outside the Calibrex core.
 
 For the official commercial handoff, validate

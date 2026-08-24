@@ -560,15 +560,37 @@ def validate_koide_readiness_for_execution(
     expected_sha256: str | None = None,
     strict: bool = True,
 ) -> None:
-    """Raise when a readiness artifact is blocked or no longer digest-valid."""
+    """Validate a readiness artifact before an external Koide execution.
+
+    ``strict=False`` intentionally remains a diagnostic path: it verifies the
+    artifact and any declared input digests without making an execution
+    admission decision.  Strict execution is fail-closed.  Only an artifact
+    whose overall status is exactly ``ready`` and whose checks all pass may
+    reach the external runner; ``warn``/``unknown`` evidence is never treated
+    as an implicit approval.
+    """
 
     loaded = (
         load_koide_readiness(artifact)
         if not isinstance(artifact, KoideReadinessArtifact)
         else artifact
     )
-    if strict and loaded.status == "blocked":
-        raise ValueError("Koide execution is blocked by the readiness artifact")
+    if strict:
+        if loaded.status != "ready":
+            raise ValueError(
+                "Koide execution requires readiness status 'ready'; "
+                f"artifact status is {loaded.status!r}"
+            )
+        non_passing = [
+            f"{check.name}={check.status}" for check in loaded.checks if check.status != "pass"
+        ]
+        if non_passing:
+            raise ValueError(
+                "Koide execution requires every readiness check to pass; "
+                "non-passing checks: " + ", ".join(non_passing)
+            )
+        if loaded.provenance.artifact_sha256 is None:
+            raise ValueError("strict Koide execution requires a self-digested readiness artifact")
     if expected_sha256 is not None:
         actual_file = (
             sha256_path(Path(artifact))

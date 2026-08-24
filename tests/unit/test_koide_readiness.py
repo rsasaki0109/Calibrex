@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from calibrex.cli.main import main
 from calibrex.core.config import CalibrationConfig, load_config
 from calibrex.core.koide_readiness import (
@@ -143,6 +145,31 @@ def test_missing_timestamp_evidence_is_unknown_and_never_ready() -> None:
     assert artifact.status == "warn"
 
 
+def test_strict_execution_requires_ready_status_and_passing_checks() -> None:
+    config, inspection = _ready_fixture()
+    ready = evaluate_koide_readiness(
+        config,
+        inspection,
+        config_path=CONFIG,
+        readiness=KoideReadinessConfig(
+            profile="commercial",
+            profile_declared=True,
+            hardware_profile="velodyne",
+            hardware_profile_declared=True,
+        ),
+    )
+
+    warn = ready.model_copy(update={"status": "warn"}).with_artifact_digest()
+    with pytest.raises(ValueError, match="status 'ready'"):
+        validate_koide_readiness_for_execution(warn, strict=True)
+
+    checks = list(ready.checks)
+    checks[0] = checks[0].model_copy(update={"status": "unknown"})
+    unknown = ready.model_copy(update={"status": "ready", "checks": checks}).with_artifact_digest()
+    with pytest.raises(ValueError, match="every readiness check to pass"):
+        validate_koide_readiness_for_execution(unknown, strict=True)
+
+
 def test_declared_hardware_profile_exposes_profile_guidance() -> None:
     config, inspection = _ready_fixture()
     artifact = evaluate_koide_readiness(
@@ -219,3 +246,31 @@ def test_strict_runner_refuses_blocked_readiness_before_external_stage(tmp_path:
     assert workflow.artifact.status == "unavailable"
     assert workflow.artifact.execution.attempted is False
     assert any("readiness" in warning.lower() for warning in workflow.artifact.warnings)
+
+
+def test_strict_runner_refuses_warn_readiness_before_external_stage(tmp_path: Path) -> None:
+    config, inspection = _ready_fixture()
+    ready = evaluate_koide_readiness(
+        config,
+        inspection,
+        config_path=CONFIG,
+        readiness=KoideReadinessConfig(
+            profile="commercial",
+            profile_declared=True,
+            hardware_profile="velodyne",
+            hardware_profile_declared=True,
+        ),
+    )
+    readiness_path = tmp_path / "warn-readiness.json"
+    ready.model_copy(update={"status": "warn"}).with_artifact_digest().save(readiness_path)
+    runner_config = KoideRunnerConfig(
+        execution_mode="precomputed",
+        result_path=tmp_path / "missing-calib.json",
+        readiness_artifact_path=readiness_path,
+        strict_readiness=True,
+    )
+
+    workflow = run_koide_workflow(runner_config)
+    assert workflow.artifact.status == "unavailable"
+    assert workflow.artifact.execution.attempted is False
+    assert any("status 'ready'" in warning for warning in workflow.artifact.warnings)
