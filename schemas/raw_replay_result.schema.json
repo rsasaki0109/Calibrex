@@ -213,6 +213,13 @@
           "title": "Environment Sha256",
           "type": "string"
         },
+        "evidence_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Evidence Sha256",
+          "type": "object"
+        },
         "generated_at": {
           "title": "Generated At",
           "type": "string"
@@ -227,6 +234,32 @@
             }
           ],
           "title": "Git Commit"
+        },
+        "holdout_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Sha256"
+        },
+        "known_bad_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Sha256"
         },
         "producer": {
           "const": "calibrex",
@@ -313,6 +346,35 @@
           "default": null
         },
         "environment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/ReplayDigestRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "known_bad": {
           "anyOf": [
             {
               "$ref": "#/$defs/ReplayDigestRef"

@@ -1,0 +1,110 @@
+schema_version: slac.multi_lidar_service_plan/v0.1
+plan_id: synthetic-multi-lidar-service
+vehicle_id: vehicle-synthetic
+sensor_kit_id: kit-synthetic
+old_sensor:
+  sensor_id: lidar-old
+  serial: OLD-001
+  model: synthetic-lidar
+  firmware: '1.0'
+  mount: front-old
+  frame: lidar_old
+  sensor_kit_id: null
+new_sensor:
+  sensor_id: lidar-new
+  serial: NEW-002
+  model: synthetic-lidar
+  firmware: '1.0'
+  mount: front-new
+  frame: lidar_new
+  sensor_kit_id: null
+baseline_edges:
+- role: baseline_edge
+  path: baseline-edge.json
+  sha256: dd8fa34a1905d78f335adb96ca7efedaa553de8e318481e8208a4ed1a6246dad
+  size_bytes: null
+  schema_version: null
+  artifact_sha256: 7f6a27cdcededefc516be7aab67e8e421859f687662bec7a2e27c454b66ba3b3
+  payload: null
+  edge_id: base-lidar-old
+  parent_frame: base_link
+  child_frame: lidar_old
+  transform: null
+candidate_edges:
+- role: candidate_edge
+  path: candidate-edge.json
+  sha256: 370f263a5687aada6b4085adf146f65b81a987ec95b086ed6bb06981d0142c2d
+  size_bytes: null
+  schema_version: null
+  artifact_sha256: eff78b7d664bca5bd84eed3c91620c2782fb775c5fcd5e88847ac1738f83fc13
+  payload: null
+  edge_id: base-lidar-new
+  parent_frame: base_link
+  child_frame: lidar_new
+  transform:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar_new
+    translation_m:
+    - 0.5
+    - 0.0
+    - 1.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    covariance: null
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    estimate_id: null
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      role_in_comparison: null
+      evidence_level: unknown
+      source: null
+      source_path: null
+      tool_name: null
+      tool_version: null
+      source_commit: null
+      license_spdx: null
+      adapter_version: null
+      command: null
+      notes: []
+mutable_incident_edge_ids:
+- base-lidar-old
+- base-lidar-new
+candidate_replay:
+  role: candidate_replay
+  path: candidate-replay.json
+  sha256: e0e62f96fce4b738559465e4d11c031fff57341ace65ed8136980a3c00f05523
+  size_bytes: null
+  schema_version: null
+  artifact_sha256: 84b3880dc4aa99f505ba0d21261da65cc1a858b6c95e7ae3f38c012507ac168d
+  payload: null
+lifecycle_artifacts: {}
+autoware_artifacts: {}
+graph_root: base_link
+cycle_closure_budget_m: 0.01
+cycle_closure_budget_deg: 0.1
+provenance:
+  producer: calibrex
+  tool_name: calibrex.multi-lidar-service
+  tool_version: 0.4.1
+  generated_at: '2026-08-24T08:22:01.301020+00:00'
+  git_commit: e695442
+  command:
+  - calibrex
+  - multi-lidar-service
+  - plan
+  - synthetic-definition
+  input_sha256:
+    baseline_edge:base-lidar-old: dd8fa34a1905d78f335adb96ca7efedaa553de8e318481e8208a4ed1a6246dad
+    candidate_edge:base-lidar-new: 370f263a5687aada6b4085adf146f65b81a987ec95b086ed6bb06981d0142c2d
+    candidate_replay: e0e62f96fce4b738559465e4d11c031fff57341ace65ed8136980a3c00f05523
+  artifact_sha256: acfeb18e3216978f712e8869463c8b0c05bd8bbdd71451524d7f04482bd4755b
+  artifact_digest_scope: canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at
+artifact_sha256: acfeb18e3216978f712e8869463c8b0c05bd8bbdd71451524d7f04482bd4755b

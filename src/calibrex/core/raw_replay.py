@@ -2429,8 +2429,10 @@ def _evaluate_candidate_gates(
         or rank < 0
         or rank > 6
         or rank < definition.budgets.min_observability_rank
-        or condition_number is not None
-        and (not math.isfinite(condition_number) or condition_number <= 0.0)
+        or (
+            condition_number is not None
+            and (not math.isfinite(condition_number) or condition_number <= 0.0)
+        )
         or candidate.observability.grade != "pass"
     ):
         gates.append(

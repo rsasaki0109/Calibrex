@@ -39,6 +39,19 @@ jobs:
             --output-dir /tmp/raw-replay-run --json
           calibrex replay verify /tmp/raw-replay-run/replay-result.json \
             --definition examples/raw_replay/synthetic/synthetic-definition.yaml --json
+      - name: Synthetic multi-LiDAR service smoke
+        run: |
+          calibrex validate examples/multi_lidar_service/synthetic/plan.yaml \
+            --kind multi-lidar-service-plan --json
+          calibrex multi-lidar-service plan \
+            examples/multi_lidar_service/synthetic/plan.yaml \
+            --output /tmp/multi-lidar-service/plan/plan.yaml --json
+          calibrex multi-lidar-service evaluate \
+            /tmp/multi-lidar-service/plan/plan.yaml \
+            --output /tmp/multi-lidar-service/evaluation/evaluation.yaml --json
+          calibrex multi-lidar-service verify \
+            /tmp/multi-lidar-service/evaluation/evaluation.yaml \
+            --plan /tmp/multi-lidar-service/plan/plan.yaml --json
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

@@ -124,6 +124,10 @@ from calibrex.core.livox_time_ablation import (
     livox_time_ablation_json_schema,
 )
 from calibrex.core.mcap_integrity import mcap_integrity_json_schema
+from calibrex.core.multi_lidar_service import (
+    multi_lidar_service_evaluation_json_schema,
+    multi_lidar_service_plan_json_schema,
+)
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     probabilistic_correspondence_json_schema,
@@ -178,6 +182,8 @@ def test_static_schema_files_match_generated_schemas() -> None:
     generators: dict[str, Callable[[], dict[str, Any]]] = {
         "config.schema.json": config_json_schema,
         "result.schema.json": result_json_schema,
+        "multi_lidar_service_plan.schema.json": multi_lidar_service_plan_json_schema,
+        "multi_lidar_service_evaluation.schema.json": multi_lidar_service_evaluation_json_schema,
         "comparison.schema.json": comparison_json_schema,
         "report_comparison.schema.json": report_comparison_json_schema,
         "dynamic_window_consistency.schema.json": dynamic_window_consistency_json_schema,

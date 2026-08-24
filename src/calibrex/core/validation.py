@@ -196,6 +196,12 @@ from calibrex.core.mcap_integrity import (
     MCAP_INTEGRITY_SCHEMA_VERSION,
     McapIntegrityEvidence,
 )
+from calibrex.core.multi_lidar_service import (
+    MULTI_LIDAR_SERVICE_EVALUATION_SCHEMA_VERSION,
+    MULTI_LIDAR_SERVICE_PLAN_SCHEMA_VERSION,
+    MultiLidarServiceEvaluation,
+    MultiLidarServicePlan,
+)
 from calibrex.core.online_timeline import (
     ONLINE_TIMELINE_SCHEMA_VERSION,
     OnlineCalibrationTimelineArtifact,
@@ -414,6 +420,8 @@ ValidationKind = Literal[
     "raw-replay-result",
     "raw-replay-comparison",
     "field-replacement-pilot",
+    "multi-lidar-service-plan",
+    "multi-lidar-service-evaluation",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -523,6 +531,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "raw-replay-result": ReplayResult,
     "raw-replay-comparison": ReplayComparison,
     "field-replacement-pilot": FieldReplacementPilot,
+    "multi-lidar-service-plan": MultiLidarServicePlan,
+    "multi-lidar-service-evaluation": MultiLidarServiceEvaluation,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -666,6 +676,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     RAW_REPLAY_RESULT_SCHEMA_VERSION: "raw-replay-result",
     RAW_REPLAY_COMPARISON_SCHEMA_VERSION: "raw-replay-comparison",
     FIELD_REPLACEMENT_PILOT_SCHEMA_VERSION: "field-replacement-pilot",
+    MULTI_LIDAR_SERVICE_PLAN_SCHEMA_VERSION: "multi-lidar-service-plan",
+    MULTI_LIDAR_SERVICE_EVALUATION_SCHEMA_VERSION: "multi-lidar-service-evaluation",
 }
 
 
@@ -715,6 +727,8 @@ def validate_file(
             ReplayResult,
             ReplayComparison,
             FieldReplacementPilot,
+            MultiLidarServicePlan,
+            MultiLidarServiceEvaluation,
         ),
     ):
         validated.verify_artifact_digest()

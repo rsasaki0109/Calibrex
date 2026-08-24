@@ -181,6 +181,13 @@ from calibrex.core.lifecycle_registry import (
 )
 from calibrex.core.livox_time_ablation import livox_time_ablation_json_schema
 from calibrex.core.mcap_integrity import mcap_integrity_json_schema
+from calibrex.core.multi_lidar_service import (
+    build_multi_lidar_service_plan,
+    evaluate_multi_lidar_service,
+    multi_lidar_service_evaluation_json_schema,
+    multi_lidar_service_plan_json_schema,
+    verify_multi_lidar_service,
+)
 from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     load_probabilistic_correspondence,
@@ -656,6 +663,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "raw-replay-result",
             "raw-replay-comparison",
             "field-replacement-pilot",
+            "multi-lidar-service-plan",
+            "multi-lidar-service-evaluation",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -767,6 +776,45 @@ def _build_parser() -> argparse.ArgumentParser:
     replay_pilot.add_argument("--output-dir", type=Path, required=True)
     replay_pilot.add_argument("--json", action="store_true")
     replay_pilot.set_defaults(func=_cmd_replay_field_replacement)
+
+    multi_lidar_service = subcommands.add_parser(
+        "multi-lidar-service",
+        help="digest-bound, read-only multi-LiDAR replacement planning and evaluation",
+    )
+    multi_lidar_service_subcommands = multi_lidar_service.add_subparsers(
+        dest="multi_lidar_service_command", required=True
+    )
+    multi_lidar_plan = multi_lidar_service_subcommands.add_parser(
+        "plan", help="verify inputs and write a read-only replacement plan"
+    )
+    multi_lidar_plan.add_argument("definition", type=Path)
+    multi_lidar_plan.add_argument("--output", type=Path, required=True)
+    multi_lidar_plan.add_argument("--json", action="store_true")
+    multi_lidar_plan.set_defaults(func=_cmd_multi_lidar_service_plan)
+
+    multi_lidar_evaluate = multi_lidar_service_subcommands.add_parser(
+        "evaluate", help="evaluate replay gates, edge scope, and graph topology"
+    )
+    multi_lidar_evaluate.add_argument("plan", type=Path)
+    multi_lidar_evaluate.add_argument(
+        "--candidate-replay",
+        type=Path,
+        help="candidate raw-replay result (defaults to the plan reference)",
+    )
+    multi_lidar_evaluate.add_argument("--output", type=Path, required=True)
+    multi_lidar_evaluate.add_argument("--evaluation-id")
+    multi_lidar_evaluate.add_argument("--json", action="store_true")
+    multi_lidar_evaluate.set_defaults(func=_cmd_multi_lidar_service_evaluate)
+
+    multi_lidar_verify = multi_lidar_service_subcommands.add_parser(
+        "verify", help="verify a plan or evaluation and all available source digests"
+    )
+    multi_lidar_verify.add_argument("artifact", type=Path)
+    multi_lidar_verify.add_argument(
+        "--plan", type=Path, help="plan to bind when verifying an evaluation"
+    )
+    multi_lidar_verify.add_argument("--json", action="store_true")
+    multi_lidar_verify.set_defaults(func=_cmd_multi_lidar_service_verify)
 
     verify = subcommands.add_parser(
         "verify",
@@ -2763,6 +2811,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "raw-replay-result": replay_result_json_schema,
         "raw-replay-comparison": replay_comparison_json_schema,
         "field-replacement-pilot": field_replacement_pilot_json_schema,
+        "multi-lidar-service-plan": multi_lidar_service_plan_json_schema,
+        "multi-lidar-service-evaluation": multi_lidar_service_evaluation_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -2938,6 +2988,60 @@ def _cmd_replay_field_replacement(args: argparse.Namespace) -> int:
         args.json,
     )
     return 0 if pilot.status == "PASS" else 1
+
+
+def _cmd_multi_lidar_service_plan(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "multi-lidar-service",
+        "plan",
+        str(args.definition),
+        "--output",
+        str(args.output),
+    ]
+    plan = build_multi_lidar_service_plan(args.definition, output=args.output, command=command)
+    _emit(
+        {
+            **plan.model_dump(mode="json", exclude_none=False),
+            "plan": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_multi_lidar_service_evaluate(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "multi-lidar-service",
+        "evaluate",
+        str(args.plan),
+        "--output",
+        str(args.output),
+    ]
+    if args.candidate_replay is not None:
+        command.extend(["--candidate-replay", str(args.candidate_replay)])
+    evaluation = evaluate_multi_lidar_service(
+        args.plan,
+        candidate_replay=args.candidate_replay,
+        output=args.output,
+        evaluation_id=args.evaluation_id,
+        command=command,
+    )
+    _emit(
+        {
+            **evaluation.model_dump(mode="json", exclude_none=False),
+            "evaluation": str(args.output),
+        },
+        args.json,
+    )
+    return 0 if evaluation.status == "READY" else 1
+
+
+def _cmd_multi_lidar_service_verify(args: argparse.Namespace) -> int:
+    verification = verify_multi_lidar_service(args.artifact, plan=args.plan)
+    _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
+    return 0 if verification.valid else 1
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:

@@ -1,0 +1,479 @@
+{
+  "$defs": {
+    "MultiLidarArtifactRef": {
+      "additionalProperties": false,
+      "description": "A filesystem or inline artifact bound by SHA-256.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        },
+        "role": {
+          "default": "artifact",
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "sha256"
+      ],
+      "title": "MultiLidarArtifactRef",
+      "type": "object"
+    },
+    "MultiLidarGraphCheck": {
+      "additionalProperties": false,
+      "description": "Connectedness and cycle-closure observations for candidate edges.",
+      "properties": {
+        "connected": {
+          "title": "Connected",
+          "type": "boolean"
+        },
+        "cycle_closure_budget_deg": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Cycle Closure Budget Deg",
+          "type": "number"
+        },
+        "cycle_closure_budget_m": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Cycle Closure Budget M",
+          "type": "number"
+        },
+        "cycle_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cycle Count",
+          "type": "integer"
+        },
+        "edge_count": {
+          "minimum": 0,
+          "title": "Edge Count",
+          "type": "integer"
+        },
+        "frame_count": {
+          "minimum": 0,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "max_cycle_rotation_error_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cycle Rotation Error Deg"
+        },
+        "max_cycle_translation_error_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cycle Translation Error M"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Root"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "connected",
+        "frame_count",
+        "edge_count"
+      ],
+      "title": "MultiLidarGraphCheck",
+      "type": "object"
+    },
+    "MultiLidarReplayEvidence": {
+      "additionalProperties": false,
+      "description": "Candidate replay decision and its digest-bound source.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "decision": {
+          "enum": [
+            "ADOPT",
+            "HOLD",
+            "REJECT",
+            "BLOCKED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "gates": {
+          "additionalProperties": {
+            "enum": [
+              "PASS",
+              "WARN",
+              "FAIL",
+              "BLOCKED"
+            ],
+            "type": "string"
+          },
+          "title": "Gates",
+          "type": "object"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "role": {
+          "default": "candidate_replay",
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "decision"
+      ],
+      "title": "MultiLidarReplayEvidence",
+      "type": "object"
+    },
+    "MultiLidarServiceProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance carried by each generated service artifact.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.multi-lidar-service",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "MultiLidarServiceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-bound READY/HOLD decision for a multi-LiDAR replacement.",
+  "properties": {
+    "artifact_sha256": {
+      "default": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "candidate_replay": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MultiLidarReplayEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "changed_edge_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Edge Ids",
+      "type": "array"
+    },
+    "decision": {
+      "enum": [
+        "READY",
+        "HOLD"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "digest_checks": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "FAIL",
+          "BLOCKED"
+        ],
+        "type": "string"
+      },
+      "title": "Digest Checks",
+      "type": "object"
+    },
+    "evaluation_id": {
+      "minLength": 1,
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "gates": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "FAIL",
+          "BLOCKED"
+        ],
+        "type": "string"
+      },
+      "title": "Gates",
+      "type": "object"
+    },
+    "graph": {
+      "$ref": "#/$defs/MultiLidarGraphCheck"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/MultiLidarServiceProvenance"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "referenced_artifacts": {
+      "items": {
+        "$ref": "#/$defs/MultiLidarArtifactRef"
+      },
+      "title": "Referenced Artifacts",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.multi_lidar_service_evaluation/v0.1",
+      "default": "slac.multi_lidar_service_evaluation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "READY",
+        "HOLD"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "unallowlisted_changed_edge_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unallowlisted Changed Edge Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "plan_sha256",
+    "status",
+    "decision",
+    "graph"
+  ],
+  "title": "MultiLidarServiceEvaluation",
+  "type": "object"
+}

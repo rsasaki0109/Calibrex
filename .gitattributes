@@ -5,6 +5,10 @@
 # Keep provenance-bound fixtures and their committed visualizations byte-stable
 # across Windows and Linux checkouts.
 examples/precomputed/*.yaml text eol=lf
+# Keep the digest-bound synthetic raw-replay inputs byte-stable on Windows as
+# well as POSIX checkouts.
+examples/raw_replay/synthetic/holdout.json text eol=lf
+examples/raw_replay/synthetic/raw-capture.bin text eol=lf
 # Keep the byte-stable synthetic KITTI camera-LiDAR fixture identical to the
 # generator output on Windows as well as POSIX systems.
 examples/public_datasets/kitti_lidar_camera_evidence/**/*.txt text eol=lf
