@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "LifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Operator and tool lineage for a registry event or generated artifact.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "operator": {
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "tool": {
+          "default": "calibrex.lifecycle",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.2",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "reason"
+      ],
+      "title": "LifecycleProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable registry identity and creation provenance.",
+  "properties": {
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LifecycleProvenance"
+    },
+    "registry_id": {
+      "minLength": 1,
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_registry/v0.2",
+      "default": "slac.calibration_lifecycle_registry/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "registry_id",
+    "provenance"
+  ],
+  "title": "RegistryManifest",
+  "type": "object"
+}

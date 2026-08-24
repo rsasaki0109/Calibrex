@@ -161,6 +161,24 @@ from calibrex.core.koide_readiness import (
     koide_readiness_json_schema,
 )
 from calibrex.core.koide_runner import koide_runner_json_schema
+from calibrex.core.lifecycle_registry import (
+    evaluate_lifecycle,
+    init_registry,
+    lifecycle_evaluation_json_schema,
+    lifecycle_event_json_schema,
+    lifecycle_head_json_schema,
+    lifecycle_registry_json_schema,
+    lifecycle_registry_state_json_schema,
+    lifecycle_registry_verification_json_schema,
+    lifecycle_status_json_schema,
+    load_registry,
+    promote_lifecycle,
+    record_capture,
+    register_calibration_edge,
+    register_sensor,
+    rollback_lifecycle,
+    verify_registry,
+)
 from calibrex.core.livox_time_ablation import livox_time_ablation_json_schema
 from calibrex.core.mcap_integrity import mcap_integrity_json_schema
 from calibrex.core.online_timeline import online_timeline_json_schema
@@ -575,6 +593,13 @@ def _build_parser() -> argparse.ArgumentParser:
             "doctor",
             "calibration-ci",
             "calibration-lifecycle",
+            "lifecycle-registry",
+            "lifecycle-event",
+            "lifecycle-evaluation",
+            "lifecycle-registry-state",
+            "lifecycle-head",
+            "lifecycle-verification",
+            "lifecycle-status",
             "external-run",
             "kitti-falsification",
             "kitti-benchmark-input",
@@ -2029,6 +2054,139 @@ def _build_parser() -> argparse.ArgumentParser:
     lifecycle_simulate.add_argument("--json", action="store_true")
     lifecycle_simulate.set_defaults(func=_cmd_lifecycle_simulate)
 
+    lifecycle_init = lifecycle_subcommands.add_parser(
+        "init",
+        help="create an empty append-only calibration lifecycle registry",
+    )
+    lifecycle_init.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_init.add_argument("--registry-id", default="calibrex-registry")
+    lifecycle_init.add_argument("--operator", default="unknown")
+    lifecycle_init.add_argument("--reason", default="initialize calibration lifecycle registry")
+    lifecycle_init.add_argument("--timestamp")
+    lifecycle_init.add_argument("--json", action="store_true")
+    lifecycle_init.set_defaults(func=_cmd_lifecycle_init)
+
+    lifecycle_register_sensor = lifecycle_subcommands.add_parser(
+        "register-sensor",
+        help="register a physical sensor and its stable vehicle/sensor-kit identity",
+    )
+    lifecycle_register_sensor.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_register_sensor.add_argument("--sensor-id", required=True)
+    lifecycle_register_sensor.add_argument("--vehicle-id", required=True)
+    lifecycle_register_sensor.add_argument("--sensor-kit-id", required=True)
+    lifecycle_register_sensor.add_argument("--serial", required=True)
+    lifecycle_register_sensor.add_argument("--model", required=True)
+    lifecycle_register_sensor.add_argument("--firmware", required=True)
+    lifecycle_register_sensor.add_argument("--mount", required=True)
+    lifecycle_register_sensor.add_argument("--frame")
+    lifecycle_register_sensor.add_argument("--install", action="store_true")
+    lifecycle_register_sensor.add_argument("--operator", default="unknown")
+    lifecycle_register_sensor.add_argument("--reason", default="register physical sensor")
+    lifecycle_register_sensor.add_argument("--timestamp")
+    lifecycle_register_sensor.add_argument("--json", action="store_true")
+    lifecycle_register_sensor.set_defaults(func=_cmd_lifecycle_register_sensor)
+
+    lifecycle_capture = lifecycle_subcommands.add_parser(
+        "capture",
+        help="append a digest-verified capture-manifest event",
+    )
+    lifecycle_capture.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_capture.add_argument("--capture-manifest", type=Path, required=True)
+    lifecycle_capture.add_argument("--operator", default="unknown")
+    lifecycle_capture.add_argument("--reason", default="record calibration capture")
+    lifecycle_capture.add_argument("--timestamp")
+    lifecycle_capture.add_argument("--json", action="store_true")
+    lifecycle_capture.set_defaults(func=_cmd_lifecycle_capture)
+
+    lifecycle_edge = lifecycle_subcommands.add_parser(
+        "register-edge",
+        help="register one calibration edge and optional incumbent artifacts",
+    )
+    lifecycle_edge.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_edge.add_argument("--edge-id", required=True)
+    lifecycle_edge.add_argument("--vehicle-id", required=True)
+    lifecycle_edge.add_argument("--sensor-kit-id", required=True)
+    lifecycle_edge.add_argument("--parent-frame", required=True)
+    lifecycle_edge.add_argument("--child-frame", required=True)
+    lifecycle_edge.add_argument("--incumbent-transform", type=Path)
+    lifecycle_edge.add_argument("--incumbent-result", type=Path)
+    lifecycle_edge.add_argument("--operator", default="unknown")
+    lifecycle_edge.add_argument("--reason", default="register calibration edge")
+    lifecycle_edge.add_argument("--timestamp")
+    lifecycle_edge.add_argument("--json", action="store_true")
+    lifecycle_edge.set_defaults(func=_cmd_lifecycle_register_edge)
+
+    lifecycle_evaluate = lifecycle_subcommands.add_parser(
+        "evaluate",
+        help="evaluate candidate/capture/evidence without changing incumbents",
+    )
+    lifecycle_evaluate.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_evaluate.add_argument("--edge-id", action="append", required=True)
+    lifecycle_evaluate.add_argument("--capture-manifest", type=Path, required=True)
+    lifecycle_evaluate.add_argument("--candidate-result", type=Path)
+    lifecycle_evaluate.add_argument("--candidate-transform", type=Path)
+    lifecycle_evaluate.add_argument("--candidate-pilot", type=Path)
+    lifecycle_evaluate.add_argument("--evidence", type=Path)
+    lifecycle_evaluate.add_argument("--assessment", type=Path)
+    lifecycle_evaluate.add_argument("--promotion", type=Path)
+    lifecycle_evaluate.add_argument("--smoke", type=Path)
+    lifecycle_evaluate.add_argument("--policy", type=Path)
+    lifecycle_evaluate.add_argument("--output", type=Path)
+    lifecycle_evaluate.add_argument("--operator", default="unknown")
+    lifecycle_evaluate.add_argument("--reason", default="evaluate calibration candidate")
+    lifecycle_evaluate.add_argument("--timestamp")
+    lifecycle_evaluate.add_argument("--json", action="store_true")
+    lifecycle_evaluate.set_defaults(func=_cmd_lifecycle_evaluate)
+
+    lifecycle_promote = lifecycle_subcommands.add_parser(
+        "promote",
+        help="promote a PASS/ADOPT evaluation for exactly the declared edges",
+    )
+    lifecycle_promote.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_promote.add_argument("--edge-id", action="append", required=True)
+    lifecycle_promote.add_argument("--evaluation", type=Path)
+    lifecycle_promote.add_argument("--promotion", type=Path)
+    lifecycle_promote.add_argument("--smoke", type=Path)
+    lifecycle_promote.add_argument("--operator", default="unknown")
+    lifecycle_promote.add_argument("--reason", default="promote evaluated calibration candidate")
+    lifecycle_promote.add_argument("--timestamp")
+    lifecycle_promote.add_argument("--json", action="store_true")
+    lifecycle_promote.set_defaults(func=_cmd_lifecycle_promote)
+
+    lifecycle_rollback = lifecycle_subcommands.add_parser(
+        "rollback",
+        help="append a guarded rollback to a prior incumbent",
+    )
+    lifecycle_rollback.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_rollback.add_argument("--edge-id", required=True)
+    lifecycle_rollback.add_argument("--target-sequence", type=int)
+    lifecycle_rollback.add_argument("--target-event-sha256")
+    lifecycle_rollback.add_argument("--promotion", type=Path)
+    lifecycle_rollback.add_argument("--operator", default="unknown")
+    lifecycle_rollback.add_argument(
+        "--reason", default="rollback calibration edge to prior incumbent"
+    )
+    lifecycle_rollback.add_argument("--timestamp")
+    lifecycle_rollback.add_argument("--json", action="store_true")
+    lifecycle_rollback.set_defaults(func=_cmd_lifecycle_rollback)
+
+    lifecycle_verify = lifecycle_subcommands.add_parser(
+        "verify",
+        help="verify event hash chain, head, projection, and source digests",
+    )
+    lifecycle_verify.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_verify.add_argument("--no-verify-sources", action="store_true")
+    lifecycle_verify.add_argument("--json", action="store_true")
+    lifecycle_verify.set_defaults(func=_cmd_lifecycle_verify)
+
+    lifecycle_status = lifecycle_subcommands.add_parser(
+        "status",
+        help="show the verified lifecycle registry status projection",
+    )
+    lifecycle_status.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_status.add_argument("--json", action="store_true")
+    lifecycle_status.set_defaults(func=_cmd_lifecycle_status)
+
     visualize = subcommands.add_parser("visualize", help="render result visualizations")
     visualize.add_argument("result", type=Path)
     visualize.add_argument(
@@ -2462,6 +2620,13 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "continuous-time-imu-accel-bias": continuous_time_imu_accel_bias_json_schema,
         "continuous-time-imu-intrinsics": (continuous_time_imu_intrinsics_json_schema),
         "calibration-lifecycle": calibration_lifecycle_json_schema,
+        "lifecycle-registry": lifecycle_registry_json_schema,
+        "lifecycle-event": lifecycle_event_json_schema,
+        "lifecycle-evaluation": lifecycle_evaluation_json_schema,
+        "lifecycle-registry-state": lifecycle_registry_state_json_schema,
+        "lifecycle-head": lifecycle_head_json_schema,
+        "lifecycle-verification": lifecycle_registry_verification_json_schema,
+        "lifecycle-status": lifecycle_status_json_schema,
         "continuous-time-sliding-window": continuous_time_sliding_window_json_schema,
         "continuous-time-lidar-train-diagnostics": (
             continuous_time_lidar_train_diagnostics_json_schema
@@ -5650,6 +5815,201 @@ def _cmd_lifecycle_simulate(args: argparse.Namespace) -> int:
         args.json,
     )
     return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_lifecycle_init(args: argparse.Namespace) -> int:
+    try:
+        registry = init_registry(
+            args.registry_root,
+            registry_id=args.registry_id,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "init"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "registry_root": str(registry.root),
+            "registry_id": registry.manifest().registry_id,
+            "schema_version": registry.manifest().schema_version,
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_lifecycle_register_sensor(args: argparse.Namespace) -> int:
+    try:
+        event = register_sensor(
+            args.registry_root,
+            sensor_id=args.sensor_id,
+            vehicle_id=args.vehicle_id,
+            sensor_kit_id=args.sensor_kit_id,
+            serial=args.serial,
+            model=args.model,
+            firmware=args.firmware,
+            mount=args.mount,
+            frame=args.frame,
+            install=args.install,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "register-sensor"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(_lifecycle_event_summary(event), args.json)
+    return 0
+
+
+def _cmd_lifecycle_capture(args: argparse.Namespace) -> int:
+    try:
+        event = record_capture(
+            args.registry_root,
+            capture_manifest=args.capture_manifest,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "capture"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(_lifecycle_event_summary(event), args.json)
+    return 0 if event.status == "CAPTURED" else 2
+
+
+def _cmd_lifecycle_register_edge(args: argparse.Namespace) -> int:
+    try:
+        event = register_calibration_edge(
+            args.registry_root,
+            edge_id=args.edge_id,
+            vehicle_id=args.vehicle_id,
+            sensor_kit_id=args.sensor_kit_id,
+            parent_frame=args.parent_frame,
+            child_frame=args.child_frame,
+            incumbent_transform=args.incumbent_transform,
+            incumbent_result=args.incumbent_result,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "register-edge"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(_lifecycle_event_summary(event), args.json)
+    return 0
+
+
+def _cmd_lifecycle_evaluate(args: argparse.Namespace) -> int:
+    try:
+        artifact = evaluate_lifecycle(
+            args.registry_root,
+            edge_ids=args.edge_id,
+            capture_manifest=args.capture_manifest,
+            candidate_result=args.candidate_result,
+            candidate_transform=args.candidate_transform,
+            candidate_pilot=args.candidate_pilot,
+            evidence=args.evidence,
+            assessment=args.assessment,
+            promotion=args.promotion,
+            smoke=args.smoke,
+            policy=args.policy,
+            output=args.output,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "evaluate"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.status,
+            "admission": artifact.admission,
+            "evaluation_id": artifact.evaluation_id,
+            "evaluation": str(args.output) if args.output else None,
+            "reason": artifact.reason,
+            "schema_version": artifact.schema_version,
+        },
+        args.json,
+    )
+    return 0 if artifact.status == "PASS" and artifact.admission == "ADOPT" else 2
+
+
+def _cmd_lifecycle_promote(args: argparse.Namespace) -> int:
+    try:
+        event = promote_lifecycle(
+            args.registry_root,
+            edge_ids=args.edge_id,
+            evaluation=args.evaluation,
+            promotion=args.promotion,
+            smoke=args.smoke,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "promote"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(_lifecycle_event_summary(event), args.json)
+    return 0
+
+
+def _cmd_lifecycle_rollback(args: argparse.Namespace) -> int:
+    try:
+        event = rollback_lifecycle(
+            args.registry_root,
+            edge_id=args.edge_id,
+            target_sequence=args.target_sequence,
+            target_event_sha256=args.target_event_sha256,
+            promotion=args.promotion,
+            operator=args.operator,
+            reason=args.reason,
+            timestamp=args.timestamp,
+            command=["calibrex", "lifecycle", "rollback"],
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(_lifecycle_event_summary(event), args.json)
+    return 0
+
+
+def _cmd_lifecycle_verify(args: argparse.Namespace) -> int:
+    try:
+        report = verify_registry(
+            args.registry_root,
+            verify_sources=not args.no_verify_sources,
+        )
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(report.model_dump(mode="json"), args.json)
+    return 0 if report.valid else 1
+
+
+def _cmd_lifecycle_status(args: argparse.Namespace) -> int:
+    try:
+        status = load_registry(args.registry_root).status()
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(status.model_dump(mode="json"), args.json)
+    return 0
+
+
+def _lifecycle_event_summary(event: Any) -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "event_type": event.event_type,
+        "event_status": event.status,
+        "admission": event.admission,
+        "sequence": event.sequence,
+        "event_sha256": event.event_sha256,
+        "previous_event_sha256": event.previous_event_sha256,
+        "registry_id": event.registry_id,
+        "edge_ids": event.edge_ids,
+    }
 
 
 def _cmd_trajectory_recover_sliding_window(args: argparse.Namespace) -> int:

@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "LifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Operator and tool lineage for a registry event or generated artifact.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "operator": {
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "tool": {
+          "default": "calibrex.lifecycle",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.2",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "reason"
+      ],
+      "title": "LifecycleProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema-valid result of checking a registry and all source artifacts.",
+  "properties": {
+    "checked_artifact_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Checked Artifact Count",
+      "type": "integer"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "event_count": {
+      "minimum": 0,
+      "title": "Event Count",
+      "type": "integer"
+    },
+    "head_sequence": {
+      "minimum": -1,
+      "title": "Head Sequence",
+      "type": "integer"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LifecycleProvenance"
+    },
+    "registry_id": {
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "root": {
+      "title": "Root",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_registry_verification/v0.2",
+      "default": "slac.calibration_lifecycle_registry_verification/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "valid": {
+      "title": "Valid",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "registry_id",
+    "root",
+    "valid",
+    "head_sequence",
+    "event_count",
+    "provenance"
+  ],
+  "title": "RegistryVerificationArtifact",
+  "type": "object"
+}

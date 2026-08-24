@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "LifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Operator and tool lineage for a registry event or generated artifact.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "operator": {
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "tool": {
+          "default": "calibrex.lifecycle",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.2",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "reason"
+      ],
+      "title": "LifecycleProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Compact status projection suitable for CLI/API clients.",
+  "properties": {
+    "active_edge_count": {
+      "minimum": 0,
+      "title": "Active Edge Count",
+      "type": "integer"
+    },
+    "active_sensor_count": {
+      "minimum": 0,
+      "title": "Active Sensor Count",
+      "type": "integer"
+    },
+    "edge_count": {
+      "minimum": 0,
+      "title": "Edge Count",
+      "type": "integer"
+    },
+    "event_count": {
+      "minimum": 0,
+      "title": "Event Count",
+      "type": "integer"
+    },
+    "head_sequence": {
+      "minimum": -1,
+      "title": "Head Sequence",
+      "type": "integer"
+    },
+    "last_event_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Last Event Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LifecycleProvenance"
+    },
+    "registry_id": {
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_status/v0.2",
+      "default": "slac.calibration_lifecycle_status/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_count": {
+      "minimum": 0,
+      "title": "Sensor Count",
+      "type": "integer"
+    },
+    "sensor_kit_count": {
+      "minimum": 0,
+      "title": "Sensor Kit Count",
+      "type": "integer"
+    },
+    "vehicle_count": {
+      "minimum": 0,
+      "title": "Vehicle Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "registry_id",
+    "head_sequence",
+    "event_count",
+    "vehicle_count",
+    "sensor_kit_count",
+    "sensor_count",
+    "active_sensor_count",
+    "edge_count",
+    "active_edge_count",
+    "last_event_sha256",
+    "provenance"
+  ],
+  "title": "LifecycleRegistryStatus",
+  "type": "object"
+}

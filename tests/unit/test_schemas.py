@@ -109,6 +109,15 @@ from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.koide_handoff import koide_execution_lock_json_schema
 from calibrex.core.koide_readiness import koide_readiness_json_schema
 from calibrex.core.koide_runner import koide_runner_json_schema
+from calibrex.core.lifecycle_registry import (
+    lifecycle_evaluation_json_schema,
+    lifecycle_event_json_schema,
+    lifecycle_head_json_schema,
+    lifecycle_registry_json_schema,
+    lifecycle_registry_state_json_schema,
+    lifecycle_registry_verification_json_schema,
+    lifecycle_status_json_schema,
+)
 from calibrex.core.livox_time_ablation import (
     LIVOX_TIME_ABLATION_SCHEMA_VERSION,
     LivoxTimeAblationManifest,
@@ -190,6 +199,13 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "environment_readiness.schema.json": environment_readiness_json_schema,
         "calibration_ci.schema.json": calibration_ci_json_schema,
         "calibration_lifecycle.schema.json": calibration_lifecycle_json_schema,
+        "lifecycle_registry.schema.json": lifecycle_registry_json_schema,
+        "lifecycle_event.schema.json": lifecycle_event_json_schema,
+        "lifecycle_evaluation.schema.json": lifecycle_evaluation_json_schema,
+        "lifecycle_registry_state.schema.json": lifecycle_registry_state_json_schema,
+        "lifecycle_head.schema.json": lifecycle_head_json_schema,
+        "lifecycle_verification.schema.json": lifecycle_registry_verification_json_schema,
+        "lifecycle_status.schema.json": lifecycle_status_json_schema,
         "external_run.schema.json": external_run_json_schema,
         "kitti_falsification.schema.json": kitti_falsification_json_schema,
         "kitti_benchmark_input.schema.json": kitti_benchmark_input_json_schema,

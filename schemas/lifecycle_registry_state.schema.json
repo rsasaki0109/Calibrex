@@ -1,0 +1,670 @@
+{
+  "$defs": {
+    "CalibrationEdge": {
+      "additionalProperties": false,
+      "description": "One vehicle-local parent/child calibration edge.",
+      "properties": {
+        "assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_pilot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "capture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "child_frame": {
+          "minLength": 1,
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "edge_id": {
+          "minLength": 1,
+          "title": "Edge Id",
+          "type": "string"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incumbent_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incumbent_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_admission": {
+          "anyOf": [
+            {
+              "enum": [
+                "ADOPT",
+                "DO_NOT_ADOPT",
+                "HOLD",
+                "BLOCKED",
+                "ROLLBACK",
+                "NOT_APPLICABLE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Admission"
+        },
+        "last_evaluation_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "PASS",
+                "WARN",
+                "FAIL",
+                "INCONCLUSIVE",
+                "BLOCKED",
+                "REGISTERED",
+                "INSTALLED",
+                "CAPTURED",
+                "PROMOTED",
+                "ROLLED_BACK",
+                "REMOVED"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Evaluation Status"
+        },
+        "parent_frame": {
+          "minLength": 1,
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sensor_kit_id": {
+          "minLength": 1,
+          "title": "Sensor Kit Id",
+          "type": "string"
+        },
+        "smoke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "default": "registered",
+          "enum": [
+            "registered",
+            "candidate",
+            "active",
+            "retired"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated At"
+        },
+        "updated_sequence": {
+          "default": -1,
+          "minimum": -1,
+          "title": "Updated Sequence",
+          "type": "integer"
+        },
+        "vehicle_id": {
+          "minLength": 1,
+          "title": "Vehicle Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "edge_id",
+        "vehicle_id",
+        "sensor_kit_id",
+        "parent_frame",
+        "child_frame"
+      ],
+      "title": "CalibrationEdge",
+      "type": "object"
+    },
+    "CaptureRecord": {
+      "additionalProperties": false,
+      "description": "Capture references retained by the projection.",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/LifecycleArtifactRef"
+        },
+        "capture_id": {
+          "minLength": 1,
+          "title": "Capture Id",
+          "type": "string"
+        },
+        "sensor_kit_id": {
+          "title": "Sensor Kit Id",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "vehicle_id": {
+          "title": "Vehicle Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capture_id",
+        "vehicle_id",
+        "sensor_kit_id",
+        "status",
+        "artifact",
+        "sequence"
+      ],
+      "title": "CaptureRecord",
+      "type": "object"
+    },
+    "LifecycleArtifactRef": {
+      "additionalProperties": false,
+      "description": "Exact filesystem reference retained in the event log.",
+      "properties": {
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "LifecycleArtifactRef",
+      "type": "object"
+    },
+    "LifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Operator and tool lineage for a registry event or generated artifact.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "operator": {
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "tool": {
+          "default": "calibrex.lifecycle",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.2",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "reason"
+      ],
+      "title": "LifecycleProvenance",
+      "type": "object"
+    },
+    "PhysicalSensorRecord": {
+      "additionalProperties": false,
+      "description": "Physical sensor identity and mount lifecycle.",
+      "properties": {
+        "firmware": {
+          "minLength": 1,
+          "title": "Firmware",
+          "type": "string"
+        },
+        "frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame"
+        },
+        "install_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Install Count",
+          "type": "integer"
+        },
+        "installed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Installed At"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "mount": {
+          "minLength": 1,
+          "title": "Mount",
+          "type": "string"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "remount_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Remount Count",
+          "type": "integer"
+        },
+        "removed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Removed At"
+        },
+        "sensor_id": {
+          "minLength": 1,
+          "title": "Sensor Id",
+          "type": "string"
+        },
+        "sensor_kit_id": {
+          "minLength": 1,
+          "title": "Sensor Kit Id",
+          "type": "string"
+        },
+        "serial": {
+          "minLength": 1,
+          "title": "Serial",
+          "type": "string"
+        },
+        "state": {
+          "default": "registered",
+          "enum": [
+            "registered",
+            "installed",
+            "removed"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "updated_sequence": {
+          "default": -1,
+          "minimum": -1,
+          "title": "Updated Sequence",
+          "type": "integer"
+        },
+        "vehicle_id": {
+          "minLength": 1,
+          "title": "Vehicle Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sensor_id",
+        "vehicle_id",
+        "sensor_kit_id",
+        "serial",
+        "model",
+        "firmware",
+        "mount"
+      ],
+      "title": "PhysicalSensorRecord",
+      "type": "object"
+    },
+    "SensorKitRecord": {
+      "additionalProperties": false,
+      "description": "Vehicle-local sensor-kit identity.",
+      "properties": {
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "sensor_kit_id": {
+          "minLength": 1,
+          "title": "Sensor Kit Id",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "active",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "vehicle_id": {
+          "minLength": 1,
+          "title": "Vehicle Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sensor_kit_id",
+        "vehicle_id"
+      ],
+      "title": "SensorKitRecord",
+      "type": "object"
+    },
+    "VehicleRecord": {
+      "additionalProperties": false,
+      "description": "Stable vehicle identity used to scope every edge and sensor.",
+      "properties": {
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "active",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "vehicle_id": {
+          "minLength": 1,
+          "title": "Vehicle Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vehicle_id"
+      ],
+      "title": "VehicleRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Materialised state reconstructed from immutable events.",
+  "properties": {
+    "captures": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CaptureRecord"
+      },
+      "title": "Captures",
+      "type": "object"
+    },
+    "edges": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CalibrationEdge"
+      },
+      "title": "Edges",
+      "type": "object"
+    },
+    "last_sequence": {
+      "default": -1,
+      "minimum": -1,
+      "title": "Last Sequence",
+      "type": "integer"
+    },
+    "registry_id": {
+      "minLength": 1,
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_registry_state/v0.2",
+      "default": "slac.calibration_lifecycle_registry_state/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_kits": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SensorKitRecord"
+      },
+      "title": "Sensor Kits",
+      "type": "object"
+    },
+    "sensors": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PhysicalSensorRecord"
+      },
+      "title": "Sensors",
+      "type": "object"
+    },
+    "vehicles": {
+      "additionalProperties": {
+        "$ref": "#/$defs/VehicleRecord"
+      },
+      "title": "Vehicles",
+      "type": "object"
+    }
+  },
+  "required": [
+    "registry_id"
+  ],
+  "title": "LifecycleRegistryState",
+  "type": "object"
+}

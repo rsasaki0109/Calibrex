@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "description": "Digest-bound checkpoint for the event log and projection.",
+  "properties": {
+    "checkpoint_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Sha256",
+      "type": "string"
+    },
+    "event_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Event Sha256",
+      "type": "string"
+    },
+    "registry_id": {
+      "minLength": 1,
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_head/v0.2",
+      "default": "slac.calibration_lifecycle_head/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": -1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "state_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "State Sha256",
+      "type": "string"
+    },
+    "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "registry_id",
+    "sequence",
+    "event_sha256",
+    "state_sha256",
+    "checkpoint_sha256"
+  ],
+  "title": "RegistryHead",
+  "type": "object"
+}

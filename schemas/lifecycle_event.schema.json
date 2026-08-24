@@ -1,0 +1,392 @@
+{
+  "$defs": {
+    "LifecycleArtifactRef": {
+      "additionalProperties": false,
+      "description": "Exact filesystem reference retained in the event log.",
+      "properties": {
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "LifecycleArtifactRef",
+      "type": "object"
+    },
+    "LifecycleArtifactSet": {
+      "additionalProperties": false,
+      "description": "Digest references attached to one candidate/decision.",
+      "properties": {
+        "assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_pilot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "capture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incumbent_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incumbent_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "smoke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "LifecycleArtifactSet",
+      "type": "object"
+    },
+    "LifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Operator and tool lineage for a registry event or generated artifact.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "operator": {
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "tool": {
+          "default": "calibrex.lifecycle",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.2",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "reason"
+      ],
+      "title": "LifecycleProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable tamper-evident registry event.",
+  "properties": {
+    "admission": {
+      "default": "NOT_APPLICABLE",
+      "enum": [
+        "ADOPT",
+        "DO_NOT_ADOPT",
+        "HOLD",
+        "BLOCKED",
+        "ROLLBACK",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Admission",
+      "type": "string"
+    },
+    "artifacts": {
+      "$ref": "#/$defs/LifecycleArtifactSet"
+    },
+    "edge_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Edge Ids",
+      "type": "array"
+    },
+    "event_sha256": {
+      "default": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Event Sha256",
+      "type": "string"
+    },
+    "event_type": {
+      "enum": [
+        "register",
+        "install",
+        "capture",
+        "evaluate",
+        "hold",
+        "promote",
+        "reject",
+        "rollback",
+        "remove"
+      ],
+      "title": "Event Type",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    },
+    "previous_event_sha256": {
+      "default": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Previous Event Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LifecycleProvenance"
+    },
+    "registry_id": {
+      "minLength": 1,
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_event/v0.2",
+      "default": "slac.calibration_lifecycle_event/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sensor Id"
+    },
+    "sensor_kit_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sensor Kit Id"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "INCONCLUSIVE",
+        "BLOCKED",
+        "REGISTERED",
+        "INSTALLED",
+        "CAPTURED",
+        "PROMOTED",
+        "ROLLED_BACK",
+        "REMOVED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "vehicle_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vehicle Id"
+    }
+  },
+  "required": [
+    "registry_id",
+    "sequence",
+    "event_type",
+    "status",
+    "provenance"
+  ],
+  "title": "LifecycleEvent",
+  "type": "object"
+}

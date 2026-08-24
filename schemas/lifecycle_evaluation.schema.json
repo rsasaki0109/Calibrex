@@ -1,0 +1,358 @@
+{
+  "$defs": {
+    "LifecycleArtifactRef": {
+      "additionalProperties": false,
+      "description": "Exact filesystem reference retained in the event log.",
+      "properties": {
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "LifecycleArtifactRef",
+      "type": "object"
+    },
+    "LifecycleArtifactSet": {
+      "additionalProperties": false,
+      "description": "Digest references attached to one candidate/decision.",
+      "properties": {
+        "assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_pilot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "capture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incumbent_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incumbent_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "promotion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "smoke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LifecycleArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "LifecycleArtifactSet",
+      "type": "object"
+    },
+    "LifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Operator and tool lineage for a registry event or generated artifact.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "operator": {
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "tool": {
+          "default": "calibrex.lifecycle",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.2",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "reason"
+      ],
+      "title": "LifecycleProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Fail-closed evaluation decision retained by an evaluate event.",
+  "properties": {
+    "admission": {
+      "enum": [
+        "ADOPT",
+        "DO_NOT_ADOPT",
+        "HOLD",
+        "BLOCKED",
+        "ROLLBACK",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Admission",
+      "type": "string"
+    },
+    "artifact_sha256": {
+      "default": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "artifacts": {
+      "$ref": "#/$defs/LifecycleArtifactSet"
+    },
+    "edge_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Edge Ids",
+      "type": "array"
+    },
+    "evaluation_id": {
+      "minLength": 1,
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "gates": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "FAIL",
+          "INCONCLUSIVE",
+          "BLOCKED"
+        ],
+        "type": "string"
+      },
+      "title": "Gates",
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LifecycleProvenance"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "registry_id": {
+      "minLength": 1,
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.calibration_lifecycle_evaluation/v0.2",
+      "default": "slac.calibration_lifecycle_evaluation/v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_kit_id": {
+      "minLength": 1,
+      "title": "Sensor Kit Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "INCONCLUSIVE",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "vehicle_id": {
+      "minLength": 1,
+      "title": "Vehicle Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "registry_id",
+    "vehicle_id",
+    "sensor_kit_id",
+    "edge_ids",
+    "status",
+    "admission",
+    "reason",
+    "artifacts",
+    "provenance"
+  ],
+  "title": "LifecycleEvaluationArtifact",
+  "type": "object"
+}
