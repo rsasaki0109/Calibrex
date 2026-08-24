@@ -14,6 +14,8 @@ from calibrex.core.lifecycle_registry import load_registry
 from calibrex.core.raw_replay import (
     ReplayDefinition,
     ReplayRegistryRequest,
+    ReplayStageArtifact,
+    load_replay_definition,
     plan_raw_replay,
     run_field_replacement_pilot,
     run_raw_replay,
@@ -43,6 +45,25 @@ def test_synthetic_raw_replay_clean_and_stage_digests(tmp_path: Path) -> None:
     }
     verified = verify_raw_replay(output / "replay-result.json", definition=FIXTURE)
     assert verified.artifact_sha256 == result.artifact_sha256
+
+
+def test_definition_provenance_does_not_depend_on_ambient_git_commit() -> None:
+    definition = load_replay_definition(FIXTURE)
+    assert definition.provenance.git_commit is None
+    assert definition.with_artifact_digest().artifact_sha256 == definition.artifact_sha256
+
+
+def test_generated_replay_provenance_binds_git_commit_when_available(tmp_path: Path) -> None:
+    from calibrex.core.provenance import git_commit
+
+    result = run_raw_replay(FIXTURE, output_directory=tmp_path / "replay")
+    commit = git_commit()
+    if commit is not None:
+        assert result.generated_provenance.git_commit == commit
+        assert all(
+            ReplayStageArtifact.model_validate(read_mapping(path)).provenance.git_commit == commit
+            for path in sorted((tmp_path / "replay" / "stages").glob("*.json"))
+        )
 
 
 def test_replay_source_drift_is_blocked(tmp_path: Path) -> None:

@@ -22,6 +22,12 @@ from calibrex.core.calibration_lifecycle import (
     CALIBRATION_LIFECYCLE_SCHEMA_VERSION,
     CalibrationLifecycleArtifact,
 )
+from calibrex.core.camera_imu_service import (
+    CAMERA_IMU_SERVICE_EVALUATION_SCHEMA_VERSION,
+    CAMERA_IMU_SERVICE_PLAN_SCHEMA_VERSION,
+    CameraImuServiceEvaluation,
+    CameraImuServicePlan,
+)
 from calibrex.core.camera_lidar_artifacts import (
     BULLSEYE_PLOT_SCHEMA_VERSION,
     CALIBRATION_CANDIDATE_TRACE_SCHEMA_VERSION,
@@ -422,6 +428,8 @@ ValidationKind = Literal[
     "field-replacement-pilot",
     "multi-lidar-service-plan",
     "multi-lidar-service-evaluation",
+    "camera-imu-service-plan",
+    "camera-imu-service-evaluation",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -533,6 +541,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "field-replacement-pilot": FieldReplacementPilot,
     "multi-lidar-service-plan": MultiLidarServicePlan,
     "multi-lidar-service-evaluation": MultiLidarServiceEvaluation,
+    "camera-imu-service-plan": CameraImuServicePlan,
+    "camera-imu-service-evaluation": CameraImuServiceEvaluation,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -678,6 +688,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     FIELD_REPLACEMENT_PILOT_SCHEMA_VERSION: "field-replacement-pilot",
     MULTI_LIDAR_SERVICE_PLAN_SCHEMA_VERSION: "multi-lidar-service-plan",
     MULTI_LIDAR_SERVICE_EVALUATION_SCHEMA_VERSION: "multi-lidar-service-evaluation",
+    CAMERA_IMU_SERVICE_PLAN_SCHEMA_VERSION: "camera-imu-service-plan",
+    CAMERA_IMU_SERVICE_EVALUATION_SCHEMA_VERSION: "camera-imu-service-evaluation",
 }
 
 
@@ -729,6 +741,8 @@ def validate_file(
             FieldReplacementPilot,
             MultiLidarServicePlan,
             MultiLidarServiceEvaluation,
+            CameraImuServicePlan,
+            CameraImuServiceEvaluation,
         ),
     ):
         validated.verify_artifact_digest()

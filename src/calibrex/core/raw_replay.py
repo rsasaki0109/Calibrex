@@ -300,7 +300,11 @@ class ReplayProvenance(StrictModel):
     tool_name: str = "calibrex.raw-replay"
     tool_version: str = __version__
     generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    git_commit: str | None = Field(default_factory=git_commit)
+    # Definitions are user/fixture inputs.  Do not inject ambient repository
+    # state while loading them: that would make the declared self-digest vary
+    # with the checkout used to read the file.  Generated artifacts bind the
+    # current commit explicitly in ``_provenance_for_definition`` below.
+    git_commit: str | None = None
     command: list[str] = Field(default_factory=list)
     source_sha256: dict[str, str] = Field(default_factory=dict)
     config_sha256: str | None = Field(default=None, pattern=_SHA256_PATTERN)
@@ -2828,6 +2832,7 @@ def _provenance_for_definition(
         }
     )
     return ReplayProvenance(
+        git_commit=git_commit(),
         command=command,
         source_sha256=source_sha256,
         config_sha256=definition.config.sha256,

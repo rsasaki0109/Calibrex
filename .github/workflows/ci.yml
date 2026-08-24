@@ -52,6 +52,19 @@ jobs:
           calibrex multi-lidar-service verify \
             /tmp/multi-lidar-service/evaluation/evaluation.yaml \
             --plan /tmp/multi-lidar-service/plan/plan.yaml --json
+      - name: Synthetic camera-IMU service smoke
+        run: |
+          calibrex validate examples/camera_imu_service/synthetic/plan.yaml \
+            --kind camera-imu-service-plan --json
+          calibrex camera-imu-service plan \
+            examples/camera_imu_service/synthetic/plan.yaml \
+            --output /tmp/camera-imu-service/plan/plan.yaml --json
+          calibrex camera-imu-service evaluate \
+            /tmp/camera-imu-service/plan/plan.yaml \
+            --output /tmp/camera-imu-service/evaluation/evaluation.yaml --json
+          calibrex camera-imu-service verify \
+            /tmp/camera-imu-service/evaluation/evaluation.yaml \
+            --plan /tmp/camera-imu-service/plan/plan.yaml --json
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

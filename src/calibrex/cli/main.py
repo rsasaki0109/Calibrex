@@ -30,6 +30,13 @@ from calibrex.core.benchmark import (
     update_benchmark_table_in_markdown,
 )
 from calibrex.core.calibration_lifecycle import calibration_lifecycle_json_schema
+from calibrex.core.camera_imu_service import (
+    build_camera_imu_service_plan,
+    camera_imu_service_evaluation_json_schema,
+    camera_imu_service_plan_json_schema,
+    evaluate_camera_imu_service,
+    verify_camera_imu_service,
+)
 from calibrex.core.camera_lidar_artifacts import (
     bullseye_plot_json_schema,
     calibration_candidate_trace_json_schema,
@@ -665,6 +672,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "field-replacement-pilot",
             "multi-lidar-service-plan",
             "multi-lidar-service-evaluation",
+            "camera-imu-service-plan",
+            "camera-imu-service-evaluation",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -815,6 +824,45 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     multi_lidar_verify.add_argument("--json", action="store_true")
     multi_lidar_verify.set_defaults(func=_cmd_multi_lidar_service_verify)
+
+    camera_imu_service = subcommands.add_parser(
+        "camera-imu-service",
+        help="digest-bound, read-only camera--IMU replacement planning and evaluation",
+    )
+    camera_imu_service_subcommands = camera_imu_service.add_subparsers(
+        dest="camera_imu_service_command", required=True
+    )
+    camera_imu_plan = camera_imu_service_subcommands.add_parser(
+        "plan", help="verify inputs and write a read-only replacement plan"
+    )
+    camera_imu_plan.add_argument("definition", type=Path)
+    camera_imu_plan.add_argument("--output", type=Path, required=True)
+    camera_imu_plan.add_argument("--json", action="store_true")
+    camera_imu_plan.set_defaults(func=_cmd_camera_imu_service_plan)
+
+    camera_imu_evaluate = camera_imu_service_subcommands.add_parser(
+        "evaluate", help="evaluate replay, evidence, metric, and component gates"
+    )
+    camera_imu_evaluate.add_argument("plan", type=Path)
+    camera_imu_evaluate.add_argument(
+        "--candidate-replay",
+        type=Path,
+        help="candidate raw-replay result (defaults to the plan reference)",
+    )
+    camera_imu_evaluate.add_argument("--output", type=Path, required=True)
+    camera_imu_evaluate.add_argument("--evaluation-id")
+    camera_imu_evaluate.add_argument("--json", action="store_true")
+    camera_imu_evaluate.set_defaults(func=_cmd_camera_imu_service_evaluate)
+
+    camera_imu_verify = camera_imu_service_subcommands.add_parser(
+        "verify", help="verify a plan or evaluation and all source digests"
+    )
+    camera_imu_verify.add_argument("artifact", type=Path)
+    camera_imu_verify.add_argument(
+        "--plan", type=Path, help="plan to bind when verifying an evaluation"
+    )
+    camera_imu_verify.add_argument("--json", action="store_true")
+    camera_imu_verify.set_defaults(func=_cmd_camera_imu_service_verify)
 
     verify = subcommands.add_parser(
         "verify",
@@ -2813,6 +2861,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "field-replacement-pilot": field_replacement_pilot_json_schema,
         "multi-lidar-service-plan": multi_lidar_service_plan_json_schema,
         "multi-lidar-service-evaluation": multi_lidar_service_evaluation_json_schema,
+        "camera-imu-service-plan": camera_imu_service_plan_json_schema,
+        "camera-imu-service-evaluation": camera_imu_service_evaluation_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -3040,6 +3090,60 @@ def _cmd_multi_lidar_service_evaluate(args: argparse.Namespace) -> int:
 
 def _cmd_multi_lidar_service_verify(args: argparse.Namespace) -> int:
     verification = verify_multi_lidar_service(args.artifact, plan=args.plan)
+    _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
+    return 0 if verification.valid else 1
+
+
+def _cmd_camera_imu_service_plan(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "camera-imu-service",
+        "plan",
+        str(args.definition),
+        "--output",
+        str(args.output),
+    ]
+    plan = build_camera_imu_service_plan(args.definition, output=args.output, command=command)
+    _emit(
+        {
+            **plan.model_dump(mode="json", exclude_none=False),
+            "plan": str(args.output),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_imu_service_evaluate(args: argparse.Namespace) -> int:
+    command = [
+        "calibrex",
+        "camera-imu-service",
+        "evaluate",
+        str(args.plan),
+        "--output",
+        str(args.output),
+    ]
+    if args.candidate_replay is not None:
+        command.extend(["--candidate-replay", str(args.candidate_replay)])
+    evaluation = evaluate_camera_imu_service(
+        args.plan,
+        candidate_replay=args.candidate_replay,
+        output=args.output,
+        evaluation_id=args.evaluation_id,
+        command=command,
+    )
+    _emit(
+        {
+            **evaluation.model_dump(mode="json", exclude_none=False),
+            "evaluation": str(args.output),
+        },
+        args.json,
+    )
+    return 0 if evaluation.status == "READY" else 1
+
+
+def _cmd_camera_imu_service_verify(args: argparse.Namespace) -> int:
+    verification = verify_camera_imu_service(args.artifact, plan=args.plan)
     _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
     return 0 if verification.valid else 1
 

@@ -1,0 +1,522 @@
+{
+  "$defs": {
+    "CameraImuServiceProvenance": {
+      "additionalProperties": false,
+      "description": "Portable provenance carried by generated plan/evaluation artifacts.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.camera-imu-service",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "CameraImuServiceProvenance",
+      "type": "object"
+    },
+    "DigestRef": {
+      "additionalProperties": false,
+      "description": "A portable filesystem or inline value bound by SHA-256.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        },
+        "role": {
+          "default": "artifact",
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "sha256"
+      ],
+      "title": "DigestRef",
+      "type": "object"
+    },
+    "MetricObservation": {
+      "additionalProperties": false,
+      "description": "One named metric with an explicit split, status, and derivation.",
+      "properties": {
+        "capture_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Id"
+        },
+        "evidence_role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Role"
+        },
+        "metric_id": {
+          "minLength": 1,
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "protocol_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Protocol Id"
+        },
+        "provenance": {
+          "additionalProperties": true,
+          "title": "Provenance",
+          "type": "object"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "holdout",
+            "known_bad"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "status": {
+          "default": "PASS",
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric_id",
+        "value",
+        "unit",
+        "split"
+      ],
+      "title": "MetricObservation",
+      "type": "object"
+    },
+    "SensorIdentity": {
+      "additionalProperties": false,
+      "description": "Stable identity for one camera or IMU before/after replacement.",
+      "properties": {
+        "firmware": {
+          "minLength": 1,
+          "title": "Firmware",
+          "type": "string"
+        },
+        "frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "mount": {
+          "minLength": 1,
+          "title": "Mount",
+          "type": "string"
+        },
+        "sensor_id": {
+          "minLength": 1,
+          "title": "Sensor Id",
+          "type": "string"
+        },
+        "sensor_kit_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor Kit Id"
+        },
+        "sensor_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "camera",
+                "imu"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor Type"
+        },
+        "serial": {
+          "minLength": 1,
+          "title": "Serial",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sensor_id",
+        "serial",
+        "model",
+        "firmware",
+        "mount"
+      ],
+      "title": "SensorIdentity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable scope, inputs, evidence, and budgets for one evaluation.",
+  "properties": {
+    "artifact_sha256": {
+      "default": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "autoware_artifacts": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DigestRef"
+      },
+      "title": "Autoware Artifacts",
+      "type": "object"
+    },
+    "baseline_components": {
+      "additionalProperties": true,
+      "title": "Baseline Components",
+      "type": "object"
+    },
+    "candidate_components": {
+      "additionalProperties": true,
+      "title": "Candidate Components",
+      "type": "object"
+    },
+    "candidate_replay": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DigestRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "capture_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capture Id"
+    },
+    "evidence": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DigestRef"
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "lifecycle_artifacts": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DigestRef"
+      },
+      "title": "Lifecycle Artifacts",
+      "type": "object"
+    },
+    "max_bias_norm": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Max Bias Norm",
+      "type": "number"
+    },
+    "max_clock_offset_abs_s": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Max Clock Offset Abs S",
+      "type": "number"
+    },
+    "max_lever_arm_holdout_rmse_m_s2": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Max Lever Arm Holdout Rmse M S2",
+      "type": "number"
+    },
+    "max_rotation_holdout_rmse_rad": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Max Rotation Holdout Rmse Rad",
+      "type": "number"
+    },
+    "metric_observations": {
+      "items": {
+        "$ref": "#/$defs/MetricObservation"
+      },
+      "title": "Metric Observations",
+      "type": "array"
+    },
+    "min_known_bad_delta": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Min Known Bad Delta",
+      "type": "number"
+    },
+    "min_observability_rank": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Min Observability Rank",
+      "type": "number"
+    },
+    "mutable_components": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Mutable Components",
+      "type": "array"
+    },
+    "new_camera": {
+      "$ref": "#/$defs/SensorIdentity"
+    },
+    "new_imu": {
+      "$ref": "#/$defs/SensorIdentity"
+    },
+    "observed_changed_components": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Observed Changed Components",
+      "type": "array"
+    },
+    "old_camera": {
+      "$ref": "#/$defs/SensorIdentity"
+    },
+    "old_imu": {
+      "$ref": "#/$defs/SensorIdentity"
+    },
+    "plan_id": {
+      "minLength": 1,
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "protocol_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Protocol Id"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraImuServiceProvenance"
+    },
+    "required_evidence_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Evidence Roles",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.camera_imu_service_plan/v0.1",
+      "default": "slac.camera_imu_service_plan/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_kit_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sensor Kit Id"
+    },
+    "vehicle_id": {
+      "minLength": 1,
+      "title": "Vehicle Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "vehicle_id",
+    "old_camera",
+    "new_camera",
+    "old_imu",
+    "new_imu"
+  ],
+  "title": "CameraImuServicePlan",
+  "type": "object"
+}

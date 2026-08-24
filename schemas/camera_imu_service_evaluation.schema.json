@@ -1,0 +1,504 @@
+{
+  "$defs": {
+    "CameraImuReplayEvidence": {
+      "additionalProperties": false,
+      "description": "Digest and gate summary copied from a replay result.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "decision": {
+          "enum": [
+            "ADOPT",
+            "HOLD",
+            "REJECT",
+            "BLOCKED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "gates": {
+          "additionalProperties": {
+            "enum": [
+              "PASS",
+              "WARN",
+              "FAIL",
+              "BLOCKED"
+            ],
+            "type": "string"
+          },
+          "title": "Gates",
+          "type": "object"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "role": {
+          "default": "candidate_replay",
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "decision"
+      ],
+      "title": "CameraImuReplayEvidence",
+      "type": "object"
+    },
+    "CameraImuServiceProvenance": {
+      "additionalProperties": false,
+      "description": "Portable provenance carried by generated plan/evaluation artifacts.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.camera-imu-service",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "CameraImuServiceProvenance",
+      "type": "object"
+    },
+    "DigestRef": {
+      "additionalProperties": false,
+      "description": "A portable filesystem or inline value bound by SHA-256.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        },
+        "role": {
+          "default": "artifact",
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "sha256"
+      ],
+      "title": "DigestRef",
+      "type": "object"
+    },
+    "MetricObservation": {
+      "additionalProperties": false,
+      "description": "One named metric with an explicit split, status, and derivation.",
+      "properties": {
+        "capture_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Id"
+        },
+        "evidence_role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Role"
+        },
+        "metric_id": {
+          "minLength": 1,
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "protocol_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Protocol Id"
+        },
+        "provenance": {
+          "additionalProperties": true,
+          "title": "Provenance",
+          "type": "object"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "holdout",
+            "known_bad"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "status": {
+          "default": "PASS",
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric_id",
+        "value",
+        "unit",
+        "split"
+      ],
+      "title": "MetricObservation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-bound READY/HOLD decision for a camera--IMU replacement.",
+  "properties": {
+    "artifact_sha256": {
+      "default": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "bindings": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Bindings",
+      "type": "object"
+    },
+    "candidate_replay": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraImuReplayEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "changed_components": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Components",
+      "type": "array"
+    },
+    "decision": {
+      "enum": [
+        "READY",
+        "HOLD"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "digest_checks": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "FAIL",
+          "BLOCKED"
+        ],
+        "type": "string"
+      },
+      "title": "Digest Checks",
+      "type": "object"
+    },
+    "evaluation_id": {
+      "minLength": 1,
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "gates": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "FAIL",
+          "BLOCKED"
+        ],
+        "type": "string"
+      },
+      "title": "Gates",
+      "type": "object"
+    },
+    "metric_checks": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "FAIL",
+          "BLOCKED"
+        ],
+        "type": "string"
+      },
+      "title": "Metric Checks",
+      "type": "object"
+    },
+    "metric_observations": {
+      "items": {
+        "$ref": "#/$defs/MetricObservation"
+      },
+      "title": "Metric Observations",
+      "type": "array"
+    },
+    "missing_evidence_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Evidence Roles",
+      "type": "array"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraImuServiceProvenance"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "referenced_artifacts": {
+      "items": {
+        "$ref": "#/$defs/DigestRef"
+      },
+      "title": "Referenced Artifacts",
+      "type": "array"
+    },
+    "required_evidence_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Evidence Roles",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.camera_imu_service_evaluation/v0.1",
+      "default": "slac.camera_imu_service_evaluation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "READY",
+        "HOLD"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "unallowlisted_changed_components": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unallowlisted Changed Components",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "plan_sha256",
+    "status",
+    "decision"
+  ],
+  "title": "CameraImuServiceEvaluation",
+  "type": "object"
+}

@@ -1,0 +1,189 @@
+schema_version: slac.camera_imu_service_plan/v0.1
+plan_id: synthetic-camera-imu-service
+vehicle_id: vehicle-synthetic
+sensor_kit_id: kit-synthetic
+old_camera:
+  sensor_id: camera-old
+  serial: CAM-OLD-001
+  model: synthetic-camera
+  firmware: '1.0'
+  mount: front
+  frame: camera_old
+  sensor_type: camera
+  sensor_kit_id: null
+new_camera:
+  sensor_id: camera-new
+  serial: CAM-NEW-002
+  model: synthetic-camera
+  firmware: '1.0'
+  mount: front
+  frame: camera_new
+  sensor_type: camera
+  sensor_kit_id: null
+old_imu:
+  sensor_id: imu-old
+  serial: IMU-OLD-001
+  model: synthetic-imu
+  firmware: '1.0'
+  mount: body
+  frame: imu_old
+  sensor_type: imu
+  sensor_kit_id: null
+new_imu:
+  sensor_id: imu-new
+  serial: IMU-NEW-002
+  model: synthetic-imu
+  firmware: '1.0'
+  mount: body
+  frame: imu_new
+  sensor_type: imu
+  sensor_kit_id: null
+candidate_replay:
+  role: candidate_replay
+  path: candidate-replay.json
+  sha256: d9482a0c70b4d9f1089fe73a4ea85e51ece583b2fc5c2eda18b1ff393076b20b
+  size_bytes: null
+  schema_version: null
+  artifact_sha256: null
+  payload: null
+required_evidence_roles:
+- protocol
+- capture
+- holdout
+- known_bad
+- observability
+evidence:
+  protocol:
+    role: protocol
+    path: protocol.json
+    sha256: 00d885d8fe5fabe7ba83a2ee0938e2a9fd77c4e25f2ad7f3536a2471840b856c
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  capture:
+    role: capture
+    path: capture.json
+    sha256: ec4ee83f401b388a764db13d5b408d6fbdc88033930cc8ddd50412fe3fe7d1fc
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  holdout:
+    role: holdout
+    path: holdout.json
+    sha256: 5049e2580d172a216a614a776d549a40de74153c76ad988530148d199fd398d8
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  known_bad:
+    role: known_bad
+    path: known_bad.json
+    sha256: 682e7c5fbbfc435935baf0256ee4c5c0ffc8b0201a0d0c3fd0e6adc586bcaaa5
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+  observability:
+    role: observability
+    path: observability.json
+    sha256: 0a846666b5b369761caa92e88ba5ed0cf4ffd1cd83ecbf046cbee118de9ca9f2
+    size_bytes: null
+    schema_version: null
+    artifact_sha256: null
+    payload: null
+metric_observations:
+- metric_id: clock_offset_s
+  value: 0.001
+  unit: s
+  split: train
+  status: PASS
+  provenance: {}
+  protocol_id: null
+  capture_id: null
+  evidence_role: null
+- metric_id: rotation_holdout_rmse_rad
+  value: 0.01
+  unit: rad
+  split: holdout
+  status: PASS
+  provenance: {}
+  protocol_id: null
+  capture_id: null
+  evidence_role: null
+- metric_id: lever_arm_holdout_rmse_m_s2
+  value: 0.02
+  unit: m/s^2
+  split: holdout
+  status: PASS
+  provenance: {}
+  protocol_id: null
+  capture_id: null
+  evidence_role: null
+- metric_id: bias_norm
+  value: 0.05
+  unit: m/s^2
+  split: holdout
+  status: PASS
+  provenance: {}
+  protocol_id: null
+  capture_id: null
+  evidence_role: null
+- metric_id: known_bad_delta
+  value: 0.2
+  unit: delta
+  split: known_bad
+  status: PASS
+  provenance: {}
+  protocol_id: null
+  capture_id: null
+  evidence_role: null
+- metric_id: observability_rank
+  value: 8.0
+  unit: rank
+  split: holdout
+  status: PASS
+  provenance: {}
+  protocol_id: null
+  capture_id: null
+  evidence_role: null
+mutable_components:
+- camera_extrinsics
+- imu_extrinsics
+observed_changed_components: []
+baseline_components: {}
+candidate_components: {}
+max_clock_offset_abs_s: 0.01
+max_rotation_holdout_rmse_rad: 0.05
+max_lever_arm_holdout_rmse_m_s2: 0.1
+max_bias_norm: 0.2
+min_known_bad_delta: 0.1
+min_observability_rank: 5.0
+protocol_id: camera-imu-synthetic-v01
+capture_id: capture-synthetic-v01
+lifecycle_artifacts: {}
+autoware_artifacts: {}
+provenance:
+  producer: calibrex
+  tool_name: calibrex.camera-imu-service
+  tool_version: 0.4.1
+  generated_at: '2026-08-24T10:03:04.562632+00:00'
+  git_commit: 75208f9
+  command:
+  - calibrex
+  - camera-imu-service
+  - plan
+  - examples\camera_imu_service\synthetic\plan.yaml
+  - --output
+  - examples\camera_imu_service\synthetic\plan.yaml
+  input_sha256:
+    evidence:protocol: 00d885d8fe5fabe7ba83a2ee0938e2a9fd77c4e25f2ad7f3536a2471840b856c
+    evidence:capture: ec4ee83f401b388a764db13d5b408d6fbdc88033930cc8ddd50412fe3fe7d1fc
+    evidence:holdout: 5049e2580d172a216a614a776d549a40de74153c76ad988530148d199fd398d8
+    evidence:known_bad: 682e7c5fbbfc435935baf0256ee4c5c0ffc8b0201a0d0c3fd0e6adc586bcaaa5
+    evidence:observability: 0a846666b5b369761caa92e88ba5ed0cf4ffd1cd83ecbf046cbee118de9ca9f2
+    candidate_replay: d9482a0c70b4d9f1089fe73a4ea85e51ece583b2fc5c2eda18b1ff393076b20b
+  artifact_sha256: 66d2ab2ea246a946321503e700947d0b6c12d0faec99004fa72b62cb75b16baf
+  artifact_digest_scope: canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at
+artifact_sha256: 66d2ab2ea246a946321503e700947d0b6c12d0faec99004fa72b62cb75b16baf
