@@ -1,0 +1,98 @@
+schema_version: slac.raw_replay_definition/v0.1
+replay_id: synthetic-raw-replay-1
+description: deterministic synthetic raw-capture replay plumbing fixture
+capture_manifest:
+  input_id: capture-manifest
+  role: capture_manifest
+  path: capture-manifest.yaml
+  sha256: 3cb0beedfe09b45d9d0226347e83157b8944b1d139090ecfb9bb6cb7a17780d7
+  schema_version: slac.capture_manifest/v0.1
+inputs: []
+config:
+  input_id: calibration-config
+  role: config
+  path: config.yaml
+  sha256: 0bf0c4b23266510a542548a2481078d0eeba35f80d8719eebcdc8fb1f606f7cd
+  schema_version: slac.config/v0.1
+baseline:
+  input_id: baseline-result
+  role: baseline
+  path: baseline_result.yaml
+  sha256: 14797c4e7fe8791d1dd4212c0f5767d03c7457d12280ff9bfe85ff474403f3e5
+  schema_version: slac.result/v0.1
+candidate:
+  input_id: candidate-result
+  role: candidate
+  path: candidate_result.yaml
+  sha256: acc10b3cdcbb514bd6ee8f7670a9753ab90fcb125bc35f2f9d09d469e452e2c5
+  schema_version: slac.result/v0.1
+holdout:
+  input_id: holdout-control
+  role: holdout
+  path: holdout.json
+  sha256: 6d5ef33e58c521d1a6a2afba2929ed9f99c5c8ef8f942ee9de4221a38b9d6a8f
+known_bad:
+  input_id: known-bad-control
+  role: known_bad
+  path: known-bad-result.yaml
+  sha256: 0066e2a6ec3a0124551f37f20a6b736bb3ae83a99c190d17e86b4ec8ca9eb5fc
+protocol:
+  protocol_id: synthetic-raw-replay/v1
+  protocol_version: v1
+  deterministic_seed: 7
+  split_seed: 11
+  holdout_ratio: 0.2
+  execution_mode: precomputed
+  provider: calibrex.synthetic_fixture
+  stages: [verify_inputs, readiness, execute_calibration, validate_result, evaluate, compare, lifecycle, autoware_plan]
+  stage_timeout_seconds:
+    execute_calibration: 30.0
+  require_independent_holdout: true
+  require_known_bad: true
+  require_observability: true
+  allow_autoware_plan: false
+  mutate_autoware: false
+budgets:
+  holdout_metric: holdout_rmse
+  holdout_field: value
+  max_holdout_value: 0.10
+  known_bad_metric: holdout_rmse
+  known_bad_field: value
+  min_known_bad_delta: 0.20
+  max_transform_translation_delta_m: 0.50
+  max_transform_rotation_delta_deg: 5.0
+  min_observability_rank: 6
+  require_candidate_quality_pass: true
+tool:
+  name: calibrex.synthetic-fixture
+  version: '0.1'
+  adapter_version: slac.raw-replay/v0.1
+  tool_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  license_spdx: Apache-2.0
+  command: [calibrex, fixture, raw-replay]
+environment:
+  environment_id: synthetic-fixture
+  platform: repository-fixture
+  python_version: '3.10+'
+  calibrex_version: 0.4.1
+  environment_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  network: none
+provenance:
+  tool_name: calibrex.raw-replay
+  tool_version: 0.4.1
+  command: [calibrex, fixture, raw-replay]
+  source_sha256:
+    capture-manifest: 3cb0beedfe09b45d9d0226347e83157b8944b1d139090ecfb9bb6cb7a17780d7
+    raw-capture: bf7f2ab7309e2a9944399509c229bd814cca6f3de5add94a62712af65bce1c99
+    holdout-control: 6d5ef33e58c521d1a6a2afba2929ed9f99c5c8ef8f942ee9de4221a38b9d6a8f
+    known-bad-control: 0066e2a6ec3a0124551f37f20a6b736bb3ae83a99c190d17e86b4ec8ca9eb5fc
+  config_sha256: 0bf0c4b23266510a542548a2481078d0eeba35f80d8719eebcdc8fb1f606f7cd
+  baseline_sha256: 14797c4e7fe8791d1dd4212c0f5767d03c7457d12280ff9bfe85ff474403f3e5
+  candidate_sha256: acc10b3cdcbb514bd6ee8f7670a9753ab90fcb125bc35f2f9d09d469e452e2c5
+  holdout_sha256: 6d5ef33e58c521d1a6a2afba2929ed9f99c5c8ef8f942ee9de4221a38b9d6a8f
+  known_bad_sha256: 0066e2a6ec3a0124551f37f20a6b736bb3ae83a99c190d17e86b4ec8ca9eb5fc
+  environment_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  tool_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  container_digest: null
+  artifact_sha256: 79fdcbad326511684c5cac135ada9f834504ea15d278f7b3e5d240c64ee5ff25
+artifact_sha256: 79fdcbad326511684c5cac135ada9f834504ea15d278f7b3e5d240c64ee5ff25

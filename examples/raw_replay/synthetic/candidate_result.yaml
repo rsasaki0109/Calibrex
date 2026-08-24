@@ -1,0 +1,60 @@
+schema_version: slac.result/v0.1
+run:
+  id: synthetic-replay-candidate
+  slac_version: 0.4.1
+  config_sha256: 0bf0c4b23266510a542548a2481078d0eeba35f80d8719eebcdc8fb1f606f7cd
+  dataset_sha256: bf7f2ab7309e2a9944399509c229bd814cca6f3de5add94a62712af65bce1c99
+  status: success
+  domain: robotics
+  provenance:
+    replay_protocol_id: synthetic-raw-replay/v1
+    replay_capture_manifest_sha256: 3cb0beedfe09b45d9d0226347e83157b8944b1d139090ecfb9bb6cb7a17780d7
+    replay_holdout_sha256: 6d5ef33e58c521d1a6a2afba2929ed9f99c5c8ef8f942ee9de4221a38b9d6a8f
+    replay_known_bad_sha256: 0066e2a6ec3a0124551f37f20a6b736bb3ae83a99c190d17e86b4ec8ca9eb5fc
+frame_graph:
+  root: base_link
+  convention: T_parent_child
+  frames:
+    base_link: null
+    lidar_front: base_link
+transforms:
+  lidar_front:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar_front
+    translation_m: [0.1, 0.0, 0.2]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: pass
+    provenance:
+      producer: slac_native
+      execution_mode: imported
+      evidence_level: synthetic_truth
+      source: synthetic raw replay fixture
+candidate_extrinsics: {}
+reference_extrinsics: {}
+time_offsets: {}
+metrics:
+  holdout_rmse:
+    value: 0.05
+    holdout: 0.05
+    grade: pass
+    unit: m
+  known_bad_score:
+    value: 0.40
+    grade: pass
+    unit: m
+observability:
+  rank: 6
+  condition_number: 2.0
+  grade: pass
+degeneracy:
+  grade: pass
+  reason: synthetic fixture has full declared observability
+quality:
+  grade: pass
+  blocking_failures: []
+  warnings: []
+  recommendation: [adopt only through explicit promotion gates]
+artifacts: {}
+export: {}

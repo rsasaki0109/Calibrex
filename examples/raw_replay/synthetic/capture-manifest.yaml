@@ -1,0 +1,40 @@
+schema_version: slac.capture_manifest/v0.1
+capture_id: synthetic-capture-1
+session_id: synthetic-session-1
+vehicle_id: vehicle-fixture
+sensor_kit_id: kit-fixture
+sources:
+  - source_id: raw-capture
+    path: raw-capture.bin
+    format: files
+    exists: true
+    sha256: bf7f2ab7309e2a9944399509c229bd814cca6f3de5add94a62712af65bce1c99
+    size_bytes: 42
+    storage_status: known
+    index_status: not_applicable
+    crc_status: not_applicable
+sensors:
+  - sensor_id: lidar-front
+    type: lidar
+    serial: LIDAR-BASE-001
+    model: synthetic-lidar
+    firmware: '1.0'
+    mount_id: mount-front
+    frame_id: lidar_front
+    identity_status: complete
+streams: []
+readiness_profile: strict
+checks:
+  - check_id: synthetic.fixture
+    status: pass
+    subject: synthetic fixture
+    reason: deterministic repository fixture
+status: ready
+summary: synthetic repository fixture; not physical sensor evidence
+provenance:
+  command: [calibrex, fixture, raw-replay]
+  tool_name: calibrex.fixture
+  tool_version: '0.1'
+  source_sha256:
+    raw-capture: bf7f2ab7309e2a9944399509c229bd814cca6f3de5add94a62712af65bce1c99
+artifact_sha256: d8e1c1b5c66a06440cf35f84f52ed00b72ab5af2303d6fd132c1449103cb3483

@@ -1,0 +1,399 @@
+{
+  "$defs": {
+    "ReplayDigestRef": {
+      "additionalProperties": false,
+      "description": "Portable digest reference to one replay input or generated artifact.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "ReplayDigestRef",
+      "type": "object"
+    },
+    "ReplayProvenance": {
+      "additionalProperties": false,
+      "description": "Complete provenance shared by every generated replay artifact.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "baseline_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Sha256"
+        },
+        "candidate_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "container_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Digest"
+        },
+        "environment_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Environment Sha256",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex.raw-replay",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tool Sha256",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_sha256",
+        "tool_sha256"
+      ],
+      "title": "ReplayProvenance",
+      "type": "object"
+    },
+    "RollbackSimulation": {
+      "additionalProperties": false,
+      "description": "Explicitly dry-run rollback evidence for a field replacement.",
+      "properties": {
+        "attempted": {
+          "default": false,
+          "title": "Attempted",
+          "type": "boolean"
+        },
+        "package_mutated": {
+          "default": false,
+          "title": "Package Mutated",
+          "type": "boolean"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "default": "NOT_RUN",
+          "enum": [
+            "PASS",
+            "WARN",
+            "BLOCKED",
+            "NOT_RUN"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target_event_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Event Sha256"
+        }
+      },
+      "title": "RollbackSimulation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Vehicle/sensor replacement evidence paired with a replay result.",
+  "properties": {
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "baseline_mount": {
+      "minLength": 1,
+      "title": "Baseline Mount",
+      "type": "string"
+    },
+    "baseline_serial": {
+      "minLength": 1,
+      "title": "Baseline Serial",
+      "type": "string"
+    },
+    "candidate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReplayDigestRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "decision": {
+      "enum": [
+        "ADOPT",
+        "HOLD",
+        "REJECT",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "edge_id": {
+      "minLength": 1,
+      "title": "Edge Id",
+      "type": "string"
+    },
+    "lifecycle_event_digests": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Lifecycle Event Digests",
+      "type": "array"
+    },
+    "operator_recommendations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Operator Recommendations",
+      "type": "array"
+    },
+    "package_mutated": {
+      "default": false,
+      "title": "Package Mutated",
+      "type": "boolean"
+    },
+    "pilot_id": {
+      "minLength": 1,
+      "title": "Pilot Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ReplayProvenance"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "registry_root": {
+      "minLength": 1,
+      "title": "Registry Root",
+      "type": "string"
+    },
+    "remount_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Remount Count",
+      "type": "integer"
+    },
+    "replacement_mount": {
+      "minLength": 1,
+      "title": "Replacement Mount",
+      "type": "string"
+    },
+    "replacement_serial": {
+      "minLength": 1,
+      "title": "Replacement Serial",
+      "type": "string"
+    },
+    "replay_id": {
+      "minLength": 1,
+      "title": "Replay Id",
+      "type": "string"
+    },
+    "rollback": {
+      "$ref": "#/$defs/RollbackSimulation"
+    },
+    "schema_version": {
+      "const": "slac.field_replacement_pilot/v0.1",
+      "default": "slac.field_replacement_pilot/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_id": {
+      "minLength": 1,
+      "title": "Sensor Id",
+      "type": "string"
+    },
+    "sensor_kit_id": {
+      "minLength": 1,
+      "title": "Sensor Kit Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "vehicle_id": {
+      "minLength": 1,
+      "title": "Vehicle Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "pilot_id",
+    "replay_id",
+    "registry_root",
+    "vehicle_id",
+    "sensor_kit_id",
+    "edge_id",
+    "sensor_id",
+    "baseline_serial",
+    "replacement_serial",
+    "baseline_mount",
+    "replacement_mount",
+    "status",
+    "decision",
+    "reason",
+    "rollback",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "FieldReplacementPilot",
+  "type": "object"
+}

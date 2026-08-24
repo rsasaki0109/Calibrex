@@ -189,6 +189,19 @@ from calibrex.core.probabilistic_correspondence import (
     probabilistic_refinement_result_json_schema,
 )
 from calibrex.core.provenance import sha256_path
+from calibrex.core.raw_replay import (
+    compare_raw_replays,
+    field_replacement_pilot_json_schema,
+    plan_raw_replay,
+    replay_comparison_json_schema,
+    replay_definition_json_schema,
+    replay_plan_json_schema,
+    replay_result_json_schema,
+    replay_stage_json_schema,
+    run_field_replacement_pilot,
+    run_raw_replay,
+    verify_raw_replay,
+)
 from calibrex.core.report_artifacts import (
     report_artifact_json_schema,
     report_artifact_schema_kinds,
@@ -637,6 +650,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "autoware-export",
             "autoware-promotion",
             "autoware-smoke",
+            "raw-replay-definition",
+            "raw-replay-plan",
+            "raw-replay-stage",
+            "raw-replay-result",
+            "raw-replay-comparison",
+            "field-replacement-pilot",
             *report_artifact_schema_kinds(),
             "all",
         ],
@@ -705,6 +724,49 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     calibration_ci.add_argument("--json", action="store_true")
     calibration_ci.set_defaults(func=_cmd_calibration_ci)
+
+    replay = subcommands.add_parser(
+        "replay",
+        help="digest-bound raw-capture calibration replay and field-replacement pilot",
+    )
+    replay_subcommands = replay.add_subparsers(dest="replay_command", required=True)
+    replay_plan = replay_subcommands.add_parser(
+        "plan", help="verify inputs and write a read-only replay plan"
+    )
+    replay_plan.add_argument("definition", type=Path)
+    replay_plan.add_argument("--output", type=Path, required=True)
+    replay_plan.add_argument("--json", action="store_true")
+    replay_plan.set_defaults(func=_cmd_replay_plan)
+    replay_run = replay_subcommands.add_parser("run", help="execute or import a replay candidate")
+    replay_run.add_argument("definition", type=Path)
+    replay_run.add_argument("--output-dir", type=Path, required=True)
+    replay_run.add_argument(
+        "--field-replacement",
+        action="store_true",
+        help="also record vehicle/sensor lifecycle pilot",
+    )
+    replay_run.add_argument("--json", action="store_true")
+    replay_run.set_defaults(func=_cmd_replay_run)
+    replay_verify = replay_subcommands.add_parser(
+        "verify", help="verify a replay result and every stage digest"
+    )
+    replay_verify.add_argument("result", type=Path)
+    replay_verify.add_argument("--definition", type=Path)
+    replay_verify.add_argument("--json", action="store_true")
+    replay_verify.set_defaults(func=_cmd_replay_verify)
+    replay_compare = replay_subcommands.add_parser("compare", help="compare two replay results")
+    replay_compare.add_argument("left", type=Path)
+    replay_compare.add_argument("right", type=Path)
+    replay_compare.add_argument("--output", type=Path, required=True)
+    replay_compare.add_argument("--json", action="store_true")
+    replay_compare.set_defaults(func=_cmd_replay_compare)
+    replay_pilot = replay_subcommands.add_parser(
+        "field-replacement", help="run a sensor replacement lifecycle pilot"
+    )
+    replay_pilot.add_argument("definition", type=Path)
+    replay_pilot.add_argument("--output-dir", type=Path, required=True)
+    replay_pilot.add_argument("--json", action="store_true")
+    replay_pilot.set_defaults(func=_cmd_replay_field_replacement)
 
     verify = subcommands.add_parser(
         "verify",
@@ -2695,6 +2757,12 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "autoware-export": autoware_export_json_schema,
         "autoware-promotion": autoware_promotion_json_schema,
         "autoware-smoke": autoware_smoke_json_schema,
+        "raw-replay-definition": replay_definition_json_schema,
+        "raw-replay-plan": replay_plan_json_schema,
+        "raw-replay-stage": replay_stage_json_schema,
+        "raw-replay-result": replay_result_json_schema,
+        "raw-replay-comparison": replay_comparison_json_schema,
+        "field-replacement-pilot": field_replacement_pilot_json_schema,
         "trajectory": trajectory_json_schema,
     }
     for kind in report_artifact_schema_kinds():
@@ -2789,6 +2857,87 @@ def _cmd_calibration_ci(args: argparse.Namespace) -> int:
     payload["ci_artifact"] = str(args.output_dir / "calibration-ci.json")
     _emit(payload, args.json)
     return 1 if args.enforce and artifact.status != "pass" else 0
+
+
+def _cmd_replay_plan(args: argparse.Namespace) -> int:
+    plan = plan_raw_replay(
+        args.definition,
+        output=args.output,
+        command=["calibrex", "replay", "plan", str(args.definition), "--output", str(args.output)],
+    )
+    _emit({**plan.model_dump(mode="json", exclude_none=False), "plan": str(args.output)}, args.json)
+    return 0 if plan.status == "PASS" else 1
+
+
+def _cmd_replay_run(args: argparse.Namespace) -> int:
+    result = run_raw_replay(
+        args.definition,
+        output_directory=args.output_dir,
+        command=[
+            "calibrex",
+            "replay",
+            "run",
+            str(args.definition),
+            "--output-dir",
+            str(args.output_dir),
+        ],
+    )
+    payload: dict[str, Any] = {
+        **result.model_dump(mode="json", exclude_none=False),
+        "replay_result": str(args.output_dir / "replay-result.json"),
+    }
+    if args.field_replacement:
+        pilot = run_field_replacement_pilot(
+            args.definition,
+            output_directory=args.output_dir,
+            command=["calibrex", "replay", "field-replacement", str(args.definition)],
+        )
+        payload["field_replacement_pilot"] = pilot.model_dump(mode="json", exclude_none=False)
+    _emit(payload, args.json)
+    return 0 if result.status == "PASS" else 1
+
+
+def _cmd_replay_verify(args: argparse.Namespace) -> int:
+    result = verify_raw_replay(args.result, definition=args.definition)
+    _emit(
+        {
+            "valid": True,
+            "replay_id": result.replay_id,
+            "status": result.status,
+            "decision": result.decision,
+            "artifact_sha256": result.artifact_sha256,
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_replay_compare(args: argparse.Namespace) -> int:
+    comparison = compare_raw_replays(args.left, args.right, output=args.output)
+    _emit(
+        {
+            **comparison.model_dump(mode="json", exclude_none=False),
+            "comparison": str(args.output),
+        },
+        args.json,
+    )
+    return 0 if comparison.status == "PASS" else 1
+
+
+def _cmd_replay_field_replacement(args: argparse.Namespace) -> int:
+    pilot = run_field_replacement_pilot(
+        args.definition,
+        output_directory=args.output_dir,
+        command=["calibrex", "replay", "field-replacement", str(args.definition)],
+    )
+    _emit(
+        {
+            **pilot.model_dump(mode="json", exclude_none=False),
+            "pilot": str(args.output_dir / "field-replacement-pilot.json"),
+        },
+        args.json,
+    )
+    return 0 if pilot.status == "PASS" else 1
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:

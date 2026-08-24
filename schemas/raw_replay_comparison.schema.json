@@ -1,0 +1,279 @@
+{
+  "$defs": {
+    "ReplayDigestRef": {
+      "additionalProperties": false,
+      "description": "Portable digest reference to one replay input or generated artifact.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "ReplayDigestRef",
+      "type": "object"
+    },
+    "ReplayProvenance": {
+      "additionalProperties": false,
+      "description": "Complete provenance shared by every generated replay artifact.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "baseline_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Sha256"
+        },
+        "candidate_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "container_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Digest"
+        },
+        "environment_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Environment Sha256",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex.raw-replay",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tool Sha256",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_sha256",
+        "tool_sha256"
+      ],
+      "title": "ReplayProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest-bound comparison between two top-level replay results.",
+  "properties": {
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "BETTER",
+        "WORSE",
+        "TIE",
+        "NOT_COMPARABLE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "left": {
+      "$ref": "#/$defs/ReplayDigestRef"
+    },
+    "metric_deltas": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Metric Deltas",
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ReplayProvenance"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "right": {
+      "$ref": "#/$defs/ReplayDigestRef"
+    },
+    "schema_version": {
+      "const": "slac.raw_replay_comparison/v0.1",
+      "default": "slac.raw_replay_comparison/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "transform_deltas": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "title": "Transform Deltas",
+      "type": "object"
+    }
+  },
+  "required": [
+    "left",
+    "right",
+    "status",
+    "decision",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "ReplayComparison",
+  "type": "object"
+}

@@ -29,6 +29,16 @@ jobs:
           test -s /tmp/koide-pilot.schema.json
           calibrex schema koide-runner --output /tmp/koide-runner.schema.json
           test -s /tmp/koide-runner.schema.json
+      - name: Synthetic raw replay smoke
+        run: |
+          calibrex validate examples/raw_replay/synthetic/synthetic-definition.yaml \
+            --kind raw-replay-definition --json
+          calibrex replay plan examples/raw_replay/synthetic/synthetic-definition.yaml \
+            --output /tmp/raw-replay-plan.json --json
+          calibrex replay run examples/raw_replay/synthetic/synthetic-definition.yaml \
+            --output-dir /tmp/raw-replay-run --json
+          calibrex replay verify /tmp/raw-replay-run/replay-result.json \
+            --definition examples/raw_replay/synthetic/synthetic-definition.yaml --json
       - name: Local release smoke
         run: |
           python tools/local_release_smoke.py \

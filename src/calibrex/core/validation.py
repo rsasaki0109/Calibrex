@@ -210,6 +210,20 @@ from calibrex.core.probabilistic_correspondence import (
     ProbabilisticPnpResultArtifact,
     ProbabilisticRefinementResultArtifact,
 )
+from calibrex.core.raw_replay import (
+    FIELD_REPLACEMENT_PILOT_SCHEMA_VERSION,
+    RAW_REPLAY_COMPARISON_SCHEMA_VERSION,
+    RAW_REPLAY_DEFINITION_SCHEMA_VERSION,
+    RAW_REPLAY_PLAN_SCHEMA_VERSION,
+    RAW_REPLAY_RESULT_SCHEMA_VERSION,
+    RAW_REPLAY_STAGE_SCHEMA_VERSION,
+    FieldReplacementPilot,
+    ReplayComparison,
+    ReplayDefinition,
+    ReplayPlan,
+    ReplayResult,
+    ReplayStageArtifact,
+)
 from calibrex.core.report_artifacts import (
     REPORT_DEGENERACY_SCHEMA_VERSION,
     REPORT_EVIDENCE_SCHEMA_VERSION,
@@ -394,6 +408,12 @@ ValidationKind = Literal[
     "autoware-export",
     "autoware-promotion",
     "autoware-smoke",
+    "raw-replay-definition",
+    "raw-replay-plan",
+    "raw-replay-stage",
+    "raw-replay-result",
+    "raw-replay-comparison",
+    "field-replacement-pilot",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -497,6 +517,12 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "autoware-export": AutowareExportArtifact,
     "autoware-promotion": AutowarePromotionArtifact,
     "autoware-smoke": AutowareSmokeArtifact,
+    "raw-replay-definition": ReplayDefinition,
+    "raw-replay-plan": ReplayPlan,
+    "raw-replay-stage": ReplayStageArtifact,
+    "raw-replay-result": ReplayResult,
+    "raw-replay-comparison": ReplayComparison,
+    "field-replacement-pilot": FieldReplacementPilot,
 }
 
 _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
@@ -634,6 +660,12 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     AUTOWARE_EXPORT_SCHEMA_VERSION: "autoware-export",
     AUTOWARE_PROMOTION_SCHEMA_VERSION: "autoware-promotion",
     AUTOWARE_SMOKE_SCHEMA_VERSION: "autoware-smoke",
+    RAW_REPLAY_DEFINITION_SCHEMA_VERSION: "raw-replay-definition",
+    RAW_REPLAY_PLAN_SCHEMA_VERSION: "raw-replay-plan",
+    RAW_REPLAY_STAGE_SCHEMA_VERSION: "raw-replay-stage",
+    RAW_REPLAY_RESULT_SCHEMA_VERSION: "raw-replay-result",
+    RAW_REPLAY_COMPARISON_SCHEMA_VERSION: "raw-replay-comparison",
+    FIELD_REPLACEMENT_PILOT_SCHEMA_VERSION: "field-replacement-pilot",
 }
 
 
@@ -672,7 +704,19 @@ def validate_file(
     detected_kind = _detect_kind(payload) if kind == "auto" else kind
     model = _model_for_kind(detected_kind)
     validated = model.model_validate(payload)
-    if isinstance(validated, (KoidePilotArtifact, KoideReadinessArtifact)):
+    if isinstance(
+        validated,
+        (
+            KoidePilotArtifact,
+            KoideReadinessArtifact,
+            ReplayDefinition,
+            ReplayPlan,
+            ReplayStageArtifact,
+            ReplayResult,
+            ReplayComparison,
+            FieldReplacementPilot,
+        ),
+    ):
         validated.verify_artifact_digest()
     elif isinstance(validated, KoideExecutionLock):
         validated.verify_lock_digest()

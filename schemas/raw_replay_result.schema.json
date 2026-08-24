@@ -1,0 +1,563 @@
+{
+  "$defs": {
+    "ReplayDigestRef": {
+      "additionalProperties": false,
+      "description": "Portable digest reference to one replay input or generated artifact.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "ReplayDigestRef",
+      "type": "object"
+    },
+    "ReplayGate": {
+      "additionalProperties": false,
+      "description": "One explicit decision gate with observed value and rationale.",
+      "properties": {
+        "expected": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected"
+        },
+        "gate_id": {
+          "minLength": 1,
+          "title": "Gate Id",
+          "type": "string"
+        },
+        "observed": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gate_id",
+        "status",
+        "reason"
+      ],
+      "title": "ReplayGate",
+      "type": "object"
+    },
+    "ReplayProvenance": {
+      "additionalProperties": false,
+      "description": "Complete provenance shared by every generated replay artifact.",
+      "properties": {
+        "artifact_digest_scope": {
+          "default": "canonical artifact excluding artifact_sha256 and provenance.artifact_sha256/generated_at",
+          "title": "Artifact Digest Scope",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "baseline_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Sha256"
+        },
+        "candidate_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "container_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Digest"
+        },
+        "environment_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Environment Sha256",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex.raw-replay",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tool Sha256",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_sha256",
+        "tool_sha256"
+      ],
+      "title": "ReplayProvenance",
+      "type": "object"
+    },
+    "ReplayProvenanceSummary": {
+      "additionalProperties": false,
+      "description": "Digest references carried by the final replay result.",
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "container": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "items": {
+            "$ref": "#/$defs/ReplayDigestRef"
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ReplayProvenanceSummary",
+      "type": "object"
+    },
+    "ReplayStageResult": {
+      "additionalProperties": false,
+      "description": "Timing and digest reference for one stage in the top-level result.",
+      "properties": {
+        "actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayDigestRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration_seconds": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "stage_id": {
+          "minLength": 1,
+          "title": "Stage Id",
+          "type": "string"
+        },
+        "stage_kind": {
+          "enum": [
+            "verify_inputs",
+            "readiness",
+            "execute_calibration",
+            "validate_result",
+            "evaluate",
+            "compare",
+            "lifecycle",
+            "autoware_plan",
+            "rollback_simulation"
+          ],
+          "title": "Stage Kind",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        }
+      },
+      "required": [
+        "stage_id",
+        "stage_kind",
+        "status"
+      ],
+      "title": "ReplayStageResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Top-level replay artifact: all stages, gates, actions, and advice.",
+  "properties": {
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "artifacts": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ReplayDigestRef"
+      },
+      "title": "Artifacts",
+      "type": "object"
+    },
+    "decision": {
+      "enum": [
+        "ADOPT",
+        "HOLD",
+        "REJECT",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "definition_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Definition Sha256",
+      "type": "string"
+    },
+    "gates": {
+      "items": {
+        "$ref": "#/$defs/ReplayGate"
+      },
+      "title": "Gates",
+      "type": "array"
+    },
+    "generated_provenance": {
+      "$ref": "#/$defs/ReplayProvenance"
+    },
+    "lifecycle_actions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Lifecycle Actions",
+      "type": "array"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "operator_recommendations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Operator Recommendations",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ReplayProvenanceSummary"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "replay_id": {
+      "minLength": 1,
+      "title": "Replay Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.raw_replay_result/v0.1",
+      "default": "slac.raw_replay_result/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/ReplayStageResult"
+      },
+      "minItems": 1,
+      "title": "Stages",
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "transform_deltas": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "title": "Transform Deltas",
+      "type": "object"
+    }
+  },
+  "required": [
+    "replay_id",
+    "definition_sha256",
+    "status",
+    "decision",
+    "reason",
+    "stages",
+    "provenance",
+    "generated_provenance",
+    "artifact_sha256"
+  ],
+  "title": "ReplayResult",
+  "type": "object"
+}

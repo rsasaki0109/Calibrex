@@ -1,0 +1,57 @@
+schema_version: slac.result/v0.1
+run:
+  id: synthetic-replay-baseline
+  slac_version: 0.4.1
+  config_sha256: 0bf0c4b23266510a542548a2481078d0eeba35f80d8719eebcdc8fb1f606f7cd
+  dataset_sha256: bf7f2ab7309e2a9944399509c229bd814cca6f3de5add94a62712af65bce1c99
+  status: success
+  domain: robotics
+  provenance:
+    replay_protocol_id: synthetic-raw-replay/v1
+frame_graph:
+  root: base_link
+  convention: T_parent_child
+  frames:
+    base_link: null
+    lidar_front: base_link
+transforms:
+  lidar_front:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar_front
+    translation_m: [0.1, 0.0, 0.2]
+    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]
+    quality:
+      grade: pass
+    provenance:
+      producer: slac_native
+      execution_mode: imported
+      evidence_level: synthetic_truth
+      source: synthetic raw replay fixture
+candidate_extrinsics: {}
+reference_extrinsics: {}
+time_offsets: {}
+metrics:
+  holdout_rmse:
+    value: 0.05
+    holdout: 0.05
+    grade: pass
+    unit: m
+  known_bad_score:
+    value: 0.40
+    grade: pass
+    unit: m
+observability:
+  rank: 6
+  condition_number: 2.0
+  grade: pass
+degeneracy:
+  grade: pass
+  reason: synthetic fixture has full declared observability
+quality:
+  grade: pass
+  blocking_failures: []
+  warnings: []
+  recommendation: [baseline only; candidate adoption still requires gates]
+artifacts: {}
+export: {}
