@@ -1,0 +1,1065 @@
+{
+  "$defs": {
+    "KoideExecutionRequest": {
+      "additionalProperties": false,
+      "description": "Pinned container, source, and multistage execution contract.",
+      "properties": {
+        "base_image": {
+          "default": "koide3/gtsam_docker:humble",
+          "title": "Base Image",
+          "type": "string"
+        },
+        "base_image_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Image Digest"
+        },
+        "base_image_digest_required_for_rebuild": {
+          "const": true,
+          "default": true,
+          "title": "Base Image Digest Required For Rebuild",
+          "type": "boolean"
+        },
+        "command_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command Sha256"
+        },
+        "engine": {
+          "default": "docker",
+          "enum": [
+            "docker",
+            "podman"
+          ],
+          "title": "Engine",
+          "type": "string"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        },
+        "environment_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment Sha256"
+        },
+        "expected_native_output_relative_path": {
+          "default": "calib.json",
+          "title": "Expected Native Output Relative Path",
+          "type": "string"
+        },
+        "expected_native_output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Native Output Sha256"
+        },
+        "expected_native_output_size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Native Output Size Bytes"
+        },
+        "host_requirements": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Host Requirements",
+          "type": "array"
+        },
+        "image_digest": {
+          "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
+          "title": "Image Digest",
+          "type": "string"
+        },
+        "initial_guess_mode": {
+          "const": "manual",
+          "default": "manual",
+          "title": "Initial Guess Mode",
+          "type": "string"
+        },
+        "input_mount_readonly": {
+          "const": true,
+          "default": true,
+          "title": "Input Mount Readonly",
+          "type": "boolean"
+        },
+        "input_representation": {
+          "const": "ros2_bag",
+          "default": "ros2_bag",
+          "title": "Input Representation",
+          "type": "string"
+        },
+        "lock_path": {
+          "default": "koide_execution_lock.yaml",
+          "title": "Lock Path",
+          "type": "string"
+        },
+        "lock_schema_version": {
+          "const": "slac.koide_execution_lock/v0.1",
+          "default": "slac.koide_execution_lock/v0.1",
+          "title": "Lock Schema Version",
+          "type": "string"
+        },
+        "lock_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Lock Sha256",
+          "type": "string"
+        },
+        "network_mode": {
+          "const": "none",
+          "default": "none",
+          "title": "Network Mode",
+          "type": "string"
+        },
+        "output_mount_writable": {
+          "const": true,
+          "default": true,
+          "title": "Output Mount Writable",
+          "type": "boolean"
+        },
+        "rootfs_readonly": {
+          "const": true,
+          "default": true,
+          "title": "Rootfs Readonly",
+          "type": "boolean"
+        },
+        "source_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_license_spdx": {
+          "const": "MIT",
+          "default": "MIT",
+          "title": "Source License Spdx",
+          "type": "string"
+        },
+        "source_repository": {
+          "default": "https://github.com/koide3/direct_visual_lidar_calibration",
+          "title": "Source Repository",
+          "type": "string"
+        },
+        "stages": {
+          "items": {
+            "$ref": "#/$defs/KoideExecutionStageRequest"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Stages",
+          "type": "array"
+        },
+        "superglue_policy": {
+          "const": "excluded",
+          "default": "excluded",
+          "title": "Superglue Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lock_sha256",
+        "source_commit",
+        "image_digest",
+        "stages"
+      ],
+      "title": "KoideExecutionRequest",
+      "type": "object"
+    },
+    "KoideExecutionStageRequest": {
+      "additionalProperties": false,
+      "description": "Argv-only command copied from the pinned upstream workflow.",
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        },
+        "name": {
+          "enum": [
+            "preprocess",
+            "initial_guess",
+            "calibrate"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "official_documentation_url": {
+          "title": "Official Documentation Url",
+          "type": "string"
+        },
+        "requires_manual_gui": {
+          "default": false,
+          "title": "Requires Manual Gui",
+          "type": "boolean"
+        },
+        "working_directory": {
+          "default": "/tmp",
+          "title": "Working Directory",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "argv",
+        "official_documentation_url"
+      ],
+      "title": "KoideExecutionStageRequest",
+      "type": "object"
+    },
+    "KoideKnownBadInjection": {
+      "additionalProperties": false,
+      "description": "One signed perturbation that must be detected independently.",
+      "properties": {
+        "amount": {
+          "exclusiveMinimum": 0.0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "control_id": {
+          "title": "Control Id",
+          "type": "string"
+        },
+        "dof": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Dof",
+          "type": "string"
+        },
+        "injection": {
+          "const": "compose_after_candidate_no_refit",
+          "default": "compose_after_candidate_no_refit",
+          "title": "Injection",
+          "type": "string"
+        },
+        "refit_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Refit Allowed",
+          "type": "boolean"
+        },
+        "required_metric_delta": {
+          "default": 0.01,
+          "exclusiveMinimum": 0.0,
+          "title": "Required Metric Delta",
+          "type": "number"
+        },
+        "sign": {
+          "enum": [
+            "+",
+            "-"
+          ],
+          "title": "Sign",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "control_id",
+        "dof",
+        "sign",
+        "amount",
+        "unit"
+      ],
+      "title": "KoideKnownBadInjection",
+      "type": "object"
+    },
+    "KoideNativeOutputContract": {
+      "additionalProperties": false,
+      "description": "Expected native output and explicit frame convention.",
+      "properties": {
+        "camera_frame": {
+          "minLength": 1,
+          "title": "Camera Frame",
+          "type": "string"
+        },
+        "convention": {
+          "default": "T_lidar_camera maps camera-frame points into the LiDAR frame: p_lidar = R_lidar_camera p_camera + t_lidar_camera",
+          "title": "Convention",
+          "type": "string"
+        },
+        "digest_status": {
+          "default": "not_yet_observed",
+          "enum": [
+            "not_yet_observed",
+            "observed"
+          ],
+          "title": "Digest Status",
+          "type": "string"
+        },
+        "expected_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Sha256"
+        },
+        "expected_size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Size Bytes"
+        },
+        "lidar_frame": {
+          "minLength": 1,
+          "title": "Lidar Frame",
+          "type": "string"
+        },
+        "native_format": {
+          "const": "direct_visual_lidar_calibration.calib.json",
+          "default": "direct_visual_lidar_calibration.calib.json",
+          "title": "Native Format",
+          "type": "string"
+        },
+        "native_transform": {
+          "const": "results.T_lidar_camera",
+          "default": "results.T_lidar_camera",
+          "title": "Native Transform",
+          "type": "string"
+        },
+        "relative_path": {
+          "default": "calib.json",
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "vector_order": {
+          "const": "x,y,z,qx,qy,qz,qw",
+          "default": "x,y,z,qx,qy,qz,qw",
+          "title": "Vector Order",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lidar_frame",
+        "camera_frame"
+      ],
+      "title": "KoideNativeOutputContract",
+      "type": "object"
+    },
+    "KoidePilotThresholds": {
+      "additionalProperties": false,
+      "description": "Frozen evaluation and adoption gates.\n\nThe defaults are intentionally conservative for a small pilot.  A\npublished run should serialize this object and never rely on defaults at\nreview time.",
+      "properties": {
+        "holdout_ratio": {
+          "default": 0.2,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Holdout Ratio",
+          "type": "number"
+        },
+        "known_bad_min_metric_delta": {
+          "default": 0.01,
+          "exclusiveMinimum": 0.0,
+          "title": "Known Bad Min Metric Delta",
+          "type": "number"
+        },
+        "known_bad_rotation_deg": {
+          "default": 5.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Known Bad Rotation Deg",
+          "type": "number"
+        },
+        "known_bad_translation_m": {
+          "default": 0.25,
+          "exclusiveMinimum": 0.0,
+          "title": "Known Bad Translation M",
+          "type": "number"
+        },
+        "max_candidate_reference_rotation_deg": {
+          "default": 2.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Candidate Reference Rotation Deg",
+          "type": "number"
+        },
+        "max_candidate_reference_translation_m": {
+          "default": 0.1,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Candidate Reference Translation M",
+          "type": "number"
+        },
+        "max_frames": {
+          "default": 50,
+          "minimum": 2,
+          "title": "Max Frames",
+          "type": "integer"
+        },
+        "max_points": {
+          "default": 4000,
+          "minimum": 1,
+          "title": "Max Points",
+          "type": "integer"
+        },
+        "min_holdout_depth_edge_alignment": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Holdout Depth Edge Alignment",
+          "type": "number"
+        },
+        "min_holdout_edge_alignment": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Holdout Edge Alignment",
+          "type": "number"
+        },
+        "min_holdout_frames": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Min Holdout Frames",
+          "type": "integer"
+        },
+        "min_holdout_projection_ratio": {
+          "default": 0.5,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Holdout Projection Ratio",
+          "type": "number"
+        },
+        "min_known_bad_detectable_fraction": {
+          "default": 0.8,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Known Bad Detectable Fraction",
+          "type": "number"
+        },
+        "require_candidate_reference_comparison": {
+          "default": true,
+          "title": "Require Candidate Reference Comparison",
+          "type": "boolean"
+        },
+        "require_readiness_ready": {
+          "default": true,
+          "title": "Require Readiness Ready",
+          "type": "boolean"
+        },
+        "require_training_isolation": {
+          "default": true,
+          "title": "Require Training Isolation",
+          "type": "boolean"
+        },
+        "split_seed": {
+          "default": 20260823,
+          "title": "Split Seed",
+          "type": "integer"
+        }
+      },
+      "title": "KoidePilotThresholds",
+      "type": "object"
+    },
+    "KoideRealAcceptancePolicy": {
+      "additionalProperties": false,
+      "description": "Frozen criteria delegated to the existing independent pilot evaluator.",
+      "properties": {
+        "require_all_signed_known_bad_controls": {
+          "const": true,
+          "default": true,
+          "title": "Require All Signed Known Bad Controls",
+          "type": "boolean"
+        },
+        "require_autoware_export_only_after_pass_adopt": {
+          "const": true,
+          "default": true,
+          "title": "Require Autoware Export Only After Pass Adopt",
+          "type": "boolean"
+        },
+        "require_digest_bound_native_output": {
+          "const": true,
+          "default": true,
+          "title": "Require Digest Bound Native Output",
+          "type": "boolean"
+        },
+        "require_independent_holdout": {
+          "const": true,
+          "default": true,
+          "title": "Require Independent Holdout",
+          "type": "boolean"
+        },
+        "require_readiness_ready": {
+          "const": true,
+          "default": true,
+          "title": "Require Readiness Ready",
+          "type": "boolean"
+        },
+        "require_successful_external_run": {
+          "const": true,
+          "default": true,
+          "title": "Require Successful External Run",
+          "type": "boolean"
+        },
+        "require_training_isolation": {
+          "const": true,
+          "default": true,
+          "title": "Require Training Isolation",
+          "type": "boolean"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/KoidePilotThresholds"
+        }
+      },
+      "title": "KoideRealAcceptancePolicy",
+      "type": "object"
+    },
+    "KoideRealArtifactRef": {
+      "additionalProperties": false,
+      "description": "Optional digest reference supplied by the external runner.",
+      "properties": {
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "role": {
+          "enum": [
+            "dataset_archive",
+            "dataset_sequence",
+            "input_manifest",
+            "config",
+            "readiness",
+            "native_calib_json",
+            "external_run",
+            "pilot",
+            "execution_log",
+            "environment",
+            "execution_evidence"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        },
+        "status": {
+          "default": "missing",
+          "enum": [
+            "missing",
+            "supplied",
+            "verified"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "title": "KoideRealArtifactRef",
+      "type": "object"
+    },
+    "KoideRealDatasetPin": {
+      "additionalProperties": false,
+      "description": "Official real-data request; raw data are never redistributed here.",
+      "properties": {
+        "archive_metadata_note": {
+          "default": "The official KITTI raw-data record requires login and does not publish a per-archive byte size or SHA-256 checksum. Do not copy size/checksum values from an unauthorised mirror into an official claim.",
+          "title": "Archive Metadata Note",
+          "type": "string"
+        },
+        "archive_metadata_status": {
+          "default": "not_published_by_official_record",
+          "enum": [
+            "not_published_by_official_record",
+            "operator_observed",
+            "official_record"
+          ],
+          "title": "Archive Metadata Status",
+          "type": "string"
+        },
+        "archive_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Archive Sha256"
+        },
+        "archive_size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Archive Size Bytes"
+        },
+        "checksum_status": {
+          "default": "not_yet_observed",
+          "enum": [
+            "not_yet_observed",
+            "observed"
+          ],
+          "title": "Checksum Status",
+          "type": "string"
+        },
+        "dataset_id": {
+          "default": "kitti_raw_2011_09_26_drive_0005",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "download_requires_registration": {
+          "const": true,
+          "default": true,
+          "title": "Download Requires Registration",
+          "type": "boolean"
+        },
+        "license_name": {
+          "const": "CC BY-NC-SA 3.0",
+          "default": "CC BY-NC-SA 3.0",
+          "title": "License Name",
+          "type": "string"
+        },
+        "license_statement": {
+          "default": "Official KITTI page states Creative Commons Attribution-NonCommercial-ShareAlike 3.0 and academic-use restrictions; operator must review the current terms before download or publication",
+          "title": "License Statement",
+          "type": "string"
+        },
+        "license_url": {
+          "default": "https://www.cvlibs.net/datasets/kitti/",
+          "title": "License Url",
+          "type": "string"
+        },
+        "local_sequence_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Sequence Path"
+        },
+        "official_record_url": {
+          "default": "https://www.cvlibs.net/datasets/kitti/raw_data.php",
+          "title": "Official Record Url",
+          "type": "string"
+        },
+        "required_streams": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Required Streams",
+          "type": "array"
+        },
+        "sequence_id": {
+          "default": "2011_09_26_drive_0005_sync",
+          "title": "Sequence Id",
+          "type": "string"
+        },
+        "source_archive_name": {
+          "default": "2011_09_26_drive_0005_sync.zip",
+          "title": "Source Archive Name",
+          "type": "string"
+        },
+        "source_archive_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Archive Url"
+        }
+      },
+      "title": "KoideRealDatasetPin",
+      "type": "object"
+    },
+    "KoideRealPilotProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for the request or verifier artifact.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "calibrex_version": {
+          "default": "0.4.1",
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "request_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Sha256"
+        }
+      },
+      "title": "KoideRealPilotProvenance",
+      "type": "object"
+    },
+    "KoideSplitManifest": {
+      "additionalProperties": false,
+      "description": "Predeclared frame-disjoint fitting and holdout split.",
+      "properties": {
+        "candidate_frozen_before_holdout": {
+          "const": true,
+          "default": true,
+          "title": "Candidate Frozen Before Holdout",
+          "type": "boolean"
+        },
+        "fitting_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fitting Frame Ids",
+          "type": "array"
+        },
+        "fitting_frame_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fitting Frame Ids Sha256"
+        },
+        "frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frame Ids",
+          "type": "array"
+        },
+        "frame_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Ids Sha256"
+        },
+        "holdout_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Holdout Frame Ids",
+          "type": "array"
+        },
+        "holdout_frame_ids_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Frame Ids Sha256"
+        },
+        "holdout_independent": {
+          "const": true,
+          "default": true,
+          "title": "Holdout Independent",
+          "type": "boolean"
+        },
+        "policy": {
+          "default": "fixed timestamp-order selection from KITTI raw 0005; candidate is frozen before scoring; holdout is never supplied to Koide fitting",
+          "title": "Policy",
+          "type": "string"
+        },
+        "split_id": {
+          "default": "kitti_raw_0005_frame_disjoint_v0_1",
+          "title": "Split Id",
+          "type": "string"
+        }
+      },
+      "title": "KoideSplitManifest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Machine-readable external request; never an official result claim.",
+  "properties": {
+    "acceptance": {
+      "$ref": "#/$defs/KoideRealAcceptancePolicy"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/KoideRealArtifactRef"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "dataset": {
+      "$ref": "#/$defs/KoideRealDatasetPin"
+    },
+    "evidence_boundary": {
+      "const": "external_execution_request_only",
+      "default": "external_execution_request_only",
+      "title": "Evidence Boundary",
+      "type": "string"
+    },
+    "execution": {
+      "$ref": "#/$defs/KoideExecutionRequest"
+    },
+    "external_commands": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "minItems": 3,
+      "title": "External Commands",
+      "type": "array"
+    },
+    "known_bad_controls": {
+      "items": {
+        "$ref": "#/$defs/KoideKnownBadInjection"
+      },
+      "maxItems": 12,
+      "minItems": 12,
+      "title": "Known Bad Controls",
+      "type": "array"
+    },
+    "official_result_claim": {
+      "const": false,
+      "default": false,
+      "title": "Official Result Claim",
+      "type": "boolean"
+    },
+    "operator_checklist": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Operator Checklist",
+      "type": "array"
+    },
+    "output_contract": {
+      "$ref": "#/$defs/KoideNativeOutputContract"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KoideRealPilotProvenance"
+    },
+    "real_data_observed": {
+      "const": false,
+      "default": false,
+      "title": "Real Data Observed",
+      "type": "boolean"
+    },
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.koide_real_pilot_request/v0.1",
+      "default": "slac.koide_real_pilot_request/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split": {
+      "$ref": "#/$defs/KoideSplitManifest"
+    },
+    "status": {
+      "const": "BLOCKED",
+      "default": "BLOCKED",
+      "title": "Status",
+      "type": "string"
+    },
+    "synthetic_data_included": {
+      "const": false,
+      "default": false,
+      "title": "Synthetic Data Included",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "request_id",
+    "dataset",
+    "execution",
+    "split",
+    "output_contract",
+    "provenance",
+    "request_sha256"
+  ],
+  "title": "KoideRealPilotRequest",
+  "type": "object"
+}

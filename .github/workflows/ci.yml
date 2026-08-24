@@ -29,6 +29,39 @@ jobs:
           test -s /tmp/koide-pilot.schema.json
           calibrex schema koide-runner --output /tmp/koide-runner.schema.json
           test -s /tmp/koide-runner.schema.json
+          calibrex schema koide-real-pilot-request --output /tmp/koide-real-request.schema.json
+          calibrex schema koide-real-pilot-verification --output /tmp/koide-real-verification.schema.json
+          calibrex schema koide-real-pilot-finalization --output /tmp/koide-real-finalization.schema.json
+      - name: Koide real blocked-path smoke
+        run: |
+          calibrex validate examples/koide_real_pilot/synthetic/koide_real_pilot_handoff.yaml \
+            --kind koide-real-pilot-request --json
+          calibrex camera-lidar koide-real-plan \
+            --output /tmp/koide-real/request.yaml --json
+          test "$(python -c "import yaml; print(yaml.safe_load(open('/tmp/koide-real/request.yaml'))['status'])")" = "BLOCKED"
+          if calibrex camera-lidar koide-real-verify \
+            /tmp/koide-real/request.yaml \
+            --output /tmp/koide-real/verification.yaml --json; then
+            echo "missing official evidence unexpectedly passed"
+            exit 1
+          fi
+          test "$(python -c "import yaml; print(yaml.safe_load(open('/tmp/koide-real/verification.yaml'))['status'])")" = "BLOCKED"
+          if calibrex camera-lidar koide-real-finalize \
+            /tmp/koide-real/request.yaml \
+            /tmp/koide-real/verification.yaml \
+            --output /tmp/koide-real/finalization.yaml --json; then
+            echo "blocked handoff unexpectedly finalized successfully"
+            exit 1
+          fi
+          test "$(python -c "import yaml; print(yaml.safe_load(open('/tmp/koide-real/finalization.yaml'))['status'])")" = "BLOCKED"
+          test "$(python -c "import yaml; print(yaml.safe_load(open('/tmp/koide-real/finalization.yaml'))['execution_state'])")" = "NOT_EXECUTED"
+          test "$(python -c "import yaml; print(yaml.safe_load(open('/tmp/koide-real/finalization.yaml'))['official_result_claim'])")" = "False"
+          calibrex validate /tmp/koide-real/request.yaml \
+            --kind koide-real-pilot-request --json
+          calibrex validate /tmp/koide-real/verification.yaml \
+            --kind koide-real-pilot-verification --json
+          calibrex validate /tmp/koide-real/finalization.yaml \
+            --kind koide-real-pilot-finalization --json
       - name: Synthetic raw replay smoke
         run: |
           calibrex validate examples/raw_replay/synthetic/synthetic-definition.yaml \

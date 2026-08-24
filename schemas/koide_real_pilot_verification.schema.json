@@ -1,0 +1,364 @@
+{
+  "$defs": {
+    "KoideRealPilotProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for the request or verifier artifact.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "calibrex_version": {
+          "default": "0.4.1",
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "request_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Sha256"
+        }
+      },
+      "title": "KoideRealPilotProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Digest/provenance verification; official evidence is opt-in and gated.",
+  "properties": {
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "config_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Config Sha256"
+    },
+    "config_verified": {
+      "default": false,
+      "title": "Config Verified",
+      "type": "boolean"
+    },
+    "container_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Container Digest"
+    },
+    "dataset_archive_verified": {
+      "default": false,
+      "title": "Dataset Archive Verified",
+      "type": "boolean"
+    },
+    "dataset_verified": {
+      "default": false,
+      "title": "Dataset Verified",
+      "type": "boolean"
+    },
+    "environment_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Environment Sha256"
+    },
+    "environment_verified": {
+      "default": false,
+      "title": "Environment Verified",
+      "type": "boolean"
+    },
+    "evidence_label": {
+      "default": "official",
+      "enum": [
+        "official",
+        "test"
+      ],
+      "title": "Evidence Label",
+      "type": "string"
+    },
+    "execution_command_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Execution Command Sha256"
+    },
+    "execution_evidence_verified": {
+      "default": false,
+      "title": "Execution Evidence Verified",
+      "type": "boolean"
+    },
+    "execution_log_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Execution Log Sha256"
+    },
+    "execution_log_verified": {
+      "default": false,
+      "title": "Execution Log Verified",
+      "type": "boolean"
+    },
+    "execution_verified": {
+      "default": false,
+      "title": "Execution Verified",
+      "type": "boolean"
+    },
+    "external_run_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Run Sha256"
+    },
+    "external_run_size_bytes": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Run Size Bytes"
+    },
+    "external_run_verified": {
+      "default": false,
+      "title": "External Run Verified",
+      "type": "boolean"
+    },
+    "input_manifest_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Manifest Sha256"
+    },
+    "known_bad_protocol_verified": {
+      "default": false,
+      "title": "Known Bad Protocol Verified",
+      "type": "boolean"
+    },
+    "kpi_protocol_verified": {
+      "default": false,
+      "title": "Kpi Protocol Verified",
+      "type": "boolean"
+    },
+    "native_output_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Native Output Sha256"
+    },
+    "native_output_size_bytes": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Native Output Size Bytes"
+    },
+    "native_output_verified": {
+      "default": false,
+      "title": "Native Output Verified",
+      "type": "boolean"
+    },
+    "official_evidence": {
+      "default": false,
+      "title": "Official Evidence",
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KoideRealPilotProvenance"
+    },
+    "readiness_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Readiness Sha256"
+    },
+    "readiness_verified": {
+      "default": false,
+      "title": "Readiness Verified",
+      "type": "boolean"
+    },
+    "real_data_observed": {
+      "default": false,
+      "title": "Real Data Observed",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.koide_real_pilot_verification/v0.1",
+      "default": "slac.koide_real_pilot_verification/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_commit": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Commit"
+    },
+    "split_manifest_verified": {
+      "default": false,
+      "title": "Split Manifest Verified",
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "BLOCKED",
+        "READY_FOR_PILOT"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "request_sha256",
+    "status",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "KoideRealPilotVerification",
+  "type": "object"
+}

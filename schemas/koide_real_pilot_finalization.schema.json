@@ -1,0 +1,233 @@
+{
+  "$defs": {
+    "KoideRealPilotProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for the request or verifier artifact.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "calibrex_version": {
+          "default": "0.4.1",
+          "title": "Calibrex Version",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "request_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Sha256"
+        }
+      },
+      "title": "KoideRealPilotProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Terminal, fail-closed decision after the independent Koide pilot.",
+  "properties": {
+    "adoption_decision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adoption Decision"
+    },
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "evidence_label": {
+      "default": "official",
+      "enum": [
+        "official",
+        "test"
+      ],
+      "title": "Evidence Label",
+      "type": "string"
+    },
+    "execution_state": {
+      "default": "NOT_EXECUTED",
+      "enum": [
+        "NOT_EXECUTED",
+        "EXECUTED"
+      ],
+      "title": "Execution State",
+      "type": "string"
+    },
+    "external_run_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Run Sha256"
+    },
+    "holdout_kpis_verified": {
+      "default": false,
+      "title": "Holdout Kpis Verified",
+      "type": "boolean"
+    },
+    "known_bad_controls_verified": {
+      "default": false,
+      "title": "Known Bad Controls Verified",
+      "type": "boolean"
+    },
+    "native_output_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Native Output Sha256"
+    },
+    "official_result_claim": {
+      "default": false,
+      "enum": [
+        false,
+        true
+      ],
+      "title": "Official Result Claim",
+      "type": "boolean"
+    },
+    "pilot_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pilot Sha256"
+    },
+    "pilot_status": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pilot Status"
+    },
+    "provenance": {
+      "$ref": "#/$defs/KoideRealPilotProvenance"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.koide_real_pilot_finalization/v0.1",
+      "default": "slac.koide_real_pilot_finalization/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "BLOCKED",
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE",
+        "TEST_ONLY"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "verification_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Verification Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "request_sha256",
+    "verification_sha256",
+    "status",
+    "provenance",
+    "artifact_sha256"
+  ],
+  "title": "KoideRealPilotFinalization",
+  "type": "object"
+}

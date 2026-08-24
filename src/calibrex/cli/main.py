@@ -167,6 +167,14 @@ from calibrex.core.koide_readiness import (
     evaluate_koide_readiness_from_config,
     koide_readiness_json_schema,
 )
+from calibrex.core.koide_real_pilot import (
+    build_koide_real_pilot_request,
+    finalize_koide_real_pilot,
+    koide_real_pilot_finalization_json_schema,
+    koide_real_pilot_request_json_schema,
+    koide_real_pilot_verification_json_schema,
+    verify_koide_real_pilot_request,
+)
 from calibrex.core.koide_runner import koide_runner_json_schema
 from calibrex.core.lifecycle_registry import (
     evaluate_lifecycle,
@@ -600,6 +608,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "mcap-integrity",
             "koide-readiness",
             "koide-execution-lock",
+            "koide-real-pilot-request",
+            "koide-real-pilot-verification",
+            "koide-real-pilot-finalization",
             "continuous-time-lidar-pair",
             "continuous-time-lidar-point-to-plane",
             "continuous-time-imu-preintegration",
@@ -906,9 +917,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "verify", help="verify a radar plan or evaluation and all source digests"
     )
     radar_verify.add_argument("artifact", type=Path)
-    radar_verify.add_argument(
-        "--plan", type=Path, help="plan to bind when verifying an evaluation"
-    )
+    radar_verify.add_argument("--plan", type=Path, help="plan to bind when verifying an evaluation")
     radar_verify.add_argument("--json", action="store_true")
     radar_verify.set_defaults(func=_cmd_radar_service_verify)
 
@@ -1526,6 +1535,49 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     koide_handoff.add_argument("--json", action="store_true")
     koide_handoff.set_defaults(func=_cmd_camera_lidar_koide_handoff)
+    koide_real_plan = camera_lidar_subcommands.add_parser(
+        "koide-real-plan",
+        aliases=["koide-real-pilot-plan"],
+        help="write a blocked, digest-bound real Koide execution handoff; never executes Koide",
+    )
+    koide_real_plan.add_argument("--output", type=Path, required=True)
+    koide_real_plan.add_argument("--camera-frame", default="camera0")
+    koide_real_plan.add_argument("--lidar-frame", default="lidar0")
+    koide_real_plan.add_argument("--json", action="store_true")
+    koide_real_plan.set_defaults(func=_cmd_camera_lidar_koide_real_plan)
+    koide_real_verify = camera_lidar_subcommands.add_parser(
+        "koide-real-verify",
+        aliases=["koide-real-pilot-verify"],
+        help="verify external Koide evidence without executing Koide",
+    )
+    koide_real_verify.add_argument("request", type=Path)
+    koide_real_verify.add_argument("--dataset", type=Path)
+    koide_real_verify.add_argument("--archive", type=Path)
+    koide_real_verify.add_argument("--input-manifest", type=Path)
+    koide_real_verify.add_argument("--readiness", type=Path)
+    koide_real_verify.add_argument("--config", type=Path)
+    koide_real_verify.add_argument("--candidate", type=Path)
+    koide_real_verify.add_argument("--external-run", type=Path)
+    koide_real_verify.add_argument("--execution-log", type=Path)
+    koide_real_verify.add_argument("--environment", type=Path)
+    koide_real_verify.add_argument(
+        "--evidence-label", choices=["official", "test"], default="official"
+    )
+    koide_real_verify.add_argument("--output", type=Path, required=True)
+    koide_real_verify.add_argument("--json", action="store_true")
+    koide_real_verify.set_defaults(func=_cmd_camera_lidar_koide_real_verify)
+    koide_real_finalize = camera_lidar_subcommands.add_parser(
+        "koide-real-finalize",
+        aliases=["koide-real-pilot-finalize"],
+        help="finalize a verified Koide output against the independent pilot",
+    )
+    koide_real_finalize.add_argument("request", type=Path)
+    koide_real_finalize.add_argument("verification", type=Path)
+    koide_real_finalize.add_argument("--pilot", type=Path)
+    koide_real_finalize.add_argument("--evidence-label", choices=["official", "test"])
+    koide_real_finalize.add_argument("--output", type=Path, required=True)
+    koide_real_finalize.add_argument("--json", action="store_true")
+    koide_real_finalize.set_defaults(func=_cmd_camera_lidar_koide_real_finalize)
     koide_export = camera_lidar_subcommands.add_parser(
         "export-koide-pilot",
         help="export only an admissible Koide pilot candidate to Autoware",
@@ -2863,6 +2915,9 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "kitti-benchmark-input": kitti_benchmark_input_json_schema,
         "koide-pilot": koide_pilot_json_schema,
         "koide-runner": koide_runner_json_schema,
+        "koide-real-pilot-request": koide_real_pilot_request_json_schema,
+        "koide-real-pilot-verification": koide_real_pilot_verification_json_schema,
+        "koide-real-pilot-finalization": koide_real_pilot_finalization_json_schema,
         "depth-provider": depth_provider_json_schema,
         "continuous-time-camera-lidar-problem": (continuous_time_camera_lidar_problem_json_schema),
         "continuous-time-camera-lidar-result": (continuous_time_camera_lidar_result_json_schema),
@@ -4507,9 +4562,7 @@ def _cmd_camera_lidar_benchmark_koide_pilot(args: argparse.Namespace) -> int:
                 "benchmark-koide-pilot",
                 str(args.dataset_path),
             ],
-            official_command=(
-                shlex.split(args.official_command) if args.official_command else ()
-            ),
+            official_command=(shlex.split(args.official_command) if args.official_command else ()),
             tool_source_commit=args.tool_source_commit,
             container_digest=args.container_digest,
         )
@@ -4565,6 +4618,97 @@ def _cmd_camera_lidar_koide_handoff(args: argparse.Namespace) -> int:
     }
     _emit(payload, args.json)
     return 0
+
+
+def _cmd_camera_lidar_koide_real_plan(args: argparse.Namespace) -> int:
+    """Materialize the non-executing real Koide plan."""
+
+    try:
+        request = build_koide_real_pilot_request(
+            camera_frame=args.camera_frame,
+            lidar_frame=args.lidar_frame,
+            command=["calibrex", "camera-lidar", "koide-real-plan"],
+        )
+        request.save(args.output)
+    except (OSError, ValueError) as exc:
+        _die(str(exc))
+    _emit(
+        {
+            "status": request.status,
+            "executes_external_process": False,
+            "request": str(args.output),
+            "request_id": request.request_id,
+            "request_sha256": request.request_sha256,
+            "source_commit": request.execution.source_commit,
+            "container_digest": request.execution.image_digest,
+            "official_result_claim": request.official_result_claim,
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_camera_lidar_koide_real_verify(args: argparse.Namespace) -> int:
+    """Verify a real Koide handoff's supplied evidence without running Koide."""
+
+    try:
+        verification = verify_koide_real_pilot_request(
+            args.request,
+            dataset_path=args.dataset,
+            dataset_archive_path=args.archive,
+            input_manifest_path=args.input_manifest,
+            readiness_path=args.readiness,
+            config_path=args.config,
+            candidate_path=args.candidate,
+            external_run_path=args.external_run,
+            execution_log_path=args.execution_log,
+            environment_path=args.environment,
+            evidence_label=args.evidence_label,
+            command=["calibrex", "camera-lidar", "koide-real-verify", str(args.request)],
+        )
+        verification.save(args.output)
+    except (OSError, ValueError) as exc:
+        _die(str(exc))
+    _emit(
+        {
+            "status": verification.status,
+            "official_evidence": verification.official_evidence,
+            "evidence_label": verification.evidence_label,
+            "verification": str(args.output),
+            "request_id": verification.request_id,
+            "reasons": verification.reasons,
+        },
+        args.json,
+    )
+    return 0 if verification.status == "READY_FOR_PILOT" else 1
+
+
+def _cmd_camera_lidar_koide_real_finalize(args: argparse.Namespace) -> int:
+    """Finalize a verified Koide pilot; never execute the external provider."""
+
+    try:
+        finalization = finalize_koide_real_pilot(
+            args.request,
+            args.verification,
+            args.pilot,
+            output_path=args.output,
+            evidence_label=args.evidence_label,
+            command=["calibrex", "camera-lidar", "koide-real-finalize", str(args.request)],
+        )
+    except (OSError, ValueError) as exc:
+        _die(str(exc))
+    _emit(
+        {
+            "status": finalization.status,
+            "execution_state": finalization.execution_state,
+            "official_result_claim": finalization.official_result_claim,
+            "finalization": str(args.output),
+            "request_id": finalization.request_id,
+            "reasons": finalization.reasons,
+        },
+        args.json,
+    )
+    return 0 if finalization.status in {"PASS", "TEST_ONLY"} else 1
 
 
 def _cmd_camera_lidar_export_koide_pilot(args: argparse.Namespace) -> int:
@@ -6676,9 +6820,7 @@ def _cmd_capture_verify(args: argparse.Namespace) -> int:
 def _parse_capture_sensor(specification: str) -> SensorIdentity:
     fields = specification.split(":")
     if len(fields) < 2 or not fields[0] or not fields[1]:
-        raise ValueError(
-            "--sensor must be ID:TYPE[:SERIAL[:MODEL[:FIRMWARE[:MOUNT[:FRAME]]]]]"
-        )
+        raise ValueError("--sensor must be ID:TYPE[:SERIAL[:MODEL[:FIRMWARE[:MOUNT[:FRAME]]]]]")
     if len(fields) > 7:
         raise ValueError("--sensor accepts at most seven colon-separated fields")
     values = fields + [None] * (7 - len(fields))

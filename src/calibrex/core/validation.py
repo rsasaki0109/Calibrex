@@ -182,6 +182,14 @@ from calibrex.core.koide_readiness import (
     KOIDE_READINESS_SCHEMA_VERSION,
     KoideReadinessArtifact,
 )
+from calibrex.core.koide_real_pilot import (
+    KOIDE_REAL_PILOT_FINALIZATION_SCHEMA_VERSION,
+    KOIDE_REAL_PILOT_REQUEST_SCHEMA_VERSION,
+    KOIDE_REAL_PILOT_VERIFICATION_SCHEMA_VERSION,
+    KoideRealPilotFinalization,
+    KoideRealPilotRequest,
+    KoideRealPilotVerification,
+)
 from calibrex.core.lifecycle_registry import (
     LIFECYCLE_EVALUATION_SCHEMA_VERSION,
     LIFECYCLE_EVENT_SCHEMA_VERSION,
@@ -368,6 +376,9 @@ ValidationKind = Literal[
     "kitti-benchmark-input",
     "koide-pilot",
     "koide-execution-lock",
+    "koide-real-pilot-request",
+    "koide-real-pilot-verification",
+    "koide-real-pilot-finalization",
     "depth-provider",
     "continuous-time-camera-lidar-problem",
     "continuous-time-camera-lidar-result",
@@ -472,20 +483,15 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "kitti-benchmark-input": KITTIBenchmarkInputManifest,
     "koide-pilot": KoidePilotArtifact,
     "koide-execution-lock": KoideExecutionLock,
+    "koide-real-pilot-request": KoideRealPilotRequest,
+    "koide-real-pilot-verification": KoideRealPilotVerification,
+    "koide-real-pilot-finalization": KoideRealPilotFinalization,
     "depth-provider": DepthProviderArtifact,
-    "continuous-time-camera-lidar-problem": (
-        ContinuousTimeCameraLidarProblemArtifact
-    ),
-    "continuous-time-camera-lidar-result": (
-        ContinuousTimeCameraLidarResultArtifact
-    ),
+    "continuous-time-camera-lidar-problem": (ContinuousTimeCameraLidarProblemArtifact),
+    "continuous-time-camera-lidar-result": (ContinuousTimeCameraLidarResultArtifact),
     "continuous-time-trajectory": ContinuousTimeTrajectoryContract,
-    "continuous-time-trajectory-measurements": (
-        ContinuousTimeTrajectoryMeasurements
-    ),
-    "continuous-time-trajectory-fit": (
-        ContinuousTimeTrajectoryFitResultArtifact
-    ),
+    "continuous-time-trajectory-measurements": (ContinuousTimeTrajectoryMeasurements),
+    "continuous-time-trajectory-fit": (ContinuousTimeTrajectoryFitResultArtifact),
     "probabilistic-correspondence": ProbabilisticCorrespondenceArtifact,
     "probabilistic-pnp-result": ProbabilisticPnpResultArtifact,
     "probabilistic-refinement-result": ProbabilisticRefinementResultArtifact,
@@ -495,9 +501,7 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "camera-lidar-confidence-calibration": CameraLidarConfidenceCalibrationArtifact,
     "camera-lidar-provider-support-comparison": (CameraLidarProviderSupportComparisonArtifact),
     "camera-lidar-pose-initializer-protocol": (CameraLidarPoseInitializerBenchmarkProtocol),
-    "camera-lidar-pose-initializer-failure-analysis": (
-        CameraLidarPoseInitializerFailureAnalysis
-    ),
+    "camera-lidar-pose-initializer-failure-analysis": (CameraLidarPoseInitializerFailureAnalysis),
     "camera-lidar-initializer-calibration": (CameraLidarInitializerCalibrationArtifact),
     "camera-lidar-correspondence-quality": CameraLidarCorrespondenceQualityArtifact,
     "camera-lidar-failure-analysis": CameraLidarFailureAnalysisArtifact,
@@ -589,27 +593,20 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     KITTI_BENCHMARK_INPUT_SCHEMA_VERSION: "kitti-benchmark-input",
     KOIDE_PILOT_SCHEMA_VERSION: "koide-pilot",
     KOIDE_EXECUTION_LOCK_SCHEMA_VERSION: "koide-execution-lock",
+    KOIDE_REAL_PILOT_REQUEST_SCHEMA_VERSION: "koide-real-pilot-request",
+    KOIDE_REAL_PILOT_VERIFICATION_SCHEMA_VERSION: "koide-real-pilot-verification",
+    KOIDE_REAL_PILOT_FINALIZATION_SCHEMA_VERSION: "koide-real-pilot-finalization",
     DEPTH_PROVIDER_SCHEMA_VERSION: "depth-provider",
-    CONTINUOUS_TIME_CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: (
-        "continuous-time-camera-lidar-problem"
-    ),
-    CONTINUOUS_TIME_CAMERA_LIDAR_RESULT_SCHEMA_VERSION: (
-        "continuous-time-camera-lidar-result"
-    ),
+    CONTINUOUS_TIME_CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: ("continuous-time-camera-lidar-problem"),
+    CONTINUOUS_TIME_CAMERA_LIDAR_RESULT_SCHEMA_VERSION: ("continuous-time-camera-lidar-result"),
     CONTINUOUS_TIME_TRAJECTORY_SCHEMA_VERSION: "continuous-time-trajectory",
-    CONTINUOUS_TIME_MEASUREMENTS_SCHEMA_VERSION: (
-        "continuous-time-trajectory-measurements"
-    ),
+    CONTINUOUS_TIME_MEASUREMENTS_SCHEMA_VERSION: ("continuous-time-trajectory-measurements"),
     CONTINUOUS_TIME_FIT_SCHEMA_VERSION: "continuous-time-trajectory-fit",
     PROBABILISTIC_CORRESPONDENCE_SCHEMA_VERSION: "probabilistic-correspondence",
     PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION: "probabilistic-pnp-result",
     PROBABILISTIC_PNP_RESULT_SCHEMA_VERSION_V0_1: "probabilistic-pnp-result",
-    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: (
-        "probabilistic-refinement-result"
-    ),
-    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION_V0_1: (
-        "probabilistic-refinement-result"
-    ),
+    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION: ("probabilistic-refinement-result"),
+    PROBABILISTIC_REFINEMENT_RESULT_SCHEMA_VERSION_V0_1: ("probabilistic-refinement-result"),
     EMPIRICAL_SE3_UNCERTAINTY_SCHEMA_VERSION: "empirical-se3-uncertainty",
     CAMERA_LIDAR_PROBLEM_SCHEMA_VERSION: "camera-lidar-problem",
     CAMERA_LIDAR_CORRESPONDENCE_EXPORT_SCHEMA_VERSION: ("camera-lidar-correspondence-export"),
@@ -647,27 +644,13 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     MCAP_INTEGRITY_SCHEMA_VERSION: "mcap-integrity",
     KOIDE_READINESS_SCHEMA_VERSION: "koide-readiness",
     CONTINUOUS_TIME_LIDAR_PAIR_SCHEMA_VERSION: "continuous-time-lidar-pair",
-    CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION: (
-        "continuous-time-lidar-point-to-plane"
-    ),
-    CONTINUOUS_TIME_IMU_PREINTEGRATION_SCHEMA_VERSION: (
-        "continuous-time-imu-preintegration"
-    ),
-    CONTINUOUS_TIME_IMU_LEVER_ARM_SCHEMA_VERSION: (
-        "continuous-time-imu-lever-arm"
-    ),
-    CONTINUOUS_TIME_IMU_CLOCK_OFFSET_SCHEMA_VERSION: (
-        "continuous-time-imu-clock-offset"
-    ),
-    CONTINUOUS_TIME_IMU_ACCEL_BIAS_SCHEMA_VERSION: (
-        "continuous-time-imu-accel-bias"
-    ),
-    CONTINUOUS_TIME_IMU_INTRINSICS_SCHEMA_VERSION: (
-        "continuous-time-imu-intrinsics"
-    ),
-    CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION: (
-        "continuous-time-sliding-window"
-    ),
+    CONTINUOUS_TIME_LIDAR_POINT_TO_PLANE_SCHEMA_VERSION: ("continuous-time-lidar-point-to-plane"),
+    CONTINUOUS_TIME_IMU_PREINTEGRATION_SCHEMA_VERSION: ("continuous-time-imu-preintegration"),
+    CONTINUOUS_TIME_IMU_LEVER_ARM_SCHEMA_VERSION: ("continuous-time-imu-lever-arm"),
+    CONTINUOUS_TIME_IMU_CLOCK_OFFSET_SCHEMA_VERSION: ("continuous-time-imu-clock-offset"),
+    CONTINUOUS_TIME_IMU_ACCEL_BIAS_SCHEMA_VERSION: ("continuous-time-imu-accel-bias"),
+    CONTINUOUS_TIME_IMU_INTRINSICS_SCHEMA_VERSION: ("continuous-time-imu-intrinsics"),
+    CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION: ("continuous-time-sliding-window"),
     CONTINUOUS_TIME_LIDAR_TRAIN_DIAGNOSTICS_SCHEMA_VERSION: (
         "continuous-time-lidar-train-diagnostics"
     ),
@@ -744,6 +727,8 @@ def validate_file(
         validated,
         (
             KoidePilotArtifact,
+            KoideRealPilotVerification,
+            KoideRealPilotFinalization,
             KoideReadinessArtifact,
             ReplayDefinition,
             ReplayPlan,
@@ -762,6 +747,8 @@ def validate_file(
         validated.verify_artifact_digest()
     elif isinstance(validated, KoideExecutionLock):
         validated.verify_lock_digest()
+    elif isinstance(validated, KoideRealPilotRequest):
+        validated.verify_request_digest()
     elif isinstance(validated, CaptureManifest):
         validated.verify_artifact_digest()
         if verify_inputs:

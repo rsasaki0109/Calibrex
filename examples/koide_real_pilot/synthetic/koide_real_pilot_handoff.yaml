@@ -1,0 +1,58 @@
+# Synthetic/schema smoke handoff only.  It is intentionally not official data,
+# not a Koide result, and must remain BLOCKED until an operator supplies real
+# KITTI evidence and external execution artifacts.
+request_id: koide-real-pilot-kitti-0005-v0-1
+dataset: {}
+execution:
+  lock_sha256: acb4add1590992e060fb43e09f998644e6a8d65410406c1df09bba267c675f28
+  source_commit: 02a0dc039f5509708f384be4ff3228e0ae09352d
+  image_digest: koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb
+  stages:
+  - name: preprocess
+    argv: [ros2, run, direct_visual_lidar_calibration, preprocess, -a, /tmp/input_bags, /tmp/preprocessed]
+    official_documentation_url: https://koide3.github.io/direct_visual_lidar_calibration/example/
+    environment: {LC_ALL: C.UTF-8, ROS_DOMAIN_ID: '0'}
+  - name: initial_guess
+    argv: [ros2, run, direct_visual_lidar_calibration, initial_guess_manual, /tmp/preprocessed]
+    official_documentation_url: https://koide3.github.io/direct_visual_lidar_calibration/example/
+    environment: {LC_ALL: C.UTF-8, ROS_DOMAIN_ID: '0', DISPLAY: <operator-display-required>}
+    requires_manual_gui: true
+  - name: calibrate
+    argv: [ros2, run, direct_visual_lidar_calibration, calibrate, /tmp/preprocessed]
+    official_documentation_url: https://koide3.github.io/direct_visual_lidar_calibration/example/
+    environment: {LC_ALL: C.UTF-8, ROS_DOMAIN_ID: '0'}
+split:
+  frame_ids_sha256: 94c69a810661768d73eee6e77b1aec122d9efc8285bc6b0d7bce491b690b8e07
+  fitting_frame_ids_sha256: 8a6c318e392481b6725fddfe538046b7aa7588d3ba5d25a683660ea61215f95c
+  holdout_frame_ids_sha256: 23686723414ee46a0a5ef4b1d9ac238a15e558f24c4f1f69ca114d7e5cc12f87
+output_contract:
+  lidar_frame: lidar0
+  camera_frame: camera0
+artifacts:
+- {role: dataset_archive}
+- {role: dataset_sequence}
+- {role: input_manifest}
+- {role: config}
+- {role: readiness}
+- {role: native_calib_json}
+- {role: external_run}
+- {role: execution_evidence}
+- {role: execution_log}
+- {role: environment}
+- {role: pilot}
+external_commands:
+- [docker, pull, koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb]
+- [docker, run, --rm, --network, none, --read-only, --mount, 'type=bind,src=<input-dir>,dst=/tmp/input_bags,readonly', '--mount', 'type=bind,src=<output-dir>,dst=/tmp/preprocessed,rw', koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb, ros2, run, direct_visual_lidar_calibration, preprocess, -a, /tmp/input_bags, /tmp/preprocessed]
+- [docker, run, --rm, --network, none, --read-only, --mount, 'type=bind,src=<output-dir>,dst=/tmp/preprocessed,rw', koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb, ros2, run, direct_visual_lidar_calibration, initial_guess_manual, /tmp/preprocessed]
+- [docker, run, --rm, --network, none, --read-only, --mount, 'type=bind,src=<output-dir>,dst=/tmp/preprocessed,rw', koide3/direct_visual_lidar_calibration@sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb, ros2, run, direct_visual_lidar_calibration, calibrate, /tmp/preprocessed]
+operator_checklist:
+- Run only after obtaining the official KITTI raw sequence through its official flow.
+- Record operator-observed archive size and SHA-256; the official record does not publish them.
+- Supply fitting-only ROS 2 bags, the locked input inventory, readiness, logs, environment, native calib.json, and external-run evidence.
+- Keep the independent holdout out of Koide fitting and require all twelve known-bad controls.
+provenance:
+  generated_at: '2026-08-24T12:03:25.012831+00:00'
+  git_commit: cb8c119
+  command: [example, synthetic]
+  request_sha256: d801fc3e5fb30bb1d70f8830bcfa1c6d1f9231fbadc5cf0877c9ea7e5bb97f17
+request_sha256: d801fc3e5fb30bb1d70f8830bcfa1c6d1f9231fbadc5cf0877c9ea7e5bb97f17
