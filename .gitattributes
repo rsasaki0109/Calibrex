@@ -1,6 +1,9 @@
 *.yaml text eol=lf
 *.yml text eol=lf
 *.svg text eol=lf
+# JSON fixtures are digest-bound (SHA-256 over raw bytes); keep them LF on
+# Windows core.autocrlf checkouts as well.
+*.json text eol=lf
 
 # Keep provenance-bound fixtures and their committed visualizations byte-stable
 # across Windows and Linux checkouts.

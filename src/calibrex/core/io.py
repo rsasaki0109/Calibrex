@@ -27,7 +27,9 @@ def write_mapping(path: Path, data: dict[str, Any]) -> None:
     """Write a mapping as YAML or JSON based on the target suffix."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as stream:
+    # newline="" keeps LF on Windows so artifact bytes (and their SHA-256)
+    # match across platforms, as in write_mapping_atomic.
+    with path.open("w", encoding="utf-8", newline="") as stream:
         if path.suffix.lower() == ".json":
             json.dump(data, stream, indent=2, sort_keys=True)
             stream.write("\n")

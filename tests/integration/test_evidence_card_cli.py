@@ -10,6 +10,7 @@ from calibrex.core.result import (
     MetricResult,
     QualitySummary,
     RunInfo,
+    build_result_provenance,
 )
 
 
@@ -19,7 +20,16 @@ def test_render_evidence_card_cli_writes_provenance_bound_svg(
 ) -> None:
     result_path = tmp_path / "result.yaml"
     CalibrationResult(
-        run=RunInfo(id="cli-card", slac_version="0.3.0"),
+        run=RunInfo(
+            id="cli-card",
+            slac_version="0.3.0",
+            provenance=build_result_provenance(
+                producer="calibrex",
+                tool_name="calibrex.evidence-card-fixture",
+                tool_version="test",
+                command=["pytest", "tests/integration/test_evidence_card_cli.py"],
+            ),
+        ),
         frame_graph=FrameGraphSnapshot(root="base", frames={"base": None}),
         metrics={
             "reprojection_rmse_px": MetricResult(
