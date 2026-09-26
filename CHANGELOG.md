@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Added independent evidence for imported Camera--IMU calibrations.
+  `calibrex external-run evaluate-camera-imu` evaluates a Kalibr (or other
+  external-run) `T_cam_imu` and `timeshift_cam_imu` on a separate
+  `slac.camera_imu_motion_recording/v0.1`. It uses a middle-block temporal
+  holdout, a train-only gyro bias, excitation gates, and eight signed
+  rotation/time known-bad controls. The result is
+  `slac.external_camera_imu_evidence/v0.1` with
+  pass/warn/fail/inconclusive/blocked status and digest-bound provenance. A
+  recording whose bytes match a declared fitting input is blocked.
+  `calibrex external-run synthesize-camera-imu-fixture` writes the
+  nonphysical Kalibr fixture used to prove the external-run contract with a
+  Kalibr producer.
+
 - Switched the public installation path to the verified GitHub Release wheel
   and removed the automatic PyPI publishing workflow following the maintainer
   decision to skip PyPI distribution.

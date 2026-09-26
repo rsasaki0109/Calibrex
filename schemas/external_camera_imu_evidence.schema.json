@@ -1,0 +1,707 @@
+{
+  "$defs": {
+    "CameraImuCandidate": {
+      "additionalProperties": false,
+      "description": "Imported candidate expressed in the Kalibr convention.",
+      "properties": {
+        "convention": {
+          "const": "T_cam_imu",
+          "default": "T_cam_imu",
+          "title": "Convention",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "time_offset_declared": {
+          "title": "Time Offset Declared",
+          "type": "boolean"
+        },
+        "time_offset_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Offset Name"
+        },
+        "timeshift_cam_imu_sec": {
+          "title": "Timeshift Cam Imu Sec",
+          "type": "number"
+        },
+        "transform_name": {
+          "title": "Transform Name",
+          "type": "string"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "transform_name",
+        "rotation_quat_xyzw",
+        "translation_m",
+        "timeshift_cam_imu_sec",
+        "time_offset_declared"
+      ],
+      "title": "CameraImuCandidate",
+      "type": "object"
+    },
+    "CameraImuControl": {
+      "additionalProperties": false,
+      "description": "One signed known-bad perturbation of the imported candidate.",
+      "properties": {
+        "axis": {
+          "anyOf": [
+            {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axis"
+        },
+        "control_id": {
+          "title": "Control Id",
+          "type": "string"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_rate_rmse_rad_s": {
+          "minimum": 0.0,
+          "title": "Holdout Rate Rmse Rad S",
+          "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "rotation",
+            "time"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "rmse_increase_rad_s": {
+          "title": "Rmse Increase Rad S",
+          "type": "number"
+        },
+        "signed_magnitude": {
+          "title": "Signed Magnitude",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "s"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "control_id",
+        "kind",
+        "signed_magnitude",
+        "unit",
+        "holdout_rate_rmse_rad_s",
+        "rmse_increase_rad_s",
+        "detected"
+      ],
+      "title": "CameraImuControl",
+      "type": "object"
+    },
+    "CameraImuEvidenceThresholds": {
+      "additionalProperties": false,
+      "description": "Gate defaults; a program may tighten them before seeing results.",
+      "properties": {
+        "control_min_rmse_increase_rad_s": {
+          "default": 0.005,
+          "minimum": 0.0,
+          "title": "Control Min Rmse Increase Rad S",
+          "type": "number"
+        },
+        "control_min_rmse_ratio": {
+          "default": 1.2,
+          "minimum": 1.0,
+          "title": "Control Min Rmse Ratio",
+          "type": "number"
+        },
+        "holdout_fraction_end": {
+          "default": 0.65,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Holdout Fraction End",
+          "type": "number"
+        },
+        "holdout_fraction_start": {
+          "default": 0.35,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Holdout Fraction Start",
+          "type": "number"
+        },
+        "max_holdout_rate_rmse_rad_s": {
+          "default": 0.05,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Holdout Rate Rmse Rad S",
+          "type": "number"
+        },
+        "min_angular_acceleration_rad_s2": {
+          "default": 0.5,
+          "minimum": 0.0,
+          "title": "Min Angular Acceleration Rad S2",
+          "type": "number"
+        },
+        "min_control_detection_fraction": {
+          "default": 0.8,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Control Detection Fraction",
+          "type": "number"
+        },
+        "min_holdout_intervals": {
+          "default": 20,
+          "minimum": 1,
+          "title": "Min Holdout Intervals",
+          "type": "integer"
+        },
+        "min_rate_excitation_rad_s": {
+          "default": 0.15,
+          "minimum": 0.0,
+          "title": "Min Rate Excitation Rad S",
+          "type": "number"
+        },
+        "min_train_intervals": {
+          "default": 20,
+          "minimum": 1,
+          "title": "Min Train Intervals",
+          "type": "integer"
+        },
+        "rotation_control_deg": {
+          "default": 2.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Rotation Control Deg",
+          "type": "number"
+        },
+        "time_control_sec": {
+          "default": 0.01,
+          "exclusiveMinimum": 0.0,
+          "title": "Time Control Sec",
+          "type": "number"
+        }
+      },
+      "title": "CameraImuEvidenceThresholds",
+      "type": "object"
+    },
+    "CameraImuExcitation": {
+      "additionalProperties": false,
+      "description": "Holdout excitation needed for rotation and time to be observable.",
+      "properties": {
+        "min_rate_excitation_rad_s": {
+          "minimum": 0.0,
+          "title": "Min Rate Excitation Rad S",
+          "type": "number"
+        },
+        "rate_excitation_eigen_rad_s": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rate Excitation Eigen Rad S",
+          "type": "array"
+        },
+        "rms_angular_acceleration_rad_s2": {
+          "minimum": 0.0,
+          "title": "Rms Angular Acceleration Rad S2",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min_rate_excitation_rad_s",
+        "rate_excitation_eigen_rad_s",
+        "rms_angular_acceleration_rad_s2"
+      ],
+      "title": "CameraImuExcitation",
+      "type": "object"
+    },
+    "CameraImuTemporalSplit": {
+      "additionalProperties": false,
+      "description": "Contiguous middle-block holdout with a guard gap on both sides.",
+      "properties": {
+        "excluded_interval_count": {
+          "minimum": 0,
+          "title": "Excluded Interval Count",
+          "type": "integer"
+        },
+        "guard_sec": {
+          "minimum": 0.0,
+          "title": "Guard Sec",
+          "type": "number"
+        },
+        "holdout_end_sec": {
+          "title": "Holdout End Sec",
+          "type": "number"
+        },
+        "holdout_interval_count": {
+          "minimum": 0,
+          "title": "Holdout Interval Count",
+          "type": "integer"
+        },
+        "holdout_start_sec": {
+          "title": "Holdout Start Sec",
+          "type": "number"
+        },
+        "train_interval_count": {
+          "minimum": 0,
+          "title": "Train Interval Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "holdout_start_sec",
+        "holdout_end_sec",
+        "guard_sec",
+        "train_interval_count",
+        "holdout_interval_count",
+        "excluded_interval_count"
+      ],
+      "title": "CameraImuTemporalSplit",
+      "type": "object"
+    },
+    "ExternalCameraImuEvidenceProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage of the evidence artifact itself.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "producer": {
+          "const": "calibrex",
+          "default": "calibrex",
+          "title": "Producer",
+          "type": "string"
+        },
+        "tool_name": {
+          "default": "calibrex.external-run.evaluate-camera-imu",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "default": "0.4.1",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "title": "ExternalCameraImuEvidenceProvenance",
+      "type": "object"
+    },
+    "ExternalRunReference": {
+      "additionalProperties": false,
+      "description": "Digest-bound identity of the evaluated external-run artifact.",
+      "properties": {
+        "adapter_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Name"
+        },
+        "fitting_input_sha256": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fitting Input Sha256",
+          "type": "array"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Id"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        },
+        "training_isolation_declared": {
+          "default": false,
+          "title": "Training Isolation Declared",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "ExternalRunReference",
+      "type": "object"
+    },
+    "RecordingReference": {
+      "additionalProperties": false,
+      "description": "Digest-bound identity of the evaluation recording.",
+      "properties": {
+        "camera_orientation_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Camera Orientation Count",
+          "type": "integer"
+        },
+        "imu_sample_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Imu Sample Count",
+          "type": "integer"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "recording_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recording Id"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "synthetic": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synthetic"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "RecordingReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Holdout and known-bad evidence for an imported ``T_cam_imu`` candidate.",
+  "properties": {
+    "camera_name": {
+      "title": "Camera Name",
+      "type": "string"
+    },
+    "candidate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraImuCandidate"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "control_detection_fraction": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Control Detection Fraction"
+    },
+    "controls": {
+      "items": {
+        "$ref": "#/$defs/CameraImuControl"
+      },
+      "title": "Controls",
+      "type": "array"
+    },
+    "estimated_gyro_bias_rad_s": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Estimated Gyro Bias Rad S"
+    },
+    "evaluation_id": {
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "excitation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraImuExcitation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "external_metrics_used": {
+      "const": false,
+      "default": false,
+      "title": "External Metrics Used",
+      "type": "boolean"
+    },
+    "external_run": {
+      "$ref": "#/$defs/ExternalRunReference"
+    },
+    "holdout_rate_rmse_rad_s": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Rate Rmse Rad S"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ExternalCameraImuEvidenceProvenance"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "recording": {
+      "$ref": "#/$defs/RecordingReference"
+    },
+    "schema_version": {
+      "const": "slac.external_camera_imu_evidence/v0.1",
+      "default": "slac.external_camera_imu_evidence/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraImuTemporalSplit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive",
+        "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/CameraImuEvidenceThresholds"
+    },
+    "train_rate_rmse_rad_s": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Train Rate Rmse Rad S"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "camera_name",
+    "external_run",
+    "recording",
+    "thresholds",
+    "status",
+    "provenance"
+  ],
+  "title": "ExternalCameraImuEvidenceArtifact",
+  "type": "object"
+}

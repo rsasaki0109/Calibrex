@@ -169,6 +169,12 @@ from calibrex.core.evidence_contract import (
     ProtocolArtifact,
 )
 from calibrex.core.exceptions import CalibrexError
+from calibrex.core.external_camera_imu_evidence import (
+    CAMERA_IMU_MOTION_RECORDING_SCHEMA_VERSION,
+    EXTERNAL_CAMERA_IMU_EVIDENCE_SCHEMA_VERSION,
+    CameraImuMotionRecording,
+    ExternalCameraImuEvidenceArtifact,
+)
 from calibrex.core.external_run import (
     EXTERNAL_RUN_SCHEMA_VERSION,
     ExternalCalibrationRunArtifact,
@@ -454,6 +460,8 @@ ValidationKind = Literal[
     "camera-imu-service-evaluation",
     "radar-service-plan",
     "radar-service-evaluation",
+    "camera-imu-motion-recording",
+    "external-camera-imu-evidence",
 ]
 
 _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
@@ -484,6 +492,8 @@ _MODEL_BY_KIND: Final[dict[str, type[BaseModel]]] = {
     "lifecycle-verification": RegistryVerificationArtifact,
     "lifecycle-status": LifecycleRegistryStatus,
     "external-run": ExternalCalibrationRunArtifact,
+    "camera-imu-motion-recording": CameraImuMotionRecording,
+    "external-camera-imu-evidence": ExternalCameraImuEvidenceArtifact,
     "kitti-falsification": KITTIFalsificationBenchmarkArtifact,
     "kitti-benchmark-input": KITTIBenchmarkInputManifest,
     "koide-pilot": KoidePilotArtifact,
@@ -690,6 +700,8 @@ _KIND_BY_SCHEMA_VERSION: Final[dict[str, str]] = {
     CAMERA_IMU_SERVICE_EVALUATION_SCHEMA_VERSION: "camera-imu-service-evaluation",
     RADAR_SERVICE_PLAN_SCHEMA_VERSION: "radar-service-plan",
     RADAR_SERVICE_EVALUATION_SCHEMA_VERSION: "radar-service-evaluation",
+    CAMERA_IMU_MOTION_RECORDING_SCHEMA_VERSION: "camera-imu-motion-recording",
+    EXTERNAL_CAMERA_IMU_EVIDENCE_SCHEMA_VERSION: "external-camera-imu-evidence",
 }
 
 

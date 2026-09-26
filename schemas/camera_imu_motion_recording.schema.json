@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "CameraImuMotionRecordingProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage of a Camera--IMU motion recording.",
+      "properties": {
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "producer": {
+          "title": "Producer",
+          "type": "string"
+        },
+        "producer_version": {
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "synthetic": {
+          "default": false,
+          "title": "Synthetic",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "producer",
+        "producer_version",
+        "source"
+      ],
+      "title": "CameraImuMotionRecordingProvenance",
+      "type": "object"
+    },
+    "CameraOrientationSample": {
+      "additionalProperties": false,
+      "description": "Camera orientation ``R_world_camera`` on the camera clock.",
+      "properties": {
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "rotation_quat_xyzw"
+      ],
+      "title": "CameraOrientationSample",
+      "type": "object"
+    },
+    "ImuGyroSample": {
+      "additionalProperties": false,
+      "description": "Body-frame gyroscope sample on the IMU clock.",
+      "properties": {
+        "omega_rad_s": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Omega Rad S",
+          "type": "array"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "omega_rad_s"
+      ],
+      "title": "ImuGyroSample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Camera orientations and IMU gyro samples used only for evaluation.\n\nThe recording must not be the input the external tool was fitted on; the\nevaluator rejects a recording whose bytes match a declared fitting input.",
+  "properties": {
+    "camera_name": {
+      "title": "Camera Name",
+      "type": "string"
+    },
+    "camera_orientations": {
+      "items": {
+        "$ref": "#/$defs/CameraOrientationSample"
+      },
+      "minItems": 2,
+      "title": "Camera Orientations",
+      "type": "array"
+    },
+    "imu_gyro": {
+      "items": {
+        "$ref": "#/$defs/ImuGyroSample"
+      },
+      "minItems": 2,
+      "title": "Imu Gyro",
+      "type": "array"
+    },
+    "imu_name": {
+      "default": "imu",
+      "title": "Imu Name",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraImuMotionRecordingProvenance"
+    },
+    "recording_id": {
+      "title": "Recording Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.camera_imu_motion_recording/v0.1",
+      "default": "slac.camera_imu_motion_recording/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "time_convention": {
+      "default": "camera and IMU timestamps are on their own clocks; t_imu = t_cam + timeshift_cam_imu",
+      "title": "Time Convention",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recording_id",
+    "camera_name",
+    "camera_orientations",
+    "imu_gyro",
+    "provenance"
+  ],
+  "title": "CameraImuMotionRecording",
+  "type": "object"
+}

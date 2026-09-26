@@ -156,6 +156,10 @@ from calibrex.core.evidence_contract import (
     protocol_json_schema,
 )
 from calibrex.core.exceptions import BenchmarkError, CalibrexError
+from calibrex.core.external_camera_imu_evidence import (
+    camera_imu_motion_recording_json_schema,
+    external_camera_imu_evidence_json_schema,
+)
 from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
@@ -350,6 +354,10 @@ from calibrex.evaluation.empirical_se3_uncertainty import (
     run_empirical_se3_uncertainty,
 )
 from calibrex.evaluation.evidence_summary import evidence_cases_from_result
+from calibrex.evaluation.external_camera_imu import (
+    evaluate_external_camera_imu,
+    write_synthetic_camera_imu_fixture,
+)
 from calibrex.evaluation.kitti_falsification_benchmark import (
     kitti_falsification_json_schema,
     run_kitti_falsification_benchmark,
@@ -646,6 +654,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "lifecycle-verification",
             "lifecycle-status",
             "external-run",
+            "camera-imu-motion-recording",
+            "external-camera-imu-evidence",
             "kitti-falsification",
             "kitti-benchmark-input",
             "koide-pilot",
@@ -2156,6 +2166,45 @@ def _build_parser() -> argparse.ArgumentParser:
     kalibr_import.add_argument("--json", action="store_true")
     kalibr_import.set_defaults(func=_cmd_external_run_import_kalibr)
 
+    camera_imu_evidence = external_run_subcommands.add_parser(
+        "evaluate-camera-imu",
+        help=(
+            "evaluate an imported T_cam_imu/timeshift on a separate recording "
+            "with temporal holdout and signed known-bad controls"
+        ),
+    )
+    camera_imu_evidence.add_argument("external_run", type=Path)
+    camera_imu_evidence.add_argument(
+        "--recording",
+        type=Path,
+        required=True,
+        help="slac.camera_imu_motion_recording/v0.1 not used for external fitting",
+    )
+    camera_imu_evidence.add_argument("--camera", default="cam0")
+    camera_imu_evidence.add_argument("--output", type=Path, required=True)
+    camera_imu_evidence.add_argument("--evaluation-id")
+    camera_imu_evidence.add_argument("--json", action="store_true")
+    camera_imu_evidence.set_defaults(func=_cmd_external_run_evaluate_camera_imu)
+
+    camera_imu_fixture = external_run_subcommands.add_parser(
+        "synthesize-camera-imu-fixture",
+        help="write a nonphysical Kalibr camchain with separate fitting/evaluation recordings",
+    )
+    camera_imu_fixture.add_argument("--output-dir", type=Path, required=True)
+    camera_imu_fixture.add_argument("--seed", type=int, default=20260927)
+    camera_imu_fixture.add_argument(
+        "--rotation-error-deg",
+        type=float,
+        nargs=3,
+        default=(0.0, 0.0, 0.0),
+        metavar=("X", "Y", "Z"),
+        help="rotation-vector error composed onto the true T_cam_imu",
+    )
+    camera_imu_fixture.add_argument("--timeshift-error-sec", type=float, default=0.0)
+    camera_imu_fixture.add_argument("--motion", choices=("full", "yaw_only"), default="full")
+    camera_imu_fixture.add_argument("--json", action="store_true")
+    camera_imu_fixture.set_defaults(func=_cmd_external_run_synthesize_camera_imu_fixture)
+
     koide_import = external_run_subcommands.add_parser(
         "import-koide",
         help="import a Koide direct_visual_lidar_calibration calib.json result",
@@ -2911,6 +2960,8 @@ def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
         "environment-readiness": environment_readiness_json_schema,
         "calibration-ci": calibration_ci_json_schema,
         "external-run": external_run_json_schema,
+        "camera-imu-motion-recording": camera_imu_motion_recording_json_schema,
+        "external-camera-imu-evidence": external_camera_imu_evidence_json_schema,
         "kitti-falsification": kitti_falsification_json_schema,
         "kitti-benchmark-input": kitti_benchmark_input_json_schema,
         "koide-pilot": koide_pilot_json_schema,
@@ -4227,6 +4278,63 @@ def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
         args.json,
     )
     return 0 if artifact.status == "success" else 1
+
+
+def _cmd_external_run_evaluate_camera_imu(args: argparse.Namespace) -> int:
+    if args.output.resolve() in {args.external_run.resolve(), args.recording.resolve()}:
+        _die("evidence output must not overwrite its inputs")
+    command = [
+        "calibrex",
+        "external-run",
+        "evaluate-camera-imu",
+        str(args.external_run),
+        "--recording",
+        str(args.recording),
+        "--camera",
+        str(args.camera),
+        "--output",
+        str(args.output),
+    ]
+    artifact = evaluate_external_camera_imu(
+        args.external_run,
+        args.recording,
+        camera_name=args.camera,
+        evaluation_id=args.evaluation_id,
+        command=command,
+    )
+    artifact.save(args.output)
+    _emit(
+        {
+            "status": artifact.status,
+            "evidence": str(args.output),
+            "holdout_rate_rmse_rad_s": artifact.holdout_rate_rmse_rad_s,
+            "control_detection_fraction": artifact.control_detection_fraction,
+            "reasons": artifact.reasons,
+            "warnings": artifact.warnings,
+        },
+        args.json,
+    )
+    return 0 if artifact.status in {"pass", "warn"} else 1
+
+
+def _cmd_external_run_synthesize_camera_imu_fixture(args: argparse.Namespace) -> int:
+    fixture = write_synthetic_camera_imu_fixture(
+        args.output_dir,
+        seed=args.seed,
+        rotation_error_deg=tuple(args.rotation_error_deg),
+        timeshift_error_sec=args.timeshift_error_sec,
+        motion=args.motion,
+    )
+    _emit(
+        {
+            "camchain": str(fixture.camchain_path),
+            "fitting_recording": str(fixture.fitting_recording_path),
+            "evaluation_recording": str(fixture.evaluation_recording_path),
+            "synthetic": True,
+        },
+        args.json,
+    )
+    return 0
 
 
 def _cmd_external_run_import_koide(args: argparse.Namespace) -> int:
