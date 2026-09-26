@@ -137,6 +137,11 @@ no_implicit_optional = true
 module = ["yaml", "jsonschema"]
 ignore_missing_imports = true
 
+# numba is an optional accelerator without type metadata; it may be absent.
+[[tool.mypy.overrides]]
+module = ["numba", "numba.*"]
+ignore_missing_imports = true
+
 [[tool.mypy.overrides]]
 module = ["numpy", "numpy.*", "lz4", "lz4.*", "zstandard", "zstandard.*"]
 follow_imports = "skip"

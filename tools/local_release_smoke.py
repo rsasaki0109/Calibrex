@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -94,16 +95,7 @@ def main() -> int:
     )
     _run([str(smoke_calibrex), "schema", "all", "--output-dir", str(args.schema_dir)])
     _assert_schema_count(args.schema_dir)
-    _run(
-        [
-            str(smoke_calibrex),
-            "validate",
-            str(CACHED_EVIDENCE_RESULT),
-            "--kind",
-            "result",
-            "--json",
-        ]
-    )
+    _assert_legacy_result_blocked(smoke_calibrex, CACHED_EVIDENCE_RESULT)
     standalone_evidence_path = args.report_dir / "standalone_evidence.json"
     _run(
         [
@@ -338,6 +330,33 @@ def _run(command: list[str], *, allowed_return_codes: set[int] | None = None) ->
     allowed = allowed_return_codes or {0}
     if completed.returncode not in allowed:
         raise subprocess.CalledProcessError(completed.returncode, command)
+
+
+def _assert_legacy_result_blocked(calibrex: Path, result: Path) -> None:
+    """Check that a pre-provenance cached result stays readable but blocked.
+
+    The cached example predates ``slac.result.provenance/v0.1`` and records no
+    command or input digests, so it must not be migrated with invented values.
+    ``validate`` must still parse it as a schema-valid result and report it as
+    not production-admissible.
+    """
+
+    command = [str(calibrex), "validate", str(result), "--kind", "result", "--json"]
+    print("+ " + " ".join(command))
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    try:
+        report = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(
+            f"validate did not emit JSON for {result}: {completed.stdout!r} {completed.stderr!r}"
+        ) from exc
+    if (
+        completed.returncode != 1
+        or report.get("kind") != "result"
+        or report.get("admissibility") != "blocked"
+        or not report.get("provenance_issues")
+    ):
+        raise SystemExit(f"expected legacy result {result} to be readable but blocked: {report}")
 
 
 def _build_python(build_env: Path) -> Path:

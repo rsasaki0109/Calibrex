@@ -784,7 +784,7 @@ def _xyzi_point_count(path: Path) -> int:
     size = path.stat().st_size
     if size == 0 or size % item_size != 0:
         raise ValueError(f"KITTI-360 scan is not packed float32 XYZI: {path}")
-    return size // item_size
+    return int(size // item_size)
 
 
 def _transform_xyzi(points: Float32Array, transform: FloatArray) -> Float32Array:

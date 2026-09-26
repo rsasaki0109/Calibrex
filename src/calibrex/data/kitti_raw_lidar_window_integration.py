@@ -649,7 +649,7 @@ def _xyzi_point_count(path: Path) -> int:
         raise ValueError(f"raw LiDAR scan is empty or missing: {path}")
     if path.stat().st_size % item_size:
         raise ValueError(f"raw LiDAR scan is not float32 XYZI: {path}")
-    return path.stat().st_size // item_size
+    return int(path.stat().st_size // item_size)
 
 
 def _read_xyzi(path: Path) -> Float32Array:

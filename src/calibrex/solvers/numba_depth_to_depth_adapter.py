@@ -13,7 +13,7 @@ from importlib.metadata import version
 from typing import Final, TypeAlias
 
 import numpy as np
-from numba import njit  # type: ignore[import-untyped]
+from numba import njit
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3
