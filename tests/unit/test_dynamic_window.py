@@ -13,6 +13,7 @@ from calibrex.core.result import (
     FrameGraphSnapshot,
     RunInfo,
     TransformResult,
+    build_result_provenance,
 )
 from calibrex.evaluation.dynamic_window import evaluate_dynamic_window_consistency
 
@@ -28,10 +29,16 @@ def _result(
         run=RunInfo(
             id=label,
             slac_version="test",
-            provenance={
-                "rosbag2_capture_window_start_timestamp_ns": start_ns,
-                "rosbag2_capture_window_end_timestamp_ns": start_ns + 60_000_000_000,
-            },
+            provenance=build_result_provenance(
+                producer="calibrex",
+                tool_name="calibrex.dynamic-window-fixture",
+                tool_version="test",
+                command=["pytest", "tests/unit/test_dynamic_window.py"],
+                extra={
+                    "rosbag2_capture_window_start_timestamp_ns": start_ns,
+                    "rosbag2_capture_window_end_timestamp_ns": start_ns + 60_000_000_000,
+                },
+            ),
         ),
         frame_graph=FrameGraphSnapshot(root="livox", frames={"livox": None, "rslidar": "livox"}),
         transforms={
