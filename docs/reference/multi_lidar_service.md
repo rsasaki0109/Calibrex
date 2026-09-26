@@ -20,4 +20,4 @@ Autoware references may be recorded for provenance, but this service never
 applies package or registry mutations.
 
 The synthetic fixture is in
-[`examples/multi_lidar_service/synthetic`](../../examples/multi_lidar_service/synthetic/plan.yaml).
+[`examples/multi_lidar_service/synthetic`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/multi_lidar_service/synthetic/plan.yaml).

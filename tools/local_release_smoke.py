@@ -10,9 +10,10 @@ import sys
 from pathlib import Path
 
 # Keep the clean-wheel smoke aligned with the checked-in schema inventory.
-# ``calibrex schema all`` must reproduce every static schema, including the
-# capture-manifest and MCAP-integrity contracts.
-EXPECTED_SCHEMA_COUNT = 84
+# ``calibrex schema all`` must reproduce exactly the static schema files under
+# ``schemas/``, so the expectation follows the repository instead of a
+# hand-maintained count.
+CHECKED_IN_SCHEMA_DIR = Path("schemas")
 DEFAULT_VENV = Path("/tmp/calibrex-release-smoke")
 DEFAULT_BUILD_ENV = Path("/tmp/calibrex-release-build")
 DEFAULT_SCHEMA_DIR = Path("/tmp/calibrex-release-schemas")
@@ -372,10 +373,17 @@ def _venv_executable(venv: Path, name: str) -> Path:
 
 
 def _assert_schema_count(schema_dir: Path) -> None:
-    count = len(list(schema_dir.glob("*.schema.json")))
-    if count != EXPECTED_SCHEMA_COUNT:
+    expected = {path.name for path in CHECKED_IN_SCHEMA_DIR.glob("*.schema.json")}
+    generated = {path.name for path in schema_dir.glob("*.schema.json")}
+    if not expected:
+        raise SystemExit(f"no checked-in schema files found in {CHECKED_IN_SCHEMA_DIR}")
+    if generated != expected:
+        missing = sorted(expected - generated)
+        extra = sorted(generated - expected)
         raise SystemExit(
-            f"expected {EXPECTED_SCHEMA_COUNT} schema files in {schema_dir}, found {count}"
+            f"schema inventory mismatch in {schema_dir}: expected {len(expected)} files "
+            f"from {CHECKED_IN_SCHEMA_DIR}, found {len(generated)}; "
+            f"missing={missing}, unexpected={extra}"
         )
 
 

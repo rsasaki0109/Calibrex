@@ -20,5 +20,5 @@ is `READY` or `HOLD` with machine-readable reasons. Lifecycle and Autoware
 references are read-only; no package or registry mutation is performed.
 
 The synthetic fixture in
-[`examples/camera_imu_service/synthetic`](../../examples/camera_imu_service/synthetic/README.md)
+[`examples/camera_imu_service/synthetic`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/camera_imu_service/synthetic/README.md)
 is explicitly nonphysical and makes no accuracy claim.
