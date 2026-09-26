@@ -108,7 +108,7 @@ successful or failed Koide result. No multi-GB KITTI archive was downloaded.
 
 ## Synthetic handoff
 
-[`examples/koide_real_pilot/synthetic/koide_real_pilot_handoff.yaml`](../../examples/koide_real_pilot/synthetic/koide_real_pilot_handoff.yaml)
+[`examples/koide_real_pilot/synthetic/koide_real_pilot_handoff.yaml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/koide_real_pilot/synthetic/koide_real_pilot_handoff.yaml)
 is a compact schema-valid request example. It intentionally contains no raw
 data, native output, logs, environment snapshot, or external-run artifact and
 must load as `BLOCKED`. The checked-in fake evidence used by unit tests is

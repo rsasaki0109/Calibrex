@@ -38,7 +38,7 @@ calibrex radar-service verify /tmp/radar-service/evaluation/evaluation.yaml \
   --plan /tmp/radar-service/plan/plan.yaml --json
 ```
 
-The self-contained [synthetic fixture](../../examples/radar_service/synthetic/README.md)
+The self-contained [synthetic fixture](https://github.com/rsasaki0109/Calibrex/blob/main/examples/radar_service/synthetic/README.md)
 is intentionally synthetic, nonphysical, and makes no accuracy claim. It
 uses the existing ROS-independent RadarScan adapter contract; it is only a
 schema/gate smoke fixture.
