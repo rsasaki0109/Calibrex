@@ -195,6 +195,61 @@ the declared frame/time conventions.  Docker/Podman and the ROS 2 Humble or
 Jazzy image remain optional runtime requirements; fake process runners cover
 the contract tests in environments without those tools.
 
+### Kalibr camchain and independent Camera--IMU evidence
+
+`calibrex external-run import-kalibr` converts a Kalibr `camchain-imucam.yaml`
+into a `slac.external_calibration_run/v0.1` artifact without importing or
+running Kalibr. Kalibr's own reprojection and gyro/accelerometer errors stay
+non-comparable. Calibrex re-evaluates the imported `T_cam_imu` and
+`timeshift_cam_imu` separately with
+`calibrex external-run evaluate-camera-imu`, using a recording that Kalibr was
+not fitted on:
+
+```bash
+calibrex external-run import-kalibr camchain-imucam.yaml \
+  --output outputs/kalibr/external-run.json \
+  --input-artifact kalibr-fitting.bag \
+  --tool-version "<kalibr version>" --source-commit "<full commit>" \
+  --training-isolation-declared \
+  --training-isolation-evidence "evaluation recording captured separately"
+calibrex external-run evaluate-camera-imu outputs/kalibr/external-run.json \
+  --recording evaluation-recording.json --camera cam0 \
+  --output outputs/kalibr/camera-imu-evidence.json
+calibrex validate outputs/kalibr/camera-imu-evidence.json
+```
+
+The recording is a `slac.camera_imu_motion_recording/v0.1` artifact holding
+camera orientations `R_world_camera` on the camera clock and body-frame gyro
+samples on the IMU clock. The evaluator checks
+`omega_cam = R_cam_imu (omega_imu + b)`, with gyro samples taken at
+`t_imu = t_cam + timeshift_cam_imu`. It fits only a constant gyro bias `b`,
+and only on the training intervals. It then applies the following gates:
+
+| Gate | Default | Consequence |
+| --- | --- | --- |
+| The external run succeeded, the camera and IMU frames match, and the recording bytes are not a declared fitting input | required | `blocked` |
+| Train/holdout interval counts (holdout is the middle 35–65% of the span, with a guard gap on each side) | ≥ 20 / ≥ 20 | `inconclusive` |
+| Weakest-axis holdout rate excitation, and RMS angular acceleration | ≥ 0.15 rad/s, and ≥ 0.5 rad/s² | `inconclusive` |
+| Holdout angular-rate RMSE | ≤ 0.05 rad/s | `fail` |
+| Signed controls: ±2° about x/y/z and ±10 ms; each must raise holdout RMSE by ≥ 0.005 rad/s and ≥ 1.2× | detection ≥ 0.80 | `fail` |
+| Training isolation declared, time shift declared, and a digest-bound fitting input | required for `pass` | `warn` |
+
+The evidence resolves errors about as large as the control magnitudes. A
+candidate that is wrong by less than 2° or 10 ms can still pass, so tighten the
+control magnitudes before the run if a program needs finer resolution. The
+evaluator uses only rotation and time. It does not evaluate the lever arm
+(`T_cam_imu` translation), which needs accelerometer evidence.
+
+`calibrex external-run synthesize-camera-imu-fixture --output-dir <dir>`
+writes a nonphysical Kalibr camchain with separate fitting and evaluation
+recordings. `--rotation-error-deg X Y Z`, `--timeshift-error-sec`, and
+`--motion yaw_only` produce wrong or unobservable candidates. In the
+regression tests, the true candidate passes with all eight controls detected.
+3° rotation errors and ±20 ms time errors fail, yaw-only motion is
+inconclusive, and reusing the fitting recording is blocked. These results
+prove the external-run contract with a Kalibr producer. They make no accuracy
+claim about Kalibr.
+
 ## License and provenance gate
 
 Release-ready runs pin tool version, source commit, SPDX identifier, adapter

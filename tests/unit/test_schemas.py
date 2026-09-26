@@ -109,6 +109,10 @@ from calibrex.core.evidence_bundle import (
     verify_evidence_bundle,
 )
 from calibrex.core.evidence_contract import policy_json_schema, protocol_json_schema
+from calibrex.core.external_camera_imu_evidence import (
+    camera_imu_motion_recording_json_schema,
+    external_camera_imu_evidence_json_schema,
+)
 from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.koide_handoff import koide_execution_lock_json_schema
 from calibrex.core.koide_readiness import koide_readiness_json_schema
@@ -194,6 +198,8 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "multi_lidar_service_evaluation.schema.json": multi_lidar_service_evaluation_json_schema,
         "camera_imu_service_plan.schema.json": camera_imu_service_plan_json_schema,
         "camera_imu_service_evaluation.schema.json": camera_imu_service_evaluation_json_schema,
+        "camera_imu_motion_recording.schema.json": camera_imu_motion_recording_json_schema,
+        "external_camera_imu_evidence.schema.json": external_camera_imu_evidence_json_schema,
         "radar_service_plan.schema.json": radar_service_plan_json_schema,
         "radar_service_evaluation.schema.json": radar_service_evaluation_json_schema,
         "comparison.schema.json": comparison_json_schema,
