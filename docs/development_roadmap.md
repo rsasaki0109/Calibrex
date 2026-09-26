@@ -1,9 +1,12 @@
 # Development Roadmap
 
 This document is the current development decision for Calibrex as of
-2026-08-19 (updated 2026-08-20). It reconciles the implemented code, the older ADR direction,
-public-data evidence, and relevant research/OSS. It is a planning inventory,
-not a claim that every listed method is production-ready.
+2026-09-27. Earlier revisions were dated 2026-08-19 and 2026-08-20. It
+reconciles the implemented code, the older ADR direction, public-data evidence,
+and relevant research/OSS. It is a planning inventory, not a claim that every
+listed method is production-ready.
+[ADR 0010](adr/0010-v0-5-reconcile-v0-4-and-operational-trust.md) records why
+the v0.4 pillars close and what v0.5 carries forward.
 
 **Strategic direction (2026-08-19):** Calibrex is positioned as a practical
 calibration tool first, and a research evidence framework second.  New work is
@@ -82,7 +85,7 @@ accuracy.
 | Pandey mutual-information Camera-LiDAR | Native CLI backend | Frame holdout, 12 probes, objective curvature | Real A2D2 image/reflectivity run FAILs; inputs are already camera-registered and are not independent accuracy evidence | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Levinson-Thrun online edge Camera-LiDAR | Native CLI backend | Temporal holdout, online window diagnostics, curvature | Two-pair A2D2 run is WARN/INCONCLUSIVE | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Koide-style direct visual-LiDAR | Executable/precomputed adapter | Generic external-run artifact, input readiness, tool identity, result digest, common Camera-LiDAR evidence | Boundary is implemented; no maintained full-scale comparison result | Adapter | Upstream toolbox MIT; ROS/PCL/GTSAM/Ceres remain external |
-| Kalibr Camera-IMU/camera chain | YAML importer | Generic external-run artifact with transforms, intrinsics, time shifts, digests, conventions, and isolation declaration | Import boundary is implemented; no maintained Calibrex comparison result | Adapter | Top-level BSD-4-Clause; ROS/Kalibr runtime stays external |
+| Kalibr Camera-IMU/camera chain | YAML importer plus native evaluator | Generic external-run artifact with transforms, intrinsics, time shifts, digests, conventions, and isolation declaration. Independent evidence (`external-run evaluate-camera-imu`) checks rotation and time shift with an angular-rate holdout, a train-only gyro bias, excitation gates, and eight signed controls, and blocks leakage | Synthetic Kalibr-producer proof only: truth PASS, 3°/20 ms errors FAIL, yaw-only INCONCLUSIVE. No public Kalibr run has been evaluated, and lever arm is not evaluated | Adapter | Top-level BSD-4-Clause; ROS/Kalibr runtime stays external |
 | Per-point Camera-LiDAR capture time | Native solver plus TIERS adapter | Disjoint capture holdout, six time controls, timing observability | Synthetic 17 ms recovery; TIERS real-data result INCONCLUSIVE | Experimental | Core Apache-2.0; TIERS dataset terms |
 | Anchored moving-platform time offset | Native online evidence | Injection controls, adapted/anchored comparison, separability row | TIERS shared-clock/injection evidence; absolute convention is not yet closed | Evidence only | Core Apache-2.0 |
 | LiDAR-IMU rotation consistency | Native evaluator | Angular-rate holdout, gravity support, per-axis excitation, bad-rotation probes | TIERS Indoor02 evidence; no translation/time native solve | Evidence only | Core Apache-2.0 |
@@ -96,29 +99,35 @@ accuracy.
 
 ### Portfolio gaps that matter
 
-1. **Evidence scale:** Camera-LiDAR now has an opt-in full-scale KITTI falsification
-   pair (`@pytest.mark.kitti`): vendor reference PASS and declared known-bad FAIL.
-   Remaining gap: record and publish the result in portfolio/docs as a maintained
-   benchmark artifact, not only an opt-in test.
-2. **Common external execution adoption:** the schema-versioned external-run
-   artifact is implemented and proven by Koide, Kalibr, and iKalibr. Remaining
-   adapters such as RIs-Calib, Open3D, and NDT should migrate incrementally.
+1. **Evidence scale:** Camera-LiDAR has an opt-in full-scale KITTI falsification
+   pair (`@pytest.mark.kitti`), with a vendor reference PASS and a declared
+   known-bad FAIL. The remaining gap is to publish that result as a maintained
+   benchmark artifact, not only as an opt-in test.
+2. **Common external execution adoption:** the external-run artifact is proven
+   by Koide (fail-closed handoff, readiness, and real-pilot finalization),
+   Kalibr (independent Camera--IMU holdout evidence), and iKalibr (import).
+   RIs-Calib, Open3D, and NDT should migrate to it incrementally. Kalibr
+   lever-arm evidence and an evaluated public Kalibr run are still missing.
 3. **Empirical uncertainty:** `slac.empirical_se3_uncertainty/v0.1` is
-   CLI-wired with synthetic and opt-in KITTI ground-truth integration tests.
-   FeatDepth-gated correspondences propagate depth-provider lineage
-   (`build_featdepth_correspondence_from_problem`); remaining gap: publish
-   maintained provider artifacts and portfolio evidence.
-4. **Continuous time:** `ContinuousTimeTrajectoryContract`, SE(3) manifold
-   Jacobians, sparse GN/LM fitter, native LiDAR point-to-plane factors, IMU
-   gyro pre-integration (rotation + shared bias), IMU lever arm, IMU clock
-   offset, and accelerometer bias/gravity are implemented. Sliding-window
-   marginalization with gauge and consistency evidence is implemented.
-5. **Complete LiDAR-IMU solve:** rotation, lever-arm, clock-offset, and
-   accelerometer-bias/gravity evidence exist; native IMU intrinsic estimation
-   does not.
-6. **Lifecycle monitoring:** online adoption gates exist, but there is no
-   schema-defined drift event, incumbent/candidate history, or rollback
-   decision artifact.
+   CLI-wired, with synthetic and opt-in KITTI ground-truth integration tests
+   and FeatDepth-gated correspondences. Maintained provider artifacts and
+   portfolio evidence are still unpublished.
+4. **LiDAR-IMU user path:** every continuous-time IMU factor exists. These are
+   rotation with gyro bias, lever arm, clock offset, accelerometer
+   bias/gravity, diagonal intrinsics, and sliding-window marginalization. Each
+   is only a separate synthetic `recover-*` command, though. No single user
+   command runs them jointly on a real capture.
+5. **Absolute capture time:** `capture_time_reference` exists, but ADR 0008
+   Pillar 3 has no end-to-end acceptance run, and TIERS real-data evidence
+   stays INCONCLUSIVE.
+6. **Lifecycle in CI:** the append-only lifecycle registry and the Calibration
+   CI gate exist separately. Candidate/baseline comparisons from pull requests
+   are not yet recorded as registry events with rollback records.
+7. **Default suite health:** fixed on 2026-09-27. Three legacy result
+   fixtures lacked `run.provenance` and now use `build_result_provenance`. On
+   Windows `core.autocrlf` checkouts, digest-bound JSON fixtures were rewritten
+   to CRLF, which broke their declared SHA-256. `.gitattributes` now pins
+   `*.json` to `eol=lf`.
 
 ## Research and OSS map
 
@@ -158,11 +167,13 @@ workflow without weakening the research priorities below:
    calibration artifacts in pull requests; **done** (`examples/ci/`,
    `action.yml`, `docs/tutorials/calibration_ci.md`);
 3. complete the generic external-run contract and prove it with Koide and
-   Kalibr producers;
+   Kalibr producers; **done** (Koide fail-closed real-pilot handoff;
+   `calibrex external-run evaluate-camera-imu` for Kalibr);
 4. finish the full-scale KITTI falsification benchmark; **done** (opt-in
    `@pytest.mark.kitti` integration test); and
 5. cut an installable release only after clean-wheel, schema-drift, and
-   quickstart checks pass.
+   quickstart checks pass; **deferred** (maintainer decision 2026-09-27: no
+   release for now; readiness is tracked in Next issue 1).
 
 The adoption track reuses the core models and adapters. It must not add ROS,
 GPL, visualization-server, or external-solver dependencies to `src/calibrex`.
@@ -172,22 +183,25 @@ GPL, visualization-server, or external-solver dependencies to `src/calibrex`.
 The three committed P0 issues below are **implemented** (2026-08-20). The next
 tranche focuses on continuous-time factor integration and lifecycle monitoring.
 
-### P1 — Continuous-time foundation — partially implemented
+### P1 — Continuous-time foundation — implemented
 
 `ContinuousTimeTrajectoryContract` (`slac.continuous_time_trajectory/v0.1`),
 SE(3) manifold Jacobians, a sparse GN/LM fitter, native LiDAR point-to-plane
 factors, IMU gyro pre-integration (rotation plus shared gyro bias), IMU
 lever-arm factors, a shared IMU clock offset, accelerometer bias/gravity, and
 sliding-window Schur marginalization against the knot path are implemented and
-CLI-wired.
+CLI-wired. Diagonal IMU intrinsics completed the factor set on 2026-08-20.
 
-### P2 — Native LiDAR-IMU and sliding-window evidence
+### P2 — Native LiDAR-IMU and sliding-window evidence — factors implemented; joint user path open
 
 Build in stages: rotation plus gyro bias, lever arm, clock offset,
 accelerometer bias/gravity, then optional intrinsics. Every stage requires
 disjoint temporal holdout, per-axis excitation, separability diagnostics, and
 injected signed controls. Add marginalization only with explicit gauge and
 consistency evidence.
+
+Every stage now exists as a synthetic recovery with holdout and a signed
+control. What remains is a single joint command on real data (Next issue 2).
 
 ### P3 — Calibration lifecycle
 
@@ -197,9 +211,132 @@ observable window must not update the installed transform.
 
 **Delivered:** `decide_calibration_lifecycle_window()` adoption gates,
 synthetic replay artifact `slac.calibration_lifecycle/v0.1`, CLI
-`calibrex lifecycle simulate`.
+`calibrex lifecycle simulate`. On 2026-08-24 the append-only lifecycle
+registry v0.2 added physical sensor identity, input digests, operator
+provenance, and a hash-chained event log.
 
-## Completed since last roadmap revision (2026-08-19)
+## Completed since the 2026-08-20 revision
+
+- **Operational trust platform** (2026-08-24) — capture manifest intake
+  adapters (`calibrex capture inspect`); digest-bound raw calibration replay
+  (`calibrex replay`); the append-only lifecycle registry
+  (`calibrex lifecycle`); multi-LiDAR, camera--IMU, and radar
+  service-replacement gates with READY/HOLD decisions; `radar_msgs/RadarScan`
+  intake; and hardened Autoware promotion and smoke gates. See
+  [operational KPIs](reference/operational_kpis.md).
+- **Fail-closed Koide real-pilot handoff** — `koide-real-plan`,
+  `koide-real-verify`, and `koide-real-finalize` never start Docker, ROS, or
+  Koide, and cannot make an official claim from synthetic evidence. The
+  checked-in A2D2 pilot is intentionally `BLOCKED`.
+- **Required result provenance** (2026-08-25) — `slac.result.provenance/v0.1`
+  on every pipeline result, enforced by `CalibrationResult.save()` and
+  `calibrex validate --kind result`
+  ([result provenance](reference/result_provenance.md)).
+- **Independent Camera--IMU evidence for external runs** (2026-09-27) —
+  `calibrex external-run evaluate-camera-imu` evaluates an imported
+  `T_cam_imu` and `timeshift_cam_imu` on a separate
+  `slac.camera_imu_motion_recording/v0.1`, producing
+  `slac.external_camera_imu_evidence/v0.1`. It uses a middle-block holdout
+  with guard gaps, a train-only gyro bias, excitation gates, and eight signed
+  rotation/time controls. It blocks a recording that matches a fitting input.
+  `calibrex external-run synthesize-camera-imu-fixture` provides the
+  nonphysical Kalibr-producer proof
+  ([external adapters](reference/external_adapters.md)).
+
+## Next implementation issues
+
+Revised 2026-09-27 and ordered by the practical-tool criterion. Each issue
+names the portfolio gap it closes. Large public datasets stay outside the
+repository and are read from environment-variable paths by opt-in tests.
+
+### 1. Release readiness (the release itself is deferred)
+
+**Gap:** adoption track item 5.
+
+**Outcome:** the tree stays release-ready so that a GitHub Release wheel can
+be cut later without catch-up work. As of 2026-09-27, the maintainer has
+decided not to cut a release for now.
+
+**Acceptance conditions:**
+
+- The default test suite (`-m "not kitti"`) is green on Linux and on a Windows
+  `core.autocrlf` checkout. **Done** on 2026-09-27 (portfolio gap 7).
+- The clean-wheel install smoke, the schema-drift test
+  (`test_static_schema_files_match_generated_schemas`), and the quickstart in
+  `docs/tutorials/your_own_data.md` pass from the built wheel.
+- When a release is decided, the CHANGELOG `Unreleased` section is
+  consolidated under the new version and ADR 0010 is accepted.
+
+### 2. Joint LiDAR-IMU calibration command
+
+**Gap:** portfolio gap 4.
+
+**Outcome:** `calibrex lidar-imu calibrate` runs rotation, gyro bias, lever
+arm, clock offset, and accelerometer bias/gravity jointly on the knot path from
+a real capture, and reports per-parameter holdout and signed controls in one
+schema-valid artifact.
+
+**Acceptance conditions:**
+
+- Synthetic joint recovery meets the budgets of the individual `recover-*`
+  commands, each parameter keeps its signed control, and parameter
+  separability is reported.
+- An opt-in real-data run on the existing TIERS Indoor02 capture reports
+  honestly (PASS, WARN, FAIL, or INCONCLUSIVE) without retuned gates. It needs
+  no new download.
+
+### 3. Lifecycle registry events from Calibration CI
+
+**Gap:** portfolio gap 6.
+
+**Outcome:** a Calibration CI comparison can append a candidate/adoption or
+rollback event to a lifecycle registry, bound to the CI artifact digests.
+
+**Acceptance conditions:**
+
+- An example workflow and an integration test cover adopt, hold, and rollback
+  paths, and a weakly observable candidate never mutates the head.
+- There is no in-place overwrite, and registry verification stays green after
+  every path.
+
+### 4. Absolute capture-time acceptance (ADR 0008 Pillar 3)
+
+**Gap:** portfolio gap 5.
+
+**Outcome:** an end-to-end demonstration that message time and capture time
+converge under the declared `capture_time_reference`.
+
+**Acceptance conditions:**
+
+- A synthetic shared-clock selftest puts the anchored baseline within ±10 ms,
+  and the injection differential stays exact.
+- The TIERS real-data result is re-reported under the declared convention,
+  whatever its status.
+
+### 5. Kalibr lever-arm evidence and a public Kalibr run
+
+**Gap:** portfolio gap 2.
+
+**Outcome:** extend the external Camera--IMU evidence with
+accelerometer-based `T_cam_imu` translation checks and signed lever-arm
+controls, then evaluate one public Kalibr camchain on a separately captured
+recording.
+
+**Acceptance conditions:**
+
+- The synthetic truth passes and a ±5 cm lever-arm error fails.
+- The public run is opt-in, reports honestly, and records the dataset license
+  boundary. Its data live outside the repository.
+
+### 6. Planar-board line+plane CLI wiring
+
+**Gap:** the Research row "Planar-board line+plane".
+
+**Outcome:** a CLI backend that uses an adapter-side edge extractor, with the
+shared capture split and 12 probes, evaluated on the ACFR planar-board data
+already used by the plane and point+plane rows.
+
+## Completed in the 2026-08-20 revision (2026-08-19 baseline)
 
 - **`slac.environment_readiness/v0.1` for `calibrex doctor`** — schema-valid
   artifact with Python/Calibrex/optional dependency versions, dataset path
@@ -271,10 +408,10 @@ synthetic replay artifact `slac.calibration_lifecycle/v0.1`, CLI
   with README, action output contract test, artifact upload in CI smoke, and
   links from `calibration_ci.md` / `your_own_data.md`.
 
-## Next implementation issues
+## Implementation issues from the 2026-08-19 revision (all implemented)
 
-Ordered by the practical-tool criterion: user-facing friction first, then
-evidence depth.
+These were ordered by the practical-tool criterion: user-facing friction first,
+then evidence depth.
 
 ### 1. Reusable Calibration CI GitHub Action for pull requests — implemented
 
