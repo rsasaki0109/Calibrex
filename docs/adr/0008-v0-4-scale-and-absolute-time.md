@@ -2,7 +2,8 @@
 
 ## Status
 
-Proposed.
+Proposed. Reconciled by [ADR 0010](0010-v0-5-reconcile-v0-4-and-operational-trust.md):
+Pillars 1 and 2 are closed as protocol work, and Pillar 3 carries forward.
 
 ## Context
 
