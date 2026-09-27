@@ -3,6 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("PIL")
+
 import tools.run_midas_kitti360_provider as provider
 
 from calibrex.data.remote_archive_selection import (
