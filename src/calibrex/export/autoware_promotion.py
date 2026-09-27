@@ -1875,8 +1875,9 @@ def _assert_safe_path(root: Path, path: Path, *, allow_missing: bool) -> None:
                 f"symlink path is not permitted in promotion scope: {path}"
             )
         try:
-            attributes = current.stat().st_file_attributes
-        except (AttributeError, OSError):
+            # st_file_attributes exists only on Windows (reparse-point check).
+            attributes: int = getattr(current.stat(), "st_file_attributes", 0)
+        except OSError:
             attributes = 0
         if attributes & 0x400:
             raise AutowarePromotionError(
@@ -2002,8 +2003,9 @@ def _assert_no_link_components(path: Path) -> None:
                 f"symlink paths are not permitted for promotion evidence: {path}"
             )
         try:
-            attributes = current.stat().st_file_attributes
-        except (AttributeError, OSError):
+            # st_file_attributes exists only on Windows (reparse-point check).
+            attributes: int = getattr(current.stat(), "st_file_attributes", 0)
+        except OSError:
             attributes = 0
         if attributes & 0x400:
             raise AutowarePromotionError(
