@@ -146,9 +146,11 @@ def test_remote_archive_selection_verifies_local_file_integrity(
     missing.unlink()
 
     issues = verify_remote_archive_selection_files(artifact, base_path=tmp_path)
+    # The verifier echoes the declared local_path, which this fixture stores
+    # with the platform separator.
     assert issues == [
-        "digest_mismatch:member:image:0000000000:image\\0000000000.png",
-        "missing:member:pointcloud:0000000010:pointcloud\\0000000010.bin",
+        f"digest_mismatch:member:image:0000000000:{Path('image') / '0000000000.png'}",
+        f"missing:member:pointcloud:0000000010:{Path('pointcloud') / '0000000010.bin'}",
     ]
 
 
