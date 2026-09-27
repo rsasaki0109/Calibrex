@@ -5,9 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from tools.run_superglue_correspondence_provider import (
-    _verify_lidar_integration_binding,
-)
 
 from calibrex.core.provenance import sha256_path
 from calibrex.core.validation import validate_file
@@ -192,6 +189,13 @@ def test_integrates_raw_window_with_motion_pose_neighbors(tmp_path: Path) -> Non
         load_kitti_raw_lidar_window_integration(manifest).output_set_sha256
         == artifact.output_set_sha256
     )
+    # The provider-side binding check lives in an OpenCV tool; the Calibrex
+    # integration assertions above run without it.
+    pytest.importorskip("cv2")
+    from tools.run_superglue_correspondence_provider import (
+        _verify_lidar_integration_binding,
+    )
+
     _verify_lidar_integration_binding(
         manifest,
         lidar_directory=output_directory,

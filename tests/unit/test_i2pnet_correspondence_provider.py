@@ -5,6 +5,9 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+
+pytest.importorskip("cv2")
+
 from tools import run_i2pnet_correspondence_provider as provider
 
 from calibrex.core.result import TransformEstimateProvenance, TransformResult

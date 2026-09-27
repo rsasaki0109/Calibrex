@@ -4,6 +4,9 @@ from hashlib import sha256
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("cv2")
+
 from tools import run_i2pnet_pose_benchmark as benchmark
 
 from calibrex.core.camera_lidar_artifacts import (

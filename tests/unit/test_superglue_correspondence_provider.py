@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+
+pytest.importorskip("cv2")
+
 import tools.run_superglue_correspondence_provider as provider
 
 
