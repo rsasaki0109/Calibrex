@@ -1,0 +1,451 @@
+{
+  "$defs": {
+    "ImuLidarKnownBadControl": {
+      "additionalProperties": false,
+      "description": "Held-out chi-square increase after shifting one quantity.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_delta_chi2": {
+          "title": "Holdout Delta Chi2",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "s"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "holdout_delta_chi2",
+        "detected"
+      ],
+      "title": "ImuLidarKnownBadControl",
+      "type": "object"
+    },
+    "ImuLidarRotationDofRecord": {
+      "additionalProperties": false,
+      "description": "One estimated quantity with its uncertainty and evidence.",
+      "properties": {
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImuLidarKnownBadControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "time_offset",
+            "gyro_bias_x",
+            "gyro_bias_y",
+            "gyro_bias_z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_analytic": {
+          "minimum": 0.0,
+          "title": "Std Analytic",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "s",
+            "rad/s"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "std_analytic",
+        "std_reported",
+        "status"
+      ],
+      "title": "ImuLidarRotationDofRecord",
+      "type": "object"
+    },
+    "ImuLidarRotationProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        },
+        "stream_profile": {
+          "title": "Stream Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "stream_profile",
+        "input_sha256",
+        "input_digest_scope",
+        "dataset_license"
+      ],
+      "title": "ImuLidarRotationProvenance",
+      "type": "object"
+    },
+    "ImuLidarWindowSummary": {
+      "additionalProperties": false,
+      "description": "How the LiDAR stream was cut into windows and rate intervals.",
+      "properties": {
+        "imu_samples": {
+          "minimum": 0,
+          "title": "Imu Samples",
+          "type": "integer"
+        },
+        "odometry_segments": {
+          "minimum": 0,
+          "title": "Odometry Segments",
+          "type": "integer"
+        },
+        "rate_intervals": {
+          "minimum": 0,
+          "title": "Rate Intervals",
+          "type": "integer"
+        },
+        "scans_read": {
+          "minimum": 0,
+          "title": "Scans Read",
+          "type": "integer"
+        },
+        "unreliable_registrations": {
+          "minimum": 0,
+          "title": "Unreliable Registrations",
+          "type": "integer"
+        },
+        "windows": {
+          "minimum": 0,
+          "title": "Windows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scans_read",
+        "odometry_segments",
+        "unreliable_registrations",
+        "windows",
+        "rate_intervals",
+        "imu_samples"
+      ],
+      "title": "ImuLidarWindowSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one IMU-LiDAR rotation calibration run.",
+  "properties": {
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "roll",
+          "pitch",
+          "yaw",
+          "time_offset",
+          "gyro_bias_x",
+          "gyro_bias_y",
+          "gyro_bias_z"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "dofs": {
+      "items": {
+        "$ref": "#/$defs/ImuLidarRotationDofRecord"
+      },
+      "title": "Dofs",
+      "type": "array"
+    },
+    "gyro_bias_rps": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Gyro Bias Rps",
+      "type": "array"
+    },
+    "holdout_median_rate_residual_rps": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Median Rate Residual Rps"
+    },
+    "holdout_windows": {
+      "minimum": 0,
+      "title": "Holdout Windows",
+      "type": "integer"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "angular_rate_alignment/v0.1",
+      "default": "angular_rate_alignment/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ImuLidarRotationProvenance"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "rotation_quat_xyzw": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rotation Quat Xyzw"
+    },
+    "schema_version": {
+      "const": "slac.imu_lidar_rotation/v0.1",
+      "default": "slac.imu_lidar_rotation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "insufficient_intervals"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "time_offset_s": {
+      "title": "Time Offset S",
+      "type": "number"
+    },
+    "train_median_rate_residual_rps": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Train Median Rate Residual Rps"
+    },
+    "train_windows": {
+      "minimum": 0,
+      "title": "Train Windows",
+      "type": "integer"
+    },
+    "windows": {
+      "$ref": "#/$defs/ImuLidarWindowSummary"
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "time_offset_s",
+    "gyro_bias_rps",
+    "dofs",
+    "options",
+    "windows",
+    "train_windows",
+    "holdout_windows",
+    "jackknife_fits",
+    "provenance"
+  ],
+  "title": "ImuLidarRotationArtifact",
+  "type": "object"
+}

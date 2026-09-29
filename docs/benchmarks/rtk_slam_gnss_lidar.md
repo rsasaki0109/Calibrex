@@ -17,36 +17,37 @@ combines the IMU position from the MID360 manual with the CAD antenna offset
 from `calib.yaml`. It is used only for this comparison, and it is not
 metrology. The clock offset follows `t_gnss = t_lidar + dt`.
 
-**`stadtgarten_seq1`: `inconclusive`** (89 windows from 8518 RTK-fixed scans)
+Both sequences are `inconclusive`: the horizontal lever arm is calibrated,
+z is not, and neither determines the clock offset. Sweeps are
+motion-compensated (see below).
 
-| Quantity | Status | Estimate | Reported std | CAD reference | Difference | Held-out control |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| x | estimated | 7.2 cm | 0.6 cm | 3.4 cm | +3.8 cm | 5 cm detected (Δχ² 528) |
-| y | estimated | 0.4 cm | 0.45 cm | 0.0 cm | +0.4 cm | 5 cm detected (Δχ² 435) |
-| z | unobservable | 6.1 cm | 1.3 cm | 4.6 cm | +1.5 cm | 5 cm detected (Δχ² 57) |
-| clock offset | estimated | 43.7 ms | 1.2 ms | — | — | 20 ms detected (Δχ² 51) |
+| Quantity | seq1 (89 windows) | seq2 (38 windows) | CAD reference |
+| --- | --- | --- | ---: |
+| x | **5.1 ± 0.7 cm**, estimated | **5.2 ± 1.0 cm**, estimated | 3.4 cm |
+| y | -1.3 ± 0.9 cm, estimated | -0.2 ± 0.5 cm, estimated | 0.0 cm |
+| z | 7.6 ± 1.3 cm, unobservable | 4.2 ± 4.0 cm, unobservable | 4.6 cm |
+| clock offset | -6.6 ± 9.2 ms, unobservable | -23.8 ± 12 ms, unobservable | — |
 
-**`stadtgarten_seq2`: `warn`** (37 windows from 3462 RTK-fixed scans)
-
-- The lever arm stays unobservable (reported std 1.6-1.9 cm).
-- The clock offset is 40.3 ± 4.2 ms, but held-out windows do not detect a
-  20 ms shift. The artifact therefore warns rather than claims it.
-
-In both sequences the held-out median displacement residual (2.2-2.9 cm)
-matches the training residual. That is about the RTK noise level.
+Every 5 cm lever-arm control is detected on held-out windows in both
+sequences (Δχ² 33-278). The held-out median displacement residual
+(2.7-2.8 cm) matches the training residual, which is about the RTK noise
+level.
 
 ### Reading the results
 
-- **The clock offset agrees across sequences** (43.7 and 40.3 ms).
-- **y agrees with the CAD reference to 0.4 cm**, within its uncertainty.
-- **x disagrees with the CAD reference by 3.8 cm (6.6 σ).** The data cannot
-  tell whether the reference or the estimate is off. Antenna phase centres
-  are poorly defined by CAD, and the MID360 sweeps are registered without
-  motion compensation, which could act like a lever arm under fast rotation.
-  Until an independent measurement settles it, treat x as a tension rather
-  than as a calibrated value.
-- **z needs more rotation about horizontal axes.** Only seq1 provides enough
-  to bring z near the 1 cm observability threshold.
+- **The two sequences agree on x (5.1 and 5.2 cm).** Both sit about 1.7 cm
+  from the CAD value (1.8-2.4 σ), in the same direction. Antenna phase
+  centres are poorly defined by CAD, so a consistent offset of this size is
+  plausible. Until an independent measurement settles it, treat the CAD
+  difference as a tension to resolve, not as an error in either value.
+- **y agrees with the CAD reference** in both sequences (within 1.4 σ).
+- **z needs more rotation about horizontal axes** than either walk provides.
+- **Motion compensation mattered.** Without it (the first version of this
+  page, PR #69), seq1 gave x = 7.2 ± 0.6 cm, 6.6 σ from CAD, and both
+  sequences reported a ~42 ms clock offset. That offset was an artefact:
+  undeskewed sweeps are stamped at the start of the sweep, but their geometry
+  sits mid-sweep, about 50 ms later. With deskewing the offset is
+  indistinguishable from zero.
 
 ## Method
 
@@ -54,9 +55,11 @@ matches the training residual. That is about the RTK noise level.
    is read once. LiDAR odometry runs only while RTK-fixed epochs cover the
    scans, restarts after every gap, and is cut at unreliable registrations
    and into 10-second windows.
-2. **Scan-to-local-map odometry.** Each Livox scan is registered to the union
-   of the last five scans. Against RTK, this cut the one-second distance error
-   from 7.3 cm (scan to scan) to 2.2 cm.
+2. **Motion-compensated scan-to-local-map odometry.** Each Livox sweep is
+   deskewed from per-point `offset_time` under a constant-velocity model and
+   registered to the union of the last five scans. Against RTK, the
+   one-second distance error fell from 7.3 cm (scan to scan) to 2.2 cm with
+   the local map, and then to 1.5 cm with deskewing.
 3. **Variable projection.** For a trial lever arm and clock offset, each
    window's ENU alignment is the closed-form weighted Procrustes rotation.
    The robust outer fit therefore has four unknowns, and its covariance
@@ -97,7 +100,7 @@ calibrex gnss-lidar rtk-slam \
 
 ## Limitations
 
-- MID360 sweeps are not motion-compensated.
+- Deskewing assumes constant velocity within a sweep.
 - Only RTK-fixed epochs are used: 54 % of seq1 and 40 % of seq2.
 - LiDAR odometry has no gravity or heading. The per-window ENU alignment is
   estimated, which removes any information such an alignment would carry.

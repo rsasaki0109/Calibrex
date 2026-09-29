@@ -1,0 +1,149 @@
+schema_version: slac.imu_lidar_rotation/v0.1
+method: angular_rate_alignment/v0.1
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data, so not calibrated: roll, pitch, yaw'
+calibrated_dofs:
+- time_offset
+- gyro_bias_x
+- gyro_bias_y
+- gyro_bias_z
+rotation_quat_xyzw:
+- -0.0041485190910546445
+- -0.0003709020388887125
+- 0.004114467643164315
+- 0.9999828615416577
+time_offset_s: -0.00048182926234344295
+gyro_bias_rps:
+- 0.0017322978160199027
+- -0.0008547915606105603
+- 0.002974618606095215
+dofs:
+- name: roll
+  unit: deg
+  value: -0.47555757633277196
+  std_analytic: 0.09275283592158315
+  std_jackknife: 0.10981534008008557
+  std_reported: 0.10981534008008557
+  status: unobservable
+  reference_value: 0.0
+  error_to_reference: -0.47555757633277196
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 108.50046954985828
+    detected: true
+- name: pitch
+  unit: deg
+  value: -0.0405455605306799
+  std_analytic: 0.0962934905732277
+  std_jackknife: 0.34478372303731597
+  std_reported: 0.34478372303731597
+  status: unobservable
+  reference_value: 0.0
+  error_to_reference: -0.0405455605306799
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 155.6232040256382
+    detected: true
+- name: yaw
+  unit: deg
+  value: 0.47165694773376765
+  std_analytic: 0.2690943591796255
+  std_jackknife: 0.28353155125007096
+  std_reported: 0.28353155125007096
+  status: unobservable
+  reference_value: 0.0
+  error_to_reference: 0.47165694773376765
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 1.4731790046716924
+    detected: false
+- name: time_offset
+  unit: s
+  value: -0.00048182926234344295
+  std_analytic: 0.00015970398840068058
+  std_jackknife: 0.0016768937987335418
+  std_reported: 0.0016768937987335418
+  status: estimated
+  known_bad_control:
+    amount: 0.01
+    unit: s
+    holdout_delta_chi2: 148.6029957335959
+    detected: true
+- name: gyro_bias_x
+  unit: rad/s
+  value: 0.0017322978160199027
+  std_analytic: 7.577284569107746e-05
+  std_jackknife: 0.0009060716691539046
+  std_reported: 0.0009060716691539046
+  status: estimated
+- name: gyro_bias_y
+  unit: rad/s
+  value: -0.0008547915606105603
+  std_analytic: 7.685627065880458e-05
+  std_jackknife: 0.00011080816564452768
+  std_reported: 0.00011080816564452768
+  status: estimated
+- name: gyro_bias_z
+  unit: rad/s
+  value: 0.002974618606095215
+  std_analytic: 7.215646462912153e-05
+  std_jackknife: 0.00015892186368400514
+  std_reported: 0.00015892186368400514
+  status: estimated
+options:
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  time_control_s: 0.01
+  detection_delta_chi2: 9.0
+  window_duration_s: 10.0
+  local_map_scans: 5
+  deskew_iterations: 1
+  rate_sigma_floor_rps: 0.01
+  rate_sigma_fraction: 0.02
+  observable_rotation_std_deg: 0.1
+  observable_time_offset_std_s: 0.002
+windows:
+  scans_read: 2772
+  odometry_segments: 1
+  unreliable_registrations: 0
+  windows: 28
+  rate_intervals: 2740
+  imu_samples: 55435
+train_windows: 19
+holdout_windows: 9
+jackknife_fits: 8
+train_median_rate_residual_rps: 0.005490891738355031
+holdout_median_rate_residual_rps: 0.00547265050802588
+reference: 'Livox MID360 manual: IMU axes aligned with the LiDAR frame'
+limitations:
+- The reference rotation is the MID360 design value (IMU axes aligned with the LiDAR);
+  it is not a measurement.
+- Mean angular rates over one LiDAR period approximate the rotation increment; the
+  second-order error grows with the rotation per period.
+- The translation of T_lidar_imu is not estimated by this method.
+provenance:
+  generator: calibrex.evaluation.imu_lidar_rotation
+  generator_version: 0.4.1
+  git_commit: b9858c1
+  command:
+  - calibrex
+  - imu-lidar
+  - livox
+  - --profile
+  - livox-ros-driver2
+  - rosbag2_2024_04_16-14_17_01
+  dataset_family: zenodo_driving_slam_mid360
+  sequence_ids:
+  - rosbag2_2024_04_16-14_17_01
+  stream_profile: livox-ros-driver2
+  input_sha256: 5eaed7e0bd95243510e5847b3ebaf11d9198eeb33ce5f7f945ad8475628006ff
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: CC BY 4.0 (Zenodo record 14841855)
+  created_at: '2026-09-29T12:23:23.626416+00:00'

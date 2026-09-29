@@ -207,6 +207,10 @@ from calibrex.core.gnss_lidar_lever_arm import (
     GnssLidarLeverArmArtifact,
     gnss_lidar_lever_arm_json_schema,
 )
+from calibrex.core.imu_lidar_rotation import (
+    ImuLidarRotationArtifact,
+    imu_lidar_rotation_json_schema,
+)
 from calibrex.core.ins_lidar_hand_eye import (
     InsLidarHandEyeArtifact,
     ins_lidar_hand_eye_json_schema,
@@ -803,6 +807,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry(
         "gnss-lidar-lever-arm", GnssLidarLeverArmArtifact, gnss_lidar_lever_arm_json_schema
     ),
+    _entry("imu-lidar-rotation", ImuLidarRotationArtifact, imu_lidar_rotation_json_schema),
     _entry("ins-lidar-hand-eye", InsLidarHandEyeArtifact, ins_lidar_hand_eye_json_schema),
     _entry("sota-audit-protocol", SotaAuditProtocol, sota_audit_protocol_json_schema),
     _entry("sota-audit-result", SotaAuditResult, sota_audit_result_json_schema),

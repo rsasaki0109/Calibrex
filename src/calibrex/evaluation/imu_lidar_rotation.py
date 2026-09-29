@@ -1,0 +1,435 @@
+"""Evaluate the IMU-LiDAR rotation, clock offset, and gyro bias on held-out windows.
+
+LiDAR odometry windows (see :mod:`calibrex.evaluation.odometry_windows`) give
+mean angular rates between consecutive scans; the gyro gives the same rates.
+Every third window is held out of the fit; an 8-group window jackknife sets
+the reported std when it is larger than the analytic one; each estimated
+rotation axis and the clock offset are shifted by a known-bad amount that the
+held-out chi-square must detect; and a design reference (for example the
+MID360 manual) is compared only after the fit.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import math
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Literal, TypeAlias
+
+import numpy as np
+from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation
+
+from calibrex import __version__
+from calibrex.core.imu_lidar_rotation import (
+    ImuLidarKnownBadControl,
+    ImuLidarPolicyStatus,
+    ImuLidarRotationArtifact,
+    ImuLidarRotationDofRecord,
+    ImuLidarRotationProvenance,
+    ImuLidarWindowSummary,
+)
+from calibrex.core.provenance import git_commit
+from calibrex.data.livox_ros2 import (
+    LIVOX_PROFILES,
+    MID360_T_LIDAR_IMU,
+    ImuSamples,
+    bag_input_digest,
+    iter_livox_points,
+    load_livox_imu,
+)
+from calibrex.evaluation.odometry_windows import (
+    OdometrySegmenter,
+    WindowingOptions,
+    collect_odometry_windows,
+)
+from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
+from calibrex.solvers.imu_lidar_rotation_solver import (
+    ROTATION_DOFS,
+    GyroSeries,
+    ImuLidarRotationSolver,
+    RateIntervals,
+    RotationOptions,
+    RotationResult,
+    rate_intervals,
+    rate_residuals,
+)
+
+FloatArray: TypeAlias = NDArray[np.float64]
+_UNITS: dict[str, Literal["deg", "s", "rad/s"]] = {
+    "roll": "deg",
+    "pitch": "deg",
+    "yaw": "deg",
+    "time_offset": "s",
+    "gyro_bias_x": "rad/s",
+    "gyro_bias_y": "rad/s",
+    "gyro_bias_z": "rad/s",
+}
+MID360_LIMITATIONS: tuple[str, ...] = (
+    "The reference rotation is the MID360 design value (IMU axes aligned with the "
+    "LiDAR); it is not a measurement.",
+    "Mean angular rates over one LiDAR period approximate the rotation increment; "
+    "the second-order error grows with the rotation per period.",
+    "The translation of T_lidar_imu is not estimated by this method.",
+)
+
+
+@dataclass(frozen=True)
+class ImuLidarRunOptions:
+    """Holdout, jackknife, controls, windowing, and solver settings."""
+
+    holdout_every: int = 3
+    jackknife_groups: int = 8
+    rotation_control_deg: float = 1.0
+    time_control_s: float = 0.01
+    detection_delta_chi2: float = 9.0
+    coverage_margin_s: float = 0.2
+    windowing: WindowingOptions = field(default_factory=WindowingOptions)
+    solver: RotationOptions = field(default_factory=RotationOptions)
+
+
+@dataclass(frozen=True)
+class ImuLidarEvaluation:
+    """Dataset-independent evaluation output."""
+
+    result: RotationResult
+    records: tuple[ImuLidarRotationDofRecord, ...]
+    train_windows: int
+    holdout_windows: int
+    jackknife_fits: int
+    train_median_rps: float | None
+    holdout_median_rps: float | None
+    interval_count: int
+    policy_status: ImuLidarPolicyStatus
+    policy_reasons: tuple[str, ...]
+
+
+def evaluate_imu_lidar_rotation(
+    gyro: GyroSeries,
+    windows: Sequence[OdometryWindow],
+    options: ImuLidarRunOptions | None = None,
+    *,
+    reference_rotation: FloatArray | None = None,
+) -> ImuLidarEvaluation:
+    """Fit on train windows; collect jackknife, control, and holdout evidence."""
+
+    opts = options or ImuLidarRunOptions()
+    intervals = rate_intervals(windows, gyro, opts.solver)
+    positions = np.arange(len(windows))
+    holdout_ids = positions[positions % opts.holdout_every == 1]
+    train_ids = positions[positions % opts.holdout_every != 1]
+    train = intervals.subset(np.isin(intervals.window_ids, train_ids))
+    holdout = intervals.subset(np.isin(intervals.window_ids, holdout_ids))
+    solver = ImuLidarRotationSolver()
+    result = solver.solve(gyro, train, opts.solver)
+    if result.status != "converged" or result.rotation is None:
+        return ImuLidarEvaluation(
+            result, (), len(train_ids), len(holdout_ids), 0, None, None, len(intervals),
+            "fail", ("too few LiDAR rate intervals with gyro coverage to solve",),
+        )  # fmt: skip
+    jackknife, fits = _jackknife(solver, gyro, train, train_ids, opts)
+    reference = _reference_values(reference_rotation)
+    records = tuple(
+        _record(dof.name, jackknife.get(dof.name), result, gyro, holdout, reference, opts)
+        for dof in result.dofs
+    )
+    train_median = _median_rate_residual(gyro, train, result, opts)
+    holdout_median = _median_rate_residual(gyro, holdout, result, opts)
+    status, reasons = _policy(records, train_median, holdout_median, len(holdout))
+    return ImuLidarEvaluation(
+        result=result,
+        records=records,
+        train_windows=len(train_ids),
+        holdout_windows=len(holdout_ids),
+        jackknife_fits=fits,
+        train_median_rps=train_median,
+        holdout_median_rps=holdout_median,
+        interval_count=len(intervals),
+        policy_status=status,
+        policy_reasons=reasons,
+    )
+
+
+def run_livox_imu_lidar_rotation(
+    bags: Sequence[str | Path],
+    profile: str,
+    options: ImuLidarRunOptions | None = None,
+    *,
+    dataset_family: str,
+    dataset_license: str,
+    reference_rotation: FloatArray | None = MID360_T_LIDAR_IMU[:3, :3],
+    max_scans: int | None = None,
+    command: list[str] | None = None,
+) -> ImuLidarRotationArtifact:
+    """Run odometry and the rotation evaluation on Livox ROS 2 bags of one rig."""
+
+    opts = options or ImuLidarRunOptions()
+    if not bags:
+        raise ValueError("at least one bag is required")
+    stream = LIVOX_PROFILES[profile]
+    samples = [load_livox_imu(bag, stream) for bag in bags]
+    imu = _concatenate(samples)
+    gyro = GyroSeries(imu.times_s, imu.gyro_rps)
+    margin = opts.coverage_margin_s
+
+    def covers(time_s: float) -> bool:
+        return gyro.covers(time_s - margin, time_s + margin)
+
+    segmenter: OdometrySegmenter | None = None
+    for bag in bags:
+        segmenter = collect_odometry_windows(
+            iter_livox_points(bag, stream),
+            opts.windowing,
+            covers=covers,
+            prefix=f"{Path(bag).name}/",
+            max_scans=max_scans,
+            into=segmenter,
+        )
+    assert segmenter is not None
+    evaluation = evaluate_imu_lidar_rotation(
+        gyro, segmenter.windows, opts, reference_rotation=reference_rotation
+    )
+    digest, scope = bag_input_digest(bags)
+    result = evaluation.result
+    return ImuLidarRotationArtifact(
+        solver_status=result.status,
+        policy_status=evaluation.policy_status,
+        policy_reasons=list(evaluation.policy_reasons),
+        calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
+        rotation_quat_xyzw=None
+        if result.rotation is None
+        else [float(value) for value in Rotation.from_matrix(result.rotation).as_quat()],
+        time_offset_s=result.time_offset_s,
+        gyro_bias_rps=[float(value) for value in result.gyro_bias_rps],
+        dofs=list(evaluation.records),
+        options={
+            "holdout_every": opts.holdout_every,
+            "jackknife_groups": opts.jackknife_groups,
+            "rotation_control_deg": opts.rotation_control_deg,
+            "time_control_s": opts.time_control_s,
+            "detection_delta_chi2": opts.detection_delta_chi2,
+            "window_duration_s": opts.windowing.window_duration_s,
+            "local_map_scans": opts.windowing.odometry.local_map_scans,
+            "deskew_iterations": opts.windowing.odometry.deskew_iterations,
+            "rate_sigma_floor_rps": opts.solver.rate_sigma_floor_rps,
+            "rate_sigma_fraction": opts.solver.rate_sigma_fraction,
+            "observable_rotation_std_deg": opts.solver.observable_rotation_std_deg,
+            "observable_time_offset_std_s": opts.solver.observable_time_offset_std_s,
+        },
+        windows=ImuLidarWindowSummary(
+            scans_read=segmenter.scans_read,
+            odometry_segments=segmenter.segments,
+            unreliable_registrations=segmenter.unreliable,
+            windows=len(segmenter.windows),
+            rate_intervals=evaluation.interval_count,
+            imu_samples=len(imu.times_s),
+        ),
+        train_windows=evaluation.train_windows,
+        holdout_windows=evaluation.holdout_windows,
+        jackknife_fits=evaluation.jackknife_fits,
+        train_median_rate_residual_rps=evaluation.train_median_rps,
+        holdout_median_rate_residual_rps=evaluation.holdout_median_rps,
+        reference=None
+        if reference_rotation is None
+        else "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
+        limitations=list(MID360_LIMITATIONS),
+        provenance=ImuLidarRotationProvenance(
+            generator=__name__,
+            generator_version=__version__,
+            git_commit=git_commit(),
+            command=command or [],
+            dataset_family=dataset_family,
+            sequence_ids=[Path(bag).name for bag in bags],
+            stream_profile=profile,
+            input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
+            input_digest_scope=scope,
+            dataset_license=dataset_license,
+        ),
+    )
+
+
+def _concatenate(samples: Sequence[ImuSamples]) -> ImuSamples:
+    times = np.concatenate([item.times_s for item in samples])
+    order = np.argsort(times)
+    times = times[order]
+    keep = np.r_[True, np.diff(times) > 0.0]
+    return ImuSamples(
+        times_s=times[keep],
+        gyro_rps=np.concatenate([item.gyro_rps for item in samples])[order][keep],
+        accel_mps2=np.concatenate([item.accel_mps2 for item in samples])[order][keep],
+    )
+
+
+def _jackknife(
+    solver: ImuLidarRotationSolver,
+    gyro: GyroSeries,
+    train: RateIntervals,
+    train_ids: NDArray[np.int64],
+    opts: ImuLidarRunOptions,
+) -> tuple[dict[str, float], int]:
+    groups = min(opts.jackknife_groups, len(train_ids))
+    if groups < 3:
+        return {}, 0
+    samples: dict[str, list[float]] = {name: [] for name in ROTATION_DOFS}
+    for members in np.array_split(train_ids, groups):
+        fit = solver.solve(gyro, train.subset(~np.isin(train.window_ids, members)), opts.solver)
+        if fit.status != "converged":
+            return {}, 0
+        for dof in fit.dofs:
+            samples[dof.name].append(dof.value)
+    spread: dict[str, float] = {}
+    for name, values in samples.items():
+        if len(values) == groups:
+            array = np.array(values)
+            spread[name] = float(
+                math.sqrt((groups - 1) / groups * np.sum((array - array.mean()) ** 2))
+            )
+    return spread, groups
+
+
+def _reference_values(rotation: FloatArray | None) -> dict[str, float]:
+    if rotation is None:
+        return {}
+    roll, pitch, yaw = Rotation.from_matrix(rotation).as_euler("xyz")
+    return {"roll": float(roll), "pitch": float(pitch), "yaw": float(yaw)}
+
+
+def _record(
+    name: str,
+    jackknife: float | None,
+    result: RotationResult,
+    gyro: GyroSeries,
+    holdout: RateIntervals,
+    reference: dict[str, float],
+    opts: ImuLidarRunOptions,
+) -> ImuLidarRotationDofRecord:
+    dof = result.dof(name)  # type: ignore[arg-type]
+    convert = math.degrees if _UNITS[name] == "deg" else (lambda value: value)
+    reported = max(dof.std, jackknife or 0.0)
+    threshold = {
+        "deg": math.radians(opts.solver.observable_rotation_std_deg),
+        "s": opts.solver.observable_time_offset_std_s,
+        "rad/s": opts.solver.observable_gyro_bias_std_rps,
+    }[_UNITS[name]]
+    reference_value = reference.get(name)
+    error = None
+    if reference_value is not None:
+        difference = dof.value - reference_value
+        error = convert(math.atan2(math.sin(difference), math.cos(difference)))
+    return ImuLidarRotationDofRecord(
+        name=dof.name,
+        unit=_UNITS[name],
+        value=convert(dof.value),
+        std_analytic=convert(dof.std),
+        std_jackknife=None if jackknife is None else convert(jackknife),
+        std_reported=convert(reported),
+        status="estimated" if reported <= threshold else "unobservable",
+        reference_value=None if reference_value is None else convert(reference_value),
+        error_to_reference=error,
+        known_bad_control=_control(name, result, gyro, holdout, opts),
+    )
+
+
+def _control(
+    name: str,
+    result: RotationResult,
+    gyro: GyroSeries,
+    holdout: RateIntervals,
+    opts: ImuLidarRunOptions,
+) -> ImuLidarKnownBadControl | None:
+    if result.rotation is None or len(holdout) < 20 or name.startswith("gyro_bias"):
+        return None
+    rotation = result.rotation
+    offset = result.time_offset_s
+    if name == "time_offset":
+        amount, unit = opts.time_control_s, "s"
+        moved_rotation, moved_offset = rotation, offset + amount
+    else:
+        amount, unit = opts.rotation_control_deg, "deg"
+        axis = np.zeros(3)
+        axis["xyz".index({"roll": "x", "pitch": "y", "yaw": "z"}[name])] = math.radians(amount)
+        moved_rotation = Rotation.from_rotvec(axis).as_matrix() @ rotation
+        moved_offset = offset
+    baseline = _chi2(gyro, holdout, rotation, offset, result, opts)
+    moved = _chi2(gyro, holdout, moved_rotation, moved_offset, result, opts)
+    delta = moved - baseline
+    return ImuLidarKnownBadControl(
+        amount=amount,
+        unit=unit,  # type: ignore[arg-type]
+        holdout_delta_chi2=float(delta),
+        detected=bool(delta >= opts.detection_delta_chi2),
+    )
+
+
+def _chi2(
+    gyro: GyroSeries,
+    intervals: RateIntervals,
+    rotation: FloatArray,
+    offset: float,
+    result: RotationResult,
+    opts: ImuLidarRunOptions,
+) -> float:
+    residuals = rate_residuals(gyro, intervals, rotation, result.gyro_bias_rps, offset, opts.solver)
+    variance = result.variance_factor or 1.0
+    return float(np.sum(np.minimum(residuals**2 / variance, 25.0)))
+
+
+def _median_rate_residual(
+    gyro: GyroSeries,
+    intervals: RateIntervals,
+    result: RotationResult,
+    opts: ImuLidarRunOptions,
+) -> float | None:
+    if len(intervals) == 0 or result.rotation is None:
+        return None
+    errors = rate_residuals(
+        gyro,
+        intervals,
+        result.rotation,
+        result.gyro_bias_rps,
+        result.time_offset_s,
+        opts.solver,
+        normalize=False,
+    ).reshape(-1, 3)
+    return float(np.median(np.linalg.norm(errors, axis=1)))
+
+
+def _policy(
+    records: Sequence[ImuLidarRotationDofRecord],
+    train_median: float | None,
+    holdout_median: float | None,
+    holdout_intervals: int,
+) -> tuple[ImuLidarPolicyStatus, tuple[str, ...]]:
+    if holdout_intervals < 20 or holdout_median is None:
+        return "inconclusive", ("too few held-out rate intervals; holdout evidence is missing",)
+    failures: list[str] = []
+    warnings: list[str] = []
+    if train_median is not None and holdout_median > max(3.0 * train_median, 0.05):
+        failures.append(
+            f"held-out median rate residual {holdout_median:.4f} rad/s exceeds three times "
+            f"the training residual {train_median:.4f} rad/s"
+        )
+    for record in records:
+        control = record.known_bad_control
+        if record.status == "estimated" and control is not None and not control.detected:
+            warnings.append(
+                f"{record.name} is reported as estimated but a known-bad {control.amount:g} "
+                f"{control.unit} shift is not detected on held-out windows "
+                f"(delta chi-square {control.holdout_delta_chi2:.1f})"
+            )
+    unobservable = [record.name for record in records if record.status == "unobservable"]
+    notes = (
+        ["not constrained by the data, so not calibrated: " + ", ".join(unobservable)]
+        if unobservable
+        else []
+    )
+    if failures:
+        return "fail", tuple(failures + warnings + notes)
+    if warnings:
+        return "warn", tuple(warnings + notes)
+    if any(name in {"roll", "pitch", "yaw"} for name in unobservable):
+        return "inconclusive", tuple(notes)
+    reasons = ["every rotation axis is estimated and held-out windows detect every control"]
+    return "pass", tuple(reasons + notes)

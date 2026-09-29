@@ -144,13 +144,27 @@ def livox_scan_count(bag_dir: str | Path, topic: str = "/livox/points") -> int:
 
 
 def iter_livox_scans(
-    bag_dir: str | Path, topic: str = "/livox/points"
-) -> Iterator[tuple[float, FloatArray]]:
-    """Yield ``(header time in seconds, (N, 3) points)`` in bag order."""
+    bag_dir: str | Path,
+    topic: str = "/livox/points",
+    *,
+    point_time_field: str | None = "offset_time",
+) -> Iterator[tuple[float, FloatArray, FloatArray | None]]:
+    """Yield ``(header time s, (N, 3) points, per-point offsets s or None)``.
+
+    Livox ``offset_time`` gives each point's capture time after the header
+    stamp, which lets odometry compensate motion within a sweep.
+    """
 
     for _, timestamp_ns, payload in iter_messages(bag_dir, topics={topic}):
-        cloud = ros_cdr.decode_ros2_pointcloud2(topic, timestamp_ns, payload)
-        yield cloud.timestamp_ns * 1.0e-9, np.asarray(cloud.xyz, dtype=np.float64)
+        cloud = ros_cdr.decode_ros2_pointcloud2(
+            topic, timestamp_ns, payload, point_time_field=point_time_field
+        )
+        offsets = cloud.point_time_offsets_s
+        yield (
+            cloud.timestamp_ns * 1.0e-9,
+            np.asarray(cloud.xyz, dtype=np.float64),
+            None if offsets is None else np.asarray(offsets, dtype=np.float64),
+        )
 
 
 def rtk_slam_input_digest(

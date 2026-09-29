@@ -1,0 +1,140 @@
+"""Livox LiDAR scans and built-in IMU samples from ROS 2 bags, without ROS.
+
+Livox drivers and recordings disagree on conventions, so a
+:class:`LivoxStreamProfile` states them explicitly per dataset:
+
+* the per-point time field and whether it holds an offset after the header
+  stamp (seconds) or an absolute time (nanoseconds); and
+* whether the IMU reports acceleration in m/s^2 or in g.
+
+The MID360 manual places the built-in IMU at (11.0, 23.29, -44.12) mm in the
+LiDAR frame with axes aligned to it; :data:`MID360_T_LIDAR_IMU` encodes that
+design value as a reference, not a measurement.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal, TypeAlias
+
+import numpy as np
+from numpy.typing import NDArray
+
+from calibrex.data import ros_cdr
+from calibrex.data.rosbag2 import iter_messages
+
+FloatArray: TypeAlias = NDArray[np.float64]
+STANDARD_GRAVITY_MPS2 = 9.80665
+
+MID360_T_LIDAR_IMU: FloatArray = np.array(
+    [
+        [1.0, 0.0, 0.0, 0.011],
+        [0.0, 1.0, 0.0, 0.02329],
+        [0.0, 0.0, 1.0, -0.04412],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+)
+
+
+@dataclass(frozen=True)
+class LivoxStreamProfile:
+    """Topic names and unit conventions of one Livox recording."""
+
+    name: str
+    point_topic: str
+    imu_topic: str
+    point_time_field: str | None
+    point_time_encoding: Literal["offset_s", "absolute_ns"]
+    acceleration_unit: Literal["mps2", "g"]
+
+
+LIVOX_PROFILES: dict[str, LivoxStreamProfile] = {
+    "rtk-slam": LivoxStreamProfile(
+        name="rtk-slam",
+        point_topic="/livox/points",
+        imu_topic="/livox/imu",
+        point_time_field="offset_time",
+        point_time_encoding="offset_s",
+        acceleration_unit="mps2",
+    ),
+    "livox-ros-driver2": LivoxStreamProfile(
+        name="livox-ros-driver2",
+        point_topic="/livox/lidar",
+        imu_topic="/livox/imu",
+        point_time_field="timestamp",
+        point_time_encoding="absolute_ns",
+        acceleration_unit="g",
+    ),
+}
+
+
+@dataclass(frozen=True)
+class ImuSamples:
+    """Time-sorted IMU samples: seconds, rad/s, m/s^2."""
+
+    times_s: FloatArray
+    gyro_rps: FloatArray
+    accel_mps2: FloatArray
+
+
+def iter_livox_points(
+    bag_dir: str | Path, profile: LivoxStreamProfile
+) -> Iterator[tuple[float, FloatArray, FloatArray | None]]:
+    """Yield ``(header time s, (N, 3) points, per-point offsets s or None)``."""
+
+    for _, timestamp_ns, payload in iter_messages(bag_dir, topics={profile.point_topic}):
+        cloud = ros_cdr.decode_ros2_pointcloud2(
+            profile.point_topic,
+            timestamp_ns,
+            payload,
+            point_time_field=profile.point_time_field,
+        )
+        offsets = cloud.point_time_offsets_s
+        if offsets is not None:
+            raw = np.asarray(offsets, dtype=np.float64)
+            if profile.point_time_encoding == "absolute_ns":
+                offsets = (raw - float(cloud.timestamp_ns)) * 1.0e-9
+            else:
+                offsets = raw
+        yield cloud.timestamp_ns * 1.0e-9, np.asarray(cloud.xyz, dtype=np.float64), offsets
+
+
+def load_livox_imu(bag_dir: str | Path, profile: LivoxStreamProfile) -> ImuSamples:
+    """Read every IMU sample of a bag into SI units."""
+
+    times: list[float] = []
+    gyro: list[tuple[float, float, float]] = []
+    accel: list[tuple[float, float, float]] = []
+    for _, timestamp_ns, payload in iter_messages(bag_dir, topics={profile.imu_topic}):
+        message = ros_cdr.decode_ros2_imu(profile.imu_topic, timestamp_ns, payload)
+        times.append(message.timestamp_ns * 1.0e-9)
+        gyro.append(message.angular_velocity)
+        accel.append(message.linear_acceleration)
+    if len(times) < 2:
+        raise ValueError(f"{bag_dir} has fewer than two IMU samples on {profile.imu_topic}")
+    order = np.argsort(times)
+    scale = STANDARD_GRAVITY_MPS2 if profile.acceleration_unit == "g" else 1.0
+    return ImuSamples(
+        times_s=np.asarray(times, dtype=np.float64)[order],
+        gyro_rps=np.asarray(gyro, dtype=np.float64)[order],
+        accel_mps2=np.asarray(accel, dtype=np.float64)[order] * scale,
+    )
+
+
+def bag_input_digest(bag_dirs: Sequence[str | Path]) -> tuple[str, str]:
+    """Digest ROS 2 bags by full metadata plus each database's size and first 64 MiB."""
+
+    digest = hashlib.sha256()
+    for bag_dir in bag_dirs:
+        root = Path(bag_dir)
+        digest.update(root.name.encode("utf-8"))
+        digest.update((root / "metadata.yaml").read_bytes())
+        for database in sorted(root.glob("*.db3")) + sorted(root.glob("*.mcap")):
+            digest.update(database.name.encode("utf-8"))
+            digest.update(str(database.stat().st_size).encode("ascii"))
+            with database.open("rb") as stream:
+                digest.update(stream.read(64 << 20))
+    return digest.hexdigest(), "bag metadata.yaml in full; bag databases by size and first 64 MiB"

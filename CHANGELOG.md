@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Added IMU-LiDAR rotation, clock-offset, and gyro-bias evidence
+  (`slac.imu_lidar_rotation/v0.1`, `calibrex imu-lidar livox`).
+  - Mean LiDAR odometry rates between consecutive scans are aligned with
+    interval means of the gyro (a cumulative integral, so evaluation is
+    vectorized).
+  - A Procrustes initialization handles arbitrary mountings.
+  - Yaw-only vehicle motion leaves yaw unobservable, and the artifact reports
+    it as such.
+  - Livox ROS 2 bags are read without ROS through explicit stream profiles:
+    point-time field and encoding (offset seconds or absolute nanoseconds)
+    and acceleration units (m/s^2 or g). The MID360 design `T_lidar_imu` is
+    the reference.
+- LiDAR odometry can motion-compensate each sweep from per-point capture
+  times under a constant-velocity model, re-registering once with the refined
+  motion. On RTK-SLAM MID360 data the one-second distance error against RTK
+  drops from 1.94 cm to 1.53 cm (p90 5.89 cm to 3.95 cm).
+  The RTK-SLAM GNSS-LiDAR results were re-run with deskewing:
+  - x now agrees across both sequences (5.1 and 5.2 cm).
+  - The ~42 ms clock offset reported before was an artefact of undeskewed
+    sweeps: they are stamped at sweep start, but their geometry sits
+    mid-sweep.
+- Odometry windowing for multi-sensor evaluations moved to
+  `calibrex.evaluation.odometry_windows`.
 - Added GNSS antenna lever-arm and clock-offset evidence against LiDAR
   odometry (`slac.gnss_lidar_lever_arm/v0.1`, `calibrex gnss-lidar rtk-slam`)
   with an RTK-SLAM dataset reader (RTK `rtk.txt`, Livox rosbag2 scans, CAD

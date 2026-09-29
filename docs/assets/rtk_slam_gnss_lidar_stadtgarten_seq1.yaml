@@ -3,71 +3,70 @@ method: windowed_variable_projection/v0.1
 solver_status: converged
 policy_status: inconclusive
 policy_reasons:
-- 'not constrained by the data, so not calibrated: z'
+- 'not constrained by the data, so not calibrated: z, time_offset'
 calibrated_dofs:
 - x
 - y
-- time_offset
 lever_arm_frame: lidar
 lever_arm_m:
-- 0.07165585305624857
-- 0.004224656868058866
-- 0.06090165936411587
-time_offset_s: 0.043704726809227185
+- 0.050597244267651095
+- -0.012514949162103604
+- 0.07555845478206626
+time_offset_s: -0.006619438785666401
 dofs:
 - name: x
   unit: m
-  value: 0.07165585305624857
-  std_analytic: 0.002992244461608486
-  std_jackknife: 0.005709137150439496
-  std_reported: 0.005709137150439496
+  value: 0.050597244267651095
+  std_analytic: 0.003038568040316463
+  std_jackknife: 0.007049435987555465
+  std_reported: 0.007049435987555465
   status: estimated
   reference_value: 0.034
-  error_to_reference: 0.037655853056248564
+  error_to_reference: 0.016597244267651093
   known_bad_control:
     amount: 0.05
     unit: m
-    holdout_delta_chi2: 527.9435813311666
+    holdout_delta_chi2: 247.98827869006618
     detected: true
 - name: y
   unit: m
-  value: 0.004224656868058866
-  std_analytic: 0.0021302763622354014
-  std_jackknife: 0.004456973697013921
-  std_reported: 0.004456973697013921
+  value: -0.012514949162103604
+  std_analytic: 0.0020535732536978496
+  std_jackknife: 0.008824384903320298
+  std_reported: 0.008824384903320298
   status: estimated
   reference_value: 0.0
-  error_to_reference: 0.004224656868058866
+  error_to_reference: -0.012514949162103604
   known_bad_control:
     amount: 0.05
     unit: m
-    holdout_delta_chi2: 434.78157839909454
+    holdout_delta_chi2: 278.2935229224131
     detected: true
 - name: z
   unit: m
-  value: 0.06090165936411587
-  std_analytic: 0.004960503487553332
-  std_jackknife: 0.013452372328825095
-  std_reported: 0.013452372328825095
+  value: 0.07555845478206626
+  std_analytic: 0.005076523913694681
+  std_jackknife: 0.012646981992429359
+  std_reported: 0.012646981992429359
   status: unobservable
   reference_value: 0.046
-  error_to_reference: 0.014901659364115874
+  error_to_reference: 0.029558454782066257
   known_bad_control:
     amount: 0.05
     unit: m
-    holdout_delta_chi2: 56.5171929978078
+    holdout_delta_chi2: 130.1704586316282
     detected: true
 - name: time_offset
   unit: s
-  value: 0.043704726809227185
-  std_analytic: 0.0007618898352153323
-  std_jackknife: 0.0012053985141417534
-  std_reported: 0.0012053985141417534
-  status: estimated
+  value: -0.006619438785666401
+  std_analytic: 0.0009523614119814888
+  std_jackknife: 0.009154401536998258
+  std_reported: 0.009154401536998258
+  status: unobservable
   known_bad_control:
     amount: 0.02
     unit: s
-    holdout_delta_chi2: 51.41869615406722
+    holdout_delta_chi2: 231.65965083638912
     detected: true
 options:
   window_duration_s: 10.0
@@ -90,15 +89,15 @@ segments:
   scans_read: 15795
   scans_in_gnss_coverage: 8518
   odometry_segments: 11
-  unreliable_registrations: 3
+  unreliable_registrations: 2
   windows: 89
   gnss_epochs_used: 8720
   gnss_epochs_rejected: 7308
 train_windows: 59
 holdout_windows: 30
 jackknife_fits: 8
-holdout_median_residual_m: 0.028775824763776388
-train_median_residual_m: 0.02738487350592781
+holdout_median_residual_m: 0.028228868706289302
+train_median_residual_m: 0.029040192538051672
 reference: 'calib.yaml: MID360 manual IMU position + CAD GNSS antenna offset'
 limitations:
 - The reference lever arm combines the MID360 manual IMU position with a CAD antenna
@@ -112,7 +111,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.gnss_lidar_lever_arm
   generator_version: 0.4.1
-  git_commit: 181d3cb
+  git_commit: b9858c1
   command:
   - calibrex
   - gnss-lidar
@@ -125,4 +124,4 @@ provenance:
   input_digest_scope: rtk.txt, calib.yaml, and metadata.yaml in full; bag databases
     by size and first 64 MiB
   dataset_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
-  created_at: '2026-09-29T11:43:30.903816+00:00'
+  created_at: '2026-09-29T12:37:18.195711+00:00'
