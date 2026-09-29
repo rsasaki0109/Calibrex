@@ -1,0 +1,532 @@
+{
+  "$defs": {
+    "ImuLidarRotationInput": {
+      "additionalProperties": false,
+      "description": "The calibrated rotation, clock offset, and gyro bias the lever arm builds on.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "gyro_bias_rps": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Gyro Bias Rps",
+          "type": "array"
+        },
+        "policy_status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "time_offset_s": {
+          "title": "Time Offset S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "policy_status",
+        "rotation_quat_xyzw",
+        "time_offset_s",
+        "gyro_bias_rps"
+      ],
+      "title": "ImuLidarRotationInput",
+      "type": "object"
+    },
+    "ImuLidarSegmentFit": {
+      "additionalProperties": false,
+      "description": "The lever arm refit with another segment duration.",
+      "properties": {
+        "segment_duration_s": {
+          "exclusiveMinimum": 0.0,
+          "title": "Segment Duration S",
+          "type": "number"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segment_duration_s",
+        "translation_m"
+      ],
+      "title": "ImuLidarSegmentFit",
+      "type": "object"
+    },
+    "ImuLidarTranslationAxisRecord": {
+      "additionalProperties": false,
+      "description": "One lever-arm axis with its uncertainty and evidence.",
+      "properties": {
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImuLidarTranslationControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_analytic": {
+          "minimum": 0.0,
+          "title": "Std Analytic",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "std_segment_sensitivity": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest change of this axis when the fit is repeated with other segment durations; it bounds modelling error that the jackknife cannot see.",
+          "title": "Std Segment Sensitivity"
+        },
+        "unit": {
+          "const": "m",
+          "default": "m",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value",
+        "std_analytic",
+        "std_reported",
+        "status"
+      ],
+      "title": "ImuLidarTranslationAxisRecord",
+      "type": "object"
+    },
+    "ImuLidarTranslationControl": {
+      "additionalProperties": false,
+      "description": "Held-out chi-square increase after shifting one axis of the lever arm.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_delta_chi2": {
+          "title": "Holdout Delta Chi2",
+          "type": "number"
+        },
+        "unit": {
+          "const": "m",
+          "default": "m",
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "holdout_delta_chi2",
+        "detected"
+      ],
+      "title": "ImuLidarTranslationControl",
+      "type": "object"
+    },
+    "ImuLidarTranslationProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        },
+        "stream_profile": {
+          "title": "Stream Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "stream_profile",
+        "input_sha256",
+        "input_digest_scope",
+        "dataset_license"
+      ],
+      "title": "ImuLidarTranslationProvenance",
+      "type": "object"
+    },
+    "ImuLidarTranslationWindows": {
+      "additionalProperties": false,
+      "description": "How the odometry and IMU were cut into windows and segments.",
+      "properties": {
+        "imu_samples": {
+          "minimum": 0,
+          "title": "Imu Samples",
+          "type": "integer"
+        },
+        "scan_rows": {
+          "minimum": 0,
+          "title": "Scan Rows",
+          "type": "integer"
+        },
+        "segments": {
+          "minimum": 0,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "windows": {
+          "minimum": 0,
+          "title": "Windows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "windows",
+        "segments",
+        "scan_rows",
+        "imu_samples"
+      ],
+      "title": "ImuLidarTranslationWindows",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one IMU-LiDAR lever-arm calibration run.",
+  "properties": {
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/ImuLidarTranslationAxisRecord"
+      },
+      "title": "Axes",
+      "type": "array"
+    },
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "x",
+          "y",
+          "z"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "gravity_norm_median_mps2": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Median norm of the per-window gravity fit; a unit or scale sanity check.",
+      "title": "Gravity Norm Median Mps2"
+    },
+    "holdout_median_position_residual_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Median Position Residual M"
+    },
+    "holdout_windows": {
+      "minimum": 0,
+      "title": "Holdout Windows",
+      "type": "integer"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "accelerometer_lever_arm/v0.1",
+      "default": "accelerometer_lever_arm/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ImuLidarTranslationProvenance"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "rotation_input": {
+      "$ref": "#/$defs/ImuLidarRotationInput"
+    },
+    "schema_version": {
+      "const": "slac.imu_lidar_translation/v0.1",
+      "default": "slac.imu_lidar_translation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segment_sensitivity": {
+      "items": {
+        "$ref": "#/$defs/ImuLidarSegmentFit"
+      },
+      "title": "Segment Sensitivity",
+      "type": "array"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "insufficient_segments"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "train_median_position_residual_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Train Median Position Residual M"
+    },
+    "train_windows": {
+      "minimum": 0,
+      "title": "Train Windows",
+      "type": "integer"
+    },
+    "translation_m": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Translation M"
+    },
+    "windows": {
+      "$ref": "#/$defs/ImuLidarTranslationWindows"
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "rotation_input",
+    "axes",
+    "options",
+    "windows",
+    "train_windows",
+    "holdout_windows",
+    "jackknife_fits",
+    "provenance"
+  ],
+  "title": "ImuLidarTranslationArtifact",
+  "type": "object"
+}

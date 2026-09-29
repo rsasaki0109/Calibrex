@@ -1,10 +1,17 @@
-# MID360 IMU-LiDAR Rotation
+# MID360 IMU-LiDAR Calibration
 
 This page reports Calibrex's native calibration of the Livox MID360 built-in
-IMU against LiDAR odometry. The run estimates the rotation of `T_lidar_imu`,
-the clock offset (`t_imu = t_lidar + dt`), and the gyro bias. The reference is
-the MID360 design value: IMU axes aligned with the LiDAR. It is used only for
-this comparison, and it is not a measurement.
+IMU against LiDAR odometry.
+
+- The rotation run estimates the rotation of `T_lidar_imu`, the clock offset
+  (`t_imu = t_lidar + dt`), and the gyro bias.
+- A second run estimates the translation (the IMU lever arm) from the
+  accelerometer; see
+  [Translation (IMU lever arm)](#translation-imu-lever-arm).
+
+The reference is the MID360 design value: IMU axes aligned with the LiDAR,
+with the IMU at (11.0, 23.29, -44.12) mm. It is used only for comparison, and
+it is not a measurement.
 
 Two recordings from two dataset families are used:
 
@@ -145,6 +152,90 @@ What this claim does **not** say:
 - LI-Init also estimates translation; this claim covers only rotation and
   clock offset.
 
+## Translation (IMU lever arm)
+
+`calibrex imu-lidar livox-translation` estimates the translation of
+`T_lidar_imu` (the IMU origin in the LiDAR frame) from the accelerometer. It
+builds on a rotation artifact, whose rotation, clock offset, and gyro bias it
+takes as given. The digest of that artifact is recorded.
+
+```bash
+calibrex imu-lidar livox-translation BAG_DIR --profile rtk-slam \
+  --rotation seq2.yaml \
+  --dataset-family rtk_slam --dataset-license "see the RTK-SLAM dataset page" \
+  --output seq2-translation.yaml
+```
+
+**Model.** The IMU follows the LiDAR odometry as
+`p_imu = p_lidar + R_odom_lidar t`. Over 2-second segments, the double
+integral of the gyro-rotated accelerometer must match that motion. The fit
+has the following unknowns:
+
+- the lever arm `t`, shared by every window;
+- gravity and the accelerometer bias, one per 10-second window;
+- a start velocity per segment.
+
+The system is linear. The window nuisances are projected out, and a Huber
+IRLS fits the 3x3 system for `t`. Two modelling choices come from the
+real-data diagnosis:
+
+- **Averaged start orientation.** The double-integrated gravity is metres
+  long over a segment, so a 0.05 deg error in a single scan's orientation
+  moves `t` by centimetres. The start orientation is therefore the chordal
+  mean of the orientation implied by every scan of the segment.
+- **Per-window accelerometer bias.** With one bias for the whole 15 minutes,
+  the fit depended more strongly on the segment duration, and the residual
+  grew. Both point to bias drift.
+
+**Uncertainty.** The reported std of each axis is the largest of three:
+
+- the analytic std;
+- a window jackknife;
+- the **segment sensitivity**: the largest change when the fit is repeated
+  with 1 s and 4 s segments.
+
+The segment sensitivity is included because the estimate still moves with the
+segment duration by more than the jackknife spread. That is modelling error,
+possibly odometry errors correlated with motion, which resampling windows
+cannot reveal. An axis is `estimated` only if its reported std is ≤ 10 mm.
+Held-out windows must detect a 20 mm shift of each axis.
+
+| RTK-SLAM seq2 (hand-held): `pass` | x | y | z |
+| --- | ---: | ---: | ---: |
+| estimate | 21.3 mm | 24.3 mm | -38.5 mm |
+| reported std (analytic / jackknife / segment) | 6.1 (0.7 / 4.0 / 6.1) mm | 5.2 (0.6 / 1.4 / 5.2) mm | 5.3 (1.1 / 5.3 / 4.2) mm |
+| MID360 design value | 11.0 mm | 23.29 mm | -44.12 mm |
+| difference to design | +10.3 mm | +1.0 mm | +5.6 mm |
+| 20 mm held-out control | detected (Δχ² 668) | detected (Δχ² 677) | detected (Δχ² 181) |
+
+- Every axis is within 1.7 reported std of the design value.
+- The median held-out position residual is 5.6 mm (training 4.9 mm).
+- The median fitted gravity norm is 9.79 m/s².
+- The segment refits are (27.3, 22.1, -38.4) mm at 1 s and
+  (15.9, 29.4, -42.7) mm at 4 s.
+
+[Artifact](../assets/mid360_imu_lidar_translation_rtk_slam_seq2.yaml).
+
+**Driving (vehicle): `inconclusive`.** Every axis is unobservable, with
+reported std of 97-155 mm. A vehicle barely rolls or pitches, so the
+accelerometer bias along the vertical and gravity cannot be told apart. The
+lever arm sees rotation almost only about the vertical axis. The fitted
+gravity norm of 9.11 m/s² is that degeneracy, not a unit error.
+[Artifact](../assets/mid360_imu_lidar_translation_driving_slam.yaml).
+
+**Other lever arms on the same held-out windows** (descriptive, not an
+audited claim). With the Calibrex rotation and nuisances refit, the held-out
+chi-square rises as follows:
+
+| Lever arm | Held-out Δχ² |
+| --- | ---: |
+| MID360 design value | 66 |
+| LI-Init refined `T_lidar_imu` translation (-2.5, -24.6, -103.5) mm | 4668 |
+
+The LI-Init value was seen while the method was being developed, so no SOTA
+claim is made for translation. Such a claim needs a pre-registered protocol
+on a recording whose scores have not been looked at.
+
 ## Method
 
 1. **Odometry.** Scan-to-local-map point-to-plane LiDAR odometry runs on
@@ -180,8 +271,10 @@ calibrex imu-lidar livox BAG_DIR --profile rtk-slam \
 ## Limitations
 
 - The design reference is not a measurement.
-- The translation of `T_lidar_imu` is not estimated. It needs the
-  accelerometer and a full LiDAR-inertial model.
+- The translation is estimated only on the hand-held recording. Its
+  uncertainty is dominated by segment-duration sensitivity, and x sits 10 mm
+  (1.7 std) from the design value. Accelerometer scale and axis misalignment
+  are not modelled.
 - Gyro deskewing makes the LiDAR odometry depend on the IMU. The feedback
   ratio quantifies this dependence but does not remove it.
 - The external baseline is a single tool (LI-Init). The

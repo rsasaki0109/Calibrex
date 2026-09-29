@@ -9,7 +9,7 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 As of 2026-09-30, **one pair has a supported SOTA claim: `imu-lidar`.**
 The claim is rotation and clock offset of the Livox MID360 built-in IMU,
 against LI-Init, on two recordings from two dataset families. See
-[MID360 IMU-LiDAR Rotation](mid360_imu_lidar.md#comparison-with-li-init) for
+[MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md#comparison-with-li-init) for
 its scope and what it does not claim. Every other target pair is `no_claim`.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
