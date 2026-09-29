@@ -14,9 +14,9 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -53,9 +53,11 @@ from calibrex.solvers.imu_lidar_rotation_solver import (
     RateIntervals,
     RotationOptions,
     RotationResult,
+    gyro_rotation_model,
+    model_residuals,
     rate_intervals,
-    rate_residuals,
 )
+from calibrex.solvers.scan_to_scan_odometry import RotationModel
 
 FloatArray: TypeAlias = NDArray[np.float64]
 _UNITS: dict[str, Literal["deg", "s", "rad/s"]] = {
@@ -86,6 +88,9 @@ class ImuLidarRunOptions:
     time_control_s: float = 0.01
     detection_delta_chi2: float = 9.0
     coverage_margin_s: float = 0.2
+    gyro_deskew_passes: int = 5
+    deskew_convergence_sigma: float = 0.25
+    feedback_check_deg: float = 2.0
     windowing: WindowingOptions = field(default_factory=WindowingOptions)
     solver: RotationOptions = field(default_factory=RotationOptions)
 
@@ -177,20 +182,68 @@ def run_livox_imu_lidar_rotation(
     def covers(time_s: float) -> bool:
         return gyro.covers(time_s - margin, time_s + margin)
 
-    segmenter: OdometrySegmenter | None = None
-    for bag in bags:
-        segmenter = collect_odometry_windows(
-            iter_livox_points(bag, stream),
-            opts.windowing,
-            covers=covers,
-            prefix=f"{Path(bag).name}/",
-            max_scans=max_scans,
-            into=segmenter,
-        )
-    assert segmenter is not None
+    def collect(model: RotationModel | None) -> OdometrySegmenter:
+        segmenter: OdometrySegmenter | None = None
+        for bag in bags:
+            segmenter = collect_odometry_windows(
+                iter_livox_points(bag, stream),
+                opts.windowing,
+                covers=covers,
+                prefix=f"{Path(bag).name}/",
+                max_scans=max_scans,
+                into=segmenter,
+                rotation_model=model,
+            )
+        assert segmenter is not None
+        return segmenter
+
+    # Pass 0 deskews with the LiDAR's own constant-velocity motion.  Later
+    # passes deskew with gyro rotations mapped by the previous estimate, which
+    # fixes fast hand-held rotation but feeds the extrinsic into the odometry.
+    segmenter = collect(None)
     evaluation = evaluate_imu_lidar_rotation(
         gyro, segmenter.windows, opts, reference_rotation=reference_rotation
     )
+    passes = [_pass_record("lidar_constant_velocity", evaluation)]
+    last_change: FloatArray | None = None
+    for _ in range(opts.gyro_deskew_passes):
+        previous = evaluation.result
+        if previous.rotation is None:
+            break
+        segmenter = collect(
+            gyro_rotation_model(
+                gyro, previous.rotation, previous.gyro_bias_rps, previous.time_offset_s
+            )
+        )
+        evaluation = evaluate_imu_lidar_rotation(
+            gyro, segmenter.windows, opts, reference_rotation=reference_rotation
+        )
+        passes.append(_pass_record("gyro", evaluation))
+        last_change = _rotation_change_deg(previous, evaluation.result)
+        if last_change is not None and np.all(
+            last_change <= opts.deskew_convergence_sigma * _rotation_std_deg(evaluation)
+        ):
+            break
+    if last_change is not None:
+        evaluation = _gate_convergence(evaluation, last_change)
+    feedback = None
+    final = evaluation.result
+    if opts.gyro_deskew_passes and opts.feedback_check_deg > 0.0 and final.rotation is not None:
+        offset = Rotation.from_rotvec(
+            np.full(3, math.radians(opts.feedback_check_deg) / math.sqrt(3.0))
+        ).as_matrix()
+        perturbed = offset @ final.rotation
+        check = evaluate_imu_lidar_rotation(
+            gyro,
+            collect(
+                gyro_rotation_model(gyro, perturbed, final.gyro_bias_rps, final.time_offset_s)
+            ).windows,
+            opts,
+        )
+        passes.append(_pass_record("gyro_feedback_check", check))
+        if check.result.rotation is not None:
+            retained = Rotation.from_matrix(final.rotation.T @ check.result.rotation).magnitude()
+            feedback = float(math.degrees(retained) / opts.feedback_check_deg)
     digest, scope = bag_input_digest(bags)
     result = evaluation.result
     return ImuLidarRotationArtifact(
@@ -213,6 +266,11 @@ def run_livox_imu_lidar_rotation(
             "window_duration_s": opts.windowing.window_duration_s,
             "local_map_scans": opts.windowing.odometry.local_map_scans,
             "deskew_iterations": opts.windowing.odometry.deskew_iterations,
+            "gyro_deskew_passes": opts.gyro_deskew_passes,
+            "deskew_convergence_sigma": opts.deskew_convergence_sigma,
+            "feedback_check_deg": opts.feedback_check_deg,
+            "model": opts.solver.model,
+            "pair_steps": list(opts.solver.pair_steps),
             "rate_sigma_floor_rps": opts.solver.rate_sigma_floor_rps,
             "rate_sigma_fraction": opts.solver.rate_sigma_fraction,
             "observable_rotation_std_deg": opts.solver.observable_rotation_std_deg,
@@ -234,6 +292,8 @@ def run_livox_imu_lidar_rotation(
         reference=None
         if reference_rotation is None
         else "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
+        deskew_passes=passes,
+        deskew_feedback_ratio=feedback,
         limitations=list(MID360_LIMITATIONS),
         provenance=ImuLidarRotationProvenance(
             generator=__name__,
@@ -248,6 +308,54 @@ def run_livox_imu_lidar_rotation(
             dataset_license=dataset_license,
         ),
     )
+
+
+def _rotation_change_deg(previous: RotationResult, current: RotationResult) -> FloatArray | None:
+    if previous.rotation is None or current.rotation is None:
+        return None
+    before = Rotation.from_matrix(previous.rotation).as_euler("xyz", degrees=True)
+    after = Rotation.from_matrix(current.rotation).as_euler("xyz", degrees=True)
+    return np.asarray(np.abs(after - before), dtype=np.float64)
+
+
+def _rotation_std_deg(evaluation: ImuLidarEvaluation) -> FloatArray:
+    reported = {record.name: record.std_reported for record in evaluation.records}
+    return np.array([reported.get(name, math.inf) for name in ("roll", "pitch", "yaw")])
+
+
+def _gate_convergence(evaluation: ImuLidarEvaluation, change: FloatArray) -> ImuLidarEvaluation:
+    """Refuse a pass while the last deskew pass still moved the rotation."""
+
+    std = _rotation_std_deg(evaluation)
+    moving = [
+        f"{name} moved {delta:.3f} deg in the last gyro-deskew pass (reported std {sigma:.3f} deg)"
+        for name, delta, sigma in zip(("roll", "pitch", "yaw"), change, std, strict=True)
+        if delta > sigma
+    ]
+    if not moving or evaluation.policy_status in {"fail", "warn"}:
+        return evaluation
+    reasons = ("gyro-deskew iteration has not converged: " + "; ".join(moving),)
+    return replace(
+        evaluation,
+        policy_status="warn",
+        policy_reasons=reasons + evaluation.policy_reasons,
+    )
+
+
+def _pass_record(source: str, evaluation: ImuLidarEvaluation) -> dict[str, Any]:
+    result = evaluation.result
+    record: dict[str, Any] = {
+        "deskew": source,
+        "policy_status": evaluation.policy_status,
+        "time_offset_s": result.time_offset_s,
+        "holdout_median_rate_residual_rps": evaluation.holdout_median_rps,
+    }
+    if result.rotation is not None:
+        record["rotation_rpy_deg"] = [
+            float(value)
+            for value in Rotation.from_matrix(result.rotation).as_euler("xyz", degrees=True)
+        ]
+    return record
 
 
 def _concatenate(samples: Sequence[ImuSamples]) -> ImuSamples:
@@ -371,7 +479,9 @@ def _chi2(
     result: RotationResult,
     opts: ImuLidarRunOptions,
 ) -> float:
-    residuals = rate_residuals(gyro, intervals, rotation, result.gyro_bias_rps, offset, opts.solver)
+    residuals = model_residuals(
+        gyro, intervals, rotation, result.gyro_bias_rps, offset, opts.solver
+    )
     variance = result.variance_factor or 1.0
     return float(np.sum(np.minimum(residuals**2 / variance, 25.0)))
 
@@ -384,7 +494,7 @@ def _median_rate_residual(
 ) -> float | None:
     if len(intervals) == 0 or result.rotation is None:
         return None
-    errors = rate_residuals(
+    errors = model_residuals(
         gyro,
         intervals,
         result.rotation,

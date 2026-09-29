@@ -245,3 +245,101 @@ def test_cli_forwards_profile_and_reference_choice(
     assert captured["profile"] == "rtk-slam"
     assert captured["reference_rotation"] is None
     assert validate_file(output).valid
+
+
+def _coning_case(model: str) -> tuple[float, np.ndarray]:
+    """Fast multi-axis rotation: roll/pitch at 3.0/2.3 Hz plus a 1.1 Hz yaw sway."""
+
+    rng = np.random.default_rng(0)
+
+    def fast(time: float) -> np.ndarray:
+        local = time - EPOCH
+        return Rotation.from_euler(
+            "xyz",
+            [
+                0.3 * math.sin(2.0 * math.pi * 3.0 * local),
+                0.3 * math.sin(2.0 * math.pi * 2.3 * local + 1.0),
+                math.sin(0.5 * local) + 0.5 * math.sin(2.0 * math.pi * 1.1 * local),
+            ],
+        ).as_matrix()
+
+    step = 0.002
+    times = EPOCH + np.arange(0.0, 40.0, step)
+    rotations = [fast(t) for t in times]
+    rates = np.array(
+        [
+            Rotation.from_matrix(rotations[k].T @ rotations[k + 1]).as_rotvec() / step
+            for k in range(len(times) - 1)
+        ]
+    )
+    gyro = GyroSeries(
+        times[:-1] + 0.5 * step + TRUE_DT,
+        rates @ TRUE_ROTATION + TRUE_BIAS + rng.normal(0.0, 0.003, rates.shape),
+    )
+    lidar_times = EPOCH + 0.5 + np.arange(0.0, 38.0, 0.1)
+    poses = np.stack([np.eye(4)] * len(lidar_times))
+    for k, t in enumerate(lidar_times):
+        poses[k, :3, :3] = fast(t)
+    options = RotationOptions(model=model)  # type: ignore[arg-type]
+    result = ImuLidarRotationSolver().solve(
+        gyro,
+        rate_intervals([OdometryWindow("w", 0, lidar_times, poses)], gyro, options),
+        options,
+    )
+    assert result.rotation is not None
+    error = math.degrees(Rotation.from_matrix(TRUE_ROTATION.T @ result.rotation).magnitude())
+    return error, result.gyro_bias_rps
+
+
+def test_preintegration_removes_the_coning_bias_of_mean_rates() -> None:
+    mean_rate_error, mean_rate_bias = _coning_case("mean_rate")
+    preintegrated_error, preintegrated_bias = _coning_case("preintegrated")
+
+    assert mean_rate_error > 0.08
+    assert preintegrated_error < 0.03
+    assert np.allclose(preintegrated_bias, TRUE_BIAS, atol=1e-3)
+    assert not np.allclose(mean_rate_bias, TRUE_BIAS, atol=1e-3)
+
+
+def test_gyro_rotation_model_maps_gyro_rotations_into_the_lidar_frame() -> None:
+    from calibrex.solvers.imu_lidar_rotation_solver import gyro_rotation_model
+
+    times = EPOCH + np.arange(0.0, 2.0, 0.005)
+    rate = np.array([0.0, 0.0, 0.5])
+    gyro = GyroSeries(times, np.tile(rate, (len(times), 1)))
+    mounting = Rotation.from_euler("x", 90.0, degrees=True).as_matrix()
+
+    model = gyro_rotation_model(gyro, mounting, np.zeros(3), 0.0)
+    rotations = model(EPOCH + 0.5, np.array([0.0, 0.1]))
+
+    expected = mounting @ Rotation.from_rotvec(rate * 0.1).as_matrix() @ mounting.T
+    assert np.allclose(rotations[0], np.eye(3), atol=1e-9)
+    assert np.allclose(rotations[1], expected, atol=1e-6)
+
+
+def test_deskew_with_rotations_applies_rotation_then_fractional_translation() -> None:
+    from calibrex.solvers.scan_to_scan_odometry import deskew_points_with_rotations
+
+    motion = np.eye(4)
+    motion[:3, 3] = [0.2, 0.0, 0.0]
+    quarter = Rotation.from_euler("z", 90.0, degrees=True).as_matrix()
+    points = np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+
+    moved = deskew_points_with_rotations(
+        points, np.array([0.0, 0.05]), np.stack([np.eye(3), quarter]), motion, 0.1
+    )
+
+    assert np.allclose(moved, [[1.0, 0.0, 0.0], [0.1, 1.0, 0.0]])
+
+
+def test_a_pass_is_refused_while_the_deskew_iteration_still_moves() -> None:
+    from calibrex.evaluation.imu_lidar_rotation import _gate_convergence
+
+    evaluation = _evaluation()
+    assert evaluation.policy_status == "pass"
+    steady = _gate_convergence(evaluation, np.zeros(3))
+    moving = _gate_convergence(evaluation, np.array([0.0, 0.0, 1.0]))
+
+    assert steady.policy_status == "pass"
+    assert moving.policy_status == "warn"
+    assert "has not converged" in moving.policy_reasons[0]

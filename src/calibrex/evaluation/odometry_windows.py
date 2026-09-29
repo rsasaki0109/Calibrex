@@ -20,6 +20,7 @@ from numpy.typing import NDArray
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.scan_to_scan_odometry import (
     IncrementalScanOdometry,
+    RotationModel,
     ScanOdometryOptions,
     ScanRegistration,
 )
@@ -50,6 +51,7 @@ class OdometrySegmenter:
     options: WindowingOptions
     covers: Callable[[float], bool] | None = None
     prefix: str = ""
+    rotation_model: RotationModel | None = None
     windows: list[OdometryWindow] = field(default_factory=list)
     scans_read: int = 0
     scans_covered: int = 0
@@ -67,7 +69,9 @@ class OdometrySegmenter:
             return
         self.scans_covered += 1
         if self._odometry is None:
-            self._odometry = IncrementalScanOdometry(self.options.odometry)
+            self._odometry = IncrementalScanOdometry(
+                self.options.odometry, rotation_model=self.rotation_model
+            )
             self._times = []
         self._odometry.add(scan, time_s, offsets_s)
         self._times.append(time_s)
@@ -125,10 +129,11 @@ def collect_odometry_windows(
     prefix: str = "",
     max_scans: int | None = None,
     into: OdometrySegmenter | None = None,
+    rotation_model: RotationModel | None = None,
 ) -> OdometrySegmenter:
     """Stream scans once and return the segmenter holding every window."""
 
-    segmenter = into or OdometrySegmenter(options, covers)
+    segmenter = into or OdometrySegmenter(options, covers, rotation_model=rotation_model)
     segmenter.prefix = prefix
     if covers is not None:
         segmenter.covers = covers

@@ -25,6 +25,7 @@ from numpy.typing import NDArray
 from scipy.spatial import cKDTree
 
 FloatArray: TypeAlias = NDArray[np.float64]
+RotationModel: TypeAlias = Callable[[float, FloatArray], FloatArray]
 
 
 @dataclass(frozen=True)
@@ -214,7 +215,21 @@ class IncrementalScanOdometry:
     a new instance whenever the stream should be segmented.
     """
 
-    def __init__(self, options: ScanOdometryOptions | None = None) -> None:
+    def __init__(
+        self,
+        options: ScanOdometryOptions | None = None,
+        *,
+        rotation_model: RotationModel | None = None,
+    ) -> None:
+        """Create odometry; ``rotation_model`` supplies in-sweep rotations for deskewing.
+
+        ``rotation_model(scan_time_s, offsets_s)`` returns the sensor rotation
+        from the scan time to each point's capture time (``(N, 3, 3)``, LiDAR
+        frame), typically from a gyro.  Without it, deskewing extrapolates the
+        LiDAR's own previous motion at constant velocity.
+        """
+
+        self.rotation_model = rotation_model
         self.options = options or ScanOdometryOptions()
         if self.options.local_map_scans < 1:
             raise ValueError("local_map_scans must be at least 1")
@@ -263,7 +278,16 @@ class IncrementalScanOdometry:
         for _ in range(rounds):
             if deskew:
                 assert point_offsets_s is not None and gap is not None
-                source = deskew_points(scan, point_offsets_s, motion, gap)
+                if self.rotation_model is not None and time_s is not None:
+                    source = deskew_points_with_rotations(
+                        scan,
+                        point_offsets_s,
+                        self.rotation_model(time_s, point_offsets_s),
+                        motion,
+                        gap,
+                    )
+                else:
+                    source = deskew_points(scan, point_offsets_s, motion, gap)
             registration = register_point_to_plane(
                 preprocess_scan(source, self.options),
                 target,
@@ -308,6 +332,23 @@ def deskew_points(
     rotation_vector = Rotation.from_matrix(motion[:3, :3]).as_rotvec()
     rotations = Rotation.from_rotvec(np.outer(fractions, rotation_vector))
     return np.asarray(rotations.apply(xyz) + np.outer(fractions, motion[:3, 3]), dtype=np.float64)
+
+
+def deskew_points_with_rotations(
+    points: FloatArray,
+    offsets_s: FloatArray,
+    rotations: FloatArray,
+    motion: FloatArray,
+    period_s: float,
+) -> FloatArray:
+    """Deskew with measured in-sweep rotations and constant-velocity translation."""
+
+    xyz = np.asarray(points, dtype=np.float64)[:, :3]
+    fractions = np.asarray(offsets_s, dtype=np.float64) / period_s
+    return np.asarray(
+        np.einsum("nij,nj->ni", rotations, xyz) + np.outer(fractions, motion[:3, 3]),
+        dtype=np.float64,
+    )
 
 
 def scale_motion(motion: FloatArray, factor: float) -> FloatArray:

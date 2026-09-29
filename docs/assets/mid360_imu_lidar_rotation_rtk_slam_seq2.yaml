@@ -1,99 +1,102 @@
 schema_version: slac.imu_lidar_rotation/v0.1
 method: angular_rate_alignment/v0.1
 solver_status: converged
-policy_status: inconclusive
+policy_status: pass
 policy_reasons:
-- 'not constrained by the data, so not calibrated: roll, pitch, yaw'
+- every rotation axis is estimated and held-out windows detect every control
 calibrated_dofs:
+- roll
+- pitch
+- yaw
 - time_offset
 - gyro_bias_x
 - gyro_bias_y
 - gyro_bias_z
 rotation_quat_xyzw:
-- -0.004209836226138983
-- 0.0047574096793925645
-- -0.012232641523966182
-- 0.9999049988941138
-time_offset_s: 0.01004631736433532
+- -0.000696015127897287
+- 0.001215741172701319
+- -0.0013476044235809597
+- 0.9999981107475455
+time_offset_s: 0.009819330640031654
 gyro_bias_rps:
-- 0.01558314250024883
-- -0.0021470845072498923
-- 0.0018984082490503629
+- 0.015584243593181531
+- -0.0024535071974934736
+- 0.0016707707647081948
 dofs:
 - name: roll
   unit: deg
-  value: -0.4890621972331276
-  std_analytic: 0.061734657191681065
-  std_jackknife: 0.1655018409943876
-  std_reported: 0.1655018409943876
-  status: unobservable
+  value: -0.07994530955429022
+  std_analytic: 0.024981709571349944
+  std_jackknife: 0.01969760609125981
+  std_reported: 0.024981709571349944
+  status: estimated
   reference_value: 0.0
-  error_to_reference: -0.4890621972331276
+  error_to_reference: -0.07994530955429023
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 105.96736907708691
+    holdout_delta_chi2: 869.5161316764279
     detected: true
 - name: pitch
   unit: deg
-  value: 0.5392139915175634
-  std_analytic: 0.058721184876301395
-  std_jackknife: 0.19181377573847438
-  std_reported: 0.19181377573847438
-  status: unobservable
+  value: 0.1392060686043933
+  std_analytic: 0.023947594519660696
+  std_jackknife: 0.01618771173341241
+  std_reported: 0.023947594519660696
+  status: estimated
   reference_value: 0.0
-  error_to_reference: 0.5392139915175634
+  error_to_reference: 0.1392060686043933
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 37.434768543578684
+    holdout_delta_chi2: 1023.9682189168816
     detected: true
 - name: yaw
   unit: deg
-  value: -1.4041220399295693
-  std_analytic: 0.0772562209960418
-  std_jackknife: 0.18318081301946096
-  std_reported: 0.18318081301946096
-  status: unobservable
+  value: -0.1545214079098229
+  std_analytic: 0.03093830382854515
+  std_jackknife: 0.01879906071576783
+  std_reported: 0.03093830382854515
+  status: estimated
   reference_value: 0.0
-  error_to_reference: -1.4041220399295695
+  error_to_reference: -0.15452140790982294
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 22.911447690115892
+    holdout_delta_chi2: 642.7544084712208
     detected: true
 - name: time_offset
   unit: s
-  value: 0.01004631736433532
-  std_analytic: 7.86831147141492e-05
-  std_jackknife: 0.0009085534314214825
-  std_reported: 0.0009085534314214825
+  value: 0.009819330640031654
+  std_analytic: 2.9179083526531902e-05
+  std_jackknife: 2.9424480379377683e-05
+  std_reported: 2.9424480379377683e-05
   status: estimated
   known_bad_control:
     amount: 0.01
     unit: s
-    holdout_delta_chi2: 580.1760882602248
+    holdout_delta_chi2: 36916.66644113188
     detected: true
 - name: gyro_bias_x
   unit: rad/s
-  value: 0.01558314250024883
-  std_analytic: 0.00017658401686464795
-  std_jackknife: 0.0002625657796077734
-  std_reported: 0.0002625657796077734
+  value: 0.015584243593181531
+  std_analytic: 8.962864755831614e-05
+  std_jackknife: 0.00023061441462544774
+  std_reported: 0.00023061441462544774
   status: estimated
 - name: gyro_bias_y
   unit: rad/s
-  value: -0.0021470845072498923
-  std_analytic: 0.00017768278075382346
-  std_jackknife: 0.00021240887789659345
-  std_reported: 0.00021240887789659345
+  value: -0.0024535071974934736
+  std_analytic: 9.035608184285277e-05
+  std_jackknife: 6.07987320021804e-05
+  std_reported: 9.035608184285277e-05
   status: estimated
 - name: gyro_bias_z
   unit: rad/s
-  value: 0.0018984082490503629
-  std_analytic: 0.0001781835742863664
-  std_jackknife: 0.00019796249271248218
-  std_reported: 0.00019796249271248218
+  value: 0.0016707707647081948
+  std_analytic: 8.892787565235584e-05
+  std_jackknife: 0.00011954175697470246
+  std_reported: 0.00011954175697470246
   status: estimated
 options:
   holdout_every: 3
@@ -104,6 +107,12 @@ options:
   window_duration_s: 10.0
   local_map_scans: 5
   deskew_iterations: 1
+  gyro_deskew_passes: 5
+  deskew_convergence_sigma: 0.25
+  feedback_check_deg: 2.0
+  model: preintegrated
+  pair_steps:
+  - 1
   rate_sigma_floor_rps: 0.01
   rate_sigma_fraction: 0.02
   observable_rotation_std_deg: 0.1
@@ -111,16 +120,66 @@ options:
 windows:
   scans_read: 9216
   odometry_segments: 1
-  unreliable_registrations: 1
+  unreliable_registrations: 0
   windows: 88
-  rate_intervals: 8540
+  rate_intervals: 8543
   imu_samples: 175191
 train_windows: 59
 holdout_windows: 29
 jackknife_fits: 8
-train_median_rate_residual_rps: 0.03229725659445709
-holdout_median_rate_residual_rps: 0.08022269624189249
+train_median_rate_residual_rps: 0.0117957330106645
+holdout_median_rate_residual_rps: 0.012156754083564201
 reference: 'Livox MID360 manual: IMU axes aligned with the LiDAR frame'
+deskew_passes:
+- deskew: lidar_constant_velocity
+  policy_status: inconclusive
+  time_offset_s: 0.010035496486606276
+  holdout_median_rate_residual_rps: 0.08023412357816365
+  rotation_rpy_deg:
+  - -0.4730992611625034
+  - 0.5277659704536278
+  - -1.3858263491792362
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.009952266784640782
+  holdout_median_rate_residual_rps: 0.012571897391910978
+  rotation_rpy_deg:
+  - -0.19854197957756048
+  - 0.15591007529679587
+  - -0.4318852877507643
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.009883272073126228
+  holdout_median_rate_residual_rps: 0.012084044880031381
+  rotation_rpy_deg:
+  - -0.11384697758267859
+  - 0.13727730595415757
+  - -0.21370715250745892
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.009837589377959647
+  holdout_median_rate_residual_rps: 0.011936438998024499
+  rotation_rpy_deg:
+  - -0.08557396154348204
+  - 0.13448149397579015
+  - -0.15236217388946965
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.009819330640031654
+  holdout_median_rate_residual_rps: 0.012156754083564201
+  rotation_rpy_deg:
+  - -0.07994530955429022
+  - 0.1392060686043933
+  - -0.1545214079098229
+- deskew: gyro_feedback_check
+  policy_status: pass
+  time_offset_s: 0.009851595236750072
+  holdout_median_rate_residual_rps: 0.012865983215295841
+  rotation_rpy_deg:
+  - 0.12981194685960581
+  - 0.3190080670365781
+  - 0.12899658415012266
+deskew_feedback_ratio: 0.1976319334805203
 limitations:
 - The reference rotation is the MID360 design value (IMU axes aligned with the LiDAR);
   it is not a measurement.
@@ -130,7 +189,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.imu_lidar_rotation
   generator_version: 0.4.1
-  git_commit: b9858c1
+  git_commit: d219035
   command:
   - calibrex
   - imu-lidar
@@ -146,4 +205,4 @@ provenance:
   input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
     MiB
   dataset_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
-  created_at: '2026-09-29T12:47:16.227558+00:00'
+  created_at: '2026-09-29T17:46:57.841658+00:00'

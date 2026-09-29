@@ -10,62 +10,91 @@ Two recordings from two dataset families are used:
 
 | Recording | Motion | Artifact |
 | --- | --- | --- |
-| [Zenodo 14841855](https://zenodo.org/records/14841855) "Driving SLAM Test with Livox MID360" | vehicle, 277 s | [`mid360_imu_lidar_rotation_driving_slam.yaml`](../assets/mid360_imu_lidar_rotation_driving_slam.yaml) |
 | [RTK-SLAM](https://rtk-slam-dataset.github.io/) `stadtgarten_seq2` | hand-held, 15 min | [`mid360_imu_lidar_rotation_rtk_slam_seq2.yaml`](../assets/mid360_imu_lidar_rotation_rtk_slam_seq2.yaml) |
+| [Zenodo 14841855](https://zenodo.org/records/14841855) "Driving SLAM Test with Livox MID360" (K. Koide, CC BY 4.0) | vehicle, 277 s | [`mid360_imu_lidar_rotation_driving_slam.yaml`](../assets/mid360_imu_lidar_rotation_driving_slam.yaml) |
 
 ## Results
 
-Both runs are `inconclusive`: **no rotation axis is calibrated to the 0.1 deg
-policy threshold yet.**
+**RTK-SLAM seq2 (hand-held): `pass`.** Every rotation axis is estimated, and
+held-out windows detect every known-bad shift.
 
-| Quantity | Driving (vehicle) | RTK-SLAM seq2 (hand-held) |
-| --- | --- | --- |
-| roll | -0.48 ± 0.11 deg, control detected | -0.49 ± 0.17 deg, control detected |
-| pitch | -0.04 ± 0.34 deg, control detected | +0.54 ± 0.19 deg, control detected |
-| yaw | +0.47 ± 0.28 deg, **1 deg control not detected** | -1.40 ± 0.18 deg, control detected |
-| clock offset | -0.5 ± 1.7 ms (estimated) | +10.0 ± 0.9 ms (estimated) |
-| gyro bias | estimated, all axes | estimated, all axes (x: 0.016 rad/s) |
-| held-out / training median rate residual | 0.0055 / 0.0055 rad/s | 0.080 / 0.032 rad/s |
+| Quantity | Estimate (relative to design) | Reported std | Held-out control |
+| --- | ---: | ---: | --- |
+| roll | -0.080 deg | 0.025 deg | 1 deg detected (Δχ² 870) |
+| pitch | +0.139 deg | 0.024 deg | 1 deg detected (Δχ² 1024) |
+| yaw | -0.155 deg | 0.031 deg | 1 deg detected (Δχ² 643) |
+| clock offset | +9.82 ms | 0.03 ms | 10 ms detected |
+| gyro bias | (0.0156, -0.0025, 0.0017) rad/s | ≤ 0.0002 rad/s | — |
 
-Values are relative to the design reference. The reported std is the larger
-of the analytic std and an 8-group window jackknife.
+- The held-out median rate residual is 0.012 rad/s, the same as the training
+  residual.
+- The gyro-deskew iteration converged: in the last pass, every axis moved by
+  at most 0.006 deg.
 
-### Reading the results
+**Driving (vehicle): `inconclusive`.**
 
-- **The vehicle recording cannot determine yaw.** It rotates almost only
-  about the vertical axis, so a 1 deg yaw shift is invisible to held-out
-  windows (Δχ² 1.5). The artifact reports yaw as unobservable instead of
-  trusting its value.
-- **The hand-held recording excites all axes**, and every 1 deg control is
-  detected. Even so, its held-out rate residual is 2.5 times the training
-  residual, and its yaw sits 1.4 deg from the design value. We read this as a
-  limit of the method rather than of the sensor. The fit compares mean rates
-  (the LiDAR rotation over one period divided by its duration) with gyro
-  means. When fast hand-held motion changes the rotation axis within a
-  period, the two differ by a coning term. That term is second order in the
-  rotation per period, but systematic.
-- **The next step is on-manifold gyro preintegration.** The fit would then
-  compare integrated gyro rotation increments with LiDAR rotation increments
-  directly, instead of comparing mean rates. Until that lands, neither
-  recording supports a rotation claim.
+- Roll is estimated at -0.31 ± 0.09 deg.
+- Pitch (± 0.31 deg) and yaw are not.
+- A vehicle rotates almost only about the vertical axis, so a 1 deg yaw shift
+  is invisible to held-out windows (Δχ² 3.0). The yaw value wanders between
+  deskew passes, and the artifact reports it as unobservable.
+- The clock offset is +2.3 ± 0.2 ms.
+
+The two recordings come from different MID360 units, so their rotations need
+not agree.
+
+## What made the hand-held result possible
+
+The first version of this page (PR #70) reported the hand-held recording as
+inconclusive: yaw sat 1.4 deg from the design value, and the held-out residual
+was 2.5 times the training residual. It attributed this to coning error in a
+mean-rate approximation. **That diagnosis was wrong.** Replacing mean rates
+with on-manifold gyro preintegration fixes coning in synthetic data, but it
+left the real-data result unchanged (yaw -1.39 deg).
+
+The residual grew with the rotation rate: 0.007 rad/s below 0.3 rad/s,
+0.18 rad/s above. The cause was **deskewing**. Sweeps were motion-compensated
+with the LiDAR's own previous motion at constant velocity, which cannot
+follow fast hand-held changes of rotation. Deskewing with gyro rotations
+instead cut the residual during rotation by about ten times, and the rotation
+moved to within 0.16 deg of the design value.
+
+Deskewing with the gyro feeds the extrinsic under test into the LiDAR
+odometry, so the evaluation guards against the estimate merely confirming its
+own deskew model:
+
+1. **Iteration.** Pass 0 deskews with LiDAR-only motion. Each later pass
+   deskews with the previous estimate. Passes continue until every axis moves
+   less than 0.25 of its reported std, up to five passes.
+2. **Convergence gate.** A `pass` is refused, and downgraded to `warn`, while
+   the last pass still moves any axis by more than its reported std. Before
+   this gate existed, an unconverged second pass (yaw still moving 0.22 deg)
+   had been labelled `pass`.
+3. **Feedback check.** A final pass deskews with the estimate rotated by
+   2 deg on purpose. The artifact records the fraction of that error that
+   survives in the result (`deskew_feedback_ratio`): 0.20 for the hand-held
+   recording and 0.04 for the vehicle. Because the fraction is well below 1,
+   the fixed point is not an artefact of its starting value; the iteration
+   converges geometrically at that rate.
 
 ## Method
 
-1. **Motion-compensated odometry.**
-   - Each sweep is deskewed from per-point capture times under a
-     constant-velocity model, re-registered with the refined motion, and
-     matched against the union of the last five scans.
-   - On RTK-SLAM, deskewing cut the one-second distance error against RTK
-     from 1.94 cm to 1.53 cm (p90 5.89 cm to 3.95 cm).
-2. **Rate alignment.** For each pair of consecutive scans, the LiDAR mean rate
-   equals `R_lidar_imu (mean_gyro[t + dt] - b)`. Gyro interval means come
-   from a cumulative trapezoid integral. The rotation is initialized by
-   Procrustes, which handles any mounting, then refined with Huber IRLS.
-3. **Held-out evidence.**
+1. **Odometry.** Scan-to-local-map point-to-plane LiDAR odometry runs on
+   deskewed sweeps: first with LiDAR-only constant velocity, then with gyro
+   rotations mapped by the current extrinsic estimate.
+2. **Rotation increments.** For consecutive scans, the LiDAR rotation
+   increment is compared with the preintegrated gyro increment
+   `R dR_imu(b, dt) R^T`. The raw gyro is integrated once; interval
+   increments and first-order bias Jacobians come from cumulative sums, so
+   every evaluation is vectorized.
+3. **Fit.** A Procrustes initialization handles any mounting. It is followed
+   by Huber IRLS over the rotation, gyro bias, and clock offset.
+4. **Held-out evidence.**
    - Every third 10-second window is held out.
+   - An 8-group window jackknife sets the reported std when it is larger
+     than the analytic std.
    - Each rotation axis is shifted by 1 deg and the clock offset by 10 ms,
      and held-out windows must detect each shift (Δχ² ≥ 9).
-   - A `pass` requires roll, pitch, and yaw to be estimated.
 
 Recording conventions are explicit per stream profile:
 
@@ -75,9 +104,9 @@ Recording conventions are explicit per stream profile:
 | `livox-ros-driver2` | `/livox/lidar` | `timestamp`, absolute nanoseconds | g |
 
 ```bash
-calibrex imu-lidar livox BAG_DIR --profile livox-ros-driver2 \
-  --dataset-family zenodo_driving_slam_mid360 --dataset-license "CC BY 4.0" \
-  --output driving.yaml
+calibrex imu-lidar livox BAG_DIR --profile rtk-slam \
+  --dataset-family rtk_slam --dataset-license "see the RTK-SLAM dataset page" \
+  --output seq2.yaml
 ```
 
 ## Limitations
@@ -85,5 +114,7 @@ calibrex imu-lidar livox BAG_DIR --profile livox-ros-driver2 \
 - The design reference is not a measurement.
 - The translation of `T_lidar_imu` is not estimated. It needs the
   accelerometer and a full LiDAR-inertial model.
-- The two recordings come from two different MID360 units, so their
-  rotations need not agree.
+- Gyro deskewing makes the LiDAR odometry depend on the IMU. The feedback
+  ratio quantifies this dependence but does not remove it.
+- No external baseline has been run on these recordings yet, so the
+  [SOTA leaderboard](sota_leaderboard.md) has no IMU-LiDAR claim.

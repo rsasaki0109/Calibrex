@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- The MID360 hand-held IMU-LiDAR rotation now passes. On RTK-SLAM seq2,
+  roll, pitch, and yaw are within 0.16 deg of the design value (std 0.02-0.03
+  deg), the clock offset is 9.8 ms, and held-out windows detect every 1 deg
+  control.
+  - The cause of the earlier 1.4 deg yaw discrepancy was LiDAR-only
+    constant-velocity deskewing, which cannot follow fast hand-held rotation,
+    not coning as first reported. Odometry now accepts a `rotation_model`,
+    and the evaluation deskews with gyro rotations mapped by the current
+    estimate.
+  - It iterates until every axis moves less than 0.25 std. It refuses a pass
+    while the last pass still moves an axis by more than its std.
+  - It records a `deskew_feedback_ratio`: the share of a deliberate 2 deg
+    deskew error that survives in the estimate.
+  - Rotation increments are compared with on-manifold gyro preintegration
+    (cumulative orientations and first-order bias Jacobians); mean rates
+    remain as the `mean_rate` model.
 - Added IMU-LiDAR rotation, clock-offset, and gyro-bias evidence
   (`slac.imu_lidar_rotation/v0.1`, `calibrex imu-lidar livox`).
   - Mean LiDAR odometry rates between consecutive scans are aligned with
