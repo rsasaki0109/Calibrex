@@ -149,6 +149,7 @@ from calibrex.data.kitti_benchmark import (
 from calibrex.data.kitti_camera_lidar_problem import (
     build_kitti_raw_camera_lidar_problem,
 )
+from calibrex.data.livox_ros2 import LIVOX_PROFILES, MID360_T_LIDAR_IMU
 from calibrex.data.public_datasets import load_public_dataset_catalog
 from calibrex.diagnostics import (
     build_doctor_artifact,
@@ -214,6 +215,7 @@ from calibrex.evaluation.external_camera_imu import (
     write_synthetic_camera_imu_fixture,
 )
 from calibrex.evaluation.gnss_lidar_lever_arm import run_rtk_slam_lever_arm
+from calibrex.evaluation.imu_lidar_rotation import run_livox_imu_lidar_rotation
 from calibrex.evaluation.ins_lidar_hand_eye import (
     InsLidarRunOptions,
     run_kitti_ins_lidar_hand_eye,
@@ -1195,6 +1197,36 @@ def _build_parser() -> argparse.ArgumentParser:
     gnss_lidar_rtk.add_argument("--max-scans", type=_positive_int)
     gnss_lidar_rtk.add_argument("--json", action="store_true")
     gnss_lidar_rtk.set_defaults(func=_cmd_gnss_lidar_rtk_slam)
+
+    imu_lidar = subcommands.add_parser(
+        "imu-lidar",
+        help="IMU-LiDAR rotation, clock offset, and gyro bias from angular rates",
+    )
+    imu_lidar_subcommands = imu_lidar.add_subparsers(dest="imu_lidar_command", required=True)
+    imu_lidar_livox = imu_lidar_subcommands.add_parser(
+        "livox",
+        help="calibrate a Livox built-in IMU against LiDAR odometry from ROS 2 bags",
+    )
+    imu_lidar_livox.add_argument(
+        "bags", type=Path, nargs="+", help="rosbag2 directories of one rig"
+    )
+    imu_lidar_livox.add_argument(
+        "--profile",
+        required=True,
+        choices=sorted(LIVOX_PROFILES),
+        help="topic and unit conventions of the recording",
+    )
+    imu_lidar_livox.add_argument("--dataset-family", required=True)
+    imu_lidar_livox.add_argument("--dataset-license", required=True)
+    imu_lidar_livox.add_argument(
+        "--no-mid360-reference",
+        action="store_true",
+        help="do not compare with the MID360 design rotation",
+    )
+    imu_lidar_livox.add_argument("--max-scans", type=_positive_int)
+    imu_lidar_livox.add_argument("--output", type=Path, required=True)
+    imu_lidar_livox.add_argument("--json", action="store_true")
+    imu_lidar_livox.set_defaults(func=_cmd_imu_lidar_livox)
 
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
@@ -5786,6 +5818,39 @@ def _cmd_gnss_lidar_rtk_slam(args: argparse.Namespace) -> int:
             list(zip(args.bag, args.rtk, strict=True)),
             args.calib,
             topic=args.topic,
+            max_scans=args.max_scans,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_imu_lidar_livox(args: argparse.Namespace) -> int:
+    command = ["calibrex", "imu-lidar", "livox", *(str(path) for path in args.bags)]
+    command += ["--profile", args.profile, "--dataset-family", args.dataset_family]
+    command += ["--dataset-license", args.dataset_license, "--output", str(args.output)]
+    if args.no_mid360_reference:
+        command.append("--no-mid360-reference")
+    if args.max_scans is not None:
+        command += ["--max-scans", str(args.max_scans)]
+    try:
+        artifact = run_livox_imu_lidar_rotation(
+            args.bags,
+            args.profile,
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            reference_rotation=None if args.no_mid360_reference else MID360_T_LIDAR_IMU[:3, :3],
             max_scans=args.max_scans,
             command=command,
         )

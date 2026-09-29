@@ -43,6 +43,12 @@ from calibrex.data.rtk_slam import (
     rtk_slam_input_digest,
     rtk_slam_reference_lever_arm,
 )
+from calibrex.evaluation.odometry_windows import (
+    OdometrySegmenter,
+    ScanItem,
+    WindowingOptions,
+    collect_odometry_windows,
+)
 from calibrex.solvers.gnss_lever_arm_solver import (
     LEVER_ARM_DOFS,
     GnssLeverArmSolver,
@@ -54,11 +60,7 @@ from calibrex.solvers.gnss_lever_arm_solver import (
     build_pairs,
     window_residuals,
 )
-from calibrex.solvers.scan_to_scan_odometry import (
-    IncrementalScanOdometry,
-    ScanOdometryOptions,
-    ScanRegistration,
-)
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
 
 FloatArray: TypeAlias = NDArray[np.float64]
 
@@ -110,96 +112,41 @@ class GnssLidarEvaluation:
     policy_reasons: tuple[str, ...]
 
 
-@dataclass
-class _Segmenter:
-    """Streams scans into odometry segments and fixed-length windows."""
+def windowing_options(options: GnssLidarRunOptions) -> WindowingOptions:
+    """Return the shared windowing settings of a GNSS-LiDAR run."""
 
-    track: GnssTrackModel
-    options: GnssLidarRunOptions
-    windows: list[OdometryWindow] = field(default_factory=list)
-    scans_read: int = 0
-    scans_covered: int = 0
-    segments: int = 0
-    unreliable: int = 0
-    _odometry: IncrementalScanOdometry | None = None
-    _times: list[float] = field(default_factory=list)
-    _prefix: str = ""
-
-    def add(self, time_s: float, scan: FloatArray) -> None:
-        self.scans_read += 1
-        margin = self.options.coverage_margin_s
-        if not self.track.continuous(time_s - margin, time_s + margin):
-            self.flush()
-            return
-        self.scans_covered += 1
-        if self._odometry is None:
-            self._odometry = IncrementalScanOdometry(self.options.odometry)
-            self._times = []
-        self._odometry.add(scan, time_s)
-        self._times.append(time_s)
-
-    def flush(self) -> None:
-        if self._odometry is None:
-            return
-        result = self._odometry.result()
-        self._odometry = None
-        if len(result.poses) < 2:
-            return
-        self.segments += 1
-        poses = np.stack(result.poses)
-        times = np.array(self._times)
-        start = 0
-        for index, registration in enumerate(result.registrations, start=1):
-            if not self._reliable(registration):
-                self.unreliable += 1
-                self._cut(times[start:index], poses[start:index])
-                start = index
-        self._cut(times[start:], poses[start:])
-
-    def _reliable(self, registration: ScanRegistration) -> bool:
-        return (
-            registration.correspondences >= self.options.min_correspondences
-            and math.isfinite(registration.rmse_m)
-            and registration.rmse_m <= self.options.max_registration_rmse_m
-        )
-
-    def _cut(self, times: FloatArray, poses: FloatArray) -> None:
-        if len(times) < 2:
-            return
-        edges = np.arange(times[0], times[-1] + 1e-9, self.options.window_duration_s)
-        for begin in edges:
-            mask = (times >= begin) & (times < begin + self.options.window_duration_s)
-            if np.count_nonzero(mask) >= 20:
-                block = len(self.windows)
-                self.windows.append(
-                    OdometryWindow(
-                        window_id=f"{self._prefix}w{block}",
-                        block=block,
-                        times_s=times[mask],
-                        poses=poses[mask],
-                    )
-                )
+    return WindowingOptions(
+        window_duration_s=options.window_duration_s,
+        min_correspondences=options.min_correspondences,
+        max_registration_rmse_m=options.max_registration_rmse_m,
+        odometry=options.odometry,
+    )
 
 
 def collect_windows(
     track: GnssTrackModel,
-    scans: Iterable[tuple[float, FloatArray]],
+    scans: Iterable[ScanItem],
     options: GnssLidarRunOptions,
     *,
     prefix: str = "",
     max_scans: int | None = None,
-    into: _Segmenter | None = None,
-) -> _Segmenter:
-    """Stream scans once and return the segmenter holding every window."""
+    into: OdometrySegmenter | None = None,
+) -> OdometrySegmenter:
+    """Stream scans once, keeping odometry only where the GNSS track covers them."""
 
-    segmenter = into or _Segmenter(track, options)
-    segmenter._prefix = prefix
-    for count, (time_s, scan) in enumerate(scans):
-        if max_scans is not None and count >= max_scans:
-            break
-        segmenter.add(time_s, scan)
-    segmenter.flush()
-    return segmenter
+    margin = options.coverage_margin_s
+
+    def covers(time_s: float) -> bool:
+        return track.continuous(time_s - margin, time_s + margin)
+
+    return collect_odometry_windows(
+        scans,
+        windowing_options(options),
+        covers=covers,
+        prefix=prefix,
+        max_scans=max_scans,
+        into=into,
+    )
 
 
 def evaluate_gnss_lidar_lever_arm(
@@ -291,7 +238,7 @@ def run_rtk_slam_lever_arm(
         np.concatenate([item.enu_m for item in tracks])[order],
         np.concatenate([item.sigma_m for item in tracks])[order],
     )
-    segmenter: _Segmenter | None = None
+    segmenter: OdometrySegmenter | None = None
     digests: list[str] = []
     scope = ""
     for bag_dir, rtk in sequences:
