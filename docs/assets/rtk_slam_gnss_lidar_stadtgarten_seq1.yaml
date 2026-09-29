@@ -1,0 +1,128 @@
+schema_version: slac.gnss_lidar_lever_arm/v0.1
+method: windowed_variable_projection/v0.1
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data, so not calibrated: z'
+calibrated_dofs:
+- x
+- y
+- time_offset
+lever_arm_frame: lidar
+lever_arm_m:
+- 0.07165585305624857
+- 0.004224656868058866
+- 0.06090165936411587
+time_offset_s: 0.043704726809227185
+dofs:
+- name: x
+  unit: m
+  value: 0.07165585305624857
+  std_analytic: 0.002992244461608486
+  std_jackknife: 0.005709137150439496
+  std_reported: 0.005709137150439496
+  status: estimated
+  reference_value: 0.034
+  error_to_reference: 0.037655853056248564
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 527.9435813311666
+    detected: true
+- name: y
+  unit: m
+  value: 0.004224656868058866
+  std_analytic: 0.0021302763622354014
+  std_jackknife: 0.004456973697013921
+  std_reported: 0.004456973697013921
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: 0.004224656868058866
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 434.78157839909454
+    detected: true
+- name: z
+  unit: m
+  value: 0.06090165936411587
+  std_analytic: 0.004960503487553332
+  std_jackknife: 0.013452372328825095
+  std_reported: 0.013452372328825095
+  status: unobservable
+  reference_value: 0.046
+  error_to_reference: 0.014901659364115874
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 56.5171929978078
+    detected: true
+- name: time_offset
+  unit: s
+  value: 0.043704726809227185
+  std_analytic: 0.0007618898352153323
+  std_jackknife: 0.0012053985141417534
+  std_reported: 0.0012053985141417534
+  status: estimated
+  known_bad_control:
+    amount: 0.02
+    unit: s
+    holdout_delta_chi2: 51.41869615406722
+    detected: true
+options:
+  window_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  lever_arm_control_m: 0.05
+  time_control_s: 0.02
+  detection_delta_chi2: 9.0
+  pair_steps:
+  - 5
+  - 10
+  - 20
+  odometry_pose_sigma_m: 0.01
+  odometry_sigma_per_m: 0.01
+  observable_translation_std_m: 0.01
+  observable_time_offset_std_s: 0.005
+  local_map_scans: 5
+  voxel_size_m: 0.3
+segments:
+  scans_read: 15795
+  scans_in_gnss_coverage: 8518
+  odometry_segments: 11
+  unreliable_registrations: 3
+  windows: 89
+  gnss_epochs_used: 8720
+  gnss_epochs_rejected: 7308
+train_windows: 59
+holdout_windows: 30
+jackknife_fits: 8
+holdout_median_residual_m: 0.028775824763776388
+train_median_residual_m: 0.02738487350592781
+reference: 'calib.yaml: MID360 manual IMU position + CAD GNSS antenna offset'
+limitations:
+- The reference lever arm combines the MID360 manual IMU position with a CAD antenna
+  offset; it is not metrology.
+- Only RTK-fixed epochs are used, so GNSS-degraded stretches of each sequence contribute
+  no windows.
+- LiDAR odometry has no gravity or absolute heading; each window's alignment to ENU
+  is estimated and profiled out.
+- The clock offset is observable only through velocity changes within a window; steady
+  motion leaves it weakly constrained.
+provenance:
+  generator: calibrex.evaluation.gnss_lidar_lever_arm
+  generator_version: 0.4.1
+  git_commit: 181d3cb
+  command:
+  - calibrex
+  - gnss-lidar
+  - rtk-slam
+  - stadtgarten_seq1
+  dataset_family: rtk_slam
+  sequence_ids:
+  - stadtgarten_seq1
+  input_sha256: 64c30e1c533168378e614aa21b6504353ee97bd4e59d05e9198f477da4b419d2
+  input_digest_scope: rtk.txt, calib.yaml, and metadata.yaml in full; bag databases
+    by size and first 64 MiB
+  dataset_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  created_at: '2026-09-29T11:43:30.903816+00:00'

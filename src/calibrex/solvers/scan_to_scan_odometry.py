@@ -15,8 +15,9 @@ compensated and is reported as a limitation by callers.
 from __future__ import annotations
 
 import math
+from collections import deque
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TypeAlias
 
 import numpy as np
@@ -41,6 +42,7 @@ class ScanOdometryOptions:
     convergence_translation_m: float = 1.0e-4
     convergence_rotation_rad: float = 1.0e-5
     min_correspondences: int = 200
+    local_map_scans: int = 1
 
 
 @dataclass(frozen=True)
@@ -189,40 +191,76 @@ def odometry_from_loader(
     *,
     times_s: Sequence[float] | None = None,
 ) -> ScanOdometryResult:
-    """Run scan-to-scan odometry while holding only two preprocessed scans."""
+    """Run scan-to-map odometry over a sliding window of recent scans.
 
-    opts = options or ScanOdometryOptions()
+    With ``local_map_scans == 1`` each scan is registered to the previous scan
+    only.  Larger values register it to the union of the last scans, which
+    densifies sparse or non-repetitive scanners such as Livox units.
+    """
+
     if times_s is not None and len(times_s) != count:
         raise ValueError("times_s must have one entry per scan")
-    poses = [np.eye(4)]
-    registrations: list[ScanRegistration] = []
-    if count == 0:
-        return ScanOdometryResult(poses=(), registrations=())
-    target = preprocess_scan(load_scan(0), opts)
-    previous_motion = np.eye(4)
-    previous_gap: float | None = None
-    for index in range(1, count):
-        source = preprocess_scan(load_scan(index), opts)
-        initial = previous_motion
-        if times_s is not None:
-            gap = float(times_s[index]) - float(times_s[index - 1])
-            if previous_gap is not None and previous_gap > 0.0 and gap > 0.0:
-                initial = scale_motion(previous_motion, gap / previous_gap)
-            previous_gap = gap
+    odometry = IncrementalScanOdometry(options)
+    for index in range(count):
+        odometry.add(load_scan(index), None if times_s is None else float(times_s[index]))
+    return odometry.result()
+
+
+class IncrementalScanOdometry:
+    """Scan-to-map odometry that accepts one scan at a time.
+
+    Streaming consumers (for example a multi-gigabyte bag read once) can start
+    a new instance whenever the stream should be segmented.
+    """
+
+    def __init__(self, options: ScanOdometryOptions | None = None) -> None:
+        self.options = options or ScanOdometryOptions()
+        if self.options.local_map_scans < 1:
+            raise ValueError("local_map_scans must be at least 1")
+        self.poses: list[FloatArray] = []
+        self.registrations: list[ScanRegistration] = []
+        self._recent: deque[FloatArray] = deque(maxlen=self.options.local_map_scans)
+        self._previous_motion = np.eye(4)
+        self._previous_time: float | None = None
+        self._previous_gap: float | None = None
+
+    def add(self, scan: FloatArray, time_s: float | None = None) -> ScanRegistration | None:
+        """Register ``scan`` and return its registration (``None`` for the first)."""
+
+        source = preprocess_scan(scan, self.options)
+        if not self.poses:
+            self.poses.append(np.eye(4))
+            self._recent.append(source)
+            self._previous_time = time_s
+            return None
+        initial = self._previous_motion
+        if time_s is not None and self._previous_time is not None:
+            gap = time_s - self._previous_time
+            if self._previous_gap is not None and self._previous_gap > 0.0 and gap > 0.0:
+                initial = scale_motion(self._previous_motion, gap / self._previous_gap)
+            self._previous_gap = gap
+        self._previous_time = time_s
+        target = _local_map(self._recent, self.poses[-1], self.options)
         tree = cKDTree(target)
         registration = register_point_to_plane(
             source,
             target,
             initial,
-            opts,
+            self.options,
             target_tree=tree,
-            target_normals=estimate_normals(target, tree, opts),
+            target_normals=estimate_normals(target, tree, self.options),
         )
-        registrations.append(registration)
-        previous_motion = registration.transform
-        poses.append(poses[-1] @ registration.transform)
-        target = source
-    return ScanOdometryResult(poses=tuple(poses), registrations=tuple(registrations))
+        self.registrations.append(registration)
+        self._previous_motion = registration.transform
+        pose = self.poses[-1] @ registration.transform
+        self.poses.append(pose)
+        self._recent.append(source @ pose[:3, :3].T + pose[:3, 3])
+        return registration
+
+    def result(self) -> ScanOdometryResult:
+        """Return poses ``T_first_scan`` and registrations so far."""
+
+        return ScanOdometryResult(poses=tuple(self.poses), registrations=tuple(self.registrations))
 
 
 def scale_motion(motion: FloatArray, factor: float) -> FloatArray:
@@ -235,6 +273,23 @@ def scale_motion(motion: FloatArray, factor: float) -> FloatArray:
     scaled[:3, :3] = Rotation.from_rotvec(rotation_vector).as_matrix()
     scaled[:3, 3] = motion[:3, 3] * factor
     return scaled
+
+
+def _local_map(
+    recent: deque[FloatArray], reference_pose: FloatArray, options: ScanOdometryOptions
+) -> FloatArray:
+    """Express the recent scans (stored in the first-scan frame) in ``reference_pose``."""
+
+    if len(recent) == 1 and options.local_map_scans == 1:
+        points = recent[0]
+    else:
+        points = preprocess_scan(np.vstack(list(recent)), _unbounded(options))
+    inverse = np.linalg.inv(reference_pose)
+    return points @ inverse[:3, :3].T + inverse[:3, 3]
+
+
+def _unbounded(options: ScanOdometryOptions) -> ScanOdometryOptions:
+    return replace(options, min_range_m=0.0, max_range_m=math.inf)
 
 
 def _exp_se3(delta: FloatArray) -> FloatArray:

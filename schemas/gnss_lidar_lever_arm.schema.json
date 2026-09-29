@@ -1,0 +1,440 @@
+{
+  "$defs": {
+    "GnssLidarDofRecord": {
+      "additionalProperties": false,
+      "description": "One estimated quantity with its uncertainty and evidence.",
+      "properties": {
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GnssLidarKnownBadControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "x",
+            "y",
+            "z",
+            "time_offset"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_analytic": {
+          "minimum": 0.0,
+          "title": "Std Analytic",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "s"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "std_analytic",
+        "std_reported",
+        "status"
+      ],
+      "title": "GnssLidarDofRecord",
+      "type": "object"
+    },
+    "GnssLidarKnownBadControl": {
+      "additionalProperties": false,
+      "description": "Held-out chi-square increase after shifting one quantity.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_delta_chi2": {
+          "title": "Holdout Delta Chi2",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "s"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "holdout_delta_chi2",
+        "detected"
+      ],
+      "title": "GnssLidarKnownBadControl",
+      "type": "object"
+    },
+    "GnssLidarLeverArmProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "input_sha256",
+        "input_digest_scope",
+        "dataset_license"
+      ],
+      "title": "GnssLidarLeverArmProvenance",
+      "type": "object"
+    },
+    "GnssLidarSegmentSummary": {
+      "additionalProperties": false,
+      "description": "How the LiDAR stream was cut into reliable, GNSS-covered windows.",
+      "properties": {
+        "gnss_epochs_rejected": {
+          "minimum": 0,
+          "title": "Gnss Epochs Rejected",
+          "type": "integer"
+        },
+        "gnss_epochs_used": {
+          "minimum": 0,
+          "title": "Gnss Epochs Used",
+          "type": "integer"
+        },
+        "odometry_segments": {
+          "minimum": 0,
+          "title": "Odometry Segments",
+          "type": "integer"
+        },
+        "scans_in_gnss_coverage": {
+          "minimum": 0,
+          "title": "Scans In Gnss Coverage",
+          "type": "integer"
+        },
+        "scans_read": {
+          "minimum": 0,
+          "title": "Scans Read",
+          "type": "integer"
+        },
+        "unreliable_registrations": {
+          "minimum": 0,
+          "title": "Unreliable Registrations",
+          "type": "integer"
+        },
+        "windows": {
+          "minimum": 0,
+          "title": "Windows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scans_read",
+        "scans_in_gnss_coverage",
+        "odometry_segments",
+        "unreliable_registrations",
+        "windows",
+        "gnss_epochs_used",
+        "gnss_epochs_rejected"
+      ],
+      "title": "GnssLidarSegmentSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one GNSS-LiDAR lever-arm calibration run.",
+  "properties": {
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "x",
+          "y",
+          "z",
+          "time_offset"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "dofs": {
+      "items": {
+        "$ref": "#/$defs/GnssLidarDofRecord"
+      },
+      "title": "Dofs",
+      "type": "array"
+    },
+    "holdout_median_residual_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Median Residual M"
+    },
+    "holdout_windows": {
+      "minimum": 0,
+      "title": "Holdout Windows",
+      "type": "integer"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "lever_arm_frame": {
+      "title": "Lever Arm Frame",
+      "type": "string"
+    },
+    "lever_arm_m": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lever Arm M"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "windowed_variable_projection/v0.1",
+      "default": "windowed_variable_projection/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/GnssLidarLeverArmProvenance"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "schema_version": {
+      "const": "slac.gnss_lidar_lever_arm/v0.1",
+      "default": "slac.gnss_lidar_lever_arm/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "$ref": "#/$defs/GnssLidarSegmentSummary"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "insufficient_windows"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "time_offset_s": {
+      "title": "Time Offset S",
+      "type": "number"
+    },
+    "train_median_residual_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Train Median Residual M"
+    },
+    "train_windows": {
+      "minimum": 0,
+      "title": "Train Windows",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "lever_arm_frame",
+    "time_offset_s",
+    "dofs",
+    "options",
+    "segments",
+    "train_windows",
+    "holdout_windows",
+    "jackknife_fits",
+    "provenance"
+  ],
+  "title": "GnssLidarLeverArmArtifact",
+  "type": "object"
+}
