@@ -106,6 +106,65 @@
       "title": "MetricResult",
       "type": "object"
     },
+    "PythonPathIsolation": {
+      "additionalProperties": false,
+      "description": "Whether Calibrex and its dependencies resolve from the active environment.\n\nA sourced ROS ``setup.bash`` prepends ROS site-packages to ``PYTHONPATH``,\nwhich bypasses virtual-environment isolation.  ROS distributions can then\nshadow core dependencies or register pytest plugins that break the test\nsuite, while the user sees only an unrelated import error.",
+      "properties": {
+        "environment_prefix": {
+          "title": "Environment Prefix",
+          "type": "string"
+        },
+        "external_path_entries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "External Path Entries",
+          "type": "array"
+        },
+        "loaded_ros_modules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Loaded Ros Modules",
+          "type": "array"
+        },
+        "recommendations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommendations",
+          "type": "array"
+        },
+        "ros_path_entries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ros Path Entries",
+          "type": "array"
+        },
+        "shadowed_modules": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Shadowed Modules",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "isolated",
+            "shadowed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "environment_prefix"
+      ],
+      "title": "PythonPathIsolation",
+      "type": "object"
+    },
     "ReadinessDatasetCheck": {
       "additionalProperties": false,
       "description": "Dataset path inspection embedded in a readiness artifact.",
@@ -236,6 +295,17 @@
         "platform": {
           "title": "Platform",
           "type": "string"
+        },
+        "python_path": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PythonPathIsolation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "python_version": {
           "title": "Python Version",

@@ -1,0 +1,25 @@
+# Reviewed exceptions for tools/check_schema_compat.py.
+#
+# Each key is either ``<schema file>#<location>`` for a narrowing of a released
+# schema version, or ``artifact:<path>`` for a released artifact that current
+# Calibrex cannot read.  Every entry needs a reason a reviewer can verify.  The
+# checker fails when an entry no longer matches anything, so this list cannot
+# silently outlive the problem it excuses.
+acknowledged:
+  - key: external_run.schema.json#ExternalExecution.container_digest
+    reason: >-
+      Narrowed after v0.4.1 without a version bump: container_digest must now be
+      a sha256 image digest, so v0.1 external runs that recorded a tag-style
+      reference no longer validate.  Pending maintainer decision between bumping
+      to slac.external_calibration_run/v0.2 (keeping v0.1 readable) and accepting
+      the tightening as a v0.1 fix.
+  - key: result.schema.json#RunInfo.provenance
+    reason: >-
+      Narrowed after v0.4.1 without a version bump: the published JSON Schema
+      rejects an empty legacy provenance map, while the Python model still reads
+      it as a blocked legacy result.  Pending maintainer decision on aligning the
+      published schema with the model.
+  - key: artifact:examples/public_datasets/a2d2_pandey_mutual_information/manifest.yaml
+    reason: >-
+      Already invalid when v0.4.1 was released (provenance member lists in a
+      string-valued map); the working-tree copy is fixed and validates.

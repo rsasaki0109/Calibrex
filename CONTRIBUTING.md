@@ -20,16 +20,33 @@ Core rules:
 
 ## Schema Changes
 
-If a PR changes config, result, comparison, dataset manifest, or report sidecar
-shape, regenerate committed schemas:
+Every artifact kind is declared once in `src/calibrex/core/schema_registry.py`.
+Validation, `calibrex schema`, and the committed schema ledger are derived from
+it. If a PR changes config, result, comparison, dataset manifest, report
+sidecar, or any other artifact shape, regenerate committed schemas and the
+ledger:
 
 ```bash
 calibrex schema all --output-dir schemas
-pytest tests/unit/test_schemas.py
+pytest tests/unit/test_schemas.py tests/unit/test_schema_registry.py
+python tools/check_schema_compat.py
 ```
 
-Schema files are part of the public API. Do not change a schema field name,
-unit, transform convention, or timestamp convention without updating examples,
+Schema files are part of the public API, and a released schema version must
+stay readable. Adding an optional field is compatible. Anything that makes a
+previously valid artifact invalid (a new required field, a removed field, a
+tighter pattern, enum, or type) needs a new `schema_version`, and the model
+must keep accepting the old one. When an old version cannot be read as is:
+
+- add a `SchemaMigration` only when the upgrade is lossless and invents no
+  values (digest-bound kinds cannot be migrated); otherwise
+- list it in `RETIRED_SCHEMA_VERSIONS` with the retiring release, the reason,
+  and the remedy users should apply.
+
+`tools/check_schema_compat.py` enforces this against the latest release tag in
+CI. A deliberate exception must be recorded, with a reviewable reason, in
+`tools/schema_compat_acknowledged.yaml`. Do not change a field name, unit,
+transform convention, or timestamp convention without updating examples,
 tests, docs, and migration notes.
 
 ## Evidence and Evaluation
@@ -54,9 +71,16 @@ Run the standard checks before opening a PR:
 
 ```bash
 ruff check .
-mypy src/calibrex
+uvx --isolated --with-requirements tools/typecheck-requirements.txt mypy src/calibrex
 pytest
 ```
+
+The strict mypy gate runs from pinned requirements without numpy or scipy;
+see `tools/typecheck-requirements.txt` for why a plain `mypy src/calibrex` in a
+development environment aborts. The pytest configuration disables plugin
+autoloading, so the suite also runs in a shell where ROS is sourced; if
+Calibrex itself misbehaves there, `calibrex doctor` reports ROS paths on
+`sys.path` and any dependency resolved from outside the active environment.
 
 ## Releases
 

@@ -8,6 +8,16 @@ regenerated with:
 calibrex schema all --output-dir schemas
 ```
 
+The same command writes
+[`schema_ledger.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/schema_ledger.json),
+a machine-readable ledger of every artifact kind: its current and accepted
+`schema_version` values, schema file and SHA-256, whether it is digest-bound,
+and the versions that were retired (with the remedy) or are upgraded by a
+migration. `calibrex schema ledger` prints it. A released `schema_version`
+remains readable: `calibrex validate` either reads it directly, upgrades it
+through a lossless migration, or explains which release retired it and what to
+do instead.
+
 | Schema | Description |
 |---|---|
 | [`assessment.schema.json`](https://github.com/rsasaki0109/Calibrex/blob/main/schemas/assessment.schema.json) | `AssessmentArtifact` — machine-readable falsification assessment (`assessment.json`). |
