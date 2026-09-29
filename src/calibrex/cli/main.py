@@ -213,6 +213,10 @@ from calibrex.evaluation.external_camera_imu import (
     evaluate_external_camera_imu,
     write_synthetic_camera_imu_fixture,
 )
+from calibrex.evaluation.ins_lidar_hand_eye import (
+    InsLidarRunOptions,
+    run_kitti_ins_lidar_hand_eye,
+)
 from calibrex.evaluation.kitti_falsification_benchmark import (
     run_kitti_falsification_benchmark,
 )
@@ -296,6 +300,7 @@ from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
 from calibrex.solvers.probabilistic_camera_lidar_refiner import (
     ProbabilisticCameraLidarRefinementOptions,
 )
+from calibrex.solvers.trajectory_hand_eye_solver import DofPrior, TrajectoryHandEyeOptions
 from calibrex.visualization.bullseye import write_bullseye_plot
 from calibrex.visualization.comparison_table import write_comparison_table
 from calibrex.visualization.evidence_card import write_evidence_card
@@ -1167,6 +1172,29 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_i2i.add_argument("--max-iterations", type=int, default=20)
     kitti_i2i.add_argument("--json", action="store_true")
     kitti_i2i.set_defaults(func=_cmd_kitti_benchmark_i2i)
+
+    ins_lidar = subcommands.add_parser(
+        "ins-lidar",
+        help="INS/GNSS-LiDAR trajectory hand-eye calibration evidence",
+    )
+    ins_lidar_subcommands = ins_lidar.add_subparsers(dest="ins_lidar_command", required=True)
+    ins_lidar_kitti = ins_lidar_subcommands.add_parser(
+        "kitti",
+        help="calibrate T_imu_velo from KITTI raw OXTS and Velodyne (pool same-rig drives)",
+    )
+    ins_lidar_kitti.add_argument("drives", type=Path, nargs="+", help="KITTI raw *_sync drives")
+    ins_lidar_kitti.add_argument("--output", type=Path, required=True)
+    ins_lidar_kitti.add_argument("--max-frames", type=_positive_int)
+    ins_lidar_kitti.add_argument("--block-duration", type=float, default=5.0)
+    ins_lidar_kitti.add_argument(
+        "--prior",
+        action="append",
+        default=[],
+        metavar="DOF=VALUE:SIGMA",
+        help="Gaussian prior on x, y, z (m) or time_offset (s), e.g. z=0.80:0.02 (repeatable)",
+    )
+    ins_lidar_kitti.add_argument("--json", action="store_true")
+    ins_lidar_kitti.set_defaults(func=_cmd_ins_lidar_kitti)
 
     sota = subcommands.add_parser(
         "sota",
@@ -5719,6 +5747,45 @@ def _cmd_camera_lidar_benchmark_continuous_time_ablation(
         args.json,
     )
     return 0
+
+
+def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
+    command = ["calibrex", "ins-lidar", "kitti", *(str(path) for path in args.drives)]
+    command += ["--output", str(args.output), "--block-duration", str(args.block_duration)]
+    if args.max_frames is not None:
+        command += ["--max-frames", str(args.max_frames)]
+    priors = []
+    for text in args.prior:
+        command += ["--prior", text]
+        try:
+            dof, _, rest = text.partition("=")
+            value, _, sigma = rest.partition(":")
+            priors.append(
+                DofPrior(dof=dof, value=float(value), sigma=float(sigma), source="cli")
+            )
+        except ValueError as exc:
+            _die(f"invalid --prior {text!r}: {exc}")
+    options = InsLidarRunOptions(
+        block_duration_s=args.block_duration,
+        solver=TrajectoryHandEyeOptions(priors=tuple(priors)),
+    )
+    try:
+        artifact = run_kitti_ins_lidar_hand_eye(
+            args.drives, options, max_frames=args.max_frames, command=command
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
 
 
 def _cmd_sota_audit(args: argparse.Namespace) -> int:

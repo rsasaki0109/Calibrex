@@ -203,6 +203,10 @@ from calibrex.core.external_run import (
     ExternalCalibrationRunArtifact,
     external_run_json_schema,
 )
+from calibrex.core.ins_lidar_hand_eye import (
+    InsLidarHandEyeArtifact,
+    ins_lidar_hand_eye_json_schema,
+)
 from calibrex.core.koide_handoff import (
     KoideExecutionLock,
     koide_execution_lock_json_schema,
@@ -792,6 +796,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         CameraLidarSotaAuditResult,
         camera_lidar_sota_audit_result_json_schema,
     ),
+    _entry("ins-lidar-hand-eye", InsLidarHandEyeArtifact, ins_lidar_hand_eye_json_schema),
     _entry("sota-audit-protocol", SotaAuditProtocol, sota_audit_protocol_json_schema),
     _entry("sota-audit-result", SotaAuditResult, sota_audit_result_json_schema),
     _entry("sota-leaderboard", SotaLeaderboard, sota_leaderboard_json_schema),
