@@ -20,7 +20,7 @@ unobservable.  Each DoF is classified from its data-only standard deviation.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Literal, TypeAlias
 
@@ -56,11 +56,54 @@ class GyroSeries:
     def __post_init__(self) -> None:
         if len(self.times_s) < 2 or np.any(np.diff(self.times_s) <= 0.0):
             raise ValueError("gyro samples need strictly increasing timestamps")
-        steps = np.diff(self.times_s)[:, None]
-        increments = 0.5 * (self.gyro_rps[1:] + self.gyro_rps[:-1]) * steps
+        steps = np.diff(self.times_s)
+        midpoint_rates = 0.5 * (self.gyro_rps[1:] + self.gyro_rps[:-1])
+        increments = midpoint_rates * steps[:, None]
         object.__setattr__(
             self, "_integral", np.vstack([np.zeros((1, 3)), np.cumsum(increments, axis=0)])
         )
+        # Cumulative orientation Q_k of the raw gyro (piecewise-constant midpoint
+        # rates) and S_k = sum_j Q_{j+1} dt_j for first-order bias Jacobians.
+        step_rotations = Rotation.from_rotvec(increments).as_matrix()
+        orientations = np.empty((len(self.times_s), 3, 3))
+        orientations[0] = np.eye(3)
+        for index, step_rotation in enumerate(step_rotations):
+            orientations[index + 1] = orientations[index] @ step_rotation
+        weighted = orientations[1:] * steps[:, None, None]
+        object.__setattr__(self, "_orientations", orientations)
+        object.__setattr__(self, "_rates", midpoint_rates)
+        object.__setattr__(
+            self,
+            "_bias_sum",
+            np.concatenate([np.zeros((1, 3, 3)), np.cumsum(weighted, axis=0)]),
+        )
+
+    def orientation_and_bias_sum(self, times_s: FloatArray) -> tuple[FloatArray, FloatArray]:
+        """Return ``Q(t)`` and ``S(t)`` at arbitrary times inside the series."""
+
+        orientations: FloatArray = self._orientations  # type: ignore[attr-defined]
+        rates: FloatArray = self._rates  # type: ignore[attr-defined]
+        bias_sum: FloatArray = self._bias_sum  # type: ignore[attr-defined]
+        index = np.clip(np.searchsorted(self.times_s, times_s, side="right") - 1, 0, len(rates) - 1)
+        elapsed = times_s - self.times_s[index]
+        partial = Rotation.from_rotvec(rates[index] * elapsed[:, None]).as_matrix()
+        fraction = (elapsed / (self.times_s[index + 1] - self.times_s[index]))[:, None, None]
+        return (
+            orientations[index] @ partial,
+            bias_sum[index] + fraction * (bias_sum[index + 1] - bias_sum[index]),
+        )
+
+    def increments(self, start_s: FloatArray, end_s: FloatArray) -> tuple[FloatArray, FloatArray]:
+        """Return bias-free rotation increments and their bias Jacobians.
+
+        ``delta(b) = delta(0) Exp(J b)`` to first order in the bias ``b``.
+        """
+
+        start_orientation, start_sum = self.orientation_and_bias_sum(start_s)
+        end_orientation, end_sum = self.orientation_and_bias_sum(end_s)
+        end_transpose = np.transpose(end_orientation, (0, 2, 1))
+        delta = np.transpose(start_orientation, (0, 2, 1)) @ end_orientation
+        return delta, -end_transpose @ (end_sum - start_sum)
 
     def integral_at(self, times_s: FloatArray) -> FloatArray:
         """Return the trapezoid integral of the gyro from the first sample."""
@@ -85,6 +128,8 @@ class GyroSeries:
 class RotationOptions:
     """Noise model, bounds, and observability policy."""
 
+    model: Literal["preintegrated", "mean_rate"] = "preintegrated"
+    pair_steps: tuple[int, ...] = (1,)
     estimate_time_offset: bool = True
     time_offset_bound_s: float = 0.1
     rate_sigma_floor_rps: float = 0.01
@@ -116,12 +161,28 @@ class RateIntervals:
     start_s: FloatArray
     end_s: FloatArray
     lidar_rate_rps: FloatArray
+    lidar_delta: FloatArray
 
     def subset(self, keep: NDArray[np.bool_]) -> RateIntervals:
         """Return the intervals selected by ``keep``."""
 
         return RateIntervals(
-            self.window_ids[keep], self.start_s[keep], self.end_s[keep], self.lidar_rate_rps[keep]
+            self.window_ids[keep],
+            self.start_s[keep],
+            self.end_s[keep],
+            self.lidar_rate_rps[keep],
+            self.lidar_delta[keep],
+        )
+
+    def shifted(self, offset_s: float) -> RateIntervals:
+        """Return the intervals with ``offset_s`` subtracted from every time."""
+
+        return RateIntervals(
+            self.window_ids,
+            self.start_s - offset_s,
+            self.end_s - offset_s,
+            self.lidar_rate_rps,
+            self.lidar_delta,
         )
 
     def __len__(self) -> int:
@@ -151,31 +212,35 @@ def rate_intervals(
     gyro: GyroSeries,
     opts: RotationOptions,
 ) -> RateIntervals:
-    """Mean LiDAR rates between consecutive poses with gap-free gyro coverage."""
+    """LiDAR rotation increments over ``pair_steps`` scans with gap-free gyro coverage."""
 
     margin = opts.time_offset_bound_s if opts.estimate_time_offset else 0.0
     ids: list[int] = []
     starts: list[float] = []
     ends: list[float] = []
-    rates: list[FloatArray] = []
+    deltas: list[FloatArray] = []
     for index, window in enumerate(windows):
-        for step in range(len(window.times_s) - 1):
-            start, end = float(window.times_s[step]), float(window.times_s[step + 1])
-            if not 0.0 < end - start <= opts.max_step_s:
-                continue
-            if not gyro.covers(start - margin, end + margin):
-                continue
-            relative = window.poses[step, :3, :3].T @ window.poses[step + 1, :3, :3]
-            ids.append(index)
-            starts.append(start)
-            ends.append(end)
-            rates.append(Rotation.from_matrix(relative).as_rotvec() / (end - start))
-    return RateIntervals(
-        np.array(ids, dtype=np.int64),
-        np.array(starts, dtype=np.float64),
-        np.array(ends, dtype=np.float64),
-        np.array(rates, dtype=np.float64).reshape(-1, 3),
+        for step in opts.pair_steps:
+            for first in range(len(window.times_s) - step):
+                last = first + step
+                start, end = float(window.times_s[first]), float(window.times_s[last])
+                if not 0.0 < end - start <= opts.max_step_s * step:
+                    continue
+                if not gyro.covers(start - margin, end + margin):
+                    continue
+                ids.append(index)
+                starts.append(start)
+                ends.append(end)
+                deltas.append(window.poses[first, :3, :3].T @ window.poses[last, :3, :3])
+    delta_array = np.array(deltas, dtype=np.float64).reshape(-1, 3, 3)
+    start_array = np.array(starts, dtype=np.float64)
+    end_array = np.array(ends, dtype=np.float64)
+    rates = (
+        Rotation.from_matrix(delta_array).as_rotvec() / (end_array - start_array)[:, None]
+        if len(delta_array)
+        else np.empty((0, 3))
     )
+    return RateIntervals(np.array(ids, dtype=np.int64), start_array, end_array, rates, delta_array)
 
 
 def rate_residuals(
@@ -205,6 +270,54 @@ def rate_residuals(
     return (error / sigma[:, None]).reshape(-1)
 
 
+def increment_residuals(
+    gyro: GyroSeries,
+    intervals: RateIntervals,
+    rotation: FloatArray,
+    bias: FloatArray,
+    time_offset_s: float,
+    opts: RotationOptions,
+    *,
+    normalize: bool = True,
+) -> FloatArray:
+    """Return ``Log((R dR_imu(b) R^T)^T dR_lidar)`` per interval.
+
+    Normalized by the noise model by default; otherwise divided by the
+    interval duration so the values are rad/s, comparable with mean rates.
+    """
+
+    delta, jacobian = gyro.increments(
+        intervals.start_s + time_offset_s, intervals.end_s + time_offset_s
+    )
+    corrected = delta @ Rotation.from_rotvec(np.einsum("nij,j->ni", jacobian, bias)).as_matrix()
+    predicted = rotation @ corrected @ rotation.T
+    error = Rotation.from_matrix(
+        np.transpose(predicted, (0, 2, 1)) @ intervals.lidar_delta
+    ).as_rotvec()
+    duration = (intervals.end_s - intervals.start_s)[:, None]
+    if not normalize:
+        return (error / duration).reshape(-1)
+    angle = np.linalg.norm(intervals.lidar_rate_rps, axis=1) * duration[:, 0]
+    sigma = (opts.rate_sigma_floor_rps * duration[:, 0]) + opts.rate_sigma_fraction * angle
+    return (error / sigma[:, None]).reshape(-1)
+
+
+def model_residuals(
+    gyro: GyroSeries,
+    intervals: RateIntervals,
+    rotation: FloatArray,
+    bias: FloatArray,
+    time_offset_s: float,
+    opts: RotationOptions,
+    *,
+    normalize: bool = True,
+) -> FloatArray:
+    """Dispatch to the configured measurement model."""
+
+    function = increment_residuals if opts.model == "preintegrated" else rate_residuals
+    return function(gyro, intervals, rotation, bias, time_offset_s, opts, normalize=normalize)
+
+
 class ImuLidarRotationSolver:
     """Robust ``R_lidar_imu``, gyro bias, and clock-offset estimation."""
 
@@ -219,12 +332,7 @@ class ImuLidarRotationSolver:
             return RotationResult("insufficient_intervals", None, np.zeros(3), 0.0, (), None, 0)
         epoch = float(gyro.times_s[0])
         gyro = GyroSeries(gyro.times_s - epoch, gyro.gyro_rps)
-        intervals = RateIntervals(
-            intervals.window_ids,
-            intervals.start_s - epoch,
-            intervals.end_s - epoch,
-            intervals.lidar_rate_rps,
-        )
+        intervals = intervals.shifted(epoch)
         base = _initial_rotation(gyro, intervals)
         params, weights, variance = _irls(gyro, intervals, base, opts)
         dofs = _observability(gyro, intervals, base, params, weights, variance, opts)
@@ -257,7 +365,7 @@ def _residuals(
     opts: RotationOptions,
 ) -> FloatArray:
     offset = float(params[3]) if opts.estimate_time_offset else 0.0
-    return rate_residuals(gyro, intervals, _rotation(base, params), params[4:7], offset, opts)
+    return model_residuals(gyro, intervals, _rotation(base, params), params[4:7], offset, opts)
 
 
 def _irls(
@@ -333,3 +441,25 @@ def _observability(
             )
         )
     return tuple(dofs)
+
+
+def gyro_rotation_model(
+    gyro: GyroSeries,
+    rotation: FloatArray,
+    bias: FloatArray,
+    time_offset_s: float,
+) -> Callable[[float, FloatArray], FloatArray]:
+    """Return in-sweep LiDAR-frame rotations predicted by the gyro and an extrinsic.
+
+    Used to deskew LiDAR sweeps.  Because the extrinsic under test enters the
+    odometry this way, callers must iterate and measure how much of a
+    deliberate extrinsic error survives (see the evaluation's feedback check).
+    """
+
+    def model(scan_time_s: float, offsets_s: FloatArray) -> FloatArray:
+        start = np.full(len(offsets_s), scan_time_s + time_offset_s)
+        delta, jacobian = gyro.increments(start, start + np.asarray(offsets_s, dtype=np.float64))
+        corrected = delta @ Rotation.from_rotvec(np.einsum("nij,j->ni", jacobian, bias)).as_matrix()
+        return np.asarray(rotation @ corrected @ rotation.T, dtype=np.float64)
+
+    return model

@@ -286,6 +286,27 @@
       "title": "Calibrated Dofs",
       "type": "array"
     },
+    "deskew_feedback_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Fraction of a deliberate extrinsic error, injected into the gyro deskew, that survives in the estimate: near 0 means the estimate is not steered by its own deskew model, near 1 means it merely confirms it.",
+      "title": "Deskew Feedback Ratio"
+    },
+    "deskew_passes": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Deskew Passes",
+      "type": "array"
+    },
     "dofs": {
       "items": {
         "$ref": "#/$defs/ImuLidarRotationDofRecord"

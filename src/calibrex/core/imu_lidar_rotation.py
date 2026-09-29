@@ -106,6 +106,15 @@ class ImuLidarRotationArtifact(StrictModel):
     train_median_rate_residual_rps: float | None = None
     holdout_median_rate_residual_rps: float | None = None
     reference: str | None = None
+    deskew_passes: list[dict[str, Any]] = Field(default_factory=list)
+    deskew_feedback_ratio: float | None = Field(
+        default=None,
+        description=(
+            "Fraction of a deliberate extrinsic error, injected into the gyro deskew, "
+            "that survives in the estimate: near 0 means the estimate is not steered by "
+            "its own deskew model, near 1 means it merely confirms it."
+        ),
+    )
     limitations: list[str] = Field(default_factory=list)
     provenance: ImuLidarRotationProvenance
 
