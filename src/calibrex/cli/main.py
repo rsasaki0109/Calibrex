@@ -213,6 +213,7 @@ from calibrex.evaluation.external_camera_imu import (
     evaluate_external_camera_imu,
     write_synthetic_camera_imu_fixture,
 )
+from calibrex.evaluation.gnss_lidar_lever_arm import run_rtk_slam_lever_arm
 from calibrex.evaluation.ins_lidar_hand_eye import (
     InsLidarRunOptions,
     run_kitti_ins_lidar_hand_eye,
@@ -1172,6 +1173,28 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_i2i.add_argument("--max-iterations", type=int, default=20)
     kitti_i2i.add_argument("--json", action="store_true")
     kitti_i2i.set_defaults(func=_cmd_kitti_benchmark_i2i)
+
+    gnss_lidar = subcommands.add_parser(
+        "gnss-lidar",
+        help="GNSS antenna lever arm and clock offset against LiDAR odometry",
+    )
+    gnss_lidar_subcommands = gnss_lidar.add_subparsers(dest="gnss_lidar_command", required=True)
+    gnss_lidar_rtk = gnss_lidar_subcommands.add_parser(
+        "rtk-slam",
+        help="calibrate the antenna lever arm from RTK-SLAM rosbag2 sequences and rtk.txt",
+    )
+    gnss_lidar_rtk.add_argument(
+        "--bag", type=Path, action="append", required=True, help="rosbag2 directory (repeatable)"
+    )
+    gnss_lidar_rtk.add_argument(
+        "--rtk", type=Path, action="append", required=True, help="rtk.txt, one per --bag"
+    )
+    gnss_lidar_rtk.add_argument("--calib", type=Path, required=True, help="RTK-SLAM calib.yaml")
+    gnss_lidar_rtk.add_argument("--output", type=Path, required=True)
+    gnss_lidar_rtk.add_argument("--topic", default="/livox/points")
+    gnss_lidar_rtk.add_argument("--max-scans", type=_positive_int)
+    gnss_lidar_rtk.add_argument("--json", action="store_true")
+    gnss_lidar_rtk.set_defaults(func=_cmd_gnss_lidar_rtk_slam)
 
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
@@ -5747,6 +5770,38 @@ def _cmd_camera_lidar_benchmark_continuous_time_ablation(
         args.json,
     )
     return 0
+
+
+def _cmd_gnss_lidar_rtk_slam(args: argparse.Namespace) -> int:
+    if len(args.bag) != len(args.rtk):
+        _die("give exactly one --rtk per --bag")
+    command = ["calibrex", "gnss-lidar", "rtk-slam"]
+    for bag, rtk in zip(args.bag, args.rtk, strict=True):
+        command += ["--bag", str(bag), "--rtk", str(rtk)]
+    command += ["--calib", str(args.calib), "--output", str(args.output), "--topic", args.topic]
+    if args.max_scans is not None:
+        command += ["--max-scans", str(args.max_scans)]
+    try:
+        artifact = run_rtk_slam_lever_arm(
+            list(zip(args.bag, args.rtk, strict=True)),
+            args.calib,
+            topic=args.topic,
+            max_scans=args.max_scans,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added GNSS antenna lever-arm and clock-offset evidence against LiDAR
+  odometry (`slac.gnss_lidar_lever_arm/v0.1`, `calibrex gnss-lidar rtk-slam`)
+  with an RTK-SLAM dataset reader (RTK `rtk.txt`, Livox rosbag2 scans, CAD
+  reference from `calib.yaml`).
+  - The solver profiles out one ENU alignment per odometry window by weighted
+    Procrustes, so the outer robust fit has four unknowns.
+  - GNSS epochs are used as observed and the odometry is interpolated to them,
+    with a blend-dependent pose variance. Interpolating the noisy GNSS track
+    instead biased the clock offset toward mid-epoch values.
+  - LiDAR odometry gains an incremental scan-to-local-map mode
+    (`local_map_scans`) for sparse Livox scanners; on MID360 it cut the
+    one-second distance error against RTK from 7.3 cm to 2.2 cm.
 - Added INS/GNSS-LiDAR trajectory hand-eye calibration evidence
   (`slac.ins_lidar_hand_eye/v0.1`, `calibrex ins-lidar kitti`).
   - LiDAR motions come from a new vectorized point-to-plane scan-to-scan
