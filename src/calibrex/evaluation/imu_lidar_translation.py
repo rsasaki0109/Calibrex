@@ -444,3 +444,66 @@ def _policy(
     return "pass", (
         "every lever-arm axis is estimated and held-out windows detect every control",
     )
+
+
+@dataclass(frozen=True)
+class TranslationCandidateScore:
+    """Held-out fit of a fixed rotation, clock offset, and lever arm."""
+
+    holdout_span_rms_m: dict[float, float]
+    holdout_span_median_m: dict[float, float]
+    holdout_rows: int
+
+
+def score_imu_lidar_translation_candidate(
+    imu: ImuPreintegrator,
+    windows: Sequence[OdometryWindow],
+    rotation: FloatArray,
+    time_offset_s: float,
+    translation: FloatArray,
+    holdout_spans_s: Sequence[tuple[float, float]],
+    options: TranslationOptions | None = None,
+    *,
+    clip_m: float = 0.05,
+) -> TranslationCandidateScore:
+    """Score a complete candidate extrinsic on shared held-out time spans.
+
+    Nothing of the candidate is refit: only the per-span nuisances (gravity,
+    accelerometer bias, segment velocities).  Each odometry window is cut at
+    the span boundaries, so every candidate is scored on the same stretches of
+    the recording even when its own deskewing shifted the segmentation.  The
+    per-span score is the RMS of the position residual components, each
+    clipped at ``clip_m`` so a single broken registration cannot dominate.
+    """
+
+    opts = options or TranslationOptions()
+    pieces: list[OdometryWindow] = []
+    keys: list[float] = []
+    for window in windows:
+        for start, end in holdout_spans_s:
+            inside = (window.times_s >= start) & (window.times_s <= end)
+            if np.count_nonzero(inside) >= opts.min_segment_scans:
+                pieces.append(
+                    OdometryWindow(
+                        f"{window.window_id}@{start:.1f}",
+                        window.block,
+                        window.times_s[inside],
+                        window.poses[inside],
+                    )
+                )
+                keys.append(round(float(start), 1))
+    systems = window_systems(pieces, imu, rotation, time_offset_s, opts)
+    residuals: dict[float, list[FloatArray]] = {}
+    for system in systems:
+        key = keys[system.window_index]
+        residuals.setdefault(key, []).append(window_residuals(system, translation))
+    rms: dict[float, float] = {}
+    median: dict[float, float] = {}
+    rows = 0
+    for key, parts in residuals.items():
+        values = np.concatenate(parts)
+        rows += len(values) // 3
+        clipped = np.clip(values, -clip_m, clip_m)
+        rms[key] = float(np.sqrt(np.mean(clipped**2)))
+        median[key] = float(np.median(np.linalg.norm(values.reshape(-1, 3), axis=1)))
+    return TranslationCandidateScore(rms, median, rows)

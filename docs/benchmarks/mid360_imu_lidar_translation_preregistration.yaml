@@ -1,0 +1,83 @@
+# Pre-registration of the MID360 IMU-LiDAR extrinsic (rotation + lever arm + clock
+# offset) SOTA audit against LI-Init.
+#
+# Written on 2026-09-30, before Calibrex or LI-Init has been run on either
+# evaluation recording (stadtgarten_seq1, construction_seq1) for IMU-LiDAR
+# calibration, and before any score on them has been computed.
+# The scoring procedure and metric were developed on stadtgarten_seq2, where
+# both methods' results had already been seen; seq2 is therefore development
+# data and gates nothing.
+# The audit protocol built afterwards must cite this file's SHA-256 and may not
+# change any threshold, metric, recording, or requirement listed here.
+claim: >-
+  On two hand-held MID360 recordings of the RTK-SLAM dataset that were not used
+  to develop the method (stadtgarten_seq1, construction_seq1; one rig, two
+  scenes), Calibrex's full IMU-LiDAR extrinsic (rotation, lever arm, and clock
+  offset) predicts held-out accelerometer-integrated motion at least as well as
+  LI-Init's, and so does its lever arm alone.
+scope:
+  modalities: [imu, lidar]
+  quantities: [rotation, translation, time_offset]
+  category: targetless_imu_lidar
+recordings:
+  evaluation: [stadtgarten_seq1, construction_seq1]
+  development_only: [stadtgarten_seq2]
+methods:
+  calibrex_native: >-
+    `calibrex imu-lidar livox` on the whole recording, then
+    `calibrex imu-lidar livox-translation` with that rotation artifact.
+    If the translation artifact's policy_status is neither pass nor warn,
+    Calibrex has no estimate for that recording.
+  li_init: LI-Init commit 66b157a refined result, run in the container with tools/external/li_init
+  li_init_lever_arm: >-
+    LI-Init's lever arm (translation of T_lidar_imu) combined with Calibrex's
+    rotation and clock offset, to compare the lever arms alone
+  design_reference: MID360 design value (identity rotation, (11.0, 23.29, -44.12) mm, dt = 0); sanity row
+scoring:
+  odometry: >-
+    One common LiDAR odometry per recording, deskewed with gyro rotations
+    mapped by the design reference (identity rotation, zero clock offset,
+    zero gyro bias), shared by every candidate, so that no candidate's own
+    deskewing changes the data it is scored on.
+  held_out_spans: >-
+    Every third 10-second window of the common odometry (positions % 3 == 1).
+    Each odometry window is cut at the span boundaries.
+  gyro_bias: >-
+    Refit per candidate on the train windows of the common odometry with the
+    candidate's rotation and clock offset fixed (score_imu_lidar_candidate).
+  fixed: the candidate's rotation, clock offset, and lever arm
+  refit_per_span: gravity, accelerometer bias, and one velocity per 2-second segment
+  metric: >-
+    per held-out span, the RMS of the position residual components, each
+    clipped at 50 mm (metres, lower is better)
+  unit_of_comparison: held-out span, paired across methods by span start time
+  known_leakage: >-
+    LI-Init fits on the whole recording. Calibrex holds out every third window
+    of its own odometry, which need not coincide with the scoring spans. Both
+    methods may therefore have fitted on data inside the scoring spans.
+failure_policy: a method without an estimate for a recording fails every span of that recording
+requirements:
+  - id: calibrex-estimate
+    rule: calibrex_native failure_rate <= 0 on each evaluation recording
+  - id: calibrex-extrinsic-not-worse-than-li-init
+    rule: >-
+      paired improvement of calibrex_native over li_init, 95% bootstrap CI lower
+      bound >= 0, on each evaluation recording where LI-Init returns a result
+  - id: calibrex-lever-arm-not-worse-than-li-init
+    rule: >-
+      paired improvement of calibrex_native over li_init_lever_arm, 95%
+      bootstrap CI lower bound >= 0, on each evaluation recording where LI-Init
+      returns a result
+  - id: calibrex-absolute-fit
+    rule: calibrex_native mean per-span metric <= 0.010 m on each evaluation recording
+missing_li_init: >-
+    If LI-Init returns no result on an evaluation recording, its comparison
+    requirements for that recording are recorded as missing and the claim is
+    incomplete; no other recording is substituted.
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+development_results_seen_on_stadtgarten_seq2:
+  calibrex_vs_li_init_extrinsic_mm: 5.54 (CI95 3.94-7.15)
+  calibrex_vs_li_init_lever_arm_mm: 0.63 (CI95 0.38-0.90)
+  calibrex_mean_metric_mm: 4.28
