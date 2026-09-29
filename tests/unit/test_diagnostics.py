@@ -3,10 +3,12 @@ from pathlib import Path
 import jsonschema
 
 from calibrex.core.environment_readiness import (
+    PythonPathIsolation,
     build_environment_readiness_artifact,
     environment_readiness_json_schema,
     infer_dataset_type,
     load_environment_readiness,
+    python_path_isolation,
 )
 from calibrex.diagnostics import build_doctor_artifact, doctor_json_schema
 
@@ -146,3 +148,77 @@ def test_doctor_rosbag1_suggests_template(tmp_path: Path) -> None:
         artifact.model_dump(mode="json"),
         environment_readiness_json_schema(),
     )
+
+
+def _isolation(**overrides: object) -> PythonPathIsolation:
+    options: dict[str, object] = {
+        "sys_path": ["/venv/lib/python3.12/site-packages"],
+        "environ": {},
+        "prefixes": ["/venv"],
+        "loaded_modules": ["json", "calibrex"],
+        "module_origin": lambda name: f"/venv/lib/python3.12/site-packages/{name}/__init__.py",
+    }
+    options.update(overrides)
+    return python_path_isolation(**options)  # type: ignore[arg-type]
+
+
+def test_python_path_isolation_is_clean_inside_the_environment() -> None:
+    isolation = _isolation()
+
+    assert isolation.status == "isolated"
+    assert isolation.environment_prefix.endswith("venv")
+    assert not isolation.recommendations
+
+
+def test_ros_paths_are_reported_without_shadowing() -> None:
+    ros_site = "/opt/ros/jazzy/lib/python3.12/site-packages"
+    isolation = _isolation(
+        sys_path=[ros_site, "/venv/lib/python3.12/site-packages"],
+        environ={"PYTHONPATH": ros_site},
+    )
+
+    assert isolation.status == "isolated"
+    assert isolation.ros_path_entries == [ros_site]
+    assert isolation.external_path_entries == [ros_site]
+    assert "env -u PYTHONPATH" in isolation.recommendations[0]
+
+
+def test_dependency_resolved_from_ros_is_shadowed() -> None:
+    def origin(name: str) -> str:
+        if name == "numpy":
+            return "/opt/ros/jazzy/lib/python3.12/site-packages/numpy/__init__.py"
+        return f"/venv/lib/python3.12/site-packages/{name}/__init__.py"
+
+    isolation = _isolation(module_origin=origin)
+
+    assert isolation.status == "shadowed"
+    assert list(isolation.shadowed_modules) == ["numpy"]
+
+
+def test_colcon_workspace_is_detected_through_ament_prefix_path() -> None:
+    workspace = "/home/user/ws/install/my_pkg/lib/python3.12/site-packages"
+    isolation = _isolation(
+        sys_path=[workspace],
+        environ={"AMENT_PREFIX_PATH": "/home/user/ws/install/my_pkg"},
+    )
+
+    assert isolation.ros_path_entries == [workspace]
+
+
+def test_loaded_ros_modules_break_the_ros_independence_claim() -> None:
+    isolation = _isolation(loaded_modules=["rclpy", "rclpy.node", "launchpad_unrelated"])
+
+    assert isolation.status == "shadowed"
+    assert isolation.loaded_ros_modules == ["rclpy", "rclpy.node"]
+
+
+def test_shadowed_environment_downgrades_readiness_to_warn(monkeypatch: object) -> None:
+    import calibrex.core.environment_readiness as readiness
+
+    shadowed = _isolation(loaded_modules=["rclpy"])
+    monkeypatch.setattr(readiness, "python_path_isolation", lambda: shadowed)  # type: ignore[attr-defined]
+
+    artifact = build_environment_readiness_artifact(calibrex_version="0.0.0", command=[])
+
+    assert artifact.status == "warn"
+    assert artifact.environment.core_ros_independent is False

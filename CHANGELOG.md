@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+- Declared every artifact kind once in `calibrex.core.schema_registry`.
+  Validation, `calibrex schema`, and auto-detection previously drew on seven
+  hand-maintained tables that had drifted: `slac.remote_archive_selection/v0.1`
+  and `slac.camera_lidar_confidence_calibration/v0.1` were accepted by their
+  models but failed auto-detection, and `continuous-time-imu-intrinsics` was
+  missing from `ValidationKind`. Accepted versions are now derived from each
+  model's `schema_version` annotation. `calibrex schema all` also writes
+  `schemas/schema_ledger.json` (kinds, current and accepted versions, schema
+  digests, retired versions, and migrations), and `calibrex schema ledger`
+  prints it. Retired versions fail with the retiring release and a remedy;
+  `slac.doctor/v0.1` (replaced by `slac.environment_readiness/v0.1`) is the
+  first, since its workflows lack the now-required `template_path`.
+- Added `tools/check_schema_compat.py` and a CI job that fail when a released
+  schema version is no longer readable, is narrowed without a version bump, or
+  a released artifact no longer validates. Two pre-existing narrowings since
+  v0.4.1 (`external_run` `container_digest` pattern, `result` legacy provenance)
+  are recorded in `tools/schema_compat_acknowledged.yaml` pending a decision.
+- Fixed the A2D2 Pandey dataset manifest, which had violated
+  `slac.dataset_manifest/v0.1` since v0.4.1. A new test validates every
+  committed `slac.*` artifact; the digest-bound raw-replay stub config remains
+  a tracked known violation.
+- `calibrex doctor` now reports Python path isolation: ROS site-packages on
+  `sys.path`, dependencies resolved from outside the active environment, and
+  imported ROS modules. `core_ros_independent` is measured instead of always
+  `true`, and a shadowed environment downgrades readiness to `warn`.
+- pytest no longer autoloads third-party plugins, so the suite runs in a shell
+  where ROS is sourced (ROS pytest plugins previously aborted collection). CI
+  adds a ROS Jazzy job that runs the tests and `calibrex doctor` with
+  `setup.bash` sourced, plus static and runtime checks that the package never
+  imports ROS modules.
+- Pinned ruff and mypy exactly and moved the strict mypy gate to
+  `tools/typecheck-requirements.txt`, shared by CI and developers.
+
 - Added independent evidence for imported Camera--IMU calibrations.
   `calibrex external-run evaluate-camera-imu` evaluates a Kalibr (or other
   external-run) `T_cam_imu` and `timeshift_cam_imu` on a separate

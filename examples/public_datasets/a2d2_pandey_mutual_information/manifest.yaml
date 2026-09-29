@@ -26,11 +26,9 @@ provenance:
   camera_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_camera_frontleft.tar
   lidar_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/camera_lidar-20180810150607_lidar_frontleft.tar
   calibration_object: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/cams_lidars.json
-  camera_members:
-    - ./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000060.png
-    - ./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000061.png
-  lidar_members:
-    - ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000060.npz
-    - ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000061.npz
+  camera_member_000000060: ./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000060.png
+  camera_member_000000061: ./camera_lidar/20180810_150607/camera/cam_front_left/20180810150607_camera_frontleft_000000061.png
+  lidar_member_000000060: ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000060.npz
+  lidar_member_000000061: ./camera_lidar/20180810_150607/lidar/cam_front_left/20180810150607_lidar_frontleft_000000061.npz
   license: CC BY-ND 4.0
   limitation: LiDAR points are distributed already mapped into the camera view.

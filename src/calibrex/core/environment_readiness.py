@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import os
 import platform
+import sys
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, cast
@@ -42,6 +45,24 @@ class ReadinessDependency(StrictModel):
     version: str | None = None
 
 
+class PythonPathIsolation(StrictModel):
+    """Whether Calibrex and its dependencies resolve from the active environment.
+
+    A sourced ROS ``setup.bash`` prepends ROS site-packages to ``PYTHONPATH``,
+    which bypasses virtual-environment isolation.  ROS distributions can then
+    shadow core dependencies or register pytest plugins that break the test
+    suite, while the user sees only an unrelated import error.
+    """
+
+    status: Literal["isolated", "shadowed"]
+    environment_prefix: str
+    external_path_entries: list[str] = Field(default_factory=list)
+    ros_path_entries: list[str] = Field(default_factory=list)
+    shadowed_modules: dict[str, str] = Field(default_factory=dict)
+    loaded_ros_modules: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+
+
 class ReadinessEnvironment(StrictModel):
     """Runtime environment recorded by a readiness check."""
 
@@ -50,6 +71,7 @@ class ReadinessEnvironment(StrictModel):
     platform: str
     dependencies: dict[str, ReadinessDependency]
     core_ros_independent: bool = True
+    python_path: PythonPathIsolation | None = None
 
 
 class ReadinessDatasetCheck(StrictModel):
@@ -192,7 +214,7 @@ def build_environment_readiness_artifact(
     )
     if path is None:
         return EnvironmentReadinessArtifact(
-            status="pass",
+            status=_environment_status(environment),
             environment=environment,
             provenance=provenance,
         )
@@ -206,7 +228,7 @@ def build_environment_readiness_artifact(
         )
     )
     quality = _quality(inspection)
-    status: ReadinessStatus = "pass"
+    status: ReadinessStatus = _environment_status(environment)
     if not inspection.exists or quality.degeneracy.grade == "fail":
         status = "fail"
     elif inspection.warnings or quality.degeneracy.grade == "warn":
@@ -229,12 +251,157 @@ def _environment(calibrex_version: str) -> ReadinessEnvironment:
         "mcap": _dependency("mcap", optional=True),
         "open3d": _dependency("open3d", optional=True),
     }
+    isolation = python_path_isolation()
     return ReadinessEnvironment(
         calibrex_version=calibrex_version,
         python_version=platform.python_version(),
         platform=platform.platform(),
         dependencies=dependencies,
+        core_ros_independent=not isolation.loaded_ros_modules,
+        python_path=isolation,
     )
+
+
+def _environment_status(environment: ReadinessEnvironment) -> ReadinessStatus:
+    isolation = environment.python_path
+    if isolation is not None and isolation.status == "shadowed":
+        return "warn"
+    return "pass"
+
+
+_ISOLATION_MODULES: tuple[str, ...] = (
+    "calibrex",
+    "numpy",
+    "scipy",
+    "pydantic",
+    "yaml",
+    "jsonschema",
+    "mcap",
+    "open3d",
+    "cv2",
+)
+_ROS_MODULE_NAMES: frozenset[str] = frozenset(
+    {
+        "rclpy",
+        "rosbag2_py",
+        "rcl_interfaces",
+        "launch",
+        "launch_ros",
+        "launch_testing",
+        "launch_testing_ros",
+        "rospy",
+        "rosbag",
+        "roslib",
+    }
+)
+_ROS_MODULE_PREFIXES: tuple[str, ...] = ("rosidl_", "ament_", "rclpy_", "tf2_")
+_ROS_PREFIX_VARIABLES: tuple[str, ...] = ("AMENT_PREFIX_PATH", "COLCON_PREFIX_PATH")
+
+
+def python_path_isolation(
+    *,
+    sys_path: Iterable[str] | None = None,
+    environ: Mapping[str, str] | None = None,
+    prefixes: Iterable[str] | None = None,
+    loaded_modules: Iterable[str] | None = None,
+    module_origin: Callable[[str], str | None] | None = None,
+) -> PythonPathIsolation:
+    """Report ROS or other external paths that can shadow the active environment."""
+
+    environ = os.environ if environ is None else environ
+    sys_path = list(sys.path if sys_path is None else sys_path)
+    prefix_list = [
+        _normalized(prefix)
+        for prefix in (
+            (sys.prefix, sys.base_prefix, _calibrex_root()) if prefixes is None else prefixes
+        )
+        if prefix
+    ]
+    origin_of = _module_origin if module_origin is None else module_origin
+    ros_prefixes = [
+        _normalized(entry)
+        for variable in _ROS_PREFIX_VARIABLES
+        for entry in environ.get(variable, "").split(os.pathsep)
+        if entry
+    ]
+
+    def inside(path: str, roots: list[str]) -> bool:
+        normalized = _normalized(path)
+        return any(normalized == root or normalized.startswith(root + os.sep) for root in roots)
+
+    def is_ros(path: str) -> bool:
+        return "/opt/ros/" in path.replace(os.sep, "/") or inside(path, ros_prefixes)
+
+    python_path_entries = [
+        entry for entry in environ.get("PYTHONPATH", "").split(os.pathsep) if entry
+    ]
+    external = [entry for entry in python_path_entries if not inside(entry, prefix_list)]
+    ros_entries = [entry for entry in sys_path if entry and is_ros(entry)]
+    shadowed: dict[str, str] = {}
+    for name in _ISOLATION_MODULES:
+        origin = origin_of(name)
+        if origin is not None and not inside(origin, prefix_list):
+            shadowed[name] = origin
+    loaded = sorted(
+        name
+        for name in (sys.modules if loaded_modules is None else loaded_modules)
+        if _is_ros_module(name.split(".", 1)[0])
+    )
+    recommendations: list[str] = []
+    if shadowed:
+        recommendations.append(
+            "dependencies resolve outside the active environment ("
+            + ", ".join(sorted(shadowed))
+            + "); run Calibrex without the external PYTHONPATH entries"
+        )
+    if ros_entries:
+        recommendations.append(
+            "ROS site-packages are on sys.path; Calibrex does not need them. Use "
+            "`env -u PYTHONPATH calibrex ...` or a shell without `setup.bash` to rule "
+            "out shadowed dependencies and ROS pytest plugins"
+        )
+    if loaded:
+        recommendations.append(
+            "ROS Python modules were imported into this process; the ROS-independent "
+            "core guarantee does not hold for this run"
+        )
+    return PythonPathIsolation(
+        status="shadowed" if shadowed or loaded else "isolated",
+        environment_prefix=sys.prefix
+        if prefixes is None
+        else (prefix_list[0] if prefix_list else ""),
+        external_path_entries=external,
+        ros_path_entries=ros_entries,
+        shadowed_modules=shadowed,
+        loaded_ros_modules=loaded,
+        recommendations=recommendations,
+    )
+
+
+def _is_ros_module(top_level: str) -> bool:
+    return top_level in _ROS_MODULE_NAMES or top_level.startswith(_ROS_MODULE_PREFIXES)
+
+
+def _module_origin(name: str) -> str | None:
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError):
+        return None
+    if spec is None:
+        return None
+    if spec.origin not in (None, "built-in", "frozen"):
+        return spec.origin
+    locations = list(spec.submodule_search_locations or ())
+    return locations[0] if locations else None
+
+
+def _calibrex_root() -> str:
+    return str(Path(__file__).resolve().parents[1])
+
+
+def _normalized(path: str) -> str:
+    return os.path.normcase(os.path.realpath(path)).rstrip(os.sep) or os.sep
+
 
 
 _PACKAGE_DISTRIBUTIONS: dict[str, str] = {

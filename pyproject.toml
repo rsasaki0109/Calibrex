@@ -34,12 +34,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Lint and type-check tools are pinned exactly: a new ruff or mypy release can
+# add rules and turn CI red without any code change.  The strict mypy gate runs
+# from tools/typecheck-requirements.txt (see that file for why).
 dev = [
   "build>=1.2",
-  "mypy>=1.10",
+  "mypy==2.3.1",
   "numpy>=1.21",
-  "pytest>=8.0",
-  "ruff>=0.5",
+  "pytest>=8.4,<10",
+  "ruff==0.16.3",
 ]
 mcap = [
   "mcap>=1.1",
@@ -106,7 +109,7 @@ calibrex = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q --disable-plugin-autoload"
 pythonpath = ["src", "."]
 testpaths = ["tests"]
 markers = [

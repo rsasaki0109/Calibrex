@@ -13,183 +13,80 @@ from typing import Any, Literal, NoReturn, cast
 
 from calibrex import __version__
 from calibrex.calibration_ci import (
-    calibration_ci_json_schema,
     run_calibration_ci,
 )
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assess_evidence_file,
-    assessment_json_schema,
 )
 from calibrex.core.benchmark import (
     aggregate_benchmark_definition,
-    benchmark_definition_json_schema,
-    benchmark_json_schema,
     load_benchmark_definition,
     render_benchmark_markdown,
     update_benchmark_table_in_markdown,
 )
-from calibrex.core.calibration_lifecycle import calibration_lifecycle_json_schema
 from calibrex.core.camera_imu_service import (
     build_camera_imu_service_plan,
-    camera_imu_service_evaluation_json_schema,
-    camera_imu_service_plan_json_schema,
     evaluate_camera_imu_service,
     verify_camera_imu_service,
 )
 from calibrex.core.camera_lidar_artifacts import (
-    bullseye_plot_json_schema,
-    calibration_candidate_trace_json_schema,
-    camera_lidar_benchmark_protocol_json_schema,
-    camera_lidar_problem_json_schema,
     load_camera_lidar_problem,
 )
 from calibrex.core.camera_lidar_confidence_calibration import (
-    camera_lidar_confidence_calibration_json_schema,
     load_camera_lidar_confidence_calibration,
 )
 from calibrex.core.camera_lidar_correspondence_export import (
     build_probabilistic_correspondence_artifact,
-    camera_lidar_correspondence_export_json_schema,
-)
-from calibrex.core.camera_lidar_correspondence_quality import (
-    camera_lidar_correspondence_quality_json_schema,
-)
-from calibrex.core.camera_lidar_failure_analysis import (
-    camera_lidar_failure_analysis_json_schema,
 )
 from calibrex.core.camera_lidar_initializer_calibration import (
     CameraLidarInitializerRecoveryGate,
-    camera_lidar_initializer_calibration_json_schema,
     load_camera_lidar_initializer_calibration,
-)
-from calibrex.core.camera_lidar_pose_initializer_benchmark import (
-    camera_lidar_pose_initializer_protocol_json_schema,
-)
-from calibrex.core.camera_lidar_pose_initializer_failure_analysis import (
-    camera_lidar_pose_initializer_failure_analysis_json_schema,
-)
-from calibrex.core.camera_lidar_provider_support_comparison import (
-    camera_lidar_provider_support_comparison_json_schema,
-)
-from calibrex.core.camera_lidar_sota_audit import (
-    camera_lidar_sota_audit_protocol_json_schema,
-    camera_lidar_sota_audit_result_json_schema,
 )
 from calibrex.core.capture_manifest import (
     SensorIdentity,
     SensorType,
-    capture_manifest_json_schema,
-    capture_manifest_verification_json_schema,
     inspect_capture,
     verify_capture_manifest_inputs,
 )
-from calibrex.core.capture_readiness import capture_readiness_json_schema
 from calibrex.core.config import (
     CalibrationConfig,
     DatasetConfig,
     DatasetType,
-    config_json_schema,
     load_config,
-)
-from calibrex.core.continuous_time_camera_lidar_artifacts import (
-    continuous_time_camera_lidar_problem_json_schema,
-    continuous_time_camera_lidar_result_json_schema,
-)
-from calibrex.core.continuous_time_contract import (
-    continuous_time_trajectory_json_schema,
-)
-from calibrex.core.continuous_time_fit_artifacts import (
-    continuous_time_fit_json_schema,
-    continuous_time_measurements_json_schema,
-)
-from calibrex.core.continuous_time_imu_accel_bias import (
-    continuous_time_imu_accel_bias_json_schema,
-)
-from calibrex.core.continuous_time_imu_clock_offset import (
-    continuous_time_imu_clock_offset_json_schema,
-)
-from calibrex.core.continuous_time_imu_intrinsics import (
-    continuous_time_imu_intrinsics_json_schema,
-)
-from calibrex.core.continuous_time_imu_lever_arm import (
-    continuous_time_imu_lever_arm_json_schema,
-)
-from calibrex.core.continuous_time_imu_preintegration import (
-    continuous_time_imu_preintegration_json_schema,
-)
-from calibrex.core.continuous_time_lidar_ablation import (
-    continuous_time_lidar_ablation_json_schema,
 )
 from calibrex.core.continuous_time_lidar_artifacts import (
     ContinuousTimeLidarPairArtifact,
-    continuous_time_lidar_pair_json_schema,
-)
-from calibrex.core.continuous_time_lidar_point_to_plane import (
-    continuous_time_lidar_point_to_plane_json_schema,
-)
-from calibrex.core.continuous_time_lidar_train_diagnostics import (
-    continuous_time_lidar_train_diagnostics_json_schema,
-)
-from calibrex.core.continuous_time_sliding_window import (
-    continuous_time_sliding_window_json_schema,
 )
 from calibrex.core.dynamic_window import (
     DynamicWindowConsistencyThresholds,
-    dynamic_window_consistency_json_schema,
 )
-from calibrex.core.empirical_uncertainty import (
-    empirical_se3_uncertainty_json_schema,
-)
-from calibrex.core.environment_readiness import environment_readiness_json_schema
 from calibrex.core.evidence_bundle import (
     EvidenceBundleVerification,
-    evidence_bundle_json_schema,
-    evidence_bundle_verification_json_schema,
     verify_evidence_bundle,
     verify_evidence_bundle_verification,
     write_evidence_bundle_verification,
 )
 from calibrex.core.evidence_contract import (
     PolicyArtifact,
-    policy_json_schema,
-    protocol_json_schema,
 )
 from calibrex.core.exceptions import BenchmarkError, CalibrexError
-from calibrex.core.external_camera_imu_evidence import (
-    camera_imu_motion_recording_json_schema,
-    external_camera_imu_evidence_json_schema,
-)
-from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.frames import FrameGraph
 from calibrex.core.io import read_mapping, write_mapping, write_text
 from calibrex.core.koide_handoff import (
-    koide_execution_lock_json_schema,
     load_koide_execution_lock,
 )
 from calibrex.core.koide_readiness import (
     evaluate_koide_readiness_from_config,
-    koide_readiness_json_schema,
 )
 from calibrex.core.koide_real_pilot import (
     build_koide_real_pilot_request,
     finalize_koide_real_pilot,
-    koide_real_pilot_finalization_json_schema,
-    koide_real_pilot_request_json_schema,
-    koide_real_pilot_verification_json_schema,
     verify_koide_real_pilot_request,
 )
-from calibrex.core.koide_runner import koide_runner_json_schema
 from calibrex.core.lifecycle_registry import (
     evaluate_lifecycle,
     init_registry,
-    lifecycle_evaluation_json_schema,
-    lifecycle_event_json_schema,
-    lifecycle_head_json_schema,
-    lifecycle_registry_json_schema,
-    lifecycle_registry_state_json_schema,
-    lifecycle_registry_verification_json_schema,
-    lifecycle_status_json_schema,
     load_registry,
     promote_lifecycle,
     record_capture,
@@ -198,65 +95,35 @@ from calibrex.core.lifecycle_registry import (
     rollback_lifecycle,
     verify_registry,
 )
-from calibrex.core.livox_time_ablation import livox_time_ablation_json_schema
-from calibrex.core.mcap_integrity import mcap_integrity_json_schema
 from calibrex.core.multi_lidar_service import (
     build_multi_lidar_service_plan,
     evaluate_multi_lidar_service,
-    multi_lidar_service_evaluation_json_schema,
-    multi_lidar_service_plan_json_schema,
     verify_multi_lidar_service,
 )
-from calibrex.core.online_timeline import online_timeline_json_schema
 from calibrex.core.probabilistic_correspondence import (
     load_probabilistic_correspondence,
-    probabilistic_correspondence_json_schema,
-    probabilistic_pnp_result_json_schema,
-    probabilistic_refinement_result_json_schema,
 )
 from calibrex.core.provenance import sha256_path
 from calibrex.core.radar_service import (
     build_radar_service_plan,
     evaluate_radar_service,
-    radar_service_evaluation_json_schema,
-    radar_service_plan_json_schema,
     verify_radar_service,
 )
 from calibrex.core.raw_replay import (
     compare_raw_replays,
-    field_replacement_pilot_json_schema,
     plan_raw_replay,
-    replay_comparison_json_schema,
-    replay_definition_json_schema,
-    replay_plan_json_schema,
-    replay_result_json_schema,
-    replay_stage_json_schema,
     run_field_replacement_pilot,
     run_raw_replay,
     verify_raw_replay,
 )
-from calibrex.core.report_artifacts import (
-    report_artifact_json_schema,
-    report_artifact_schema_kinds,
+from calibrex.core.result import CalibrationResult, load_result
+from calibrex.core.schema_registry import (
+    SCHEMA_LEDGER_FILENAME,
+    SchemaRegistryError,
+    schema_entries,
+    schema_entry,
+    schema_ledger,
 )
-from calibrex.core.result import CalibrationResult, load_result, result_json_schema
-from calibrex.core.solid_state import solid_state_context_json_schema
-from calibrex.core.solid_state_cross_dataset_benchmark import (
-    solid_state_cross_dataset_benchmark_config_json_schema,
-    solid_state_cross_dataset_benchmark_json_schema,
-)
-from calibrex.core.solid_state_failure_analysis import (
-    solid_state_failure_analysis_json_schema,
-)
-from calibrex.core.solid_state_metrology_evaluation import (
-    solid_state_metrology_evaluation_json_schema,
-)
-from calibrex.core.solid_state_synthetic_benchmark import (
-    solid_state_synthetic_benchmark_json_schema,
-)
-from calibrex.core.trajectory import trajectory_json_schema
-from calibrex.core.trajectory_window_drift import trajectory_window_drift_json_schema
-from calibrex.core.transform_artifacts import transform_artifact_json_schema
 from calibrex.core.validation import (
     ValidationKind,
     validate_file,
@@ -265,7 +132,6 @@ from calibrex.core.validation import (
 from calibrex.data.a2d2_camera_lidar_problem import (
     build_a2d2_camera_lidar_problem,
 )
-from calibrex.data.depth import depth_provider_json_schema
 from calibrex.data.downloads import (
     LIVOX_BASE_PCD_NAME,
     LIVOX_TARGET_PCD_NAME,
@@ -277,25 +143,15 @@ from calibrex.data.kitti import read_kitti_initial_transforms
 from calibrex.data.kitti360_camera_lidar_problem import (
     build_kitti360_camera_lidar_problem,
 )
-from calibrex.data.kitti360_lidar_window_integration import (
-    kitti360_lidar_window_integration_json_schema,
-)
 from calibrex.data.kitti_benchmark import (
     build_kitti_raw_0005_benchmark_input,
-    kitti_benchmark_input_json_schema,
 )
 from calibrex.data.kitti_camera_lidar_problem import (
     build_kitti_raw_camera_lidar_problem,
 )
-from calibrex.data.kitti_raw_lidar_window_integration import (
-    kitti_raw_lidar_window_integration_json_schema,
-)
-from calibrex.data.manifest import manifest_json_schema
 from calibrex.data.public_datasets import load_public_dataset_catalog
-from calibrex.data.remote_archive_selection import remote_archive_selection_json_schema
 from calibrex.diagnostics import (
     build_doctor_artifact,
-    doctor_json_schema,
 )
 from calibrex.evaluation.borer_rotation_benchmark import (
     build_borer_rotation_protocol,
@@ -334,7 +190,6 @@ from calibrex.evaluation.compare import (
     ComparisonSide,
     ResultComparison,
     compare_results,
-    comparison_json_schema,
 )
 from calibrex.evaluation.continuous_time_camera_lidar_ablation import (
     run_continuous_time_camera_lidar_ablation,
@@ -359,12 +214,10 @@ from calibrex.evaluation.external_camera_imu import (
     write_synthetic_camera_imu_fixture,
 )
 from calibrex.evaluation.kitti_falsification_benchmark import (
-    kitti_falsification_json_schema,
     run_kitti_falsification_benchmark,
 )
 from calibrex.evaluation.koide_pilot import (
     export_koide_pilot_autoware,
-    koide_pilot_json_schema,
     run_koide_pilot,
 )
 from calibrex.evaluation.lidar import lidar_metrics_from_inspection
@@ -388,13 +241,11 @@ from calibrex.evaluation.registry import list_metric_definitions
 from calibrex.evaluation.report_compare import (
     ReportComparison,
     compare_reports,
-    report_comparison_json_schema,
 )
 from calibrex.evaluation.thresholds import ThresholdProfile, apply_metric_thresholds
 from calibrex.evaluation.timing import timing_metrics_from_inspection
 from calibrex.export.autoware import (
     AutowareExportConfig,
-    autoware_export_json_schema,
     build_autoware_export,
     write_autoware_export,
 )
@@ -402,7 +253,6 @@ from calibrex.export.autoware_promotion import (
     AutowarePromotionPolicy,
     AutowarePromotionRoots,
     apply_autoware_promotion,
-    autoware_promotion_json_schema,
     build_autoware_promotion_plan,
     load_autoware_promotion,
     rollback_autoware_promotion,
@@ -412,7 +262,6 @@ from calibrex.export.autoware_smoke import (
     AutowareSmokeCommand,
     AutowareSmokeConfig,
     AutowareSmokePolicy,
-    autoware_smoke_json_schema,
     import_autoware_smoke,
     run_autoware_smoke,
     verify_autoware_smoke,
@@ -603,110 +452,8 @@ def _build_parser() -> argparse.ArgumentParser:
     schema = subcommands.add_parser("schema", help="print JSON schema")
     schema.add_argument(
         "kind",
-        choices=[
-            "config",
-            "result",
-            "comparison",
-            "report-comparison",
-            "dynamic-window-consistency",
-            "trajectory-window-drift",
-            "capture-readiness",
-            "capture-manifest",
-            "capture-manifest-verification",
-            "mcap-integrity",
-            "koide-readiness",
-            "koide-execution-lock",
-            "koide-real-pilot-request",
-            "koide-real-pilot-verification",
-            "koide-real-pilot-finalization",
-            "continuous-time-lidar-pair",
-            "continuous-time-lidar-point-to-plane",
-            "continuous-time-imu-preintegration",
-            "continuous-time-imu-lever-arm",
-            "continuous-time-imu-clock-offset",
-            "continuous-time-imu-accel-bias",
-            "continuous-time-sliding-window",
-            "continuous-time-lidar-train-diagnostics",
-            "continuous-time-lidar-ablation",
-            "solid-state-cross-dataset-benchmark-config",
-            "solid-state-cross-dataset-benchmark",
-            "solid-state-failure-analysis",
-            "solid-state-synthetic-benchmark",
-            "solid-state-metrology-evaluation",
-            "assessment",
-            "benchmark",
-            "benchmark-definition",
-            "policy",
-            "protocol",
-            "transforms",
-            "dataset-manifest",
-            "remote-archive-selection",
-            "kitti360-lidar-window-integration",
-            "kitti-raw-lidar-window-integration",
-            "doctor",
-            "calibration-ci",
-            "calibration-lifecycle",
-            "lifecycle-registry",
-            "lifecycle-event",
-            "lifecycle-evaluation",
-            "lifecycle-registry-state",
-            "lifecycle-head",
-            "lifecycle-verification",
-            "lifecycle-status",
-            "external-run",
-            "camera-imu-motion-recording",
-            "external-camera-imu-evidence",
-            "kitti-falsification",
-            "kitti-benchmark-input",
-            "koide-pilot",
-            "koide-runner",
-            "depth-provider",
-            "continuous-time-camera-lidar-problem",
-            "continuous-time-camera-lidar-result",
-            "continuous-time-trajectory",
-            "continuous-time-trajectory-measurements",
-            "continuous-time-trajectory-fit",
-            "probabilistic-correspondence",
-            "probabilistic-pnp-result",
-            "probabilistic-refinement-result",
-            "empirical-se3-uncertainty",
-            "camera-lidar-problem",
-            "camera-lidar-correspondence-export",
-            "camera-lidar-confidence-calibration",
-            "camera-lidar-provider-support-comparison",
-            "camera-lidar-pose-initializer-protocol",
-            "camera-lidar-pose-initializer-failure-analysis",
-            "camera-lidar-initializer-calibration",
-            "camera-lidar-correspondence-quality",
-            "camera-lidar-failure-analysis",
-            "camera-lidar-sota-audit-protocol",
-            "camera-lidar-sota-audit-result",
-            "camera-lidar-benchmark-protocol",
-            "calibration-candidate-trace",
-            "bullseye-plot",
-            "evidence-bundle",
-            "evidence-bundle-verification",
-            "online-timeline",
-            "solid-state-context",
-            "livox-time-ablation",
-            "autoware-export",
-            "autoware-promotion",
-            "autoware-smoke",
-            "raw-replay-definition",
-            "raw-replay-plan",
-            "raw-replay-stage",
-            "raw-replay-result",
-            "raw-replay-comparison",
-            "field-replacement-pilot",
-            "multi-lidar-service-plan",
-            "multi-lidar-service-evaluation",
-            "camera-imu-service-plan",
-            "camera-imu-service-evaluation",
-            "radar-service-plan",
-            "radar-service-evaluation",
-            *report_artifact_schema_kinds(),
-            "all",
-        ],
+        choices=[*(entry.kind for entry in schema_entries()), "ledger", "all"],
+        help="artifact kind, 'ledger' for the schema version ledger, or 'all'",
     )
     schema.add_argument("--output", type=Path, help="write schema to a file")
     schema.add_argument("--output-dir", type=Path, help="write all schemas to a directory")
@@ -2847,6 +2594,15 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
                 f" ({dependency.version})" if dependency.available and dependency.version else ""
             )
             print(f"{name}: {state}{optional}{version}")
+        isolation = artifact.environment.python_path
+        if isolation is not None:
+            print(f"Python path: {isolation.status}")
+            for module_name, origin in isolation.shadowed_modules.items():
+                print(f"  shadowed: {module_name} -> {origin}")
+            for entry in isolation.ros_path_entries:
+                print(f"  ros path: {entry}")
+            for recommendation in isolation.recommendations:
+                print(f"  recommendation: {recommendation}")
         if artifact.dataset is not None:
             print(f"Dataset: {artifact.dataset.dataset_type} ({artifact.status.upper()})")
             print(f"  path: {artifact.dataset.path}")
@@ -2882,163 +2638,30 @@ def _doctor_command(args: argparse.Namespace) -> list[str]:
 
 
 def _cmd_schema(args: argparse.Namespace) -> int:
-    generators = _schema_generators()
     if args.kind == "all":
         if args.output is not None:
             _die("schema all does not support --output; use --output-dir")
         if args.output_dir is None:
             _die("schema all requires --output-dir")
         args.output_dir.mkdir(parents=True, exist_ok=True)
-        for kind, all_schema_generator in generators.items():
-            write_mapping(args.output_dir / _schema_filename(kind), all_schema_generator())
+        for entry in schema_entries():
+            write_mapping(args.output_dir / entry.filename, dict(entry.json_schema()))
+        write_mapping(args.output_dir / SCHEMA_LEDGER_FILENAME, schema_ledger())
         return 0
     if args.output_dir is not None:
         _die("--output-dir is only valid with schema all")
-    schema_generator = generators.get(args.kind)
-    if schema_generator is None:
-        _die(f"unsupported schema kind: {args.kind}")
-    schema = schema_generator()
+    if args.kind == "ledger":
+        schema = schema_ledger()
+    else:
+        try:
+            schema = dict(schema_entry(args.kind).json_schema())
+        except SchemaRegistryError as exc:
+            _die(str(exc))
     if args.output:
         write_mapping(args.output, schema)
     else:
         print(json.dumps(schema, indent=2, sort_keys=True))
     return 0
-
-
-def _schema_generators() -> dict[str, Callable[[], dict[str, Any]]]:
-    generators: dict[str, Callable[[], dict[str, Any]]] = {
-        "config": config_json_schema,
-        "result": result_json_schema,
-        "comparison": comparison_json_schema,
-        "report-comparison": report_comparison_json_schema,
-        "dynamic-window-consistency": dynamic_window_consistency_json_schema,
-        "trajectory-window-drift": trajectory_window_drift_json_schema,
-        "capture-readiness": capture_readiness_json_schema,
-        "capture-manifest": capture_manifest_json_schema,
-        "capture-manifest-verification": capture_manifest_verification_json_schema,
-        "mcap-integrity": mcap_integrity_json_schema,
-        "koide-readiness": koide_readiness_json_schema,
-        "koide-execution-lock": koide_execution_lock_json_schema,
-        "continuous-time-lidar-pair": continuous_time_lidar_pair_json_schema,
-        "continuous-time-lidar-point-to-plane": (continuous_time_lidar_point_to_plane_json_schema),
-        "continuous-time-imu-preintegration": (continuous_time_imu_preintegration_json_schema),
-        "continuous-time-imu-lever-arm": continuous_time_imu_lever_arm_json_schema,
-        "continuous-time-imu-clock-offset": (continuous_time_imu_clock_offset_json_schema),
-        "continuous-time-imu-accel-bias": continuous_time_imu_accel_bias_json_schema,
-        "continuous-time-imu-intrinsics": (continuous_time_imu_intrinsics_json_schema),
-        "calibration-lifecycle": calibration_lifecycle_json_schema,
-        "lifecycle-registry": lifecycle_registry_json_schema,
-        "lifecycle-event": lifecycle_event_json_schema,
-        "lifecycle-evaluation": lifecycle_evaluation_json_schema,
-        "lifecycle-registry-state": lifecycle_registry_state_json_schema,
-        "lifecycle-head": lifecycle_head_json_schema,
-        "lifecycle-verification": lifecycle_registry_verification_json_schema,
-        "lifecycle-status": lifecycle_status_json_schema,
-        "continuous-time-sliding-window": continuous_time_sliding_window_json_schema,
-        "continuous-time-lidar-train-diagnostics": (
-            continuous_time_lidar_train_diagnostics_json_schema
-        ),
-        "continuous-time-lidar-ablation": continuous_time_lidar_ablation_json_schema,
-        "solid-state-cross-dataset-benchmark-config": (
-            solid_state_cross_dataset_benchmark_config_json_schema
-        ),
-        "solid-state-cross-dataset-benchmark": solid_state_cross_dataset_benchmark_json_schema,
-        "solid-state-failure-analysis": solid_state_failure_analysis_json_schema,
-        "solid-state-synthetic-benchmark": solid_state_synthetic_benchmark_json_schema,
-        "solid-state-metrology-evaluation": solid_state_metrology_evaluation_json_schema,
-        "assessment": assessment_json_schema,
-        "benchmark": benchmark_json_schema,
-        "benchmark-definition": benchmark_definition_json_schema,
-        "policy": policy_json_schema,
-        "protocol": protocol_json_schema,
-        "transforms": transform_artifact_json_schema,
-        "dataset-manifest": manifest_json_schema,
-        "remote-archive-selection": remote_archive_selection_json_schema,
-        "kitti360-lidar-window-integration": (kitti360_lidar_window_integration_json_schema),
-        "kitti-raw-lidar-window-integration": (kitti_raw_lidar_window_integration_json_schema),
-        "doctor": doctor_json_schema,
-        "environment-readiness": environment_readiness_json_schema,
-        "calibration-ci": calibration_ci_json_schema,
-        "external-run": external_run_json_schema,
-        "camera-imu-motion-recording": camera_imu_motion_recording_json_schema,
-        "external-camera-imu-evidence": external_camera_imu_evidence_json_schema,
-        "kitti-falsification": kitti_falsification_json_schema,
-        "kitti-benchmark-input": kitti_benchmark_input_json_schema,
-        "koide-pilot": koide_pilot_json_schema,
-        "koide-runner": koide_runner_json_schema,
-        "koide-real-pilot-request": koide_real_pilot_request_json_schema,
-        "koide-real-pilot-verification": koide_real_pilot_verification_json_schema,
-        "koide-real-pilot-finalization": koide_real_pilot_finalization_json_schema,
-        "depth-provider": depth_provider_json_schema,
-        "continuous-time-camera-lidar-problem": (continuous_time_camera_lidar_problem_json_schema),
-        "continuous-time-camera-lidar-result": (continuous_time_camera_lidar_result_json_schema),
-        "continuous-time-trajectory": continuous_time_trajectory_json_schema,
-        "continuous-time-trajectory-measurements": (continuous_time_measurements_json_schema),
-        "continuous-time-trajectory-fit": continuous_time_fit_json_schema,
-        "probabilistic-correspondence": probabilistic_correspondence_json_schema,
-        "probabilistic-pnp-result": probabilistic_pnp_result_json_schema,
-        "probabilistic-refinement-result": (probabilistic_refinement_result_json_schema),
-        "empirical-se3-uncertainty": empirical_se3_uncertainty_json_schema,
-        "camera-lidar-problem": camera_lidar_problem_json_schema,
-        "camera-lidar-correspondence-export": (camera_lidar_correspondence_export_json_schema),
-        "camera-lidar-confidence-calibration": (camera_lidar_confidence_calibration_json_schema),
-        "camera-lidar-provider-support-comparison": (
-            camera_lidar_provider_support_comparison_json_schema
-        ),
-        "camera-lidar-pose-initializer-protocol": (
-            camera_lidar_pose_initializer_protocol_json_schema
-        ),
-        "camera-lidar-pose-initializer-failure-analysis": (
-            camera_lidar_pose_initializer_failure_analysis_json_schema
-        ),
-        "camera-lidar-initializer-calibration": (camera_lidar_initializer_calibration_json_schema),
-        "camera-lidar-correspondence-quality": (camera_lidar_correspondence_quality_json_schema),
-        "camera-lidar-failure-analysis": camera_lidar_failure_analysis_json_schema,
-        "camera-lidar-sota-audit-protocol": (camera_lidar_sota_audit_protocol_json_schema),
-        "camera-lidar-sota-audit-result": (camera_lidar_sota_audit_result_json_schema),
-        "camera-lidar-benchmark-protocol": (camera_lidar_benchmark_protocol_json_schema),
-        "calibration-candidate-trace": calibration_candidate_trace_json_schema,
-        "bullseye-plot": bullseye_plot_json_schema,
-        "evidence-bundle": evidence_bundle_json_schema,
-        "evidence-bundle-verification": evidence_bundle_verification_json_schema,
-        "online-timeline": online_timeline_json_schema,
-        "solid-state-context": solid_state_context_json_schema,
-        "livox-time-ablation": livox_time_ablation_json_schema,
-        "autoware-export": autoware_export_json_schema,
-        "autoware-promotion": autoware_promotion_json_schema,
-        "autoware-smoke": autoware_smoke_json_schema,
-        "raw-replay-definition": replay_definition_json_schema,
-        "raw-replay-plan": replay_plan_json_schema,
-        "raw-replay-stage": replay_stage_json_schema,
-        "raw-replay-result": replay_result_json_schema,
-        "raw-replay-comparison": replay_comparison_json_schema,
-        "field-replacement-pilot": field_replacement_pilot_json_schema,
-        "multi-lidar-service-plan": multi_lidar_service_plan_json_schema,
-        "multi-lidar-service-evaluation": multi_lidar_service_evaluation_json_schema,
-        "camera-imu-service-plan": camera_imu_service_plan_json_schema,
-        "camera-imu-service-evaluation": camera_imu_service_evaluation_json_schema,
-        "radar-service-plan": radar_service_plan_json_schema,
-        "radar-service-evaluation": radar_service_evaluation_json_schema,
-        "trajectory": trajectory_json_schema,
-    }
-    for kind in report_artifact_schema_kinds():
-        generators[kind] = _report_artifact_schema_generator(kind)
-    return generators
-
-
-def _report_artifact_schema_generator(kind: str) -> Callable[[], dict[str, Any]]:
-    def generate_schema() -> dict[str, Any]:
-        return report_artifact_json_schema(kind)
-
-    return generate_schema
-
-
-def _schema_filename(kind: str) -> str:
-    if kind == "continuous-time-lidar-pair":
-        return "continuous_time_lidar_pair_result.schema.json"
-    if kind == "koide-runner":
-        return "koide_runner_config.schema.json"
-    return f"{kind.replace('-', '_')}.schema.json"
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:
@@ -3051,6 +2674,8 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as exc:
         _die(str(exc))
     payload = report.model_dump(mode="json")
+    if report.migrated_from:
+        payload["migrated_from"] = report.migrated_from
     if report.kind == "result":
         payload.update(
             {
