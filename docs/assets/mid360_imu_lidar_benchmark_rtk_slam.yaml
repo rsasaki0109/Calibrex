@@ -1,0 +1,1306 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: mid360-imu-lidar-rotation-rtk_slam
+title: MID360 IMU-LiDAR rotation, rtk_slam_stadtgarten_seq2
+protocol:
+  protocol_id: mid360-imu-lidar-heldout-window-v1
+  dataset_id: rtk_slam_stadtgarten_seq2
+  dataset_source_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+  data_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  split_policy: every third 10-second window of the design-reference odometry is held
+    out; every method is scored on those same time spans (rate intervals whose midpoint
+    falls in a span); one split per held-out span
+  splits:
+  - split_id: window-1762269346.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 2d5013ef0d97a99b82663e6a0040409db44b9c323d19119e7bb15f20fe31387c
+    holdout_ids_sha256: 4c8178ae2205db82ffb99c1223d9fc79cec99cb28813ea8b3bada2442f4e74bf
+  - split_id: window-1762269375.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 28296edddc795a9c88975018c196a594945eec2b00594fb1dfa97a8e367cdd4c
+    holdout_ids_sha256: 5735a0aa6015c5088f9d97dcb54874641a6b5987268ebaba37fdc99c21a27258
+  - split_id: window-1762269406.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: b48c2827ebd781a4b4f8a3e488a909e860b5032ea5d3b9a84fea109f20a9e3ee
+    holdout_ids_sha256: 9ed0af547e4cd5c7f343f8fc82c0e74e487f52bd9a15ab58921f0be55d35e76b
+  - split_id: window-1762269436.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 54adea7a1063be61783f9c7269609ebdfdebe8fdbd037b99988b7b51b1e30bd6
+    holdout_ids_sha256: e8daf92cf2961ab207cc5ad97c4caeeaa4fafcbf17557c93fc64a85456f50fdf
+  - split_id: window-1762269465.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 505555fe38d988ce1dcfcc84e310ca106a050f51c274a37cba483dda1af372b2
+    holdout_ids_sha256: 5838602eb85ea839c57be92c37e1146102458933cecb797b5dc5ea757570ad22
+  - split_id: window-1762269496.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 60fa0b4f0127295120c22f993e5926b126be3e95cacf0feaf73a60d2056421c3
+    holdout_ids_sha256: 31b94ce232f8dd1de894d36c6a8ec6a26a0659bb35d3d9f99776a98f88231022
+  - split_id: window-1762269525.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 2ad1f423a032fc84884cdd5396ed4ba324aa54176c691e902e8b72159b63a013
+    holdout_ids_sha256: eb00695cbfdb30914c1177cc7e9e3e51cceac71553ce1fac4500463e29ec11b8
+  - split_id: window-1762269556.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: f77736ded77fbd7678cdf780f076ebe884491a6f4176f79848e34cf5d7e1f778
+    holdout_ids_sha256: 69547d4a69dd3661d3e3de08d06464b8f163633c0037261cf9648bc693cf94fd
+  - split_id: window-1762269585.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: b643d38634a0fa872709cd3ceed4f6071b0e7f74d29ff4a086b73d459732cdf4
+    holdout_ids_sha256: 7e60b719c1f1c7faa61337c02ae52bc669c3857033e1b66c35affdfb8e7aa48c
+  - split_id: window-1762269616.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 0854f91d1bdd7c3bf59b2d13c4b9f633def61fc57ed8e5e5c0b255f12f087cda
+    holdout_ids_sha256: 482f0cc2209d928c430e964a332a7569166c7428f6205467f84791d2335c1bea
+  - split_id: window-1762269645.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 9ed612df72aa64187c63d2013c24ead92e4b14c814f238940bb7ffe7d1673c70
+    holdout_ids_sha256: 0768546901508b665908a9a122a81946e45887bb145fffcf4a528b9ff33a46fe
+  - split_id: window-1762269676.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 639c9664e5de27380a3590191a3251d248f13fd7a743b408167ddd8ee8d0ac2d
+    holdout_ids_sha256: 21ca5b7bec78b9a167135ff8915d900c3c035a6a2dde7f0033dd8f08b0fcd93a
+  - split_id: window-1762269705.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 41253b4fd7b9a27e2fb3dff64f28670cfb6ff7182bca6b339cb27686ee5c0bf3
+    holdout_ids_sha256: 0fbcfc3af510dbad8b85cd22258b5b4fc5f3d346ff9a6c54516e97f61b190858
+  - split_id: window-1762269735.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 755d231b360ff63c354e23198a8e1bdcd08f96e7f2ad449231b802b7acd6c7c3
+    holdout_ids_sha256: 688eba518522ef7679d636e7d4025d7b7f672d7c068cf706e96ad04cc82e9f9b
+  - split_id: window-1762269766.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 2393c29734e2075514f6f3b947741a64b16248770917f7af2fa3cf74be8e38bb
+    holdout_ids_sha256: 3c9e3ede6b752175322c03724cd0e875eed70a346f5620fa7027c5e6f4feb1b4
+  - split_id: window-1762269796.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 706fb2a994b504740e0b2966d790a0257f7aff082b5d1319cf16d735897c188c
+    holdout_ids_sha256: cfdb78f6d1279520c4e89700c112a3e1e25589589e8a26a0cd7dbf075d55c6e0
+  - split_id: window-1762269825.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: be8fd7dd4dabd785ebe05fb1773286ea99d50ff340018a45ef24fb0b2cf69c5a
+    holdout_ids_sha256: 0c38a19c45c754b2297c1d77e3d6b12a9695c7183cb0e6848329cb9d490518f8
+  - split_id: window-1762269855.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: b8c315bdd696d3b9d5ab7d1ddf647d5e53a50344cdc024a6d431f2e2d3dd8b43
+    holdout_ids_sha256: 478bc7355b5f539c0037e6121b653aa4b48a750ba28735f4891e3ed39489ee3e
+  - split_id: window-1762269885.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 531625b560d137010222ac1bd4f1d638110cf0446d32bcbc0cc469e146725e53
+    holdout_ids_sha256: 14a8bb64b6a13526b5f40ed0f9230dd808c6b62cf0aa49ec12ab08c8dc1aa662
+  - split_id: window-1762269916.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: db6c639684f3e3997cd491e5ce9efaaba749b90e7eb18c2c51c7d02807f17bc6
+    holdout_ids_sha256: 1775ec142f9996e616cabdcfe64538fac21e32d0b606a7cb75522a13d4ba1120
+  - split_id: window-1762269946.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: d775a3fda2e237f8881b1f3692c5b07e937afcacac48c145700711364ea5051c
+    holdout_ids_sha256: 267db6372b168b6eacab172359e129ea8d8b6a06742fa25d289b072fb76ac859
+  - split_id: window-1762269976.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 83351bde640faefe3bac9707d99594fec8846b18479406d35161bdd661957cd6
+    holdout_ids_sha256: 021393143f9cb00fcdc45d15d70bb165355c58fe169581c8a43c0ecae382dad5
+  - split_id: window-1762270006.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: c7a4838c8447d87f3aff2f697f730c9ec4ed63fbb7443163f8cede9b46b8c4d6
+    holdout_ids_sha256: c749d2d58e9265012c5208775f1f0dec7d5d0a084fd6d0db42af392f89bade75
+  - split_id: window-1762270036.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 1f4e97e09806f0b7d6a54028add0d1b4be489d15bf9ee895b6015e35b081f868
+    holdout_ids_sha256: 8bda21d306f8478326bc6b83271fecb775700fff90660d2cdcca438d1138bc69
+  - split_id: window-1762270066.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: b63e7d1d1260f851d0f0eafdccad61dbed9b00fd44af987f3ac8c0d74cd2eabb
+    holdout_ids_sha256: a1a27efd8aca7e682cb73ecd6575d2ebdc053b0a976fa0ded7cb535c00166c40
+  - split_id: window-1762270095.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: 7e4847ba5cac46776d7b05b060103f6eb5d11fcb2f16e2ce4bc4f5364c57c09d
+    holdout_ids_sha256: a1f5a177ea8fc3b4d2f8d406ccfd791a74295d8f7b0a9f5f669b660f8f79fff1
+  - split_id: window-1762270125.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: dd2e3242bff5d769d896d3c401d8058823c32aa78e4e4c1c0dcfef7a2d0e072d
+    holdout_ids_sha256: 057e12fc21770a68efa3478e004724a84d3d40617399bc35ac6665b0bc77ddde
+  - split_id: window-1762270155.9
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: e7fb71f7ce8d47ac0f227cd95cdd7505a7fb5183a80bf12a9eb8579f012a7e79
+    holdout_ids_sha256: 424dbe65b9d50c4d3d516173ff3b35af2a8fd9c80913d778bb1aa03e420120b6
+  - split_id: window-1762270186.0
+    seed: 0
+    fit_count: 58
+    holdout_count: 1
+    fit_ids_sha256: e56e72fcc05bdae86a0bd1938df3d5b0e88a67fcc3d902877ebf79eea85ce7f3
+    holdout_ids_sha256: b893ed937623503e12d2d7e4c06d308f93148ad1b84a197a96083d432da2a742
+  initial_estimate_policy: each method's own output; no shared initialization
+  tuning_policy: thresholds pre-registered before any LI-Init score was computed
+  failure_policy: a method without an estimate fails every split of that recording
+metrics:
+- name: holdout_window_median_rate_residual_rps
+  label: held-out window median rate residual
+  unit: rad/s
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: gyro-predicted vs LiDAR rotation increments per second on held-out
+    windows
+methods:
+- method_id: calibrex_native
+  label: Calibrex gyro-deskewed preintegration
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: li_init
+  label: LI-Init 66b157a (container)
+  implementation: subprocess
+  tool_name: li_init
+- method_id: design_reference
+  label: MID360 design value (identity, dt = 0)
+  implementation: calibrex_native
+  tool_name: design_reference
+trials:
+- method_id: calibrex_native
+  split_id: window-1762269346.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.013545200267576434
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269375.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.015097551585863166
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269406.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.013755099922491128
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269436.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01225794268887961
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269465.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.009457506370372445
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269496.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.011745462310977332
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269525.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.013974839492565706
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269556.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.015672793061503897
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269585.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.011475231752178523
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269616.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01948158062220699
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269645.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.013489782012290528
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269676.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.009074000490371256
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269705.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.010465954267653135
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269735.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01160632321861217
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269766.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.009559092608038318
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269796.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.008924869447155792
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269825.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.019179676398422663
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269855.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.008666321579804421
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269885.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.008259955785425993
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269916.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.005204224604049025
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269946.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.009046582939067495
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762269976.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.013614468510788845
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270006.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0161960124257247
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270036.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.010926567696861966
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270066.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.015241255502486917
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270095.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.011532203668564278
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270125.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.011406562493903543
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270155.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.013658912017802864
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1762270186.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.015398989292053028
+  runtime_seconds: 55.53065796556144
+  provenance:
+    command: score calibrex_native on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269346.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.07701476981749086
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269375.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.02138933495191715
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269406.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.014423732497382264
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269436.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.3146353421788873
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269465.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0093352766414872
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269496.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.39972908993507544
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269525.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.17713667425158683
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269556.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.19690595778712183
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269585.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.25708363394472133
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269616.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.10610454876631545
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269645.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.21723619047048193
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269676.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.36768771810736156
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269705.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.31417226432606893
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269735.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.19877148347967105
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269766.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.29672591306014195
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269796.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.010431204945382556
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269825.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.02551153046465329
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269855.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.24412946300614694
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269885.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.09346528156935913
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269916.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0052124232759501055
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269946.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.30426892866495386
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762269976.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.014327295183431574
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270006.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.018564224549719573
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270036.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01802626570093894
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270066.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.2737106060754158
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270095.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.266949789772031
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270125.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.022006043424386806
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270155.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01538750292357922
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: li_init
+  split_id: window-1762270186.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.014677166226065614
+  runtime_seconds: 60.668224219618175
+  provenance:
+    command: score li_init on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269346.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.024945387387923255
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269375.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01667180708167395
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269406.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01410424240361079
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269436.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0472090542132884
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269465.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.009534409153855214
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269496.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.06321820415824982
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269525.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.03157230307883196
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269556.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.034323510650971285
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269585.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.04282043363106321
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269616.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.03259572427512862
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269645.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.042794792318947505
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269676.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.05168734331199793
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269705.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.052294184799618185
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269735.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.02853626042873368
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269766.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.04773823043598072
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269796.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.010895088722109031
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269825.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.022277347139749493
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269855.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.041765313886694244
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269885.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01944434494676916
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269916.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0054380737249142864
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269946.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.046853484575389445
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762269976.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.012324446562185485
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270006.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.01584751608134638
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270036.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.016676325258122092
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270066.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.040223842801184705
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270095.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.043299524573343635
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270125.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.022140014240530533
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270155.9
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.014581106324416695
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+- method_id: design_reference
+  split_id: window-1762270186.0
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.016206095670696277
+  runtime_seconds: 55.74017033905819
+  provenance:
+    command: score design_reference on rtk_slam_stadtgarten_seq2
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: d8123856b4ce69c96c7ed9679a509b53868c379921830bf7668e111a4a0ecf99
+    notes: []
+method_summaries:
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 29
+    success_count: 29
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 29
+      mean: 55.53065796556144
+      median: 55.53065796556144
+      standard_deviation: 0.0
+      minimum: 55.53065796556144
+      maximum: 55.53065796556144
+      p90: 55.530657965561446
+      p95: 55.53065796556143
+      mean_ci95_low: 55.53065796556144
+      mean_ci95_high: 55.53065796556144
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_window_median_rate_residual_rps:
+        metric: holdout_window_median_rate_residual_rps
+        distribution:
+          count: 29
+          mean: 0.01234189527702387
+          median: 0.011745462310977332
+          standard_deviation: 0.003210502836831119
+          minimum: 0.005204224604049025
+          maximum: 0.01948158062220699
+          p90: 0.015777436934348056
+          p95: 0.017986210809343473
+          mean_ci95_low: 0.011196413289402305
+          mean_ci95_high: 0.013551993751164304
+        rank: 1
+  li_init:
+    method_id: li_init
+    trial_count: 29
+    success_count: 29
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 29
+      mean: 60.668224219618175
+      median: 60.668224219618175
+      standard_deviation: 0.0
+      minimum: 60.668224219618175
+      maximum: 60.668224219618175
+      p90: 60.668224219618175
+      p95: 60.66822421961817
+      mean_ci95_low: 60.668224219618175
+      mean_ci95_high: 60.668224219618175
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_window_median_rate_residual_rps:
+        metric: holdout_window_median_rate_residual_rps
+        distribution:
+          count: 29
+          mean: 0.1481041260688871
+          median: 0.10610454876631545
+          standard_deviation: 0.13067343579505228
+          minimum: 0.0052124232759501055
+          maximum: 0.39972908993507544
+          p90: 0.3142648798966326
+          p95: 0.34646676773597174
+          mean_ci95_low: 0.10215295371386628
+          mean_ci95_high: 0.19668943503088973
+        rank: 3
+  design_reference:
+    method_id: design_reference
+    trial_count: 29
+    success_count: 29
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 29
+      mean: 55.74017033905819
+      median: 55.74017033905819
+      standard_deviation: 0.0
+      minimum: 55.74017033905819
+      maximum: 55.74017033905819
+      p90: 55.74017033905819
+      p95: 55.74017033905819
+      mean_ci95_low: 55.74017033905819
+      mean_ci95_high: 55.74017033905819
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_window_median_rate_residual_rps:
+        metric: holdout_window_median_rate_residual_rps
+        distribution:
+          count: 29
+          mean: 0.029931669373700894
+          median: 0.02853626042873368
+          standard_deviation: 0.015466925857027303
+          minimum: 0.0054380737249142864
+          maximum: 0.06321820415824982
+          p90: 0.04852805301118416
+          p95: 0.05205144820457008
+          mean_ci95_low: 0.024371782646875333
+          mean_ci95_high: 0.035610166473097296
+        rank: 2
+paired_comparisons:
+- reference_method_id: li_init
+  candidate_method_id: calibrex_native
+  metric: holdout_window_median_rate_residual_rps
+  direction: lower
+  paired_count: 29
+  raw_delta_mean: -0.13576223079186323
+  improvement_mean: 0.13576223079186323
+  improvement_ci95_low: 0.0895228264477501
+  improvement_ci95_high: 0.18472519481538674
+- reference_method_id: li_init
+  candidate_method_id: design_reference
+  metric: holdout_window_median_rate_residual_rps
+  direction: lower
+  paired_count: 29
+  raw_delta_mean: -0.1181724566951862
+  improvement_mean: 0.1181724566951862
+  improvement_ci95_low: 0.07761150965230142
+  improvement_ci95_high: 0.16143673740207273
+reference_method_id: li_init
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- Each method's odometry is deskewed with its own extrinsic, so a wrong extrinsic
+  also degrades its own odometry.
+- The design reference is a sanity row, not a competitor.
+provenance:
+  generator: tools/build_mid360_imu_lidar_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-09-29T21:22:32.800312+00:00'
+  command: python tools/build_mid360_imu_lidar_audit.py docs/assets/mid360_imu_lidar_scores
+    docs/assets
+  source_artifacts: {}
+  data_verified: true

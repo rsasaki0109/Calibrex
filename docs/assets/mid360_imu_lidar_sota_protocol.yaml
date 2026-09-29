@@ -1,0 +1,80 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: mid360-imu-lidar-rotation-vs-li-init-v1
+scope:
+  modalities:
+  - imu
+  - lidar
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_imu_lidar
+claim_text: On two MID360 recordings from two dataset families, Calibrex's IMU-LiDAR
+  rotation calibration fits held-out data at least as well as LI-Init, and returns
+  an estimate wherever LI-Init returns one.
+minimum_dataset_families: 2
+minimum_independent_rigs: 2
+requirements:
+- requirement_id: calibrex-estimate-rtk-slam
+  phase: audit
+  description: Calibrex returns an estimate on every held-out window (RTK-SLAM)
+  dataset_family: rtk_slam
+  independent_rig: true
+  rig_id: rtk-slam-mid360
+  evidence_path: mid360_imu_lidar_benchmark_rtk_slam.yaml
+  evidence_sha256: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-estimate-driving
+  phase: audit
+  description: Calibrex returns an estimate on every held-out window (driving)
+  dataset_family: zenodo_driving_slam_mid360
+  independent_rig: true
+  rig_id: koide-driving-mid360
+  evidence_path: mid360_imu_lidar_benchmark_zenodo_driving_slam_mid360.yaml
+  evidence_sha256: f7b625326d483caad5a484295152560c79d8416df39f46b1b191e64eaa2ce0b2
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-not-worse-than-li-init-rtk-slam
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over LI-Init >= 0
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_benchmark_rtk_slam.yaml
+  evidence_sha256: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+  method_id: calibrex_native
+  reference_method_id: li_init
+  metric: holdout_window_median_rate_residual_rps
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-absolute-fit-rtk-slam
+  phase: audit
+  description: mean held-out window median residual <= 0.02 rad/s
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_benchmark_rtk_slam.yaml
+  evidence_sha256: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+  method_id: calibrex_native
+  metric: holdout_window_median_rate_residual_rps
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.02
+  required: true
+provenance:
+  generator: tools/build_mid360_imu_lidar_audit.py
+  generator_version: 0.4.1
+  command:
+  - python
+  - tools/build_mid360_imu_lidar_audit.py
+  - docs/assets/mid360_imu_lidar_scores
+  - docs/assets
+  source_sha256:
+    preregistration: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+  created_at: '2026-09-29T21:22:32.900698+00:00'

@@ -1,5 +1,35 @@
 {
-  "entries": [],
+  "entries": [
+    {
+      "achieved_dataset_families": [
+        "rtk_slam",
+        "zenodo_driving_slam_mid360"
+      ],
+      "achieved_independent_rig_count": 2,
+      "audit_id": "mid360-imu-lidar-rotation-vs-li-init-v1",
+      "audit_path": "docs/assets/mid360_imu_lidar_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "6ca87c293c130a56cfa58bf58d96c36f68ba6af6a7896fb188dac4474509cc6c",
+      "claim_text": "On two MID360 recordings from two dataset families, Calibrex's IMU-LiDAR rotation calibration fits held-out data at least as well as LI-Init, and returns an estimate wherever LI-Init returns one.",
+      "pair_id": "imu-lidar",
+      "protocol_id": "mid360-imu-lidar-rotation-vs-li-init-v1",
+      "requirement_counts": {
+        "achieved": 4
+      },
+      "scope": {
+        "category": "targetless_imu_lidar",
+        "modalities": [
+          "imu",
+          "lidar"
+        ],
+        "quantities": [
+          "rotation",
+          "time_offset"
+        ]
+      },
+      "verdict": "supported"
+    }
+  ],
   "pairs": [
     {
       "incomplete_claims": 0,
@@ -37,8 +67,8 @@
       "incomplete_claims": 0,
       "pair_id": "imu-lidar",
       "refuted_claims": 0,
-      "standing": "no_claim",
-      "supported_claims": 0,
+      "standing": "supported",
+      "supported_claims": 1,
       "target": true
     },
     {
@@ -87,6 +117,7 @@
       "calibrex",
       "sota",
       "leaderboard",
+      "docs/assets/mid360_imu_lidar_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -110,10 +141,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-09-29T09:25:00.013243+00:00",
+    "created_at": "2026-09-29T21:22:51.500926+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
     "generator_version": "0.4.1",
-    "git_commit": "9aa6d47"
+    "git_commit": "96dba50"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

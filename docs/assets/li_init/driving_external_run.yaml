@@ -1,0 +1,52 @@
+schema_version: slac.external_calibration_run/v0.1
+run_id: li_init:out_driving
+adapter_name: li_init_result
+adapter_version: li_init_result/v0.1
+tool:
+  name: li_init
+  source_repository: https://github.com/hku-mars/LiDAR_IMU_Init
+  source_commit: 66b157afa30bf6637d7f9defa6ddba46f417000b
+  license_spdx: GPL-2.0-only
+  license_boundary: container
+execution:
+  mode: container
+  command:
+  - run_li_init.sh
+  - driving.bag
+  - mid360_driving.yaml
+  container_digest: sha256:4e8bffa61f42f952aff915de0cce1e117f5c9136cf6c7b888fb748fba631288c
+  attempted: true
+  timed_out: false
+  stages: []
+  input_mounts: []
+artifacts:
+- role: output
+  path: docs/assets/li_init/driving_Initialization_result.txt
+  sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  size_bytes: 0
+  media_type: text/plain
+digests: {}
+frame_convention: T_imu_lidar maps LiDAR points into the IMU frame (LI-Init offset_R_L_I,
+  offset_T_L_I); T_lidar_imu is its inverse.
+time_convention: t_imu = t_lidar + time_offset (LI-Init 'Time Lag IMU to LiDAR')
+train_data_isolation:
+  declared: false
+status: invalid_output
+warnings:
+- LI-Init import has no digest-bound input bag
+- 'LI-Init result could not be parsed: LI-Init result lacks the LiDAR-to-IMU homogeneous
+  matrix'
+- external training-data isolation is not declared
+parsed_outputs:
+  transforms: {}
+  time_offsets_seconds: {}
+  intrinsics: {}
+  external_metrics: {}
+  external_metrics_comparable: false
+provenance:
+  producer: calibrex
+  calibrex_version: 0.4.1
+  generated_at: '2026-09-29T19:54:16.897262+00:00'
+  git_commit: 21ff89a
+  source_artifact: docs/assets/li_init/driving_Initialization_result.txt
+  source_artifact_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

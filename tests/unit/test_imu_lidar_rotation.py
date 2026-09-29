@@ -14,7 +14,10 @@ from calibrex.cli.main import main
 from calibrex.core.imu_lidar_rotation import ImuLidarRotationArtifact
 from calibrex.core.validation import validate_file
 from calibrex.data import livox_ros2
-from calibrex.evaluation.imu_lidar_rotation import evaluate_imu_lidar_rotation
+from calibrex.evaluation.imu_lidar_rotation import (
+    evaluate_imu_lidar_rotation,
+    score_imu_lidar_candidate,
+)
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.imu_lidar_rotation_solver import (
     GyroSeries,
@@ -343,3 +346,30 @@ def test_a_pass_is_refused_while_the_deskew_iteration_still_moves() -> None:
     assert steady.policy_status == "pass"
     assert moving.policy_status == "warn"
     assert "has not converged" in moving.policy_reasons[0]
+
+
+def test_candidate_score_ranks_the_true_extrinsic_first() -> None:
+    gyro, windows = synthetic(planar=False, seed=7)
+    true = score_imu_lidar_candidate(gyro, windows, TRUE_ROTATION, TRUE_DT)
+    tilted = Rotation.from_euler("y", 4.0, degrees=True).as_matrix() @ TRUE_ROTATION
+    wrong = score_imu_lidar_candidate(gyro, windows, tilted, TRUE_DT - 0.05)
+
+    assert true.holdout_windows == 3
+    assert np.allclose(true.refit_gyro_bias_rps, TRUE_BIAS, atol=2e-3)
+    assert wrong.holdout_median_rate_residual_rps > 2.0 * true.holdout_median_rate_residual_rps
+
+
+def test_candidates_with_shifted_segmentations_share_the_reference_holdout_spans() -> None:
+    gyro, windows = synthetic(planar=False, seed=7)
+    reference = score_imu_lidar_candidate(gyro, windows, TRUE_ROTATION, TRUE_DT)
+    # Another candidate's odometry lost the first window, which shifts its
+    # own every-third-window held-out choice onto different stretches.
+    shifted = windows[1:]
+    own = score_imu_lidar_candidate(gyro, shifted, TRUE_ROTATION, TRUE_DT)
+    shared = score_imu_lidar_candidate(
+        gyro, shifted, TRUE_ROTATION, TRUE_DT, holdout_spans_s=reference.holdout_spans_s
+    )
+
+    assert set(own.holdout_window_medians_rps).isdisjoint(reference.holdout_window_medians_rps)
+    assert set(shared.holdout_window_medians_rps) == set(reference.holdout_window_medians_rps)
+    assert shared.holdout_intervals == reference.holdout_intervals

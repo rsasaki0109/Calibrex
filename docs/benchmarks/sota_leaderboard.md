@@ -6,8 +6,11 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-09-29, **no pair has a supported SOTA claim.** Every target pair is
-`no_claim`: none has a frozen audit protocol yet.
+As of 2026-09-30, **one pair has a supported SOTA claim: `imu-lidar`.**
+The claim is rotation and clock offset of the Livox MID360 built-in IMU,
+against LI-Init, on two recordings from two dataset families. See
+[MID360 IMU-LiDAR Rotation](mid360_imu_lidar.md#comparison-with-li-init) for
+its scope and what it does not claim. Every other target pair is `no_claim`.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -15,12 +18,16 @@ As of 2026-09-29, **no pair has a supported SOTA claim.** Every target pair is
 | `camera-imu` | no_claim | 0 | 0 | 0 | yes |
 | `camera-lidar` | no_claim | 0 | 0 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
-| `imu-lidar` | no_claim | 0 | 0 | 0 | yes |
+| `imu-lidar` | supported | 1 | 0 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
 | `ins-lidar` | no_claim | 0 | 0 | 0 | yes |
 | `lidar-lidar` | no_claim | 0 | 0 | 0 | yes |
 | `lidar-vehicle` | no_claim | 0 | 0 | 0 | yes |
 | `lidar-wheel_odometry` | no_claim | 0 | 0 | 0 | yes |
+
+| Pair | Category | Quantities | Verdict | Gates (achieved/total) | Protocol |
+| --- | --- | --- | --- | --- | --- |
+| `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
 
 The machine-readable version is
 [`sota_leaderboard.json`](../assets/sota_leaderboard.json)
