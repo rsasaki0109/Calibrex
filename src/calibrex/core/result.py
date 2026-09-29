@@ -648,14 +648,14 @@ def result_json_schema() -> dict[str, Any]:
         if isinstance(properties, dict) and isinstance(properties.get("provenance"), dict):
             properties["provenance"] = {
                 "description": (
-                    "Versioned provenance for new results. Legacy v0.1 maps are "
-                    "readable but are not production-admissible."
+                    "Versioned provenance for new results. Legacy v0.1 maps, "
+                    "including an empty or omitted map, are readable but are not "
+                    "production-admissible."
                 ),
                 "oneOf": [
                     {"$ref": "#/$defs/ResultProvenance"},
                     {
                         "type": "object",
-                        "minProperties": 1,
                         "not": {"required": ["provenance_version"]},
                         "additionalProperties": True,
                     },
