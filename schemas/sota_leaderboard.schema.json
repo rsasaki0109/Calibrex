@@ -1,0 +1,276 @@
+{
+  "$defs": {
+    "SotaClaimScope": {
+      "additionalProperties": false,
+      "description": "What a SOTA claim is about: modalities, estimated quantities, category.\n\n``modalities`` lists the sensor types involved and may repeat a type, as in\n``[\"lidar\", \"lidar\"]`` for a multi-LiDAR claim or ``[\"camera\"]`` for\nintrinsics.",
+      "properties": {
+        "category": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Category",
+          "type": "string"
+        },
+        "modalities": {
+          "items": {
+            "enum": [
+              "camera",
+              "lidar",
+              "imu",
+              "gnss",
+              "ins",
+              "radar",
+              "rgbd",
+              "wheel_odometry",
+              "vehicle",
+              "robot_arm"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Modalities",
+          "type": "array"
+        },
+        "quantities": {
+          "items": {
+            "enum": [
+              "rotation",
+              "translation",
+              "time_offset",
+              "lever_arm",
+              "intrinsics",
+              "scale",
+              "gravity",
+              "bias"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Quantities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "modalities",
+        "quantities",
+        "category"
+      ],
+      "title": "SotaClaimScope",
+      "type": "object"
+    },
+    "SotaLeaderboardEntry": {
+      "additionalProperties": false,
+      "description": "One audited claim, copied from a digest-pinned audit result.",
+      "properties": {
+        "achieved_dataset_families": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Achieved Dataset Families",
+          "type": "array"
+        },
+        "achieved_independent_rig_count": {
+          "minimum": 0,
+          "title": "Achieved Independent Rig Count",
+          "type": "integer"
+        },
+        "audit_id": {
+          "title": "Audit Id",
+          "type": "string"
+        },
+        "audit_path": {
+          "title": "Audit Path",
+          "type": "string"
+        },
+        "audit_schema_version": {
+          "title": "Audit Schema Version",
+          "type": "string"
+        },
+        "audit_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Audit Sha256",
+          "type": "string"
+        },
+        "claim_text": {
+          "title": "Claim Text",
+          "type": "string"
+        },
+        "pair_id": {
+          "title": "Pair Id",
+          "type": "string"
+        },
+        "protocol_id": {
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "requirement_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "achieved",
+              "contradicted",
+              "incomplete",
+              "missing"
+            ]
+          },
+          "title": "Requirement Counts",
+          "type": "object"
+        },
+        "scope": {
+          "$ref": "#/$defs/SotaClaimScope"
+        },
+        "verdict": {
+          "enum": [
+            "supported",
+            "refuted",
+            "incomplete"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pair_id",
+        "scope",
+        "protocol_id",
+        "audit_id",
+        "claim_text",
+        "verdict",
+        "requirement_counts",
+        "achieved_dataset_families",
+        "achieved_independent_rig_count",
+        "audit_path",
+        "audit_sha256",
+        "audit_schema_version"
+      ],
+      "title": "SotaLeaderboardEntry",
+      "type": "object"
+    },
+    "SotaLeaderboardProvenance": {
+      "additionalProperties": false,
+      "description": "Lineage of a generated leaderboard.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "SotaLeaderboardProvenance",
+      "type": "object"
+    },
+    "SotaPairStanding": {
+      "additionalProperties": false,
+      "description": "Claim counts for one sensor pair.",
+      "properties": {
+        "incomplete_claims": {
+          "minimum": 0,
+          "title": "Incomplete Claims",
+          "type": "integer"
+        },
+        "pair_id": {
+          "title": "Pair Id",
+          "type": "string"
+        },
+        "refuted_claims": {
+          "minimum": 0,
+          "title": "Refuted Claims",
+          "type": "integer"
+        },
+        "standing": {
+          "enum": [
+            "supported",
+            "refuted",
+            "incomplete",
+            "no_claim"
+          ],
+          "title": "Standing",
+          "type": "string"
+        },
+        "supported_claims": {
+          "minimum": 0,
+          "title": "Supported Claims",
+          "type": "integer"
+        },
+        "target": {
+          "default": false,
+          "title": "Target",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pair_id",
+        "standing",
+        "supported_claims",
+        "refuted_claims",
+        "incomplete_claims"
+      ],
+      "title": "SotaPairStanding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Per-pair SOTA standings with every contributing audit listed.",
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/SotaLeaderboardEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/SotaPairStanding"
+      },
+      "title": "Pairs",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/SotaLeaderboardProvenance"
+    },
+    "schema_version": {
+      "const": "slac.sota_leaderboard/v0.1",
+      "default": "slac.sota_leaderboard/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "entries",
+    "pairs",
+    "provenance"
+  ],
+  "title": "SotaLeaderboard",
+  "type": "object"
+}

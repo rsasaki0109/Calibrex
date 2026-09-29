@@ -1,0 +1,119 @@
+{
+  "entries": [],
+  "pairs": [
+    {
+      "incomplete_claims": 0,
+      "pair_id": "camera",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "camera-imu",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "camera-lidar",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "gnss-imu",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "imu-lidar",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "imu-vehicle",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "ins-lidar",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "lidar-lidar",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "lidar-vehicle",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "lidar-wheel_odometry",
+      "refuted_claims": 0,
+      "standing": "no_claim",
+      "supported_claims": 0,
+      "target": true
+    }
+  ],
+  "provenance": {
+    "command": [
+      "calibrex",
+      "sota",
+      "leaderboard",
+      "--output",
+      "docs/assets/sota_leaderboard.json",
+      "--target-pair",
+      "camera-lidar",
+      "--target-pair",
+      "lidar-lidar",
+      "--target-pair",
+      "imu-lidar",
+      "--target-pair",
+      "camera-imu",
+      "--target-pair",
+      "camera",
+      "--target-pair",
+      "gnss-imu",
+      "--target-pair",
+      "ins-lidar",
+      "--target-pair",
+      "lidar-vehicle",
+      "--target-pair",
+      "imu-vehicle",
+      "--target-pair",
+      "lidar-wheel_odometry"
+    ],
+    "created_at": "2026-09-29T09:25:00.013243+00:00",
+    "generator": "calibrex.evaluation.sota_leaderboard",
+    "generator_version": "0.4.1",
+    "git_commit": "9aa6d47"
+  },
+  "schema_version": "slac.sota_leaderboard/v0.1"
+}

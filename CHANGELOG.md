@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Generalized the SOTA claim audit to any sensor pair.
+  `slac.sota_audit_protocol/v0.1` scopes a claim by modalities (camera, LiDAR,
+  IMU, GNSS, INS, radar, RGB-D, wheel odometry, vehicle, robot arm), estimated
+  quantities, and a method category, and `calibrex sota audit` evaluates it.
+  Camera-LiDAR audits now run through the same engine, and their published
+  schemas are unchanged. `calibrex sota leaderboard` builds
+  `slac.sota_leaderboard/v0.1` standings per sensor pair from digest-pinned
+  audit results, keeps refuted claims counted beside supported ones, and lists
+  target pairs without a claim. The first leaderboard
+  (`docs/benchmarks/sota_leaderboard.md`) records that no pair has a supported
+  claim yet.
 - Declared every artifact kind once in `calibrex.core.schema_registry`.
   Validation, `calibrex schema`, and auto-detection previously drew on seven
   hand-maintained tables that had drifted: `slac.remote_archive_selection/v0.1`

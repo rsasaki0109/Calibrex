@@ -242,6 +242,11 @@ from calibrex.evaluation.report_compare import (
     ReportComparison,
     compare_reports,
 )
+from calibrex.evaluation.sota_audit import audit_sota_claim
+from calibrex.evaluation.sota_leaderboard import (
+    build_sota_leaderboard,
+    render_sota_leaderboard_markdown,
+)
 from calibrex.evaluation.thresholds import ThresholdProfile, apply_metric_thresholds
 from calibrex.evaluation.timing import timing_metrics_from_inspection
 from calibrex.export.autoware import (
@@ -1162,6 +1167,36 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_i2i.add_argument("--max-iterations", type=int, default=20)
     kitti_i2i.add_argument("--json", action="store_true")
     kitti_i2i.set_defaults(func=_cmd_kitti_benchmark_i2i)
+
+    sota = subcommands.add_parser(
+        "sota",
+        help="pair-agnostic SOTA claim audits and per-pair standings",
+    )
+    sota_subcommands = sota.add_subparsers(dest="sota_command", required=True)
+    sota_audit_generic = sota_subcommands.add_parser(
+        "audit",
+        help="evaluate a digest-frozen SOTA claim protocol for any sensor pair",
+    )
+    sota_audit_generic.add_argument("protocol", type=Path)
+    sota_audit_generic.add_argument("--output", type=Path, required=True)
+    sota_audit_generic.add_argument("--audit-id")
+    sota_audit_generic.add_argument("--json", action="store_true")
+    sota_audit_generic.set_defaults(func=_cmd_sota_audit)
+    sota_leaderboard = sota_subcommands.add_parser(
+        "leaderboard",
+        help="collect SOTA audit results into per-pair standings",
+    )
+    sota_leaderboard.add_argument("audits", type=Path, nargs="*")
+    sota_leaderboard.add_argument("--output", type=Path, required=True)
+    sota_leaderboard.add_argument(
+        "--target-pair",
+        action="append",
+        default=[],
+        help="pair to list even without an audit, e.g. gnss-lidar (repeatable)",
+    )
+    sota_leaderboard.add_argument("--markdown", type=Path, help="also write a Markdown table")
+    sota_leaderboard.add_argument("--json", action="store_true")
+    sota_leaderboard.set_defaults(func=_cmd_sota_leaderboard)
 
     camera_lidar = subcommands.add_parser(
         "camera-lidar",
@@ -5680,6 +5715,58 @@ def _cmd_camera_lidar_benchmark_continuous_time_ablation(
             "split_count": len(definition.protocol.splits),
             "method_count": len(definition.methods),
             "trial_count": len(definition.trials),
+        },
+        args.json,
+    )
+    return 0
+
+
+def _cmd_sota_audit(args: argparse.Namespace) -> int:
+    command = ["calibrex", "sota", "audit", str(args.protocol), "--output", str(args.output)]
+    try:
+        audit = audit_sota_claim(args.protocol, audit_id=args.audit_id, command=command)
+        audit.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "audit": str(args.output),
+            "pair_id": audit.scope.pair_id,
+            "verdict": audit.verdict,
+            "achieved_dataset_families": audit.achieved_dataset_families,
+            "achieved_independent_rig_count": audit.achieved_independent_rig_count,
+            "requirement_status": {item.requirement_id: item.status for item in audit.requirements},
+        },
+        args.json,
+    )
+    return 0 if audit.verdict == "supported" else 2
+
+
+def _cmd_sota_leaderboard(args: argparse.Namespace) -> int:
+    command = ["calibrex", "sota", "leaderboard", *(str(path) for path in args.audits)]
+    command += ["--output", str(args.output)]
+    for pair in args.target_pair:
+        command += ["--target-pair", pair]
+    try:
+        leaderboard = build_sota_leaderboard(
+            args.audits,
+            target_pairs=args.target_pair,
+            command=command,
+        )
+        leaderboard.save(args.output)
+        if args.markdown is not None:
+            args.markdown.parent.mkdir(parents=True, exist_ok=True)
+            args.markdown.write_text(
+                render_sota_leaderboard_markdown(leaderboard), encoding="utf-8", newline="\n"
+            )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "leaderboard": str(args.output),
+            "pairs": {item.pair_id: item.standing for item in leaderboard.pairs},
         },
         args.json,
     )

@@ -318,6 +318,13 @@ from calibrex.core.solid_state_synthetic_benchmark import (
     SolidStateSyntheticBenchmarkArtifact,
     solid_state_synthetic_benchmark_json_schema,
 )
+from calibrex.core.sota_audit import (
+    SotaAuditProtocol,
+    SotaAuditResult,
+    sota_audit_protocol_json_schema,
+    sota_audit_result_json_schema,
+)
+from calibrex.core.sota_leaderboard import SotaLeaderboard, sota_leaderboard_json_schema
 from calibrex.core.trajectory import (
     TrajectoryArtifact,
     trajectory_json_schema,
@@ -785,6 +792,9 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         CameraLidarSotaAuditResult,
         camera_lidar_sota_audit_result_json_schema,
     ),
+    _entry("sota-audit-protocol", SotaAuditProtocol, sota_audit_protocol_json_schema),
+    _entry("sota-audit-result", SotaAuditResult, sota_audit_result_json_schema),
+    _entry("sota-leaderboard", SotaLeaderboard, sota_leaderboard_json_schema),
     _entry(
         "camera-lidar-benchmark-protocol",
         CameraLidarBenchmarkProtocol,
