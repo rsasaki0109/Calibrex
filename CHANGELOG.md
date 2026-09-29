@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Added INS/GNSS-LiDAR trajectory hand-eye calibration evidence
+  (`slac.ins_lidar_hand_eye/v0.1`, `calibrex ins-lidar kitti`).
+  - LiDAR motions come from a new vectorized point-to-plane scan-to-scan
+    odometry that never uses the reference as a prior.
+  - A joint solver estimates `T_ins_lidar`, the clock offset, and a reference
+    trajectory scale. On planar vehicle motion it recovers yaw from the
+    translation equations, which a rotation-first method cannot do.
+  - Every DoF is classified as estimated, prior, or unobservable using the
+    larger of its analytic and block-jackknife std. The model rejects a pass
+    verdict while any extrinsic DoF is unobservable.
+  - Held-out time blocks must detect each estimated DoF's known-bad shift
+    (delta chi-square).
+  - Same-rig KITTI drives can be pooled, and reference gaps are never
+    interpolated.
+  - Real-data findings are in `docs/benchmarks/kitti_ins_lidar.md`, including
+    that pairing KITTI `sync` frames by directory position misaligns Velodyne
+    and OXTS by hundreds of milliseconds after a dropped frame; frames are now
+    paired by file index and timestamp.
 - Generalized the SOTA claim audit to any sensor pair.
   `slac.sota_audit_protocol/v0.1` scopes a claim by modalities (camera, LiDAR,
   IMU, GNSS, INS, radar, RGB-D, wheel odometry, vehicle, robot arm), estimated
