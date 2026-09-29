@@ -8,17 +8,18 @@
 acknowledged:
   - key: external_run.schema.json#ExternalExecution.container_digest
     reason: >-
-      Narrowed after v0.4.1 without a version bump: container_digest must now be
-      a sha256 image digest, so v0.1 external runs that recorded a tag-style
-      reference no longer validate.  Pending maintainer decision between bumping
-      to slac.external_calibration_run/v0.2 (keeping v0.1 readable) and accepting
-      the tightening as a v0.1 fix.
+      Accepted as a v0.1 fix (maintainer decision, 2026-09-29): container
+      execution evidence must pin an immutable sha256 image digest, since a
+      mutable tag cannot reproduce the run.  v0.1 external runs that recorded a
+      tag-style reference no longer validate and must be re-imported with the
+      resolved digest.
   - key: result.schema.json#RunInfo.provenance
     reason: >-
-      Narrowed after v0.4.1 without a version bump: the published JSON Schema
-      rejects an empty legacy provenance map, while the Python model still reads
-      it as a blocked legacy result.  Pending maintainer decision on aligning the
-      published schema with the model.
+      Intentional discriminator (maintainer decision, 2026-09-29): a provenance
+      map that declares provenance_version must be a valid ResultProvenance.
+      No released v0.1 result can carry that key, since it did not exist before
+      the provenance contract.  Every legacy map, including an empty or omitted
+      one, stays schema-valid and loads as a blocked legacy result.
   - key: artifact:examples/public_datasets/a2d2_pandey_mutual_information/manifest.yaml
     reason: >-
       Already invalid when v0.4.1 was released (provenance member lists in a

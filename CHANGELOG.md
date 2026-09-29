@@ -16,9 +16,15 @@
   first, since its workflows lack the now-required `template_path`.
 - Added `tools/check_schema_compat.py` and a CI job that fail when a released
   schema version is no longer readable, is narrowed without a version bump, or
-  a released artifact no longer validates. Two pre-existing narrowings since
-  v0.4.1 (`external_run` `container_digest` pattern, `result` legacy provenance)
-  are recorded in `tools/schema_compat_acknowledged.yaml` pending a decision.
+  a released artifact no longer validates. Decided narrowings are recorded in
+  `tools/schema_compat_acknowledged.yaml`.
+- `slac.external_calibration_run/v0.1` keeps requiring a sha256
+  `container_digest`, accepted as a v0.1 fix: a mutable image tag cannot
+  reproduce a container run. External runs recorded with a tag must be
+  re-imported with the resolved digest.
+- The published `slac.result/v0.1` schema accepts an empty legacy provenance
+  map again, matching the model and the omitted-map case. Such results remain
+  blocked from production admission by `calibrex validate`.
 - Fixed the A2D2 Pandey dataset manifest, which had violated
   `slac.dataset_manifest/v0.1` since v0.4.1. A new test validates every
   committed `slac.*` artifact; the digest-bound raw-replay stub config remains

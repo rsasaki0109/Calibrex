@@ -59,15 +59,28 @@ def test_legacy_result_load_is_honest_and_non_admissible(tmp_path: Path) -> None
     assert report.provenance_issues
 
 
-def test_result_schema_rejects_empty_provenance_but_keeps_legacy_maps_readable() -> None:
+def test_result_schema_reads_empty_and_omitted_legacy_provenance_alike(tmp_path: Path) -> None:
+    """An empty map and an omitted one both load as ``{}``; neither is admissible.
+
+    The published schema must accept every legacy shape the model reads, so
+    v0.1 results stay schema-valid, while ``validate`` still blocks them.
+    """
+
     schema = result_json_schema()
     legacy = yaml.safe_load(Path("examples/precomputed/result.yaml").read_text(encoding="utf-8"))
     jsonschema.validate(legacy, schema)
     empty = dict(legacy)
     empty["run"] = dict(legacy["run"])
     empty["run"]["provenance"] = {}
-    with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(empty, schema)
+    omitted = dict(legacy)
+    omitted["run"] = {key: value for key, value in legacy["run"].items() if key != "provenance"}
+    for index, payload in enumerate((empty, omitted)):
+        jsonschema.validate(payload, schema)
+        path = tmp_path / f"legacy-{index}.yaml"
+        write_mapping(path, payload)
+        report = validate_file(path, kind="result")
+        assert report.admissibility == "blocked"
+        assert report.provenance_issues
 
 
 def test_result_schema_rejects_incomplete_production_provenance() -> None:
