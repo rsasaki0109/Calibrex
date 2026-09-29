@@ -86,6 +86,7 @@ ValidationKind = Literal[
     "camera-lidar-sota-audit-result",
     "gnss-lidar-lever-arm",
     "imu-lidar-rotation",
+    "imu-lidar-translation",
     "ins-lidar-hand-eye",
     "sota-audit-protocol",
     "sota-audit-result",

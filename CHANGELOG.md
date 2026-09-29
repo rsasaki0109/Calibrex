@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `calibrex imu-lidar livox-translation` estimates the IMU lever arm
+  (translation of `T_lidar_imu`) from the accelerometer, on top of a
+  digest-pinned rotation artifact, as `slac.imu_lidar_translation/v0.1`.
+  - Segment double integration against LiDAR odometry is linear in the lever
+    arm. Gravity and the accelerometer bias are fitted per window and the
+    velocity per segment.
+  - The reported std includes a segment-duration sensitivity alongside the
+    analytic and jackknife std, and held-out windows must detect a 20 mm
+    shift of each axis.
+  - MID360 hand-held (RTK-SLAM seq2): `pass`, at (21.3, 24.3, -38.5)
+    ± (6.1, 5.2, 5.3) mm against the design value (11.0, 23.3, -44.1) mm.
+    The vehicle recording is `inconclusive`: its planar motion leaves every
+    axis unobservable.
 - The first supported SOTA claim: `imu-lidar` rotation and clock offset of
   the Livox MID360 built-in IMU, against LI-Init, on two recordings from two
   dataset families (`docs/benchmarks/mid360_imu_lidar.md`).
