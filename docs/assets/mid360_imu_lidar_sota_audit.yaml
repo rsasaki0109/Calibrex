@@ -1,0 +1,68 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: mid360-imu-lidar-rotation-vs-li-init-v1
+protocol_id: mid360-imu-lidar-rotation-vs-li-init-v1
+scope:
+  modalities:
+  - imu
+  - lidar
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_imu_lidar
+claim_text: On two MID360 recordings from two dataset families, Calibrex's IMU-LiDAR
+  rotation calibration fits held-out data at least as well as LI-Init, and returns
+  an estimate wherever LI-Init returns one.
+verdict: supported
+achieved_dataset_families:
+- rtk_slam
+- zenodo_driving_slam_mid360
+achieved_independent_rig_count: 2
+minimum_dataset_families: 2
+minimum_independent_rigs: 2
+requirements:
+- requirement_id: calibrex-estimate-rtk-slam
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_benchmark_rtk_slam.yaml
+  evidence_sha256: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+- requirement_id: calibrex-estimate-driving
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_benchmark_zenodo_driving_slam_mid360.yaml
+  evidence_sha256: f7b625326d483caad5a484295152560c79d8416df39f46b1b191e64eaa2ce0b2
+- requirement_id: calibrex-not-worse-than-li-init-rtk-slam
+  required: true
+  status: achieved
+  observed_value: 0.0895228264477501
+  threshold: 0.0
+  reason: observed 0.0895228264478 meets greater_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_benchmark_rtk_slam.yaml
+  evidence_sha256: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+- requirement_id: calibrex-absolute-fit-rtk-slam
+  required: true
+  status: achieved
+  observed_value: 0.01234189527702387
+  threshold: 0.02
+  reason: observed 0.012341895277 meets less_equal 0.02
+  evidence_path: docs/assets/mid360_imu_lidar_benchmark_rtk_slam.yaml
+  evidence_sha256: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.4.1
+  git_commit: 96dba50
+  command: []
+  source_sha256:
+    protocol: 9ea63b70dec29c5092f5c2ceca7d605cb71ab111c0385d0aebd692e48e9e7776
+    calibrex-estimate-rtk-slam: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+    calibrex-estimate-driving: f7b625326d483caad5a484295152560c79d8416df39f46b1b191e64eaa2ce0b2
+    calibrex-not-worse-than-li-init-rtk-slam: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+    calibrex-absolute-fit-rtk-slam: 8d020632cad81184d0a5558abdf61a3206db6faf8c9fa3b980e9ce50e9132284
+  created_at: '2026-09-29T21:22:33.133527+00:00'

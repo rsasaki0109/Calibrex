@@ -1,0 +1,35 @@
+# LI-Init parameters for the driving MID360 recording (converted by
+# convert_livox_ros2_to_ros1.py).  mean_acc_norm matches the IMU unit written
+# to the ROS 1 bag: 1.0 for g, 9.805 for m/s^2.
+common:
+    lid_topic:  "/livox/lidar"
+    imu_topic:  "/livox/imu"
+preprocess:
+    lidar_type: 1
+    feature_extract_en: false
+    scan_line: 4
+    blind: 1
+initialization:
+    cut_frame_num: 5
+    orig_odom_freq: 10
+    mean_acc_norm: 1.0
+    online_refine_time: 20
+    data_accum_length: 500
+    Rot_LI_cov: [ 0.00005, 0.00005, 0.00005 ]
+    Trans_LI_cov: [ 0.00001, 0.00001, 0.00001 ]
+mapping:
+    filter_size_surf: 0.5
+    filter_size_map: 0.5
+    gyr_cov: 2
+    acc_cov: 2
+    b_acc_cov: 0.0001
+    b_gyr_cov: 0.0001
+    det_range: 100.0
+publish:
+    path_en: false
+    scan_publish_en: false
+    dense_publish_en: false
+    scan_bodyframe_pub_en: false
+pcd_save:
+    pcd_save_en: false
+    interval: -1

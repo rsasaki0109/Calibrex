@@ -1,0 +1,45 @@
+# Pre-registration of the MID360 IMU-LiDAR rotation SOTA audit.
+#
+# Written on 2026-09-30, after the LI-Init runs finished, but before any held-out
+# score of LI-Init (or of the design reference) had been computed or seen.
+# The native Calibrex fit results were already known (docs/benchmarks/mid360_imu_lidar.md);
+# the thresholds below do not depend on the unseen LI-Init scores.
+# The SOTA audit protocol built afterwards must cite this file's SHA-256 and may
+# not change any threshold, metric, split, or requirement listed here.
+claim: >-
+  On two MID360 recordings from two dataset families (RTK-SLAM hand-held and a
+  Zenodo vehicle recording, two MID360 units), Calibrex's IMU-LiDAR rotation
+  calibration fits held-out data at least as well as LI-Init, and returns an
+  estimate wherever LI-Init returns one.
+scope:
+  modalities: [imu, lidar]
+  quantities: [rotation, time_offset]
+  category: targetless_imu_lidar
+methods:
+  calibrex_native: final estimate of the Calibrex gyro-deskew iteration
+  li_init: LI-Init commit 66b157a refined result, run in a container
+  design_reference: MID360 design rotation (identity), zero clock offset (sanity row, not a competitor)
+scoring:
+  procedure: >-
+    For each method, LiDAR odometry is recomputed with sweeps deskewed by gyro
+    rotations mapped through that method's own rotation, clock offset, and gyro
+    bias.  The rotation and clock offset are then held fixed; only the gyro
+    bias is refit on the train windows.  Every third 10-second window is held
+    out, as in the native evaluation.
+  metric: holdout window median rate residual (rad/s), lower is better
+  unit_of_comparison: held-out 10-second window, paired across methods by window start time
+requirements:
+  - id: calibrex-returns-an-estimate-on-every-recording
+    rule: calibrex_native failure_rate <= 0 over both recordings
+  - id: calibrex-not-worse-than-li-init
+    rule: >-
+      paired improvement of calibrex_native over li_init on held-out window medians,
+      95% bootstrap CI lower bound >= 0, on every recording where li_init returns an estimate
+  - id: calibrex-absolute-fit-hand-held
+    rule: calibrex_native mean of held-out window medians <= 0.02 rad/s on rtk_slam
+coverage:
+  minimum_dataset_families: 2
+  minimum_independent_rigs: 2
+known_facts_at_registration:
+  li_init_driving: no result (excitation never reached 100 % on all axes)
+  li_init_rtk_slam_seq2: refined rotation about 4 deg from design in pitch, clock offset -55.8 ms

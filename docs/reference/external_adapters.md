@@ -250,6 +250,27 @@ inconclusive, and reusing the fitting recording is blocked. These results
 prove the external-run contract with a Kalibr producer. They make no accuracy
 claim about Kalibr.
 
+### LI-Init result import
+
+LI-Init (hku-mars/LiDAR_IMU_Init) is GPL-2.0, so it runs only in the container
+built from `tools/external/li_init/Dockerfile` (pinned commit `66b157a`).
+`tools/external/li_init/convert_livox_ros2_to_ros1.py` streams a Livox ROS 2
+recording into the ROS 1 `CustomMsg` bag that LI-Init reads, and
+`run_li_init.sh` replays it. `calibrex.importers.li_init.import_li_init_result`
+parses the `Initialization_result.txt` that LI-Init writes and returns a
+`slac.external_calibration_run/v0.1` artifact:
+
+- The refinement section wins over the initialization section. An import
+  without a refinement section carries a warning, and an empty file is
+  `invalid_output`.
+- LI-Init's `offset_R_L_I`/`offset_T_L_I` are recorded as `T_imu_lidar`, and
+  their inverse as `T_lidar_imu`.
+- Its "Time Lag IMU to LiDAR" is recorded as `imu_minus_lidar_s`
+  (`t_imu = t_lidar + lag`, the same sign as Calibrex's `dt`).
+- LI-Init's own metrics stay non-comparable. The
+  [MID360 comparison](../benchmarks/mid360_imu_lidar.md#comparison-with-li-init)
+  scores the imported rotation and clock offset on held-out data instead.
+
 ## License and provenance gate
 
 Release-ready runs pin tool version, source commit, SPDX identifier, adapter

@@ -543,3 +543,118 @@ def _policy(
         return "inconclusive", tuple(notes)
     reasons = ["every rotation axis is estimated and held-out windows detect every control"]
     return "pass", tuple(reasons + notes)
+
+
+@dataclass(frozen=True)
+class CandidateScore:
+    """Held-out fit of a fixed rotation and clock offset (bias refit on train)."""
+
+    holdout_median_rate_residual_rps: float
+    holdout_rms_rate_residual_rps: float
+    train_windows: int
+    holdout_windows: int
+    holdout_intervals: int
+    refit_gyro_bias_rps: FloatArray
+    holdout_window_medians_rps: dict[float, float]
+    holdout_spans_s: tuple[tuple[float, float], ...]
+
+
+def score_imu_lidar_candidate(
+    gyro: GyroSeries,
+    windows: Sequence[OdometryWindow],
+    rotation: FloatArray,
+    time_offset_s: float,
+    options: ImuLidarRunOptions | None = None,
+    *,
+    holdout_spans_s: Sequence[tuple[float, float]] | None = None,
+) -> CandidateScore:
+    """Score a candidate ``R_lidar_imu`` and ``dt`` on the standard held-out windows.
+
+    Only the gyro bias is refit, on the train windows, because it drifts
+    between recordings and is a nuisance for every method alike.  The
+    held-out windows and noise model are the ones the native evaluation uses,
+    so native and external candidates are scored identically.
+
+    Each candidate recomputes the odometry with its own deskewing, which can
+    shift the window segmentation.  Passing ``holdout_spans_s`` (start, end
+    times of a reference segmentation's held-out windows) holds out the rate
+    intervals whose midpoint falls in a span instead, so every candidate is
+    scored on the same stretches of the recording.
+    """
+
+    from scipy.optimize import least_squares
+
+    opts = options or ImuLidarRunOptions()
+    solver = replace(opts.solver, estimate_time_offset=False)
+    intervals = rate_intervals(windows, gyro, solver)
+    positions = np.arange(len(windows))
+    holdout_ids = positions[positions % opts.holdout_every == 1]
+    if holdout_spans_s is None:
+        spans = tuple(
+            (float(windows[int(i)].times_s[0]), float(windows[int(i)].times_s[-1]))
+            for i in holdout_ids
+        )
+    else:
+        spans = tuple((float(start), float(end)) for start, end in holdout_spans_s)
+    middle = 0.5 * (intervals.start_s + intervals.end_s)
+    span_of = np.full(len(middle), -1, dtype=np.int64)
+    for index, (start, end) in enumerate(spans):
+        span_of[(middle >= start) & (middle <= end)] = index
+    train = intervals.subset(span_of < 0)
+    holdout = intervals.subset(span_of >= 0)
+    holdout_span = span_of[span_of >= 0]
+    if len(train) < 20 or len(holdout) < 20:
+        raise ValueError("too few train or held-out rate intervals to score a candidate")
+
+    def residuals(bias: FloatArray) -> FloatArray:
+        return model_residuals(gyro, train, rotation, bias, time_offset_s, solver)
+
+    bias = least_squares(residuals, np.zeros(3), loss="huber", f_scale=1.5).x
+    errors = model_residuals(
+        gyro, holdout, rotation, bias, time_offset_s, solver, normalize=False
+    ).reshape(-1, 3)
+    norms = np.linalg.norm(errors, axis=1)
+    per_window = {
+        round(spans[int(index)][0], 1): float(np.median(norms[holdout_span == index]))
+        for index in np.unique(holdout_span)
+    }
+    return CandidateScore(
+        holdout_median_rate_residual_rps=float(np.median(norms)),
+        holdout_rms_rate_residual_rps=float(np.sqrt(np.mean(norms**2))),
+        train_windows=int(len(positions) - len(holdout_ids)),
+        holdout_windows=len(per_window),
+        holdout_intervals=len(holdout),
+        refit_gyro_bias_rps=np.asarray(bias, dtype=np.float64),
+        holdout_window_medians_rps=per_window,
+        holdout_spans_s=spans,
+    )
+
+
+def collect_livox_windows(
+    bags: Sequence[str | Path],
+    profile: str,
+    options: ImuLidarRunOptions | None = None,
+    *,
+    rotation_model: RotationModel | None = None,
+    max_scans: int | None = None,
+) -> tuple[GyroSeries, list[OdometryWindow]]:
+    """Load the gyro and the odometry windows of Livox bags (one rig)."""
+
+    opts = options or ImuLidarRunOptions()
+    stream = LIVOX_PROFILES[profile]
+    imu = _concatenate([load_livox_imu(bag, stream) for bag in bags])
+    gyro = GyroSeries(imu.times_s, imu.gyro_rps)
+    margin = opts.coverage_margin_s
+    segmenter: OdometrySegmenter | None = None
+    for bag in bags:
+        segmenter = collect_odometry_windows(
+            iter_livox_points(bag, stream),
+            opts.windowing,
+            covers=lambda time_s: gyro.covers(time_s - margin, time_s + margin),
+            prefix=f"{Path(bag).name}/",
+            max_scans=max_scans,
+            into=segmenter,
+            rotation_model=rotation_model,
+        )
+    assert segmenter is not None
+    return gyro, segmenter.windows

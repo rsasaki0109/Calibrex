@@ -1,0 +1,357 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: mid360-imu-lidar-rotation-zenodo_driving_slam_mid360
+title: MID360 IMU-LiDAR rotation, zenodo_14841855_driving_slam_mid360
+protocol:
+  protocol_id: mid360-imu-lidar-heldout-window-v1
+  dataset_id: zenodo_14841855_driving_slam_mid360
+  dataset_source_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+  data_license: CC-BY-4.0
+  split_policy: every third 10-second window of the design-reference odometry is held
+    out; every method is scored on those same time spans (rate intervals whose midpoint
+    falls in a span); one split per held-out span
+  splits:
+  - split_id: window-1713244631.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 785baeca0940b7fd57ccfcb469017654901568e7e8b0e85059c0e4ec27ae32f6
+    holdout_ids_sha256: 7d0d6e74f2cefb57fc1361a72b51d28a5864b4617df0cfdacf7db8fa9c7b548c
+  - split_id: window-1713244661.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 0aa850c2b3e788f7d66ad7283f421750d83e56516c1b167c3c406e28b568ee7d
+    holdout_ids_sha256: 3e499be9a16982a60bb7bf1ea48a2a9dac583b8b15585a4018f007ef5c1effac
+  - split_id: window-1713244691.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 9672e0f02ca77011ff0c40cfee38668513f642f0c384d1d1a957924dcd5da951
+    holdout_ids_sha256: fd147507c8a2e6a7c61cf9cdf69b24cb1cd4440e69613d36072e81ae0e64951c
+  - split_id: window-1713244721.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 94728a64f4ec749c00224ee47c5f738d0a879ae0c1c65ae0bc6af549ab73b270
+    holdout_ids_sha256: 39f5aaf03e8bb8e7a56545d02bb314c7fd70b4587e4ab0a834bb8e8df5b68437
+  - split_id: window-1713244751.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 17d5a3d8680d9e73816188e697c258ae2d41ac237502b673f41aa886636b0d28
+    holdout_ids_sha256: 246c168ecd8c23dfcee089611b6079b272f4a3af76aa5534f8bffca04334ad51
+  - split_id: window-1713244781.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 30d91bdee16ac8330b936561711e48362431cfd82f59bc8e720057e8e3230b43
+    holdout_ids_sha256: db6a8598037267a8a58a44c0cd34885f1d53fe41e3624111124bf44da25e67f5
+  - split_id: window-1713244811.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 47f4ac7f2d15ea73734e26d59c5341e6b738a834e2f8ed0049136aa508700d72
+    holdout_ids_sha256: d2826b65254932f053b381e7cf5fd6ce6261f59179816137ab4578f2347504e2
+  - split_id: window-1713244841.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: a2a6c900d6c9ba2583188b067be161c9184b594c75a0e89434dbec242d02b418
+    holdout_ids_sha256: 6aabebd2b8e86792dcd9b87cca7474e161841adffa45ab067363f39fd5dd5780
+  - split_id: window-1713244871.4
+    seed: 0
+    fit_count: 18
+    holdout_count: 1
+    fit_ids_sha256: 840db53dcdfcca0f19fc30021a42e7968a6b98940738b4c4257e40072b3719a3
+    holdout_ids_sha256: c912a4b0a9a015a92618e8e5f7061a7a4cac04aae936769d693facfb846764bf
+  initial_estimate_policy: each method's own output; no shared initialization
+  tuning_policy: thresholds pre-registered before any LI-Init score was computed
+  failure_policy: a method without an estimate fails every split of that recording
+metrics:
+- name: holdout_window_median_rate_residual_rps
+  label: held-out window median rate residual
+  unit: rad/s
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: gyro-predicted vs LiDAR rotation increments per second on held-out
+    windows
+methods:
+- method_id: calibrex_native
+  label: Calibrex gyro-deskewed preintegration
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: li_init
+  label: LI-Init 66b157a (container)
+  implementation: subprocess
+  tool_name: li_init
+trials:
+- method_id: calibrex_native
+  split_id: window-1713244631.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.005507166657994131
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244661.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.004630945660382407
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244691.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0046640990397634335
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244721.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.005879962330956671
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244751.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0062401661854337275
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244781.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.005327838862240312
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244811.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.008729636024745921
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244841.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.005578010817181444
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: calibrex_native
+  split_id: window-1713244871.4
+  status: success
+  metrics:
+    holdout_window_median_rate_residual_rps: 0.0028402313336572007
+  runtime_seconds: 97.95322055286832
+  provenance:
+    command: score calibrex_native on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244631.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244661.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244691.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244721.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244751.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244781.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244811.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244841.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+- method_id: li_init
+  split_id: window-1713244871.4
+  status: failed
+  metrics: {}
+  failure_reason: 'LI-Init returned no result: its excitation meter never reached
+    100 % on every axis (81/73/72 %)'
+  provenance:
+    command: score li_init on zenodo_14841855_driving_slam_mid360
+    config_sha256: 1fcf9fbd1da391d2aec1355467c0d64317de087c712fdf842463fb392e1b6e0d
+    input_sha256: b0414d9e90803fa877136a176d704954c6c71143fbb033c25f6d91e561aa41ab
+    notes: []
+method_summaries:
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 9
+    success_count: 9
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 9
+      mean: 97.95322055286832
+      median: 97.95322055286832
+      standard_deviation: 0.0
+      minimum: 97.95322055286832
+      maximum: 97.95322055286832
+      p90: 97.95322055286832
+      p95: 97.95322055286832
+      mean_ci95_low: 97.95322055286832
+      mean_ci95_high: 97.95322055286832
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_window_median_rate_residual_rps:
+        metric: holdout_window_median_rate_residual_rps
+        distribution:
+          count: 9
+          mean: 0.005488672990261695
+          median: 0.005507166657994131
+          standard_deviation: 0.0014789539554821262
+          minimum: 0.0028402313336572007
+          maximum: 0.008729636024745921
+          p90: 0.006738060153296166
+          p95: 0.007733848089021044
+          mean_ci95_low: 0.004586210653237906
+          mean_ci95_high: 0.0064707970660531884
+        rank: 1
+  li_init:
+    method_id: li_init
+    trial_count: 9
+    success_count: 0
+    failure_count: 9
+    failure_rate: 1.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_window_median_rate_residual_rps:
+        metric: holdout_window_median_rate_residual_rps
+        distribution:
+          count: 0
+paired_comparisons:
+- reference_method_id: li_init
+  candidate_method_id: calibrex_native
+  metric: holdout_window_median_rate_residual_rps
+  direction: lower
+  paired_count: 0
+reference_method_id: li_init
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- Each method's odometry is deskewed with its own extrinsic, so a wrong extrinsic
+  also degrades its own odometry.
+- The design reference is a sanity row, not a competitor.
+provenance:
+  generator: tools/build_mid360_imu_lidar_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-09-29T21:22:32.884119+00:00'
+  command: python tools/build_mid360_imu_lidar_audit.py docs/assets/mid360_imu_lidar_scores
+    docs/assets
+  source_artifacts: {}
+  data_verified: true

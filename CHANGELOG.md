@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- The first supported SOTA claim: `imu-lidar` rotation and clock offset of
+  the Livox MID360 built-in IMU, against LI-Init, on two recordings from two
+  dataset families (`docs/benchmarks/mid360_imu_lidar.md`).
+  - LI-Init (GPL-2.0) runs only in a pinned container
+    (`tools/external/li_init/`). `calibrex.importers.li_init` imports its
+    result as an external-run artifact.
+  - The claim, metric, and thresholds were pre-registered
+    (`docs/benchmarks/mid360_imu_lidar_preregistration.yaml`) before any
+    LI-Init score was computed. The audit protocol pins that file's SHA-256.
+  - On RTK-SLAM seq2, the mean held-out span residual is 0.0123 rad/s for
+    Calibrex and 0.148 rad/s for LI-Init (paired improvement 95 % CI
+    0.090-0.185). On the driving recording, LI-Init returned no result.
+  - `score_imu_lidar_candidate` scores a fixed rotation and clock offset,
+    refitting only the gyro bias. Its `holdout_spans_s` scores every
+    candidate on the same held-out time spans. The first audit build paired
+    windows by each method's own segmentation, which shifted LI-Init's
+    held-out windows and made the audit `refuted`. The thresholds were not
+    changed by the fix.
 - The MID360 hand-held IMU-LiDAR rotation now passes. On RTK-SLAM seq2,
   roll, pitch, and yaw are within 0.16 deg of the design value (std 0.02-0.03
   deg), the clock offset is 9.8 ms, and held-out windows detect every 1 deg
