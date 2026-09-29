@@ -1,16 +1,33 @@
-"""Schema-valid Camera--LiDAR SOTA claim audit protocol and result."""
+"""Schema-valid Camera--LiDAR SOTA claim audit protocol and result.
+
+These models specialize the pair-agnostic audit in
+:mod:`calibrex.core.sota_audit`: requirements, requirement results, and
+provenance are the same models under their original names, so the published
+Camera--LiDAR schemas are unchanged, and :meth:`as_generic` converts protocols
+and results into the pair-agnostic form used by the SOTA leaderboard.
+"""
 
 from __future__ import annotations
 
-import math
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from pydantic import Field, model_validator
 
-from calibrex.core.io import read_mapping, write_mapping
+from calibrex.core.io import read_mapping
 from calibrex.core.result import StrictModel
+from calibrex.core.sota_audit import (
+    SotaAuditProtocol,
+    SotaAuditProvenance,
+    SotaAuditResult,
+    SotaClaimRequirement,
+    SotaClaimRequirementResult,
+    SotaClaimScope,
+    SotaQuantity,
+    check_unique_requirement_ids,
+    check_verdict_consistency,
+    save_sota_model,
+)
 
 CAMERA_LIDAR_SOTA_AUDIT_PROTOCOL_SCHEMA_VERSION: Literal[
     "slac.camera_lidar_sota_audit_protocol/v0.1"
@@ -25,127 +42,20 @@ CameraLidarSotaCategory = Literal[
     "production_target_based_reference",
 ]
 
+_CATEGORY_QUANTITIES: Final[dict[str, list[SotaQuantity]]] = {
+    "training_free_targetless": ["rotation", "translation"],
+    "learned_targetless": ["rotation", "translation"],
+    "spatiotemporal_targetless": ["rotation", "translation", "time_offset"],
+    "production_target_based_reference": ["rotation", "translation"],
+}
 
-class CameraLidarSotaAuditProvenance(StrictModel):
+
+class CameraLidarSotaAuditProvenance(SotaAuditProvenance):
     """Generator/command lineage for a claim protocol or result."""
 
-    generator: str
-    generator_version: str
-    git_commit: str | None = None
-    command: list[str] = Field(default_factory=list)
-    source_sha256: dict[str, str] = Field(default_factory=dict)
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
 
-    @model_validator(mode="after")
-    def check_digests(self) -> CameraLidarSotaAuditProvenance:
-        """Validate all declared SHA-256 values."""
-
-        invalid = [
-            name
-            for name, digest in self.source_sha256.items()
-            if len(digest) != 64
-            or any(character not in "0123456789abcdef" for character in digest)
-        ]
-        if invalid:
-            raise ValueError(
-                "invalid audit provenance SHA-256: " + ", ".join(invalid)
-            )
-        return self
-
-
-class CameraLidarClaimRequirement(StrictModel):
+class CameraLidarClaimRequirement(SotaClaimRequirement):
     """One frozen numerical or completion gate."""
-
-    requirement_id: str
-    phase: str
-    description: str
-    dataset_family: str | None = None
-    independent_rig: bool = False
-    rig_id: str | None = None
-    evidence_path: str | None = None
-    evidence_sha256: str | None = Field(
-        default=None, pattern=r"^[0-9a-f]{64}$"
-    )
-    method_id: str | None = None
-    reference_method_id: str | None = None
-    metric: str | None = None
-    statistic: Literal[
-        "metric_mean",
-        "metric_median",
-        "metric_p90",
-        "metric_p95",
-        "metric_maximum",
-        "failure_rate",
-        "runtime_mean",
-        "runtime_p95",
-        "peak_memory_mean",
-        "peak_memory_p95",
-        "paired_improvement_ci95_low",
-        "paired_improvement_ci95_high",
-    ] | None = None
-    comparison: Literal[
-        "greater_equal",
-        "greater_than",
-        "less_equal",
-        "less_than",
-        "equal",
-    ] | None = None
-    threshold: float | None = None
-    required: bool = True
-
-    @model_validator(mode="after")
-    def check_locator(self) -> CameraLidarClaimRequirement:
-        """Require a complete locator when benchmark evidence is declared."""
-
-        if self.threshold is not None and not math.isfinite(self.threshold):
-            raise ValueError("audit threshold must be finite")
-        locator = (self.method_id, self.metric, self.statistic)
-        numeric_gate = (self.comparison, self.threshold)
-        if self.evidence_path is None:
-            if any(value is not None for value in (*locator, *numeric_gate)):
-                raise ValueError(
-                    "requirement without evidence cannot declare a locator/gate"
-                )
-        elif (
-            self.evidence_sha256 is None
-            or self.method_id is None
-            or self.statistic is None
-            or self.comparison is None
-            or self.threshold is None
-            or (
-                self.statistic
-                in {
-                    "metric_mean",
-                    "metric_median",
-                    "metric_p90",
-                    "metric_p95",
-                    "metric_maximum",
-                    "paired_improvement_ci95_low",
-                    "paired_improvement_ci95_high",
-                }
-                and self.metric is None
-            )
-        ):
-            raise ValueError(
-                "benchmark evidence requires digest, method, statistic, and gate"
-            )
-        paired = self.statistic in {
-            "paired_improvement_ci95_low",
-            "paired_improvement_ci95_high",
-        }
-        if paired and self.reference_method_id is None:
-            raise ValueError(
-                "paired confidence requirements need reference_method_id"
-            )
-        if not paired and self.reference_method_id is not None:
-            raise ValueError(
-                "reference_method_id is only valid for paired confidence gates"
-            )
-        if self.independent_rig and self.rig_id is None:
-            raise ValueError("independent rig requirements require rig_id")
-        return self
 
 
 class CameraLidarSotaAuditProtocol(StrictModel):
@@ -166,30 +76,35 @@ class CameraLidarSotaAuditProtocol(StrictModel):
     def check_unique_requirements(self) -> CameraLidarSotaAuditProtocol:
         """Require unique stable requirement IDs."""
 
-        identifiers = [item.requirement_id for item in self.requirements]
-        if len(identifiers) != len(set(identifiers)):
-            raise ValueError("SOTA audit requirement IDs must be unique")
+        check_unique_requirement_ids(self.requirements)
         return self
+
+    def as_generic(self) -> SotaAuditProtocol:
+        """Return the equivalent pair-agnostic protocol."""
+
+        return SotaAuditProtocol(
+            protocol_id=self.protocol_id,
+            scope=camera_lidar_claim_scope(self.declared_category),
+            claim_text=self.claim_text,
+            minimum_dataset_families=self.minimum_dataset_families,
+            minimum_independent_rigs=self.minimum_independent_rigs,
+            requirements=[
+                SotaClaimRequirement.model_validate(item.model_dump())
+                for item in self.requirements
+            ],
+            provenance=SotaAuditProvenance.model_validate(
+                self.provenance.model_dump()
+            ),
+        )
 
     def save(self, path: str | Path) -> None:
         """Save the frozen audit protocol."""
 
-        _save(self, path)
+        save_sota_model(self, path)
 
 
-class CameraLidarClaimRequirementResult(StrictModel):
+class CameraLidarClaimRequirementResult(SotaClaimRequirementResult):
     """Observed result for one frozen requirement."""
-
-    requirement_id: str
-    required: bool
-    status: Literal["achieved", "contradicted", "incomplete", "missing"]
-    observed_value: float | None = None
-    threshold: float | None = None
-    reason: str
-    evidence_path: str | None = None
-    evidence_sha256: str | None = Field(
-        default=None, pattern=r"^[0-9a-f]{64}$"
-    )
 
 
 class CameraLidarSotaAuditResult(StrictModel):
@@ -215,33 +130,37 @@ class CameraLidarSotaAuditResult(StrictModel):
     def check_supported_claim(self) -> CameraLidarSotaAuditResult:
         """Require the verdict to match required gates and coverage."""
 
-        required = [item for item in self.requirements if item.required]
-        contradicted = any(item.status == "contradicted" for item in required)
-        all_achieved = all(item.status == "achieved" for item in required)
-        coverage = (
-            len(set(self.achieved_dataset_families))
-            >= self.minimum_dataset_families
-            and self.achieved_independent_rig_count
-            >= self.minimum_independent_rigs
+        check_verdict_consistency(
+            self.verdict,
+            self.requirements,
+            achieved_dataset_families=self.achieved_dataset_families,
+            achieved_independent_rig_count=self.achieved_independent_rig_count,
+            minimum_dataset_families=self.minimum_dataset_families,
+            minimum_independent_rigs=self.minimum_independent_rigs,
         )
-        if self.verdict == "supported" and not (all_achieved and coverage):
-            raise ValueError("supported SOTA verdict requires every coverage/gate")
-        if self.verdict == "refuted" and not contradicted:
-            raise ValueError(
-                "refuted SOTA verdict requires a contradicted required gate"
-            )
-        if self.verdict == "incomplete" and (
-            contradicted or (all_achieved and coverage)
-        ):
-            raise ValueError(
-                "incomplete SOTA verdict requires unresolved evidence or coverage"
-            )
         return self
+
+    def as_generic(self) -> SotaAuditResult:
+        """Return the equivalent pair-agnostic result."""
+
+        payload = self.model_dump(mode="python", exclude={"schema_version", "declared_category"})
+        payload["scope"] = camera_lidar_claim_scope(self.declared_category)
+        return SotaAuditResult.model_validate(payload)
 
     def save(self, path: str | Path) -> None:
         """Save the SOTA audit result."""
 
-        _save(self, path)
+        save_sota_model(self, path)
+
+
+def camera_lidar_claim_scope(category: CameraLidarSotaCategory) -> SotaClaimScope:
+    """Return the pair-agnostic scope of a Camera--LiDAR claim category."""
+
+    return SotaClaimScope(
+        modalities=["camera", "lidar"],
+        quantities=list(_CATEGORY_QUANTITIES[category]),
+        category=category,
+    )
 
 
 def camera_lidar_sota_audit_protocol_json_schema() -> dict[str, Any]:
@@ -270,10 +189,3 @@ def load_camera_lidar_sota_audit_result(
     """Load and validate a SOTA audit result."""
 
     return CameraLidarSotaAuditResult.model_validate(read_mapping(Path(path)))
-
-
-def _save(model: StrictModel, path: str | Path) -> None:
-    write_mapping(
-        Path(path),
-        model.model_dump(mode="json", exclude_none=True),
-    )
