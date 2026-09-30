@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `calibrex lidar-wheel` calibrates a LiDAR against wheel odometry
+  (`slac.lidar_wheel_odometry/v0.1`).
+  - It estimates the LiDAR-to-vehicle rotation, the wheel-speed scale, the
+    clock offset (started by a yaw-rate scan), and the lever.
+  - `trajectory` takes any TUM trajectory and a wheel CSV. `kitti` uses the
+    OXTS speed and yaw rate as a stand-in for wheels, since KITTI has none.
+  - On KITTI dev drives the rotation matches lidar-vehicle within 0.004 deg.
+    The verdict is `warn`: the held-out blocks prefer a different speed
+    scale, and the 74 ms offset describes the OXTS velocity output.
 - `calibrex imu-vehicle kitti` estimates `R_vehicle_imu` for the KITTI OXTS
   unit from its body-frame velocity and rates with the non-holonomic solver.
   It includes a closure reference against LiDAR-vehicle composed with

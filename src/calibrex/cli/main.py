@@ -1409,6 +1409,32 @@ def _build_parser() -> argparse.ArgumentParser:
     gnss_imu_compose.add_argument("--json", action="store_true")
     gnss_imu_compose.set_defaults(func=_cmd_gnss_imu_compose)
 
+    lidar_wheel = subcommands.add_parser(
+        "lidar-wheel",
+        help="LiDAR-to-vehicle rotation, wheel-speed scale, and clock offset vs wheel odometry",
+    )
+    lidar_wheel_subcommands = lidar_wheel.add_subparsers(
+        dest="lidar_wheel_command", required=True
+    )
+    lidar_wheel_trajectory = lidar_wheel_subcommands.add_parser(
+        "trajectory", help="from a LiDAR trajectory (TUM) and a wheel CSV (t, speed, yaw_rate)"
+    )
+    lidar_wheel_trajectory.add_argument("--trajectory", type=Path, required=True)
+    lidar_wheel_trajectory.add_argument("--wheel", type=Path, required=True)
+    lidar_wheel_trajectory.add_argument("--dataset-family", default="user")
+    lidar_wheel_trajectory.add_argument("--dataset-license", default="user-provided")
+    lidar_wheel_trajectory.add_argument("--output", type=Path, required=True)
+    lidar_wheel_trajectory.add_argument("--json", action="store_true")
+    lidar_wheel_trajectory.set_defaults(func=_cmd_lidar_wheel_trajectory)
+    lidar_wheel_kitti = lidar_wheel_subcommands.add_parser(
+        "kitti", help="KITTI raw, with the OXTS speed and yaw rate standing in for wheels"
+    )
+    lidar_wheel_kitti.add_argument("drives", type=Path, nargs="+")
+    lidar_wheel_kitti.add_argument("--lidar-vehicle", type=Path)
+    lidar_wheel_kitti.add_argument("--output", type=Path, required=True)
+    lidar_wheel_kitti.add_argument("--json", action="store_true")
+    lidar_wheel_kitti.set_defaults(func=_cmd_lidar_wheel_kitti)
+
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
         help="INS/GNSS-LiDAR trajectory hand-eye calibration evidence",
@@ -6340,6 +6366,65 @@ def _cmd_gnss_imu_compose(args: argparse.Namespace) -> int:
         args.json,
     )
     return 0
+
+
+def _emit_lidar_wheel(artifact: Any, output: Path, as_json: bool) -> int:
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(output),
+            "calibrated_parameters": artifact.calibrated_parameters,
+            "speed_scale": artifact.speed_scale,
+            "time_offset_s": artifact.time_offset_s,
+            "reasons": artifact.policy_reasons,
+        },
+        as_json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_lidar_wheel_trajectory(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.lidar_wheel import run_trajectory_lidar_wheel
+
+    command = ["calibrex", "lidar-wheel", "trajectory", "--trajectory", args.trajectory.name]
+    command += ["--wheel", args.wheel.name, "--output", str(args.output)]
+    try:
+        artifact = run_trajectory_lidar_wheel(
+            args.trajectory.read_text(encoding="utf-8"),
+            args.wheel.read_text(encoding="utf-8"),
+            sequence_id=args.trajectory.stem,
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    return _emit_lidar_wheel(artifact, args.output, args.json)
+
+
+def _cmd_lidar_wheel_kitti(args: argparse.Namespace) -> int:
+    from scipy.spatial.transform import Rotation as _Rotation
+
+    from calibrex.core.vehicle_frame_rotation import load_vehicle_frame_rotation
+    from calibrex.evaluation.lidar_wheel import run_kitti_lidar_wheel
+
+    command = ["calibrex", "lidar-wheel", "kitti", *(path.name for path in args.drives)]
+    try:
+        rotation = None
+        if args.lidar_vehicle is not None:
+            lidar = load_vehicle_frame_rotation(args.lidar_vehicle)
+            if lidar.rotation_quat_xyzw is not None:
+                rotation = _Rotation.from_quat(lidar.rotation_quat_xyzw).as_matrix()
+            command += ["--lidar-vehicle", str(args.lidar_vehicle)]
+        command += ["--output", str(args.output)]
+        artifact = run_kitti_lidar_wheel(
+            args.drives, lidar_vehicle_rotation=rotation, command=command
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    return _emit_lidar_wheel(artifact, args.output, args.json)
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:

@@ -91,6 +91,7 @@ ValidationKind = Literal[
     "lidar-lidar-extrinsic",
     "vehicle-frame-rotation",
     "gnss-imu-lever-arm",
+    "lidar-wheel-odometry",
     "sota-audit-protocol",
     "sota-audit-result",
     "sota-leaderboard",
