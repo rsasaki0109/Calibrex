@@ -44,6 +44,11 @@ more to calibrate.
   and `slac.imu_lidar_translation/v0.1` artifacts with provenance, including
   the SHA-256 of your inputs.
 
+## Checking the page
+
+`tools/check_browser_page.mjs` runs the exact Python snippets embedded in the
+page under Pyodide in Node. See the script header for how to run it.
+
 ## The same thing on the command line
 
 ```bash
