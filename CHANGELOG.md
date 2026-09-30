@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **A pre-registered `lidar-vehicle` audit is supported** on eight unseen
+  KITTI drives (`kitti-lidar-vehicle-v1`, 3/3 gates).
+  - Calibrex's motion-only rotation fits held-out LiDAR motion better than
+    KITTI's calib_imu_to_velo (paired CI low 0.051, 9 of 9 blocks).
+  - Its pitch and yaw agree with the OXTS-motion vehicle frame within
+    0.21 deg on average (threshold 0.5).
+  - Tools: `tools/score_kitti_lidar_vehicle.py`,
+    `tools/build_kitti_lidar_vehicle_audit.py`.
 - `calibrex camera-imu focal` checks a camera's focal lengths against the
   gyro, without a target (`slac.camera_focal_scale/v0.1`).
   - Per-axis camera/gyro rate ratios give `fx`/`fy` estimates. The

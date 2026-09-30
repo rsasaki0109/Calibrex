@@ -6,22 +6,19 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-09-30, **one pair has supported SOTA claims: `imu-lidar`**, for the
-Livox MID360 built-in IMU against LI-Init:
+As of 2026-10-01, **two pairs have supported SOTA claims**:
 
-- **Rotation and clock offset**, on two recordings from two dataset families:
-  `supported`.
-- **Full extrinsic** (rotation, lever arm, clock offset), first round:
-  `refuted`. Calibrex's lever arm was inconclusive on both unseen
-  recordings.
-- **Full extrinsic, second round**: `supported`. It uses the revised
-  per-segment-gravity lever arm on the last unseen recording,
-  `construction_seq2`.
+- **`imu-lidar`** (Livox MID360, against LI-Init):
+  - rotation and clock offset;
+  - the full extrinsic, second round. The first full-extrinsic round was
+    refuted and stays listed.
+- **`lidar-vehicle`** (KITTI): the motion-only LiDAR-to-vehicle rotation,
+  against KITTI's calib_imu_to_velo, on eight unseen drives.
 
-The refuted round stays listed next to the supported ones. See
-[MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md#second-extrinsic-audit-supported)
-for the scope of each claim and what none of them claim. Every other target
-pair is `no_claim`.
+See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md) and
+[KITTI LiDAR-Vehicle Rotation](kitti_lidar_vehicle.md#pre-registered-audit-supported)
+for the scope of each claim and what it does not claim. Every other target
+pair has a native method but no audited claim yet.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -33,7 +30,7 @@ pair is `no_claim`.
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
 | `ins-lidar` | no_claim | 0 | 0 | 0 | yes |
 | `lidar-lidar` | no_claim | 0 | 0 | 0 | yes |
-| `lidar-vehicle` | no_claim | 0 | 0 | 0 | yes |
+| `lidar-vehicle` | supported | 1 | 0 | 0 | yes |
 | `lidar-wheel_odometry` | no_claim | 0 | 0 | 0 | yes |
 
 | Pair | Category | Quantities | Verdict | Gates (achieved/total) | Protocol |
@@ -41,6 +38,7 @@ pair is `no_claim`.
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
+| `lidar-vehicle` | targetless_lidar_vehicle | rotation | supported | 3/3 | `kitti-lidar-vehicle-v1` |
 
 The machine-readable version is
 [`sota_leaderboard.json`](../assets/sota_leaderboard.json)

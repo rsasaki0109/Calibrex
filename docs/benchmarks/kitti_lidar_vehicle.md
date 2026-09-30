@@ -77,6 +77,41 @@ std 0.42 deg: these drives turn too little).
 
 [Artifact](../assets/kitti_lidar_vehicle/dev_2011_09_26.yaml).
 
+## Pre-registered audit: supported
+
+The claim, scoring, drives, and thresholds were committed in
+[`kitti_lidar_vehicle_preregistration.yaml`](kitti_lidar_vehicle_preregistration.yaml)
+(commit `705639b`), before lidar-vehicle ran on any evaluation drive. The
+evaluation drives are 0027, 0028, 0035, 0039, 0046, 0051, 0057, and 0059.
+Scoring runs `tools/score_kitti_lidar_vehicle.py`, and the audit is built by
+`tools/build_kitti_lidar_vehicle_audit.py`.
+
+**Verdict: `supported`, 3/3 gates**
+([protocol](../assets/kitti_lidar_vehicle_sota_protocol.yaml),
+[result](../assets/kitti_lidar_vehicle_sota_audit.yaml)).
+
+| Gate | Observed | Threshold |
+| --- | --- | --- |
+| Calibrex estimates pitch and yaw on the pooled evaluation drives | yes (roll unobservable) | required |
+| Paired improvement over KITTI's calib_imu_to_velo on held-out blocks, 95 % CI low | 0.051 (mean 0.080, CI high 0.110), better in 9 of 9 blocks | ≥ 0 |
+| Mean per-drive pitch/yaw agreement with the OXTS-motion vehicle frame | 0.214 deg (KITTI's own rotation: 0.476 deg) | ≤ 0.5 deg |
+
+- **Held-out score.** The mean held-out block score is 0.793 for Calibrex
+  and 0.873 for KITTI's rotation, whose lever is also fitted on the train
+  blocks.
+- **Per-drive agreement** ranges from 0.01 deg (0057) to 0.39 deg (0039).
+- **One held-out block was dropped for both methods.** In 0057 block 1 the
+  car stood still, so neither method had a moving interval to score. The
+  pre-registration did not cover this case; the builder drops such blocks
+  for every method alike, and the benchmark lists them.
+
+What the claim does not say:
+
+- It covers pitch and yaw only; roll stays unobservable on these drives.
+- The vehicle frame is the one the non-holonomic model defines.
+- The only external comparison is the common practice of taking the INS
+  frame as the vehicle frame.
+
 ## INS-vehicle (`calibrex imu-vehicle kitti`)
 
 The same solver, applied to the OXTS unit's own body-frame velocity and

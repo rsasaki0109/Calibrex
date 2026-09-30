@@ -85,6 +85,33 @@
         ]
       },
       "verdict": "supported"
+    },
+    {
+      "achieved_dataset_families": [
+        "kitti_raw"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "kitti-lidar-vehicle-v1",
+      "audit_path": "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "455654ab6e5e6577d0947ea3d0a765e665dba693723c808dac2f4f00eaf946bd",
+      "claim_text": "On eight KITTI raw drives not used to develop the method, Calibrex's motion-only LiDAR-to-vehicle rotation fits held-out LiDAR motion at least as well as KITTI's calib_imu_to_velo, and its pitch and yaw agree with an independent vehicle frame from the OXTS body-frame velocities.",
+      "pair_id": "lidar-vehicle",
+      "protocol_id": "kitti-lidar-vehicle-v1",
+      "requirement_counts": {
+        "achieved": 3
+      },
+      "scope": {
+        "category": "targetless_lidar_vehicle",
+        "modalities": [
+          "lidar",
+          "vehicle"
+        ],
+        "quantities": [
+          "rotation"
+        ]
+      },
+      "verdict": "supported"
     }
   ],
   "pairs": [
@@ -156,8 +183,8 @@
       "incomplete_claims": 0,
       "pair_id": "lidar-vehicle",
       "refuted_claims": 0,
-      "standing": "no_claim",
-      "supported_claims": 0,
+      "standing": "supported",
+      "supported_claims": 1,
       "target": true
     },
     {
@@ -177,6 +204,7 @@
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml",
+      "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -200,10 +228,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-09-30T08:47:06.667105+00:00",
+    "created_at": "2026-09-30T23:14:04.368490+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
     "generator_version": "0.4.1",
-    "git_commit": "5f7e694"
+    "git_commit": "705639b"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

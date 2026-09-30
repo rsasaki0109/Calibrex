@@ -1,0 +1,313 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: kitti-lidar-vehicle-agreement
+title: KITTI LiDAR-vehicle pitch/yaw agreement with the OXTS-motion vehicle frame
+protocol:
+  protocol_id: kitti-lidar-vehicle-v1
+  dataset_id: kitti_raw_2011_09_26_evaluation_drives
+  dataset_source_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+  data_license: CC BY-NC-SA 3.0
+  split_policy: one split per evaluation drive
+  splits:
+  - split_id: 2011_09_26_drive_0027_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ad61397f7c168fefe4f5662e316e1387182cf8489113092a2c62652b0c284f8d
+    holdout_ids_sha256: 37ede4a49cef4f87cdfc170c8a21db60b042da59b4b530e27b52a32087629408
+  - split_id: 2011_09_26_drive_0028_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7256d050e017652029f0f83c8b33d14f659d41b9ff81c947b421eada4212d1b8
+    holdout_ids_sha256: 8cd7372499f9d53df459dab4091d222e47910baf96ea5bf945d6769f77ea6961
+  - split_id: 2011_09_26_drive_0035_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4183fcd671c7001cd852df2a979befa4e6cc6a0ea90c3a65e3a7485ab579dd32
+    holdout_ids_sha256: 8e486fd549b6d662524182bf8714431c5b7a0213feb1d20b4c8e7e3668078543
+  - split_id: 2011_09_26_drive_0039_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3c69d02c8728822cb4cec8a1652944b736fcea3607cb31c083d359eca6893297
+    holdout_ids_sha256: 381c413a05d96517cfaf94f56ceb04d090dee390fe5f6c77de194b9f6b3aaa21
+  - split_id: 2011_09_26_drive_0046_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 036c670293b68b05ba0465b4e4bf30349122c672596e9680aabbf357bf1f8ae7
+    holdout_ids_sha256: 23befc222bf26764109ff7f0e09d36a871c5c821354d0e69a4ea7ee0f6a4adc4
+  - split_id: 2011_09_26_drive_0051_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1b5b76f8dedc4571fc5078c1987d9dd9a2f1cc69fa28dfa5584ed7d990c75f31
+    holdout_ids_sha256: e4add8e09efeefff9b806b7f86fdb694731d26be3453222ef922cb71831bc212
+  - split_id: 2011_09_26_drive_0057_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1bae59e48d5a4879c7dd392d566cf350349432f96ba503ef23689c6abdf68905
+    holdout_ids_sha256: 6334e6ffa376c5ff3b43ffba9d39d89dff3a6774a72717478f71e61235e95f87
+  - split_id: 2011_09_26_drive_0059_sync
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 642f626b4d5d11d7ebe3fdc18643a047873a24ba4c0f091d031ae0ab3b437e59
+    holdout_ids_sha256: c1de93dd81184bac427a2fc1b0fddf0fade794c4f0ca9489e94798ffdd3f2664
+  initial_estimate_policy: each method's own rotation; levers fitted on train blocks
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a method without an estimate fails every split
+metrics:
+- name: pitch_yaw_agreement_deg
+  label: pitch/yaw agreement with the OXTS-motion vehicle frame
+  unit: deg
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: per drive, norm of the pitch and yaw differences
+methods:
+- method_id: calibrex_native
+  label: Calibrex motion-only LiDAR-to-vehicle rotation
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: kitti_vendor
+  label: KITTI calib_imu_to_velo rotation (OXTS frame as vehicle frame)
+  implementation: calibrex_native
+  tool_name: kitti_calibration
+trials:
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0027_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.06713899498729985
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0028_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.1577582831103193
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0035_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.22777639314799664
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0039_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.38941636034236116
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0046_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.3399360798395812
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0051_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.3547987398443855
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0057_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.01372130755862427
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0059_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.16177999069986324
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0027_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.37190529807991635
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0028_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.4058004990823409
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0035_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.6352741722618841
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0039_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.7482456186219675
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0046_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.34330664423402585
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0051_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.6038500724100492
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0057_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.2104844872382081
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0059_sync
+  status: success
+  metrics:
+    pitch_yaw_agreement_deg: 0.491301869067699
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+method_summaries:
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 8
+    success_count: 8
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      pitch_yaw_agreement_deg:
+        metric: pitch_yaw_agreement_deg
+        distribution:
+          count: 8
+          mean: 0.2140407686913039
+          median: 0.19477819192392992
+          standard_deviation: 0.1295253961891938
+          minimum: 0.01372130755862427
+          maximum: 0.38941636034236116
+          p90: 0.3651840259937782
+          p95: 0.3773001931680697
+          mean_ci95_low: 0.12237969281444745
+          mean_ci95_high: 0.30314759992500956
+        rank: 1
+  kitti_vendor:
+    method_id: kitti_vendor
+    trial_count: 8
+    success_count: 8
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      pitch_yaw_agreement_deg:
+        metric: pitch_yaw_agreement_deg
+        distribution:
+          count: 8
+          mean: 0.47627108262451134
+          median: 0.4485511840750199
+          standard_deviation: 0.16580667591090217
+          minimum: 0.2104844872382081
+          maximum: 0.7482456186219675
+          p90: 0.669165606169909
+          p95: 0.7087056123959382
+          mean_ci95_low: 0.36272066828951166
+          mean_ci95_high: 0.5910935262127498
+        rank: 2
+paired_comparisons:
+- reference_method_id: calibrex_native
+  candidate_method_id: kitti_vendor
+  metric: pitch_yaw_agreement_deg
+  direction: lower
+  paired_count: 8
+  raw_delta_mean: 0.26223031393320745
+  improvement_mean: -0.26223031393320745
+  improvement_ci95_low: -0.33264290591681217
+  improvement_ci95_high: -0.17507094700274323
+reference_method_id: calibrex_native
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The vehicle frame is defined by the non-holonomic motion model.
+provenance:
+  generator: tools/build_kitti_lidar_vehicle_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-09-30T23:13:49.926317+00:00'
+  command: python tools/build_kitti_lidar_vehicle_audit.py CACHE.pkl docs/assets/kitti_lidar_vehicle_audit/scores.json
+    docs/assets
+  source_artifacts: {}
+  data_verified: true

@@ -1,0 +1,341 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: kitti-lidar-vehicle-holdout
+title: KITTI LiDAR-vehicle rotation, held-out blocks
+protocol:
+  protocol_id: kitti-lidar-vehicle-v1
+  dataset_id: kitti_raw_2011_09_26_evaluation_drives
+  dataset_source_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+  data_license: CC BY-NC-SA 3.0
+  split_policy: 10-second blocks per drive; every third sorted key held out; one split
+    per block
+  splits:
+  - split_id: 2011_09_26_drive_0027_sync/b1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: eb6d3c9e33b17256f9db8b454805f0a3cc233543e49907d155a4bcc4696593c1
+    holdout_ids_sha256: 5dd7fe99940c648fa1c5aedd75105474c6fcdf6c017ee52e1eb4a70f67127e9c
+  - split_id: 2011_09_26_drive_0028_sync/b2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 637edec3fb77ad46831a4398cd6afd01d6ebac83e007761aae3d5254776fc21c
+    holdout_ids_sha256: 0809fbd3be196f17db199a864cd63085311565193266cf2a4ec3fabda65b82a0
+  - split_id: 2011_09_26_drive_0035_sync/b0
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1f2643f11232bf671540c2827a19f04ad4bb3f7ebbedde5fa2852ccaf080b506
+    holdout_ids_sha256: cc12130c91bf3644db222a1804759cb6d7dd58bb92744dbe226094ed704f2d9d
+  - split_id: 2011_09_26_drive_0039_sync/b1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5c84e8cf8c44d8e30ae270ad7cadb4a073fd077ba85ac53d99447bb257609cf7
+    holdout_ids_sha256: 7f28c0eff869c3d63440001ae150aaa414a58a3fd77230b0586c226aea1d3fdd
+  - split_id: 2011_09_26_drive_0039_sync/b4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d09083ad2ad733b5d2f9de128d42d9ed466f326172b244d80284a67d728e5eff
+    holdout_ids_sha256: f92031086d54acbc2d162477328310e9a864d8873f43b7e06801c1b128ebc352
+  - split_id: 2011_09_26_drive_0051_sync/b0
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4a5ca8eb00358795e49c22b691fc452631d3a83a3a933459348f82208105c99c
+    holdout_ids_sha256: 1ce6df9c2ad860e0e921746a4b8982acc66be5e51829a6b936b6468f817d8472
+  - split_id: 2011_09_26_drive_0051_sync/b3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 57b3554a133a474c0402be7030295184e0d71824be03d624cec55654663a92e4
+    holdout_ids_sha256: d8f890ed525b0eecd8911e136898bf69a672afaaf205ee323068d5cb72d770e3
+  - split_id: 2011_09_26_drive_0059_sync/b0
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8910b672b9a07cbae7cc9cdb88cd2476c40efa288d8ea770db968aecf3a609f7
+    holdout_ids_sha256: 10ad29f32786a9a50920bd99444ed7428ff952f031c94aceb430bda37dce8e5d
+  - split_id: 2011_09_26_drive_0059_sync/b3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 80f500e3c304d63374901fda27a9af1a76337b07fcae4a67fbc7707119b7a8a9
+    holdout_ids_sha256: eed671d958f3dfedb3a8b88012a22817746572ea77780261ec69b906748b297f
+  initial_estimate_policy: each method's own rotation; levers fitted on train blocks
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a method without an estimate fails every split
+metrics:
+- name: holdout_block_nonholonomic_chi2
+  label: held-out non-holonomic chi-square per residual
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: mean of min(r^2, 25) over normalized residuals of a held-out block
+methods:
+- method_id: calibrex_native
+  label: Calibrex motion-only LiDAR-to-vehicle rotation
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: kitti_vendor
+  label: KITTI calib_imu_to_velo rotation (OXTS frame as vehicle frame)
+  implementation: calibrex_native
+  tool_name: kitti_calibration
+trials:
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0027_sync/b1
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.403854285752414
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0028_sync/b2
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.6579331127137138
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0035_sync/b0
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.15226189045519767
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0039_sync/b1
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 2.3683733279277606
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0039_sync/b4
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.6718944555196409
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0051_sync/b0
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 1.053380202736663
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0051_sync/b3
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.5816182959888422
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0059_sync/b0
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.8014476829947575
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: calibrex_native
+  split_id: 2011_09_26_drive_0059_sync/b3
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.44317139769004477
+  provenance:
+    command: score calibrex_native
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0027_sync/b1
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.4655837359460383
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0028_sync/b2
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.7937128218797143
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0035_sync/b0
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.22732347342968523
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0039_sync/b1
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 2.4753922707231117
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0039_sync/b4
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.7468755355308929
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0051_sync/b0
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 1.2133106247283743
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0051_sync/b3
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.6022211355067261
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0059_sync/b0
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.8281558096392809
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+- method_id: kitti_vendor
+  split_id: 2011_09_26_drive_0059_sync/b3
+  status: success
+  metrics:
+    holdout_block_nonholonomic_chi2: 0.5006465045558998
+  provenance:
+    command: score kitti_vendor
+    config_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    input_sha256: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+    notes: []
+method_summaries:
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 9
+    success_count: 9
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_block_nonholonomic_chi2:
+        metric: holdout_block_nonholonomic_chi2
+        distribution:
+          count: 9
+          mean: 0.792659405753226
+          median: 0.6579331127137138
+          standard_deviation: 0.606595315978324
+          minimum: 0.15226189045519767
+          maximum: 2.3683733279277606
+          p90: 1.3163788277748827
+          p95: 1.8423760778513212
+          mean_ci95_low: 0.47833991899721934
+          mean_ci95_high: 1.264690118277045
+        rank: 1
+  kitti_vendor:
+    method_id: kitti_vendor
+    trial_count: 9
+    success_count: 9
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_block_nonholonomic_chi2:
+        metric: holdout_block_nonholonomic_chi2
+        distribution:
+          count: 9
+          mean: 0.8725802124377471
+          median: 0.7468755355308929
+          standard_deviation: 0.6238349204137008
+          minimum: 0.22732347342968523
+          maximum: 2.4753922707231117
+          p90: 1.465726953927322
+          p95: 1.9705596123252163
+          mean_ci95_low: 0.5409942328613362
+          mean_ci95_high: 1.3558485190145182
+        rank: 2
+paired_comparisons:
+- reference_method_id: kitti_vendor
+  candidate_method_id: calibrex_native
+  metric: holdout_block_nonholonomic_chi2
+  direction: lower
+  paired_count: 9
+  raw_delta_mean: -0.079920806684521
+  improvement_mean: 0.079920806684521
+  improvement_ci95_low: 0.05139668308145251
+  improvement_ci95_high: 0.11020779793907204
+reference_method_id: kitti_vendor
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The vehicle frame is defined by the non-holonomic motion model.
+- 'Dropped for every method, with no moving interval to score: 2011_09_26_drive_0057_sync/b1'
+provenance:
+  generator: tools/build_kitti_lidar_vehicle_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-09-30T23:13:49.871073+00:00'
+  command: python tools/build_kitti_lidar_vehicle_audit.py CACHE.pkl docs/assets/kitti_lidar_vehicle_audit/scores.json
+    docs/assets
+  source_artifacts: {}
+  data_verified: true
