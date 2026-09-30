@@ -419,6 +419,17 @@
       "title": "Schema Version",
       "type": "string"
     },
+    "sensor_modality": {
+      "default": "lidar",
+      "description": "Which sensor's motion was aligned with the gyro: LiDAR odometry, camera rotations from images, or a user-supplied trajectory. The artifact calls that sensor's frame 'lidar' in every case.",
+      "enum": [
+        "lidar",
+        "camera",
+        "trajectory"
+      ],
+      "title": "Sensor Modality",
+      "type": "string"
+    },
     "solver_status": {
       "enum": [
         "converged",

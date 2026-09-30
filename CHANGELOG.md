@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- `calibrex camera-imu rotation`: targetless camera-IMU rotation, clock
+  offset, and gyro bias from ROS 2 image and IMU topics (needs
+  `calibrex[opencv]`).
+  - Camera rotations come from tracked features, and are aligned with the
+    gyro by the IMU-LiDAR rotation evidence.
+  - The rotation artifact gains `sensor_modality` (`lidar`, `camera`, or
+    `trajectory`; default `lidar`).
+- On Hilti 2022 development recordings (exp21, exp07), the clock offset
+  agrees with Kalibr within 0.35 ms, and the rotation is 0.0-0.7 deg from
+  Kalibr on exp21.
+  - Every camera is `inconclusive`: the std exceeds 0.1 deg.
+  - A negative bias about the camera y axis appears on all five cameras,
+    unexplained.
+  - Tracking fails often in the exp07 corridor.
+  - No camera-IMU SOTA claim is made (`docs/benchmarks/hilti_camera_imu.md`).
+- Rotation jackknife spreads and reference differences are now small
+  rotations about the sensor axes rather than Euler-angle differences, which
+  broke near a +-90 deg pitch.
 - Browser calibration at <https://rsasaki0109.github.io/Calibrex/app/>.
   - Upload an IMU CSV and a sensor trajectory (TUM), or generate a synthetic
     hand-held example. The page calibrates the IMU rotation, clock offset,

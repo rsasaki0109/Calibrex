@@ -1287,6 +1287,45 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_trajectory.add_argument("--json", action="store_true")
     imu_lidar_trajectory.set_defaults(func=_cmd_imu_lidar_trajectory)
 
+    camera_imu = subcommands.add_parser(
+        "camera-imu",
+        help="targetless camera-IMU rotation, clock offset, and gyro bias from images",
+    )
+    camera_imu_subcommands = camera_imu.add_subparsers(dest="camera_imu_command", required=True)
+    camera_imu_rotation = camera_imu_subcommands.add_parser(
+        "rotation",
+        help="align camera rotations from tracked features with the gyro (needs calibrex[opencv])",
+    )
+    camera_imu_rotation.add_argument(
+        "bags", type=Path, nargs="+", help="rosbag2 directories of one rig"
+    )
+    camera_imu_rotation.add_argument(
+        "--camchain",
+        type=Path,
+        required=True,
+        help="Kalibr camchain(-imucam) YAML with the camera's intrinsics",
+    )
+    camera_imu_rotation.add_argument("--camera", default="cam0", help="camera key in the camchain")
+    camera_imu_rotation.add_argument("--imu-topic", required=True)
+    camera_imu_rotation.add_argument(
+        "--image-topic", help="defaults to the camchain's rostopic for the camera"
+    )
+    camera_imu_rotation.add_argument(
+        "--acceleration-unit", choices=["mps2", "g"], default="mps2"
+    )
+    camera_imu_rotation.add_argument(
+        "--no-reference",
+        action="store_true",
+        help="do not compare with the camchain's T_cam_imu",
+    )
+    camera_imu_rotation.add_argument("--frame-stride", type=_positive_int, default=4)
+    camera_imu_rotation.add_argument("--max-seconds", type=float)
+    camera_imu_rotation.add_argument("--dataset-family", required=True)
+    camera_imu_rotation.add_argument("--dataset-license", required=True)
+    camera_imu_rotation.add_argument("--output", type=Path, required=True)
+    camera_imu_rotation.add_argument("--json", action="store_true")
+    camera_imu_rotation.set_defaults(func=_cmd_camera_imu_rotation)
+
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
         help="INS/GNSS-LiDAR trajectory hand-eye calibration evidence",
@@ -6005,6 +6044,69 @@ def _cmd_imu_lidar_trajectory(args: argparse.Namespace) -> int:
         payload["translation_artifact"] = str(args.output_translation)
     _emit(payload, args.json)
     return 1 if "fail" in statuses else 0
+
+
+def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
+    import numpy
+
+    from calibrex.evaluation.camera_imu_rotation import (
+        CameraImuRunOptions,
+        run_ros2_camera_imu_rotation,
+    )
+    from calibrex.evaluation.visual_rotation import CameraModel
+
+    try:
+        chain = read_mapping(args.camchain)
+        entry = chain.get(args.camera)
+        if not isinstance(entry, dict):
+            raise ValueError(f"{args.camchain} has no camera {args.camera!r}")
+        image_topic = args.image_topic or entry.get("rostopic")
+        if not image_topic:
+            raise ValueError("no --image-topic given and the camchain has no rostopic")
+        reference_rotation = None
+        reference = None
+        if not args.no_reference and "T_cam_imu" in entry:
+            reference_rotation = numpy.asarray(entry["T_cam_imu"], dtype=numpy.float64)[:3, :3]
+            reference = (
+                f"Kalibr camchain {args.camchain.name} {args.camera}: T_cam_imu, "
+                f"timeshift_cam_imu {entry.get('timeshift_cam_imu', 'n/a')} s"
+            )
+        command = ["calibrex", "camera-imu", "rotation", *(str(bag) for bag in args.bags)]
+        command += ["--camchain", str(args.camchain), "--camera", args.camera]
+        command += ["--imu-topic", args.imu_topic, "--image-topic", str(image_topic)]
+        command += ["--frame-stride", str(args.frame_stride)]
+        if args.max_seconds is not None:
+            command += ["--max-seconds", str(args.max_seconds)]
+        if args.no_reference:
+            command.append("--no-reference")
+        artifact = run_ros2_camera_imu_rotation(
+            args.bags,
+            image_topic=str(image_topic),
+            imu_topic=args.imu_topic,
+            camera=CameraModel.from_kalibr(entry),
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            acceleration_unit=args.acceleration_unit,
+            reference_rotation=reference_rotation,
+            reference=reference,
+            options=CameraImuRunOptions(
+                frame_stride=args.frame_stride, max_seconds=args.max_seconds
+            ),
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError, ImportError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
