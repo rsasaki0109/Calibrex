@@ -1354,6 +1354,21 @@ def _build_parser() -> argparse.ArgumentParser:
     lidar_lidar_ros2.add_argument("--json", action="store_true")
     lidar_lidar_ros2.set_defaults(func=_cmd_lidar_lidar_ros2)
 
+    lidar_vehicle = subcommands.add_parser(
+        "lidar-vehicle",
+        help="LiDAR-to-vehicle rotation from the vehicle's non-holonomic motion",
+    )
+    lidar_vehicle_subcommands = lidar_vehicle.add_subparsers(
+        dest="lidar_vehicle_command", required=True
+    )
+    lidar_vehicle_kitti = lidar_vehicle_subcommands.add_parser(
+        "kitti", help="R_vehicle_velodyne from KITTI raw drives of one calibration"
+    )
+    lidar_vehicle_kitti.add_argument("drives", type=Path, nargs="+", help="KITTI raw *_sync drives")
+    lidar_vehicle_kitti.add_argument("--output", type=Path, required=True)
+    lidar_vehicle_kitti.add_argument("--json", action="store_true")
+    lidar_vehicle_kitti.set_defaults(func=_cmd_lidar_vehicle_kitti)
+
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
         help="INS/GNSS-LiDAR trajectory hand-eye calibration evidence",
@@ -6184,6 +6199,32 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
             "status": artifact.policy_status,
             "artifact": str(args.output),
             "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_lidar_vehicle_kitti(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.vehicle_frame import run_kitti_lidar_vehicle
+
+    command = ["calibrex", "lidar-vehicle", "kitti", *(path.name for path in args.drives)]
+    command += ["--output", str(args.output)]
+    try:
+        artifact = run_kitti_lidar_vehicle(args.drives, command=command)
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "references": [
+                {"name": item.name, "difference_deg": item.difference_deg}
+                for item in artifact.references
+            ],
             "reasons": artifact.policy_reasons,
         },
         args.json,

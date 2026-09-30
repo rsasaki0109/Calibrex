@@ -1,0 +1,421 @@
+{
+  "$defs": {
+    "VehicleFrameControl": {
+      "additionalProperties": false,
+      "description": "Held-out chi-square increase after rotating the estimate about one axis.",
+      "properties": {
+        "amount_deg": {
+          "title": "Amount Deg",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_delta_chi2": {
+          "title": "Holdout Delta Chi2",
+          "type": "number"
+        }
+      },
+      "required": [
+        "amount_deg",
+        "holdout_delta_chi2",
+        "detected"
+      ],
+      "title": "VehicleFrameControl",
+      "type": "object"
+    },
+    "VehicleFrameDofRecord": {
+      "additionalProperties": false,
+      "description": "One rotation axis with its uncertainty and evidence.",
+      "properties": {
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VehicleFrameControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_analytic": {
+          "minimum": 0.0,
+          "title": "Std Analytic",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "unit": {
+          "const": "deg",
+          "default": "deg",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value",
+        "std_analytic",
+        "std_reported",
+        "status"
+      ],
+      "title": "VehicleFrameDofRecord",
+      "type": "object"
+    },
+    "VehicleFrameProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "sensor": {
+          "title": "Sensor",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "sensor",
+        "input_sha256",
+        "dataset_license"
+      ],
+      "title": "VehicleFrameProvenance",
+      "type": "object"
+    },
+    "VehicleFrameReference": {
+      "additionalProperties": false,
+      "description": "A reference rotation and the estimate's difference from it.",
+      "properties": {
+        "difference_deg": {
+          "description": "small rotation about the vehicle x, y, z axes from the reference to the estimate",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Difference Deg",
+          "type": "array"
+        },
+        "holdout_delta_chi2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Delta Chi2"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "rotation_quat_xyzw",
+        "difference_deg"
+      ],
+      "title": "VehicleFrameReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one sensor-to-vehicle rotation calibration run.",
+  "properties": {
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "roll",
+          "pitch",
+          "yaw"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "dofs": {
+      "items": {
+        "$ref": "#/$defs/VehicleFrameDofRecord"
+      },
+      "title": "Dofs",
+      "type": "array"
+    },
+    "holdout_blocks": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Holdout Blocks",
+      "type": "array"
+    },
+    "holdout_median_normalized_residual": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Median Normalized Residual"
+    },
+    "holdout_motions": {
+      "minimum": 0,
+      "title": "Holdout Motions",
+      "type": "integer"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "lever_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "nuisance: sensor distance ahead of the axle about which the vehicle turns",
+      "title": "Lever M"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "non_holonomic_motion/v0.1",
+      "default": "non_holonomic_motion/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "motions": {
+      "minimum": 0,
+      "title": "Motions",
+      "type": "integer"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/VehicleFrameProvenance"
+    },
+    "references": {
+      "items": {
+        "$ref": "#/$defs/VehicleFrameReference"
+      },
+      "title": "References",
+      "type": "array"
+    },
+    "rotation_quat_xyzw": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rotation Quat Xyzw"
+    },
+    "schema_version": {
+      "const": "slac.vehicle_frame_rotation/v0.1",
+      "default": "slac.vehicle_frame_rotation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensor_modality": {
+      "enum": [
+        "lidar",
+        "trajectory"
+      ],
+      "title": "Sensor Modality",
+      "type": "string"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "insufficient_motions"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "train_blocks": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Train Blocks",
+      "type": "array"
+    },
+    "train_median_normalized_residual": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Train Median Normalized Residual"
+    },
+    "train_motions": {
+      "minimum": 0,
+      "title": "Train Motions",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "sensor_modality",
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "dofs",
+    "motions",
+    "train_motions",
+    "holdout_motions",
+    "jackknife_fits",
+    "options",
+    "provenance"
+  ],
+  "title": "VehicleFrameRotationArtifact",
+  "type": "object"
+}

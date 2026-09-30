@@ -1,0 +1,150 @@
+schema_version: slac.vehicle_frame_rotation/v0.1
+method: non_holonomic_motion/v0.1
+sensor_modality: lidar
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data, so not calibrated: roll'
+calibrated_dofs:
+- pitch
+- yaw
+rotation_quat_xyzw:
+- 0.001932507109574674
+- 0.005360871757424889
+- -0.0023039182924865704
+- 0.9999811090369525
+lever_m: 0.6521392423095822
+dofs:
+- name: roll
+  unit: deg
+  value: 0.22004270695311662
+  std_analytic: 0.07306713078973331
+  std_jackknife: 0.4241138386330256
+  std_reported: 0.4241138386330256
+  status: unobservable
+  known_bad_control:
+    amount_deg: 1.0
+    holdout_delta_chi2: 46.5858750044672
+    detected: true
+- name: pitch
+  unit: deg
+  value: 0.6148210469638588
+  std_analytic: 0.013639218564383356
+  std_jackknife: 0.041333543552269404
+  std_reported: 0.041333543552269404
+  status: estimated
+  known_bad_control:
+    amount_deg: 1.0
+    holdout_delta_chi2: 986.0184051815195
+    detected: true
+- name: yaw
+  unit: deg
+  value: -0.26283349575486575
+  std_analytic: 0.013897728077612382
+  std_jackknife: 0.05325941349153608
+  std_reported: 0.05325941349153608
+  status: estimated
+  known_bad_control:
+    amount_deg: 1.0
+    holdout_delta_chi2: 816.2910520640808
+    detected: true
+references:
+- name: KITTI calib_imu_to_velo rotation (OXTS frame, taken as the vehicle frame)
+  rotation_quat_xyzw:
+  - -0.007412087927097046
+  - 0.0010150864839657396
+  - 0.0003851882697583308
+  - 0.9999719406973318
+  difference_deg:
+  - 1.0703050726565597
+  - 0.49611308699565165
+  - -0.3129247023722602
+  holdout_delta_chi2: 271.9852262688223
+- name: vehicle frame from the OXTS velocities (same solver) composed with KITTI calib_imu_to_velo
+  rotation_quat_xyzw:
+  - -0.006472528632538272
+  - 0.000333317108067263
+  - -0.001058002569672114
+  - 0.9999784377192185
+  difference_deg:
+  - 0.9637049623357338
+  - 0.5741690254456852
+  - -0.14682036396144924
+  holdout_delta_chi2: 245.0550945394416
+motions: 1998
+train_motions: 1342
+holdout_motions: 656
+train_blocks:
+- 0
+- 100000
+- 100001
+- 100003
+- 100004
+- 200001
+- 200002
+- 300000
+- 300001
+- 300003
+- 400000
+- 400002
+- 400003
+- 400005
+- 400006
+- 400008
+holdout_blocks:
+- 1
+- 100002
+- 200000
+- 200003
+- 300002
+- 400001
+- 400004
+- 400007
+jackknife_fits: 8
+train_median_normalized_residual: 0.35086265750207013
+holdout_median_normalized_residual: 0.39275040466522093
+options:
+  step_frames: 2
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  control_deg: 1.0
+  detection_delta_chi2: 9.0
+  observable_rotation_std_deg: 0.1
+  min_speed_mps: 2.0
+  velocity_sigma_mps: 0.05
+  velocity_sigma_fraction: 0.01
+  rate_sigma_rps: 0.01
+limitations:
+- 'The vehicle frame is defined by the motion: it assumes no side slip and no vertical
+  velocity, and roll needs turns.'
+- KITTI's calib_imu_to_velo gives the OXTS frame; the OXTS unit need not be aligned
+  with the vehicle, so a second reference derives the vehicle frame from the OXTS
+  velocities with the same solver.
+- The translation of T_vehicle_sensor is not estimated.
+provenance:
+  generator: calibrex.evaluation.vehicle_frame
+  generator_version: 0.4.1
+  git_commit: 55f345e
+  command:
+  - calibrex
+  - lidar-vehicle
+  - kitti
+  - 2011_09_26_drive_0005_sync
+  - 2011_09_26_drive_0009_sync
+  - 2011_09_26_drive_0014_sync
+  - 2011_09_26_drive_0015_sync
+  - 2011_09_26_drive_0022_sync
+  - --output
+  - docs/assets/kitti_lidar_vehicle/dev_2011_09_26.yaml
+  dataset_family: kitti_raw
+  sequence_ids:
+  - 2011_09_26_drive_0005_sync
+  - 2011_09_26_drive_0009_sync
+  - 2011_09_26_drive_0014_sync
+  - 2011_09_26_drive_0015_sync
+  - 2011_09_26_drive_0022_sync
+  sensor: velodyne
+  input_sha256: ccd9b4315064b2a1b253c9c6d4dcecba2948294f8e4075bcb3e65923d70738cf
+  dataset_license: CC BY-NC-SA 3.0
+  created_at: '2026-09-30T16:45:23.438408+00:00'

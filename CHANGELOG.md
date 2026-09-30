@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `calibrex lidar-vehicle kitti` estimates `R_vehicle_velodyne` from the
+  vehicle's non-holonomic motion, as `slac.vehicle_frame_rotation/v0.1`
+  (`calibrex.solvers.vehicle_frame_solver`).
+  - It is compared both with KITTI's OXTS frame and with a vehicle frame
+    derived from the OXTS velocities by the same solver.
+  - On five development drives, pitch and yaw are estimated (0.04 and 0.05
+    deg std) and roll is not (too few turns).
+  - Yaw is 0.15 deg from the OXTS-motion vehicle frame. Pitch is 0.5 deg from
+    both references, which points at the LiDAR odometry's vertical drift.
+  - No claim (`docs/benchmarks/kitti_lidar_vehicle.md`).
 - `calibrex lidar-lidar ros2` calibrates `T_reference_target` for two LiDARs
   in one ROS 2 bag, as `slac.lidar_lidar_extrinsic/v0.1`.
   - Target scans are registered to local maps from the reference LiDAR's
