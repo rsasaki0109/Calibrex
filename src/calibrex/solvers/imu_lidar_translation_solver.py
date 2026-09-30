@@ -12,10 +12,15 @@ where ``M`` is the IMU orientation at the segment start, ``P_k`` and ``B_k``
 are the double integrals of the gyro-rotated specific force and of the
 rotation itself (for the accelerometer bias ``b_a``), ``v_0`` is the segment
 start velocity, and ``g`` is gravity in the odometry frame.  The system is
-linear.  ``t`` is shared by every window; gravity and the accelerometer bias
-are nuisances of one odometry window, and ``v_0`` of one segment.  The
+linear.  ``t`` is shared by every window; the accelerometer bias is a
+nuisance of one odometry window, and ``v_0`` and ``g`` of one segment.  The
 nuisances are projected out window by window, so only the 3x3 normal
 equations of ``t`` are accumulated.
+
+Gravity is fitted per segment by default because the LiDAR odometry's tilt
+drifts within a window: with one gravity vector per 10-second window, the
+lever arm moved by more than 10 mm with the segment duration on every
+MID360 development recording, and per-segment gravity removed most of that.
 
 ``M`` is the chordal mean of the IMU orientation at the segment start implied
 by every scan of the segment (LiDAR orientation, extrinsic rotation, and gyro
@@ -45,7 +50,8 @@ class TranslationOptions:
     """Segmenting, robust loss, and observability policy."""
 
     segment_duration_s: float = 2.0
-    min_segment_scans: int = 4
+    min_segment_scans: int = 10
+    gravity_per_segment: bool = True
     huber_k: float = 1.5
     irls_iterations: int = 5
     observable_translation_std_m: float = 0.01
@@ -112,7 +118,8 @@ class WindowSystem:
 
     window_index: int
     design: FloatArray  # (rows, 3) columns of t
-    nuisance: FloatArray  # (rows, 6 + 3 * segments): gravity, accel bias, segment velocities
+    nuisance: FloatArray  # (rows, columns): window gravity (unused when per segment), accel
+    # bias, then per segment its velocity and (when per segment) its gravity
     target: FloatArray  # (rows,)
     segments: int
 
@@ -201,7 +208,11 @@ def gravity_norm(system: WindowSystem, translation: FloatArray) -> float:
 
     target = system.target - system.design @ translation
     nuisance, *_ = np.linalg.lstsq(system.nuisance, target, rcond=None)
-    return float(np.linalg.norm(nuisance[:3]))
+    if system.nuisance[:, :3].any():
+        return float(np.linalg.norm(nuisance[:3]))
+    # Per-segment gravity: the median norm over the segments.
+    gravities = nuisance[6:].reshape(-1, 6)[:, 3:]
+    return float(np.median(np.linalg.norm(gravities, axis=1)))
 
 
 def _window_system(
@@ -228,7 +239,8 @@ def _window_system(
         np.clip(imu_times, imu.times_s[0], imu.times_s[-1])
     )
     poses = window.poses
-    columns = 6 + 3 * len(labels)
+    per_segment = 6 if opts.gravity_per_segment else 3
+    columns = 6 + per_segment * len(labels)
     designs, nuisances, targets = [], [], []
     for slot, label in enumerate(labels):
         members = np.flatnonzero(segment == label)
@@ -252,9 +264,11 @@ def _window_system(
         count = len(later)
         design = poses[later, :3, :3] - poses[first, :3, :3]
         nuisance = np.zeros((count, 3, columns))
-        nuisance[:, :, 0:3] = -0.5 * elapsed**2 * np.eye(3)
+        base = 6 + per_segment * slot
+        gravity = slice(base + 3, base + 6) if opts.gravity_per_segment else slice(0, 3)
+        nuisance[:, :, gravity] = -0.5 * elapsed**2 * np.eye(3)
         nuisance[:, :, 3:6] = start @ bias
-        nuisance[:, :, 6 + 3 * slot : 9 + 3 * slot] = -elapsed * np.eye(3)
+        nuisance[:, :, base : base + 3] = -elapsed * np.eye(3)
         target = force @ start.T - (poses[later, :3, 3] - poses[first, :3, 3])
         designs.append(design.reshape(-1, 3))
         nuisances.append(nuisance.reshape(-1, columns))

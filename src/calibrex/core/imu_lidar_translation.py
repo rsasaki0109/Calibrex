@@ -118,7 +118,13 @@ class ImuLidarTranslationArtifact(StrictModel):
     schema_version: Literal["slac.imu_lidar_translation/v0.1"] = (
         IMU_LIDAR_TRANSLATION_SCHEMA_VERSION
     )
-    method: Literal["accelerometer_lever_arm/v0.1"] = "accelerometer_lever_arm/v0.1"
+    method: Literal["accelerometer_lever_arm/v0.1", "accelerometer_lever_arm/v0.2"] = Field(
+        default="accelerometer_lever_arm/v0.2",
+        description=(
+            "v0.1 fits gravity once per odometry window; v0.2 fits it per segment, "
+            "which absorbs the odometry's tilt drift within a window."
+        ),
+    )
     solver_status: Literal["converged", "insufficient_segments"]
     policy_status: ImuLidarPolicyStatus
     policy_reasons: list[str] = Field(min_length=1)
