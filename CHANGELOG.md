@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- `accelerometer_lever_arm/v0.2`, now the default, fits gravity per 2 s
+  segment instead of per 10 s window, because the odometry's tilt drifts
+  within a window.
+  - Segments need at least 10 scans, and the segment sensitivity uses 3 s and
+    4 s refits.
+  - It was revised on spent recordings only, after six hypotheses were
+    tested; the negative results are documented.
+- A second pre-registered `imu-lidar` extrinsic audit
+  (`mid360-imu-lidar-extrinsic-vs-li-init-v2`) is **supported** on the last
+  unseen RTK-SLAM recording, `construction_seq2`.
+  - Calibrex beats LI-Init by 4.13 mm mean span RMS (CI low 2.79 mm), and
+    LI-Init's lever arm by 4.11 mm (CI low 2.87 mm).
+  - The lever arm is (27.0, 17.9, -33.0) ± (5.6, 4.6, 7.9) mm; x is 16 mm
+    from the design value.
+  - `tools/build_mid360_imu_lidar_extrinsic_audit.py --round v2` rebuilds it.
+    The scoring tool pins the first round's nuisances.
 - A pre-registered `imu-lidar` extrinsic claim (rotation, lever arm, and
   clock offset against LI-Init) is **refuted** on two unseen RTK-SLAM
   recordings (`stadtgarten_seq1`, `construction_seq1`).

@@ -154,6 +154,11 @@ What this claim does **not** say:
 
 ## Translation (IMU lever arm)
 
+> This section describes the first version of the method
+> (`accelerometer_lever_arm/v0.1`: one gravity vector per window, 1 s and 4 s
+> sensitivity refits). The current version, v0.2, fits gravity per segment;
+> see [Revising the lever arm](#revising-the-lever-arm-v02).
+
 `calibrex imu-lidar livox-translation` estimates the translation of
 `T_lidar_imu` (the IMU origin in the LiDAR frame) from the accelerometer. It
 builds on a rotation artifact, whose rotation, clock offset, and gyro bias it
@@ -300,14 +305,77 @@ Its paired improvement, with 95 % bootstrap CI, is:
   (-2, -25, -103) mm on seq2.
 
 **What would change the verdict** is a method change evaluated on new data,
-not a new threshold. The likely candidates are:
+not a new threshold. That is what the next two sections do.
 
-- modelling the odometry errors that couple with motion, which drive the
-  segment sensitivity;
-- estimating the accelerometer scale and misalignment.
+## Revising the lever arm (v0.2)
 
-A new pre-registration and unseen recordings would be required, because
-seq1 and construction are now spent.
+The method was revised on the three spent recordings only: seq2, seq1, and
+construction_seq1. Each hypothesis was tested by refitting with 1, 2, and
+4 s segments and checking whether x stopped moving:
+
+| Hypothesis | Result |
+| --- | --- |
+| accelerometer scale per axis | no: scale estimates were unphysical (3-5 % at 1 s), and x still moved |
+| accelerometer-only delay (±20 ms) | no |
+| LiDAR positions lagging orientations (fitted lag -8 to -11 ms) | no; the lag is consistent but does not stabilise x |
+| position error proportional to acceleration (constant-velocity deskew) | no |
+| gyro scale vs LiDAR rotation | LiDAR rates were 2-6 % below the gyro on the design-deskewed odometry, but 1.000 on the Calibrex-deskewed one; scaling the gyro made the fit worse |
+| **odometry tilt drift within a 10 s window** | **yes: with gravity fitted per 2 s segment, the 2 s and 4 s refits of x agree within 0.5-3 mm on all three recordings** |
+
+Version `accelerometer_lever_arm/v0.2` therefore fits gravity per segment
+and needs at least 10 scans per segment. Its segment sensitivity uses 3 s and
+4 s refits. 1 s segments are excluded: with gravity and velocity per segment
+they are poorly constrained, and on every development recording they moved x
+by +7 to +16 mm for a reason that is still unidentified. With v0.2, all three
+development recordings pass, with x 28-36 mm and reported std 4-7.5 mm.
+
+## Second extrinsic audit: supported
+
+The revised method was pre-registered in
+[`mid360_imu_lidar_translation_v2_preregistration.yaml`](mid360_imu_lidar_translation_v2_preregistration.yaml)
+(commit `5f7e694`), before anything ran on `construction_seq2`, the last
+unused RTK-SLAM recording. The scoring procedure, metric, thresholds, and
+requirements are copied unchanged from the first round, and the scoring
+nuisances are pinned in `tools/score_mid360_imu_lidar_extrinsics.py`.
+
+**Verdict: `supported`, 4/4 gates**
+([protocol](../assets/mid360_imu_lidar_extrinsic_v2_sota_protocol.yaml),
+[result](../assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml)).
+
+| construction_seq2 (10 min, 20 held-out spans) | Mean span RMS | Paired improvement of Calibrex (95 % CI low) | Spans where Calibrex is better |
+| --- | ---: | ---: | ---: |
+| Calibrex | 4.34 mm | — | — |
+| MID360 design value (sanity row) | 4.38 mm | — | 12/20 |
+| LI-Init's lever arm with Calibrex's rotation | 8.45 mm | 4.11 mm (2.87) | 18/20 |
+| LI-Init | 8.47 mm | 4.13 mm (2.79) | 17/20 |
+
+| Calibrex on construction_seq2 | x | y | z |
+| --- | ---: | ---: | ---: |
+| lever arm ± reported std | 27.0 ± 5.6 mm | 17.9 ± 4.6 mm | -33.0 ± 7.9 mm |
+| difference to design | +16.0 mm | -5.4 mm | +11.1 mm |
+| 20 mm held-out control | Δχ² 317 | Δχ² 396 | Δχ² 271 |
+
+- The rotation passes at (-0.10, +0.11, -0.23) deg.
+- LI-Init's lever arm is (-27, -172, +70) mm.
+
+[Rotation](../assets/mid360_imu_lidar_rotation_rtk_slam_construction_seq2.yaml),
+[lever arm](../assets/mid360_imu_lidar_translation_rtk_slam_construction_seq2.yaml),
+[LI-Init](../assets/li_init/rtk_slam_construction_seq2_external_run.yaml).
+
+**What this claim does not say.**
+
+- **It is one recording.** The first round's two recordings failed, and the
+  method was changed after seeing them. Only `construction_seq2` is untouched
+  evidence for v0.2.
+- **x disagrees with the design value.** x is 16 mm from the design value
+  here and 17-25 mm on the development recordings, 3-4.5 reported std, on
+  every recording. Either the design value does not describe this unit's
+  IMU position, or the method still has a bias.
+- **The metric cannot tell the lever arm apart from the design value.** It
+  separates Calibrex from LI-Init, whose lever arm is 8-23 cm from the design
+  value.
+- **The per-segment gravity absorbs more than gravity.** Its median norm
+  ranges 9.68-10.05 m/s² across recordings.
 
 ## Method
 
@@ -344,10 +412,11 @@ calibrex imu-lidar livox BAG_DIR --profile rtk-slam \
 ## Limitations
 
 - The design reference is not a measurement.
-- The lever arm passes only on the development recording. On two unseen
-  recordings, x is unobservable because of its segment-duration sensitivity,
-  and the pre-registered extrinsic audit is refuted. Accelerometer scale and axis misalignment
-  are not modelled.
+- The v0.1 lever arm failed the first pre-registered audit. The v0.2 lever
+  arm passes on one unseen recording, but x is 16-25 mm from the design value
+  on every recording.
+- 1 s segments still bias x by +7 to +16 mm for an unidentified reason.
+- Accelerometer scale and axis misalignment are not modelled.
 - Gyro deskewing makes the LiDAR odometry depend on the IMU. The feedback
   ratio quantifies this dependence but does not remove it.
 - The external baseline is a single tool (LI-Init). The

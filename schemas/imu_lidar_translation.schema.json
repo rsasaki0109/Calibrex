@@ -408,8 +408,12 @@
       "type": "array"
     },
     "method": {
-      "const": "accelerometer_lever_arm/v0.1",
-      "default": "accelerometer_lever_arm/v0.1",
+      "default": "accelerometer_lever_arm/v0.2",
+      "description": "v0.1 fits gravity once per odometry window; v0.2 fits it per segment, which absorbs the odometry's tilt drift within a window.",
+      "enum": [
+        "accelerometer_lever_arm/v0.1",
+        "accelerometer_lever_arm/v0.2"
+      ],
       "title": "Method",
       "type": "string"
     },
