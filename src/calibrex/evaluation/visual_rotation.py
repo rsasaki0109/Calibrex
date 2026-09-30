@@ -99,9 +99,15 @@ class CameraModel:
 class VisualRotationOptions:
     """Tracking and robust-estimation settings."""
 
-    max_features: int = 400
-    feature_quality: float = 0.01
-    min_feature_distance_px: float = 12.0
+    # Contrast-limited histogram equalization before detection and tracking.
+    # On the low-texture Hilti exp07 corridor it cut failed frame pairs from
+    # 577 to 16 of 1321 (with the lower feature quality below).
+    equalize_contrast: bool = True
+    clahe_clip_limit: float = 3.0
+    clahe_tiles: int = 8
+    max_features: int = 600
+    feature_quality: float = 0.001
+    min_feature_distance_px: float = 10.0
     lk_window_px: int = 21
     lk_levels: int = 3
     redetect_below: int = 150
@@ -293,12 +299,21 @@ def track_camera_rotations(
     orientation = np.eye(3)
     segment = 0
 
+    clahe = (
+        cv2.createCLAHE(
+            clipLimit=opts.clahe_clip_limit, tileGridSize=(opts.clahe_tiles, opts.clahe_tiles)
+        )
+        if opts.equalize_contrast
+        else None
+    )
+
     def detect(image: NDArray[np.uint8]) -> Any:
         return cv2.goodFeaturesToTrack(
             image, opts.max_features, opts.feature_quality, opts.min_feature_distance_px
         )
 
-    for time_s, image in frames:
+    for time_s, raw in frames:
+        image = raw if clahe is None else clahe.apply(raw)
         if previous_image is None:
             previous_image, features = image, detect(image)
             times.append(time_s)
