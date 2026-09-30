@@ -15,17 +15,22 @@ The requirements, thresholds, and coverage are the ones fixed in
 ``docs/benchmarks/mid360_imu_lidar_translation_preregistration.yaml``; its
 SHA-256 is pinned in the protocol's provenance.
 
-Usage::
+Usage (the first round, v1)::
 
     python tools/build_mid360_imu_lidar_extrinsic_audit.py \\
         docs/assets/mid360_imu_lidar_extrinsic_scores docs/assets
+
+and the second round (v2, one unseen recording)::
+
+    python tools/build_mid360_imu_lidar_extrinsic_audit.py \\
+        docs/assets/mid360_imu_lidar_extrinsic_v2_scores docs/assets --round v2
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -50,15 +55,53 @@ from calibrex.core.sota_audit import (
 )
 from calibrex.evaluation.sota_audit import audit_sota_claim
 
-COMMAND = [
-    "python",
-    "tools/build_mid360_imu_lidar_extrinsic_audit.py",
-    "docs/assets/mid360_imu_lidar_extrinsic_scores",
-    "docs/assets",
-]
-PREREGISTRATION = Path("docs/benchmarks/mid360_imu_lidar_translation_preregistration.yaml")
+ROUNDS: dict[str, dict[str, Any]] = {
+    "v1": {
+        "command": [
+            "python",
+            "tools/build_mid360_imu_lidar_extrinsic_audit.py",
+            "docs/assets/mid360_imu_lidar_extrinsic_scores",
+            "docs/assets",
+        ],
+        "preregistration": Path(
+            "docs/benchmarks/mid360_imu_lidar_translation_preregistration.yaml"
+        ),
+        "recordings": ("stadtgarten_seq1", "construction_seq1"),
+        "prefix": "mid360_imu_lidar_extrinsic",
+        "benchmark_prefix": "mid360_imu_lidar",
+        "protocol_id": "mid360-imu-lidar-extrinsic-vs-li-init-v1",
+        "claim": (
+            "On two hand-held MID360 recordings of the RTK-SLAM dataset not used to develop "
+            "the method, Calibrex's full IMU-LiDAR extrinsic predicts held-out "
+            "accelerometer-integrated motion at least as well as LI-Init's, and so does its "
+            "lever arm alone."
+        ),
+    },
+    "v2": {
+        "command": [
+            "python",
+            "tools/build_mid360_imu_lidar_extrinsic_audit.py",
+            "docs/assets/mid360_imu_lidar_extrinsic_v2_scores",
+            "docs/assets",
+            "--round",
+            "v2",
+        ],
+        "preregistration": Path(
+            "docs/benchmarks/mid360_imu_lidar_translation_v2_preregistration.yaml"
+        ),
+        "recordings": ("construction_seq2",),
+        "prefix": "mid360_imu_lidar_extrinsic_v2",
+        "benchmark_prefix": "mid360_imu_lidar_v2",
+        "protocol_id": "mid360-imu-lidar-extrinsic-vs-li-init-v2",
+        "claim": (
+            "On a hand-held MID360 recording of the RTK-SLAM dataset not used to develop "
+            "the method (construction_seq2), Calibrex's full IMU-LiDAR extrinsic with the "
+            "per-segment-gravity lever arm predicts held-out accelerometer-integrated "
+            "motion at least as well as LI-Init's, and so does its lever arm alone."
+        ),
+    },
+}
 METRIC = "holdout_span_position_rms_m"
-RECORDINGS = ("stadtgarten_seq1", "construction_seq1")
 DATASET_LICENSE = "see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset"
 RIG_ID = "rtk-slam-mid360"
 METHODS = {
@@ -99,6 +142,7 @@ def _benchmark(
     scores: dict[str, dict[str, Any]],
     failures: dict[str, str],
     preregistration_sha256: str,
+    command: list[str],
 ) -> BenchmarkDefinition:
     method_ids, reference = BENCHMARKS[kind]
     present = [method for method in method_ids if method in scores]
@@ -190,19 +234,25 @@ def _benchmark(
         provenance=BenchmarkProvenance(
             generator="tools/build_mid360_imu_lidar_extrinsic_audit.py",
             generator_version=__version__,
-            command=" ".join(COMMAND),
+            command=" ".join(command),
             data_verified=True,
         ),
     )
 
 
 def main() -> None:
-    score_dir, output_dir = Path(sys.argv[1]), Path(sys.argv[2])
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("score_dir", type=Path)
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--round", choices=sorted(ROUNDS), default="v1")
+    args = parser.parse_args()
+    config = ROUNDS[args.round]
+    score_dir, output_dir = args.score_dir, args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
-    preregistration_sha256 = sha256_path(PREREGISTRATION)
+    preregistration_sha256 = sha256_path(config["preregistration"])
     assert preregistration_sha256 is not None
     evidence: dict[tuple[str, str], tuple[str, str]] = {}
-    for recording in RECORDINGS:
+    for recording in config["recordings"]:
         folder = score_dir / recording
         scores = {
             path.stem.removeprefix("score_"): json.loads(path.read_text(encoding="utf-8"))
@@ -218,16 +268,18 @@ def main() -> None:
             scores.pop(method, None)
         for kind in BENCHMARKS:
             benchmark = aggregate_benchmark_definition(
-                _benchmark(recording, kind, scores, failures, preregistration_sha256)
+                _benchmark(
+                    recording, kind, scores, failures, preregistration_sha256, config["command"]
+                )
             )
-            path = output_dir / f"mid360_imu_lidar_{kind}_benchmark_{recording}.yaml"
+            path = output_dir / f"{config['benchmark_prefix']}_{kind}_benchmark_{recording}.yaml"
             benchmark.save(path)
             digest = sha256_path(path)
             assert digest is not None
             evidence[(recording, kind)] = (path.name, digest)
 
     requirements = []
-    for recording in RECORDINGS:
+    for recording in config["recordings"]:
         extrinsic_path, extrinsic_digest = evidence[(recording, "extrinsic")]
         lever_path, lever_digest = evidence[(recording, "lever_arm")]
         common = {"dataset_family": "rtk_slam", "phase": "audit"}
@@ -288,32 +340,27 @@ def main() -> None:
             ),
         ]
     protocol = SotaAuditProtocol(
-        protocol_id="mid360-imu-lidar-extrinsic-vs-li-init-v1",
+        protocol_id=config["protocol_id"],
         scope=SotaClaimScope(
             modalities=["imu", "lidar"],
             quantities=["rotation", "translation", "time_offset"],
             category="targetless_imu_lidar",
         ),
-        claim_text=(
-            "On two hand-held MID360 recordings of the RTK-SLAM dataset not used to develop "
-            "the method, Calibrex's full IMU-LiDAR extrinsic predicts held-out "
-            "accelerometer-integrated motion at least as well as LI-Init's, and so does its "
-            "lever arm alone."
-        ),
+        claim_text=config["claim"],
         minimum_dataset_families=1,
         minimum_independent_rigs=1,
         requirements=requirements,
         provenance=SotaAuditProvenance(
             generator="tools/build_mid360_imu_lidar_extrinsic_audit.py",
             generator_version=__version__,
-            command=COMMAND,
+            command=config["command"],
             source_sha256={"preregistration": preregistration_sha256},
         ),
     )
-    protocol_path = output_dir / "mid360_imu_lidar_extrinsic_sota_protocol.yaml"
+    protocol_path = output_dir / f"{config['prefix']}_sota_protocol.yaml"
     protocol.save(protocol_path)
-    result = audit_sota_claim(protocol_path, audit_id="mid360-imu-lidar-extrinsic-vs-li-init-v1")
-    result.save(output_dir / "mid360_imu_lidar_extrinsic_sota_audit.yaml")
+    result = audit_sota_claim(protocol_path, audit_id=config["protocol_id"])
+    result.save(output_dir / f"{config['prefix']}_sota_audit.yaml")
     print(result.verdict)
     for item in result.requirements:
         print(f"  {item.requirement_id}: {item.status} ({item.reason})")

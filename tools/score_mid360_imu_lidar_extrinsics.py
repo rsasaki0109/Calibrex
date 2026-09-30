@@ -30,7 +30,14 @@ from scipy.spatial.transform import Rotation
 from calibrex.data.livox_ros2 import LIVOX_PROFILES, load_livox_imu
 from calibrex.evaluation.imu_lidar_rotation import score_imu_lidar_candidate
 from calibrex.evaluation.imu_lidar_translation import score_imu_lidar_translation_candidate
-from calibrex.solvers.imu_lidar_translation_solver import ImuPreintegrator
+from calibrex.solvers.imu_lidar_translation_solver import ImuPreintegrator, TranslationOptions
+
+# The pre-registered scoring nuisances: gravity and accelerometer bias per span piece,
+# one velocity per 2-second segment.  Fixed here so that changing the lever-arm
+# solver's defaults never changes how candidates are scored.
+SCORING_OPTIONS = TranslationOptions(
+    segment_duration_s=2.0, min_segment_scans=4, gravity_per_segment=False
+)
 
 
 def main() -> None:
@@ -51,7 +58,7 @@ def main() -> None:
         bias = score_imu_lidar_candidate(gyro, windows, rotation, time_offset).refit_gyro_bias_rps
         preintegrator = ImuPreintegrator(imu.times_s, imu.gyro_rps, imu.accel_mps2, bias)
         score = score_imu_lidar_translation_candidate(
-            preintegrator, windows, rotation, time_offset, translation, spans
+            preintegrator, windows, rotation, time_offset, translation, spans, SCORING_OPTIONS
         )
         values = list(score.holdout_span_rms_m.values())
         result = {

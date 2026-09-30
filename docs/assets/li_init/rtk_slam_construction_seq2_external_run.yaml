@@ -1,0 +1,81 @@
+schema_version: slac.external_calibration_run/v0.1
+run_id: li_init:li_init
+adapter_name: li_init_result
+adapter_version: li_init_result/v0.1
+tool:
+  name: li_init
+  source_repository: https://github.com/hku-mars/LiDAR_IMU_Init
+  source_commit: 66b157afa30bf6637d7f9defa6ddba46f417000b
+  license_spdx: GPL-2.0-only
+  license_boundary: container
+execution:
+  mode: container
+  command:
+  - run_li_init.sh
+  - construction_seq2.bag
+  - mid360_rtk_slam.yaml
+  container_digest: sha256:4e8bffa61f42f952aff915de0cce1e117f5c9136cf6c7b888fb748fba631288c
+  attempted: true
+  timed_out: false
+  stages: []
+  input_mounts: []
+artifacts:
+- role: output
+  path: docs/assets/li_init/rtk_slam_construction_seq2_Initialization_result.txt
+  sha256: 4f79f87ed695146377c35740f7313232ede088067eb148d895277cd5ffe80f0b
+  size_bytes: 1240
+  media_type: text/plain
+digests: {}
+frame_convention: T_imu_lidar maps LiDAR points into the IMU frame (LI-Init offset_R_L_I,
+  offset_T_L_I); T_lidar_imu is its inverse.
+time_convention: t_imu = t_lidar + time_offset (LI-Init 'Time Lag IMU to LiDAR')
+train_data_isolation:
+  declared: false
+status: success
+warnings:
+- LI-Init import has no digest-bound input bag
+- external training-data isolation is not declared
+parsed_outputs:
+  transforms:
+    T_imu_lidar:
+      convention: T_parent_child
+      parent: imu
+      child: lidar
+      translation_m:
+      - 0.023
+      - 0.171935
+      - -0.07174
+      rotation_quat_xyzw:
+      - -0.0057039518537138935
+      - 0.003478025429613511
+      - 0.010665347754745522
+      - 0.9999208061789853
+    T_lidar_imu:
+      convention: T_parent_child
+      parent: lidar
+      child: imu
+      translation_m:
+      - -0.02716238384453989
+      - -0.17220630106455248
+      - 0.06960235240893202
+      rotation_quat_xyzw:
+      - 0.00570395185371386
+      - -0.0034780254296135826
+      - -0.010665347754745626
+      - 0.9999208061789853
+  time_offsets_seconds:
+    imu_minus_lidar_s: -0.010426
+  intrinsics: {}
+  external_metrics:
+    stage: Refinement result
+    gyro_bias_x_rps: 0.021952
+    gyro_bias_y_rps: -0.003847
+    gyro_bias_z_rps: 0.000747
+  external_metrics_comparable: false
+provenance:
+  producer: calibrex
+  calibrex_version: 0.4.1
+  generated_at: '2026-09-30T08:46:17.665586+00:00'
+  git_commit: 5f7e694
+  source_artifact: docs/assets/li_init/rtk_slam_construction_seq2_Initialization_result.txt
+  source_artifact_sha256: 4f79f87ed695146377c35740f7313232ede088067eb148d895277cd5ffe80f0b

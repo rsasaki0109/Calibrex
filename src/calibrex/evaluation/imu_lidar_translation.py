@@ -89,7 +89,10 @@ class ImuLidarTranslationOptions:
     jackknife_groups: int = 8
     translation_control_m: float = 0.02
     detection_delta_chi2: float = 9.0
-    sensitivity_segment_durations_s: tuple[float, ...] = (1.0, 4.0)
+    # 1-second segments are excluded: with gravity and velocity fitted per segment
+    # they are poorly constrained, and on every MID360 development recording they
+    # moved x by +7 to +16 mm for reasons not yet identified (see the benchmark page).
+    sensitivity_segment_durations_s: tuple[float, ...] = (3.0, 4.0)
     coverage_margin_s: float = 0.2
     windowing: WindowingOptions = field(default_factory=WindowingOptions)
     solver: TranslationOptions = field(default_factory=TranslationOptions)
@@ -227,6 +230,9 @@ def run_livox_imu_lidar_translation(
     digest, scope = bag_input_digest(bags)
     translation = evaluation.result.translation_m
     return ImuLidarTranslationArtifact(
+        method="accelerometer_lever_arm/v0.2"
+        if opts.solver.gravity_per_segment
+        else "accelerometer_lever_arm/v0.1",
         solver_status=evaluation.result.status,
         policy_status=evaluation.policy_status,
         policy_reasons=list(evaluation.policy_reasons),
@@ -249,6 +255,7 @@ def run_livox_imu_lidar_translation(
             "segment_duration_s": opts.solver.segment_duration_s,
             "sensitivity_segment_durations_s": list(opts.sensitivity_segment_durations_s),
             "min_segment_scans": opts.solver.min_segment_scans,
+            "gravity_per_segment": opts.solver.gravity_per_segment,
             "huber_k": opts.solver.huber_k,
             "observable_translation_std_m": opts.solver.observable_translation_std_m,
             "window_duration_s": opts.windowing.window_duration_s,

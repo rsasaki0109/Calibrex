@@ -1,0 +1,69 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: mid360-imu-lidar-extrinsic-vs-li-init-v2
+protocol_id: mid360-imu-lidar-extrinsic-vs-li-init-v2
+scope:
+  modalities:
+  - imu
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  - time_offset
+  category: targetless_imu_lidar
+claim_text: On a hand-held MID360 recording of the RTK-SLAM dataset not used to develop
+  the method (construction_seq2), Calibrex's full IMU-LiDAR extrinsic with the per-segment-gravity
+  lever arm predicts held-out accelerometer-integrated motion at least as well as
+  LI-Init's, and so does its lever arm alone.
+verdict: supported
+achieved_dataset_families:
+- rtk_slam
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-estimate-construction_seq2
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_v2_extrinsic_benchmark_construction_seq2.yaml
+  evidence_sha256: 12084dff08070515ef350302d2b0f29c63d0aaec3d66294392ec910f6c1eca66
+- requirement_id: calibrex-extrinsic-not-worse-than-li-init-construction_seq2
+  required: true
+  status: achieved
+  observed_value: 0.0027927326407683954
+  threshold: 0.0
+  reason: observed 0.00279273264077 meets greater_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_v2_extrinsic_benchmark_construction_seq2.yaml
+  evidence_sha256: 12084dff08070515ef350302d2b0f29c63d0aaec3d66294392ec910f6c1eca66
+- requirement_id: calibrex-lever-arm-not-worse-than-li-init-construction_seq2
+  required: true
+  status: achieved
+  observed_value: 0.002868133627307369
+  threshold: 0.0
+  reason: observed 0.00286813362731 meets greater_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_v2_lever_arm_benchmark_construction_seq2.yaml
+  evidence_sha256: 4645d99fba8c599d5a01c9a559b8f89017d14f23f7157ca8e74f06d374c51db1
+- requirement_id: calibrex-absolute-fit-construction_seq2
+  required: true
+  status: achieved
+  observed_value: 0.004335139498667868
+  threshold: 0.01
+  reason: observed 0.00433513949867 meets less_equal 0.01
+  evidence_path: docs/assets/mid360_imu_lidar_v2_extrinsic_benchmark_construction_seq2.yaml
+  evidence_sha256: 12084dff08070515ef350302d2b0f29c63d0aaec3d66294392ec910f6c1eca66
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.4.1
+  git_commit: 5f7e694
+  command: []
+  source_sha256:
+    protocol: d6c722a188c33f8cb3db97c16102432bdb98bbcc8d6cd1d2c8eccfe16252c8ca
+    calibrex-estimate-construction_seq2: 12084dff08070515ef350302d2b0f29c63d0aaec3d66294392ec910f6c1eca66
+    calibrex-extrinsic-not-worse-than-li-init-construction_seq2: 12084dff08070515ef350302d2b0f29c63d0aaec3d66294392ec910f6c1eca66
+    calibrex-lever-arm-not-worse-than-li-init-construction_seq2: 4645d99fba8c599d5a01c9a559b8f89017d14f23f7157ca8e74f06d374c51db1
+    calibrex-absolute-fit-construction_seq2: 12084dff08070515ef350302d2b0f29c63d0aaec3d66294392ec910f6c1eca66
+  created_at: '2026-09-30T08:47:05.153159+00:00'
