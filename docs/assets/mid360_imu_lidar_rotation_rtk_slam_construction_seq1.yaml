@@ -1,0 +1,222 @@
+schema_version: slac.imu_lidar_rotation/v0.1
+method: angular_rate_alignment/v0.1
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- every rotation axis is estimated and held-out windows detect every control
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+- time_offset
+- gyro_bias_x
+- gyro_bias_y
+- gyro_bias_z
+rotation_quat_xyzw:
+- -0.00089276184192304
+- 0.0011423770330920284
+- -0.0016218063879456437
+- 0.9999976338447245
+time_offset_s: 0.010021723731840827
+gyro_bias_rps:
+- 0.027681118354510852
+- -0.0023280608297496868
+- 0.00604590691067269
+dofs:
+- name: roll
+  unit: deg
+  value: -0.10251535625759288
+  std_analytic: 0.02132433085737672
+  std_jackknife: 0.021188671786051005
+  std_reported: 0.02132433085737672
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: -0.10251535625759288
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 1334.1420516828566
+    detected: true
+- name: pitch
+  unit: deg
+  value: 0.13074065331765256
+  std_analytic: 0.019709485594389915
+  std_jackknife: 0.031416696206149355
+  std_reported: 0.031416696206149355
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: 0.13074065331765256
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 1351.89918394272
+    detected: true
+- name: yaw
+  unit: deg
+  value: -0.18596256189630225
+  std_analytic: 0.026228296241457595
+  std_jackknife: 0.025789981641413606
+  std_reported: 0.026228296241457595
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: -0.18596256189630225
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 847.5678460219879
+    detected: true
+- name: time_offset
+  unit: s
+  value: 0.010021723731840827
+  std_analytic: 2.4951700237003075e-05
+  std_jackknife: 4.149269617993658e-05
+  std_reported: 4.149269617993658e-05
+  status: estimated
+  known_bad_control:
+    amount: 0.01
+    unit: s
+    holdout_delta_chi2: 42132.85504710545
+    detected: true
+- name: gyro_bias_x
+  unit: rad/s
+  value: 0.027681118354510852
+  std_analytic: 8.580505477408025e-05
+  std_jackknife: 0.0014277942793311299
+  std_reported: 0.0014277942793311299
+  status: estimated
+- name: gyro_bias_y
+  unit: rad/s
+  value: -0.0023280608297496868
+  std_analytic: 8.555888732099033e-05
+  std_jackknife: 8.33391432049756e-05
+  std_reported: 8.555888732099033e-05
+  status: estimated
+- name: gyro_bias_z
+  unit: rad/s
+  value: 0.00604590691067269
+  std_analytic: 8.507353784693584e-05
+  std_jackknife: 0.0010198890185428714
+  std_reported: 0.0010198890185428714
+  status: estimated
+options:
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  time_control_s: 0.01
+  detection_delta_chi2: 9.0
+  window_duration_s: 10.0
+  local_map_scans: 5
+  deskew_iterations: 1
+  gyro_deskew_passes: 5
+  deskew_convergence_sigma: 0.25
+  feedback_check_deg: 2.0
+  model: preintegrated
+  pair_steps:
+  - 1
+  rate_sigma_floor_rps: 0.01
+  rate_sigma_fraction: 0.02
+  observable_rotation_std_deg: 0.1
+  observable_time_offset_std_s: 0.002
+windows:
+  scans_read: 7286
+  odometry_segments: 1
+  unreliable_registrations: 0
+  windows: 74
+  rate_intervals: 7199
+  imu_samples: 148203
+train_windows: 49
+holdout_windows: 25
+jackknife_fits: 8
+train_median_rate_residual_rps: 0.009667027185168417
+holdout_median_rate_residual_rps: 0.010460059557139198
+reference: 'Livox MID360 manual: IMU axes aligned with the LiDAR frame'
+deskew_passes:
+- deskew: lidar_constant_velocity
+  policy_status: inconclusive
+  time_offset_s: 0.010893069687015115
+  holdout_median_rate_residual_rps: 0.09566611612089937
+  rotation_rpy_deg:
+  - -0.6084105273613507
+  - 0.47465468988606463
+  - -1.949944362334061
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.010534323356512222
+  holdout_median_rate_residual_rps: 0.011591968240639277
+  rotation_rpy_deg:
+  - -0.3144614219927866
+  - 0.15359157364225123
+  - -0.634002828941204
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.010303426094380938
+  holdout_median_rate_residual_rps: 0.010623782927186468
+  rotation_rpy_deg:
+  - -0.16678499581841674
+  - 0.12880731252795144
+  - -0.3106808583985866
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.010154280963177132
+  holdout_median_rate_residual_rps: 0.010423813062333625
+  rotation_rpy_deg:
+  - -0.11997231948017324
+  - 0.12869323014093123
+  - -0.226011876087778
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.01008104035222627
+  holdout_median_rate_residual_rps: 0.010427390218132309
+  rotation_rpy_deg:
+  - -0.10138393668746755
+  - 0.12528375555148105
+  - -0.19914392974803707
+- deskew: gyro
+  policy_status: pass
+  time_offset_s: 0.010021723731840827
+  holdout_median_rate_residual_rps: 0.010460059557139198
+  rotation_rpy_deg:
+  - -0.10251535625759288
+  - 0.13074065331765256
+  - -0.18596256189630225
+- deskew: gyro_feedback_check
+  policy_status: pass
+  time_offset_s: 0.010064467577423925
+  holdout_median_rate_residual_rps: 0.011380824397958723
+  rotation_rpy_deg:
+  - 0.07705517803234174
+  - 0.3068821653486848
+  - 0.08052982059194883
+deskew_feedback_ratio: 0.1829781079736287
+limitations:
+- The reference rotation is the MID360 design value (IMU axes aligned with the LiDAR);
+  it is not a measurement.
+- Mean angular rates over one LiDAR period approximate the rotation increment; the
+  second-order error grows with the rotation per period.
+- The translation of T_lidar_imu is not estimated by this method.
+provenance:
+  generator: calibrex.evaluation.imu_lidar_rotation
+  generator_version: 0.4.1
+  git_commit: 5ca9989
+  command:
+  - calibrex
+  - imu-lidar
+  - livox
+  - construction_seq1
+  - --profile
+  - rtk-slam
+  - --dataset-family
+  - rtk_slam
+  - --dataset-license
+  - see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  - --output
+  - docs/assets/mid360_imu_lidar_rotation_rtk_slam_construction_seq1.yaml
+  dataset_family: rtk_slam
+  sequence_ids:
+  - construction_seq1
+  stream_profile: rtk-slam
+  input_sha256: b2797c8668d9931aaef7aa24733b406f3c54d5b55927aeef9582f921c1f79a9e
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  created_at: '2026-09-30T01:35:19.119659+00:00'

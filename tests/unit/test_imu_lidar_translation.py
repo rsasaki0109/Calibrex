@@ -15,6 +15,7 @@ from calibrex.core.validation import validate_file
 from calibrex.evaluation.imu_lidar_translation import (
     ImuLidarTranslationEvaluation,
     evaluate_imu_lidar_translation,
+    score_imu_lidar_translation_candidate,
 )
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.imu_lidar_translation_solver import (
@@ -224,3 +225,29 @@ def test_cli_passes_the_rotation_artifact_and_its_digest(
     assert len(captured["rotation_artifact_sha256"]) == 64
     assert np.allclose(captured["reference_translation"], [0.011, 0.02329, -0.04412])
     assert validate_file(output).valid
+
+
+def test_candidate_score_prefers_the_true_lever_arm_on_shared_spans() -> None:
+    imu, windows = synthetic(planar=False, seed=4)
+    spans = [(float(w.times_s[0]), float(w.times_s[-1])) for w in windows[1::3]]
+    true = score_imu_lidar_translation_candidate(
+        imu, windows, TRUE_ROTATION, TRUE_DT, TRUE_TRANSLATION, spans
+    )
+    wrong = score_imu_lidar_translation_candidate(
+        imu, windows, TRUE_ROTATION, TRUE_DT, TRUE_TRANSLATION + np.array([0.0, 0.0, 0.05]), spans
+    )
+    # A candidate whose own segmentation split windows differently is still
+    # scored on exactly the same spans.
+    halves = [
+        OdometryWindow(f"{w.window_id}{part}", w.block, w.times_s[cut], w.poses[cut])
+        for w in windows
+        for part, cut in (("a", slice(0, 50)), ("b", slice(50, None)))
+    ]
+    split = score_imu_lidar_translation_candidate(
+        imu, halves, TRUE_ROTATION, TRUE_DT, TRUE_TRANSLATION, spans
+    )
+
+    assert set(true.holdout_span_rms_m) == {round(start, 1) for start, _ in spans}
+    assert set(split.holdout_span_rms_m) == set(true.holdout_span_rms_m)
+    for key, value in true.holdout_span_rms_m.items():
+        assert wrong.holdout_span_rms_m[key] > value

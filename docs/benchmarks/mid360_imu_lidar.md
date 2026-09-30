@@ -236,6 +236,79 @@ The LI-Init value was seen while the method was being developed, so no SOTA
 claim is made for translation. Such a claim needs a pre-registered protocol
 on a recording whose scores have not been looked at.
 
+## Extrinsic audit against LI-Init: refuted
+
+The second claim adds the lever arm to the comparison. The claim, procedure,
+metric, recordings, and thresholds were committed in
+[`mid360_imu_lidar_translation_preregistration.yaml`](mid360_imu_lidar_translation_preregistration.yaml)
+(commit `5ca9989`) before either method had been run on the evaluation
+recordings. `stadtgarten_seq2` was development data and gates nothing.
+
+**Evaluation recordings.** Two hand-held RTK-SLAM recordings of the same rig
+that had not been used before: `stadtgarten_seq1` (27 min, park) and
+`construction_seq1` (12 min, construction site).
+
+**Scoring.** Each candidate's complete extrinsic (rotation, clock offset, and
+lever arm) is held fixed, and scoring works as follows:
+
+- One common odometry per recording, deskewed with the design reference, is
+  shared by every candidate. With each method deskewing its own odometry,
+  a handful of spans in which one run's registration failed dominated the
+  development comparison.
+- Only per-span gravity, accelerometer bias, and segment velocities are
+  refit.
+- The metric is the RMS of the position residual on every third 10-second
+  span.
+
+**Verdict: `refuted`** ([protocol](../assets/mid360_imu_lidar_extrinsic_sota_protocol.yaml),
+[result](../assets/mid360_imu_lidar_extrinsic_sota_audit.yaml)).
+
+- Calibrex's lever-arm run was `inconclusive` on both recordings, because x
+  is unobservable. The pre-registration counts that as no estimate, so
+  `calibrex-estimate` is contradicted on both recordings.
+- Every comparison gate therefore has no finite value.
+
+| Recording | Rotation (roll, pitch, yaw) | Lever arm x | y | z |
+| --- | --- | ---: | ---: | ---: |
+| stadtgarten_seq2 (development) | `pass` -0.08, +0.14, -0.16 deg | 21.3 ± 6.1 mm | 24.3 ± 5.2 mm | -38.5 ± 5.3 mm |
+| stadtgarten_seq1 | `pass` -0.06, +0.16, -0.17 deg | 23.6 ± 11.0 mm (unobservable) | 18.6 ± 1.7 mm | -37.4 ± 4.0 mm |
+| construction_seq1 | `pass` -0.10, +0.13, -0.19 deg | 20.4 ± 13.3 mm (unobservable) | 17.4 ± 3.9 mm | -35.0 ± 4.1 mm |
+| MID360 design value | 0, 0, 0 | 11.0 mm | 23.29 mm | -44.12 mm |
+
+- The rotation replicates across all three recordings to within 0.05 deg.
+- The lever-arm values replicate too. x is 20-24 mm every time, about 10 mm
+  from the design value.
+- x's segment-duration sensitivity (11.0 and 13.3 mm) exceeds the 10 mm
+  observability bound, however. The x estimate moves between about 7 and
+  35 mm when the fit uses 1 s or 4 s segments. Calibrex's own policy
+  therefore declines to call x calibrated, and the audit takes that verdict
+  at face value.
+
+**Descriptive only (gates nothing).** The Calibrex candidate was scored
+anyway, and its scores are kept as `descriptive_calibrex_native_inconclusive.json`
+in [`mid360_imu_lidar_extrinsic_scores`](https://github.com/rsasaki0109/Calibrex/tree/main/docs/assets/mid360_imu_lidar_extrinsic_scores).
+Its paired improvement, with 95 % bootstrap CI, is:
+
+| Recording | over LI-Init | over LI-Init's lever arm | over design value |
+| --- | ---: | ---: | ---: |
+| stadtgarten_seq1 | 2.56 mm (1.97-3.16) | 0.78 mm (0.51-1.07) | -0.03 mm (-0.10-0.04) |
+| construction_seq1 | 6.72 mm (4.70-9.13) | 6.26 mm (4.20-8.58) | -0.03 mm (-0.14-0.08) |
+
+- The metric cannot tell Calibrex's lever arm from the design value.
+- LI-Init's refined lever arm varies strongly between recordings:
+  (-39, -40, -67) mm on seq1, (63, -171, -111) mm on construction, and
+  (-2, -25, -103) mm on seq2.
+
+**What would change the verdict** is a method change evaluated on new data,
+not a new threshold. The likely candidates are:
+
+- modelling the odometry errors that couple with motion, which drive the
+  segment sensitivity;
+- estimating the accelerometer scale and misalignment.
+
+A new pre-registration and unseen recordings would be required, because
+seq1 and construction are now spent.
+
 ## Method
 
 1. **Odometry.** Scan-to-local-map point-to-plane LiDAR odometry runs on
@@ -271,9 +344,9 @@ calibrex imu-lidar livox BAG_DIR --profile rtk-slam \
 ## Limitations
 
 - The design reference is not a measurement.
-- The translation is estimated only on the hand-held recording. Its
-  uncertainty is dominated by segment-duration sensitivity, and x sits 10 mm
-  (1.7 std) from the design value. Accelerometer scale and axis misalignment
+- The lever arm passes only on the development recording. On two unseen
+  recordings, x is unobservable because of its segment-duration sensitivity,
+  and the pre-registered extrinsic audit is refuted. Accelerometer scale and axis misalignment
   are not modelled.
 - Gyro deskewing makes the LiDAR odometry depend on the IMU. The feedback
   ratio quantifies this dependence but does not remove it.
