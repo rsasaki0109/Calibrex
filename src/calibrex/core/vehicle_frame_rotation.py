@@ -91,7 +91,7 @@ class VehicleFrameRotationArtifact(StrictModel):
         VEHICLE_FRAME_ROTATION_SCHEMA_VERSION
     )
     method: Literal["non_holonomic_motion/v0.1"] = "non_holonomic_motion/v0.1"
-    sensor_modality: Literal["lidar", "trajectory"]
+    sensor_modality: Literal["lidar", "ins", "trajectory"]
     solver_status: Literal["converged", "insufficient_motions"]
     policy_status: VehiclePolicyStatus
     policy_reasons: list[str] = Field(min_length=1)

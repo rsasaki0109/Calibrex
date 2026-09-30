@@ -203,6 +203,10 @@ from calibrex.core.external_run import (
     ExternalCalibrationRunArtifact,
     external_run_json_schema,
 )
+from calibrex.core.gnss_imu_lever_arm import (
+    GnssImuLeverArmArtifact,
+    gnss_imu_lever_arm_json_schema,
+)
 from calibrex.core.gnss_lidar_lever_arm import (
     GnssLidarLeverArmArtifact,
     gnss_lidar_lever_arm_json_schema,
@@ -821,6 +825,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("imu-lidar-translation", ImuLidarTranslationArtifact, imu_lidar_translation_json_schema),
     _entry("ins-lidar-hand-eye", InsLidarHandEyeArtifact, ins_lidar_hand_eye_json_schema),
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
+    _entry("gnss-imu-lever-arm", GnssImuLeverArmArtifact, gnss_imu_lever_arm_json_schema),
     _entry(
         "vehicle-frame-rotation", VehicleFrameRotationArtifact, vehicle_frame_rotation_json_schema
     ),

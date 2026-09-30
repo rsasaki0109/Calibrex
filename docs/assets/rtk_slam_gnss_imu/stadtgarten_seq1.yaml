@@ -1,0 +1,69 @@
+schema_version: slac.gnss_imu_lever_arm/v0.1
+method: composition/v0.1
+policy_status: inconclusive
+policy_reasons:
+- 'not calibrated (propagated std over the bound, or an input axis it depends on is
+  unobservable): x, z'
+calibrated_dofs:
+- y
+lever_arm_m:
+- 0.026752330547658285
+- -0.031159735502409098
+- 0.11300448293689244
+axes:
+- name: x
+  value_m: 0.026752330547658285
+  std_m: 0.013033830430437465
+  status: unobservable
+  reference_m: 0.023
+  error_to_reference_m: 0.003752330547658285
+- name: y
+  value_m: -0.031159735502409098
+  std_m: 0.008977468115976016
+  status: estimated
+  reference_m: -0.023
+  error_to_reference_m: -0.008159735502409098
+- name: z
+  value_m: 0.11300448293689244
+  std_m: 0.013250863208350708
+  status: unobservable
+  reference_m: 0.09
+  error_to_reference_m: 0.023004482936892445
+inputs:
+- role: gnss_lidar_lever_arm
+  path: rtk_slam_gnss_lidar_stadtgarten_seq1.yaml
+  sha256: d6555dc6c8e13d6d35e5224a1443a8c42ff4c88a92c279536a425e0a0a212c02
+  policy_status: inconclusive
+- role: imu_lidar_rotation
+  path: mid360_imu_lidar_rotation_rtk_slam_stadtgarten_seq1.yaml
+  sha256: de849da859308f214a0e84b4740fff80c2c001d0608b72c962c79c10c8d10ca1
+  policy_status: pass
+- role: imu_lidar_translation
+  path: mid360_imu_lidar_translation_rtk_slam_stadtgarten_seq1.yaml
+  sha256: bc3e9c9ac6d3100ff910523e793daa0d4af250b55dc174d55db228b4cdc4a3c2
+  policy_status: inconclusive
+reference: RTK-SLAM calib.yaml reference_offsets.gnss_antenna_phase_center (CAD)
+observable_std_m: 0.02
+limitations:
+- 'A composition, not a direct GNSS-IMU fit: its accuracy is that of the two inputs,
+  and the std assumes their errors are independent.'
+- The rotation's uncertainty is neglected; at 0.1 deg and a 0.1 m lever it adds about
+  0.2 mm.
+- The inputs should come from the same rig; this is not checked.
+generator: calibrex.evaluation.gnss_imu_lever_arm
+generator_version: 0.4.1
+command:
+- calibrex
+- gnss-imu
+- compose
+- --gnss-lidar
+- rtk_slam_gnss_lidar_stadtgarten_seq1.yaml
+- --imu-lidar-rotation
+- mid360_imu_lidar_rotation_rtk_slam_stadtgarten_seq1.yaml
+- --imu-lidar-translation
+- mid360_imu_lidar_translation_rtk_slam_stadtgarten_seq1.yaml
+- --reference
+- '0.023'
+- '-0.023'
+- '0.09'
+created_at: '2026-09-30T18:19:26.169258+00:00'

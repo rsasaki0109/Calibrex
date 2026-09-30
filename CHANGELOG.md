@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- `calibrex imu-vehicle kitti` estimates `R_vehicle_imu` for the KITTI OXTS
+  unit from its body-frame velocity and rates with the non-holonomic solver.
+  It includes a closure reference against LiDAR-vehicle composed with
+  `calib_imu_to_velo`; the closure agrees within 0.1 deg.
+- **Fix:** the OXTS-motion vehicle frame used KITTI's level-frame
+  `vf, vl, vu` / `wf, wl, wu` as if they were body-frame. They are now
+  rotated into the body frame with each packet's roll and pitch.
+  - LiDAR-vehicle pitch and yaw now agree with that frame within 0.06 and
+    0.15 deg.
+  - The earlier "HDL-64 odometry drift" explanation of a 0.5 deg pitch
+    disagreement was wrong.
+- `calibrex gnss-imu compose` composes GNSS-LiDAR and IMU-LiDAR artifacts
+  into the GNSS antenna position in the IMU frame
+  (`slac.gnss_imu_lever_arm/v0.1`).
+  - Inputs are digest-pinned, std is propagated, and axes inherit
+    unobservable inputs.
+  - On RTK-SLAM the estimated axes agree with CAD within 1 cm (both
+    recordings `inconclusive`).
 - `calibrex lidar-vehicle kitti` estimates `R_vehicle_velodyne` from the
   vehicle's non-holonomic motion, as `slac.vehicle_frame_rotation/v0.1`
   (`calibrex.solvers.vehicle_frame_solver`).

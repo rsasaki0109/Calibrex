@@ -1,0 +1,70 @@
+schema_version: slac.gnss_imu_lever_arm/v0.1
+method: composition/v0.1
+policy_status: inconclusive
+policy_reasons:
+- 'not calibrated (propagated std over the bound, or an input axis it depends on is
+  unobservable): z'
+calibrated_dofs:
+- x
+- y
+lever_arm_m:
+- 0.03032043423242218
+- -0.026545655292985536
+- 0.08082709222287413
+axes:
+- name: x
+  value_m: 0.03032043423242218
+  std_m: 0.011624500865353854
+  status: estimated
+  reference_m: 0.023
+  error_to_reference_m: 0.007320434232422179
+- name: y
+  value_m: -0.026545655292985536
+  std_m: 0.007222674381540869
+  status: estimated
+  reference_m: -0.023
+  error_to_reference_m: -0.003545655292985537
+- name: z
+  value_m: 0.08082709222287413
+  std_m: 0.040379454233845744
+  status: unobservable
+  reference_m: 0.09
+  error_to_reference_m: -0.009172907777125872
+inputs:
+- role: gnss_lidar_lever_arm
+  path: rtk_slam_gnss_lidar_stadtgarten_seq2.yaml
+  sha256: 6377f15a598a73b116779284efa35beeb9e21f02691f0e4e2fa7b7ab461fd710
+  policy_status: inconclusive
+- role: imu_lidar_rotation
+  path: mid360_imu_lidar_rotation_rtk_slam_seq2.yaml
+  sha256: cd2e6a721fa2c1b44e1a3e694b26d52877adacd95c2d805625b1cd1b0a14f38a
+  policy_status: pass
+- role: imu_lidar_translation
+  path: mid360_imu_lidar_translation_rtk_slam_seq2.yaml
+  sha256: 073ef1d023f39893d949e23bc05f5988fb7f811edb7b5cc36bbd33821f228452
+  policy_status: pass
+reference: RTK-SLAM calib.yaml reference_offsets.gnss_antenna_phase_center (CAD)
+observable_std_m: 0.02
+limitations:
+- 'A composition, not a direct GNSS-IMU fit: its accuracy is that of the two inputs,
+  and the std assumes their errors are independent.'
+- The rotation's uncertainty is neglected; at 0.1 deg and a 0.1 m lever it adds about
+  0.2 mm.
+- The inputs should come from the same rig; this is not checked.
+generator: calibrex.evaluation.gnss_imu_lever_arm
+generator_version: 0.4.1
+command:
+- calibrex
+- gnss-imu
+- compose
+- --gnss-lidar
+- rtk_slam_gnss_lidar_stadtgarten_seq2.yaml
+- --imu-lidar-rotation
+- mid360_imu_lidar_rotation_rtk_slam_seq2.yaml
+- --imu-lidar-translation
+- mid360_imu_lidar_translation_rtk_slam_seq2.yaml
+- --reference
+- '0.023'
+- '-0.023'
+- '0.09'
+created_at: '2026-09-30T18:19:23.960327+00:00'

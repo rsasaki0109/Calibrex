@@ -62,15 +62,15 @@ references:
   holdout_delta_chi2: 271.9852262688223
 - name: vehicle frame from the OXTS velocities (same solver) composed with KITTI calib_imu_to_velo
   rotation_quat_xyzw:
-  - -0.006472528632538272
-  - 0.000333317108067263
-  - -0.001058002569672114
-  - 0.9999784377192185
+  - 0.002292982301859842
+  - 0.004843714949003125
+  - -0.0010317375419334287
+  - 0.9999851079767642
   difference_deg:
-  - 0.9637049623357338
-  - 0.5741690254456852
-  - -0.14682036396144924
-  holdout_delta_chi2: 245.0550945394416
+  - -0.04195074230093479
+  - 0.05964005411999586
+  - -0.1454435586361779
+  holdout_delta_chi2: 17.20375846645311
 motions: 1998
 train_motions: 1342
 holdout_motions: 656
@@ -125,7 +125,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.vehicle_frame
   generator_version: 0.4.1
-  git_commit: 55f345e
+  git_commit: '6668415'
   command:
   - calibrex
   - lidar-vehicle
@@ -147,4 +147,4 @@ provenance:
   sensor: velodyne
   input_sha256: ccd9b4315064b2a1b253c9c6d4dcecba2948294f8e4075bcb3e65923d70738cf
   dataset_license: CC BY-NC-SA 3.0
-  created_at: '2026-09-30T16:45:23.438408+00:00'
+  created_at: '2026-09-30T18:17:47.727576+00:00'

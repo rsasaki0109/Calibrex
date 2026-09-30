@@ -53,33 +53,53 @@ for a pre-registered audit.
 Verdict: `inconclusive`. Pitch and yaw are estimated; roll is not (jackknife
 std 0.42 deg: these drives turn too little).
 
-| Axis | Estimate | Reported std (analytic / jackknife) | 1 deg held-out control | vs. KITTI calib | vs. OXTS-motion vehicle frame |
+| Axis | Estimate | Reported std (analytic / jackknife) | 1 deg held-out control | vs. KITTI calib (OXTS frame) | vs. OXTS-motion vehicle frame |
 | --- | ---: | --- | ---: | ---: | ---: |
-| roll | 0.22 deg | 0.42 (0.07 / 0.42) deg, unobservable | Δχ² 47 | +1.07 deg | +0.96 deg |
-| pitch | 0.62 deg | 0.04 (0.01 / 0.04) deg | Δχ² 986 | +0.50 deg | +0.57 deg |
+| roll | 0.22 deg | 0.42 (0.07 / 0.42) deg, unobservable | Δχ² 47 | +1.07 deg | -0.04 deg |
+| pitch | 0.62 deg | 0.04 (0.01 / 0.04) deg | Δχ² 986 | +0.50 deg | +0.06 deg |
 | yaw | -0.26 deg | 0.05 (0.01 / 0.05) deg | Δχ² 816 | -0.31 deg | -0.15 deg |
 
-- **Motions.** 1998 motions. The median normalized residual is 0.35 on
-  train and 0.39 held out. The nuisance lever is 0.65 m.
-- **References on the held-out blocks.** Both references cost Δχ² 245-272.
-- **Yaw** is 0.15 deg (2.8 std) from the OXTS-motion vehicle frame, and
-  0.31 deg from KITTI's OXTS frame. The OXTS unit itself sits 0.3-0.8 deg
-  in yaw off its own direction of motion.
-- **Pitch is about 0.5 deg from both references, and the likely cause is
-  the odometry, not the rotation.** The INS-LiDAR hand-eye on the same rig
-  ([KITTI INS-LiDAR](kitti_ins_lidar.md)) matches KITTI's pitch within
-  0.06 deg, so the LiDAR-to-OXTS rotation is consistent. The disagreement
-  is between the direction of the LiDAR odometry's translation and that of
-  the OXTS velocity. KITTI's HDL-64E is known to have vertical-angle
-  calibration errors that make LiDAR odometry drift vertically, which would
-  bias exactly this axis. This is not verified.
+- **Pitch and yaw agree with the independent vehicle frame.** That frame is
+  derived from the OXTS velocities, and the agreement is within 0.06 and
+  0.15 deg: 1.5 and 2.7 reported std. On the held-out blocks, that reference
+  costs Δχ² 17, against 272 for KITTI's OXTS frame.
+- **KITTI's `calib_imu_to_velo` is not the vehicle frame.** The OXTS unit sits
+  about 1 deg in roll and 0.5 deg in pitch off the motion-defined vehicle
+  frame.
+- **Correction to #82.** The first version of this page compared against an
+  OXTS-motion frame built from KITTI's `vf, vl, vu` and `wf, wl, wu`. Those
+  are forward/left/up components in a *level* frame that follows the heading,
+  not the body frame: level = `Ry(pitch) Rx(roll)` body, checked to
+  3e-4 rad/s on the rates. The resulting 0.5 deg pitch disagreement was
+  attributed to HDL-64 odometry drift. That attribution was wrong; it came
+  from the reference. The OXTS signals are now rotated into the body frame
+  with each packet's roll and pitch.
 
 [Artifact](../assets/kitti_lidar_vehicle/dev_2011_09_26.yaml).
 
+## INS-vehicle (`calibrex imu-vehicle kitti`)
+
+The same solver, applied to the OXTS unit's own body-frame velocity and
+angular rates, estimates `R_vehicle_imu`:
+
+```bash
+calibrex imu-vehicle kitti <drives> --lidar-vehicle lidar_vehicle.yaml --output imu_vehicle.yaml
+```
+
+On the same five drives the verdict is `inconclusive`: roll 1.04 ± 0.46 deg,
+pitch 0.47 ± 0.13 deg, and yaw -0.22 ± 0.15 deg. All three std are over
+the 0.1 deg bound, because the 10 Hz INS velocities are noisier than the
+LiDAR odometry chords. Every 1 deg held-out control is detected (Δχ² 40-917).
+
+The **closure** composes the LiDAR-vehicle estimate with KITTI's
+`calib_imu_to_velo`. It agrees with this INS-vehicle estimate within
+(-0.03, -0.03, +0.09) deg: two sensors, one vehicle frame.
+[Artifact](../assets/kitti_lidar_vehicle/imu_vehicle_dev_2011_09_26.yaml).
+
 ## Limitations
 
-- The vehicle frame assumes no side slip and no vertical velocity, so it
-  depends on the sensor odometry's vertical accuracy.
+- The vehicle frame assumes no side slip and no vertical velocity.
+- It depends on the vertical accuracy of the sensor's velocity.
 - Roll needs turns.
 - The translation of `T_vehicle_sensor` is not estimated.
 
