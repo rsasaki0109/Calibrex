@@ -1,0 +1,70 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: kitti-lidar-vehicle-v1
+scope:
+  modalities:
+  - lidar
+  - vehicle
+  quantities:
+  - rotation
+  category: targetless_lidar_vehicle
+claim_text: On eight KITTI raw drives not used to develop the method, Calibrex's motion-only
+  LiDAR-to-vehicle rotation fits held-out LiDAR motion at least as well as KITTI's
+  calib_imu_to_velo, and its pitch and yaw agree with an independent vehicle frame
+  from the OXTS body-frame velocities.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-estimate
+  phase: audit
+  description: Calibrex estimates pitch and yaw on the pooled evaluation drives
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-2011-09-26
+  evidence_path: kitti_lidar_vehicle_holdout_benchmark.yaml
+  evidence_sha256: 3584c7139bbc0b525555be16b1d0c7bf90a5b118c4568c939a2652be5af7a2a6
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-not-worse-than-vendor
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over calib_imu_to_velo
+    >= 0
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_lidar_vehicle_holdout_benchmark.yaml
+  evidence_sha256: 3584c7139bbc0b525555be16b1d0c7bf90a5b118c4568c939a2652be5af7a2a6
+  method_id: calibrex_native
+  reference_method_id: kitti_vendor
+  metric: holdout_block_nonholonomic_chi2
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-agrees-with-oxts-motion-frame
+  phase: audit
+  description: mean per-drive pitch/yaw agreement <= 0.5 deg
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_lidar_vehicle_agreement_benchmark.yaml
+  evidence_sha256: f9fffab9e5e806c3c06ee15ea36bf85b48fe9bc6bf2862ad3401dc36fa64304f
+  method_id: calibrex_native
+  metric: pitch_yaw_agreement_deg
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+provenance:
+  generator: tools/build_kitti_lidar_vehicle_audit.py
+  generator_version: 0.4.1
+  command:
+  - python
+  - tools/build_kitti_lidar_vehicle_audit.py
+  - CACHE.pkl
+  - docs/assets/kitti_lidar_vehicle_audit/scores.json
+  - docs/assets
+  source_sha256:
+    preregistration: db1f32f695f34af7ef27ea27b941ec62a8a693682ee16687c0ade9b1474ea7ca
+    scores: c7348beef90e76ccad321faa7e9757717ab7af5b6ee073520f748e067f46dc17
+  created_at: '2026-09-30T23:13:49.961945+00:00'

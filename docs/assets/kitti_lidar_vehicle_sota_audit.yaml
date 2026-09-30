@@ -1,0 +1,58 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: kitti-lidar-vehicle-v1
+protocol_id: kitti-lidar-vehicle-v1
+scope:
+  modalities:
+  - lidar
+  - vehicle
+  quantities:
+  - rotation
+  category: targetless_lidar_vehicle
+claim_text: On eight KITTI raw drives not used to develop the method, Calibrex's motion-only
+  LiDAR-to-vehicle rotation fits held-out LiDAR motion at least as well as KITTI's
+  calib_imu_to_velo, and its pitch and yaw agree with an independent vehicle frame
+  from the OXTS body-frame velocities.
+verdict: supported
+achieved_dataset_families:
+- kitti_raw
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-estimate
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/kitti_lidar_vehicle_holdout_benchmark.yaml
+  evidence_sha256: 3584c7139bbc0b525555be16b1d0c7bf90a5b118c4568c939a2652be5af7a2a6
+- requirement_id: calibrex-not-worse-than-vendor
+  required: true
+  status: achieved
+  observed_value: 0.05139668308145251
+  threshold: 0.0
+  reason: observed 0.0513966830815 meets greater_equal 0
+  evidence_path: docs/assets/kitti_lidar_vehicle_holdout_benchmark.yaml
+  evidence_sha256: 3584c7139bbc0b525555be16b1d0c7bf90a5b118c4568c939a2652be5af7a2a6
+- requirement_id: calibrex-agrees-with-oxts-motion-frame
+  required: true
+  status: achieved
+  observed_value: 0.2140407686913039
+  threshold: 0.5
+  reason: observed 0.214040768691 meets less_equal 0.5
+  evidence_path: docs/assets/kitti_lidar_vehicle_agreement_benchmark.yaml
+  evidence_sha256: f9fffab9e5e806c3c06ee15ea36bf85b48fe9bc6bf2862ad3401dc36fa64304f
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.4.1
+  git_commit: 705639b
+  command: []
+  source_sha256:
+    protocol: f3271eb9e577f0bcf352b6ac85cef69cc5fb56fce87a50f56064ca17c1baf539
+    calibrex-estimate: 3584c7139bbc0b525555be16b1d0c7bf90a5b118c4568c939a2652be5af7a2a6
+    calibrex-not-worse-than-vendor: 3584c7139bbc0b525555be16b1d0c7bf90a5b118c4568c939a2652be5af7a2a6
+    calibrex-agrees-with-oxts-motion-frame: f9fffab9e5e806c3c06ee15ea36bf85b48fe9bc6bf2862ad3401dc36fa64304f
+  created_at: '2026-09-30T23:13:50.031673+00:00'

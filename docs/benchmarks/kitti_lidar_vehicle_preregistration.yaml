@@ -1,0 +1,55 @@
+# Pre-registration of the KITTI LiDAR-vehicle rotation audit.
+#
+# Written on 2026-10-01, before lidar-vehicle has been run on any of the
+# evaluation drives below.  The scoring tool (tools/score_kitti_lidar_vehicle.py)
+# and its metric were developed on drives 0005, 0009, 0014, 0015, 0022 only.
+# The audit protocol must cite this file's SHA-256 and may not change any
+# threshold, metric, drive, or requirement listed here.
+claim: >-
+  On eight KITTI raw 2011_09_26 drives not used to develop the method,
+  Calibrex's motion-only LiDAR-to-vehicle rotation fits held-out LiDAR motion
+  under the non-holonomic vehicle model at least as well as KITTI's
+  calib_imu_to_velo (the OXTS frame, commonly taken as the vehicle frame), and
+  its pitch and yaw agree with an independent vehicle frame derived from the
+  OXTS body-frame velocities.
+scope:
+  modalities: [lidar, vehicle]
+  quantities: [rotation]
+  category: targetless_lidar_vehicle
+recordings:
+  evaluation: [0027, 0028, 0035, 0039, 0046, 0051, 0057, 0059]
+  development_only: [0005, 0009, 0014, 0015, 0022]
+methods:
+  calibrex_native: >-
+    R_vehicle_velodyne and the lever from calibrex.solvers.vehicle_frame_solver
+    (default options) on the pooled train blocks of the evaluation drives.
+    If the pooled evaluate_vehicle_frame does not report both pitch and yaw as
+    estimated, Calibrex has no estimate and fails every split.
+  kitti_vendor: >-
+    the rotation of KITTI calib_imu_to_velo, with only the lever fitted on the
+    same train blocks
+scoring:
+  motions: LiDAR odometry (default ScanOdometryOptions), 2-frame intervals, chords in the midpoint orientation
+  blocks: 10-second blocks per drive, keyed by drive and block; every third key (sorted) is held out
+  metric_holdout: >-
+    per held-out block, the mean of min(r^2, 25) over the normalized
+    non-holonomic residuals (lateral, vertical, roll/pitch rates); lower is better
+  metric_agreement: >-
+    per drive, the norm of the pitch and yaw differences (deg, small rotations
+    about the vehicle axes) between Calibrex fitted on that drive and the
+    vehicle frame fitted on that drive's OXTS body-frame motions composed with
+    calib_imu_to_velo
+failure_policy: a method without an estimate fails every split
+requirements:
+  - id: calibrex-estimate
+    rule: calibrex_native failure_rate <= 0 on the held-out-block benchmark
+  - id: calibrex-not-worse-than-vendor
+    rule: paired improvement of calibrex_native over kitti_vendor, 95% bootstrap CI lower bound >= 0
+  - id: calibrex-agrees-with-oxts-motion-frame
+    rule: calibrex_native mean per-drive pitch/yaw agreement <= 0.5 deg
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+development_results_seen:
+  holdout_improvement_over_vendor: 0.096 (CI95 0.064-0.130), 8 of 8 held-out blocks better
+  per_drive_agreement_deg: {0005: 0.603, 0009: 0.25, 0014: 0.231, 0015: 0.449, 0022: 0.112}
