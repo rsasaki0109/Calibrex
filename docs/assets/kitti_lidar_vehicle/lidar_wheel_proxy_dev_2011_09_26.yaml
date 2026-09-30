@@ -1,0 +1,159 @@
+schema_version: slac.lidar_wheel_odometry/v0.1
+method: wheel_odometry_motion/v0.1
+solver_status: converged
+policy_status: warn
+policy_reasons:
+- speed_scale is reported as estimated but its known-bad shift is not detected (delta
+  chi-square -44.9)
+- 'not constrained by the data, so not calibrated: roll'
+calibrated_parameters:
+- pitch
+- yaw
+- lever
+- speed_scale
+- time_offset
+rotation_quat_xyzw:
+- 0.0019016600925656408
+- 0.005361516742295074
+- -0.0022680352008122785
+- 0.9999812467458788
+lever_m: 0.6549055949645555
+speed_scale: 1.0033877834109262
+time_offset_s: 0.07391035935917023
+parameters:
+- name: roll
+  unit: deg
+  value: 0.21652964630467622
+  std_analytic: 0.06208310379793682
+  std_jackknife: 0.42137840582184893
+  std_reported: 0.42137840582184893
+  status: unobservable
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 46.67570908832204
+    detected: true
+- name: pitch
+  unit: deg
+  value: 0.6148790799938431
+  std_analytic: 0.011641582599005449
+  std_jackknife: 0.04132633876804167
+  std_reported: 0.04132633876804167
+  status: estimated
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 993.2341274842656
+    detected: true
+- name: yaw
+  unit: deg
+  value: -0.2587402436586433
+  std_analytic: 0.011860594864590247
+  std_jackknife: 0.052132933664341775
+  std_reported: 0.052132933664341775
+  status: estimated
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 815.0676886265956
+    detected: true
+- name: lever
+  unit: m
+  value: 0.6549055949645555
+  std_analytic: 0.008453018574827128
+  std_jackknife: 0.03398102403313727
+  std_reported: 0.03398102403313727
+  status: estimated
+- name: speed_scale
+  unit: ratio
+  value: 1.0033877834109262
+  std_analytic: 0.00021298276326833562
+  std_jackknife: 0.0022223229843825487
+  std_reported: 0.0022223229843825487
+  status: estimated
+  known_bad_control:
+    amount: 0.01
+    unit: ratio
+    holdout_delta_chi2: -44.875539894481335
+    detected: false
+- name: time_offset
+  unit: s
+  value: 0.07391035935917023
+  std_analytic: 0.0
+  std_jackknife: 0.004101919565949169
+  std_reported: 0.004101919565949169
+  status: estimated
+  known_bad_control:
+    amount: 0.02
+    unit: s
+    holdout_delta_chi2: 58.09499654007777
+    detected: true
+references:
+- name: LiDAR-to-vehicle estimate from motion alone (lidar-vehicle)
+  rotation_quat_xyzw:
+  - 0.001932507109574674
+  - 0.005360871757424889
+  - -0.0023039182924865704
+  - 0.9999811090369525
+  difference_deg:
+  - -0.003512557843616335
+  - 7.402146298643116e-05
+  - 0.00413095058031515
+motions: 1998
+train_motions: 1342
+holdout_motions: 656
+jackknife_fits: 8
+train_median_normalized_residual: 0.3002823045515063
+holdout_median_normalized_residual: 0.34055075725035344
+options:
+  step_frames: 2
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  time_control_s: 0.02
+  scale_control: 0.01
+  detection_delta_chi2: 9.0
+  observable:
+    roll: 0.1
+    pitch: 0.1
+    yaw: 0.1
+    lever: 0.2
+    speed_scale: 0.005
+    time_offset: 0.005
+  time_offset_bound_s: 0.3
+limitations:
+- 'The vehicle frame is the wheel odometry''s: x along the reported speed, z about
+  the reported yaw rate; no side slip is assumed.'
+- Roll is seen only through the tilt of the turning axis and needs turns.
+- 'KITTI has no wheel odometry: the OXTS forward speed and yaw rate stand in for it,
+  so the speed scale and clock offset describe the OXTS, not wheels.'
+provenance:
+  generator: calibrex.evaluation.lidar_wheel
+  generator_version: 0.4.1
+  git_commit: a801c6f
+  command:
+  - calibrex
+  - lidar-wheel
+  - kitti
+  - 2011_09_26_drive_0005_sync
+  - 2011_09_26_drive_0009_sync
+  - 2011_09_26_drive_0014_sync
+  - 2011_09_26_drive_0015_sync
+  - 2011_09_26_drive_0022_sync
+  - --lidar-vehicle
+  - docs/assets/kitti_lidar_vehicle/dev_2011_09_26.yaml
+  - --output
+  - docs/assets/kitti_lidar_vehicle/lidar_wheel_proxy_dev_2011_09_26.yaml
+  dataset_family: kitti_raw
+  sequence_ids:
+  - 2011_09_26_drive_0005_sync
+  - 2011_09_26_drive_0009_sync
+  - 2011_09_26_drive_0014_sync
+  - 2011_09_26_drive_0015_sync
+  - 2011_09_26_drive_0022_sync
+  wheel_source: 'proxy: OXTS level-frame forward speed vf and yaw rate wu (KITTI has
+    no wheel odometry)'
+  input_sha256: ccd9b4315064b2a1b253c9c6d4dcecba2948294f8e4075bcb3e65923d70738cf
+  dataset_license: CC BY-NC-SA 3.0
+  created_at: '2026-09-30T18:53:18.651555+00:00'

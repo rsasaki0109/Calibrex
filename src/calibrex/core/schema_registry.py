@@ -246,6 +246,10 @@ from calibrex.core.lidar_lidar_extrinsic import (
     LidarLidarExtrinsicArtifact,
     lidar_lidar_extrinsic_json_schema,
 )
+from calibrex.core.lidar_wheel_odometry import (
+    LidarWheelOdometryArtifact,
+    lidar_wheel_odometry_json_schema,
+)
 from calibrex.core.lifecycle_registry import (
     LifecycleEvaluationArtifact,
     LifecycleEvent,
@@ -826,6 +830,9 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("ins-lidar-hand-eye", InsLidarHandEyeArtifact, ins_lidar_hand_eye_json_schema),
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
     _entry("gnss-imu-lever-arm", GnssImuLeverArmArtifact, gnss_imu_lever_arm_json_schema),
+    _entry(
+        "lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema
+    ),
     _entry(
         "vehicle-frame-rotation", VehicleFrameRotationArtifact, vehicle_frame_rotation_json_schema
     ),
