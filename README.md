@@ -24,6 +24,12 @@ adapter-produced LiDAR, camera, IMU, radar, RGB-D, hand-eye, and robot-world
 calibration without reducing the verdict to optimizer convergence or a single
 training residual.
 
+**Try it in your browser:** the
+[browser calibration page](https://rsasaki0109.github.io/Calibrex/app/)
+calibrates an IMU against a sensor trajectory (TUM): rotation, clock offset,
+gyro bias, and lever arm, with held-out evidence. It runs locally under
+Pyodide, so no data is uploaded.
+
 ## LiDAR-camera evidence in five minutes
 
 Run the complete evidence path without ROS or a dataset download. The command

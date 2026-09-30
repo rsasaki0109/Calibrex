@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Browser calibration at <https://rsasaki0109.github.io/Calibrex/app/>.
+  - Upload an IMU CSV and a sensor trajectory (TUM), or generate a synthetic
+    hand-held example. The page calibrates the IMU rotation, clock offset,
+    gyro bias, and lever arm, with held-out evidence.
+  - Calibrex, NumPy, and SciPy run under Pyodide, so no data leaves the page.
+  - The page offers the schema-valid artifacts for download.
+  - The docs workflow builds the wheel it installs
+    (`tools/build_browser_wheel.py`).
+- `calibrex imu-lidar trajectory` runs the same computation from files
+  (`calibrex.evaluation.imu_trajectory`, `calibrex.data.imu_trajectory`,
+  `calibrex.data.imu_trajectory_synthetic`).
+  - The rotation and lever-arm artifact builders are now shared helpers
+    (`rotation_artifact_from_evaluation`,
+    `translation_artifact_from_evaluation`).
 - `accelerometer_lever_arm/v0.2`, now the default, fits gravity per 2 s
   segment instead of per 10 s window, because the odometry's tilt drifts
   within a window.

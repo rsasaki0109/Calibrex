@@ -245,6 +245,52 @@ def run_livox_imu_lidar_rotation(
             retained = Rotation.from_matrix(final.rotation.T @ check.result.rotation).magnitude()
             feedback = float(math.degrees(retained) / opts.feedback_check_deg)
     digest, scope = bag_input_digest(bags)
+    return rotation_artifact_from_evaluation(
+        evaluation,
+        opts,
+        windows=ImuLidarWindowSummary(
+            scans_read=segmenter.scans_read,
+            odometry_segments=segmenter.segments,
+            unreliable_registrations=segmenter.unreliable,
+            windows=len(segmenter.windows),
+            rate_intervals=evaluation.interval_count,
+            imu_samples=len(imu.times_s),
+        ),
+        provenance=ImuLidarRotationProvenance(
+            generator=__name__,
+            generator_version=__version__,
+            git_commit=git_commit(),
+            command=command or [],
+            dataset_family=dataset_family,
+            sequence_ids=[Path(bag).name for bag in bags],
+            stream_profile=profile,
+            input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
+            input_digest_scope=scope,
+            dataset_license=dataset_license,
+        ),
+        reference=None
+        if reference_rotation is None
+        else "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
+        deskew_passes=passes,
+        deskew_feedback_ratio=feedback,
+        limitations=list(MID360_LIMITATIONS),
+    )
+
+
+def rotation_artifact_from_evaluation(
+    evaluation: ImuLidarEvaluation,
+    options: ImuLidarRunOptions,
+    *,
+    windows: ImuLidarWindowSummary,
+    provenance: ImuLidarRotationProvenance,
+    reference: str | None,
+    deskew_passes: list[dict[str, Any]] | None = None,
+    deskew_feedback_ratio: float | None = None,
+    limitations: list[str] | None = None,
+) -> ImuLidarRotationArtifact:
+    """Assemble a schema-valid rotation artifact from an evaluation."""
+
+    opts = options
     result = evaluation.result
     return ImuLidarRotationArtifact(
         solver_status=result.status,
@@ -276,37 +322,17 @@ def run_livox_imu_lidar_rotation(
             "observable_rotation_std_deg": opts.solver.observable_rotation_std_deg,
             "observable_time_offset_std_s": opts.solver.observable_time_offset_std_s,
         },
-        windows=ImuLidarWindowSummary(
-            scans_read=segmenter.scans_read,
-            odometry_segments=segmenter.segments,
-            unreliable_registrations=segmenter.unreliable,
-            windows=len(segmenter.windows),
-            rate_intervals=evaluation.interval_count,
-            imu_samples=len(imu.times_s),
-        ),
+        windows=windows,
         train_windows=evaluation.train_windows,
         holdout_windows=evaluation.holdout_windows,
         jackknife_fits=evaluation.jackknife_fits,
         train_median_rate_residual_rps=evaluation.train_median_rps,
         holdout_median_rate_residual_rps=evaluation.holdout_median_rps,
-        reference=None
-        if reference_rotation is None
-        else "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
-        deskew_passes=passes,
-        deskew_feedback_ratio=feedback,
-        limitations=list(MID360_LIMITATIONS),
-        provenance=ImuLidarRotationProvenance(
-            generator=__name__,
-            generator_version=__version__,
-            git_commit=git_commit(),
-            command=command or [],
-            dataset_family=dataset_family,
-            sequence_ids=[Path(bag).name for bag in bags],
-            stream_profile=profile,
-            input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
-            input_digest_scope=scope,
-            dataset_license=dataset_license,
-        ),
+        reference=reference,
+        deskew_passes=deskew_passes or [],
+        deskew_feedback_ratio=deskew_feedback_ratio,
+        limitations=limitations or [],
+        provenance=provenance,
     )
 
 

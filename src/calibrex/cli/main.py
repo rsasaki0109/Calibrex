@@ -1260,6 +1260,32 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_translation.add_argument("--output", type=Path, required=True)
     imu_lidar_translation.add_argument("--json", action="store_true")
     imu_lidar_translation.set_defaults(func=_cmd_imu_lidar_livox_translation)
+    imu_lidar_trajectory = imu_lidar_subcommands.add_parser(
+        "trajectory",
+        help="calibrate an IMU against a sensor trajectory (TUM) without bags; "
+        "the same computation runs in the browser",
+    )
+    imu_lidar_trajectory.add_argument(
+        "--imu", type=Path, required=True, help="CSV with t, gx, gy, gz, ax, ay, az"
+    )
+    imu_lidar_trajectory.add_argument(
+        "--trajectory", type=Path, required=True, help="TUM trajectory T_world_sensor"
+    )
+    imu_lidar_trajectory.add_argument(
+        "--acceleration-unit", choices=["mps2", "g"], default="mps2"
+    )
+    imu_lidar_trajectory.add_argument(
+        "--mid360-reference",
+        action="store_true",
+        help="compare with the Livox MID360 design extrinsic",
+    )
+    imu_lidar_trajectory.add_argument("--rotation-only", action="store_true")
+    imu_lidar_trajectory.add_argument("--dataset-family", default="user")
+    imu_lidar_trajectory.add_argument("--dataset-license", default="user-provided")
+    imu_lidar_trajectory.add_argument("--output-rotation", type=Path, required=True)
+    imu_lidar_trajectory.add_argument("--output-translation", type=Path)
+    imu_lidar_trajectory.add_argument("--json", action="store_true")
+    imu_lidar_trajectory.set_defaults(func=_cmd_imu_lidar_trajectory)
 
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
@@ -5937,6 +5963,48 @@ def _cmd_imu_lidar_livox_translation(args: argparse.Namespace) -> int:
         args.json,
     )
     return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_imu_lidar_trajectory(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.imu_trajectory import run_imu_trajectory_calibration
+
+    if not args.rotation_only and args.output_translation is None:
+        raise CalibrexError("--output-translation is required unless --rotation-only is given")
+    command = ["calibrex", "imu-lidar", "trajectory", "--imu", str(args.imu)]
+    command += ["--trajectory", str(args.trajectory)]
+    command += ["--acceleration-unit", args.acceleration_unit]
+    if args.mid360_reference:
+        command.append("--mid360-reference")
+    if args.rotation_only:
+        command.append("--rotation-only")
+    try:
+        calibration = run_imu_trajectory_calibration(
+            args.imu.read_text(encoding="utf-8"),
+            args.trajectory.read_text(encoding="utf-8"),
+            acceleration_unit=args.acceleration_unit,
+            reference="mid360" if args.mid360_reference else "none",
+            estimate_translation=not args.rotation_only,
+            sequence_id=args.trajectory.stem,
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            command=command,
+        )
+        calibration.rotation.save(args.output_rotation)
+        if calibration.translation is not None and args.output_translation is not None:
+            calibration.translation.save(args.output_translation)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    statuses = [calibration.rotation.policy_status]
+    payload: dict[str, Any] = {
+        "rotation_status": calibration.rotation.policy_status,
+        "rotation_artifact": str(args.output_rotation),
+    }
+    if calibration.translation is not None:
+        statuses.append(calibration.translation.policy_status)
+        payload["translation_status"] = calibration.translation.policy_status
+        payload["translation_artifact"] = str(args.output_translation)
+    _emit(payload, args.json)
+    return 1 if "fail" in statuses else 0
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:

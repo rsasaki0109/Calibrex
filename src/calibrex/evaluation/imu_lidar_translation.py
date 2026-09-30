@@ -228,6 +228,51 @@ def run_livox_imu_lidar_translation(
         reference_translation=reference_translation,
     )
     digest, scope = bag_input_digest(bags)
+    return translation_artifact_from_evaluation(
+        evaluation,
+        opts,
+        rotation_input=ImuLidarRotationInput(
+            artifact_sha256=rotation_artifact_sha256,
+            policy_status=rotation_artifact.policy_status,
+            rotation_quat_xyzw=list(rotation_artifact.rotation_quat_xyzw),
+            time_offset_s=time_offset,
+            gyro_bias_rps=[float(value) for value in gyro_bias],
+        ),
+        windows=len(windows),
+        imu_samples=len(samples.times_s),
+        reference=None
+        if reference_translation is None
+        else "Livox MID360 manual: IMU at (11.0, 23.29, -44.12) mm in the LiDAR frame",
+        limitations=list(MID360_TRANSLATION_LIMITATIONS),
+        provenance=ImuLidarTranslationProvenance(
+            generator=__name__,
+            generator_version=__version__,
+            git_commit=git_commit(),
+            command=command or [],
+            dataset_family=dataset_family,
+            sequence_ids=[Path(bag).name for bag in bags],
+            stream_profile=profile,
+            input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
+            input_digest_scope=scope,
+            dataset_license=dataset_license,
+        ),
+    )
+
+
+def translation_artifact_from_evaluation(
+    evaluation: ImuLidarTranslationEvaluation,
+    options: ImuLidarTranslationOptions,
+    *,
+    rotation_input: ImuLidarRotationInput,
+    windows: int,
+    imu_samples: int,
+    reference: str | None,
+    limitations: list[str],
+    provenance: ImuLidarTranslationProvenance,
+) -> ImuLidarTranslationArtifact:
+    """Assemble a schema-valid lever-arm artifact from an evaluation."""
+
+    opts = options
     translation = evaluation.result.translation_m
     return ImuLidarTranslationArtifact(
         method="accelerometer_lever_arm/v0.2"
@@ -238,13 +283,7 @@ def run_livox_imu_lidar_translation(
         policy_reasons=list(evaluation.policy_reasons),
         calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
         translation_m=None if translation is None else [float(value) for value in translation],
-        rotation_input=ImuLidarRotationInput(
-            artifact_sha256=rotation_artifact_sha256,
-            policy_status=rotation_artifact.policy_status,
-            rotation_quat_xyzw=list(rotation_artifact.rotation_quat_xyzw),
-            time_offset_s=time_offset,
-            gyro_bias_rps=[float(value) for value in gyro_bias],
-        ),
+        rotation_input=rotation_input,
         axes=list(evaluation.records),
         segment_sensitivity=list(evaluation.segment_fits),
         options={
@@ -262,10 +301,10 @@ def run_livox_imu_lidar_translation(
             "local_map_scans": opts.windowing.odometry.local_map_scans,
         },
         windows=ImuLidarTranslationWindows(
-            windows=len(windows),
+            windows=windows,
             segments=evaluation.segments,
             scan_rows=evaluation.scan_rows,
-            imu_samples=len(samples.times_s),
+            imu_samples=imu_samples,
         ),
         train_windows=evaluation.train_windows,
         holdout_windows=evaluation.holdout_windows,
@@ -273,22 +312,9 @@ def run_livox_imu_lidar_translation(
         train_median_position_residual_m=evaluation.train_median_m,
         holdout_median_position_residual_m=evaluation.holdout_median_m,
         gravity_norm_median_mps2=evaluation.gravity_norm_median_mps2,
-        reference=None
-        if reference_translation is None
-        else "Livox MID360 manual: IMU at (11.0, 23.29, -44.12) mm in the LiDAR frame",
-        limitations=list(MID360_TRANSLATION_LIMITATIONS),
-        provenance=ImuLidarTranslationProvenance(
-            generator=__name__,
-            generator_version=__version__,
-            git_commit=git_commit(),
-            command=command or [],
-            dataset_family=dataset_family,
-            sequence_ids=[Path(bag).name for bag in bags],
-            stream_profile=profile,
-            input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
-            input_digest_scope=scope,
-            dataset_license=dataset_license,
-        ),
+        reference=reference,
+        limitations=limitations,
+        provenance=provenance,
     )
 
 

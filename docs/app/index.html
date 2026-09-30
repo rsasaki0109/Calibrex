@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calibrex Browser Calibration</title>
+<meta name="description" content="Calibrate an IMU against a sensor trajectory in the browser with Calibrex and Pyodide. Your data never leaves the page.">
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #e1e5ec;
+    --accent: #2f6fde; --accent-text: #ffffff; --pass: #1f8a4c; --warn: #b7791f; --fail: #c53030;
+    --inconclusive: #6b7280; --code: #f0f2f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11141a; --panel: #1a1f28; --text: #e6e9ef; --muted: #9aa3b2; --line: #2b3240;
+      --accent: #6b9bff; --accent-text: #0b0e13; --pass: #4ade80; --warn: #fbbf24; --fail: #f87171;
+      --inconclusive: #9ca3af; --code: #232a36;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11141a; --panel: #1a1f28; --text: #e6e9ef; --muted: #9aa3b2; --line: #2b3240;
+    --accent: #6b9bff; --accent-text: #0b0e13; --pass: #4ade80; --warn: #fbbf24; --fail: #f87171;
+    --inconclusive: #9ca3af; --code: #232a36;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  header p { margin: 0; color: var(--muted); }
+  a { color: var(--accent); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px; margin-top: 18px; }
+  .panel h2 { margin: 0 0 12px; font-size: 1.1rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 0.92rem; }
+  label.field span.hint { font-weight: 400; color: var(--muted); font-size: 0.84rem; }
+  input[type=file], select { width: 100%; padding: 7px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  button { font: inherit; border-radius: 6px; padding: 9px 16px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  #log { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
+    border-radius: 6px; padding: 10px; margin: 12px 0 0; max-height: 180px; overflow: auto; white-space: pre-wrap; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 700;
+    font-size: 0.82rem; color: #fff; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge.pass { background: var(--pass); } .badge.warn { background: var(--warn); }
+  .badge.fail { background: var(--fail); } .badge.inconclusive { background: var(--inconclusive); }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .reasons { color: var(--muted); margin: 6px 0 0; padding-left: 18px; }
+  pre.matrix { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
+    padding: 10px; border-radius: 6px; overflow-x: auto; }
+  .muted { color: var(--muted); }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  #results[hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Calibrex browser calibration</h1>
+    <p>Calibrate an IMU against a sensor trajectory — rotation, clock offset, gyro bias, and lever arm, with held-out evidence.
+      Everything runs locally in your browser (Python via <a href="https://pyodide.org">Pyodide</a>); no data is uploaded.
+      <a href="../benchmarks/mid360_imu_lidar/">How the method is validated</a>.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="inputs-title">
+    <h2 id="inputs-title">1. Inputs</h2>
+    <div class="grid">
+      <label class="field">IMU CSV
+        <span class="hint"><code>t, gx, gy, gz, ax, ay, az</code> — seconds, rad/s, m/s² or g</span>
+        <input id="imu-file" type="file" accept=".csv,.txt">
+      </label>
+      <label class="field">Sensor trajectory (TUM)
+        <span class="hint"><code>t x y z qx qy qz qw</code> — poses T_world_sensor, e.g. LiDAR odometry</span>
+        <input id="trajectory-file" type="file" accept=".txt,.tum,.csv">
+      </label>
+      <label class="field">Acceleration unit
+        <span class="hint">Livox ROS drivers report g</span>
+        <select id="accel-unit"><option value="mps2">m/s²</option><option value="g">g</option></select>
+      </label>
+    </div>
+    <label class="check"><input id="mid360" type="checkbox"> Compare with the Livox MID360 design extrinsic</label>
+    <label class="check"><input id="rotation-only" type="checkbox"> Rotation, clock offset, and gyro bias only (skip the lever arm)</label>
+    <div class="actions">
+      <button id="run" class="primary" disabled>Calibrate</button>
+      <button id="example" disabled>Use a synthetic example</button>
+    </div>
+    <div id="log" role="status" aria-live="polite">Loading Python…</div>
+  </section>
+
+  <section id="results" class="panel" hidden aria-labelledby="results-title">
+    <h2 id="results-title">2. Results</h2>
+    <div id="truth" class="muted"></div>
+    <h3>Rotation, clock offset, gyro bias <span id="rotation-badge"></span></h3>
+    <ul id="rotation-reasons" class="reasons"></ul>
+    <div class="table-wrap"><table id="rotation-table"></table></div>
+    <div id="translation-block">
+      <h3>Lever arm <span id="translation-badge"></span></h3>
+      <ul id="translation-reasons" class="reasons"></ul>
+      <div class="table-wrap"><table id="translation-table"></table></div>
+    </div>
+    <h3>Extrinsic</h3>
+    <p class="muted">T_lidar_imu maps IMU-frame vectors into the trajectory's sensor frame; the clock offset is <code>t_imu = t_sensor + dt</code>.</p>
+    <pre id="matrix" class="matrix"></pre>
+    <div class="actions">
+      <button id="download-rotation">Download rotation artifact (YAML)</button>
+      <button id="download-translation">Download lever-arm artifact (YAML)</button>
+    </div>
+    <p class="muted">The artifacts are schema-valid <code>slac.imu_lidar_rotation/v0.1</code> and
+      <code>slac.imu_lidar_translation/v0.1</code> files with provenance; check them with <code>calibrex validate</code>.</p>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const log = (text) => { $("log").textContent += "\n" + text; $("log").scrollTop = 1e9; };
+let pyodide = null;
+let example = null;
+let artifacts = {};
+
+async function boot() {
+  try {
+    pyodide = await loadPyodide();
+    log("Loading NumPy, SciPy, Pydantic, PyYAML…");
+    await pyodide.loadPackage(["numpy", "scipy", "pydantic", "pyyaml", "sqlite3", "micropip"]);
+    const manifest = await (await fetch("wheels/manifest.json")).json();
+    log("Installing Calibrex " + manifest.version + "…");
+    const micropip = pyodide.pyimport("micropip");
+    await micropip.install(new URL("wheels/" + manifest.wheel, location.href).href, { deps: false });
+    await pyodide.runPythonAsync(`
+import json
+from calibrex.evaluation.imu_trajectory import run_imu_trajectory_calibration, calibration_summary
+from calibrex.data.imu_trajectory_synthetic import synthetic_imu_trajectory
+`);
+    log("Ready.");
+    $("run").disabled = false;
+    $("example").disabled = false;
+  } catch (error) {
+    log("Failed to load: " + error);
+  }
+}
+
+async function readFile(input) {
+  const file = input.files[0];
+  return file ? { name: file.name, text: await file.text() } : null;
+}
+
+async function calibrate(imuText, trajectoryText, name) {
+  $("run").disabled = true; $("example").disabled = true;
+  log("Calibrating " + name + " (this can take a minute)…");
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  const started = performance.now();
+  try {
+    pyodide.globals.set("imu_text", imuText);
+    pyodide.globals.set("trajectory_text", trajectoryText);
+    pyodide.globals.set("options", pyodide.toPy({
+      acceleration_unit: $("accel-unit").value,
+      reference: $("mid360").checked ? "mid360" : "none",
+      estimate_translation: !$("rotation-only").checked,
+      sequence_id: name,
+    }));
+    const output = await pyodide.runPythonAsync(`
+import io, yaml
+options = options.to_py()
+calibration = run_imu_trajectory_calibration(
+    imu_text, trajectory_text, command=["calibrex browser calibration"], **options)
+def dump(artifact):
+    return None if artifact is None else yaml.safe_dump(
+        artifact.model_dump(mode="json", exclude_none=True), sort_keys=False)
+json.dumps({"summary": calibration_summary(calibration),
+            "rotation_yaml": dump(calibration.rotation),
+            "translation_yaml": dump(calibration.translation)})
+`);
+    const result = JSON.parse(output);
+    artifacts = { rotation: result.rotation_yaml, translation: result.translation_yaml };
+    render(result.summary);
+    log("Done in " + ((performance.now() - started) / 1000).toFixed(1) + " s.");
+  } catch (error) {
+    log("Error: " + String(error).split("\n").slice(-2).join(" "));
+  } finally {
+    $("run").disabled = false; $("example").disabled = false;
+  }
+}
+
+function badge(status) { return `<span class="badge ${status}">${status}</span>`; }
+function reasons(list) { return list.map((item) => `<li>${escapeHtml(item)}</li>`).join(""); }
+function escapeHtml(text) { return String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+function control(value) { return value === null || value === undefined ? "—" : (value ? "detected" : "not detected"); }
+
+function render(summary) {
+  $("results").hidden = false;
+  const rotation = summary.rotation;
+  $("rotation-badge").innerHTML = badge(rotation.policy_status);
+  $("rotation-reasons").innerHTML = reasons(rotation.policy_reasons);
+  const scale = { deg: [1, "deg", 3], s: [1000, "ms", 2], "rad/s": [1, "rad/s", 5] };
+  $("rotation-table").innerHTML = "<tr><th>Quantity</th><th>Estimate</th><th>Std</th><th>Status</th><th>Held-out control</th></tr>" +
+    rotation.dofs.map((dof) => {
+      const [factor, unit, digits] = scale[dof.unit];
+      return `<tr><td>${dof.name}</td><td class="num">${(dof.value * factor).toFixed(digits)} ${unit}</td>` +
+        `<td class="num">${(dof.std * factor).toFixed(digits)}</td><td>${dof.status}</td><td>${control(dof.control_detected)}</td></tr>`;
+    }).join("");
+  const translation = summary.translation;
+  $("translation-block").hidden = !translation;
+  if (translation) {
+    $("translation-badge").innerHTML = badge(translation.policy_status);
+    $("translation-reasons").innerHTML = reasons(translation.policy_reasons);
+    $("translation-table").innerHTML = "<tr><th>Axis</th><th>Estimate</th><th>Std</th><th>Status</th><th>Held-out control</th></tr>" +
+      translation.axes.map((axis) => `<tr><td>${axis.name}</td><td class="num">${(axis.value_m * 1000).toFixed(1)} mm</td>` +
+        `<td class="num">${(axis.std_m * 1000).toFixed(1)}</td><td>${axis.status}</td><td>${control(axis.control_detected)}</td></tr>`).join("");
+  }
+  $("download-translation").hidden = !artifacts.translation;
+  if (summary.T_lidar_imu) {
+    $("matrix").textContent = "T_lidar_imu =\n" + summary.T_lidar_imu.map((row) =>
+      row.map((value) => value.toFixed(6).padStart(11)).join(" ")).join("\n") +
+      "\n\ndt = " + (summary.time_offset_s * 1000).toFixed(2) + " ms";
+  } else {
+    $("matrix").textContent = "No extrinsic: the rotation could not be solved.";
+  }
+  $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function download(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/yaml" }));
+  const link = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$("run").addEventListener("click", async () => {
+  const imu = await readFile($("imu-file"));
+  const trajectory = await readFile($("trajectory-file"));
+  if (!imu || !trajectory) { log("Choose an IMU CSV and a trajectory first, or use the synthetic example."); return; }
+  $("truth").textContent = "";
+  await calibrate(imu.text, trajectory.text, trajectory.name.replace(/\.[^.]+$/, ""));
+});
+
+$("example").addEventListener("click", async () => {
+  log("Generating a synthetic hand-held recording (120 s, IMU at 200 Hz, poses at 10 Hz)…");
+  const data = JSON.parse(await pyodide.runPythonAsync(`
+data = synthetic_imu_trajectory()
+json.dumps({"imu": data.imu_csv, "trajectory": data.trajectory_tum})
+`));
+  $("accel-unit").value = "mps2"; $("mid360").checked = false;
+  $("truth").textContent = "Synthetic truth: rotation (0.8, -1.5, 2.0) deg, lever arm (11.0, 23.0, -44.0) mm, dt 12 ms, gyro bias (0.004, -0.002, 0.003) rad/s.";
+  await calibrate(data.imu, data.trajectory, "synthetic_example");
+});
+
+$("download-rotation").addEventListener("click", () => download("imu_lidar_rotation.yaml", artifacts.rotation));
+$("download-translation").addEventListener("click", () => download("imu_lidar_translation.yaml", artifacts.translation));
+
+boot();
+</script>
+</body>
+</html>
