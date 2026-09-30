@@ -163,15 +163,15 @@ async function calibrate(imuText, trajectoryText, name) {
   try {
     pyodide.globals.set("imu_text", imuText);
     pyodide.globals.set("trajectory_text", trajectoryText);
-    pyodide.globals.set("options", pyodide.toPy({
+    pyodide.globals.set("options_json", JSON.stringify({
       acceleration_unit: $("accel-unit").value,
       reference: $("mid360").checked ? "mid360" : "none",
       estimate_translation: !$("rotation-only").checked,
       sequence_id: name,
     }));
     const output = await pyodide.runPythonAsync(`
-import io, yaml
-options = options.to_py()
+import yaml
+options = json.loads(options_json)
 calibration = run_imu_trajectory_calibration(
     imu_text, trajectory_text, command=["calibrex browser calibration"], **options)
 def dump(artifact):
