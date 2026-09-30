@@ -1,0 +1,230 @@
+schema_version: slac.lidar_lidar_extrinsic/v0.1
+method: map_registration/v0.1
+solver_status: max_iterations
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data, so not calibrated: roll'
+calibrated_dofs:
+- pitch
+- yaw
+- x
+- y
+- z
+transform:
+  parent_frame: /os1_cloud_node1/points
+  child_frame: /os1_cloud_node2/points
+  translation_m:
+  - -0.49016906998694326
+  - -0.02360529785986217
+  - 0.04221231985116586
+  rotation_quat_xyzw:
+  - 0.0038060859251061187
+  - 0.7069778152131677
+  - 0.7072230202646124
+  - -0.001866042375378064
+dofs:
+- name: roll
+  unit: deg
+  value: 89.98076146246854
+  std_analytic: 0.007601686272434142
+  std_jackknife: 0.10808202311784253
+  std_reported: 0.10808202311784253
+  status: unobservable
+  reference_value: 90.0
+  error_to_reference: 0.01986864937697297
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 3509.3624366465956
+    detected: true
+- name: pitch
+  unit: deg
+  value: -0.4596319188883416
+  std_analytic: 0.001547845147606943
+  std_jackknife: 0.01610014849574775
+  std_reported: 0.01610014849574775
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: 0.4596052477689577
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 95378.60116827488
+    detected: true
+- name: yaw
+  unit: deg
+  value: 179.84287709341385
+  std_analytic: 0.0024817858598284214
+  std_jackknife: 0.01940018902096613
+  std_reported: 0.01940018902096613
+  status: estimated
+  reference_value: 180.0
+  error_to_reference: -0.15719922912872353
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 111111.68656424806
+    detected: true
+- name: x
+  unit: m
+  value: -0.49016906998694326
+  std_analytic: 0.000403969392267732
+  std_jackknife: 0.00719213087559426
+  std_reported: 0.00719213087559426
+  status: estimated
+  reference_value: -0.5
+  error_to_reference: 0.009830930013056738
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 7175.629413856193
+    detected: true
+- name: y
+  unit: m
+  value: -0.02360529785986217
+  std_analytic: 0.0006516257215105057
+  std_jackknife: 0.006784319351843307
+  std_reported: 0.006784319351843307
+  status: estimated
+  reference_value: 0.03
+  error_to_reference: -0.053605297859862164
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 3097.2741701863706
+    detected: true
+- name: z
+  unit: m
+  value: 0.04221231985116586
+  std_analytic: 0.0003685182078384151
+  std_jackknife: 0.008557599721469494
+  std_reported: 0.008557599721469494
+  status: estimated
+  reference_value: -0.0049999999999999975
+  error_to_reference: 0.047212319851165856
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 13755.881593292579
+    detected: true
+residual_sigma_m: 0.08645307600426742
+holdout_median_residual_m: 0.06084804504485128
+reference_holdout_delta_chi2: 48900.55213825405
+samples:
+  reference_scans: 5795
+  samples: 578
+  train_samples: 388
+  holdout_samples: 190
+  train_correspondences: 197000
+  holdout_correspondences: 95454
+train_blocks:
+- 0
+- 2
+- 3
+- 5
+- 6
+- 8
+- 9
+- 11
+- 12
+- 14
+- 15
+- 17
+- 18
+- 20
+- 21
+- 23
+- 24
+- 26
+- 27
+- 29
+- 30
+- 32
+- 33
+- 35
+- 36
+- 38
+- 39
+- 41
+- 42
+- 44
+- 45
+- 47
+- 48
+- 50
+- 51
+- 53
+- 54
+- 56
+- 57
+holdout_blocks:
+- 1
+- 4
+- 7
+- 10
+- 13
+- 16
+- 19
+- 22
+- 25
+- 28
+- 31
+- 34
+- 37
+- 40
+- 43
+- 46
+- 49
+- 52
+- 55
+jackknife_fits: 8
+options:
+  sample_every_scans: 10
+  map_half_window_scans: 5
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  translation_control_m: 0.05
+  detection_delta_chi2: 9.0
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  voxel_size_m: 0.2
+  max_correspondence_m: 0.5
+  huber_m: 0.05
+  iterations: 30
+reference: inv(lidar_horz.yaml) @ lidar_vert.yaml
+limitations:
+- The reference LiDAR's odometry supplies the map; its drift over the map window adds
+  noise to every sample.
+- The clock offset between the two LiDARs is not estimated; both clouds are matched
+  at their header times.
+- The reference transform, if given, is a comparison, not ground truth.
+provenance:
+  generator: calibrex.evaluation.lidar_lidar_map
+  generator_version: 0.4.1
+  git_commit: bf809d7
+  command:
+  - calibrex
+  - lidar-lidar
+  - ros2
+  - tnp_01_rosbag2
+  - --reference-topic
+  - /os1_cloud_node1/points
+  - --target-topic
+  - /os1_cloud_node2/points
+  - --point-time-field
+  - t
+  - --body-transforms
+  - tnp_01/lidar_horz.yaml
+  - tnp_01/lidar_vert.yaml
+  dataset_family: ntu_viral
+  sequence_ids:
+  - tnp_01_rosbag2
+  reference_topic: /os1_cloud_node1/points
+  target_topic: /os1_cloud_node2/points
+  input_sha256: 7618b7869c81075e3af4a8a1021d118f0b09dec8fc9f00fdccb1882dd35178ee
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: CC BY-NC-SA 4.0
+  created_at: '2026-09-30T15:30:29.101953+00:00'

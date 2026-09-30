@@ -88,6 +88,7 @@ ValidationKind = Literal[
     "imu-lidar-rotation",
     "imu-lidar-translation",
     "ins-lidar-hand-eye",
+    "lidar-lidar-extrinsic",
     "sota-audit-protocol",
     "sota-audit-result",
     "sota-leaderboard",

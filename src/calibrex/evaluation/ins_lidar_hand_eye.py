@@ -88,6 +88,7 @@ KITTI_LIMITATIONS: tuple[str, ...] = (
     "rotation axis cannot be observed without a prior.",
 )
 
+_ROTATION_AXES: tuple[str, str, str] = ("roll", "pitch", "yaw")
 
 @dataclass(frozen=True)
 class InsLidarRunOptions:
@@ -371,15 +372,29 @@ def _jackknife(
 ) -> dict[str, float]:
     if len(train_blocks) < 3:
         return {}
-    single_start = replace(opts.solver, yaw_starts_deg=(result.start_yaw_deg or 0.0,))
+    if result.transform is None or result.start_rotation is None:
+        return {}
+    single_start = replace(
+        opts.solver,
+        yaw_starts_deg=(),
+        extra_starts=(result.start_rotation,),
+        axis_alignment_start=False,
+    )
+    full_rotation = result.transform[:3, :3]
     samples: dict[str, list[float]] = {name: [] for name in DOF_NAMES}
     for block in train_blocks:
         subset = [item for item in train if item.block != block]
         fit = solver.solve(reference, subset, single_start)
-        if fit.status != "converged":
+        if fit.status != "converged" or fit.transform is None:
             return {}
+        # Rotation DoFs are left perturbations about the parent axes, like the
+        # analytic std, so the spread stays meaningful near Euler singularities.
+        local = Rotation.from_matrix(fit.transform[:3, :3] @ full_rotation.T).as_rotvec()
         for dof in fit.dofs:
-            samples[dof.name].append(dof.value)
+            if dof.name in _ROTATION_AXES:
+                samples[dof.name].append(float(local[_ROTATION_AXES.index(dof.name)]))
+            else:
+                samples[dof.name].append(dof.value)
     count = len(train_blocks)
     spread: dict[str, float] = {}
     for name, values in samples.items():
@@ -422,7 +437,7 @@ def _record(
         reference_value=None if reference_value is None else to_unit(reference_value),
         error_to_reference=None
         if reference_value is None
-        else to_unit(_wrapped(dof.name, dof.value - reference_value)),
+        else to_unit(_reference_error(dof, result, reference_transform, reference_value)),
         known_bad_control=_control(dof.name, reference, holdout, result, opts),
     )
 
@@ -571,6 +586,26 @@ def _reference_value(name: str, reference_transform: FloatArray | None) -> float
         "z": reference_transform[2, 3],
     }
     return float(values[name])
+
+
+def _reference_error(
+    dof: DofEstimate,
+    result: TrajectoryHandEyeResult,
+    reference_transform: FloatArray | None,
+    reference_value: float,
+) -> float:
+    """Rotation errors as a left rotation about the parent axis; others as differences."""
+
+    if (
+        dof.name in _ROTATION_AXES
+        and result.transform is not None
+        and reference_transform is not None
+    ):
+        local = Rotation.from_matrix(
+            result.transform[:3, :3] @ reference_transform[:3, :3].T
+        ).as_rotvec()
+        return float(local[_ROTATION_AXES.index(dof.name)])
+    return _wrapped(dof.name, dof.value - reference_value)
 
 
 def _wrapped(name: str, difference: float) -> float:

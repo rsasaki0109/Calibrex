@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- `calibrex lidar-lidar ros2` calibrates `T_reference_target` for two LiDARs
+  in one ROS 2 bag, as `slac.lidar_lidar_extrinsic/v0.1`.
+  - Target scans are registered to local maps from the reference LiDAR's
+    odometry and solved jointly by robust point-to-plane Gauss-Newton, with
+    held-out blocks, a block jackknife, and 1 deg / 5 cm controls.
+  - On NTU VIRAL tnp_01 (development), five of six DoFs are estimated
+    (roll's std 0.108 deg is just over 0.1). The held-out data reject the
+    rounded design extrinsic (delta chi-square 48,901), about 0.5 deg of
+    pitch and 5 cm in y and z away from the estimate.
+  - Motion-based hand-eye could not recover the translation there, which is
+    documented (`docs/benchmarks/ntu_viral_lidar_lidar.md`).
+- The trajectory hand-eye solver also starts from the rotation that aligns
+  the motion rotation axes, so arbitrary mountings converge. Its jackknife
+  and reference differences use small rotations about the parent axes.
 - Camera-IMU tracking now equalizes contrast (CLAHE) and tracks up to 600
   features at quality 0.001.
   - On the Hilti exp07 corridor, failed frame pairs dropped from 577 to 16

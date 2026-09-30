@@ -173,6 +173,10 @@ class TrajectoryHandEyeOptions:
     huber_threshold: float = 1.5
     irls_iterations: int = 5
     yaw_starts_deg: tuple[float, ...] = (0.0, 90.0, 180.0, 270.0)
+    # Also start from the rotation that aligns the motion rotation axes, which
+    # handles mountings that are not a yaw away from identity.
+    axis_alignment_start: bool = True
+    extra_starts: tuple[FloatArray, ...] = ()
     observable_rotation_std_deg: float = 0.1
     observable_translation_std_m: float = 0.02
     observable_time_offset_std_s: float = 0.005
@@ -225,6 +229,7 @@ class TrajectoryHandEyeResult:
     train: MotionResidualStats
     start_yaw_deg: float | None
     motion_ids: tuple[str, ...] = field(default_factory=tuple)
+    start_rotation: FloatArray | None = None
 
     def dof(self, name: DofName) -> DofEstimate:
         """Return the estimate of one DoF."""
@@ -264,17 +269,28 @@ class TrajectoryHandEyeSolver:
                 train=MotionResidualStats(len(usable), None, None, None, None),
                 start_yaw_deg=None,
             )
-        best: tuple[float, FloatArray, FloatArray, float] | None = None
-        for yaw_deg in opts.yaw_starts_deg:
+        best: tuple[float, FloatArray, FloatArray, float | None] | None = None
+        starts: list[tuple[float | None, FloatArray]] = []
+        for yaw in opts.yaw_starts_deg:
             base = np.eye(4)
-            base[:3, :3] = Rotation.from_euler("z", yaw_deg, degrees=True).as_matrix()
-            params, weights, _ = _irls(reference, usable, base, opts)
-            normalized = _normalized_residuals(reference, usable, base, params, opts)
+            base[:3, :3] = Rotation.from_euler("z", yaw, degrees=True).as_matrix()
+            starts.append((yaw, base))
+        for extra in opts.extra_starts:
+            base = np.eye(4)
+            base[:3, :3] = extra
+            starts.append((None, base))
+        if opts.axis_alignment_start:
+            axis_start = _axis_alignment_start(reference, usable)
+            if axis_start is not None:
+                starts.append((None, axis_start))
+        for start_yaw, start_base in starts:
+            params, weights, _ = _irls(reference, usable, start_base, opts)
+            normalized = _normalized_residuals(reference, usable, start_base, params, opts)
             cost = float(np.sum(weights * normalized**2))
             if best is None or cost < best[0]:
-                best = (cost, base, params, yaw_deg)
+                best = (cost, start_base, params, start_yaw)
         assert best is not None
-        _, base, params, yaw_deg = best
+        _, base, params, chosen_yaw = best
         _, weights, variance_factor = _irls(reference, usable, base, opts, initial=params)
         transform = compose(base, params)
         dofs, eigenvalues = _observability(
@@ -291,9 +307,37 @@ class TrajectoryHandEyeSolver:
             variance_factor=variance_factor,
             information_eigenvalues=eigenvalues,
             train=motion_residual_stats(reference, usable, transform, time_offset, scale),
-            start_yaw_deg=yaw_deg,
+            start_yaw_deg=chosen_yaw,
             motion_ids=tuple(item.motion_id for item in usable),
+            start_rotation=base[:3, :3].copy(),
         )
+
+
+def _axis_alignment_start(
+    reference: ReferenceTrajectory, motions: Sequence[SensorMotion]
+) -> FloatArray | None:
+    """Rotation start from the classic hand-eye axis relation ``alpha = R beta``.
+
+    The rotation vectors of ``A`` and ``B`` are aligned by a Kabsch fit, which
+    handles any mounting (for example a LiDAR turned on its side) when the
+    motion rotates about more than one axis.  Returns ``None`` if the motions
+    do not span at least two rotation axes.
+    """
+
+    alpha = []
+    beta = []
+    for item in motions:
+        a = reference.motion(item.start_s, item.end_s)
+        alpha.append(Rotation.from_matrix(a[:3, :3]).as_rotvec())
+        beta.append(Rotation.from_matrix(item.motion[:3, :3]).as_rotvec())
+    alpha_array, beta_array = np.asarray(alpha), np.asarray(beta)
+    if len(alpha_array) < 3 or np.linalg.matrix_rank(alpha_array, tol=1e-3) < 2:
+        return None
+    left, _, right = np.linalg.svd(alpha_array.T @ beta_array)
+    fix = np.diag([1.0, 1.0, float(np.sign(np.linalg.det(left @ right)))])
+    start = np.eye(4)
+    start[:3, :3] = left @ fix @ right
+    return start
 
 
 def compose(base: FloatArray, params: FloatArray) -> FloatArray:
