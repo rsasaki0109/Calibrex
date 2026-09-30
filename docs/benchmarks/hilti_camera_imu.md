@@ -42,6 +42,46 @@ target-based Kalibr calibration, which is a reference, not ground truth.
    from the IMU. The reported roll, pitch, and yaw values are xyz Euler
    angles.
 
+## Focal lengths against the gyro (`calibrex camera-imu focal`)
+
+Tracked camera rotations scale with the focal length that the features were
+normalized with:
+
+- a rotation about the camera y axis reads as `theta fx_true / fx_used`;
+- a rotation about the x axis reads as `theta fy_true / fy_used`;
+- a rotation about the optical axis does not depend on the focal length.
+
+With the camera-IMU rotation, clock offset, and gyro bias taken from a
+rotation artifact, `calibrex camera-imu focal` regresses the camera's
+angular rates on the gyro's, axis by axis (`calibrex.evaluation.camera_focal`).
+The fit is robust and gives `fx_est = fx_used k_y` and `fy_est = fy_used k_x`,
+with no calibration target. Evidence:
+
+- every third window is held out, and the held-out ratios must agree within
+  3 std;
+- an 8-group jackknife sets the std;
+- the optical-axis ratio `k_z` must be 1 within 3 std, otherwise something
+  other than the focal length is scaling the rotations.
+
+A synthetic test tracks with a focal length 3 % too long and recovers the
+0.971 ratios on x and y, with 1.000 on z.
+
+| exp21 | Ratio about x / y / z | Std | Held-out ratio | fx, fy estimate (Kalibr) | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| cam0 | 0.995 / 0.998 / 1.001 | 0.005 / 0.007 / 0.002 | 0.993 / 1.005 / 1.009 | 350.7, 349.8 (351.3, 351.5) px | inconclusive (std over 0.005) |
+| cam1 | 0.994 / 1.002 / 1.004 | 0.005 / 0.004 / 0.004 | 0.987 / 0.994 / 0.999 | 353.4, 350.6 (352.6, 352.9) px | **pass** |
+| cam2 | 0.977 / 0.988 / 0.999 | 0.010 / 0.005 / 0.004 | 1.004 / 0.987 / 1.000 | 346.4, 342.9 (350.7, 350.9) px | inconclusive |
+| cam3 | 0.977 / 1.013 / 0.997 | 0.006 / 0.013 / 0.003 | 1.015 / 0.989 / 1.001 | 357.5, 345.0 (353.0, 353.3) px | fail (held-out disagreement) |
+| cam4 | 1.012 / 1.003 / 0.995 | 0.010 / 0.006 / 0.002 | 0.998 / 1.013 / 0.992 | 352.5, 356.1 (351.5, 351.8) px | inconclusive |
+
+- **The forward cameras agree with Kalibr's focal lengths** within 0.5 %
+  (about 2 px).
+- **The side and down cameras scatter by 1-2 %** and fail or miss the bound,
+  in line with their rotation results above.
+- **The optical-axis control stays within 0.8 % of 1** on every camera.
+
+Artifacts: `docs/assets/hilti2022_camera_imu/focal_cam*_exp21.yaml`.
+
 ## Development results
 
 Only exp21 and exp07 were used, for development. exp01-exp04 are held back,

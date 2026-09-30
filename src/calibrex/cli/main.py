@@ -1321,6 +1321,25 @@ def _build_parser() -> argparse.ArgumentParser:
     camera_imu_rotation.add_argument("--output", type=Path, required=True)
     camera_imu_rotation.add_argument("--json", action="store_true")
     camera_imu_rotation.set_defaults(func=_cmd_camera_imu_rotation)
+    camera_imu_focal = camera_imu_subcommands.add_parser(
+        "focal",
+        help="check a camera's focal lengths against the gyro (no target; needs a "
+        "camera-imu rotation artifact)",
+    )
+    camera_imu_focal.add_argument("bag", type=Path, help="rosbag2 directory")
+    camera_imu_focal.add_argument("--camchain", type=Path, required=True)
+    camera_imu_focal.add_argument("--camera", default="cam0")
+    camera_imu_focal.add_argument("--imu-topic", required=True)
+    camera_imu_focal.add_argument("--image-topic")
+    camera_imu_focal.add_argument(
+        "--rotation", type=Path, required=True, help="camera-imu rotation artifact"
+    )
+    camera_imu_focal.add_argument("--frame-stride", type=_positive_int, default=4)
+    camera_imu_focal.add_argument("--dataset-family", required=True)
+    camera_imu_focal.add_argument("--dataset-license", required=True)
+    camera_imu_focal.add_argument("--output", type=Path, required=True)
+    camera_imu_focal.add_argument("--json", action="store_true")
+    camera_imu_focal.set_defaults(func=_cmd_camera_imu_focal)
 
     lidar_lidar = subcommands.add_parser(
         "lidar-lidar",
@@ -6425,6 +6444,48 @@ def _cmd_lidar_wheel_kitti(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
     return _emit_lidar_wheel(artifact, args.output, args.json)
+
+
+def _cmd_camera_imu_focal(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.camera_focal import run_ros2_camera_focal_check
+
+    try:
+        chain = read_mapping(args.camchain)
+        entry = chain.get(args.camera)
+        if not isinstance(entry, dict):
+            raise ValueError(f"{args.camchain} has no camera {args.camera!r}")
+        image_topic = args.image_topic or entry.get("rostopic")
+        if not image_topic:
+            raise ValueError("no --image-topic given and the camchain has no rostopic")
+        command = ["calibrex", "camera-imu", "focal", args.bag.name, "--camchain"]
+        command += [args.camchain.name, "--camera", args.camera, "--imu-topic", args.imu_topic]
+        command += ["--rotation", args.rotation.name, "--output", str(args.output)]
+        artifact = run_ros2_camera_focal_check(
+            str(args.bag),
+            image_topic=str(image_topic),
+            imu_topic=args.imu_topic,
+            camera_entry=entry,
+            rotation_artifact_path=str(args.rotation),
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            frame_stride=args.frame_stride,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError, ImportError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "fx_estimate_px": artifact.fx_estimate_px,
+            "fy_estimate_px": artifact.fy_estimate_px,
+            "rate_ratio": artifact.rate_ratio,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
