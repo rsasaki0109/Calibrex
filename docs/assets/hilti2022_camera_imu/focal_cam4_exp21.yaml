@@ -1,0 +1,64 @@
+schema_version: slac.camera_focal_scale/v0.1
+method: gyro_rate_ratio/v0.1
+policy_status: inconclusive
+policy_reasons:
+- the x or y ratio std exceeds the bound
+rate_ratio:
+- 1.0124093817286637
+- 1.0026985749807082
+- 0.9946983013616154
+rate_ratio_std:
+- 0.009512895909292482
+- 0.006299099746196816
+- 0.0020069318854717853
+holdout_rate_ratio:
+- 0.998160837299735
+- 1.0132202385350344
+- 0.9920867279401053
+fx_used_px: 351.5132148653381
+fy_used_px: 351.7557554938886
+fx_estimate_px: 352.46179963236204
+fy_estimate_px: 356.1208269390668
+fx_std_px: 2.214216802543078
+fy_std_px: 3.3462158875078996
+intervals: 1485
+options:
+  frame_stride: 4
+  holdout_every: 3
+  jackknife_groups: 8
+  outlier_mad: 5.0
+  min_rate_rps: 0.05
+  max_holdout_sigma: 3.0
+  max_optical_axis_deviation_sigma: 3.0
+  observable_ratio_std: 0.005
+limitations:
+- The ratio also absorbs anything else that scales tracked rotations, such as distortion
+  errors or tracking attenuation; the optical-axis ratio is the check.
+- Only fx and fy are checked; the principal point and distortion are taken as given.
+provenance:
+  generator: calibrex.evaluation.camera_focal
+  generator_version: 0.4.1
+  git_commit: 3e45c82
+  command:
+  - calibrex
+  - camera-imu
+  - focal
+  - exp21_ros2
+  - --camchain
+  - calib_3_cam4-camchain-imucam.yaml
+  - --camera
+  - cam0
+  - --imu-topic
+  - /alphasense/imu
+  - --rotation
+  - cam4_exp21.yaml
+  - --output
+  - docs/assets/hilti2022_camera_imu/focal_cam4_exp21.yaml
+  dataset_family: hilti2022
+  sequence_ids:
+  - exp21_ros2
+  image_topic: /alphasense/cam4/image_raw
+  rotation_artifact_sha256: dd64f80dabf063413f3530fe85137d80766ba6ad84693973e03998d8145cd3aa
+  input_sha256: 1baa961d310a4b724ea293cc1f3d219b8ff8bdb7f3cf836b91f85f94014ccb82
+  dataset_license: Hilti SLAM Challenge 2022 terms
+  created_at: '2026-09-30T19:40:03.677510+00:00'

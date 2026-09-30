@@ -45,6 +45,10 @@ from calibrex.core.calibration_lifecycle import (
     CalibrationLifecycleArtifact,
     calibration_lifecycle_json_schema,
 )
+from calibrex.core.camera_focal_scale import (
+    CameraFocalScaleArtifact,
+    camera_focal_scale_json_schema,
+)
 from calibrex.core.camera_imu_service import (
     CameraImuServiceEvaluation,
     CameraImuServicePlan,
@@ -830,6 +834,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("ins-lidar-hand-eye", InsLidarHandEyeArtifact, ins_lidar_hand_eye_json_schema),
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
     _entry("gnss-imu-lever-arm", GnssImuLeverArmArtifact, gnss_imu_lever_arm_json_schema),
+    _entry("camera-focal-scale", CameraFocalScaleArtifact, camera_focal_scale_json_schema),
     _entry(
         "lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema
     ),

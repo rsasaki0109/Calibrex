@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `calibrex camera-imu focal` checks a camera's focal lengths against the
+  gyro, without a target (`slac.camera_focal_scale/v0.1`).
+  - Per-axis camera/gyro rate ratios give `fx`/`fy` estimates. The
+    optical-axis ratio is the control.
+  - On Hilti 2022 exp21 the forward cameras agree with Kalibr within 0.5 %
+    (cam1 `pass`); the side cameras scatter by 1-2 %.
+- **Test fix:** the synthetic rotating-camera test rendered almost black
+  frames (the texture offset was inverted). It now renders the full view.
 - `calibrex lidar-wheel` calibrates a LiDAR against wheel odometry
   (`slac.lidar_wheel_odometry/v0.1`).
   - It estimates the LiDAR-to-vehicle rotation, the wheel-speed scale, the

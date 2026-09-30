@@ -1,0 +1,65 @@
+schema_version: slac.camera_focal_scale/v0.1
+method: gyro_rate_ratio/v0.1
+policy_status: fail
+policy_reasons:
+- held-out ratios disagree with the training ratios by 5.2, 1.6, 1.0 std about x,
+  y, z
+rate_ratio:
+- 0.9764861762139162
+- 1.0127937893737895
+- 0.9974124245610212
+rate_ratio_std:
+- 0.006007028245162586
+- 0.012549381792980555
+- 0.003038347281342103
+holdout_rate_ratio:
+- 1.0146747497477957
+- 0.9888344756196921
+- 1.001114354091448
+fx_used_px: 352.9514843860555
+fy_used_px: 353.32837903547403
+fx_estimate_px: 357.467071336457
+fy_estimate_px: 345.0202777922113
+fx_std_px: 4.429322931959825
+fy_std_px: 2.1224535526836044
+intervals: 1505
+options:
+  frame_stride: 4
+  holdout_every: 3
+  jackknife_groups: 8
+  outlier_mad: 5.0
+  min_rate_rps: 0.05
+  max_holdout_sigma: 3.0
+  max_optical_axis_deviation_sigma: 3.0
+  observable_ratio_std: 0.005
+limitations:
+- The ratio also absorbs anything else that scales tracked rotations, such as distortion
+  errors or tracking attenuation; the optical-axis ratio is the check.
+- Only fx and fy are checked; the principal point and distortion are taken as given.
+provenance:
+  generator: calibrex.evaluation.camera_focal
+  generator_version: 0.4.1
+  git_commit: 3e45c82
+  command:
+  - calibrex
+  - camera-imu
+  - focal
+  - exp21_ros2
+  - --camchain
+  - calib_3_cam3-camchain-imucam.yaml
+  - --camera
+  - cam0
+  - --imu-topic
+  - /alphasense/imu
+  - --rotation
+  - cam3_exp21.yaml
+  - --output
+  - docs/assets/hilti2022_camera_imu/focal_cam3_exp21.yaml
+  dataset_family: hilti2022
+  sequence_ids:
+  - exp21_ros2
+  image_topic: /alphasense/cam3/image_raw
+  rotation_artifact_sha256: 8b6b42bc57d4e0341b4eff243574426e427d04ebb6f1a02162541939c5636b91
+  input_sha256: 1baa961d310a4b724ea293cc1f3d219b8ff8bdb7f3cf836b91f85f94014ccb82
+  dataset_license: Hilti SLAM Challenge 2022 terms
+  created_at: '2026-09-30T19:40:02.668425+00:00'

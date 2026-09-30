@@ -99,7 +99,7 @@ def test_tracking_a_rotating_camera_recovers_the_orientation() -> None:
             [2.0 * np.sin(0.3 * index), 1.5 * np.sin(0.25 * index + 1), 0.1 * index]
         )
         rotation = Rotation.from_rotvec(angles).as_matrix()  # R_world_camera
-        warp = matrix @ rotation.T @ np.linalg.inv(matrix) @ np.linalg.inv(base)
+        warp = matrix @ rotation.T @ np.linalg.inv(matrix) @ base
         image = cv2.warpPerspective(
             texture, np.linalg.inv(warp), (640, 480), flags=cv2.WARP_INVERSE_MAP
         )

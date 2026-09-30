@@ -1,0 +1,212 @@
+{
+  "$defs": {
+    "CameraFocalProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "image_topic": {
+          "title": "Image Topic",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "rotation_artifact_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Rotation Artifact Sha256",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "image_topic",
+        "rotation_artifact_sha256",
+        "input_sha256",
+        "dataset_license"
+      ],
+      "title": "CameraFocalProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Focal-length estimates from camera/gyro rate ratios, with evidence.",
+  "properties": {
+    "fx_estimate_px": {
+      "exclusiveMinimum": 0.0,
+      "title": "Fx Estimate Px",
+      "type": "number"
+    },
+    "fx_std_px": {
+      "minimum": 0.0,
+      "title": "Fx Std Px",
+      "type": "number"
+    },
+    "fx_used_px": {
+      "exclusiveMinimum": 0.0,
+      "title": "Fx Used Px",
+      "type": "number"
+    },
+    "fy_estimate_px": {
+      "exclusiveMinimum": 0.0,
+      "title": "Fy Estimate Px",
+      "type": "number"
+    },
+    "fy_std_px": {
+      "minimum": 0.0,
+      "title": "Fy Std Px",
+      "type": "number"
+    },
+    "fy_used_px": {
+      "exclusiveMinimum": 0.0,
+      "title": "Fy Used Px",
+      "type": "number"
+    },
+    "holdout_rate_ratio": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Holdout Rate Ratio",
+      "type": "array"
+    },
+    "intervals": {
+      "minimum": 0,
+      "title": "Intervals",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "gyro_rate_ratio/v0.1",
+      "default": "gyro_rate_ratio/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraFocalProvenance"
+    },
+    "rate_ratio": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Rate Ratio",
+      "type": "array"
+    },
+    "rate_ratio_std": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Rate Ratio Std",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "slac.camera_focal_scale/v0.1",
+      "default": "slac.camera_focal_scale/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy_status",
+    "policy_reasons",
+    "rate_ratio",
+    "rate_ratio_std",
+    "holdout_rate_ratio",
+    "fx_used_px",
+    "fy_used_px",
+    "fx_estimate_px",
+    "fy_estimate_px",
+    "fx_std_px",
+    "fy_std_px",
+    "intervals",
+    "options",
+    "provenance"
+  ],
+  "title": "CameraFocalScaleArtifact",
+  "type": "object"
+}
