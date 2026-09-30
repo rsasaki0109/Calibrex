@@ -60,6 +60,7 @@ from calibrex.solvers.imu_lidar_rotation_solver import (
 from calibrex.solvers.scan_to_scan_odometry import RotationModel
 
 FloatArray: TypeAlias = NDArray[np.float64]
+_AXES: tuple[str, str, str] = ("roll", "pitch", "yaw")
 _UNITS: dict[str, Literal["deg", "s", "rad/s"]] = {
     "roll": "deg",
     "pitch": "deg",
@@ -134,10 +135,19 @@ def evaluate_imu_lidar_rotation(
             result, (), len(train_ids), len(holdout_ids), 0, None, None, len(intervals),
             "fail", ("too few LiDAR rate intervals with gyro coverage to solve",),
         )  # fmt: skip
-    jackknife, fits = _jackknife(solver, gyro, train, train_ids, opts)
+    jackknife, fits = _jackknife(solver, gyro, train, train_ids, opts, result.rotation)
     reference = _reference_values(reference_rotation)
     records = tuple(
-        _record(dof.name, jackknife.get(dof.name), result, gyro, holdout, reference, opts)
+        _record(
+            dof.name,
+            jackknife.get(dof.name),
+            result,
+            gyro,
+            holdout,
+            reference,
+            opts,
+            reference_rotation,
+        )
         for dof in result.dofs
     )
     train_median = _median_rate_residual(gyro, train, result, opts)
@@ -287,12 +297,15 @@ def rotation_artifact_from_evaluation(
     deskew_passes: list[dict[str, Any]] | None = None,
     deskew_feedback_ratio: float | None = None,
     limitations: list[str] | None = None,
+    sensor_modality: Literal["lidar", "camera", "trajectory"] = "lidar",
+    extra_options: dict[str, Any] | None = None,
 ) -> ImuLidarRotationArtifact:
     """Assemble a schema-valid rotation artifact from an evaluation."""
 
     opts = options
     result = evaluation.result
     return ImuLidarRotationArtifact(
+        sensor_modality=sensor_modality,
         solver_status=result.status,
         policy_status=evaluation.policy_status,
         policy_reasons=list(evaluation.policy_reasons),
@@ -321,6 +334,7 @@ def rotation_artifact_from_evaluation(
             "rate_sigma_fraction": opts.solver.rate_sigma_fraction,
             "observable_rotation_std_deg": opts.solver.observable_rotation_std_deg,
             "observable_time_offset_std_s": opts.solver.observable_time_offset_std_s,
+            **(extra_options or {}),
         },
         windows=windows,
         train_windows=evaluation.train_windows,
@@ -402,17 +416,29 @@ def _jackknife(
     train: RateIntervals,
     train_ids: NDArray[np.int64],
     opts: ImuLidarRunOptions,
+    full_rotation: FloatArray,
 ) -> tuple[dict[str, float], int]:
+    """Leave-group-out spread.
+
+    Rotation axes are measured as small rotations about the sensor's x, y, z
+    axes relative to the full fit, like the analytic std and the controls, so
+    the spread stays meaningful for mountings near an Euler singularity.
+    """
+
     groups = min(opts.jackknife_groups, len(train_ids))
     if groups < 3:
         return {}, 0
     samples: dict[str, list[float]] = {name: [] for name in ROTATION_DOFS}
     for members in np.array_split(train_ids, groups):
         fit = solver.solve(gyro, train.subset(~np.isin(train.window_ids, members)), opts.solver)
-        if fit.status != "converged":
+        if fit.status != "converged" or fit.rotation is None:
             return {}, 0
+        local = Rotation.from_matrix(fit.rotation @ full_rotation.T).as_rotvec()
         for dof in fit.dofs:
-            samples[dof.name].append(dof.value)
+            if dof.name in _AXES:
+                samples[dof.name].append(float(local[_AXES.index(dof.name)]))
+            else:
+                samples[dof.name].append(dof.value)
     spread: dict[str, float] = {}
     for name, values in samples.items():
         if len(values) == groups:
@@ -438,6 +464,7 @@ def _record(
     holdout: RateIntervals,
     reference: dict[str, float],
     opts: ImuLidarRunOptions,
+    reference_rotation: FloatArray | None = None,
 ) -> ImuLidarRotationDofRecord:
     dof = result.dof(name)  # type: ignore[arg-type]
     convert = math.degrees if _UNITS[name] == "deg" else (lambda value: value)
@@ -449,9 +476,14 @@ def _record(
     }[_UNITS[name]]
     reference_value = reference.get(name)
     error = None
-    if reference_value is not None:
-        difference = dof.value - reference_value
-        error = convert(math.atan2(math.sin(difference), math.cos(difference)))
+    if (
+        reference_value is not None
+        and reference_rotation is not None
+        and result.rotation is not None
+    ):
+        # Small rotation about the sensor axis that takes the reference to the estimate.
+        local = Rotation.from_matrix(result.rotation @ reference_rotation.T).as_rotvec()
+        error = convert(float(local[_AXES.index(name)]))
     return ImuLidarRotationDofRecord(
         name=dof.name,
         unit=_UNITS[name],

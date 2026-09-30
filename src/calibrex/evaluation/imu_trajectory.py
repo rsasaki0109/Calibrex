@@ -135,6 +135,7 @@ def run_imu_trajectory_calibration(
         if use_mid360
         else None,
         limitations=list(TRAJECTORY_LIMITATIONS),
+        sensor_modality="trajectory",
     )
     result = evaluation.result
     if not estimate_translation or result.rotation is None:

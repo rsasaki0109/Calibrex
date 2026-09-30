@@ -188,7 +188,7 @@ jobs:
       - name: Install OpenCV adapter
         run: python -m pip install -e ".[dev,opencv]"
       - name: Test OpenCV hand-eye conventions
-        run: pytest tests/unit/test_opencv_hand_eye_adapters.py
+        run: pytest tests/unit/test_opencv_hand_eye_adapters.py tests/unit/test_visual_rotation.py
 
   calibration-action:
     runs-on: ubuntu-latest

@@ -90,6 +90,14 @@ class ImuLidarRotationArtifact(StrictModel):
 
     schema_version: Literal["slac.imu_lidar_rotation/v0.1"] = IMU_LIDAR_ROTATION_SCHEMA_VERSION
     method: Literal["angular_rate_alignment/v0.1"] = "angular_rate_alignment/v0.1"
+    sensor_modality: Literal["lidar", "camera", "trajectory"] = Field(
+        default="lidar",
+        description=(
+            "Which sensor's motion was aligned with the gyro: LiDAR odometry, camera "
+            "rotations from images, or a user-supplied trajectory. The artifact calls "
+            "that sensor's frame 'lidar' in every case."
+        ),
+    )
     solver_status: Literal["converged", "insufficient_intervals"]
     policy_status: ImuLidarPolicyStatus
     policy_reasons: list[str] = Field(min_length=1)
