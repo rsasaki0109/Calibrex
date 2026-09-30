@@ -357,6 +357,10 @@ from calibrex.core.transform_artifacts import (
     TransformArtifact,
     transform_artifact_json_schema,
 )
+from calibrex.core.vehicle_frame_rotation import (
+    VehicleFrameRotationArtifact,
+    vehicle_frame_rotation_json_schema,
+)
 from calibrex.data.depth import (
     DepthProviderArtifact,
     depth_provider_json_schema,
@@ -817,6 +821,9 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("imu-lidar-translation", ImuLidarTranslationArtifact, imu_lidar_translation_json_schema),
     _entry("ins-lidar-hand-eye", InsLidarHandEyeArtifact, ins_lidar_hand_eye_json_schema),
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
+    _entry(
+        "vehicle-frame-rotation", VehicleFrameRotationArtifact, vehicle_frame_rotation_json_schema
+    ),
     _entry("sota-audit-protocol", SotaAuditProtocol, sota_audit_protocol_json_schema),
     _entry("sota-audit-result", SotaAuditResult, sota_audit_result_json_schema),
     _entry("sota-leaderboard", SotaLeaderboard, sota_leaderboard_json_schema),
