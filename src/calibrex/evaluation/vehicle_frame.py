@@ -192,7 +192,14 @@ def reference_entry(
 
 
 def oxts_motions(drive_dir: str | Path, *, block_duration_s: float) -> list[VehicleMotion]:
-    """OXTS velocities (vf, vl, vu) and angular rates (wf, wl, wu) as motions in the OXTS frame."""
+    """OXTS velocities and angular rates as motions in the OXTS body frame.
+
+    KITTI's ``vf, vl, vu`` and ``wf, wl, wu`` are forward/left/up components in
+    a *level* frame that follows the heading, not the body: level =
+    ``Ry(pitch) Rx(roll)`` body (checked against ``wx, wy, wz`` and ``ax, ay, az``
+    to 3e-4 rad/s and 0.014 m/s^2 on drive 0022).  Both are rotated back into
+    the body frame with each packet's roll and pitch.
+    """
 
     root = Path(drive_dir)
     files = sorted((root / "oxts" / "data").glob("*.txt"))
@@ -205,13 +212,14 @@ def oxts_motions(drive_dir: str | Path, *, block_duration_s: float) -> list[Vehi
     for index, path in enumerate(files):
         values = np.loadtxt(path)
         time_s = float(times[index])
+        body_to_level = Rotation.from_euler("YX", [values[4], values[3]]).as_matrix()
         motions.append(
             VehicleMotion(
                 block=int((time_s - float(times[0])) // block_duration_s),
                 start_s=time_s,
                 end_s=time_s,
-                velocity_mps=np.asarray(values[8:11], dtype=np.float64),
-                angular_rate_rps=np.asarray(values[20:23], dtype=np.float64),
+                velocity_mps=np.asarray(body_to_level.T @ values[8:11], dtype=np.float64),
+                angular_rate_rps=np.asarray(body_to_level.T @ values[20:23], dtype=np.float64),
             )
         )
     return motions
@@ -421,3 +429,115 @@ def _policy(
     if unobservable:
         return "inconclusive", tuple(notes)
     return "pass", ("every rotation axis is estimated and held-out blocks detect every control",)
+
+
+INS_LIMITATIONS: tuple[str, ...] = (
+    "The vehicle frame is defined by the motion: it assumes no side slip and no "
+    "vertical velocity, and roll needs turns.",
+    "The INS velocity and rates are the unit's own navigation solution, rotated from "
+    "KITTI's level forward/left/up frame into the body frame with each packet's roll "
+    "and pitch.",
+    "The OXTS unit's configured IMU-to-vehicle alignment is not published, so there is "
+    "no vendor reference; the LiDAR closure compares this rotation with the "
+    "independent LiDAR-to-vehicle estimate composed with calib_imu_to_velo.",
+)
+
+
+def run_kitti_imu_vehicle(
+    drive_dirs: Sequence[str | Path],
+    options: VehicleFrameRunOptions | None = None,
+    *,
+    lidar_vehicle_rotation: FloatArray | None = None,
+    command: list[str] | None = None,
+) -> VehicleFrameRotationArtifact:
+    """``R_vehicle_imu`` for the KITTI OXTS unit from its own body-frame velocity and rates.
+
+    ``lidar_vehicle_rotation`` (``R_vehicle_velodyne`` from ``lidar-vehicle``),
+    if given, is composed with ``calib_imu_to_velo`` into a closure reference
+    for the same rotation from an independent sensor.
+    """
+
+    opts = options or VehicleFrameRunOptions()
+    if not drive_dirs:
+        raise ValueError("at least one KITTI drive is required")
+    motions: list[VehicleMotion] = []
+    vendor: FloatArray | None = None
+    digests = []
+    for position, path in enumerate(drive_dirs):
+        drive = load_kitti_ins_lidar_drive(path)
+        if vendor is not None and not np.allclose(drive.vendor_t_imu_lidar, vendor, atol=1e-9):
+            raise ValueError("drives from different calibrations cannot be pooled")
+        vendor = drive.vendor_t_imu_lidar
+        offset = position * 100_000
+        motions += [
+            VehicleMotion(
+                item.block + offset,
+                item.start_s,
+                item.end_s,
+                item.velocity_mps,
+                item.angular_rate_rps,
+            )
+            for item in oxts_motions(path, block_duration_s=opts.block_duration_s)
+        ]
+        digests.append(drive.input_sha256)
+    assert vendor is not None
+    evaluation = evaluate_vehicle_frame(motions, opts)
+    references = []
+    if evaluation.result.rotation is not None and lidar_vehicle_rotation is not None:
+        holdout = [item for item in motions if item.block in evaluation.holdout_blocks]
+        # R_vehicle_imu = R_vehicle_velodyne R_velodyne_imu, with R_velodyne_imu = R_imu_velodyne^T.
+        references.append(
+            reference_entry(
+                "closure: LiDAR-to-vehicle estimate composed with KITTI calib_imu_to_velo",
+                lidar_vehicle_rotation @ vendor[:3, :3].T,
+                evaluation,
+                holdout,
+                opts,
+            )
+        )
+    result = evaluation.result
+    return VehicleFrameRotationArtifact(
+        sensor_modality="ins",
+        solver_status=result.status,
+        policy_status=evaluation.policy_status,
+        policy_reasons=list(evaluation.policy_reasons),
+        calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
+        rotation_quat_xyzw=None
+        if result.rotation is None
+        else [float(value) for value in Rotation.from_matrix(result.rotation).as_quat()],
+        lever_m=result.lever_m,
+        dofs=list(evaluation.records),
+        references=references,
+        motions=len(motions),
+        train_motions=evaluation.train_motions,
+        holdout_motions=evaluation.holdout_motions,
+        train_blocks=list(evaluation.train_blocks),
+        holdout_blocks=list(evaluation.holdout_blocks),
+        jackknife_fits=evaluation.jackknife_fits,
+        train_median_normalized_residual=evaluation.train_median,
+        holdout_median_normalized_residual=evaluation.holdout_median,
+        options={
+            "block_duration_s": opts.block_duration_s,
+            "holdout_every": opts.holdout_every,
+            "jackknife_groups": opts.jackknife_groups,
+            "control_deg": opts.control_deg,
+            "detection_delta_chi2": opts.detection_delta_chi2,
+            "observable_rotation_std_deg": opts.observable_rotation_std_deg,
+            "min_speed_mps": opts.solver.min_speed_mps,
+            "velocity_sigma_mps": opts.solver.velocity_sigma_mps,
+            "velocity_sigma_fraction": opts.solver.velocity_sigma_fraction,
+            "rate_sigma_rps": opts.solver.rate_sigma_rps,
+        },
+        limitations=list(INS_LIMITATIONS),
+        provenance=VehicleFrameProvenance(
+            generator=__name__,
+            generator_version=__version__,
+            git_commit=git_commit(),
+            command=command or [],
+            dataset_family="kitti_raw",
+            sequence_ids=[Path(path).name for path in drive_dirs],
+            sensor="oxts",
+            input_sha256=hashlib.sha256("".join(digests).encode("ascii")).hexdigest(),
+            dataset_license="CC BY-NC-SA 3.0",
+        ),
+    )

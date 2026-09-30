@@ -1369,6 +1369,46 @@ def _build_parser() -> argparse.ArgumentParser:
     lidar_vehicle_kitti.add_argument("--json", action="store_true")
     lidar_vehicle_kitti.set_defaults(func=_cmd_lidar_vehicle_kitti)
 
+    imu_vehicle = subcommands.add_parser(
+        "imu-vehicle",
+        help="INS/IMU-to-vehicle rotation from the vehicle's non-holonomic motion",
+    )
+    imu_vehicle_subcommands = imu_vehicle.add_subparsers(
+        dest="imu_vehicle_command", required=True
+    )
+    imu_vehicle_kitti = imu_vehicle_subcommands.add_parser(
+        "kitti", help="R_vehicle_imu for the KITTI OXTS unit from its body-frame velocity"
+    )
+    imu_vehicle_kitti.add_argument("drives", type=Path, nargs="+", help="KITTI raw *_sync drives")
+    imu_vehicle_kitti.add_argument(
+        "--lidar-vehicle",
+        type=Path,
+        help="a lidar-vehicle artifact of the same rig, for the closure reference",
+    )
+    imu_vehicle_kitti.add_argument("--output", type=Path, required=True)
+    imu_vehicle_kitti.add_argument("--json", action="store_true")
+    imu_vehicle_kitti.set_defaults(func=_cmd_imu_vehicle_kitti)
+
+    gnss_imu = subcommands.add_parser(
+        "gnss-imu", help="GNSS antenna lever arm in the IMU frame"
+    )
+    gnss_imu_subcommands = gnss_imu.add_subparsers(dest="gnss_imu_command", required=True)
+    gnss_imu_compose = gnss_imu_subcommands.add_parser(
+        "compose",
+        help="compose GNSS-LiDAR and IMU-LiDAR artifacts into the GNSS-IMU lever arm",
+    )
+    gnss_imu_compose.add_argument("--gnss-lidar", type=Path, required=True)
+    gnss_imu_compose.add_argument("--imu-lidar-rotation", type=Path, required=True)
+    gnss_imu_compose.add_argument("--imu-lidar-translation", type=Path, required=True)
+    gnss_imu_compose.add_argument(
+        "--reference", type=float, nargs=3, metavar=("X", "Y", "Z"),
+        help="reference antenna position in the IMU frame (m), compared after composing",
+    )
+    gnss_imu_compose.add_argument("--reference-name")
+    gnss_imu_compose.add_argument("--output", type=Path, required=True)
+    gnss_imu_compose.add_argument("--json", action="store_true")
+    gnss_imu_compose.set_defaults(func=_cmd_gnss_imu_compose)
+
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
         help="INS/GNSS-LiDAR trajectory hand-eye calibration evidence",
@@ -6230,6 +6270,76 @@ def _cmd_lidar_vehicle_kitti(args: argparse.Namespace) -> int:
         args.json,
     )
     return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_imu_vehicle_kitti(args: argparse.Namespace) -> int:
+    from scipy.spatial.transform import Rotation as _Rotation
+
+    from calibrex.core.vehicle_frame_rotation import load_vehicle_frame_rotation
+    from calibrex.evaluation.vehicle_frame import run_kitti_imu_vehicle
+
+    command = ["calibrex", "imu-vehicle", "kitti", *(path.name for path in args.drives)]
+    try:
+        lidar_rotation = None
+        if args.lidar_vehicle is not None:
+            lidar = load_vehicle_frame_rotation(args.lidar_vehicle)
+            if lidar.rotation_quat_xyzw is None:
+                raise ValueError(f"{args.lidar_vehicle} has no rotation")
+            lidar_rotation = _Rotation.from_quat(lidar.rotation_quat_xyzw).as_matrix()
+            command += ["--lidar-vehicle", str(args.lidar_vehicle)]
+        command += ["--output", str(args.output)]
+        artifact = run_kitti_imu_vehicle(
+            args.drives, lidar_vehicle_rotation=lidar_rotation, command=command
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "references": [
+                {"name": item.name, "difference_deg": item.difference_deg}
+                for item in artifact.references
+            ],
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_gnss_imu_compose(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.gnss_imu_lever_arm import compose_gnss_imu_lever_arm
+
+    command = ["calibrex", "gnss-imu", "compose", "--gnss-lidar", args.gnss_lidar.name]
+    command += ["--imu-lidar-rotation", args.imu_lidar_rotation.name]
+    command += ["--imu-lidar-translation", args.imu_lidar_translation.name]
+    if args.reference:
+        command += ["--reference", *(str(value) for value in args.reference)]
+    try:
+        artifact = compose_gnss_imu_lever_arm(
+            args.gnss_lidar,
+            args.imu_lidar_rotation,
+            args.imu_lidar_translation,
+            reference_m=args.reference,
+            reference=args.reference_name,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "lever_arm_m": artifact.lever_arm_m,
+            "calibrated_dofs": artifact.calibrated_dofs,
+        },
+        args.json,
+    )
+    return 0
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:

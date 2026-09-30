@@ -1,0 +1,231 @@
+{
+  "$defs": {
+    "GnssImuAxisRecord": {
+      "additionalProperties": false,
+      "description": "One axis of the composed lever arm.",
+      "properties": {
+        "error_to_reference_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference M"
+        },
+        "name": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference M"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_m": {
+          "minimum": 0.0,
+          "title": "Std M",
+          "type": "number"
+        },
+        "value_m": {
+          "title": "Value M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value_m",
+        "std_m",
+        "status"
+      ],
+      "title": "GnssImuAxisRecord",
+      "type": "object"
+    },
+    "GnssImuInput": {
+      "additionalProperties": false,
+      "description": "One composed input artifact.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "policy_status": {
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "gnss_lidar_lever_arm",
+            "imu_lidar_rotation",
+            "imu_lidar_translation"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "policy_status"
+      ],
+      "title": "GnssImuInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The GNSS antenna in the IMU frame, composed from pinned evidence.",
+  "properties": {
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/GnssImuAxisRecord"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Axes",
+      "type": "array"
+    },
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "x",
+          "y",
+          "z"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "command": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Command",
+      "type": "array"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "generator": {
+      "title": "Generator",
+      "type": "string"
+    },
+    "generator_version": {
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/GnssImuInput"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "lever_arm_m": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Lever Arm M",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "composition/v0.1",
+      "default": "composition/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "observable_std_m": {
+      "exclusiveMinimum": 0.0,
+      "title": "Observable Std M",
+      "type": "number"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "schema_version": {
+      "const": "slac.gnss_imu_lever_arm/v0.1",
+      "default": "slac.gnss_imu_lever_arm/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "lever_arm_m",
+    "axes",
+    "inputs",
+    "observable_std_m",
+    "generator",
+    "generator_version"
+  ],
+  "title": "GnssImuLeverArmArtifact",
+  "type": "object"
+}
