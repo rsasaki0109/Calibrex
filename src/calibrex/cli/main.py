@@ -1271,9 +1271,7 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_trajectory.add_argument(
         "--trajectory", type=Path, required=True, help="TUM trajectory T_world_sensor"
     )
-    imu_lidar_trajectory.add_argument(
-        "--acceleration-unit", choices=["mps2", "g"], default="mps2"
-    )
+    imu_lidar_trajectory.add_argument("--acceleration-unit", choices=["mps2", "g"], default="mps2")
     imu_lidar_trajectory.add_argument(
         "--mid360-reference",
         action="store_true",
@@ -1310,9 +1308,7 @@ def _build_parser() -> argparse.ArgumentParser:
     camera_imu_rotation.add_argument(
         "--image-topic", help="defaults to the camchain's rostopic for the camera"
     )
-    camera_imu_rotation.add_argument(
-        "--acceleration-unit", choices=["mps2", "g"], default="mps2"
-    )
+    camera_imu_rotation.add_argument("--acceleration-unit", choices=["mps2", "g"], default="mps2")
     camera_imu_rotation.add_argument(
         "--no-reference",
         action="store_true",
@@ -1325,6 +1321,38 @@ def _build_parser() -> argparse.ArgumentParser:
     camera_imu_rotation.add_argument("--output", type=Path, required=True)
     camera_imu_rotation.add_argument("--json", action="store_true")
     camera_imu_rotation.set_defaults(func=_cmd_camera_imu_rotation)
+
+    lidar_lidar = subcommands.add_parser(
+        "lidar-lidar",
+        help="LiDAR-LiDAR extrinsic from registering one LiDAR's scans to the other's maps",
+    )
+    lidar_lidar_subcommands = lidar_lidar.add_subparsers(dest="lidar_lidar_command", required=True)
+    lidar_lidar_ros2 = lidar_lidar_subcommands.add_parser(
+        "ros2", help="calibrate T_reference_target for two LiDARs in one ROS 2 bag"
+    )
+    lidar_lidar_ros2.add_argument("bag", type=Path, help="rosbag2 directory")
+    lidar_lidar_ros2.add_argument("--reference-topic", required=True)
+    lidar_lidar_ros2.add_argument("--target-topic", required=True)
+    lidar_lidar_ros2.add_argument(
+        "--point-time-field", help="per-point time field used to deskew the reference odometry"
+    )
+    lidar_lidar_ros2.add_argument(
+        "--initial", type=Path, help="initial T_reference_target (4x4 YAML/JSON or OpenCV YAML)"
+    )
+    lidar_lidar_ros2.add_argument(
+        "--body-transforms",
+        type=Path,
+        nargs=2,
+        metavar=("REFERENCE", "TARGET"),
+        help="T_body_reference and T_body_target files; their composition is both the "
+        "initial value and the reference compared against",
+    )
+    lidar_lidar_ros2.add_argument("--max-seconds", type=float)
+    lidar_lidar_ros2.add_argument("--dataset-family", required=True)
+    lidar_lidar_ros2.add_argument("--dataset-license", required=True)
+    lidar_lidar_ros2.add_argument("--output", type=Path, required=True)
+    lidar_lidar_ros2.add_argument("--json", action="store_true")
+    lidar_lidar_ros2.set_defaults(func=_cmd_lidar_lidar_ros2)
 
     ins_lidar = subcommands.add_parser(
         "ins-lidar",
@@ -6109,6 +6137,60 @@ def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
     return 1 if artifact.policy_status == "fail" else 0
 
 
+def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
+    import numpy
+
+    from calibrex.evaluation.lidar_lidar_map import read_transform, run_ros2_lidar_lidar_map
+
+    command = ["calibrex", "lidar-lidar", "ros2", str(args.bag)]
+    command += ["--reference-topic", args.reference_topic, "--target-topic", args.target_topic]
+    if args.point_time_field:
+        command += ["--point-time-field", args.point_time_field]
+    try:
+        reference_transform = None
+        reference = None
+        if args.body_transforms:
+            first, second = (read_transform(path) for path in args.body_transforms)
+            reference_transform = numpy.linalg.inv(first) @ second
+            reference = f"inv({args.body_transforms[0].name}) @ {args.body_transforms[1].name}"
+            command += ["--body-transforms", *(str(path) for path in args.body_transforms)]
+        if args.initial is not None:
+            initial = read_transform(args.initial)
+            command += ["--initial", str(args.initial)]
+        elif reference_transform is not None:
+            initial = reference_transform
+        else:
+            raise ValueError("give --initial or --body-transforms for the initial value")
+        if args.max_seconds is not None:
+            command += ["--max-seconds", str(args.max_seconds)]
+        artifact = run_ros2_lidar_lidar_map(
+            args.bag,
+            reference_topic=args.reference_topic,
+            target_topic=args.target_topic,
+            initial=initial,
+            point_time_field=args.point_time_field,
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            reference_transform=reference_transform,
+            reference=reference,
+            max_seconds=args.max_seconds,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
     command = ["calibrex", "ins-lidar", "kitti", *(str(path) for path in args.drives)]
     command += ["--output", str(args.output), "--block-duration", str(args.block_duration)]
@@ -6120,9 +6202,7 @@ def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
         try:
             dof, _, rest = text.partition("=")
             value, _, sigma = rest.partition(":")
-            priors.append(
-                DofPrior(dof=dof, value=float(value), sigma=float(sigma), source="cli")
-            )
+            priors.append(DofPrior(dof=dof, value=float(value), sigma=float(sigma), source="cli"))
         except ValueError as exc:
             _die(f"invalid --prior {text!r}: {exc}")
     options = InsLidarRunOptions(

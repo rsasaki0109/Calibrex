@@ -1,0 +1,488 @@
+{
+  "$defs": {
+    "LidarLidarControl": {
+      "additionalProperties": false,
+      "description": "Held-out chi-square increase after shifting one DoF.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_delta_chi2": {
+          "title": "Holdout Delta Chi2",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "holdout_delta_chi2",
+        "detected"
+      ],
+      "title": "LidarLidarControl",
+      "type": "object"
+    },
+    "LidarLidarDofRecord": {
+      "additionalProperties": false,
+      "description": "One DoF of ``T_reference_target`` with its uncertainty and evidence.",
+      "properties": {
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LidarLidarControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_analytic": {
+          "minimum": 0.0,
+          "title": "Std Analytic",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "std_analytic",
+        "std_reported",
+        "status"
+      ],
+      "title": "LidarLidarDofRecord",
+      "type": "object"
+    },
+    "LidarLidarProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "reference_topic": {
+          "title": "Reference Topic",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        },
+        "target_topic": {
+          "title": "Target Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "reference_topic",
+        "target_topic",
+        "input_sha256",
+        "input_digest_scope",
+        "dataset_license"
+      ],
+      "title": "LidarLidarProvenance",
+      "type": "object"
+    },
+    "LidarLidarSamples": {
+      "additionalProperties": false,
+      "description": "How the target scans were sampled and matched.",
+      "properties": {
+        "holdout_correspondences": {
+          "minimum": 0,
+          "title": "Holdout Correspondences",
+          "type": "integer"
+        },
+        "holdout_samples": {
+          "minimum": 0,
+          "title": "Holdout Samples",
+          "type": "integer"
+        },
+        "reference_scans": {
+          "minimum": 0,
+          "title": "Reference Scans",
+          "type": "integer"
+        },
+        "samples": {
+          "minimum": 0,
+          "title": "Samples",
+          "type": "integer"
+        },
+        "train_correspondences": {
+          "minimum": 0,
+          "title": "Train Correspondences",
+          "type": "integer"
+        },
+        "train_samples": {
+          "minimum": 0,
+          "title": "Train Samples",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reference_scans",
+        "samples",
+        "train_samples",
+        "holdout_samples",
+        "train_correspondences",
+        "holdout_correspondences"
+      ],
+      "title": "LidarLidarSamples",
+      "type": "object"
+    },
+    "LidarLidarTransform": {
+      "additionalProperties": false,
+      "description": "``T_reference_target`` as translation and quaternion.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "LidarLidarTransform",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one LiDAR-LiDAR extrinsic calibration run.",
+  "properties": {
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "roll",
+          "pitch",
+          "yaw",
+          "x",
+          "y",
+          "z"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "dofs": {
+      "items": {
+        "$ref": "#/$defs/LidarLidarDofRecord"
+      },
+      "title": "Dofs",
+      "type": "array"
+    },
+    "holdout_blocks": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Holdout Blocks",
+      "type": "array"
+    },
+    "holdout_median_residual_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout Median Residual M"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "map_registration/v0.1",
+      "default": "map_registration/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LidarLidarProvenance"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "reference_holdout_delta_chi2": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Held-out chi-square increase when the reference transform replaces the estimate; large values mean the held-out data reject the reference.",
+      "title": "Reference Holdout Delta Chi2"
+    },
+    "residual_sigma_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Residual Sigma M"
+    },
+    "samples": {
+      "$ref": "#/$defs/LidarLidarSamples"
+    },
+    "schema_version": {
+      "const": "slac.lidar_lidar_extrinsic/v0.1",
+      "default": "slac.lidar_lidar_extrinsic/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "insufficient_samples"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "train_blocks": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Train Blocks",
+      "type": "array"
+    },
+    "transform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LidarLidarTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "dofs",
+    "samples",
+    "jackknife_fits",
+    "options",
+    "provenance"
+  ],
+  "title": "LidarLidarExtrinsicArtifact",
+  "type": "object"
+}
