@@ -1,6 +1,34 @@
 {
   "entries": [
     {
+      "achieved_dataset_families": [],
+      "achieved_independent_rig_count": 0,
+      "audit_id": "mid360-imu-lidar-extrinsic-vs-li-init-v1",
+      "audit_path": "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "0cace2d3326c609437976b86a21c4f0ec235e03803ebaaee097b8622be7f0ab3",
+      "claim_text": "On two hand-held MID360 recordings of the RTK-SLAM dataset not used to develop the method, Calibrex's full IMU-LiDAR extrinsic predicts held-out accelerometer-integrated motion at least as well as LI-Init's, and so does its lever arm alone.",
+      "pair_id": "imu-lidar",
+      "protocol_id": "mid360-imu-lidar-extrinsic-vs-li-init-v1",
+      "requirement_counts": {
+        "contradicted": 2,
+        "incomplete": 6
+      },
+      "scope": {
+        "category": "targetless_imu_lidar",
+        "modalities": [
+          "imu",
+          "lidar"
+        ],
+        "quantities": [
+          "rotation",
+          "translation",
+          "time_offset"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
       "achieved_dataset_families": [
         "rtk_slam",
         "zenodo_driving_slam_mid360"
@@ -66,7 +94,7 @@
     {
       "incomplete_claims": 0,
       "pair_id": "imu-lidar",
-      "refuted_claims": 0,
+      "refuted_claims": 1,
       "standing": "supported",
       "supported_claims": 1,
       "target": true
@@ -118,6 +146,7 @@
       "sota",
       "leaderboard",
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
+      "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -141,10 +170,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-09-29T21:22:51.500926+00:00",
+    "created_at": "2026-09-30T05:05:44.456436+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
     "generator_version": "0.4.1",
-    "git_commit": "96dba50"
+    "git_commit": "5ca9989"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

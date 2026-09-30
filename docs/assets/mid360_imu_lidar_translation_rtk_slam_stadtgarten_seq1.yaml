@@ -1,0 +1,144 @@
+schema_version: slac.imu_lidar_translation/v0.1
+method: accelerometer_lever_arm/v0.1
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data, so not calibrated: x'
+calibrated_dofs:
+- y
+- z
+translation_m:
+- 0.023630711338414184
+- 0.018606610478994416
+- -0.03740562843657292
+rotation_input:
+  artifact_sha256: de849da859308f214a0e84b4740fff80c2c001d0608b72c962c79c10c8d10ca1
+  policy_status: pass
+  rotation_quat_xyzw:
+  - -0.0005230153712689819
+  - 0.0013584372531578338
+  - -0.0014894070689923467
+  - 0.9999978313825152
+  time_offset_s: 0.009946440923232379
+  gyro_bias_rps:
+  - 0.015631847687943356
+  - -0.002504082738273134
+  - 0.001622191224611121
+axes:
+- name: x
+  unit: m
+  value: 0.023630711338414184
+  std_analytic: 0.0006072354471808579
+  std_jackknife: 0.0016900798833970698
+  std_segment_sensitivity: 0.010962980384975375
+  std_reported: 0.010962980384975375
+  status: unobservable
+  reference_value: 0.011
+  error_to_reference: 0.012630711338414185
+  known_bad_control:
+    amount: 0.02
+    unit: m
+    holdout_delta_chi2: 1146.7030010295566
+    detected: true
+- name: y
+  unit: m
+  value: 0.018606610478994416
+  std_analytic: 0.0004934082581335888
+  std_jackknife: 0.0016505358493962335
+  std_segment_sensitivity: 0.0012060787683781035
+  std_reported: 0.0016505358493962335
+  status: estimated
+  reference_value: 0.02329
+  error_to_reference: -0.0046833895210055855
+  known_bad_control:
+    amount: 0.02
+    unit: m
+    holdout_delta_chi2: 811.2899737662119
+    detected: true
+- name: z
+  unit: m
+  value: -0.03740562843657292
+  std_analytic: 0.0009598097947600237
+  std_jackknife: 0.003954664023184185
+  std_segment_sensitivity: 0.003733013511391832
+  std_reported: 0.003954664023184185
+  status: estimated
+  reference_value: -0.04412
+  error_to_reference: 0.0067143715634270795
+  known_bad_control:
+    amount: 0.02
+    unit: m
+    holdout_delta_chi2: 217.5727227863972
+    detected: true
+segment_sensitivity:
+- segment_duration_s: 1.0
+  translation_m:
+  - 0.03459369172338956
+  - 0.018082193012567263
+  - -0.03752765739233285
+- segment_duration_s: 4.0
+  translation_m:
+  - 0.023594966146764058
+  - 0.01981268924737252
+  - -0.03367261492518109
+options:
+  holdout_every: 3
+  jackknife_groups: 8
+  translation_control_m: 0.02
+  detection_delta_chi2: 9.0
+  segment_duration_s: 2.0
+  sensitivity_segment_durations_s:
+  - 1.0
+  - 4.0
+  min_segment_scans: 4
+  huber_k: 1.5
+  observable_translation_std_m: 0.01
+  window_duration_s: 10.0
+  local_map_scans: 5
+windows:
+  windows: 160
+  segments: 800
+  scan_rows: 14971
+  imu_samples: 320460
+train_windows: 107
+holdout_windows: 53
+jackknife_fits: 8
+train_median_position_residual_m: 0.005189200057129643
+holdout_median_position_residual_m: 0.00524686848069993
+gravity_norm_median_mps2: 9.784098571447872
+reference: 'Livox MID360 manual: IMU at (11.0, 23.29, -44.12) mm in the LiDAR frame'
+limitations:
+- The reference translation is the MID360 design value (11.0, 23.29, -44.12) mm; it
+  is not a measurement.
+- The rotation, clock offset, and gyro bias are taken from the rotation artifact;
+  their errors propagate into the lever arm.
+- The LiDAR odometry is deskewed with the gyro, so it depends on the IMU.
+- Accelerometer scale and axis misalignment are not estimated.
+provenance:
+  generator: calibrex.evaluation.imu_lidar_translation
+  generator_version: 0.4.1
+  git_commit: 5ca9989
+  command:
+  - calibrex
+  - imu-lidar
+  - livox-translation
+  - stadtgarten_seq1
+  - --profile
+  - rtk-slam
+  - --rotation
+  - docs/assets/mid360_imu_lidar_rotation_rtk_slam_stadtgarten_seq1.yaml
+  - --dataset-family
+  - rtk_slam
+  - --dataset-license
+  - see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  - --output
+  - docs/assets/mid360_imu_lidar_translation_rtk_slam_stadtgarten_seq1.yaml
+  dataset_family: rtk_slam
+  sequence_ids:
+  - stadtgarten_seq1
+  stream_profile: rtk-slam
+  input_sha256: 82127ed02247524b6d758a51256e06a576aea5595928d4bf45826a6e7585947f
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  created_at: '2026-09-30T05:00:52.718761+00:00'

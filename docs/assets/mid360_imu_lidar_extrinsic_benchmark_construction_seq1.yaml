@@ -1,0 +1,1083 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: mid360-imu-lidar-extrinsic-construction_seq1
+title: MID360 IMU-LiDAR extrinsic, RTK-SLAM construction_seq1
+protocol:
+  protocol_id: mid360-imu-lidar-common-odometry-span-v1
+  dataset_id: rtk_slam_construction_seq1
+  dataset_source_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+  data_license: see https://huggingface.co/datasets/Willyzw/rtk-slam-dataset
+  split_policy: one common odometry deskewed with the design reference; every third
+    10-second window is a held-out span; one split per span
+  splits:
+  - split_id: span-1764589621.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 77e9001a45a93de2695716ae39eb6bd839361cfdc88561a325e77db60e4e114e
+    holdout_ids_sha256: a0953a155071e1c9a1c3ab2ac835389167ea69bca3cc7d0715dccbf8692b81af
+  - split_id: span-1764589651.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: b4dc0b39463da245c6829c938b07460733f658badef5841648bf299356323715
+    holdout_ids_sha256: cb5896d7ba839356ad1c91b942ec534cac8d0d46596773820edf144f2107f9c6
+  - split_id: span-1764589681.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: b42c468eafdf20b31fa941ecce9c2676ca7d2f1d24859942cbc38a0837484666
+    holdout_ids_sha256: 0b9eba2eb3458e026c2d915caa04a5054755ba300db26a8da2a9b58526d5916b
+  - split_id: span-1764589711.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 5e70e947562bdefe57bc7a6cfd900bed317e831f1ed13a1939735fa78fb69e1d
+    holdout_ids_sha256: de195463581043a6733690e1b70d1461ea6e764a2f71ecaf4f9d6dbddf22da97
+  - split_id: span-1764589741.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 52dd7f44e4beb3cd3cf793bee02c45dede3dece9c72365736773fdc7aafb6ba4
+    holdout_ids_sha256: b9ce09561314d11c1790f187080b17e3b84c7d4b75f3667fe5667c9ff21b7b69
+  - split_id: span-1764589771.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 901a33067b7ce2a07ec217f627210ab766e28238ed50cf53ceb600c3f29fe689
+    holdout_ids_sha256: e4fafcb6b634be8bcf66cebdb7f2dfb0dca3bea9d5e69b5b36337935fc164f98
+  - split_id: span-1764589801.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 89f01c7ccdc5f46a98484dbd978fbbabbc50e3ddd85b392b3514ab68c9894418
+    holdout_ids_sha256: b58111c0396e24defa984488e33eb773af7f4e0fb57136fbeecef9a524d10a83
+  - split_id: span-1764589831.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 5c72b974d2e588e966716a70b367a83b66b26767d0294658f1238ce9019a70a6
+    holdout_ids_sha256: 43e5e90ff7b63e52507d3433e1fbb4ac412446ea8d841b8b338edeb17b4a5080
+  - split_id: span-1764589861.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 3da9ccae4cd317a52802ce4c806b16235de694dd5d6853ce0a38c55ccdb85d98
+    holdout_ids_sha256: 3cb565a94966b4821b23b769c1ce633b9cd8968ed1c3fc7b3baf5ceadb0a69a9
+  - split_id: span-1764589891.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 66a2d2a3d5dd99177bc22261fd6dd970abc51ebff2815113dd35ff4ddc9c6bb5
+    holdout_ids_sha256: 2a585e46dcdce0e9e78c82bbb07fcf7b51eda5877a699525fe6a33dd66b0a6ab
+  - split_id: span-1764589921.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: c3809d6c90377c79f64bd248273459b7a2d12991b666aa51570eb1027b387d9c
+    holdout_ids_sha256: da03f4a14977680e4f69387433c73718cfb8ee69c65ba32196a89c04879ded8e
+  - split_id: span-1764589951.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 0c234fe594a01db3f4fe880288545e00597a7534504aae4b3f5227567e2829f6
+    holdout_ids_sha256: 27648380823e059927f5cb4df03d4ede74081d94851e6e6f37588d6cc31ac245
+  - split_id: span-1764589981.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: cd23636f1d3763bb6a9476d059d01de089266fddc76e3ca2dc3cae2ea5db14ac
+    holdout_ids_sha256: 91f7d6107cf70c1bb4076e4551b24d0a51b41f60a68f279af02cc97bd933938a
+  - split_id: span-1764590011.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 3a2b451c98081bc8934347863c3114d9d8dd7d63a73c9dbd536dfbec089bbf1e
+    holdout_ids_sha256: a4ce39618b20c5ab27d7863339d45fa008d7c52c2c082b74e1c5da008ae12ec3
+  - split_id: span-1764590041.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 953c966f00c250285809ca2c44f6ecb200a24990096c9da20385feaa9cb12571
+    holdout_ids_sha256: 1af7ae5efaf0478ebc2a2591c34f21c468fbec5456b689e6e60f6633b930e6fd
+  - split_id: span-1764590071.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: fa71dbf694638139829cbe1e239d93296ef7757b8f5d636b8ec8e0770b014200
+    holdout_ids_sha256: 0b88764e2bd42f58fe521cb6c230d0a5d9220400140e23a5d41e55d2bd098a54
+  - split_id: span-1764590101.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 8a7faa45d7d5405aeac5510d3af2e693b1160923c87bb23eddeff31c61fed14d
+    holdout_ids_sha256: 08ecc8b558d8f7f7a35737a643462584cd1953dcf2ec092e74959fb16aaff638
+  - split_id: span-1764590131.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 662039593b3c99d2a64e6fac2bcfa8ae523689444da9e606a35ddd4e09ac52a6
+    holdout_ids_sha256: b39ff5e22f5a75342facd285043efd01e982d3265110d7dc9248b2fdc7ca921f
+  - split_id: span-1764590161.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 06dc6ad807d2b706e385c79745c4ee2d890d72ec5798977940dbe21bfde726b0
+    holdout_ids_sha256: 9639e894ad010a202414f2bb40c74e664d769c35e9659e369f8df7ae1770fd25
+  - split_id: span-1764590191.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 1eda70d08bbae9c0db447f26ad105b1b53f9c7e65a56c95efa0561df1758cca1
+    holdout_ids_sha256: 9be462a1a101557701de41d2d38aaf0f31bc87fdf662e21114e4dcc88a614eca
+  - split_id: span-1764590221.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: cb8c692bd103c2b4e17d3255da1a3ecda9e5e4b9e4564b9f12339a592b2a0d63
+    holdout_ids_sha256: a98f9e8ca3f00c9a0e7a71651ac60956bd603d290dd57adced6b12828a709a35
+  - split_id: span-1764590251.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: fa9a6e96a9d8a0d72652424fde520cee627de61540f2ce7d40133c00da595c08
+    holdout_ids_sha256: fabaa87f3486bcdca664034304ca4d5abf35ac24df250a95576fa803c9ae58f3
+  - split_id: span-1764590281.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 0dab80eab965bab5716e7ebbf8705dd0cdc5aeb62ab41d27827f26a820cebede
+    holdout_ids_sha256: 78e608fa8dd1d9e66e8c3dd5394ee2e0b9ed5861e5bf01853ff2a32d4e2ebc34
+  - split_id: span-1764590311.7
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: 09dd508fe207dc4c4b8fe08ad57cb2c010d075280704b1a407c1c90a76bdca74
+    holdout_ids_sha256: 48756103fb1b35ce5c53fd8d267d1f2102cd5af3e84134dd35780f1a3cff5894
+  - split_id: span-1764590341.6
+    seed: 0
+    fit_count: 50
+    holdout_count: 1
+    fit_ids_sha256: e90767ad4dd4afb122c64c60eeec7049422bf7ef436c32af597c5fe30fa8d6b9
+    holdout_ids_sha256: b42567570ec611dbd6120bebc65ab2ea7c0cfc416c76ceb1126801d813de6e23
+  initial_estimate_policy: each method's own output; no shared initialization
+  tuning_policy: procedure and thresholds pre-registered before either method ran
+  failure_policy: a method without an estimate fails every span of that recording
+metrics:
+- name: holdout_span_position_rms_m
+  label: held-out span position RMS
+  unit: m
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: RMS of accelerometer-integrated IMU motion against LiDAR odometry
+    on a held-out span; components clipped at 50 mm
+methods:
+- method_id: calibrex_native
+  label: Calibrex rotation + accelerometer lever arm
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: li_init
+  label: LI-Init 66b157a (container)
+  implementation: subprocess
+  tool_name: li_init
+- method_id: design_reference
+  label: MID360 design value (identity, (11.0, 23.29, -44.12) mm, dt = 0)
+  implementation: calibrex_native
+  tool_name: design_reference
+trials:
+- method_id: calibrex_native
+  split_id: span-1764589621.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589651.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589681.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589711.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589741.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589771.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589801.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589831.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589861.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589891.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589921.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589951.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764589981.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590011.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590041.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590071.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590101.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590131.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590161.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590191.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590221.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590251.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590281.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590311.7
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: calibrex_native
+  split_id: span-1764590341.6
+  status: failed
+  metrics: {}
+  failure_reason: 'calibrex imu-lidar livox-translation returned policy_status inconclusive
+    (x unobservable: segment-duration sensitivity 13.3 mm > 10 mm); the pre-registration
+    counts this as no estimate'
+  provenance:
+    command: score calibrex_native on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589621.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.011261709028987817
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589651.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.001735441387645493
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589681.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0071504470062448205
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589711.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.010200928457144438
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589741.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0031842255348961263
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589771.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.009785983304485622
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589801.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.023855462509810063
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589831.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0171205315769641
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589861.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.009299111856937568
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589891.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.005499280985086767
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589921.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.01030410008208246
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589951.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0011625627048924311
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764589981.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.009466733596126577
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590011.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.011560567238033661
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590041.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.013412522882405653
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590071.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.025182980668944654
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590101.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.01783685490242145
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590131.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0013501159159229586
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590161.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.00796367215115635
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590191.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.006041886828709759
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590221.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.022659619442891032
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590251.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.009088416611921682
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590281.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.012124502787331286
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590311.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.014101975869650904
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: li_init
+  split_id: span-1764590341.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.007245818826912623
+  provenance:
+    command: score li_init on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589621.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.005822142560455465
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589651.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0017256539982694443
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589681.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0029358077138423246
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589711.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0051671383878110965
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589741.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0025508848629151406
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589771.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.005479381580001677
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589801.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0036575005301050525
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589831.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0031796069405686236
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589861.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.003218690239784308
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589891.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.002938757985237463
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589921.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.003681894498218322
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589951.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0011619295972904703
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764589981.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.002635175050295749
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590011.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.004906402942426808
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590041.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.003865798068005121
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590071.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.007302375644972609
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590101.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.00445933197087422
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590131.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.0013193542311641406
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590161.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.008170128476881193
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590191.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.002242995579710253
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590221.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.005305623056304919
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590251.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.003723193189334926
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590281.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.005035868036443771
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590311.7
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.005429000871087848
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+- method_id: design_reference
+  split_id: span-1764590341.6
+  status: success
+  metrics:
+    holdout_span_position_rms_m: 0.004010154744074354
+  provenance:
+    command: score design_reference on rtk_slam construction_seq1
+    config_sha256: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+    input_sha256: e2d4ec81540d66737fd5afc611a1029fd397ec0e290d043a246ba4ba21021b97
+    notes: []
+method_summaries:
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 25
+    success_count: 0
+    failure_count: 25
+    failure_rate: 1.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_span_position_rms_m:
+        metric: holdout_span_position_rms_m
+        distribution:
+          count: 0
+  li_init:
+    method_id: li_init
+    trial_count: 25
+    success_count: 25
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_span_position_rms_m:
+        metric: holdout_span_position_rms_m
+        distribution:
+          count: 25
+          mean: 0.01074381808630425
+          median: 0.009785983304485622
+          standard_deviation: 0.006460032925672905
+          minimum: 0.0011625627048924311
+          maximum: 0.025182980668944654
+          p90: 0.020730513626703206
+          p95: 0.023616293896426253
+          mean_ci95_low: 0.008087960825148977
+          mean_ci95_high: 0.013308415515915007
+        rank: 2
+  design_reference:
+    method_id: design_reference
+    trial_count: 25
+    success_count: 25
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_span_position_rms_m:
+        metric: holdout_span_position_rms_m
+        distribution:
+          count: 25
+          mean: 0.003996991630243012
+          median: 0.003723193189334926
+          standard_deviation: 0.0017010237930792185
+          minimum: 0.0011619295972904703
+          maximum: 0.008170128476881193
+          p90: 0.00568503816827395
+          p95: 0.007006329028069176
+          mean_ci95_low: 0.0033487452422117482
+          mean_ci95_high: 0.004712699830759349
+        rank: 1
+paired_comparisons:
+- reference_method_id: li_init
+  candidate_method_id: calibrex_native
+  metric: holdout_span_position_rms_m
+  direction: lower
+  paired_count: 0
+- reference_method_id: li_init
+  candidate_method_id: design_reference
+  metric: holdout_span_position_rms_m
+  direction: lower
+  paired_count: 25
+  raw_delta_mean: -0.00674682645606124
+  improvement_mean: 0.00674682645606124
+  improvement_ci95_low: 0.004458506462031928
+  improvement_ci95_high: 0.009043548795634031
+reference_method_id: li_init
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- LI-Init fits on the whole recording; Calibrex's own train/holdout split need not
+  coincide with the scoring spans.
+- The design reference is a sanity row, not a competitor.
+provenance:
+  generator: tools/build_mid360_imu_lidar_extrinsic_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-09-30T05:04:14.392344+00:00'
+  command: python tools/build_mid360_imu_lidar_extrinsic_audit.py docs/assets/mid360_imu_lidar_extrinsic_scores
+    docs/assets
+  source_artifacts: {}
+  data_verified: true

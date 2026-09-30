@@ -1,0 +1,138 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: mid360-imu-lidar-extrinsic-vs-li-init-v1
+scope:
+  modalities:
+  - imu
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  - time_offset
+  category: targetless_imu_lidar
+claim_text: On two hand-held MID360 recordings of the RTK-SLAM dataset not used to
+  develop the method, Calibrex's full IMU-LiDAR extrinsic predicts held-out accelerometer-integrated
+  motion at least as well as LI-Init's, and so does its lever arm alone.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-estimate-stadtgarten_seq1
+  phase: audit
+  description: Calibrex returns a passing lever-arm estimate (stadtgarten_seq1)
+  dataset_family: rtk_slam
+  independent_rig: true
+  rig_id: rtk-slam-mid360
+  evidence_path: mid360_imu_lidar_extrinsic_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-extrinsic-not-worse-than-li-init-stadtgarten_seq1
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over LI-Init >= 0
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_extrinsic_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+  method_id: calibrex_native
+  reference_method_id: li_init
+  metric: holdout_span_position_rms_m
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-lever-arm-not-worse-than-li-init-stadtgarten_seq1
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over LI-Init's lever
+    arm (same rotation and clock offset) >= 0
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_lever_arm_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 23f4c6ef3edaf227388e36cfc916689865366eed41c780efe37229de585cd0fb
+  method_id: calibrex_native
+  reference_method_id: li_init_lever_arm
+  metric: holdout_span_position_rms_m
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-absolute-fit-stadtgarten_seq1
+  phase: audit
+  description: mean held-out span position RMS <= 0.010 m
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_extrinsic_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+  method_id: calibrex_native
+  metric: holdout_span_position_rms_m
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.01
+  required: true
+- requirement_id: calibrex-estimate-construction_seq1
+  phase: audit
+  description: Calibrex returns a passing lever-arm estimate (construction_seq1)
+  dataset_family: rtk_slam
+  independent_rig: true
+  rig_id: rtk-slam-mid360
+  evidence_path: mid360_imu_lidar_extrinsic_benchmark_construction_seq1.yaml
+  evidence_sha256: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-extrinsic-not-worse-than-li-init-construction_seq1
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over LI-Init >= 0
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_extrinsic_benchmark_construction_seq1.yaml
+  evidence_sha256: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+  method_id: calibrex_native
+  reference_method_id: li_init
+  metric: holdout_span_position_rms_m
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-lever-arm-not-worse-than-li-init-construction_seq1
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over LI-Init's lever
+    arm (same rotation and clock offset) >= 0
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_lever_arm_benchmark_construction_seq1.yaml
+  evidence_sha256: c7fd18a7eb5d379949f3f6346123baf520c4c1ccab536c7049aa78f8d288611c
+  method_id: calibrex_native
+  reference_method_id: li_init_lever_arm
+  metric: holdout_span_position_rms_m
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-absolute-fit-construction_seq1
+  phase: audit
+  description: mean held-out span position RMS <= 0.010 m
+  dataset_family: rtk_slam
+  independent_rig: false
+  evidence_path: mid360_imu_lidar_extrinsic_benchmark_construction_seq1.yaml
+  evidence_sha256: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+  method_id: calibrex_native
+  metric: holdout_span_position_rms_m
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.01
+  required: true
+provenance:
+  generator: tools/build_mid360_imu_lidar_extrinsic_audit.py
+  generator_version: 0.4.1
+  command:
+  - python
+  - tools/build_mid360_imu_lidar_extrinsic_audit.py
+  - docs/assets/mid360_imu_lidar_extrinsic_scores
+  - docs/assets
+  source_sha256:
+    preregistration: 5e57cef30fab3445a8db631608870ead395b20db20166655f7134bdf49db3a54
+  created_at: '2026-09-30T05:04:14.644724+00:00'

@@ -1,0 +1,97 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: mid360-imu-lidar-extrinsic-vs-li-init-v1
+protocol_id: mid360-imu-lidar-extrinsic-vs-li-init-v1
+scope:
+  modalities:
+  - imu
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  - time_offset
+  category: targetless_imu_lidar
+claim_text: On two hand-held MID360 recordings of the RTK-SLAM dataset not used to
+  develop the method, Calibrex's full IMU-LiDAR extrinsic predicts held-out accelerometer-integrated
+  motion at least as well as LI-Init's, and so does its lever arm alone.
+verdict: refuted
+achieved_dataset_families: []
+achieved_independent_rig_count: 0
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-estimate-stadtgarten_seq1
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_extrinsic_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+- requirement_id: calibrex-extrinsic-not-worse-than-li-init-stadtgarten_seq1
+  required: true
+  status: incomplete
+  threshold: 0.0
+  reason: declared benchmark statistic has no finite value
+  evidence_path: docs/assets/mid360_imu_lidar_extrinsic_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+- requirement_id: calibrex-lever-arm-not-worse-than-li-init-stadtgarten_seq1
+  required: true
+  status: incomplete
+  threshold: 0.0
+  reason: declared benchmark statistic has no finite value
+  evidence_path: docs/assets/mid360_imu_lidar_lever_arm_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 23f4c6ef3edaf227388e36cfc916689865366eed41c780efe37229de585cd0fb
+- requirement_id: calibrex-absolute-fit-stadtgarten_seq1
+  required: true
+  status: incomplete
+  threshold: 0.01
+  reason: declared benchmark statistic has no finite value
+  evidence_path: docs/assets/mid360_imu_lidar_extrinsic_benchmark_stadtgarten_seq1.yaml
+  evidence_sha256: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+- requirement_id: calibrex-estimate-construction_seq1
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: docs/assets/mid360_imu_lidar_extrinsic_benchmark_construction_seq1.yaml
+  evidence_sha256: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+- requirement_id: calibrex-extrinsic-not-worse-than-li-init-construction_seq1
+  required: true
+  status: incomplete
+  threshold: 0.0
+  reason: declared benchmark statistic has no finite value
+  evidence_path: docs/assets/mid360_imu_lidar_extrinsic_benchmark_construction_seq1.yaml
+  evidence_sha256: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+- requirement_id: calibrex-lever-arm-not-worse-than-li-init-construction_seq1
+  required: true
+  status: incomplete
+  threshold: 0.0
+  reason: declared benchmark statistic has no finite value
+  evidence_path: docs/assets/mid360_imu_lidar_lever_arm_benchmark_construction_seq1.yaml
+  evidence_sha256: c7fd18a7eb5d379949f3f6346123baf520c4c1ccab536c7049aa78f8d288611c
+- requirement_id: calibrex-absolute-fit-construction_seq1
+  required: true
+  status: incomplete
+  threshold: 0.01
+  reason: declared benchmark statistic has no finite value
+  evidence_path: docs/assets/mid360_imu_lidar_extrinsic_benchmark_construction_seq1.yaml
+  evidence_sha256: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.4.1
+  git_commit: 5ca9989
+  command: []
+  source_sha256:
+    protocol: cea6c8a5cf66480a48db16558f0a2549fac54c629f7213163f8365ec9d95b221
+    calibrex-estimate-stadtgarten_seq1: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+    calibrex-extrinsic-not-worse-than-li-init-stadtgarten_seq1: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+    calibrex-lever-arm-not-worse-than-li-init-stadtgarten_seq1: 23f4c6ef3edaf227388e36cfc916689865366eed41c780efe37229de585cd0fb
+    calibrex-absolute-fit-stadtgarten_seq1: 390d651ba50699e6b9f1069e59f9ef9181256777649a2bf2a2eda31328d16e41
+    calibrex-estimate-construction_seq1: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+    calibrex-extrinsic-not-worse-than-li-init-construction_seq1: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+    calibrex-lever-arm-not-worse-than-li-init-construction_seq1: c7fd18a7eb5d379949f3f6346123baf520c4c1ccab536c7049aa78f8d288611c
+    calibrex-absolute-fit-construction_seq1: cb26cd12cf4d8512f8288538f6c9250b1969722bfc6ed6cc9affa576fe738711
+  created_at: '2026-09-30T05:04:16.789672+00:00'

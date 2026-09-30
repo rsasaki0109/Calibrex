@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- A pre-registered `imu-lidar` extrinsic claim (rotation, lever arm, and
+  clock offset against LI-Init) is **refuted** on two unseen RTK-SLAM
+  recordings (`stadtgarten_seq1`, `construction_seq1`).
+  - Calibrex's lever-arm run was `inconclusive` on both: x's segment-duration
+    sensitivity is 11.0 and 13.3 mm, above the 10 mm bound. The
+    pre-registration counts that as no estimate.
+  - The rotation passes on both and replicates seq2 to within 0.05 deg.
+  - Candidates are scored on one common odometry per recording
+    (`score_imu_lidar_translation_candidate`, `tools/score_mid360_imu_lidar_extrinsics.py`,
+    `tools/build_mid360_imu_lidar_extrinsic_audit.py`).
+  - The leaderboard lists the refuted claim next to the supported rotation
+    claim.
 - `calibrex imu-lidar livox-translation` estimates the IMU lever arm
   (translation of `T_lidar_imu`) from the accelerometer, on top of a
   digest-pinned rotation artifact, as `slac.imu_lidar_translation/v0.1`.
