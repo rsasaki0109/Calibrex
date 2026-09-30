@@ -120,9 +120,11 @@ def test_tracking_a_rotating_camera_recovers_the_orientation() -> None:
         for k in range(len(truth) - 1)
     ]
     assert np.median(errors) < 0.1
-    # Degenerate essential fits can still be off by about a degree on a pair;
-    # the robust (Huber) rate alignment downweights such pairs.
-    assert max(errors) < 1.5
+    # A degenerate essential fit is replaced by the pure-rotation fit only when
+    # they disagree by more than degenerate_disagreement_deg (2 deg), so a pair
+    # can still be off by up to that; the robust (Huber) rate alignment
+    # downweights such pairs.
+    assert max(errors) < VisualRotationOptions().degenerate_disagreement_deg
 
 
 def test_cli_passes_the_camchain_reference_and_topic(

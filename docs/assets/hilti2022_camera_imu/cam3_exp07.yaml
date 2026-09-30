@@ -4,96 +4,97 @@ sensor_modality: camera
 solver_status: converged
 policy_status: inconclusive
 policy_reasons:
-- 'not constrained by the data, so not calibrated: roll, pitch, yaw, time_offset'
+- 'not constrained by the data, so not calibrated: roll, pitch, yaw'
 calibrated_dofs:
+- time_offset
 - gyro_bias_x
 - gyro_bias_y
 - gyro_bias_z
 rotation_quat_xyzw:
-- 0.01156759005129223
-- 0.7077648312778493
-- 0.7061006398308697
-- 0.01889499661495652
-time_offset_s: 0.00217024601005351
+- -0.00011411960402208426
+- 0.708700478066612
+- 0.7054954597849763
+- 0.004446975113090488
+time_offset_s: 0.0026485980967189677
 gyro_bias_rps:
-- 0.0012944773126202915
-- -0.00021258260875244475
-- 2.1321555903960747e-05
+- 0.0008396793583057237
+- 0.001354474536378617
+- -0.000618186042060962
 dofs:
 - name: roll
   unit: deg
-  value: 90.12203130704796
-  std_analytic: 0.15380375926156942
-  std_jackknife: 1.876702389010665
-  std_reported: 1.876702389010665
+  value: 90.25856845464347
+  std_analytic: 0.17701904723956238
+  std_jackknife: 0.44824915849359914
+  std_reported: 0.44824915849359914
   status: unobservable
   reference_value: 89.86997542672961
-  error_to_reference: -0.2804708331869312
+  error_to_reference: -0.39606855311249234
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 28.243495149778937
+    holdout_delta_chi2: 19.963053075087373
     detected: true
 - name: pitch
   unit: deg
-  value: 0.5964978104368248
-  std_analytic: 0.15944327993927723
-  std_jackknife: 1.494322517041318
-  std_reported: 1.494322517041318
+  value: 0.3703721526315598
+  std_analytic: 0.25895486714523885
+  std_jackknife: 0.571977623392029
+  std_reported: 0.571977623392029
   status: unobservable
   reference_value: -0.4254536151620057
-  error_to_reference: -1.0145621415809336
+  error_to_reference: -0.7921321089713419
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: -47.90269097372402
-    detected: false
+    holdout_delta_chi2: 31.712638146274003
+    detected: true
 - name: yaw
   unit: deg
-  value: 177.5320727202327
-  std_analytic: 0.16175649528078137
-  std_jackknife: 2.1537942990850816
-  std_reported: 2.1537942990850816
+  value: 179.64974780238506
+  std_analytic: 0.19296705395045294
+  std_jackknife: 0.6419421801190622
+  std_reported: 0.6419421801190622
   status: unobservable
   reference_value: 179.27189481217806
-  error_to_reference: -1.7401493931738852
+  error_to_reference: 0.3780322559990483
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 27.461196522898717
+    holdout_delta_chi2: 36.860106957954486
     detected: true
 - name: time_offset
   unit: s
-  value: 0.00217024601005351
-  std_analytic: 0.00019891639832965102
-  std_jackknife: 0.002211191190712763
-  std_reported: 0.002211191190712763
-  status: unobservable
+  value: 0.0026485980967189677
+  std_analytic: 0.00028335231129581894
+  std_jackknife: 0.0010437796973523184
+  std_reported: 0.0010437796973523184
+  status: estimated
   known_bad_control:
     amount: 0.01
     unit: s
-    holdout_delta_chi2: 641.656057770504
+    holdout_delta_chi2: 976.8944660072648
     detected: true
 - name: gyro_bias_x
   unit: rad/s
-  value: 0.0012944773126202915
-  std_analytic: 0.0001522374307826661
-  std_jackknife: 0.00030246974972781665
-  std_reported: 0.00030246974972781665
+  value: 0.0008396793583057237
+  std_analytic: 0.0006285956357094818
+  std_jackknife: 0.0012136152659062457
+  std_reported: 0.0012136152659062457
   status: estimated
 - name: gyro_bias_y
   unit: rad/s
-  value: -0.00021258260875244475
-  std_analytic: 0.00015707077091861558
-  std_jackknife: 0.0006108932868797301
-  std_reported: 0.0006108932868797301
+  value: 0.001354474536378617
+  std_analytic: 0.0006155349881263583
+  std_jackknife: 0.0009721288113434915
+  std_reported: 0.0009721288113434915
   status: estimated
 - name: gyro_bias_z
   unit: rad/s
-  value: 2.1321555903960747e-05
-  std_analytic: 0.00015103573655204924
-  std_jackknife: 0.0003925320591025217
-  std_reported: 0.0003925320591025217
+  value: -0.000618186042060962
+  std_analytic: 0.0006346655948932681
+  std_jackknife: 0.0008929424075627244
+  std_reported: 0.0008929424075627244
   status: estimated
 options:
   holdout_every: 3
@@ -118,23 +119,23 @@ options:
   visual_rotation:
   - bag: exp07_ros2
     pairs: 1321
-    essential: 224
-    pure_rotation: 391
-    failed: 706
+    essential: 872
+    pure_rotation: 407
+    failed: 42
   essential_inlier_fraction: 0.0
-  max_features: 400
+  max_features: 600
 windows:
   scans_read: 1322
-  odometry_segments: 707
-  unreliable_registrations: 706
-  windows: 8
-  rate_intervals: 461
+  odometry_segments: 43
+  unreliable_registrations: 42
+  windows: 19
+  rate_intervals: 1148
   imu_samples: 52757
-train_windows: 5
-holdout_windows: 3
-jackknife_fits: 5
-train_median_rate_residual_rps: 0.004055094782775316
-holdout_median_rate_residual_rps: 0.008250808441087495
+train_windows: 13
+holdout_windows: 6
+jackknife_fits: 8
+train_median_rate_residual_rps: 0.04307246282773846
+holdout_median_rate_residual_rps: 0.05356171261554038
 reference: 'Kalibr camchain calib_3_cam3-camchain-imucam.yaml cam0: T_cam_imu, timeshift_cam_imu
   0.0018128742099424312 s'
 deskew_passes: []
@@ -147,7 +148,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.camera_imu_rotation
   generator_version: 0.4.1
-  git_commit: 2b8a992
+  git_commit: 385db0c
   command:
   - calibrex
   - camera-imu
@@ -171,4 +172,4 @@ provenance:
   input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
     MiB
   dataset_license: Hilti SLAM Challenge 2022 terms
-  created_at: '2026-09-30T12:23:03.967971+00:00'
+  created_at: '2026-09-30T13:33:32.889887+00:00'

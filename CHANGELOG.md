@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Camera-IMU tracking now equalizes contrast (CLAHE) and tracks up to 600
+  features at quality 0.001.
+  - On the Hilti exp07 corridor, failed frame pairs dropped from 577 to 16
+    of 1321 (cam0), and the forward cameras' std from 0.4-0.9 to 0.1-0.24 deg.
+  - The side-looking cameras did not improve, and two got worse on exp21.
+  - `tools/analyze_camera_imu_consistency.py` separates a rig-level
+    IMU-frame offset from per-camera errors. On exp21 it finds about -0.4 deg
+    about the IMU vertical axis, shared by all cameras; the cause is not
+    identified.
 - `calibrex camera-imu rotation`: targetless camera-IMU rotation, clock
   offset, and gyro bias from ROS 2 image and IMU topics (needs
   `calibrex[opencv]`).
