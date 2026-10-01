@@ -193,6 +193,7 @@ class CheckUncheckedAxis(StrictModel):
     unit: Literal["deg", "m"]
     std: float | None = Field(default=None, ge=0.0)
     reason: str
+    reason_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
 
 
 class CheckTimeOffset(StrictModel):
@@ -255,6 +256,11 @@ class CheckPairRecord(StrictModel):
     unchecked_axes: list[CheckUncheckedAxis] = Field(default_factory=list)
     time_offset: CheckTimeOffset | None = None
     evidence: list[CheckEvidenceRef] = Field(default_factory=list)
+    coverage: Literal["full", "partial"] | None = Field(
+        default=None,
+        description="partial when any rotation axis, or any translation axis the estimator "
+        "attempted, is unchecked",
+    )
     runtime_s: float | None = Field(default=None, ge=0.0)
     notes: list[str] = Field(default_factory=list)
 
@@ -278,6 +284,11 @@ class CheckSummary(StrictModel):
     runnable_count: int = Field(ge=0)
     status_counts: dict[str, int] = Field(default_factory=dict)
     skipped_by_reason: dict[str, int] = Field(default_factory=dict)
+    partial_pairs: int = Field(
+        default=0,
+        ge=0,
+        description="run pairs that left at least one attempted axis unchecked",
+    )
 
 
 class CheckProvenance(StrictModel):
@@ -335,7 +346,9 @@ def summarize_pairs(pairs: list[CheckPairRecord]) -> CheckSummary:
         status_counts[pair.status] = status_counts.get(pair.status, 0) + 1
         if pair.status == "skipped" and pair.reason_code is not None:
             skipped_by_reason[pair.reason_code] = skipped_by_reason.get(pair.reason_code, 0) + 1
+    partial = sum(1 for pair in pairs if pair.coverage == "partial")
     return CheckSummary(
+        partial_pairs=partial,
         pair_count=len(pairs),
         runnable_count=len(pairs) - status_counts.get("skipped", 0),
         status_counts=dict(sorted(status_counts.items())),

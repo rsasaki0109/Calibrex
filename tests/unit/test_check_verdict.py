@@ -199,3 +199,23 @@ def test_classify_point_time() -> None:
     assert classify_point_time(np.array([123456.0, 234567.0]), header_ns) is None
     assert classify_point_time(np.array([np.nan]), header_ns) is None
     assert classify_point_time(None, header_ns) is None
+
+
+def test_coverage_and_control_not_detected() -> None:
+    class Control:
+        detected = False
+        amount = 20.0
+        unit = "mm"
+        holdout_delta_chi2 = -15.3
+
+    record = _Record("x", 0.009)
+    record.known_bad_control = Control()  # type: ignore[attr-defined]
+    ok = _Record("z", 0.005)
+    ok.known_bad_control = None  # type: ignore[attr-defined]
+    axes = translation_axis_estimates([record, ok], [0.0, 0.0, 0.0], [0.03, 0.0, 0.0])
+
+    assert axes[0].estimated is False and axes[0].unchecked_code == "control_not_detected"
+    result = judge_pair(axes, OPTIONS)
+    assert result.unchecked[0].reason_code == "control_not_detected"
+    assert result.coverage == "partial"
+    assert judge_pair([_rot(0.1, 0.1)], OPTIONS).coverage == "full"

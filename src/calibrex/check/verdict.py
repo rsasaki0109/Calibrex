@@ -80,6 +80,7 @@ class AxisEstimate:
     std: float
     estimated: bool
     unchecked_reason: str | None = None
+    unchecked_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
 
 
 def judge_axis(estimate: AxisEstimate, options: VerdictOptions) -> CheckAxisJudgement:
@@ -130,6 +131,12 @@ class PairJudgement:
     axes: tuple[CheckAxisJudgement, ...]
     unchecked: tuple[CheckUncheckedAxis, ...]
 
+    @property
+    def coverage(self) -> Literal["full", "partial"]:
+        """``partial`` when any attempted axis is unchecked."""
+
+        return "partial" if self.unchecked else "full"
+
 
 def judge_pair(estimates: Sequence[AxisEstimate], options: VerdictOptions) -> PairJudgement:
     """Judge every estimated axis and list the rest as unchecked."""
@@ -146,6 +153,7 @@ def judge_pair(estimates: Sequence[AxisEstimate], options: VerdictOptions) -> Pa
                     unit=estimate.unit,
                     std=estimate.std,
                     reason=estimate.unchecked_reason or "not constrained by the data",
+                    reason_code=estimate.unchecked_code or "unobservable",
                 )
             )
     if not axes:

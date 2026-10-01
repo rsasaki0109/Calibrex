@@ -207,9 +207,7 @@ def test_unsolved_estimator_is_inconclusive(
     assert (record.status, record.reason_code) == ("inconclusive", "estimator_failed")
 
 
-def test_pairs_and_camera_filters(
-    tmp_path: Path, bag: Path, calls: list[PairContext]
-) -> None:
+def test_pairs_and_camera_filters(tmp_path: Path, bag: Path, calls: list[PairContext]) -> None:
     artifact = build_calibration_check(
         bag,
         run=CheckRunOptions(
@@ -328,3 +326,23 @@ def test_cli_plan_is_unchanged_and_fast(
     assert not calls
     assert "calibrex check (plan)" in out
     assert "overall verdict" not in out
+
+
+def test_partial_coverage_is_recorded_and_printed(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    partial = _run((0.0, 0.0, 0.0))
+    axes = list(partial.estimates)
+    axes[2] = AxisEstimate("yaw", "deg", 0.0, 3.0, False, "x", "unobservable")
+    partial = EstimatorRun(**{**partial.__dict__, "estimates": tuple(axes)})
+    monkeypatch.setattr(estimators, "ESTIMATORS", {"lidar-lidar": lambda ctx: partial})
+
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("lidar-lidar",))
+    )
+
+    record = _by(artifact, "lidar-lidar")[0]
+    assert (record.status, record.coverage) == ("pass", "partial")
+    assert artifact.overall_verdict == "pass" and artifact.summary.partial_pairs == 1
+    table = format_check_table(artifact)
+    assert "pass (partial: roll, pitch only)" in table and "WARNING: 1 pair(s)" in table

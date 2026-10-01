@@ -498,6 +498,7 @@ def _judge(
         "estimator_policy_reasons": list(outcome.policy_reasons),
         "axes": [axis.model_dump() for axis in judgement.axes],
         "unchecked_axes": [axis.model_dump() for axis in judgement.unchecked],
+        "coverage": judgement.coverage,
         "time_offset": outcome.time_offset.model_dump() if outcome.time_offset else None,
         "runtime_s": runtime_s,
         "notes": list(outcome.notes),
@@ -567,11 +568,14 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
         detect = "; ".join(
             f"{axis.name} {axis.detectable_error:.3g} {axis.unit}" for axis in pair.axes
         )
+        verdict: str = pair.status
+        if pair.coverage == "partial" and pair.axes:
+            verdict += f" (partial: {', '.join(axis.name for axis in pair.axes)} only)"
         rows.append(
             [
                 pair.pair,
                 sensors,
-                pair.status,
+                verdict,
                 pair.reason_code or "",
                 judged,
                 unchecked,
@@ -606,6 +610,11 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
             lines.append(f"  {pair.pair}: unchecked {item.name}: {item.reason}")
     lines.append("")
     lines.append(f"overall verdict: {artifact.overall_verdict}")
+    if artifact.summary.partial_pairs:
+        lines.append(
+            f"WARNING: {artifact.summary.partial_pairs} pair(s) have partial coverage: "
+            "unchecked axes were not judged, so a pass covers only the judged axes"
+        )
     return lines
 
 

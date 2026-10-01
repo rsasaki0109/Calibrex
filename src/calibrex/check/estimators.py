@@ -175,12 +175,32 @@ def _estimate(
     record: Any,
 ) -> AxisEstimate:
     observable = record is not None and record.status == "estimated"
+    control = getattr(record, "known_bad_control", None)
+    undetected = observable and control is not None and not control.detected
+    if undetected and control is not None:
+        return AxisEstimate(
+            name=name,
+            unit=unit,
+            candidate_error=error,
+            std=float(record.std_reported),
+            estimated=False,
+            unchecked_reason=(
+                f"the estimator's known-bad control on this axis ({control.amount:g} "
+                f"{control.unit}) was not detected on held-out data "
+                f"(delta chi-square {control.holdout_delta_chi2:.1f}), so the estimate "
+                "is not trusted as a yardstick"
+            ),
+            unchecked_code="control_not_detected",
+        )
     return AxisEstimate(
         name=name,
         unit=unit,
         candidate_error=error,
         std=float(record.std_reported) if record is not None else 0.0,
         estimated=observable,
+        unchecked_code=None
+        if observable
+        else ("unobservable" if record is not None else "no_estimate"),
         unchecked_reason=None
         if observable
         else (
@@ -415,7 +435,9 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
 def _unestimated(
     item: AxisEstimate, reason: str = "the estimator produced no rotation"
 ) -> AxisEstimate:
-    return AxisEstimate(item.name, item.unit, item.candidate_error, item.std, False, reason)
+    return AxisEstimate(
+        item.name, item.unit, item.candidate_error, item.std, False, reason, "no_estimate"
+    )
 
 
 # --------------------------------------------------------------- lidar-lidar

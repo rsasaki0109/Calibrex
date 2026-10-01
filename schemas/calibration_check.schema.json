@@ -438,6 +438,23 @@
           "default": null,
           "description": "the candidate in the estimator's convention (for example T_lidar_imu for imu-lidar); axes are those of its parent frame"
         },
+        "coverage": {
+          "anyOf": [
+            {
+              "enum": [
+                "full",
+                "partial"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "partial when any rotation axis, or any translation axis the estimator attempted, is unchecked",
+          "title": "Coverage"
+        },
         "estimator": {
           "anyOf": [
             {
@@ -705,6 +722,13 @@
           "title": "Pair Count",
           "type": "integer"
         },
+        "partial_pairs": {
+          "default": 0,
+          "description": "run pairs that left at least one attempted axis unchecked",
+          "minimum": 0,
+          "title": "Partial Pairs",
+          "type": "integer"
+        },
         "runnable_count": {
           "minimum": 0,
           "title": "Runnable Count",
@@ -953,6 +977,23 @@
         "reason": {
           "title": "Reason",
           "type": "string"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "unobservable",
+                "control_not_detected",
+                "no_estimate"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
         },
         "std": {
           "anyOf": [

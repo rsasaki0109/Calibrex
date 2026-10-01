@@ -26,7 +26,10 @@
   Hesai writes it, or absolute nanoseconds), and the IMU-LiDAR and LiDAR-LiDAR
   estimators accept a time window. Real-data validation (Hilti, NTU VIRAL,
   RTK-SLAM, including known-bad yaw perturbations) is in
-  `docs/tutorials/calibrex_check.md`.
+  `docs/tutorials/calibrex_check.md`. A pair with any unchecked attempted axis is
+  marked `coverage: partial` (table: `pass (partial: roll only)`, summary
+  `partial_pairs`, CLI warning), and an axis whose estimator known-bad control was
+  not detected is left unchecked (`control_not_detected`).
 - **`calibrex check`, Phase A (plan only).** `calibrex check BAG [--tf FILE]
   [--vehicle-frame FRAME] [--frame-map TOPIC=FRAME] [--plan]` audits the
   calibration deployed on a robot. It reads candidate extrinsics from the bag's

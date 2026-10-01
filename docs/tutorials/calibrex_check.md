@@ -128,6 +128,17 @@ pairs the estimate is independent of the candidate. The estimator's own
 `reference` fields carry the candidate, so each evidence artifact also holds its
 `error_to_reference`.
 
+### Coverage
+
+A pair is `partial` when any rotation axis, or any translation axis the
+estimator attempted, is unchecked: because it is unobservable, or because the
+estimator's own known-bad control on that axis was not detected on held-out data
+(`control_not_detected`; the estimate is then not trusted as a yardstick). The
+table prints `pass (partial: roll only)`, the pair record carries
+`coverage: partial`, and the summary counts `partial_pairs`. A run whose pairs
+all pass but some are partial keeps the overall verdict `pass`, and the CLI
+prints a warning; a `pass` covers only the judged axes.
+
 ### What error could this bag detect?
 
 Every judged axis records a detection-power self-test that re-solves nothing.
@@ -173,12 +184,12 @@ bounds.
 | Hilti exp21, cam1 / IMU | Kalibr `calib_3_cam0-1` | `pass` | roll 0.15/0.50, pitch 0.33/0.50, yaw 0.19/0.53 deg | - | 5.8 min |
 | Hilti exp21, cam0 / IMU | known-bad, +1 deg yaw | `fail` | roll 0.19/0.50, pitch 0.33/0.50, **yaw 1.25/0.50** deg | - | 3.2 min |
 | Hilti exp21, cam0 / IMU | known-bad, +3 deg yaw | `fail` | roll 0.18/0.50, pitch 0.34/0.50, **yaw 3.25/0.50** deg | - | 3.3 min |
-| Hilti exp21 (first 40 s), IMU / Hesai PandarXT-32 | `lidar_calibration.yaml` | `pass` (one axis judged) | roll 0.12/0.50 deg | pitch (std 0.13 deg), yaw (0.19 deg) | 25 min |
+| Hilti exp21 (first 40 s), IMU / Hesai PandarXT-32 | `lidar_calibration.yaml` | `pass (partial: roll only)` | roll 0.12/0.50 deg | pitch (std 0.13 deg), yaw (0.19 deg) | 25 min |
 | Hilti exp21 (full 153 s, with lever arm), IMU / Hesai | `lidar_calibration.yaml` | not run to completion | stopped after 2.5 h; see Cost | - | - |
 | NTU tnp_01 (first 240 s), horz / vert LiDAR | design `T_Body2Lidar` | `fail` | pitch 0.52/0.50 (warn), yaw 0.19/0.50, x 0.011/0.020, **y 0.074/0.029, z 0.058/0.020** | roll (std 0.11 deg) | 34 min |
 | NTU tnp_01 (first 240 s) | known-bad, +1 deg yaw | `fail` | same, **yaw 1.19/0.50** (fail) | roll | 34 min |
 | NTU tnp_01 (first 240 s) | known-bad, +3 deg yaw | `fail` | same, **yaw 3.19/0.50** (fail) | roll | 34 min |
-| RTK-SLAM construction_seq1 (first 180 s), IMU / LiDAR | `calib.yaml` | `warn` | roll 0.22/0.50, pitch 0.03/0.50, yaw 0.20/0.50 deg; x 0.032/0.028 (warn), z 0.001/0.020 m | y (std 14 mm) | 94 min |
+| RTK-SLAM construction_seq1 (first 180 s), IMU / LiDAR | `calib.yaml` | `pass (partial: roll, pitch, yaw, z only)` | roll 0.22/0.50, pitch 0.03/0.50, yaw 0.20/0.50 deg; z 0.001/0.020 m | x (`control_not_detected`), y (std 14 mm) | 94 min |
 | RTK-SLAM construction_seq1 (first 180 s) | known-bad, +1 deg yaw, rotation only | `warn` | yaw **0.80/0.50** (warn), roll 0.22, pitch 0.03 | - | 87 min |
 | RTK-SLAM construction_seq1 (first 180 s) | known-bad, +3 deg yaw, rotation only | `fail` | yaw **2.80/0.50** (fail), roll 0.22, pitch 0.04 | - | 86 min |
 
@@ -201,11 +212,13 @@ What the table shows, including what does not look good:
   independent measurement says which is right; the check says the data do not
   support the design values at the stated accuracy. The estimator's own policy is
   `inconclusive` (roll is unobservable), and roll is left unchecked.
-* **RTK-SLAM `warn` comes from the lever arm.** All three rotation axes pass.
-  The x lever-arm difference (3.2 cm against a 2.8 cm tolerance) warns, and the
-  translation estimator itself warns that its known-bad 20 mm shift on x was not
-  detected on held-out windows, so that estimate is weak. The y axis was not
-  constrained. The clock offset (10.1 ms) is reported, not judged.
+* **RTK-SLAM is a partial pass.** The first run judged x as a `warn` (3.2 cm
+  against 2.8 cm). The estimator's own known-bad 20 mm shift on x was not
+  detected on held-out windows, so x is now left unchecked with reason
+  `control_not_detected` (the same evidence, re-judged), and the pair is `pass`
+  with partial coverage. The y axis was not constrained. The clock offset
+  (10.1 ms) is reported, not judged. The +1 and +3 deg rows were rotation only
+  and are unaffected.
 * **Detection power.** At baseline every judged rotation axis has a
   `detectable_error` between 0.53 and 0.83 deg, except the NTU pitch axis
   (1.03 deg, because the candidate is already 0.52 deg off): a 1 deg error on
