@@ -326,6 +326,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = _build_parser()
     args = parser.parse_args(argv)
+    args.invoked_argv = list(sys.argv[1:] if argv is None else argv)
     command = cast(Callable[[argparse.Namespace], int], args.func)
     try:
         return command(args)
@@ -2808,6 +2809,43 @@ def _build_parser() -> argparse.ArgumentParser:
     smoke_verify.add_argument("--json", action="store_true")
     smoke_verify.set_defaults(func=_cmd_autoware_smoke_verify)
 
+    check = subcommands.add_parser(
+        "check",
+        help="audit the calibration deployed on a robot against a bag (Phase A: plan only)",
+        description=(
+            "Read candidate extrinsics from the bag's /tf_static and/or --tf files, classify "
+            "the bag's sensor topics, and list the sensor pairs that can be checked. Phase A "
+            "plans only: no pair solver runs, with or without --plan."
+        ),
+    )
+    check.add_argument("bag", type=Path, help="rosbag2 directory or storage file")
+    check.add_argument(
+        "--tf",
+        type=Path,
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="candidate calibration: URDF, slac.check_frames YAML, Kalibr camchain-imucam, "
+        "RTK-SLAM calib.yaml, or Hilti sensors list; repeatable; overrides bag /tf_static "
+        "for the same child frame",
+    )
+    check.add_argument("--vehicle-frame", default="base_link")
+    check.add_argument(
+        "--frame-map",
+        action="append",
+        default=[],
+        metavar="TOPIC=FRAME",
+        help="map a sensor topic to a tree frame; repeatable",
+    )
+    check.add_argument(
+        "--plan",
+        action="store_true",
+        help="dry run (the only mode in Phase A; without it a notice says solvers are not wired)",
+    )
+    check.add_argument("--output", type=Path, help="write the slac.calibration_check artifact")
+    check.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    check.set_defaults(func=_cmd_check)
+
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
     inspect.add_argument("path", type=Path)
     inspect.add_argument(
@@ -3856,6 +3894,34 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif not args.output:
         print(f"trajectory window drift: {artifact.grade} ({artifact.interpretation})")
+    return 0
+
+
+def _cmd_check(args: argparse.Namespace) -> int:
+    from calibrex.check import build_calibration_check, format_check_table
+    from calibrex.check.runner import parse_frame_map
+
+    artifact = build_calibration_check(
+        args.bag,
+        tf_files=args.tf,
+        vehicle_frame=args.vehicle_frame,
+        frame_overrides=parse_frame_map(args.frame_map),
+        command=["calibrex", *args.invoked_argv],
+    )
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    if args.output:
+        write_mapping(args.output, payload)
+    if not args.plan:
+        print(
+            "note: check solvers are not wired yet (Phase A); showing the plan",
+            file=sys.stderr,
+        )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(format_check_table(artifact))
+        if args.output:
+            print(f"artifact: {args.output}")
     return 0
 
 

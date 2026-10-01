@@ -1,0 +1,631 @@
+{
+  "$defs": {
+    "CheckBagInput": {
+      "additionalProperties": false,
+      "description": "The bag that was audited.\n\nThe digest follows the repository precedent for tens-of-gigabyte bags:\n``metadata.yaml`` in full, and each storage file by name, size and first\n64 MiB (see ``input_digest_scope``).",
+      "properties": {
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "storage_identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Storage Identifier"
+        },
+        "topic_count": {
+          "minimum": 0,
+          "title": "Topic Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "topic_count",
+        "input_sha256",
+        "input_digest_scope"
+      ],
+      "title": "CheckBagInput",
+      "type": "object"
+    },
+    "CheckCandidateSource": {
+      "additionalProperties": false,
+      "description": "One origin of candidate extrinsics.",
+      "properties": {
+        "frame_count": {
+          "minimum": 0,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bag_tf_static",
+            "urdf",
+            "frames_yaml",
+            "kalibr_camchain",
+            "rtk_slam_calib",
+            "hilti_sensors"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "kind",
+        "frame_count"
+      ],
+      "title": "CheckCandidateSource",
+      "type": "object"
+    },
+    "CheckFrameEdge": {
+      "additionalProperties": false,
+      "description": "One static edge of the candidate tree.",
+      "properties": {
+        "source": {
+          "enum": [
+            "bag_tf_static",
+            "urdf",
+            "frames_yaml",
+            "kalibr_camchain",
+            "rtk_slam_calib",
+            "hilti_sensors"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "transform": {
+          "$ref": "#/$defs/CheckTransform"
+        }
+      },
+      "required": [
+        "transform",
+        "source"
+      ],
+      "title": "CheckFrameEdge",
+      "type": "object"
+    },
+    "CheckFrameTree": {
+      "additionalProperties": false,
+      "description": "The candidate static tree (a forest when several roots exist).",
+      "properties": {
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/CheckFrameEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "overrides": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Overrides",
+          "type": "array"
+        },
+        "roots": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Roots",
+          "type": "array"
+        }
+      },
+      "title": "CheckFrameTree",
+      "type": "object"
+    },
+    "CheckPairRecord": {
+      "additionalProperties": false,
+      "description": "One candidate sensor pair and what was decided for it.",
+      "properties": {
+        "candidate_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckTransform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence_artifact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Artifact"
+        },
+        "frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "pair": {
+          "enum": [
+            "imu-lidar",
+            "lidar-lidar",
+            "camera-imu",
+            "camera-focal",
+            "gnss-lidar",
+            "gnss-imu",
+            "lidar-vehicle",
+            "imu-vehicle",
+            "ins-lidar",
+            "lidar-wheel_odometry"
+          ],
+          "title": "Pair",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "missing_topic",
+                "frame_not_in_tree",
+                "frames_not_connected",
+                "no_candidate_calibration",
+                "no_vehicle_frame",
+                "method_not_wired"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
+        },
+        "sensors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensors",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "skipped",
+            "pass",
+            "warn",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "topics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Topics",
+          "type": "array"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict"
+        }
+      },
+      "required": [
+        "pair",
+        "status"
+      ],
+      "title": "CheckPairRecord",
+      "type": "object"
+    },
+    "CheckProvenance": {
+      "additionalProperties": false,
+      "description": "Generator lineage and input digests.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "input_sha256",
+        "input_digest_scope",
+        "created_at"
+      ],
+      "title": "CheckProvenance",
+      "type": "object"
+    },
+    "CheckSummary": {
+      "additionalProperties": false,
+      "description": "Counts derived from the pair records.",
+      "properties": {
+        "pair_count": {
+          "minimum": 0,
+          "title": "Pair Count",
+          "type": "integer"
+        },
+        "runnable_count": {
+          "minimum": 0,
+          "title": "Runnable Count",
+          "type": "integer"
+        },
+        "skipped_by_reason": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Skipped By Reason",
+          "type": "object"
+        },
+        "status_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Status Counts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "pair_count",
+        "runnable_count"
+      ],
+      "title": "CheckSummary",
+      "type": "object"
+    },
+    "CheckTopicRecord": {
+      "additionalProperties": false,
+      "description": "One bag topic, its role and the tree frame it maps to.",
+      "properties": {
+        "frame_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "override",
+                "header",
+                "source_topic_hint",
+                "role_default"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Source"
+        },
+        "header_frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Header Frame Id"
+        },
+        "mapped_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapped Frame"
+        },
+        "message_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Count"
+        },
+        "message_type": {
+          "title": "Message Type",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "odometry_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "wheel",
+                "ins",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Odometry Kind"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "lidar",
+                "imu",
+                "camera",
+                "gnss",
+                "odometry",
+                "twist",
+                "tf_static"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "topic": {
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic",
+        "message_type"
+      ],
+      "title": "CheckTopicRecord",
+      "type": "object"
+    },
+    "CheckTransform": {
+      "additionalProperties": false,
+      "description": "``T_parent_child``: maps ``child_frame`` points into ``parent_frame``.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "CheckTransform",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Audit plan (Phase A) and, in later phases, verdicts for a deployed calibration.",
+  "properties": {
+    "bag": {
+      "$ref": "#/$defs/CheckBagInput"
+    },
+    "candidate_sources": {
+      "items": {
+        "$ref": "#/$defs/CheckCandidateSource"
+      },
+      "title": "Candidate Sources",
+      "type": "array"
+    },
+    "frame_tree": {
+      "$ref": "#/$defs/CheckFrameTree"
+    },
+    "overall_verdict": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Overall Verdict"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/CheckPairRecord"
+      },
+      "title": "Pairs",
+      "type": "array"
+    },
+    "plan_only": {
+      "default": true,
+      "title": "Plan Only",
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CheckProvenance"
+    },
+    "schema_version": {
+      "const": "slac.calibration_check/v0.1",
+      "default": "slac.calibration_check/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/CheckSummary"
+    },
+    "topics": {
+      "items": {
+        "$ref": "#/$defs/CheckTopicRecord"
+      },
+      "title": "Topics",
+      "type": "array"
+    },
+    "vehicle_frame": {
+      "title": "Vehicle Frame",
+      "type": "string"
+    }
+  },
+  "required": [
+    "bag",
+    "vehicle_frame",
+    "frame_tree",
+    "summary",
+    "provenance"
+  ],
+  "title": "CalibrationCheckArtifact",
+  "type": "object"
+}

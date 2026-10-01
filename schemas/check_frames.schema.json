@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "CheckFramesEntry": {
+      "additionalProperties": false,
+      "description": "One static frame: ``T_parent_frame``.",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "minLength": 1,
+          "title": "Parent",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "parent",
+        "translation_m"
+      ],
+      "title": "CheckFramesEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Hand-written static frame tree for ``calibrex check --tf``.\n\n``topic_frames`` maps bag topics to frames and ``role_frames`` names the\ndefault frame of a sensor role; both are optional hints used when a\ntopic's header frame id is not in the tree.",
+  "properties": {
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/CheckFramesEntry"
+      },
+      "minItems": 1,
+      "title": "Frames",
+      "type": "array"
+    },
+    "role_frames": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "enum": [
+          "lidar",
+          "imu",
+          "camera",
+          "gnss",
+          "odometry",
+          "twist",
+          "tf_static"
+        ]
+      },
+      "title": "Role Frames",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "slac.check_frames/v0.1",
+      "default": "slac.check_frames/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "topic_frames": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Topic Frames",
+      "type": "object"
+    }
+  },
+  "required": [
+    "frames"
+  ],
+  "title": "CheckFramesFile",
+  "type": "object"
+}

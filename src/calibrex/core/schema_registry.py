@@ -41,6 +41,12 @@ from calibrex.core.benchmark import (
     benchmark_definition_json_schema,
     benchmark_json_schema,
 )
+from calibrex.core.calibration_check import (
+    CalibrationCheckArtifact,
+    CheckFramesFile,
+    calibration_check_json_schema,
+    check_frames_json_schema,
+)
 from calibrex.core.calibration_lifecycle import (
     CalibrationLifecycleArtifact,
     calibration_lifecycle_json_schema,
@@ -835,6 +841,8 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
     _entry("gnss-imu-lever-arm", GnssImuLeverArmArtifact, gnss_imu_lever_arm_json_schema),
     _entry("camera-focal-scale", CameraFocalScaleArtifact, camera_focal_scale_json_schema),
+    _entry("calibration-check", CalibrationCheckArtifact, calibration_check_json_schema),
+    _entry("check-frames", CheckFramesFile, check_frames_json_schema),
     _entry(
         "lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema
     ),

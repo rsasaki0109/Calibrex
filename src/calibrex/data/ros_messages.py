@@ -477,6 +477,48 @@ class ImuMessage:
 
 
 @dataclass(frozen=True)
+class TransformStampedMessage:
+    """One ``geometry_msgs/msg/TransformStamped`` (``T_frame_child``)."""
+
+    timestamp_ns: int
+    frame_id: str
+    child_frame_id: str
+    translation_m: tuple[float, float, float]
+    rotation_xyzw: tuple[float, float, float, float]
+
+
+@dataclass(frozen=True)
+class TfMessage:
+    """A decoded ``tf2_msgs/msg/TFMessage`` (``/tf`` or ``/tf_static``)."""
+
+    topic: str
+    timestamp_ns: int
+    transforms: tuple[TransformStampedMessage, ...]
+
+
+@dataclass(frozen=True)
+class NavSatFixMessage:
+    """A decoded ``sensor_msgs/msg/NavSatFix`` message.
+
+    ``status`` is ``NavSatStatus.status`` (-1 no fix, 0 fix, 1 SBAS, 2 GBAS);
+    ``position_covariance`` is the full row-major 3x3 ENU covariance and
+    ``position_covariance_type`` follows the ROS enum (0 unknown, 1 approximated,
+    2 diagonal known, 3 known).
+    """
+
+    topic: str
+    timestamp_ns: int
+    frame_id: str
+    status: int
+    service: int
+    latitude_deg: float
+    longitude_deg: float
+    altitude_m: float
+    position_covariance: tuple[float, ...]
+    position_covariance_type: int
+
+
+@dataclass(frozen=True)
 class ImageMessage:
     """A validated ``sensor_msgs/Image`` payload without ROS dependencies.
 
