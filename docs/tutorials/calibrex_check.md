@@ -1,12 +1,13 @@
 # Check a deployed calibration (`calibrex check`)
 
-Status: **Phase C1** (imu-lidar, lidar-lidar, camera-imu, and the opt-in vehicle
-pairs lidar-vehicle, imu-vehicle, ins-lidar, lidar-wheel_odometry). The command reads the
+Status: **Phase C2** (imu-lidar, lidar-lidar, camera-imu, the GNSS pairs gnss-lidar and
+gnss-imu, and the opt-in vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar,
+lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
 and, without `--plan`, runs the existing native estimator of each wired pair and
 judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
-`inconclusive` per pair, with the per-axis numbers behind it. The GNSS and
-camera-focal pairs stay `skipped` with `method_not_wired`.
+`inconclusive` per pair, with the per-axis numbers behind it. The camera-focal
+pair stays `skipped` with `method_not_wired`.
 
 ```bash
 calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
@@ -76,7 +77,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
 | `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field (scans cannot be deskewed), a compressed camera image |
 | `missing_intrinsics` | `camera-imu` needs intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
-| `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`) |
+| `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results |
 
 A run can also leave a pair `inconclusive` with one of `estimator_error` (the
 estimator raised; the message is recorded and the other pairs still run),
@@ -315,11 +316,19 @@ candidate, so the evidence artifact still describes this check. A hit is flagged
 in the check artifact (`pairs[].evidence_from_cache`, `evidence[].from_cache`),
 and `runtime_s` is then the lookup, not the estimator. `lidar-lidar` starts its
 solver at the candidate, so its result is not candidate-independent and is not
-cached. `--no-cache` recomputes everything and writes nothing; `calibrex check`
+cached. `gnss-lidar` is cached the same way (the fit uses the candidate only as
+the reference it is compared with afterwards; the key holds the NavSatFix topic,
+the GNSS filter settings, the per-point time field, the span and all windowing
+and solver options, and a hit rebases the reference fields). `gnss-imu` is a
+cheap composition of the run's own results and is recomputed each time.
+`--no-cache` recomputes everything and writes nothing; `calibrex check`
 never deletes cache entries (remove the directory to clear it).
 
 ### Runtime controls
 
+`--gnss-max-duration-s S` sets the span for `gnss-lidar` (and so the GNSS input
+of `gnss-imu`) separately from `--max-duration-s`: the antenna lever arm needs
+minutes of RTK-fixed windows, `imu-lidar` a couple of minutes (see Phase C2).
 `--pairs a,b` restricts pairs; `--camera TOPIC` restricts `camera-imu` to one
 image topic (or camera frame); `--max-duration-s S` analyses the first `S`
 seconds of each sensor stream (images, scans, IMU samples within that window;
@@ -336,6 +345,123 @@ detected from the first message by comparing its values with the header stamp. A
 LiDAR without such a field is `unsupported_sensor`; deskewing needs it, and an
 undeskewed scan on a moving platform would be a biased yardstick. Livox
 `CustomMsg` is not read yet.
+
+## Phase C2: GNSS pairs
+
+| Pair | Needs in the bag | Estimator | Compared | Judged axes |
+| --- | --- | --- | --- | --- |
+| `gnss-lidar` | `NavSatFix` topic and a PointCloud2 LiDAR with per-point time | windowed variable projection of GNSS positions against deskewed LiDAR odometry (`slac.gnss_lidar_lever_arm/v0.1`) | antenna position in the LiDAR frame (translation of `T_lidar_gnss`) | x, y, z |
+| `gnss-imu` | the same, plus `imu-lidar` (rotation and lever arm) in the same run | composition of the three artifacts as `calibrex gnss-imu compose` does (`slac.gnss_imu_lever_arm/v0.1`) | antenna position in the IMU frame (translation of `T_imu_gnss`) | x, y, z |
+
+The roll, pitch and yaw of both pairs are listed as **unchecked** with the reason
+that an antenna has no defined orientation (the RTK-SLAM CAD offset is a point,
+with identity rotation assumed). `gnss-imu` needs `gnss-lidar` and `imu-lidar`
+selected and solved in the same run (it is skipped with `missing_dependency`
+otherwise, also when either failed its held-out check), and it needs the
+`imu-lidar` lever arm, so `--no-imu-lidar-translation` skips it.
+
+**GNSS from the bag.** `calibrex.data.navsatfix_track` builds the estimator's
+track from the `NavSatFix` topic; no `rtk.txt` is needed.
+
+* *Time*: the header stamp. On RTK-SLAM it equals `rtk.txt`'s timestamp, and the
+  LiDAR scans use the same clock, so no offset is applied. (The estimator also
+  fits a clock offset; it is reported, not judged.)
+* *Position*: latitude, longitude and the altitude **above the WGS84 ellipsoid**,
+  which is what the ENU conversion uses (RTK-SLAM's `/gnss/fix` altitude equals
+  `rtk.txt`'s `height` to the millimetre).
+* *Quality*: `NavSatFix.status` cannot tell RTK-fixed from RTK-float. RTK-SLAM's
+  driver publishes RTK-fixed as `0` and everything else (`rtk.txt` status 1 and
+  2) as `-1`; a fix is usable when `status >= 0` **and** its 3-D standard
+  deviation is at most 0.15 m, so ordinary single-point GPS is not mistaken for
+  RTK.
+* *Standard deviation*: `sqrt(trace(position_covariance))`, which reproduces
+  `rtk.txt`'s `blt_std` exactly (ratio 1.0000, max difference 0). With
+  `position_covariance_type` 0 (unknown) the covariance is not used: only
+  `GBAS` (2) fixes are kept, with a 5 cm std, and the count is recorded.
+* A bag with no usable fixes (KITTI `/oxts/fix` carries a 0.74 m covariance)
+  makes the pair `skipped` (`unsupported_sensor`) with the counts in the reason.
+
+**Candidate and caching.** The fit does not use the candidate (it is compared
+afterwards), so it is cached; see the estimator cache above. The planner's
+candidate is `T_gnss_lidar`; the estimate is its inverse's translation, which
+for the RTK-SLAM calibration equals `rtk_slam_reference_lever_arm` exactly.
+
+### Phase C2 results on RTK-SLAM
+
+Rig: Livox MID360 on a hand-held pole, candidate = `calib.yaml` (CAD antenna
+offset, MID360 manual IMU position), `--max-duration-s 120` for `imu-lidar`.
+All four sequences were already spent for claims; these are validation runs. Only
+the first minutes of each sequence have long RTK-fixed stretches (construction:
+about 220 s, then 4 % fixed; stadtgarten seq1: 54 %, seq2: 40 %).
+
+**Equivalence with the `rtk.txt` path.** The same windows, the same code, GNSS
+from `/gnss/fix` against `rtk.txt` (`calibrex gnss-lidar rtk-slam --max-seconds`),
+same scans (cut at the same seconds):
+
+| Run | Windows | x | y | z | time offset |
+| --- | ---: | --- | --- | --- | --- |
+| stadtgarten_seq2, 600 s: `rtk.txt` | 29 | 4.937 cm ± 1.65 | -0.224 cm ± 0.41 | 3.945 cm ± 5.49 | -23.69 ms ± 8.7 |
+| stadtgarten_seq2, 600 s: bag | 29 | 4.949 cm ± 1.61 | -0.227 cm ± 0.42 | 3.949 cm ± 5.51 | -23.80 ms ± 8.6 |
+| construction_seq1, 240 s: `rtk.txt` | 17 | 4.087 cm ± 2.42 | 0.348 cm ± 1.46 | 7.522 cm ± 4.32 | 6.39 ms ± 21.6 |
+| construction_seq1, 240 s: bag | 17 | 4.070 cm ± 2.43 | 0.337 cm ± 1.45 | 7.519 cm ± 4.33 | 6.41 ms ± 21.6 |
+
+The estimates differ by at most 0.17 mm, 0.1 % to 2 % of their std. The ENU
+positions of the common fixes agree to 0.3 mm rms in height (`rtk.txt` rounds
+height to 1 mm) and exactly in the horizontal, and the stds are identical. The
+only data difference: seq2's bag path drops 10 of 3541 fixes whose covariance
+std exceeds 0.15 m although the driver reports them fixed (3531 used). The
+policy status and the held-out residual (2.20 against 2.21 cm) agree as well.
+
+**Verdicts against the CAD antenna offset** (`--gnss-max-duration-s` as stated):
+
+| Bag, spans | `gnss-lidar` | `gnss-imu` | Estimator evidence |
+| --- | --- | --- | --- |
+| stadtgarten_seq2, `imu-lidar` 120 s, gnss 900 s (whole bag) | pass, partial: y 0.28 / 2.0 cm; x, z unchecked | pass, partial: y 0.73 / 2.9 cm; x, z unchecked | 37 windows; x 5.13 +/- 1.04 cm (just over the 1 cm bound), z 4.0 +/- 4.1 cm |
+| stadtgarten_seq1, `imu-lidar` 120 s, gnss 600 s | **warn**, partial: x 2.15 / 2.0 cm; y, z unchecked | inconclusive (`no_judgeable_axes`) | 45 windows; x 5.55 +/- 0.64 cm; y 1.4 cm and z 1.3 cm std over the bound |
+| construction_seq1, gnss 240 s | inconclusive (`no_judgeable_axes`) | not run | 17 windows; x std 2.4 cm |
+| KITTI 0009 (`/oxts/fix`) | skipped (`unsupported_sensor`) | skipped (`missing_dependency`) | the LiDAR has no per-point time; the OXTS covariance is 0.74 m (not RTK) |
+
+On a candidate that is the dataset's own CAD calibration, `gnss-lidar` finds the
+antenna **1.7 to 2.2 cm further out in x** on both sequences (seq1 5.55 cm,
+seq2 5.13 cm, CAD 3.4 cm). The 2 cm translation floor sits right at that
+discrepancy, so seq1 is a `warn`; the benchmark page already notes this as a
+tension to resolve (the antenna phase centre is poorly defined by CAD). Read it
+as the check not being able to separate a CAD rounding from a miscalibration at
+2 cm, not as a miscalibrated rig. `gnss-imu` adds the `imu-lidar` lever arm's
+uncertainty (x std 1.2 cm, y 1.8 cm on seq1, both over its bound), which is why
+it judges only y on seq2 and nothing on seq1. Time offsets are reported, not
+judged, and none is observable.
+
+**Known-bad antenna offsets** (the CAD offset moved in a `--tf` copy of
+`calib.yaml`; the estimates are re-used from the cache, 3 s per run):
+
+| Perturbation | seq1 `gnss-lidar` | seq2 `gnss-lidar` / `gnss-imu` |
+| --- | --- | --- |
+| baseline | warn (x 2.15 cm [w]) | pass / pass (y only) |
+| x +5 cm | warn (x 2.85 cm [w]) | **pass / pass, x unchecked** |
+| x +15 cm | **fail** (x 12.9 cm [f]) | **pass / pass, x unchecked** |
+| y +5 cm | not run (y is unchecked at baseline) | **fail** (y 5.3 cm [f]) / **warn** (y 4.3 cm [w]) |
+| y +15 cm | not run | **fail** (15.3 cm) / **fail** (14.3 cm) |
+| z +5 cm, z +15 cm | pass/warn unchanged: z unchecked | pass / pass: z unchecked |
+
+The detectable error (tolerance + current delta, in the artifact as
+`detectable_error`) is what the data can see: x 4.2 cm on seq1, y 2.3 cm
+(`gnss-lidar`) or 3.7 cm (`gnss-imu`) on seq2. An axis the estimator leaves
+unconstrained detects nothing: **z (std 1.3 to 4 cm) is never checked on these
+bags, and x on seq2 sits just over the bound**, so a `pass (partial)` here says
+nothing about them. The estimator's own 5 cm control is detected on every lever-arm axis
+(delta chi-square 30 to 220; the 20 ms clock-offset control is not on seq2), but the check judges only axes whose reported std is
+at most 1 cm.
+
+**Runtime** (8-core shared machine, two jobs in parallel): `gnss-lidar` on
+seq2's 900 s took 9.5 min and on seq1's 600 s 14 min (odometry runs only on the
+RTK-fixed stretches; construction's 240 s took 5 min); `imu-lidar` 120 s with its lever arm took 21 to 27 min,
+which is why the two pairs get separate spans. `gnss-imu` costs 0 s;
+re-checking with another candidate costs 3 s.
+
+Choosing the spans: the lever arm needs about 30 or more 10 s windows inside
+RTK-fixed stretches, which on these sequences means 600 to 900 s of recording;
+the first 240 s of construction (17 windows) are not enough for any axis.
 
 ## Phase B results on real recordings
 
