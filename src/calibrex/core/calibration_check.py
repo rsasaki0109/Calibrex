@@ -213,6 +213,11 @@ class CheckEvidenceRef(StrictModel):
     schema_version: str
     role: str
     policy_status: str | None = None
+    from_cache: bool | None = Field(
+        default=None,
+        description="true when the estimator artifact was read from the estimator cache "
+        "instead of being recomputed; absent when the estimator is not cached",
+    )
 
 
 class CheckOptions(StrictModel):
@@ -260,6 +265,12 @@ class CheckPairRecord(StrictModel):
         default=None,
         description="partial when any rotation axis, or any translation axis the estimator "
         "attempted, is unchecked",
+    )
+    evidence_from_cache: bool | None = Field(
+        default=None,
+        description="true when every cacheable estimator artifact of the pair came from the "
+        "estimator cache (the runtime is then the cache lookup, not the estimator's); "
+        "absent when caching was off or the estimator is not cacheable",
     )
     runtime_s: float | None = Field(default=None, ge=0.0)
     notes: list[str] = Field(default_factory=list)

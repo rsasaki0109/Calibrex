@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **`calibrex check` is 3x faster on a first run and instant on a re-check.**
+  The `imu-lidar` and `camera-imu` estimates do not depend on the candidate, so
+  their artifacts are cached (`--cache-dir`, default
+  `$XDG_CACHE_HOME/calibrex/check`; `--no-cache` disables it) under a key of the
+  bag digest, the estimator, every estimator option, the camera intrinsics and
+  the calibrex version and source revision. A hit rewrites only the
+  candidate-dependent reference fields; `lidar-lidar`, which starts at the
+  candidate, is not cached. `slac.calibration_check/v0.1` gains optional
+  `pairs[].evidence_from_cache` and `evidence[].from_cache`. Re-judging RTK-SLAM
+  construction_seq1 with a +1 and +3 deg yaw error took 87 and 86 minutes and now
+  takes 3 seconds, with identical verdicts and per-axis numbers. The IMU-LiDAR
+  odometry passes are faster with bit-identical output (Hilti 40 s: 25 to 8.5 min;
+  RTK-SLAM 180 s with lever arm: 94 to 28 min): voxel downsampling packs the
+  voxel key into one int64 instead of a row-wise `np.unique`; the gyro rotation
+  model is evaluated once per scan from a shared start orientation; the rosbag2
+  SQLite reader filters by topic in SQL (the IMU topic of a long bag no longer
+  drags every point cloud through Python), and the check reads the IMU once and
+  keeps decoded scans in memory across passes (`--scan-memory-mb`). Defaults of
+  every estimator are unchanged, so benchmark artifacts reproduce.
+
 - **`calibrex check`, Phase B (verdicts).** Without `--plan`, `calibrex check`
   now runs the native estimator of `imu-lidar` (rotation, plus the lever arm
   unless `--no-imu-lidar-translation`), `lidar-lidar` (map registration started

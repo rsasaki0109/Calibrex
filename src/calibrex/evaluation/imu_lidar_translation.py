@@ -46,6 +46,7 @@ from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import (
     MID360_T_LIDAR_IMU,
     LivoxStreamProfile,
+    ScanStore,
     bag_input_digest,
     load_livox_imu,
     resolve_profile,
@@ -197,6 +198,7 @@ def run_livox_imu_lidar_translation(
     max_seconds: float | None = None,
     reference: str | None = None,
     command: list[str] | None = None,
+    scan_store: ScanStore | None = None,
 ) -> ImuLidarTranslationArtifact:
     """Run gyro-deskewed odometry and the lever-arm evaluation on Livox ROS 2 bags."""
 
@@ -209,7 +211,12 @@ def run_livox_imu_lidar_translation(
     gyro_bias = np.asarray(rotation_artifact.gyro_bias_rps, dtype=np.float64)
     time_offset = rotation_artifact.time_offset_s
     stream = resolve_profile(profile)
-    samples = _concatenate([load_livox_imu(bag, stream) for bag in bags])
+    samples = _concatenate(
+        [
+            load_livox_imu(bag, stream) if scan_store is None else scan_store.imu(bag, stream)
+            for bag in bags
+        ]
+    )
     gyro = GyroSeries(samples.times_s, samples.gyro_rps)
     run_options = ImuLidarRunOptions(
         windowing=opts.windowing, coverage_margin_s=opts.coverage_margin_s
@@ -221,6 +228,7 @@ def run_livox_imu_lidar_translation(
         rotation_model=gyro_rotation_model(gyro, rotation, gyro_bias, time_offset),
         max_scans=max_scans,
         max_seconds=max_seconds,
+        scan_store=scan_store,
     )
     imu = ImuPreintegrator(samples.times_s, samples.gyro_rps, samples.accel_mps2, gyro_bias)
     evaluation = evaluate_imu_lidar_translation(
@@ -374,15 +382,33 @@ def _segment_fit(
     return ImuLidarSegmentFit(segment_duration_s=duration, translation_m=values)
 
 
-def _sensitivity(
-    translation: FloatArray, fits: Sequence[ImuLidarSegmentFit]
-) -> FloatArray | None:
+def _sensitivity(translation: FloatArray, fits: Sequence[ImuLidarSegmentFit]) -> FloatArray | None:
     if not fits:
         return None
     changes = np.abs(np.array([fit.translation_m for fit in fits]) - translation)
     if not np.all(np.isfinite(changes)):
         return np.full(3, math.inf)
     return np.asarray(changes.max(axis=0), dtype=np.float64)
+
+
+def rebase_translation_reference(
+    artifact: ImuLidarTranslationArtifact, reference_translation: FloatArray | None
+) -> ImuLidarTranslationArtifact:
+    """Recompute the reference comparison of a translation artifact for another reference."""
+
+    records: list[ImuLidarTranslationAxisRecord] = []
+    for record in artifact.axes:
+        index = TRANSLATION_AXES.index(record.name)
+        reference = None if reference_translation is None else float(reference_translation[index])
+        records.append(
+            record.model_copy(
+                update={
+                    "reference_value": reference,
+                    "error_to_reference": None if reference is None else record.value - reference,
+                }
+            )
+        )
+    return artifact.model_copy(update={"axes": records})
 
 
 def _record(
@@ -484,9 +510,7 @@ def _policy(
         return "warn", tuple(warnings + notes)
     if unobservable:
         return "inconclusive", tuple(notes)
-    return "pass", (
-        "every lever-arm axis is estimated and held-out windows detect every control",
-    )
+    return "pass", ("every lever-arm axis is estimated and held-out windows detect every control",)
 
 
 @dataclass(frozen=True)

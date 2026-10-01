@@ -16,6 +16,7 @@ import numpy as np
 
 from calibrex import __version__
 from calibrex.check import estimators
+from calibrex.check.cache import EstimatorCache
 from calibrex.check.estimators import (
     CheckSkipError,
     EstimatorRun,
@@ -52,6 +53,7 @@ from calibrex.core.calibration_check import (
 )
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.provenance import git_commit
+from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
 
 BAG_DIGEST_PREFIX_BYTES = 64 * 1024 * 1024
@@ -145,6 +147,10 @@ class CheckRunOptions:
     acceleration_unit: Literal["mps2", "g"] = "mps2"
     evidence_dir: Path | None = None
     base_dir: Path | None = None
+    cache_dir: Path | None = None
+    """Estimator cache directory; ``None`` disables the cache (the CLI defaults to the user dir)."""
+    scan_memory_mb: int = 2048
+    """Memory for reusing decoded LiDAR scans across passes; 0 re-reads the bag every pass."""
 
 
 def _quiet(_message: str) -> None:
@@ -211,6 +217,7 @@ def build_calibration_check(
             evidence_dir=evidence_dir,
             base_dir=base_dir,
             progress=progress,
+            bag_sha256=input_sha256,
         )
         overall = worst_verdict([pair.status for pair in pairs]) or "inconclusive"
         options_record = CheckOptions(
@@ -315,6 +322,7 @@ def _run_pairs(
     evidence_dir: Path,
     base_dir: Path,
     progress: Callable[[str], None],
+    bag_sha256: str = "",
 ) -> list[CheckPairRecord]:
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
@@ -323,6 +331,9 @@ def _run_pairs(
         imu_lidar_translation=run.imu_lidar_translation,
         acceleration_unit=run.acceleration_unit,
         progress=progress,
+        cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
+        bag_sha256=bag_sha256,
+        scan_store=ScanStore(run.scan_memory_mb << 20) if run.scan_memory_mb > 0 else None,
     )
     results: list[CheckPairRecord] = []
     for record in plan:
@@ -438,6 +449,8 @@ def _run_one(
     update = {**judged, "evidence": [item.model_dump() for item in evidence]}
     if evidence:
         update["evidence_artifact"] = evidence[0].path
+    if outcome.evidence_from_cache is not None:
+        update["evidence_from_cache"] = outcome.evidence_from_cache
     progress(f"check: {_label(record)} -> {update['status']} ({runtime:.0f} s)")
     return CheckPairRecord.model_validate({**record.model_dump(), **update})
 
@@ -525,6 +538,7 @@ def _write_evidence(
                 schema_version=str(item.artifact.schema_version),
                 role=item.role,
                 policy_status=item.policy_status,
+                from_cache=item.from_cache,
             )
         )
     return refs

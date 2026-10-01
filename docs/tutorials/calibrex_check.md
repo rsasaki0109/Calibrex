@@ -13,6 +13,8 @@ calibrex check my_bag/ --tf rig.urdf --output check.json          # run the esti
 calibrex check my_bag/ --pairs imu-lidar,camera-imu --max-duration-s 120 --output check.json
 calibrex check my_bag/ --tf rig.urdf --vehicle-frame base_link --plan  # ground vehicle
 calibrex validate check.json
+calibrex check my_bag/ --tf rig_v2.urdf --output check_v2.json   # same bag, other candidate: cache hit
+calibrex check my_bag/ --tf rig.urdf --no-cache --output check.json  # recompute everything
 ```
 
 `--plan` is unchanged and runs no estimator. Without `--output` the estimator
@@ -151,12 +153,41 @@ have been flagged. A bag whose axes carry `detectable_error` of 0.8 deg catches
 1 deg errors; one with 2 deg cannot, and a `pass` from it only means "no
 error larger than that was seen".
 
+### Estimator cache
+
+The `imu-lidar` and `camera-imu` estimates do not depend on the candidate: the
+candidate is only compared with the estimate afterwards. `calibrex check`
+therefore caches each estimator's artifact in `--cache-dir` (default
+`$XDG_CACHE_HOME/calibrex/check`, i.e. `~/.cache/calibrex/check`) under a key of
+
+* the bag digest (the one recorded in the check artifact),
+* the estimator (`imu_lidar_rotation`, `imu_lidar_translation`,
+  `camera_imu_rotation`),
+* every estimator option: topics, per-point time field, acceleration unit,
+  `--max-duration-s`, camera intrinsics, and all solver / windowing options, and
+* the calibrex version, plus the git revision (and a digest of uncommitted
+  changes) when it runs from a source checkout.
+
+Changing any of these misses the cache. The lever-arm artifact is keyed on the
+same ingredients plus its own options (it is solved from the cached rotation).
+Re-checking a bag against another candidate, or with other `--sigma-k` or floor
+values, then costs seconds: a hit rewrites only the candidate-dependent
+`reference_value` / `error_to_reference` of the cached artifact for the current
+candidate, so the evidence artifact still describes this check. A hit is flagged
+in the check artifact (`pairs[].evidence_from_cache`, `evidence[].from_cache`),
+and `runtime_s` is then the lookup, not the estimator. `lidar-lidar` starts its
+solver at the candidate, so its result is not candidate-independent and is not
+cached. `--no-cache` recomputes everything and writes nothing; `calibrex check`
+never deletes cache entries (remove the directory to clear it).
+
 ### Runtime controls
 
 `--pairs a,b` restricts pairs; `--camera TOPIC` restricts `camera-imu` to one
 image topic (or camera frame); `--max-duration-s S` analyses the first `S`
 seconds of each sensor stream (images, scans, IMU samples within that window;
 the IMU is still read in full but only the covered span is used);
+`--scan-memory-mb MB` bounds the memory that keeps decoded LiDAR scans across
+the estimator's passes (default 2048; `0` re-reads the bag every pass);
 `--acceleration-unit` states the IMU unit for the lever arm (`g` for Livox
 `livox_ros_driver2` recordings). Progress is printed to stderr.
 
@@ -237,12 +268,46 @@ What the table shows, including what does not look good:
   about 0.4 s per scan on these streams: 180 s of Livox data took 87 to 94 minutes
   and 40 s of Hesai data (58,000 points per scan) took 25 minutes on a loaded
   machine, and a full 153 s Hesai run with the lever arm was stopped after 2.5
-  hours. The cost does not scale well with the window, so bound it with
-  `--max-duration-s`, `--pairs` and `--no-imu-lidar-translation`. LiDAR-LiDAR took
-  34 minutes for 240 s. Camera-IMU took 3 to 6 minutes for 153 s. The
-  imu-lidar and camera-imu estimates do not depend on the candidate, so the
-  perturbed runs above repeated the same solve; caching the estimate by bag and
-  options would make re-judging a new candidate instant (not done yet).
+  hours (as first measured; see below for the current cost). The cost does not
+  scale well with the window, so bound it with `--max-duration-s`, `--pairs` and
+  `--no-imu-lidar-translation`. LiDAR-LiDAR took 34 minutes for 240 s.
+  Camera-IMU took 3 to 6 minutes for 153 s.
+
+### Runtime after the speed-up
+
+The table above was measured before the estimator cache and the odometry
+speed-ups. The IMU-LiDAR estimator spends its time in the odometry passes (one
+constant-velocity pass, up to five gyro-deskew passes and a feedback check, each
+registering every scan). A profile of the first 15 to 25 s showed where it went:
+voxel downsampling (`np.unique` over rows) 17 to 41 %, the per-point gyro
+rotation model of the deskew 15 to 29 %, reading the whole IMU topic once for
+the rotation and twice more for the lever arm 11 to 27 % (the SQLite reader
+fetched every topic's payload), normals, KD-tree and registration the rest.
+Three changes that leave every output **bit-identical** (compared artifact by
+artifact: 0 differences outside provenance) removed most of it: a faster
+voxel key, the gyro rotation computed once per scan and from one shared start
+orientation, and an SQL topic filter plus one IMU read per run. Decoded scans
+are also kept in memory across passes (`--scan-memory-mb`). The remaining
+cost is the registration itself, which the gyro-deskew iteration needs: its
+yaw estimate moves by 0.5 deg in the second pass and still by 0.06 to 0.1 deg
+in the fifth (reported std 0.05 to 0.2 deg) before it settles, so fewer passes or a coarser voxel do not reproduce the estimate and
+the check does not offer a "fast" mode. Same recordings, same machine (shared,
+loaded), same options:
+
+| Recording / run | Before | After (first run) | Re-check with another candidate (cache hit) |
+| --- | ---: | ---: | ---: |
+| Hilti exp21 first 40 s, IMU / Hesai, rotation | 25.4 min | 8.5 min | 3 s |
+| RTK-SLAM construction_seq1 first 180 s, rotation + lever arm | 94 min | 28 min | 3 s |
+| RTK-SLAM, known-bad +1 deg yaw (`warn`) | 87 min | 3 s (cache) | - |
+| RTK-SLAM, known-bad +3 deg yaw (`fail`) | 86 min | 3 s (cache) | - |
+| Hilti exp21 cam0 / IMU first 60 s, camera-IMU | - | 32 s | 3 s (+1 deg yaw: `pass` to `warn`) |
+
+The estimator artifacts of the first runs equal the earlier ones in every field
+but provenance, and the cache-served runs reproduce the earlier +1 and +3 deg
+verdicts and per-axis numbers (roll, pitch and yaw errors agree to 1e-15; the
+reference fields are recomputed for the candidate, so they differ from a fresh
+solve only in the last bit). Peak memory was 0.75 GB (Hilti) and 1.2 GB (RTK-SLAM)
+with the default scan budget.
 
 ## Artifact
 
@@ -253,7 +318,8 @@ roles and frames, the frame tree, per-pair records with the candidate
 transform, status and reason, a summary, and provenance. A run adds, as
 optional fields: `options` (thresholds and runtime controls), `evidence_dir`,
 `overall_verdict`, and per pair `compared_transform`, `axes`, `unchecked_axes`,
-`time_offset`, `estimator*`, `runtime_s` and `evidence`.
+`time_offset`, `estimator*`, `runtime_s`, `evidence` (each with `from_cache`)
+and `evidence_from_cache`.
 
 Each estimator's own schema'd artifact (`slac.imu_lidar_rotation/v0.1`,
 `slac.imu_lidar_translation/v0.1`, `slac.lidar_lidar_extrinsic/v0.1`) is written

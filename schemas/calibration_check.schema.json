@@ -214,6 +214,19 @@
       "additionalProperties": false,
       "description": "One estimator artifact written next to the check artifact.",
       "properties": {
+        "from_cache": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "true when the estimator artifact was read from the estimator cache instead of being recomputed; absent when the estimator is not cached",
+          "title": "From Cache"
+        },
         "path": {
           "description": "relative to the check artifact's directory",
           "title": "Path",
@@ -504,6 +517,19 @@
           ],
           "default": null,
           "title": "Evidence Artifact"
+        },
+        "evidence_from_cache": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "true when every cacheable estimator artifact of the pair came from the estimator cache (the runtime is then the cache lookup, not the estimator's); absent when caching was off or the estimator is not cacheable",
+          "title": "Evidence From Cache"
         },
         "frames": {
           "items": {

@@ -2919,6 +2919,27 @@ def _build_parser() -> argparse.ArgumentParser:
         help="accelerometer unit of the IMU (only the IMU-LiDAR lever arm uses it)",
     )
     check.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="cache of estimator artifacts, reused when the same bag is checked again "
+        "(default: $XDG_CACHE_HOME/calibrex/check, i.e. ~/.cache/calibrex/check)",
+    )
+    check.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="always recompute the estimators and do not write the estimator cache",
+    )
+    check.add_argument(
+        "--scan-memory-mb",
+        type=int,
+        default=2048,
+        metavar="MB",
+        help="memory used to keep decoded LiDAR scans across the estimator's passes "
+        "(0 re-reads the bag every pass; default 2048)",
+    )
+    check.add_argument(
         "--evidence-dir",
         type=Path,
         default=None,
@@ -3988,6 +4009,7 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
 
 def _cmd_check(args: argparse.Namespace) -> int:
     from calibrex.check import build_calibration_check, format_check_table
+    from calibrex.check.cache import default_cache_dir
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
     from calibrex.check.verdict import VERDICT_ORDER, VerdictOptions
 
@@ -4024,6 +4046,10 @@ def _cmd_check(args: argparse.Namespace) -> int:
             acceleration_unit=args.acceleration_unit,
             evidence_dir=evidence_dir,
             base_dir=base_dir,
+            cache_dir=None
+            if args.no_cache
+            else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
+            scan_memory_mb=max(args.scan_memory_mb, 0),
         )
 
     def progress(message: str) -> None:

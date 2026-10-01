@@ -739,11 +739,24 @@ def _iter_sqlite_messages(
                 for connection in connections.values()
                 if connection.topic in topics
             }
-        query = (
-            "SELECT topic_id, timestamp, data FROM messages "
-            "ORDER BY timestamp ASC, id ASC"
-        )
-        for topic_id, timestamp, data in conn.execute(query):
+        parameters: tuple[int, ...] = ()
+        if allowed_topic_ids is None:
+            query = (
+                "SELECT topic_id, timestamp, data FROM messages "
+                "ORDER BY timestamp ASC, id ASC"
+            )
+        elif not allowed_topic_ids:
+            return
+        else:
+            # Filtering in SQL keeps the payloads of other topics (images, point
+            # clouds) from being read when only one topic is wanted.
+            parameters = tuple(sorted(allowed_topic_ids))
+            marks = ",".join("?" * len(parameters))
+            query = (
+                "SELECT topic_id, timestamp, data FROM messages "
+                f"WHERE topic_id IN ({marks}) ORDER BY timestamp ASC, id ASC"
+            )
+        for topic_id, timestamp, data in conn.execute(query, parameters):
             resolved = connections.get(int(topic_id))
             if resolved is None:
                 continue

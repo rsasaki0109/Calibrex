@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
@@ -36,6 +36,7 @@ from calibrex.data.livox_ros2 import (
     MID360_T_LIDAR_IMU,
     ImuSamples,
     LivoxStreamProfile,
+    ScanStore,
     bag_input_digest,
     iter_livox_points,
     load_livox_imu,
@@ -202,6 +203,7 @@ def run_livox_imu_lidar_rotation(
     max_seconds: float | None = None,
     reference: str | None = None,
     command: list[str] | None = None,
+    scan_store: ScanStore | None = None,
 ) -> ImuLidarRotationArtifact:
     """Run odometry and the rotation evaluation on Livox ROS 2 bags of one rig.
 
@@ -210,13 +212,15 @@ def run_livox_imu_lidar_rotation(
     analyses only the first scans within that many seconds of each bag's first scan.
     ``reference`` names the source of a non-MID360 ``reference_rotation`` (for
     example a deployed calibration); without it the MID360 design text is recorded.
+    ``scan_store`` replays decoded scans and IMU from memory across the odometry
+    passes (identical results, no repeated bag reads).
     """
 
     opts = options or ImuLidarRunOptions()
     if not bags:
         raise ValueError("at least one bag is required")
     stream = resolve_profile(profile)
-    samples = [load_livox_imu(bag, stream) for bag in bags]
+    samples = [_load_imu(bag, stream, scan_store) for bag in bags]
     imu = _concatenate(samples)
     gyro = GyroSeries(imu.times_s, imu.gyro_rps)
     margin = opts.coverage_margin_s
@@ -228,7 +232,7 @@ def run_livox_imu_lidar_rotation(
         segmenter: OdometrySegmenter | None = None
         for bag in bags:
             segmenter = collect_odometry_windows(
-                iter_livox_points(bag, stream, max_seconds=max_seconds),
+                _iter_scans(bag, stream, max_seconds, scan_store),
                 opts.windowing,
                 covers=covers,
                 prefix=f"{Path(bag).name}/",
@@ -487,6 +491,41 @@ def _jackknife(
     return spread, groups
 
 
+def rebase_rotation_reference(
+    artifact: ImuLidarRotationArtifact, reference_rotation: FloatArray | None
+) -> ImuLidarRotationArtifact:
+    """Recompute the reference comparison of a rotation artifact for another reference.
+
+    Only ``reference_value`` and ``error_to_reference`` of the roll, pitch and
+    yaw records depend on the reference; the estimate, its spread and the
+    controls do not (the reference is compared after the fit), so a cached
+    artifact can be reused for a different candidate.
+    """
+
+    estimate = (
+        None
+        if artifact.rotation_quat_xyzw is None
+        else Rotation.from_quat(artifact.rotation_quat_xyzw).as_matrix()
+    )
+    values = _reference_values(reference_rotation)
+    records: list[ImuLidarRotationDofRecord] = []
+    for record in artifact.dofs:
+        value = values.get(record.name)
+        error = None
+        if value is not None and reference_rotation is not None and estimate is not None:
+            local = Rotation.from_matrix(estimate @ reference_rotation.T).as_rotvec()
+            error = math.degrees(float(local[_AXES.index(record.name)]))
+        records.append(
+            record.model_copy(
+                update={
+                    "reference_value": None if value is None else math.degrees(value),
+                    "error_to_reference": error,
+                }
+            )
+        )
+    return artifact.model_copy(update={"dofs": records})
+
+
 def _reference_values(rotation: FloatArray | None) -> dict[str, float]:
     if rotation is None:
         return {}
@@ -726,6 +765,21 @@ def score_imu_lidar_candidate(
     )
 
 
+def _load_imu(bag: str | Path, stream: LivoxStreamProfile, store: ScanStore | None) -> ImuSamples:
+    return load_livox_imu(bag, stream) if store is None else store.imu(bag, stream)
+
+
+def _iter_scans(
+    bag: str | Path,
+    stream: LivoxStreamProfile,
+    max_seconds: float | None,
+    store: ScanStore | None,
+) -> Iterator[tuple[float, FloatArray, FloatArray | None]]:
+    if store is None:
+        return iter_livox_points(bag, stream, max_seconds=max_seconds)
+    return store.scans(bag, stream, max_seconds=max_seconds)
+
+
 def collect_livox_windows(
     bags: Sequence[str | Path],
     profile: str | LivoxStreamProfile,
@@ -734,18 +788,19 @@ def collect_livox_windows(
     rotation_model: RotationModel | None = None,
     max_scans: int | None = None,
     max_seconds: float | None = None,
+    scan_store: ScanStore | None = None,
 ) -> tuple[GyroSeries, list[OdometryWindow]]:
     """Load the gyro and the odometry windows of Livox bags (one rig)."""
 
     opts = options or ImuLidarRunOptions()
     stream = resolve_profile(profile)
-    imu = _concatenate([load_livox_imu(bag, stream) for bag in bags])
+    imu = _concatenate([_load_imu(bag, stream, scan_store) for bag in bags])
     gyro = GyroSeries(imu.times_s, imu.gyro_rps)
     margin = opts.coverage_margin_s
     segmenter: OdometrySegmenter | None = None
     for bag in bags:
         segmenter = collect_odometry_windows(
-            iter_livox_points(bag, stream, max_seconds=max_seconds),
+            _iter_scans(bag, stream, max_seconds, scan_store),
             opts.windowing,
             covers=lambda time_s: gyro.covers(time_s - margin, time_s + margin),
             prefix=f"{Path(bag).name}/",

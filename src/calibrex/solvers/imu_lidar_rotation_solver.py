@@ -105,6 +105,17 @@ class GyroSeries:
         delta = np.transpose(start_orientation, (0, 2, 1)) @ end_orientation
         return delta, -end_transpose @ (end_sum - start_sum)
 
+    def increments_from(
+        self, start_s: FloatArray, end_s: FloatArray
+    ) -> tuple[FloatArray, FloatArray]:
+        """Like :meth:`increments` for one shared start time (a length-1 ``start_s``)."""
+
+        start_orientation, start_sum = self.orientation_and_bias_sum(start_s)
+        end_orientation, end_sum = self.orientation_and_bias_sum(end_s)
+        end_transpose = np.transpose(end_orientation, (0, 2, 1))
+        delta = np.transpose(start_orientation, (0, 2, 1)) @ end_orientation
+        return delta, -end_transpose @ (end_sum - start_sum)
+
     def integral_at(self, times_s: FloatArray) -> FloatArray:
         """Return the trapezoid integral of the gyro from the first sample."""
 
@@ -457,8 +468,11 @@ def gyro_rotation_model(
     """
 
     def model(scan_time_s: float, offsets_s: FloatArray) -> FloatArray:
-        start = np.full(len(offsets_s), scan_time_s + time_offset_s)
-        delta, jacobian = gyro.increments(start, start + np.asarray(offsets_s, dtype=np.float64))
+        times = np.asarray(offsets_s, dtype=np.float64)
+        # Every point's increment starts at the sweep time, so that orientation is
+        # computed once and broadcast instead of once per point.
+        start = np.full(1, scan_time_s + time_offset_s)
+        delta, jacobian = gyro.increments_from(start, start + times)
         corrected = delta @ Rotation.from_rotvec(np.einsum("nij,j->ni", jacobian, bias)).as_matrix()
         return np.asarray(rotation @ corrected @ rotation.T, dtype=np.float64)
 
