@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Camera-IMU evidence settings.** Near-static windows (accumulated rotation
+  under 1.0 deg) are left out of the fit and the jackknife, and the rotation
+  observability bound is 0.3 deg for cameras instead of the 0.1 deg inherited
+  from IMU-LiDAR (`ImuLidarRunOptions.min_window_rotation_deg`, default 0 and
+  so unchanged for IMU-LiDAR; `CameraImuRunOptions` defaults; CLI
+  `--min-window-rotation-deg` and `--observable-rotation-std-deg`). The
+  exclusion count, its reason, and the threshold are recorded in the artifact
+  options; no schema changed.
+  - Hilti 2022 development (exp21, exp07): verdicts go from 10
+    `inconclusive` to 5 `pass`, 1 `warn`, 4 `inconclusive`. exp07 changes come
+    from the threshold alone. The jackknife is not removed by the exclusion,
+    accuracy against Kalibr is not systematically better, and cam2-cam4 on
+    exp07 and cam3 yaw on exp21 stay unconstrained.
 - **Camera-IMU std diagnosis.** `tools/diagnose_camera_imu_std.py` shows the
   reported std that keeps every Hilti verdict `inconclusive` is the window
   jackknife, not the analytic std: the tracked camera rotation carries a

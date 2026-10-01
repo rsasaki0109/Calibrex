@@ -113,7 +113,7 @@ options:
   - 1
   rate_sigma_floor_rps: 0.01
   rate_sigma_fraction: 0.02
-  observable_rotation_std_deg: 0.1
+  observable_rotation_std_deg: 0.3
   observable_time_offset_std_s: 0.002
   frame_stride: 4
   visual_rotation:
@@ -122,6 +122,10 @@ options:
     essential: 872
     pure_rotation: 407
     failed: 42
+  min_window_rotation_deg: 1.0
+  static_windows_excluded: 0
+  static_windows_excluded_reason: 'accumulated window rotation below 1 deg: near-static
+    windows carry no rotation information'
   essential_inlier_fraction: 0.0
   max_features: 600
 windows:
@@ -148,7 +152,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.camera_imu_rotation
   generator_version: 0.4.1
-  git_commit: 385db0c
+  git_commit: bc0f1dc
   command:
   - calibrex
   - camera-imu
@@ -172,4 +176,4 @@ provenance:
   input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
     MiB
   dataset_license: Hilti SLAM Challenge 2022 terms
-  created_at: '2026-09-30T13:33:32.889887+00:00'
+  created_at: '2026-10-01T05:19:02.984078+00:00'

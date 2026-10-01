@@ -89,21 +89,24 @@ untouched, for a pre-registered audit. The artifacts in
 [`docs/assets/hilti2022_camera_imu/`](https://github.com/rsasaki0109/Calibrex/tree/main/docs/assets/hilti2022_camera_imu)
 come from the current version: CLAHE, and 600 features at quality 0.001.
 
-| Camera | Recording | Difference to Kalibr about camera x / y / z (deg) | Reported std (deg) | dt (ms), Kalibr | Controls detected | Failed pairs |
-| --- | --- | --- | --- | --- | --- | ---: |
-| cam0 | exp21 | -0.10 / -0.35 / +0.09 | 0.13 / 0.08 / 0.21 | 1.76, 1.91 | 4/4 | 0 / 1527 |
-| cam1 | exp21 | -0.00 / -0.15 / +0.09 | 0.12 / 0.19 / 0.18 | 1.98, 1.90 | 4/4 | 0 / 1527 |
-| cam2 | exp21 | -0.12 / -0.22 / +0.12 | 0.14 / 0.16 / 0.23 | 1.70, 1.94 | 4/4 | 0 / 1527 |
-| cam3 | exp21 | -0.62 / -0.32 / +0.08 | 0.14 / 0.10 / 0.30 | 1.56, 1.81 | 3/4 | 2 / 1527 |
-| cam4 | exp21 | -0.43 / -0.80 / -0.31 | 0.15 / 0.12 / 0.23 | 2.03, 1.71 | 2/4 | 5 / 1527 |
-| cam0 | exp07 | -0.23 / -0.20 / -0.20 | 0.12 / 0.24 / 0.19 | 2.06, 1.91 | 4/4 | 16 / 1321 |
-| cam1 | exp07 | -0.16 / -0.05 / -0.32 | 0.10 / 0.18 / 0.18 | 1.90, 1.90 | 4/4 | 17 / 1321 |
-| cam2 | exp07 | -0.74 / -1.67 / +0.44 | 0.57 / 0.62 / 0.41 | 1.88, 1.94 | 3/4 | 9 / 1321 |
-| cam3 | exp07 | -0.40 / -0.79 / +0.38 | 0.45 / 0.57 / 0.64 | 2.65, 1.81 | 4/4 | 42 / 1321 |
-| cam4 | exp07 | -1.14 / +0.25 / +0.72 | 0.35 / 0.60 / 0.70 | 1.77, 1.71 | 3/4 | 137 / 1321 |
+| Camera | Recording | Difference to Kalibr about camera x / y / z (deg) | Analytic std (deg) | Jackknife std (deg) | Verdict | Static windows excluded | Controls detected | dt (ms) |
+| --- | --- | --- | --- | --- | --- | ---: | --- | ---: |
+| cam0 | exp21 | -0.19 / -0.33 / -0.25 | 0.07 / 0.08 / 0.07 | 0.12 / 0.12 / 0.15 | warn | 2 | 3/4 | 1.70 |
+| cam1 | exp21 | -0.15 / -0.33 / -0.18 | 0.06 / 0.07 / 0.06 | 0.11 / 0.10 / 0.18 | pass | 2 | 4/4 | 1.83 |
+| cam2 | exp21 | -0.28 / -0.24 / +0.15 | 0.08 / 0.09 / 0.10 | 0.26 / 0.15 / 0.24 | pass | 2 | 4/4 | 1.59 |
+| cam3 | exp21 | -0.23 / -0.29 / -0.19 | 0.07 / 0.09 / 0.09 | 0.23 / 0.13 / 0.31 | inconclusive | 1 | 4/4 | 1.81 |
+| cam4 | exp21 | -0.18 / -0.60 / -0.02 | 0.09 / 0.12 / 0.11 | 0.18 / 0.16 / 0.21 | pass | 1 | 4/4 | 1.85 |
+| cam0 | exp07 | -0.23 / -0.20 / -0.20 | 0.11 / 0.14 / 0.11 | 0.12 / 0.24 / 0.19 | pass | 0 | 4/4 | 2.06 |
+| cam1 | exp07 | -0.16 / -0.05 / -0.32 | 0.10 / 0.12 / 0.09 | 0.10 / 0.18 / 0.18 | pass | 0 | 4/4 | 1.90 |
+| cam2 | exp07 | -0.74 / -1.67 / +0.44 | 0.13 / 0.14 / 0.20 | 0.57 / 0.62 / 0.41 | inconclusive | 0 | 3/4 | 1.88 |
+| cam3 | exp07 | -0.40 / -0.79 / +0.38 | 0.18 / 0.26 / 0.19 | 0.45 / 0.57 / 0.64 | inconclusive | 0 | 4/4 | 2.65 |
+| cam4 | exp07 | -1.14 / +0.25 / +0.72 | 0.10 / 0.12 / 0.11 | 0.35 / 0.60 / 0.70 | inconclusive | 0 | 3/4 | 1.77 |
 
-Every verdict is `inconclusive`: the reported std exceeds the 0.1 deg bound
-inherited from the IMU-LiDAR evaluation.
+Kalibr's dt is 1.91 / 1.90 / 1.94 / 1.81 / 1.71 ms for cam0-cam4.
+These are the artifacts after the camera-specific evidence settings
+[below](#camera-specific-evidence-settings); the first version of this
+table, with the 0.1 deg bound inherited from IMU-LiDAR and no window
+exclusion, had every verdict `inconclusive`.
 
 **Contrast equalization: what changed.** The first version tracked without
 CLAHE, using 400 features at quality 0.01.
@@ -185,13 +188,66 @@ cameras the per-window scale (`sum(obs*exp)/sum(exp^2)`) is not one:
   enter the solver, and one of them is often the jackknife group that moves
   the fit most.
 
-**Implication.** The 0.1 deg bound was inherited from the IMU-LiDAR
+**Implication** (acted on in the next section). The 0.1 deg bound was inherited from the IMU-LiDAR
 evaluation, where the motion comes from LiDAR odometry. For image-tracked
 rotations the window-to-window scale scatter is larger, so that bound marks a
 well-behaved forward camera `unobservable`. An audit should either compare the
 analytic std (which reflects the fit, not the window sampling) or set a bound
 appropriate to visual tracking, and should not count near-stationary windows
 in the jackknife.
+
+## Camera-specific evidence settings
+
+The diagnosis above led to two changes that apply only to camera-IMU (the
+IMU-LiDAR defaults and results are unchanged):
+
+1. **Near-static windows are left out** of the fit, the jackknife, and the
+   holdout (`ImuLidarRunOptions.min_window_rotation_deg`, camera default
+   1.0 deg, IMU-LiDAR default 0 = keep all). A window's rotation is the sum of
+   its per-step angles. On the two forward cameras the windows measured
+   0.06-0.13 deg (exp21 first and last windows) against 2.5 deg for the
+   smallest moving one, so anything between 0.2 and 2.5 deg separates them;
+   1.0 deg is ten times the 0.1 deg std asked of the fit. The count is
+   recorded in the artifact (`options.static_windows_excluded`, with
+   `static_windows_excluded_reason` and `min_window_rotation_deg`).
+2. **The rotation observability bound is 0.3 deg for cameras**
+   (`observable_rotation_std_deg`, recorded in the artifact options;
+   `--observable-rotation-std-deg` overrides it). It was chosen from the
+   diagnosis, before re-running: tracked rotations carry a per-window scale
+   scatter of 1-8 % (median 2 %), which the jackknife turns into 0.08-0.30 deg
+   on the forward cameras, so a bound below the top of that range marks a
+   well-behaved camera unobservable. It is 3x the IMU-LiDAR bound, which comes
+   from far more precise LiDAR odometry. No schema changed: both values live
+   in the artifact's free-form `options`.
+
+**What changed on exp21 and exp07**
+
+- **Verdicts.** 5 of 10 are now `pass`, 1 `warn`, 4 `inconclusive` (before:
+  10 `inconclusive`).
+  - On exp07 the flips cam0 and cam1 `inconclusive` to `pass` come from the
+    threshold alone: no window there is near-static, so the results are
+    otherwise identical.
+  - On exp21 one or two windows were excluded per camera (two for cam0-cam2, one for cam3 and cam4). Removing them
+    also shifts the held-out assignment, so exclusion and threshold effects
+    are not separated there.
+- **The jackknife is not fixed by exclusion.** On exp21 cam0 it went from
+  0.13 / 0.08 / 0.21 to 0.12 / 0.12 / 0.15 deg: it fell on yaw and rose on
+  pitch. The scale scatter between moving windows remains; the new threshold
+  accommodates it rather than removes it.
+- **cam0 exp21 is a `warn`**: a known-bad 1 deg yaw shift is not detected on
+  the held-out windows now that yaw is reported as estimated.
+- **Accuracy against Kalibr did not systematically improve.** cam0 yaw moved
+  from +0.09 to -0.25 deg; cam4 exp21 passes while its pitch is 0.60 deg from
+  Kalibr (std 0.16), a 3.7 sigma disagreement that the verdict does not
+  see. A `pass` here means well-constrained and consistent with the held-out
+  windows, not agreement with Kalibr, which is itself only a reference (see
+  the rig-level offset above).
+- **The side and down cameras on exp07 still fail** to constrain the
+  rotation (jackknife 0.35-0.7 deg, 0.4-1.7 deg from Kalibr); cam3 on exp21 is
+  `inconclusive` on yaw (0.31 deg). The 0.3 deg bound did not rescue them.
+
+The bound is a judgement made from development data on two recordings. It has
+not been validated on held-out recordings (exp01-exp04 are untouched).
 
 ## Next steps
 

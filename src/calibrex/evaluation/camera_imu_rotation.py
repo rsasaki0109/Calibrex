@@ -45,7 +45,7 @@ from calibrex.evaluation.visual_rotation import (
     track_camera_rotations,
 )
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
-from calibrex.solvers.imu_lidar_rotation_solver import GyroSeries
+from calibrex.solvers.imu_lidar_rotation_solver import GyroSeries, RotationOptions
 
 FloatArray: TypeAlias = NDArray[np.float64]
 CAMERA_LIMITATIONS: tuple[str, ...] = (
@@ -58,6 +58,26 @@ CAMERA_LIMITATIONS: tuple[str, ...] = (
 )
 
 
+# Camera-specific evidence settings (see docs/benchmarks/hilti_camera_imu.md).
+# 0.3 deg: image-tracked rotations carry a per-window scale scatter of 1-8 %
+# (median 2 %) that the window jackknife turns into 0.08-0.30 deg on the Hilti
+# development recordings, so the 0.1 deg IMU-LiDAR bound marks a well-behaved
+# camera unobservable.  1.0 deg: a window must turn by ten times the 0.1 deg
+# resolution we ask of the fit to constrain it; the near-static windows seen
+# turn by under 0.2 deg, the smallest moving one by 2.5 deg.
+CAMERA_OBSERVABLE_ROTATION_STD_DEG: float = 0.3
+CAMERA_MIN_WINDOW_ROTATION_DEG: float = 1.0
+
+
+def default_camera_evaluation_options() -> ImuLidarRunOptions:
+    """Return the evaluation options that camera-IMU uses by default."""
+
+    return ImuLidarRunOptions(
+        min_window_rotation_deg=CAMERA_MIN_WINDOW_ROTATION_DEG,
+        solver=RotationOptions(observable_rotation_std_deg=CAMERA_OBSERVABLE_ROTATION_STD_DEG),
+    )
+
+
 @dataclass(frozen=True)
 class CameraImuRunOptions:
     """Frame stride and the tracking and evaluation settings."""
@@ -65,7 +85,7 @@ class CameraImuRunOptions:
     frame_stride: int = 4
     max_seconds: float | None = None
     visual: VisualRotationOptions = field(default_factory=VisualRotationOptions)
-    evaluation: ImuLidarRunOptions = field(default_factory=ImuLidarRunOptions)
+    evaluation: ImuLidarRunOptions = field(default_factory=default_camera_evaluation_options)
 
 
 def camera_rotation_windows(
@@ -174,6 +194,12 @@ def run_ros2_camera_imu_rotation(
                 }
                 for bag, track in zip(bags, tracks, strict=True)
             ],
+            "min_window_rotation_deg": opts.evaluation.min_window_rotation_deg,
+            "static_windows_excluded": evaluation.static_windows_excluded,
+            "static_windows_excluded_reason": (
+                f"accumulated window rotation below {opts.evaluation.min_window_rotation_deg:g} "
+                "deg: near-static windows carry no rotation information"
+            ),
             "essential_inlier_fraction": opts.visual.essential_inlier_fraction,
             "max_features": opts.visual.max_features,
         },

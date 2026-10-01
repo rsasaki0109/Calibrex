@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import shlex
 import shutil
@@ -1316,6 +1317,16 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     camera_imu_rotation.add_argument("--frame-stride", type=_positive_int, default=4)
     camera_imu_rotation.add_argument("--max-seconds", type=float)
+    camera_imu_rotation.add_argument(
+        "--observable-rotation-std-deg",
+        type=float,
+        help="reported std above which a rotation axis is unobservable (camera default 0.3)",
+    )
+    camera_imu_rotation.add_argument(
+        "--min-window-rotation-deg",
+        type=float,
+        help="leave out windows that rotate less than this (camera default 1.0; 0 keeps all)",
+    )
     camera_imu_rotation.add_argument("--dataset-family", required=True)
     camera_imu_rotation.add_argument("--dataset-license", required=True)
     camera_imu_rotation.add_argument("--output", type=Path, required=True)
@@ -6179,6 +6190,7 @@ def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
 
     from calibrex.evaluation.camera_imu_rotation import (
         CameraImuRunOptions,
+        default_camera_evaluation_options,
         run_ros2_camera_imu_rotation,
     )
     from calibrex.evaluation.visual_rotation import CameraModel
@@ -6207,6 +6219,20 @@ def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
             command += ["--max-seconds", str(args.max_seconds)]
         if args.no_reference:
             command.append("--no-reference")
+        evaluation = default_camera_evaluation_options()
+        if args.observable_rotation_std_deg is not None:
+            command += ["--observable-rotation-std-deg", str(args.observable_rotation_std_deg)]
+            evaluation = dataclasses.replace(
+                evaluation,
+                solver=dataclasses.replace(
+                    evaluation.solver, observable_rotation_std_deg=args.observable_rotation_std_deg
+                ),
+            )
+        if args.min_window_rotation_deg is not None:
+            command += ["--min-window-rotation-deg", str(args.min_window_rotation_deg)]
+            evaluation = dataclasses.replace(
+                evaluation, min_window_rotation_deg=args.min_window_rotation_deg
+            )
         artifact = run_ros2_camera_imu_rotation(
             args.bags,
             image_topic=str(image_topic),
@@ -6218,7 +6244,9 @@ def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
             reference_rotation=reference_rotation,
             reference=reference,
             options=CameraImuRunOptions(
-                frame_stride=args.frame_stride, max_seconds=args.max_seconds
+                frame_stride=args.frame_stride,
+                max_seconds=args.max_seconds,
+                evaluation=evaluation,
             ),
             command=command,
         )
