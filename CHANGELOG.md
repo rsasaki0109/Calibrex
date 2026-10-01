@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Camera-IMU std diagnosis.** `tools/diagnose_camera_imu_std.py` shows the
+  reported std that keeps every Hilti verdict `inconclusive` is the window
+  jackknife, not the analytic std: the tracked camera rotation carries a
+  per-window scale of about 1-8 % on the forward cameras, and leaving a
+  window out moves the fit by a similar amount. The 0.1 deg bound is
+  inherited from IMU-LiDAR and is tighter than image-tracked rotations
+  support (`docs/benchmarks/hilti_camera_imu.md`).
 - **A pre-registered `lidar-lidar` audit is refuted** on three held-back
   NTU VIRAL recordings (`ntu-lidar-lidar-v1`, 2/4 gates).
   - Calibrex's fitted extrinsic is 0.49 deg and 7.7 cm from the rounded

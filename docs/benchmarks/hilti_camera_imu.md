@@ -153,6 +153,46 @@ gyro and the accelerometer are assumed to share one frame. A rotation between
 them inside the IMU would appear exactly like this, but the data at hand
 cannot distinguish that from an error in the reference.
 
+## Why the reported std exceeds 0.1 deg
+
+Every Hilti verdict is `inconclusive`, and in every case it is the window
+jackknife that decides it: the analytic std is 0.05-0.11 deg, but the
+jackknife raises the reported std to 0.08-0.30 deg. `tools/diagnose_camera_imu_std.py`
+decomposes the gap on exp21.
+
+For a window, the tracked rotation angle is compared with the gyro angle
+through the fitted rotation, over that window's intervals. On the two forward
+cameras the per-window scale (`sum(obs*exp)/sum(exp^2)`) is not one:
+
+| Camera | Windows | Scale ratio min / median / max | Jackknife (x/y/z deg) | Analytic (x/y/z deg) |
+| --- | ---: | --- | --- | --- |
+| cam0 | 23 (5 s) | 1.001 / 1.020 / 1.081 | 0.105 / 0.114 / 0.103 | 0.061 / 0.069 / 0.058 |
+| cam0 | 12 (10 s) | 1.006 / 1.022 / 1.072 | 0.126 / 0.078 / 0.207 | 0.054 / 0.054 / 0.050 |
+| cam0 | 6 (20 s) | 1.012 / 1.025 / 1.038 | 0.101 / 0.156 / 0.168 | 0.062 / 0.066 / 0.058 |
+| cam1 | 12 (10 s) | - | 0.121 / 0.195 / 0.176 | 0.054 / 0.054 / 0.048 |
+
+- **The tracked rotation carries a per-window scale of about 1-8 %.** The
+  scatter is coherent within a window and differs between windows, so leaving
+  a window out moves the fit by a similar amount: the jackknife turns the
+  scale scatter into the reported std.
+- **It is not a focal-length error or a single global scale.** A global scale
+  would bias the fit, not scatter the jackknife; a focal error is what
+  `calibrex camera-imu focal` already checks. The scale here varies with the
+  window's content, consistent with the documented per-pair essential-matrix
+  noise (about 0.07 deg) accumulated differently by each window.
+- **Windows with almost no rotation are degenerate.** On exp21 the first and
+  last windows turn by under 0.1 deg; they carry no information but still
+  enter the solver, and one of them is often the jackknife group that moves
+  the fit most.
+
+**Implication.** The 0.1 deg bound was inherited from the IMU-LiDAR
+evaluation, where the motion comes from LiDAR odometry. For image-tracked
+rotations the window-to-window scale scatter is larger, so that bound marks a
+well-behaved forward camera `unobservable`. An audit should either compare the
+analytic std (which reflects the fit, not the window sampling) or set a bound
+appropriate to visual tracking, and should not count near-stationary windows
+in the jackknife.
+
 ## Next steps
 
 - Understand the side-camera errors.
