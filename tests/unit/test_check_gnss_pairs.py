@@ -28,7 +28,11 @@ from calibrex.check.estimators import (
 from calibrex.check.runner import CheckRunOptions, build_calibration_check, format_check_table
 from calibrex.check.verdict import AxisEstimate
 from calibrex.cli.main import main
-from calibrex.core.calibration_check import CalibrationCheckArtifact, CheckPairRecord, CheckTransform
+from calibrex.core.calibration_check import (
+    CalibrationCheckArtifact,
+    CheckPairRecord,
+    CheckTransform,
+)
 from calibrex.core.gnss_lidar_lever_arm import (
     GnssLidarLeverArmArtifact,
     load_gnss_lidar_lever_arm,
@@ -47,7 +51,7 @@ TRANSLATION_ASSET = ASSETS / "mid360_imu_lidar_translation_rtk_slam_seq2.yaml"
 # RTK-SLAM semantics: edges are T_imu_lidar and T_imu_gnss (a CAD point offset).
 LIDAR_IN_IMU = (-0.011, -0.023, 0.044)
 ANTENNA_IN_IMU = (0.023, -0.023, 0.090)
-ANTENNA_IN_LIDAR = tuple(a - l for a, l in zip(ANTENNA_IN_IMU, LIDAR_IN_IMU, strict=True))
+ANTENNA_IN_LIDAR = tuple(a - b for a, b in zip(ANTENNA_IN_IMU, LIDAR_IN_IMU, strict=True))
 BASE_NS = 1_700_000_000_000_000_000
 
 
@@ -99,7 +103,9 @@ def stubbed(monkeypatch: pytest.MonkeyPatch) -> Counters:
     counters = Counters()
     asset = load_gnss_lidar_lever_arm(GNSS_ASSET)
 
-    monkeypatch.setattr(estimators, "_point_time_or_skip", lambda bag, topic: ("offset_time", "offset_s"))
+    monkeypatch.setattr(
+        estimators, "_point_time_or_skip", lambda bag, topic: ("offset_time", "offset_s")
+    )
     monkeypatch.setattr(estimators, "_iter_scans_plain", lambda bag, profile, seconds: iter(()))
     import calibrex.evaluation.gnss_lidar_lever_arm as evaluation
 
@@ -115,7 +121,9 @@ def stubbed(monkeypatch: pytest.MonkeyPatch) -> Counters:
 
     def build(evaluation_result: Any, options: Any, **kwargs: Any) -> GnssLidarLeverArmArtifact:
         assert kwargs["provenance"].dataset_family == "calibrex-check"
-        assert "NavSatFix /gnss/fix: 40 of 40 fixes usable" in kwargs["provenance"].input_digest_scope
+        assert (
+            "NavSatFix /gnss/fix: 40 of 40 fixes usable" in kwargs["provenance"].input_digest_scope
+        )
         return asset
 
     monkeypatch.setattr(evaluation, "collect_windows", collect)
@@ -173,7 +181,7 @@ def test_gnss_pairs_pass_with_the_cad_antenna_and_leave_rotation_unchecked(
     assert lidar.status == "pass", lidar.reason
     assert [axis.name for axis in lidar.axes] == ["x", "y"]  # z: 4 cm std, unobservable
     assert {item.name for item in lidar.unchecked_axes} == {"roll", "pitch", "yaw", "z"}
-    rotation = [item for item in lidar.unchecked_axes if item.name == "yaw"][0]
+    rotation = next(item for item in lidar.unchecked_axes if item.name == "yaw")
     assert "orientation is not defined" in rotation.reason
     assert lidar.coverage == "partial"
     # the candidate is the antenna position in the LiDAR frame: parent lidar, child gnss
@@ -205,7 +213,7 @@ def test_a_wrong_antenna_offset_fails_both_pairs(
     for name in ("gnss-lidar", "gnss-imu"):
         record = pair(artifact, name)
         assert record.status == "fail", name
-        x = [axis for axis in record.axes if axis.name == "x"][0]
+        x = next(axis for axis in record.axes if axis.name == "x")
         assert x.candidate_error == pytest.approx(0.15, abs=0.03)
         assert x.status == "fail"
 
@@ -219,7 +227,9 @@ def test_gnss_imu_is_skipped_without_its_inputs(
     only_imu = run_check(bag, tmp_path, pairs=("gnss-imu",))
     record = pair(only_imu, "gnss-imu")
     assert (record.status, record.reason_code) == ("skipped", "missing_dependency")
-    assert "gnss-lidar and imu-lidar gave no result (not selected with --pairs, or skipped)" in (record.reason or "")
+    assert "gnss-lidar and imu-lidar gave no result (not selected with --pairs, or skipped)" in (
+        record.reason or ""
+    )
 
     without_gnss = run_check(bag, tmp_path, pairs=("imu-lidar", "gnss-imu"))
     assert "gnss-lidar gave no result" in (pair(without_gnss, "gnss-imu").reason or "")
@@ -237,7 +247,9 @@ def test_cache_key_ignores_the_candidate_and_rebases_the_reference(
 ) -> None:
     monkeypatch.setitem(estimators.ESTIMATORS, "imu-lidar", imu_lidar_stub())
     cache = tmp_path / "cache"
-    first = run_check(write_bag(tmp_path / "a"), tmp_path / "o1", pairs=("gnss-lidar",), cache=cache)
+    first = run_check(
+        write_bag(tmp_path / "a"), tmp_path / "o1", pairs=("gnss-lidar",), cache=cache
+    )
     assert (pair(first, "gnss-lidar").evidence_from_cache, stubbed.computed) == (False, 1)
 
     # another candidate over the same bag content (same digest): no new fit, reference rebased
@@ -247,7 +259,9 @@ def test_cache_key_ignores_the_candidate_and_rebases_the_reference(
         lambda bag: ("0" * 64, "scope", None),
     )
     second = run_check(shifted, tmp_path / "o2", pairs=("gnss-lidar",), cache=cache)
-    third = run_check(write_bag(tmp_path / "c"), tmp_path / "o3", pairs=("gnss-lidar",), cache=cache)
+    third = run_check(
+        write_bag(tmp_path / "c"), tmp_path / "o3", pairs=("gnss-lidar",), cache=cache
+    )
     assert pair(second, "gnss-lidar").evidence_from_cache is False  # digest "0"*64 first seen
     assert pair(third, "gnss-lidar").evidence_from_cache is True
     assert stubbed.computed == 2

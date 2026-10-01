@@ -360,6 +360,19 @@
           "title": "Detection Probe Deg",
           "type": "number"
         },
+        "gnss_max_duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "seconds analysed by the GNSS pairs when --gnss-max-duration-s was given; absent means they use max_duration_s",
+          "title": "Gnss Max Duration S"
+        },
         "imu_lidar_translation": {
           "default": true,
           "title": "Imu Lidar Translation",

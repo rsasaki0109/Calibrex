@@ -121,6 +121,8 @@ class RunControls:
     """Runtime controls shared by the adapters."""
 
     max_duration_s: float | None = None
+    gnss_max_duration_s: float | None = None
+    """Seconds analysed by the GNSS pairs (more than imu-lidar needs); ``None``: max_duration_s."""
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
@@ -1380,6 +1382,11 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
     lever_candidate = invert_transform(ctx.candidate)[:3, 3]  # antenna in the LiDAR frame
     track_options = NavSatFixTrackOptions()
     run_options = GnssLidarRunOptions()
+    max_seconds = (
+        ctx.controls.gnss_max_duration_s
+        if ctx.controls.gnss_max_duration_s is not None
+        else ctx.controls.max_duration_s
+    )
     ctx.controls.progress(f"gnss-lidar: {gnss_topic} against LiDAR odometry on {lidar_topic}")
 
     def compute() -> GnssLidarLeverArmArtifact:
@@ -1393,9 +1400,9 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
             ) from exc
         model = GnssTrackModel(track.times_s, track.enu_m, track.sigma_m)
         scans = (
-            ctx.controls.scan_store.scans(ctx.bag, profile, max_seconds=ctx.controls.max_duration_s)
+            ctx.controls.scan_store.scans(ctx.bag, profile, max_seconds=max_seconds)
             if ctx.controls.scan_store is not None
-            else _iter_scans_plain(ctx.bag, profile, ctx.controls.max_duration_s)
+            else _iter_scans_plain(ctx.bag, profile, max_seconds)
         )
         segmenter = collect_windows(model, scans, run_options, prefix=f"{ctx.bag.name}/")
         evaluation = evaluate_gnss_lidar_lever_arm(
@@ -1447,7 +1454,7 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
         {
             "gnss_topic": gnss_topic,
             "profile": profile,
-            "max_seconds": ctx.controls.max_duration_s,
+            "max_seconds": max_seconds,
             "track": track_options,
             "options": run_options,
         },

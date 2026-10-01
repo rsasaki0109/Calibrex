@@ -33,7 +33,7 @@ def fix(
 ) -> NavSatFixMessage:
     payload = encode_navsatfix(
         secs=int(stamp_s),
-        nsecs=int(round((stamp_s % 1) * 1e9)),
+        nsecs=round((stamp_s % 1) * 1e9),
         status=status,
         latitude=lat,
         longitude=lon,
@@ -73,7 +73,10 @@ def test_enu_origin_is_first_kept_fix_and_altitude_is_ellipsoidal() -> None:
     track, _ = track_from_navsatfix([second, first])  # unsorted input is sorted by stamp
     assert track.origin_lat_lon_height == (48.0, 9.0, 300.0)
     expected = geodetic_to_enu(
-        np.array([48.0, 48.0001]), np.array([9.0, 9.0]), np.array([300.0, 301.0]), (48.0, 9.0, 300.0)
+        np.array([48.0, 48.0001]),
+        np.array([9.0, 9.0]),
+        np.array([300.0, 301.0]),
+        (48.0, 9.0, 300.0),
     )
     np.testing.assert_allclose(track.enu_m, expected)
     assert track.enu_m[1, 2] == pytest.approx(1.0, abs=1e-3)  # +1 m altitude is +1 m up
@@ -82,7 +85,7 @@ def test_enu_origin_is_first_kept_fix_and_altitude_is_ellipsoidal() -> None:
 
 
 def test_too_few_usable_fixes_is_an_explained_error() -> None:
-    with pytest.raises(ValueError, match="fewer than two usable GNSS fixes of 2.*no fix 2"):
+    with pytest.raises(ValueError, match=r"fewer than two usable GNSS fixes of 2.*no fix 2"):
         track_from_navsatfix([fix(0.0, status=-1), fix(1.0, status=-1)], topic="/gnss/fix")
 
 

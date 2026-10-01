@@ -91,6 +91,7 @@ def calls(monkeypatch: pytest.MonkeyPatch) -> list[PairContext]:
             "imu-lidar": wrap(_run((0.1, 0.0, 0.2), tag="il")),
             "lidar-lidar": wrap(_run((0.0, 0.9, 0.0), tag="ll")),
             "camera-imu": wrap(CheckSkipError("missing_intrinsics", "no intrinsics for stub")),
+            "gnss-lidar": wrap(CheckSkipError("unsupported_sensor", "stub: no RTK-grade fixes")),
         },
     )
     return recorded
@@ -120,7 +121,7 @@ def test_full_run_verdicts_evidence_and_options(
     assert _by(artifact, "lidar-lidar")[0].status == "warn"  # 0.9 deg vs tolerance 0.5
     camera = _by(artifact, "camera-imu")[0]
     assert (camera.status, camera.reason_code) == ("skipped", "missing_intrinsics")
-    assert _by(artifact, "gnss-lidar")[0].reason_code == "method_not_wired"
+    assert _by(artifact, "camera-focal")[0].reason_code == "method_not_wired"
     assert artifact.overall_verdict == "warn"
     assert any("running imu-lidar" in message for message in messages)
 

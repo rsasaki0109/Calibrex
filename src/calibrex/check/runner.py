@@ -158,6 +158,8 @@ class CheckRunOptions:
     verdict: VerdictOptions = field(default_factory=VerdictOptions)
     pairs: tuple[str, ...] | None = None
     max_duration_s: float | None = None
+    gnss_max_duration_s: float | None = None
+    """Seconds analysed by gnss-lidar (so by gnss-imu's GNSS input); ``None``: max_duration_s."""
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
@@ -255,6 +257,7 @@ def build_calibration_check(
             translation_floor_m=run.verdict.translation_floor_m,
             detection_probe_deg=run.verdict.detection_probe_deg,
             max_duration_s=run.max_duration_s,
+            gnss_max_duration_s=run.gnss_max_duration_s,
             pairs=list(run.pairs) if run.pairs is not None else None,
             camera=run.camera,
             imu_lidar_translation=run.imu_lidar_translation,
@@ -267,6 +270,11 @@ def build_calibration_check(
             "full run: each wired pair's native estimator was run and the candidate judged "
             "against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)",
         )
+        if run.gnss_max_duration_s is not None:
+            notes.append(
+                f"gnss-lidar analysed the first {run.gnss_max_duration_s:g} s "
+                "(--gnss-max-duration-s)"
+            )
         if run.max_duration_s is not None:
             notes.append(
                 f"only the first {run.max_duration_s:g} s of the sensor streams were analysed"
@@ -357,6 +365,7 @@ def _run_pairs(
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
         max_duration_s=run.max_duration_s,
+        gnss_max_duration_s=run.gnss_max_duration_s,
         camera=run.camera,
         imu_lidar_translation=run.imu_lidar_translation,
         acceleration_unit=run.acceleration_unit,

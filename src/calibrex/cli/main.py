@@ -2862,9 +2862,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar, "
             "camera-imu and the GNSS pairs gnss-lidar (NavSatFix antenna lever arm) and "
             "gnss-imu (composed from gnss-lidar and imu-lidar) runs and the candidate is "
-            "judged against it (pass / warn / fail / inconclusive per pair). With --vehicle-frame the ground-vehicle pairs lidar-vehicle, "
-            "imu-vehicle, ins-lidar and lidar-wheel_odometry run too. Other pairs are reported "
-            "as skipped."
+            "judged against it (pass / warn / fail / inconclusive per pair). With --vehicle-frame "
+            "the ground-vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar and "
+            "lidar-wheel_odometry run too. Other pairs are reported as skipped."
         ),
     )
     check.add_argument("bag", type=Path, help="rosbag2 directory or storage file")
@@ -2916,6 +2916,15 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="S",
         help="analyse only the first S seconds of each sensor stream",
+    )
+    check.add_argument(
+        "--gnss-max-duration-s",
+        type=_positive_float,
+        default=None,
+        metavar="S",
+        help="analyse the first S seconds for gnss-lidar (and so gnss-imu), instead of "
+        "--max-duration-s: the antenna lever arm needs several minutes of RTK-fixed windows, "
+        "more than imu-lidar",
     )
     check.add_argument(
         "--camera",
@@ -4082,6 +4091,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             ),
             pairs=pairs,
             max_duration_s=args.max_duration_s,
+            gnss_max_duration_s=args.gnss_max_duration_s,
             camera=args.camera,
             imu_lidar_translation=not args.no_imu_lidar_translation,
             acceleration_unit=args.acceleration_unit,
