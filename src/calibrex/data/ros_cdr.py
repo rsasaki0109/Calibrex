@@ -20,12 +20,15 @@ from calibrex.data.ros_messages import (
     ImageMessage,
     ImuMessage,
     LivoxCustomMessage,
+    NavSatFixMessage,
     OdometryMessage,
     PointCloud2Message,
     PointField,
     RadarReturn,
     RadarScanMessage,
     RegionOfInterest,
+    TfMessage,
+    TransformStampedMessage,
     decode_point_time_offsets,
     decode_pointcloud_payload,
     filter_nonfinite_pointcloud_rows,
@@ -116,6 +119,28 @@ class CdrReader:
             raise DatasetError(msg)
         value = self._data[self._offset]
         self._offset += 1
+        return int(value)
+
+    def read_int8(self) -> int:
+        """Read an aligned int8."""
+
+        self.align(1)
+        if self._offset >= len(self._data):
+            msg = "truncated CDR payload"
+            raise DatasetError(msg)
+        (value,) = struct.unpack_from("b", self._data, self._offset)
+        self._offset += 1
+        return int(value)
+
+    def read_uint16(self) -> int:
+        """Read an aligned uint16."""
+
+        self.align(2)
+        if self._offset + 2 > len(self._data):
+            msg = "truncated CDR payload"
+            raise DatasetError(msg)
+        (value,) = struct.unpack_from(f"{self._endian}H", self._data, self._offset)
+        self._offset += 2
         return int(value)
 
     def read_int32(self) -> int:
@@ -732,3 +757,78 @@ def decode_ros2_odometry(topic: str, timestamp_ns: int, data: bytes) -> Odometry
         pose_covariance=pose_covariance,
         twist_covariance=twist_covariance,
     )
+
+
+# A TFMessage carries a handful of transforms; bound the count so a corrupt
+# length prefix cannot allocate unbounded memory.
+MAX_TF_TRANSFORMS = 100_000
+
+
+def decode_ros2_tf_message(topic: str, timestamp_ns: int, data: bytes) -> TfMessage:
+    """Decode a CDR-encoded ``tf2_msgs/msg/TFMessage``."""
+
+    reader = CdrReader(data)
+    count = reader.read_uint32()
+    if count > MAX_TF_TRANSFORMS:
+        raise DatasetError(f"TFMessage transform count {count} exceeds safe bound")
+    transforms: list[TransformStampedMessage] = []
+    for _ in range(count):
+        stamp_secs = reader.read_int32()
+        stamp_nsecs = reader.read_uint32()
+        frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+        child_frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+        tx = reader.read_float64()
+        ty = reader.read_float64()
+        tz = reader.read_float64()
+        qx = reader.read_float64()
+        qy = reader.read_float64()
+        qz = reader.read_float64()
+        qw = reader.read_float64()
+        transforms.append(
+            TransformStampedMessage(
+                timestamp_ns=int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs),
+                frame_id=frame_id,
+                child_frame_id=child_frame_id,
+                translation_m=(tx, ty, tz),
+                rotation_xyzw=(qx, qy, qz, qw),
+            )
+        )
+    return TfMessage(topic=topic, timestamp_ns=timestamp_ns, transforms=tuple(transforms))
+
+
+def decode_ros2_navsatfix(topic: str, timestamp_ns: int, data: bytes) -> NavSatFixMessage:
+    """Decode a CDR-encoded ``sensor_msgs/msg/NavSatFix`` message."""
+
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    status = reader.read_int8()
+    service = reader.read_uint16()
+    latitude = reader.read_float64()
+    longitude = reader.read_float64()
+    altitude = reader.read_float64()
+    covariance = reader.read_float64_array(9)
+    covariance_type = reader.read_uint8()
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return NavSatFixMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        status=status,
+        service=service,
+        latitude_deg=latitude,
+        longitude_deg=longitude,
+        altitude_m=altitude,
+        position_covariance=covariance,
+        position_covariance_type=covariance_type,
+    )
+
+
+def decode_ros2_header_frame_id(data: bytes) -> str:
+    """Read ``header.frame_id`` from any message that starts with ``std_msgs/Header``."""
+
+    reader = CdrReader(data)
+    reader.read_int32()
+    reader.read_uint32()
+    return reader.read_string(max_length=MAX_ROS_STRING_BYTES)

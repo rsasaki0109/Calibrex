@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **`calibrex check`, Phase A (plan only).** `calibrex check BAG [--tf FILE]
+  [--vehicle-frame FRAME] [--frame-map TOPIC=FRAME] [--plan]` audits the
+  calibration deployed on a robot. It reads candidate extrinsics from the bag's
+  `/tf_static` and from `--tf` files (URDF fixed joints, a small
+  `slac.check_frames/v0.1` YAML, Kalibr camchain-imucam, RTK-SLAM `calib.yaml`,
+  Hilti `lidar_calibration.yaml`), classifies sensor topics (LiDAR, IMU, camera,
+  GNSS, odometry, twist), maps them to tree frames, and lists the pairs that can
+  be checked, with a machine-readable reason for each skipped pair. No solver
+  runs yet: every runnable pair is `planned`. New schemas
+  `slac.calibration_check/v0.1` and `slac.check_frames/v0.1`. The rosbag2
+  reader now decodes `tf2_msgs/msg/TFMessage` and `sensor_msgs/msg/NavSatFix`
+  and can list a bag's topics and read one topic's first messages without a
+  full scan. Vehicle pairs (`lidar-vehicle`, `imu-vehicle`) are opt-in: without
+  `--vehicle-frame` they are skipped with `no_vehicle_frame`, because they assume
+  ground-vehicle motion. See `docs/tutorials/calibrex_check.md`.
 - **README refresh.** The README now covers all ten target sensor pairs, the
   pre-registered SOTA audits and leaderboard standings, and current honest
   verdicts; the duplicated quickstart and gallery GIF are removed and the

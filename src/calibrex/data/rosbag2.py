@@ -21,7 +21,9 @@ Bare storage files without ``metadata.yaml`` are read as stored.
 CDR decoding supports ``sensor_msgs/msg/PointCloud2``, Livox
 ``livox_interfaces/msg/CustomMsg`` and compatible driver aliases,
 ``nav_msgs/msg/Odometry``, and
-``sensor_msgs/msg/Imu``. Standard ``sensor_msgs/msg/Image`` and
+``sensor_msgs/msg/Imu``. ``tf2_msgs/msg/TFMessage`` and
+``sensor_msgs/msg/NavSatFix`` decode through ``decode_rosbag2_message`` only (they
+are not part of ``calibrex inspect``). Standard ``sensor_msgs/msg/Image`` and
 ``sensor_msgs/msg/CameraInfo`` payloads, and the pinned standard
 ``radar_msgs/msg/RadarScan`` payload are also decoded without importing ROS.
 Livox custom points are normalized without importing
@@ -48,18 +50,22 @@ from calibrex.data.ros_cdr import (
     decode_ros2_image,
     decode_ros2_imu,
     decode_ros2_livox_custommsg,
+    decode_ros2_navsatfix,
     decode_ros2_odometry,
     decode_ros2_pointcloud2,
     decode_ros2_radar_scan,
+    decode_ros2_tf_message,
 )
 from calibrex.data.ros_messages import (
     CameraInfoMessage,
     ImageMessage,
     ImuMessage,
     LivoxCustomMessage,
+    NavSatFixMessage,
     OdometryMessage,
     PointCloud2Message,
     RadarScanMessage,
+    TfMessage,
     require_numpy,
 )
 
@@ -79,6 +85,8 @@ CAMERA_INFO_TYPE = "sensor_msgs/msg/CameraInfo"
 ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
 IMU_TYPE = "sensor_msgs/msg/Imu"
 RADAR_SCAN_TYPE = "radar_msgs/msg/RadarScan"
+TF_MESSAGE_TYPE = "tf2_msgs/msg/TFMessage"
+NAVSATFIX_TYPE = "sensor_msgs/msg/NavSatFix"
 LIVOX_CUSTOMMSG_TYPE = "livox_interfaces/msg/CustomMsg"
 LIVOX_CUSTOMMSG_TYPES = frozenset(
     {
@@ -121,6 +129,8 @@ Rosbag2DecodedMessage = (
     | ImageMessage
     | CameraInfoMessage
     | RadarScanMessage
+    | TfMessage
+    | NavSatFixMessage
 )
 
 
@@ -410,6 +420,149 @@ def iter_messages(
         return
     msg = f"unsupported rosbag2 storage identifier: {storage_id!r}"
     raise DatasetError(msg)
+
+
+def list_rosbag2_connections(
+    path: str | Path,
+) -> list[tuple[Rosbag2Connection, int | None]]:
+    """List ``(connection, message_count)`` per topic without reading messages.
+
+    SQLite bags read the ``topics`` table; ``metadata.yaml`` (when present)
+    supplies message counts. MCAP bags without metadata are scanned for their
+    channel records, which reads the file once. The count is ``None`` when it
+    is not cheaply known.
+    """
+
+    storage_path, storage_id = resolve_storage(path)
+    counts: dict[str, int] = {}
+    bag_path = Path(path)
+    metadata_path = bag_path / "metadata.yaml" if bag_path.is_dir() else None
+    metadata_topics: dict[str, Rosbag2Connection] = {}
+    if metadata_path is not None and metadata_path.is_file():
+        for entry in _load_metadata(metadata_path).get("topics_with_message_count", []):
+            meta = entry.get("topic_metadata", {}) if isinstance(entry, dict) else {}
+            name = meta.get("name")
+            if not isinstance(name, str):
+                continue
+            counts[name] = int(entry.get("message_count", 0))
+            metadata_topics[name] = Rosbag2Connection(
+                topic_id=len(metadata_topics) + 1,
+                topic=name,
+                message_type=str(meta.get("type", "")),
+                serialization_format=str(meta.get("serialization_format", "cdr")),
+            )
+    connections: list[Rosbag2Connection]
+    if storage_id == "sqlite3":
+        connections = _sqlite_connections(storage_path)
+    elif storage_id == "mcap":
+        connections = (
+            list(metadata_topics.values()) if metadata_topics else _mcap_connections(storage_path)
+        )
+    else:
+        msg = f"unsupported rosbag2 storage identifier: {storage_id!r}"
+        raise DatasetError(msg)
+    unique: dict[str, Rosbag2Connection] = {}
+    for connection in connections:
+        unique.setdefault(connection.topic, connection)
+    return [(connection, counts.get(topic)) for topic, connection in sorted(unique.items())]
+
+
+def _sqlite_connections(db_path: Path) -> list[Rosbag2Connection]:
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        try:
+            rows = conn.execute(
+                "SELECT id, name, type, serialization_format, offered_qos_profiles FROM topics"
+            ).fetchall()
+        except sqlite3.OperationalError:
+            rows = [
+                (*row, None)
+                for row in conn.execute(
+                    "SELECT id, name, type, serialization_format FROM topics"
+                ).fetchall()
+            ]
+    finally:
+        conn.close()
+    return [
+        Rosbag2Connection(
+            topic_id=int(row[0]),
+            topic=str(row[1]),
+            message_type=str(row[2]),
+            serialization_format=str(row[3]),
+            offered_qos_profiles=str(row[4]) if row[4] else None,
+        )
+        for row in rows
+    ]
+
+
+def _mcap_connections(mcap_path: Path) -> list[Rosbag2Connection]:
+    channels: dict[int, Rosbag2Connection] = {}
+    schemas: dict[int, str] = {}
+    with mcap_path.open("rb") as source:
+        if source.read(len(MCAP_MAGIC)) != MCAP_MAGIC:
+            msg = "not an MCAP file (bad magic header)"
+            raise DatasetError(msg)
+        for opcode, content in _iter_mcap_records(source):
+            records = [(opcode, content)]
+            if opcode == OP_CHUNK:
+                _compression, chunk_records = _parse_mcap_chunk(content)
+                records = list(_iter_mcap_record_bytes(chunk_records))
+            for inner_opcode, inner_content in records:
+                if inner_opcode == OP_SCHEMA:
+                    schema_id, schema_name = _parse_mcap_schema(inner_content)
+                    schemas[schema_id] = schema_name
+                elif inner_opcode == OP_CHANNEL:
+                    channel = _parse_mcap_channel(inner_content, schemas)
+                    channels[channel.topic_id] = channel
+            if opcode in {OP_FOOTER, OP_DATA_END}:
+                break
+    return list(channels.values())
+
+
+def iter_topic_messages(
+    path: str | Path,
+    topic: str,
+    *,
+    limit: int | None = None,
+) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
+    """Yield the first ``limit`` messages of one topic in timestamp order.
+
+    SQLite bags filter by topic in the database so a single sparse topic does
+    not require streaming the whole bag; MCAP bags stop reading early.
+    """
+
+    storage_path, storage_id, decompress_message = _resolve_storage(path)
+    if storage_id == "sqlite3":
+        connection = next(
+            (item for item in _sqlite_connections(storage_path) if item.topic == topic), None
+        )
+        if connection is None:
+            return
+        conn = sqlite3.connect(f"file:{storage_path}?mode=ro", uri=True)
+        try:
+            query = (
+                "SELECT timestamp, data FROM messages WHERE topic_id = ? "
+                "ORDER BY timestamp ASC, id ASC"
+            )
+            parameters: tuple[int, ...] = (connection.topic_id,)
+            if limit is not None:
+                query += " LIMIT ?"
+                parameters = (connection.topic_id, limit)
+            for timestamp, data in conn.execute(query, parameters):
+                yield (
+                    connection,
+                    int(timestamp),
+                    _maybe_decompress_message(bytes(data), decompress_message),
+                )
+        finally:
+            conn.close()
+        return
+    for emitted, (connection, timestamp_ns, data) in enumerate(
+        iter_messages(path, topics={topic}), start=1
+    ):
+        yield connection, timestamp_ns, data
+        if limit is not None and emitted >= limit:
+            return
 
 
 def _resolve_storage(
@@ -978,6 +1131,10 @@ def decode_rosbag2_message(
         return decode_camera_info(topic, timestamp_ns, data)
     if message_type == RADAR_SCAN_TYPE:
         return decode_radar_scan(topic, timestamp_ns, data)
+    if message_type == TF_MESSAGE_TYPE:
+        return decode_ros2_tf_message(topic, timestamp_ns, data)
+    if message_type == NAVSATFIX_TYPE:
+        return decode_ros2_navsatfix(topic, timestamp_ns, data)
     msg = f"unsupported rosbag2 message type: {message_type!r}"
     raise DatasetError(msg)
 

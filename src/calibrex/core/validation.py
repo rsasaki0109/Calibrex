@@ -93,6 +93,8 @@ ValidationKind = Literal[
     "gnss-imu-lever-arm",
     "lidar-wheel-odometry",
     "camera-focal-scale",
+    "calibration-check",
+    "check-frames",
     "sota-audit-protocol",
     "sota-audit-result",
     "sota-leaderboard",
