@@ -11,6 +11,7 @@ from calibrex.check.estimators import (
     invert_transform,
     rotation_axis_estimates,
     rotation_errors_deg,
+    time_offset_of,
     translation_axis_estimates,
 )
 from calibrex.check.verdict import (
@@ -20,6 +21,8 @@ from calibrex.check.verdict import (
     judge_pair,
     worst_verdict,
 )
+from calibrex.core.ins_lidar_hand_eye import InsLidarDofRecord
+from calibrex.core.vehicle_frame_rotation import VehicleFrameControl, VehicleFrameDofRecord
 
 OPTIONS = VerdictOptions()
 
@@ -219,3 +222,107 @@ def test_coverage_and_control_not_detected() -> None:
     assert result.unchecked[0].reason_code == "control_not_detected"
     assert result.coverage == "partial"
     assert judge_pair([_rot(0.1, 0.1)], OPTIONS).coverage == "full"
+
+
+# ---------------------------------------------------------------- vehicle pairs
+
+
+def _vehicle_records(
+    *, roll_status: str = "estimated", yaw_control_detected: bool = True
+) -> list[VehicleFrameDofRecord]:
+    def record(name: str, status: str, std: float, detected: bool = True) -> VehicleFrameDofRecord:
+        return VehicleFrameDofRecord(
+            name=name,  # type: ignore[arg-type]
+            value=0.0,
+            std_analytic=std,
+            std_jackknife=std,
+            std_reported=std,
+            status=status,  # type: ignore[arg-type]
+            known_bad_control=VehicleFrameControl(
+                amount_deg=1.0, holdout_delta_chi2=47.0 if detected else -10.0, detected=detected
+            ),
+        )
+
+    return [
+        record("roll", roll_status, 0.42 if roll_status != "estimated" else 0.05),
+        record("pitch", "estimated", 0.04),
+        record("yaw", "estimated", 0.05, yaw_control_detected),
+    ]
+
+
+def test_vehicle_pair_roll_unobservable_is_listed_not_judged() -> None:
+    estimates = rotation_axis_estimates(
+        _vehicle_records(roll_status="unobservable"),
+        Rotation.from_euler("z", 0.3, degrees=True).as_matrix(),
+        np.eye(3),
+    )
+
+    judged = judge_pair(estimates, OPTIONS)
+
+    assert judged.verdict == "pass"
+    assert [a.name for a in judged.axes] == ["pitch", "yaw"]
+    assert [(a.name, a.reason_code) for a in judged.unchecked] == [("roll", "unobservable")]
+    assert judged.coverage == "partial"
+
+
+def test_vehicle_pair_yaw_error_fails_on_a_detected_axis() -> None:
+    estimates = rotation_axis_estimates(
+        _vehicle_records(),
+        Rotation.from_euler("z", 1.4, degrees=True).as_matrix(),  # tolerance 0.5, 2x = 1.0
+        np.eye(3),
+    )
+
+    judged = judge_pair(estimates, OPTIONS)
+
+    assert judged.verdict == "fail"
+    assert {a.name: a.status for a in judged.axes}["yaw"] == "fail"
+    assert judged.unchecked == ()
+
+
+def test_vehicle_axis_whose_control_was_not_detected_is_demoted_with_its_amount() -> None:
+    estimates = rotation_axis_estimates(
+        _vehicle_records(yaw_control_detected=False),
+        Rotation.from_euler("z", 3.0, degrees=True).as_matrix(),  # would fail if it were trusted
+        np.eye(3),
+    )
+
+    judged = judge_pair(estimates, OPTIONS)
+
+    assert judged.verdict == "pass"  # the untrusted axis is not judged
+    (unchecked,) = judged.unchecked
+    assert (unchecked.name, unchecked.reason_code) == ("yaw", "control_not_detected")
+    assert "(1 deg)" in unchecked.reason  # VehicleFrameControl.amount_deg, unit deg
+
+
+def test_ins_prior_constrained_axis_is_unchecked_as_a_prior() -> None:
+    record = InsLidarDofRecord(
+        name="z",
+        unit="m",
+        value=0.8,
+        std_analytic=0.02,
+        std_jackknife=0.02,
+        std_reported=0.02,
+        status="prior",
+    )
+
+    (estimate,) = translation_axis_estimates([record], [0.0, 0.0, 0.8], [0.0, 0.0, 0.8])[2:]
+
+    assert estimate.estimated is False
+    assert estimate.unchecked_code == "unobservable"
+    assert "prior" in (estimate.unchecked_reason or "")
+
+
+def test_time_offset_of_maps_a_prior_status_to_unobservable() -> None:
+    record = InsLidarDofRecord(
+        name="time_offset",
+        unit="s",
+        value=0.004,
+        std_analytic=0.001,
+        std_jackknife=0.001,
+        std_reported=0.001,
+        status="prior",
+    )
+
+    offset = time_offset_of([record], 0.004)
+
+    assert offset is not None and offset.status == "unobservable"

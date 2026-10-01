@@ -55,6 +55,7 @@ from calibrex.data.ros_cdr import (
     decode_ros2_pointcloud2,
     decode_ros2_radar_scan,
     decode_ros2_tf_message,
+    decode_ros2_twist,
 )
 from calibrex.data.ros_messages import (
     CameraInfoMessage,
@@ -66,6 +67,7 @@ from calibrex.data.ros_messages import (
     PointCloud2Message,
     RadarScanMessage,
     TfMessage,
+    TwistMessage,
     require_numpy,
 )
 
@@ -87,6 +89,8 @@ IMU_TYPE = "sensor_msgs/msg/Imu"
 RADAR_SCAN_TYPE = "radar_msgs/msg/RadarScan"
 TF_MESSAGE_TYPE = "tf2_msgs/msg/TFMessage"
 NAVSATFIX_TYPE = "sensor_msgs/msg/NavSatFix"
+TWIST_STAMPED_TYPE = "geometry_msgs/msg/TwistStamped"
+TWIST_COVARIANCE_STAMPED_TYPE = "geometry_msgs/msg/TwistWithCovarianceStamped"
 LIVOX_CUSTOMMSG_TYPE = "livox_interfaces/msg/CustomMsg"
 LIVOX_CUSTOMMSG_TYPES = frozenset(
     {
@@ -131,6 +135,7 @@ Rosbag2DecodedMessage = (
     | RadarScanMessage
     | TfMessage
     | NavSatFixMessage
+    | TwistMessage
 )
 
 
@@ -1148,6 +1153,10 @@ def decode_rosbag2_message(
         return decode_ros2_tf_message(topic, timestamp_ns, data)
     if message_type == NAVSATFIX_TYPE:
         return decode_ros2_navsatfix(topic, timestamp_ns, data)
+    if message_type == TWIST_STAMPED_TYPE:
+        return decode_ros2_twist(topic, timestamp_ns, data)
+    if message_type == TWIST_COVARIANCE_STAMPED_TYPE:
+        return decode_ros2_twist(topic, timestamp_ns, data, with_covariance=True)
     msg = f"unsupported rosbag2 message type: {message_type!r}"
     raise DatasetError(msg)
 

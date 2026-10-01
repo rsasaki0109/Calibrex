@@ -22,6 +22,7 @@ from calibrex.data.ros_cdr import (
     decode_ros2_odometry,
     decode_ros2_pointcloud2,
 )
+from calibrex.data.ros_cdr_writer import CdrWriter
 from calibrex.data.rosbag2 import (
     IMU_TYPE,
     LIVOX_CUSTOMMSG_TYPE,
@@ -43,66 +44,6 @@ from calibrex.data.rosbag2 import (
 )
 
 Point = tuple[float, float, float, float]
-
-
-class CdrWriter:
-    """Minimal ROS 2 CDR (XCDR1) encoder for test fixtures."""
-
-    def __init__(self, *, little_endian: bool = True) -> None:
-        endian_byte = 1 if little_endian else 0
-        self._buf = bytearray([0, endian_byte, 0, 0])
-        self._little = little_endian
-        self._endian = "<" if little_endian else ">"
-
-    def align(self, alignment: int) -> None:
-        if alignment <= 1:
-            return
-        relative_offset = len(self._buf) - 4
-        padding = (-relative_offset) % alignment
-        self._buf.extend(b"\x00" * padding)
-
-    def write_int32(self, value: int) -> None:
-        self.align(4)
-        self._buf.extend(struct.pack(f"{self._endian}i", value))
-
-    def write_uint32(self, value: int) -> None:
-        self.align(4)
-        self._buf.extend(struct.pack(f"{self._endian}I", value))
-
-    def write_uint64(self, value: int) -> None:
-        self.align(8)
-        self._buf.extend(struct.pack(f"{self._endian}Q", value))
-
-    def write_uint8(self, value: int) -> None:
-        self.align(1)
-        self._buf.append(value & 0xFF)
-
-    def write_float32(self, value: float) -> None:
-        self.align(4)
-        self._buf.extend(struct.pack(f"{self._endian}f", value))
-
-    def write_float64(self, value: float) -> None:
-        self.align(8)
-        self._buf.extend(struct.pack(f"{self._endian}d", value))
-
-    def write_bool(self, value: bool) -> None:
-        self.write_uint8(1 if value else 0)
-
-    def write_string(self, value: str) -> None:
-        encoded = value.encode("utf-8") + b"\x00"
-        self.write_uint32(len(encoded))
-        self._buf.extend(encoded)
-
-    def write_byte_sequence(self, value: bytes) -> None:
-        self.write_uint32(len(value))
-        self._buf.extend(value)
-
-    def write_float64_array(self, values: tuple[float, ...]) -> None:
-        for item in values:
-            self.write_float64(item)
-
-    def finish(self) -> bytes:
-        return bytes(self._buf)
 
 
 def _encode_pointcloud2(

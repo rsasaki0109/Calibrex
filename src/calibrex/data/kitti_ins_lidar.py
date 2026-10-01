@@ -35,6 +35,8 @@ class KittiInsTrajectory:
     times_s: FloatArray
     poses: FloatArray  # (N, 4, 4)
     frame_indices: tuple[int, ...]
+    quaternions_xyzw: FloatArray | None = None
+    """The orientation of each pose as the quaternion it was built from, (N, 4)."""
 
 
 @dataclass(frozen=True)
@@ -58,8 +60,14 @@ class KittiInsLidarDrive:
     input_sha256: str
 
 
-def load_kitti_ins_lidar_drive(drive_dir: str | Path) -> KittiInsLidarDrive:
-    """Load OXTS poses, Velodyne frame timestamps, and the vendor extrinsic."""
+def load_kitti_ins_lidar_drive(
+    drive_dir: str | Path, *, calibration_dir: str | Path | None = None
+) -> KittiInsLidarDrive:
+    """Load OXTS poses, Velodyne frame timestamps, and the vendor extrinsic.
+
+    ``calib_imu_to_velo.txt`` is read from ``calibration_dir``, by default the
+    drive's parent (the KITTI date directory).
+    """
 
     root = Path(drive_dir)
     oxts_times = {
@@ -71,13 +79,16 @@ def load_kitti_ins_lidar_drive(drive_dir: str | Path) -> KittiInsLidarDrive:
     if len(oxts_indices) < 2:
         raise ValueError(f"{root} has fewer than two timestamped OXTS packets")
     packets = [read_oxts_packet(oxts_files[index]) for index in oxts_indices]
-    poses = np.stack([se3_matrix(kitti_oxts_pose_world_imu(p, packets[0])) for p in packets])
+    transforms = [kitti_oxts_pose_world_imu(p, packets[0]) for p in packets]
+    poses = np.stack([se3_matrix(transform) for transform in transforms])
+    quaternions = np.array([transform.rotation_quat_xyzw for transform in transforms])
     times = np.array([oxts_times[index] for index in oxts_indices])
     order = np.argsort(times)
     trajectory = KittiInsTrajectory(
         times_s=times[order],
         poses=poses[order],
         frame_indices=tuple(oxts_indices[i] for i in order),
+        quaternions_xyzw=quaternions[order],
     )
 
     velodyne_times = {
@@ -96,7 +107,11 @@ def load_kitti_ins_lidar_drive(drive_dir: str | Path) -> KittiInsLidarDrive:
     expected = range(min(velodyne_files, default=0), max(velodyne_files, default=-1) + 1)
     missing = tuple(index for index in expected if index not in velodyne_files)
 
-    calibration_path = root.parent / "calib_imu_to_velo.txt"
+    calibration_path = (
+        Path(calibration_dir) if calibration_dir is not None else root.parent
+    ) / "calib_imu_to_velo.txt"
+    if not calibration_path.is_file():
+        raise ValueError(f"{calibration_path} not found (calib_imu_to_velo.txt)")
     calibration = read_calibration_file(calibration_path)
     t_velo_imu = np.eye(4)
     t_velo_imu[:3, :3] = np.array(calibration["R"], dtype=np.float64).reshape(3, 3)
@@ -140,7 +155,11 @@ def _input_digest(root: Path, calibration_path: Path) -> str:
         *sorted((root / "velodyne_points" / "data").glob("*.bin")),
     ]
     for path in files:
-        digest.update(path.relative_to(root.parent).as_posix().encode("utf-8"))
+        try:
+            label = path.relative_to(root.parent).as_posix()
+        except ValueError:  # a calibration directory outside the date directory
+            label = path.name
+        digest.update(label.encode("utf-8"))
         with path.open("rb") as stream:
             for chunk in iter(lambda: stream.read(1 << 20), b""):
                 digest.update(chunk)

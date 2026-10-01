@@ -19,6 +19,7 @@ deviations; translation errors are component differences in metres.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import math
 from collections.abc import Callable, Mapping, Sequence
@@ -37,6 +38,7 @@ from calibrex.core.calibration_check import (
     CheckPairRecord,
     CheckReasonCode,
     CheckTimeOffset,
+    CheckTopicRecord,
 )
 
 if TYPE_CHECKING:
@@ -125,6 +127,8 @@ class RunControls:
     cache: EstimatorCache | None = None
     bag_sha256: str = ""
     scan_store: ScanStore | None = None
+    memo: dict[tuple[object, ...], Any] = field(default_factory=dict)
+    """Per-run results shared by pairs (the LiDAR odometry of the vehicle pairs)."""
 
 
 @dataclass(frozen=True)
@@ -138,6 +142,7 @@ class PairContext:
     candidate: FloatArray
     sources: Sequence[LoadedSource]
     controls: RunControls
+    topics: Sequence[CheckTopicRecord] = ()
 
 
 Adapter = Callable[[PairContext], EstimatorRun]
@@ -191,6 +196,10 @@ def _estimate(
     control = getattr(record, "known_bad_control", None)
     undetected = observable and control is not None and not control.detected
     if undetected and control is not None:
+        amount = getattr(control, "amount", None)
+        control_unit = getattr(control, "unit", None)
+        if amount is None:
+            amount, control_unit = control.amount_deg, "deg"
         return AxisEstimate(
             name=name,
             unit=unit,
@@ -198,8 +207,8 @@ def _estimate(
             std=float(record.std_reported),
             estimated=False,
             unchecked_reason=(
-                f"the estimator's known-bad control on this axis ({control.amount:g} "
-                f"{control.unit}) was not detected on held-out data "
+                f"the estimator's known-bad control on this axis ({amount:g} "
+                f"{control_unit}) was not detected on held-out data "
                 f"(delta chi-square {control.holdout_delta_chi2:.1f}), so the estimate "
                 "is not trusted as a yardstick"
             ),
@@ -217,7 +226,11 @@ def _estimate(
         unchecked_reason=None
         if observable
         else (
-            f"not constrained by the data (reported std {record.std_reported:.4g} {unit})"
+            (
+                "constrained only by a declared prior, not by the data"
+                if getattr(record, "status", None) == "prior"
+                else f"not constrained by the data (reported std {record.std_reported:.4g} {unit})"
+            )
             if record is not None
             else "the estimator reported no value"
         ),
@@ -267,7 +280,7 @@ def time_offset_of(records: Sequence[Any], estimate_s: float) -> CheckTimeOffset
             return CheckTimeOffset(
                 estimate_s=float(estimate_s),
                 std_s=float(record.std_reported),
-                status=record.status,
+                status="estimated" if record.status == "estimated" else "unobservable",
             )
     return None
 
@@ -737,9 +750,569 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
     )
 
 
+# ------------------------------------------------------------- vehicle pairs
+#
+# lidar-vehicle, imu-vehicle, ins-lidar and lidar-wheel_odometry run the estimators
+# of the KITTI benchmarks on bag data (see ``vehicle_inputs``). None of them uses
+# the candidate: it enters only when the estimate is compared with it, so the
+# artifacts are cached. Sweeps are registered as rigid snapshots, like the KITTI
+# runners do; a per-point time field is neither required nor used.
+
+ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
+TWIST_TYPES = frozenset(
+    {"geometry_msgs/msg/TwistStamped", "geometry_msgs/msg/TwistWithCovarianceStamped"}
+)
+VEHICLE_PROVENANCE_GENERATOR = "calibrex.check.estimators"
+_RIGID_SWEEP_NOTE = (
+    "LiDAR sweeps are registered as rigid snapshots; motion within a sweep is not compensated"
+)
+_PLANAR_NOTE = (
+    "The vehicle frame is defined by the motion: it assumes no side slip and no vertical "
+    "velocity, and roll needs turns."
+)
+
+
+def _digest_or_topic(ctx: PairContext, *names: str) -> str:
+    """The bag digest for artifact provenance (a digest of the topic names without one)."""
+
+    if ctx.controls.bag_sha256:
+        return ctx.controls.bag_sha256
+    return hashlib.sha256("\0".join(names).encode("utf-8")).hexdigest()
+
+
+def _lidar_odometry(ctx: PairContext, topic: str) -> Any:
+    """LiDAR odometry of a topic, computed once per run and shared by the vehicle pairs."""
+
+    from calibrex.check import vehicle_inputs
+
+    key = ("lidar_odometry", str(ctx.bag), topic, ctx.controls.max_duration_s)
+    track = ctx.controls.memo.get(key)
+    if track is None:
+        ctx.controls.progress(f"vehicle pairs: LiDAR odometry on {topic}")
+        track = vehicle_inputs.read_lidar_odometry(
+            ctx.bag, topic, max_duration_s=ctx.controls.max_duration_s
+        )
+        ctx.controls.memo[key] = track
+    return track
+
+
+SEGMENT_BLOCK_STRIDE = 100_000
+"""Block-number offset between stream segments, so no block (and no motion) spans two."""
+
+
+def _lidar_motions(track: Any, *, step: int, block_duration_s: float) -> list[Any]:
+    """Blocked LiDAR motions of every odometry segment, pooled as the KITTI runners pool drives."""
+
+    from calibrex.solvers.vehicle_frame_solver import motions_from_poses
+
+    motions: list[Any] = []
+    for position, (times, poses) in enumerate(track.segment_slices()):
+        motions += motions_from_poses(
+            times,
+            poses,
+            step=step,
+            block_duration_s=block_duration_s,
+            block_offset=position * SEGMENT_BLOCK_STRIDE,
+        )
+    return motions
+
+
+def _segment_note(track: Any) -> tuple[str, ...]:
+    count = len(track.segment_slices())
+    if count < 2:
+        return ()
+    return (
+        f"the LiDAR stream has {count} segments (gaps over 1 s); odometry and motions are "
+        "kept within a segment",
+    )
+
+
+def _rotation_estimates_of(
+    records: Sequence[Any], rotation_quat_xyzw: Sequence[float] | None, candidate: FloatArray
+) -> list[AxisEstimate]:
+    """Roll/pitch/yaw estimates against a candidate rotation of the same convention."""
+
+    if rotation_quat_xyzw is None:
+        estimates = rotation_axis_estimates(records, candidate, candidate)
+        return [_unestimated(item) for item in estimates]
+    from scipy.spatial.transform import Rotation
+
+    estimate = np.asarray(Rotation.from_quat(rotation_quat_xyzw).as_matrix(), dtype=np.float64)
+    return rotation_axis_estimates(records, candidate, estimate)
+
+
+def _vehicle_run(
+    artifact: Any,
+    *,
+    estimator: str,
+    cached: bool,
+    ctx: PairContext,
+    estimates: Sequence[AxisEstimate],
+    compared: FloatArray,
+    solved: bool,
+    time_offset: CheckTimeOffset | None = None,
+    notes: Sequence[str] = (),
+    role: str = "estimate",
+) -> EstimatorRun:
+    return EstimatorRun(
+        estimator=estimator,
+        artifacts=(
+            EvidenceArtifact(
+                role,
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=solved,
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=compared,
+        time_offset=time_offset,
+        notes=tuple(notes),
+    )
+
+
+def run_lidar_vehicle(ctx: PairContext) -> EstimatorRun:
+    """``R_vehicle_lidar`` from the non-holonomic motion of the LiDAR odometry."""
+
+    from calibrex import __version__
+    from calibrex.core.provenance import git_commit
+    from calibrex.core.vehicle_frame_rotation import (
+        VehicleFrameProvenance,
+        load_vehicle_frame_rotation,
+    )
+    from calibrex.evaluation.vehicle_frame import (
+        VehicleFrameRunOptions,
+        build_vehicle_frame_artifact,
+        evaluate_vehicle_frame,
+    )
+
+    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    options = VehicleFrameRunOptions()
+    candidate = invert_transform(ctx.candidate)  # T_vehicle_lidar
+
+    def compute() -> Any:
+        track = _lidar_odometry(ctx, lidar_topic)
+        motions = _lidar_motions(
+            track, step=options.step_frames, block_duration_s=options.block_duration_s
+        )
+        evaluation = evaluate_vehicle_frame(motions, options)
+        return build_vehicle_frame_artifact(
+            evaluation,
+            modality="lidar",
+            motions=len(motions),
+            references=[],
+            options=options,
+            include_step=True,
+            limitations=[
+                _PLANAR_NOTE,
+                _RIGID_SWEEP_NOTE,
+                "The translation is not estimated.",
+                *_segment_note(track),
+            ],
+            provenance=VehicleFrameProvenance(
+                generator=VEHICLE_PROVENANCE_GENERATOR,
+                generator_version=__version__,
+                git_commit=git_commit(),
+                command=["calibrex", "check", str(ctx.bag), "lidar-vehicle", lidar_topic],
+                dataset_family=DATASET_FAMILY,
+                sequence_ids=[ctx.bag.name],
+                sensor=lidar_topic,
+                input_sha256=_digest_or_topic(ctx, lidar_topic),
+                dataset_license=DATASET_LICENSE,
+            ),
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "lidar_vehicle",
+        {
+            "topic": lidar_topic,
+            "max_duration_s": ctx.controls.max_duration_s,
+            "options": options,
+        },
+        loader=load_vehicle_frame_rotation,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    return _vehicle_run(
+        artifact,
+        estimator="vehicle_frame_rotation (lidar)",
+        cached=cached,
+        ctx=ctx,
+        estimates=_rotation_estimates_of(
+            artifact.dofs, artifact.rotation_quat_xyzw, candidate[:3, :3]
+        ),
+        compared=candidate,
+        solved=artifact.rotation_quat_xyzw is not None,
+        notes=(
+            f"LiDAR odometry on {lidar_topic} ({_RIGID_SWEEP_NOTE})",
+            "roll needs turns; an axis the drive does not constrain is listed as unchecked",
+            "the translation of T_vehicle_lidar is not estimated",
+        ),
+    )
+
+
+def _topic_records(ctx: PairContext, slot: str) -> list[CheckTopicRecord]:
+    from calibrex.check.planner import slot_of
+
+    return [record for record in ctx.topics if slot_of(record) == slot]
+
+
+def run_imu_vehicle(ctx: PairContext) -> EstimatorRun:
+    """``R_vehicle_imu`` from the body-frame velocity and rates of an INS in the IMU's frame."""
+
+    from calibrex import __version__
+    from calibrex.check import vehicle_inputs
+    from calibrex.core.provenance import git_commit
+    from calibrex.core.vehicle_frame_rotation import (
+        VehicleFrameProvenance,
+        load_vehicle_frame_rotation,
+    )
+    from calibrex.evaluation.vehicle_frame import (
+        VehicleFrameRunOptions,
+        body_motions,
+        build_vehicle_frame_artifact,
+        evaluate_vehicle_frame,
+    )
+
+    imu_frame = ctx.pair.frames[0]
+    candidates = [
+        record
+        for record in _topic_records(ctx, "ins")
+        if record.message_type == ODOMETRY_TYPE or record.message_type in TWIST_TYPES
+    ]
+    if not candidates:
+        raise CheckSkipError(
+            "missing_topic",
+            "imu-vehicle needs the body-frame velocity and angular rate of an INS (a raw IMU "
+            "has no velocity): an Odometry or TwistStamped topic of kind 'ins'; name it with "
+            "oxts/ins/gnss or pass --topic-kind TOPIC=ins",
+        )
+    same_frame = [record for record in candidates if record.mapped_frame == imu_frame]
+    if not same_frame:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            "the INS velocity topic(s) "
+            + ", ".join(f"{r.topic} ({r.mapped_frame})" for r in candidates)
+            + f" are not expressed in the IMU frame '{imu_frame}'",
+        )
+    # Odometry first (its twist is in the child frame by definition), then the busiest.
+    same_frame.sort(key=lambda r: (r.message_type != ODOMETRY_TYPE, -(r.message_count or 0)))
+    source = same_frame[0]
+    options = VehicleFrameRunOptions()
+    candidate = invert_transform(ctx.candidate)  # T_vehicle_imu
+
+    def compute() -> Any:
+        track = vehicle_inputs.read_twist_track(
+            ctx.bag,
+            source.topic,
+            source.message_type,
+            max_duration_s=ctx.controls.max_duration_s,
+        )
+        if not np.any(np.abs(track.linear_mps) > 1e-9):
+            raise CheckSkipError(
+                "unsupported_sensor", f"{source.topic} reports zero velocity in every message"
+            )
+        motions = []
+        for position, piece in enumerate(vehicle_inputs.split_at_gaps(track.times_s)):
+            motions += body_motions(
+                list(track.times_s[piece]),
+                list(track.linear_mps[piece]),
+                list(track.angular_rps[piece]),
+                block_duration_s=options.block_duration_s,
+                block_offset=position * SEGMENT_BLOCK_STRIDE,
+            )
+        evaluation = evaluate_vehicle_frame(motions, options)
+        return build_vehicle_frame_artifact(
+            evaluation,
+            modality="ins",
+            motions=len(motions),
+            references=[],
+            options=options,
+            include_step=False,
+            limitations=[
+                _PLANAR_NOTE,
+                f"The velocity and rates are the INS's own navigation solution on {source.topic}, "
+                "taken as expressed in the body frame of the IMU.",
+                "The translation is not estimated.",
+            ],
+            provenance=VehicleFrameProvenance(
+                generator=VEHICLE_PROVENANCE_GENERATOR,
+                generator_version=__version__,
+                git_commit=git_commit(),
+                command=["calibrex", "check", str(ctx.bag), "imu-vehicle", source.topic],
+                dataset_family=DATASET_FAMILY,
+                sequence_ids=[ctx.bag.name],
+                sensor=source.topic,
+                input_sha256=_digest_or_topic(ctx, source.topic),
+                dataset_license=DATASET_LICENSE,
+            ),
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "imu_vehicle",
+        {
+            "topic": source.topic,
+            "max_duration_s": ctx.controls.max_duration_s,
+            "options": options,
+        },
+        loader=load_vehicle_frame_rotation,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    return _vehicle_run(
+        artifact,
+        estimator="vehicle_frame_rotation (ins)",
+        cached=cached,
+        ctx=ctx,
+        estimates=_rotation_estimates_of(
+            artifact.dofs, artifact.rotation_quat_xyzw, candidate[:3, :3]
+        ),
+        compared=candidate,
+        solved=artifact.rotation_quat_xyzw is not None,
+        notes=(
+            f"velocity and angular rate from {source.topic} ({source.message_type}), "
+            f"taken as expressed in '{imu_frame}'; the IMU topic itself carries no velocity",
+            "the translation of T_vehicle_imu is not estimated",
+        ),
+    )
+
+
+def run_ins_lidar(ctx: PairContext) -> EstimatorRun:
+    """``T_ins_lidar`` by trajectory hand-eye calibration of LiDAR odometry against an INS."""
+
+    from calibrex import __version__
+    from calibrex.check import vehicle_inputs
+    from calibrex.core.ins_lidar_hand_eye import (
+        InsLidarHandEyeProvenance,
+        load_ins_lidar_hand_eye,
+    )
+    from calibrex.core.provenance import git_commit
+    from calibrex.evaluation.ins_lidar_hand_eye import (
+        InsLidarRunOptions,
+        _odometry_summary,
+        build_ins_lidar_artifact,
+        build_sensor_motions,
+        evaluate_ins_lidar_hand_eye,
+    )
+    from calibrex.solvers.trajectory_hand_eye_solver import ReferenceTrajectory
+
+    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    ins_topics = [
+        topic
+        for topic in ctx.sensor_topics.get("ins", ())
+        if ctx.topic_types.get(topic) == ODOMETRY_TYPE
+    ]
+    if not ins_topics:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            "ins-lidar needs an INS pose: a nav_msgs/Odometry topic of kind 'ins' "
+            f"(found {', '.join(ctx.sensor_topics.get('ins', ())) or 'none'})",
+        )
+    ins_topic = ins_topics[0]
+    options = InsLidarRunOptions()
+    candidate = ctx.candidate  # T_ins_lidar
+
+    def compute() -> Any:
+        ins = vehicle_inputs.read_ins_track(
+            ctx.bag, ins_topic, max_duration_s=ctx.controls.max_duration_s
+        )
+        track = _lidar_odometry(ctx, lidar_topic)
+        times = list(track.times_s)
+        motions = []
+        for position, (piece_times, piece_poses) in enumerate(track.segment_slices()):
+            motions += build_sensor_motions(
+                piece_times,
+                piece_poses,
+                options,
+                block_offset=position * SEGMENT_BLOCK_STRIDE,
+                id_prefix=f"segment{position}/",
+            )
+        reference = ReferenceTrajectory(ins.times_s, ins.poses)
+        evaluation = evaluate_ins_lidar_hand_eye(reference, motions, options)
+        return build_ins_lidar_artifact(
+            evaluation,
+            options,
+            odometry=_odometry_summary(list(track.registrations), len(times), []),
+            provenance=InsLidarHandEyeProvenance(
+                generator=VEHICLE_PROVENANCE_GENERATOR,
+                generator_version=__version__,
+                git_commit=git_commit(),
+                command=["calibrex", "check", str(ctx.bag), "ins-lidar", ins_topic, lidar_topic],
+                dataset_family=DATASET_FAMILY,
+                drive_ids=[ctx.bag.name],
+                input_sha256=_digest_or_topic(ctx, ins_topic, lidar_topic),
+                dataset_license=DATASET_LICENSE,
+            ),
+            reference_calibration=None,
+            limitations=[
+                _RIGID_SWEEP_NOTE + ".",
+                "A reference scale and a clock offset are estimated as nuisance parameters "
+                "because INS tracks are not metrically exact and their stamps are logging times.",
+                "Vehicle motion is close to planar, so the translation along the vertical "
+                "rotation axis cannot be observed without a prior.",
+                *_segment_note(track),
+            ],
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "ins_lidar",
+        {
+            "ins_topic": ins_topic,
+            "lidar_topic": lidar_topic,
+            "max_duration_s": ctx.controls.max_duration_s,
+            "options": options,
+        },
+        loader=load_ins_lidar_hand_eye,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    estimates: list[AxisEstimate]
+    transform = artifact.transform
+    solved = transform is not None and artifact.solver_status == "converged"
+    if transform is not None:
+        estimates = _rotation_estimates_of(
+            artifact.dofs, transform.rotation_quat_xyzw, candidate[:3, :3]
+        )
+        estimates += translation_axis_estimates(
+            [r for r in artifact.dofs if r.name in {"x", "y", "z"}],
+            candidate[:3, 3],
+            transform.translation_m,
+        )
+    else:
+        estimates = [
+            _unestimated(item)
+            for item in rotation_axis_estimates(artifact.dofs, candidate[:3, :3], candidate[:3, :3])
+        ]
+    return _vehicle_run(
+        artifact,
+        estimator="ins_lidar_hand_eye",
+        cached=cached,
+        ctx=ctx,
+        estimates=estimates,
+        compared=candidate,
+        solved=solved,
+        time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s or 0.0),
+        notes=(
+            f"INS pose from {ins_topic}, LiDAR odometry on {lidar_topic} ({_RIGID_SWEEP_NOTE})",
+            "an axis constrained only by a prior or by nothing is listed as unchecked",
+        ),
+    )
+
+
+def run_lidar_wheel(ctx: PairContext) -> EstimatorRun:
+    """``R_wheel_lidar`` from LiDAR odometry against wheel speed and yaw rate."""
+
+    from calibrex import __version__
+    from calibrex.check import vehicle_inputs
+    from calibrex.core.lidar_wheel_odometry import (
+        LidarWheelProvenance,
+        load_lidar_wheel_odometry,
+    )
+    from calibrex.core.provenance import git_commit
+    from calibrex.evaluation.lidar_wheel import (
+        LIMITATIONS,
+        LidarWheelRunOptions,
+        build_artifact,
+        evaluate_lidar_wheel,
+    )
+    from calibrex.solvers.lidar_wheel_solver import WheelOdometry
+
+    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    wheel_topics = [
+        topic
+        for topic in ctx.sensor_topics.get("wheel", ())
+        if ctx.topic_types.get(topic) == ODOMETRY_TYPE or ctx.topic_types.get(topic) in TWIST_TYPES
+    ]
+    if not wheel_topics:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            "lidar-wheel_odometry needs wheel speed and yaw rate from an Odometry or "
+            f"TwistStamped topic (found {', '.join(ctx.sensor_topics.get('wheel', ())) or 'none'})",
+        )
+    wheel_topic = wheel_topics[0]
+    wheel_type = ctx.topic_types[wheel_topic]
+    options = LidarWheelRunOptions()
+    candidate = invert_transform(ctx.candidate)  # T_wheel_lidar
+
+    def compute() -> Any:
+        track = _lidar_odometry(ctx, lidar_topic)
+        motions = _lidar_motions(
+            track, step=options.step_frames, block_duration_s=options.block_duration_s
+        )
+        twist = vehicle_inputs.read_twist_track(
+            ctx.bag, wheel_topic, wheel_type, max_duration_s=ctx.controls.max_duration_s
+        )
+        wheel = WheelOdometry(twist.times_s, twist.linear_mps[:, 0], twist.angular_rps[:, 2])
+        evaluation = evaluate_lidar_wheel(motions, wheel, options)
+        return build_artifact(
+            evaluation,
+            options,
+            motions=len(motions),
+            references=[],
+            provenance=LidarWheelProvenance(
+                generator=VEHICLE_PROVENANCE_GENERATOR,
+                generator_version=__version__,
+                git_commit=git_commit(),
+                command=["calibrex", "check", str(ctx.bag), "lidar-wheel", wheel_topic],
+                dataset_family=DATASET_FAMILY,
+                sequence_ids=[ctx.bag.name],
+                wheel_source=f"{wheel_topic} ({wheel_type}): linear.x speed, angular.z yaw rate",
+                input_sha256=_digest_or_topic(ctx, wheel_topic, lidar_topic),
+                dataset_license=DATASET_LICENSE,
+            ),
+            limitations=[*LIMITATIONS, _RIGID_SWEEP_NOTE + ".", *_segment_note(track)],
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "lidar_wheel",
+        {
+            "wheel_topic": wheel_topic,
+            "lidar_topic": lidar_topic,
+            "max_duration_s": ctx.controls.max_duration_s,
+            "options": options,
+        },
+        loader=load_lidar_wheel_odometry,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    return _vehicle_run(
+        artifact,
+        estimator="lidar_wheel_odometry",
+        cached=cached,
+        ctx=ctx,
+        estimates=_rotation_estimates_of(
+            artifact.parameters, artifact.rotation_quat_xyzw, candidate[:3, :3]
+        ),
+        compared=candidate,
+        solved=artifact.rotation_quat_xyzw is not None,
+        time_offset=time_offset_of(artifact.parameters, artifact.time_offset_s or 0.0),
+        notes=(
+            f"wheel speed (linear.x) and yaw rate (angular.z) from {wheel_topic} ({wheel_type}); "
+            f"LiDAR odometry on {lidar_topic} ({_RIGID_SWEEP_NOTE})",
+            "only the rotation is judged: the lever, speed scale and clock offset are reported "
+            "in the evidence artifact, not compared with the candidate",
+        ),
+    )
+
+
 ESTIMATORS: dict[str, Adapter] = {
     "imu-lidar": run_imu_lidar,
     "lidar-lidar": run_lidar_lidar,
     "camera-imu": run_camera_imu,
+    "lidar-vehicle": run_lidar_vehicle,
+    "imu-vehicle": run_imu_vehicle,
+    "ins-lidar": run_ins_lidar,
+    "lidar-wheel_odometry": run_lidar_wheel,
 }
 WIRED_CHECK_PAIRS: frozenset[str] = frozenset(ESTIMATORS)

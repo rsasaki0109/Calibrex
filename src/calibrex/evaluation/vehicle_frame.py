@@ -21,7 +21,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -208,21 +208,52 @@ def oxts_motions(drive_dir: str | Path, *, block_duration_s: float) -> list[Vehi
     times = [
         stamp.timestamp_ns * 1.0e-9 for stamp in read_timestamps(root / "oxts" / "timestamps.txt")
     ]
-    motions = []
-    for index, path in enumerate(files):
-        values = np.loadtxt(path)
-        time_s = float(times[index])
-        body_to_level = Rotation.from_euler("YX", [values[4], values[3]]).as_matrix()
-        motions.append(
-            VehicleMotion(
-                block=int((time_s - float(times[0])) // block_duration_s),
-                start_s=time_s,
-                end_s=time_s,
-                velocity_mps=np.asarray(body_to_level.T @ values[8:11], dtype=np.float64),
-                angular_rate_rps=np.asarray(body_to_level.T @ values[20:23], dtype=np.float64),
-            )
+    velocities = []
+    rates = []
+    for path in files:
+        velocity, rate = oxts_body_frame_motion(np.loadtxt(path))
+        velocities.append(velocity)
+        rates.append(rate)
+    return body_motions(times[: len(files)], velocities, rates, block_duration_s=block_duration_s)
+
+
+def oxts_body_frame_motion(values: FloatArray) -> tuple[FloatArray, FloatArray]:
+    """Body-frame velocity and angular rate of one OXTS packet (30 values).
+
+    The level-frame ``vf, vl, vu`` and ``wf, wl, wu`` are rotated back into the
+    body frame with the packet's roll and pitch (see :func:`oxts_motions`).
+    """
+
+    body_to_level = Rotation.from_euler("YX", [values[4], values[3]]).as_matrix()
+    return (
+        np.asarray(body_to_level.T @ values[8:11], dtype=np.float64),
+        np.asarray(body_to_level.T @ values[20:23], dtype=np.float64),
+    )
+
+
+def body_motions(
+    times_s: Sequence[float],
+    velocities_mps: Sequence[FloatArray],
+    angular_rates_rps: Sequence[FloatArray],
+    *,
+    block_duration_s: float,
+    block_offset: int = 0,
+) -> list[VehicleMotion]:
+    """Instantaneous body-frame velocity and rate samples as blocked motions."""
+
+    if not len(times_s):
+        return []
+    start = float(times_s[0])
+    return [
+        VehicleMotion(
+            block=block_offset + int((float(time_s) - start) // block_duration_s),
+            start_s=float(time_s),
+            end_s=float(time_s),
+            velocity_mps=np.asarray(velocity, dtype=np.float64),
+            angular_rate_rps=np.asarray(rate, dtype=np.float64),
         )
-    return motions
+        for time_s, velocity, rate in zip(times_s, velocities_mps, angular_rates_rps, strict=True)
+    ]
 
 
 def run_kitti_lidar_vehicle(
@@ -299,41 +330,14 @@ def run_kitti_lidar_vehicle(
                     opts,
                 )
             )
-    result = evaluation.result
-    return VehicleFrameRotationArtifact(
-        sensor_modality="lidar",
-        solver_status=result.status,
-        policy_status=evaluation.policy_status,
-        policy_reasons=list(evaluation.policy_reasons),
-        calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
-        rotation_quat_xyzw=None
-        if result.rotation is None
-        else [float(value) for value in Rotation.from_matrix(result.rotation).as_quat()],
-        lever_m=result.lever_m,
-        dofs=list(evaluation.records),
-        references=references,
+    return build_vehicle_frame_artifact(
+        evaluation,
+        modality="lidar",
         motions=len(motions),
-        train_motions=evaluation.train_motions,
-        holdout_motions=evaluation.holdout_motions,
-        train_blocks=list(evaluation.train_blocks),
-        holdout_blocks=list(evaluation.holdout_blocks),
-        jackknife_fits=evaluation.jackknife_fits,
-        train_median_normalized_residual=evaluation.train_median,
-        holdout_median_normalized_residual=evaluation.holdout_median,
-        options={
-            "step_frames": opts.step_frames,
-            "block_duration_s": opts.block_duration_s,
-            "holdout_every": opts.holdout_every,
-            "jackknife_groups": opts.jackknife_groups,
-            "control_deg": opts.control_deg,
-            "detection_delta_chi2": opts.detection_delta_chi2,
-            "observable_rotation_std_deg": opts.observable_rotation_std_deg,
-            "min_speed_mps": opts.solver.min_speed_mps,
-            "velocity_sigma_mps": opts.solver.velocity_sigma_mps,
-            "velocity_sigma_fraction": opts.solver.velocity_sigma_fraction,
-            "rate_sigma_rps": opts.solver.rate_sigma_rps,
-        },
-        limitations=list(KITTI_LIMITATIONS),
+        references=references,
+        options=opts,
+        include_step=True,
+        limitations=KITTI_LIMITATIONS,
         provenance=VehicleFrameProvenance(
             generator=__name__,
             generator_version=__version__,
@@ -345,6 +349,64 @@ def run_kitti_lidar_vehicle(
             input_sha256=hashlib.sha256("".join(digests).encode("ascii")).hexdigest(),
             dataset_license="CC BY-NC-SA 3.0",
         ),
+    )
+
+
+def build_vehicle_frame_artifact(
+    evaluation: VehicleFrameEvaluation,
+    *,
+    modality: Literal["lidar", "ins"],
+    motions: int,
+    references: Sequence[VehicleFrameReference],
+    options: VehicleFrameRunOptions,
+    include_step: bool,
+    limitations: Sequence[str],
+    provenance: VehicleFrameProvenance,
+) -> VehicleFrameRotationArtifact:
+    """Assemble the schema-valid artifact from an evaluation."""
+
+    opts = options
+    result = evaluation.result
+    recorded: dict[str, float | int] = {}
+    if include_step:
+        recorded["step_frames"] = opts.step_frames
+    recorded.update(
+        {
+            "block_duration_s": opts.block_duration_s,
+            "holdout_every": opts.holdout_every,
+            "jackknife_groups": opts.jackknife_groups,
+            "control_deg": opts.control_deg,
+            "detection_delta_chi2": opts.detection_delta_chi2,
+            "observable_rotation_std_deg": opts.observable_rotation_std_deg,
+            "min_speed_mps": opts.solver.min_speed_mps,
+            "velocity_sigma_mps": opts.solver.velocity_sigma_mps,
+            "velocity_sigma_fraction": opts.solver.velocity_sigma_fraction,
+            "rate_sigma_rps": opts.solver.rate_sigma_rps,
+        }
+    )
+    return VehicleFrameRotationArtifact(
+        sensor_modality=modality,
+        solver_status=result.status,
+        policy_status=evaluation.policy_status,
+        policy_reasons=list(evaluation.policy_reasons),
+        calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
+        rotation_quat_xyzw=None
+        if result.rotation is None
+        else [float(value) for value in Rotation.from_matrix(result.rotation).as_quat()],
+        lever_m=result.lever_m,
+        dofs=list(evaluation.records),
+        references=list(references),
+        motions=motions,
+        train_motions=evaluation.train_motions,
+        holdout_motions=evaluation.holdout_motions,
+        train_blocks=list(evaluation.train_blocks),
+        holdout_blocks=list(evaluation.holdout_blocks),
+        jackknife_fits=evaluation.jackknife_fits,
+        train_median_normalized_residual=evaluation.train_median,
+        holdout_median_normalized_residual=evaluation.holdout_median,
+        options=recorded,
+        limitations=list(limitations),
+        provenance=provenance,
     )
 
 
@@ -495,40 +557,14 @@ def run_kitti_imu_vehicle(
                 opts,
             )
         )
-    result = evaluation.result
-    return VehicleFrameRotationArtifact(
-        sensor_modality="ins",
-        solver_status=result.status,
-        policy_status=evaluation.policy_status,
-        policy_reasons=list(evaluation.policy_reasons),
-        calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
-        rotation_quat_xyzw=None
-        if result.rotation is None
-        else [float(value) for value in Rotation.from_matrix(result.rotation).as_quat()],
-        lever_m=result.lever_m,
-        dofs=list(evaluation.records),
-        references=references,
+    return build_vehicle_frame_artifact(
+        evaluation,
+        modality="ins",
         motions=len(motions),
-        train_motions=evaluation.train_motions,
-        holdout_motions=evaluation.holdout_motions,
-        train_blocks=list(evaluation.train_blocks),
-        holdout_blocks=list(evaluation.holdout_blocks),
-        jackknife_fits=evaluation.jackknife_fits,
-        train_median_normalized_residual=evaluation.train_median,
-        holdout_median_normalized_residual=evaluation.holdout_median,
-        options={
-            "block_duration_s": opts.block_duration_s,
-            "holdout_every": opts.holdout_every,
-            "jackknife_groups": opts.jackknife_groups,
-            "control_deg": opts.control_deg,
-            "detection_delta_chi2": opts.detection_delta_chi2,
-            "observable_rotation_std_deg": opts.observable_rotation_std_deg,
-            "min_speed_mps": opts.solver.min_speed_mps,
-            "velocity_sigma_mps": opts.solver.velocity_sigma_mps,
-            "velocity_sigma_fraction": opts.solver.velocity_sigma_fraction,
-            "rate_sigma_rps": opts.solver.rate_sigma_rps,
-        },
-        limitations=list(INS_LIMITATIONS),
+        references=references,
+        options=opts,
+        include_step=False,
+        limitations=INS_LIMITATIONS,
         provenance=VehicleFrameProvenance(
             generator=__name__,
             generator_version=__version__,

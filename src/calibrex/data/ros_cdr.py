@@ -29,6 +29,7 @@ from calibrex.data.ros_messages import (
     RegionOfInterest,
     TfMessage,
     TransformStampedMessage,
+    TwistMessage,
     decode_point_time_offsets,
     decode_pointcloud_payload,
     filter_nonfinite_pointcloud_rows,
@@ -756,6 +757,29 @@ def decode_ros2_odometry(topic: str, timestamp_ns: int, data: bytes) -> Odometry
         angular_velocity=(ang_x, ang_y, ang_z),
         pose_covariance=pose_covariance,
         twist_covariance=twist_covariance,
+    )
+
+
+def decode_ros2_twist(
+    topic: str, timestamp_ns: int, data: bytes, *, with_covariance: bool = False
+) -> TwistMessage:
+    """Decode ``geometry_msgs/msg/TwistStamped`` (or ``TwistWithCovarianceStamped``)."""
+
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    linear = (reader.read_float64(), reader.read_float64(), reader.read_float64())
+    angular = (reader.read_float64(), reader.read_float64(), reader.read_float64())
+    covariance = reader.read_float64_array(36) if with_covariance else ()
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return TwistMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        linear_velocity=linear,
+        angular_velocity=angular,
+        covariance=tuple(covariance),
     )
 
 

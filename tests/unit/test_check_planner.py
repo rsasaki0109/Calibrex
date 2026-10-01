@@ -11,8 +11,10 @@ from calibrex.check.roles import (
     classify_odometry_kind,
     classify_topics,
     map_topics_to_frames,
+    parse_topic_kinds,
 )
 from calibrex.core.calibration_check import CheckPairRecord, CheckTopicRecord
+from calibrex.core.exceptions import DatasetError
 from calibrex.core.geometry import SE3
 from calibrex.data.rosbag2 import Rosbag2Connection
 
@@ -314,3 +316,66 @@ def test_unknown_odometry_kind_is_reported() -> None:
 
     assert record.reason_code == "missing_topic"
     assert "/lio/odometry" in (record.reason or "")
+
+
+# ----------------------------------------------------------- --topic-kind
+
+
+def test_twist_topics_get_a_kind_by_name_and_by_override() -> None:
+    connections = [
+        (Rosbag2Connection(1, "/oxts/twist", "geometry_msgs/msg/TwistStamped"), 5),
+        (Rosbag2Connection(2, "/vehicle/twist", "geometry_msgs/msg/TwistStamped"), 5),
+        (Rosbag2Connection(3, "/wheel/twist", "geometry_msgs/msg/TwistStamped"), 5),
+        (Rosbag2Connection(4, "/imu", "sensor_msgs/msg/Imu"), 5),
+    ]
+
+    named = {r.topic: r for r in classify_topics(connections)}
+    assert named["/oxts/twist"].odometry_kind == "ins"
+    assert named["/vehicle/twist"].odometry_kind == "unknown"
+    assert named["/wheel/twist"].odometry_kind == "wheel"
+    assert named["/imu"].odometry_kind is None
+
+    forced = {
+        r.topic: r
+        for r in classify_topics(connections, {"/oxts/twist": "wheel", "/vehicle/twist": "wheel"})
+    }
+    assert forced["/oxts/twist"].odometry_kind == "wheel"
+    assert forced["/vehicle/twist"].odometry_kind == "wheel"
+    assert "--topic-kind" in forced["/oxts/twist"].notes[0]
+    assert forced["/wheel/twist"].notes == []
+
+
+def test_parse_topic_kinds() -> None:
+    assert parse_topic_kinds(["/a=wheel", " /b = INS "]) == {"/a": "wheel", "/b": "ins"}
+    for bad in ("/a", "/a=gps", "=wheel", "/a="):
+        with pytest.raises(DatasetError, match="--topic-kind"):
+            parse_topic_kinds([bad])
+
+
+def test_a_twist_topic_fills_the_wheel_slot() -> None:
+    topics = [
+        _topic("/oxts/twist", "twist", "base", kind="wheel"),
+        _topic("/lidar", "lidar", "lf"),
+    ]
+
+    records = plan_pairs(topics, _rig_tree(), vehicle_frame="base")
+
+    (wheel,) = _by_pair(records, "lidar-wheel_odometry")
+    assert wheel.status == "planned"
+    assert wheel.frames == ["lf", "base"]
+    assert wheel.topics == ["/lidar", "/oxts/twist"]
+
+
+def test_unknown_twist_kind_is_reported_with_the_remedy() -> None:
+    topics = [
+        _topic("/vehicle/twist", "twist", "base", kind="unknown"),
+        _topic("/l", "lidar", "lf"),
+    ]
+
+    (record,) = _by_pair(
+        plan_pairs(topics, _rig_tree(), vehicle_frame="base"), "lidar-wheel_odometry"
+    )
+
+    assert record.reason_code == "missing_topic"
+    assert "/vehicle/twist" in (record.reason or "")
+    assert "--topic-kind" in (record.reason or "")

@@ -25,8 +25,12 @@ from calibrex.check.estimators import (
     transform_matrix,
 )
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
-from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs
-from calibrex.check.roles import classify_topics, map_topics_to_frames, read_header_frames
+from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs, slot_of
+from calibrex.check.roles import (
+    classify_topics,
+    map_topics_to_frames,
+    read_header_frames,
+)
 from calibrex.check.tf_sources import (
     LoadedSource,
     load_bag_tf_static,
@@ -49,6 +53,7 @@ from calibrex.core.calibration_check import (
     CheckProvenance,
     CheckTopicRecord,
     CheckTransform,
+    OdometryKind,
     summarize_pairs,
 )
 from calibrex.core.exceptions import DatasetError
@@ -56,6 +61,10 @@ from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
 
+INVERTED_CONVENTION_PAIRS = frozenset(
+    {"imu-lidar", "lidar-vehicle", "imu-vehicle", "lidar-wheel_odometry"}
+)
+"""Pairs whose estimator reports ``T_second_first`` (the sensor's pose in the parent frame)."""
 BAG_DIGEST_PREFIX_BYTES = 64 * 1024 * 1024
 BAG_DIGEST_SCOPE = "metadata.yaml in full; each storage file by name, size and first 64 MiB"
 
@@ -163,6 +172,7 @@ def build_calibration_check(
     tf_files: Sequence[str | Path] = (),
     vehicle_frame: str | None = None,
     frame_overrides: Mapping[str, str] | None = None,
+    topic_kinds: Mapping[str, OdometryKind] | None = None,
     command: Sequence[str] | None = None,
     wired_pairs: frozenset[str] = ALL_WIRED_PAIRS,
     run: CheckRunOptions | None = None,
@@ -188,7 +198,19 @@ def build_calibration_check(
     tree, overrides = merge_sources(bag_source, file_sources)
     hints = merge_hints(file_sources)
 
-    candidates = classify_topics(connections)
+    candidates = classify_topics(connections, topic_kinds)
+    unknown_topics = sorted(
+        topic
+        for topic in (topic_kinds or {})
+        if not any(
+            record.topic == topic and record.role in {"odometry", "twist"} for record in candidates
+        )
+    )
+    if unknown_topics:
+        msg = "--topic-kind: not an odometry or twist topic of the bag: " + ", ".join(
+            unknown_topics
+        )
+        raise DatasetError(msg)
     header_frames = read_header_frames(bag_path, candidates)
     topics: list[CheckTopicRecord] = map_topics_to_frames(
         candidates, header_frames, tree, hints, frame_overrides
@@ -230,6 +252,7 @@ def build_calibration_check(
             camera=run.camera,
             imu_lidar_translation=run.imu_lidar_translation,
             acceleration_unit=run.acceleration_unit,
+            topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
         notes.insert(
@@ -289,7 +312,7 @@ def _sensor_topics(
 
     def of(frame: str, slot: str) -> tuple[str, ...]:
         matched = [
-            record for record in topics if record.mapped_frame == frame and record.role == slot
+            record for record in topics if record.mapped_frame == frame and slot_of(record) == slot
         ]
         # PointCloud2 before other LiDAR formats, then the busiest topic first.
         matched.sort(
@@ -370,6 +393,7 @@ def _run_pairs(
                 record,
                 run,
                 bag=bag,
+                topics=topics,
                 topic_types=topic_types,
                 sensor_topics=sensor_topics,
                 sources=sources,
@@ -402,6 +426,7 @@ def _run_one(
     run: CheckRunOptions,
     *,
     bag: Path,
+    topics: Sequence[CheckTopicRecord],
     topic_types: Mapping[str, str],
     sensor_topics: Mapping[str, tuple[str, ...]],
     sources: Sequence[LoadedSource],
@@ -422,6 +447,7 @@ def _run_one(
         candidate=candidate,
         sources=sources,
         controls=controls,
+        topics=topics,
     )
     progress(f"check: running {_label(record)}")
     started = time.monotonic()
@@ -497,7 +523,7 @@ def _judge(
         )
     parent, child = (
         (record.frames[1], record.frames[0])
-        if record.pair == "imu-lidar"
+        if record.pair in INVERTED_CONVENTION_PAIRS
         else (record.frames[0], record.frames[1])
     )
     return {

@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.unit.test_rosbag2 import CdrWriter, _encode_odometry, _write_sqlite_bag
+from tests.unit.test_rosbag2 import _encode_odometry, _write_sqlite_bag
+
+from calibrex.data.ros_cdr_writer import (
+    Transform,
+    encode_header_only,
+    encode_navsatfix,
+    encode_tf_message,
+)
+
+__all__ = ["Transform", "encode_navsatfix", "encode_tf_message"]
 
 TF_TYPE = "tf2_msgs/msg/TFMessage"
 IMU_TYPE = "sensor_msgs/msg/Imu"
@@ -14,73 +23,10 @@ NAVSAT_TYPE = "sensor_msgs/msg/NavSatFix"
 ODOM_TYPE = "nav_msgs/msg/Odometry"
 TWIST_TYPE = "geometry_msgs/msg/TwistStamped"
 
-Transform = tuple[str, str, tuple[float, float, float], tuple[float, float, float, float]]
-
-
-def encode_tf_message(
-    transforms: list[Transform],
-    *,
-    secs: int = 5,
-    nsecs: int = 7,
-    little_endian: bool = True,
-) -> bytes:
-    """CDR-encode a ``tf2_msgs/msg/TFMessage`` (parent, child, translation, xyzw)."""
-
-    writer = CdrWriter(little_endian=little_endian)
-    writer.write_uint32(len(transforms))
-    for parent, child, translation, quaternion in transforms:
-        writer.write_int32(secs)
-        writer.write_uint32(nsecs)
-        writer.write_string(parent)
-        writer.write_string(child)
-        for value in translation:
-            writer.write_float64(value)
-        for value in quaternion:
-            writer.write_float64(value)
-    return writer.finish()
-
-
-def encode_navsatfix(
-    *,
-    frame_id: str = "gps",
-    secs: int = 9,
-    nsecs: int = 3,
-    status: int = 0,
-    service: int = 1,
-    latitude: float = 35.5,
-    longitude: float = 139.25,
-    altitude: float = 42.0,
-    covariance: tuple[float, ...] = (1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0),
-    covariance_type: int = 2,
-    little_endian: bool = True,
-) -> bytes:
-    """CDR-encode a ``sensor_msgs/msg/NavSatFix``."""
-
-    writer = CdrWriter(little_endian=little_endian)
-    writer.write_int32(secs)
-    writer.write_uint32(nsecs)
-    writer.write_string(frame_id)
-    writer.align(1)
-    writer._buf.extend(status.to_bytes(1, "little", signed=True))
-    writer.align(2)
-    writer._buf.extend(service.to_bytes(2, "little" if little_endian else "big"))
-    writer.write_float64(latitude)
-    writer.write_float64(longitude)
-    writer.write_float64(altitude)
-    writer.write_float64_array(covariance)
-    writer.write_uint8(covariance_type)
-    return writer.finish()
-
-
 def header_payload(frame_id: str) -> bytes:
     """A stamped-message prefix; enough for header frame id reads."""
 
-    writer = CdrWriter()
-    writer.write_int32(1)
-    writer.write_uint32(2)
-    writer.write_string(frame_id)
-    writer.write_uint32(0)
-    return writer.finish()
+    return encode_header_only(frame_id)
 
 
 def write_check_bag(
