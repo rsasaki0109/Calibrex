@@ -1,0 +1,34 @@
+pairs (vehicle frame 'base_link'):
+pair                  sensors                verdict                           reason              |delta|/tolerance                                    unchecked         detectable
+--------------------  ---------------------  --------------------------------  ------------------  ---------------------------------------------------  ----------------  -------------------------------
+imu-lidar             imu_link / velo_link   skipped                           unsupported_sensor
+lidar-lidar           velo_link              skipped                           missing_topic
+camera-imu            -                      skipped                           missing_topic
+lidar-vehicle         velo_link / base_link  fail (partial: pitch, yaw only)                       pitch 0.505/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll              pitch 1.01 deg; yaw 1.81 deg
+imu-vehicle           imu_link / base_link   inconclusive                      no_judgeable_axes   -                                                    roll, pitch, yaw  -
+ins-lidar             imu_link / velo_link   pass (partial: roll, pitch only)                      roll 0.114/0.5 deg; pitch 0.0567/0.5 deg             yaw, x, y, z      roll 0.614 deg; pitch 0.557 deg
+lidar-wheel_odometry  velo_link / base_link  fail (partial: pitch, yaw only)                       pitch 0.505/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll              pitch 1 deg; yaw 1.81 deg
+  method not wired: camera-focal
+  not selected: gnss-lidar, gnss-imu
+  lidar-vehicle: unchecked roll: not constrained by the data (reported std 0.4241 deg)
+  imu-vehicle: no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg))
+  imu-vehicle: unchecked roll: not constrained by the data (reported std 0.4558 deg)
+  imu-vehicle: unchecked pitch: not constrained by the data (reported std 0.1248 deg)
+  imu-vehicle: unchecked yaw: not constrained by the data (reported std 0.1504 deg)
+  ins-lidar: time offset 5.80 ms (estimated; reported, not judged)
+  ins-lidar: unchecked yaw: not constrained by the data (reported std 0.1396 deg)
+  ins-lidar: unchecked x: not constrained by the data (reported std 0.1118 m)
+  ins-lidar: unchecked y: not constrained by the data (reported std 0.1363 m)
+  ins-lidar: unchecked z: not constrained by the data (reported std 0.9232 m)
+  lidar-wheel_odometry: time offset 73.88 ms (estimated; reported, not judged)
+  lidar-wheel_odometry: unchecked roll: not constrained by the data (reported std 0.4218 deg)
+
+closure of the estimates (independent estimates against each other):
+  imu-vehicle: unusable (no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg))); not in any loop
+  parallel lidar-wheel_odometry + lidar-vehicle^-1: pass (pitch -0.000268/0.5 deg; yaw +0.00411/0.5 deg)
+    unchecked roll: lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00
+    translation not closed: lidar-vehicle, lidar-wheel_odometry do(es) not estimate it
+    lidar-wheel_odometry and lidar-vehicle share the lidar odometry of velo_link, so their errors are correlated: this loop tests the solvers on top of it, not the odometry, and its std is optimistic
+
+overall verdict: fail
+WARNING: 4 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes

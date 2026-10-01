@@ -1,0 +1,599 @@
+{
+ "bag": {
+  "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+  "input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+  "name": "bag_pool5",
+  "topic_count": 6
+ },
+ "drives": [
+  "2011_09_26_drive_0005_sync",
+  "2011_09_26_drive_0009_sync",
+  "2011_09_26_drive_0014_sync",
+  "2011_09_26_drive_0015_sync",
+  "2011_09_26_drive_0022_sync"
+ ],
+ "frame": "velo_link",
+ "generator": "calibrex check",
+ "generator_version": "0.4.1",
+ "git_commit": "c04944b",
+ "schema": "calibrex.check_tf_injection_demo/v0",
+ "variants": {
+  "vendor": {
+   "closure": {
+    "assumptions": [
+     "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+     "loops are a fundamental cycle basis; loops that share a member are correlated",
+     "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+     "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+     {
+      "child_frame": "velo_link",
+      "pair": "lidar-vehicle",
+      "parent_frame": "base_link",
+      "role": "independent"
+     },
+     {
+      "child_frame": "imu_link",
+      "pair": "imu-vehicle",
+      "parent_frame": "base_link",
+      "reason": "no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg))",
+      "role": "unusable"
+     },
+     {
+      "child_frame": "velo_link",
+      "pair": "ins-lidar",
+      "parent_frame": "imu_link",
+      "role": "independent"
+     },
+     {
+      "child_frame": "velo_link",
+      "pair": "lidar-wheel_odometry",
+      "parent_frame": "base_link",
+      "role": "independent"
+     }
+    ],
+    "loops": [
+     {
+      "axes": [
+       {
+        "candidate_error": -0.00026843368100353763,
+        "detectable_error": 0.5002684336810035,
+        "detection_probe": 1.0,
+        "detects_perturbation": true,
+        "estimate_std": 0.05851812295668918,
+        "name": "pitch",
+        "ratio": 0.0005368673620070753,
+        "status": "pass",
+        "tolerance": 0.5,
+        "tolerance_source": "floor",
+        "unit": "deg"
+       },
+       {
+        "candidate_error": 0.004112767187568741,
+        "detectable_error": 0.5041127671875687,
+        "detection_probe": 1.0,
+        "detects_perturbation": true,
+        "estimate_std": 0.07452839294653675,
+        "name": "yaw",
+        "ratio": 0.008225534375137481,
+        "status": "pass",
+        "tolerance": 0.5,
+        "tolerance_source": "floor",
+        "unit": "deg"
+       }
+      ],
+      "frames": [
+       "base_link",
+       "velo_link"
+      ],
+      "kind": "parallel",
+      "members": [
+       {
+        "child_frame": "velo_link",
+        "direction": "forward",
+        "estimator": "lidar_wheel_odometry",
+        "pair": "lidar-wheel_odometry",
+        "parent_frame": "base_link"
+       },
+       {
+        "child_frame": "velo_link",
+        "direction": "reverse",
+        "estimator": "vehicle_frame_rotation (lidar)",
+        "pair": "lidar-vehicle",
+        "parent_frame": "base_link"
+       }
+      ],
+      "notes": [
+       "translation not closed: lidar-vehicle, lidar-wheel_odometry do(es) not estimate it",
+       "lidar-wheel_odometry and lidar-vehicle share the lidar odometry of velo_link, so their errors are correlated: this loop tests the solvers on top of it, not the odometry, and its std is optimistic"
+      ],
+      "unchecked_axes": [
+       {
+        "name": "roll",
+        "reason": "lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00",
+        "reason_code": "unobservable",
+        "std": 2.977480919936043e-06,
+        "unit": "deg"
+       }
+      ],
+      "verdict": "pass"
+     }
+    ],
+    "verdict": "pass"
+   },
+   "command": [
+    "calibrex",
+    "check",
+    ".../bag_pool5",
+    "--vehicle-frame",
+    "base_link",
+    "--topic-kind",
+    ".../twist=wheel",
+    "--pairs",
+    "lidar-vehicle,imu-vehicle,ins-lidar,lidar-wheel_odometry,imu-lidar"
+   ],
+   "created_at": "2026-10-01T16:16:01.458147+00:00",
+   "overall_verdict": "inconclusive",
+   "pairs": {
+    "imu-vehicle": {
+     "axes": {},
+     "coverage": "partial",
+     "status": "inconclusive",
+     "unchecked": [
+      "roll",
+      "pitch",
+      "yaw"
+     ]
+    },
+    "ins-lidar": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": 0.0557,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      },
+      "roll": {
+       "candidate_error_deg": 0.1143,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "pass",
+     "unchecked": [
+      "yaw",
+      "x",
+      "y",
+      "z"
+     ]
+    },
+    "lidar-vehicle": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": -0.4961,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      },
+      "yaw": {
+       "candidate_error_deg": 0.3129,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "pass",
+     "unchecked": [
+      "roll"
+     ]
+    },
+    "lidar-wheel_odometry": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": -0.4958,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      },
+      "yaw": {
+       "candidate_error_deg": 0.3089,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "pass",
+     "unchecked": [
+      "roll"
+     ]
+    }
+   },
+   "yaw_injected_deg": null
+  },
+  "yaw1": {
+   "closure": {
+    "assumptions": [
+     "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+     "loops are a fundamental cycle basis; loops that share a member are correlated",
+     "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+     "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+     {
+      "child_frame": "velo_link",
+      "pair": "lidar-vehicle",
+      "parent_frame": "base_link",
+      "role": "independent"
+     },
+     {
+      "child_frame": "imu_link",
+      "pair": "imu-vehicle",
+      "parent_frame": "base_link",
+      "reason": "no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg))",
+      "role": "unusable"
+     },
+     {
+      "child_frame": "velo_link",
+      "pair": "ins-lidar",
+      "parent_frame": "imu_link",
+      "role": "independent"
+     },
+     {
+      "child_frame": "velo_link",
+      "pair": "lidar-wheel_odometry",
+      "parent_frame": "base_link",
+      "role": "independent"
+     }
+    ],
+    "loops": [
+     {
+      "axes": [
+       {
+        "candidate_error": -0.0002684336810033885,
+        "detectable_error": 0.5002684336810034,
+        "detection_probe": 1.0,
+        "detects_perturbation": true,
+        "estimate_std": 0.05851812295668918,
+        "name": "pitch",
+        "ratio": 0.000536867362006777,
+        "status": "pass",
+        "tolerance": 0.5,
+        "tolerance_source": "floor",
+        "unit": "deg"
+       },
+       {
+        "candidate_error": 0.00411276718756884,
+        "detectable_error": 0.5041127671875688,
+        "detection_probe": 1.0,
+        "detects_perturbation": true,
+        "estimate_std": 0.07452839294653675,
+        "name": "yaw",
+        "ratio": 0.00822553437513768,
+        "status": "pass",
+        "tolerance": 0.5,
+        "tolerance_source": "floor",
+        "unit": "deg"
+       }
+      ],
+      "frames": [
+       "base_link",
+       "velo_link"
+      ],
+      "kind": "parallel",
+      "members": [
+       {
+        "child_frame": "velo_link",
+        "direction": "forward",
+        "estimator": "lidar_wheel_odometry",
+        "pair": "lidar-wheel_odometry",
+        "parent_frame": "base_link"
+       },
+       {
+        "child_frame": "velo_link",
+        "direction": "reverse",
+        "estimator": "vehicle_frame_rotation (lidar)",
+        "pair": "lidar-vehicle",
+        "parent_frame": "base_link"
+       }
+      ],
+      "notes": [
+       "translation not closed: lidar-vehicle, lidar-wheel_odometry do(es) not estimate it",
+       "lidar-wheel_odometry and lidar-vehicle share the lidar odometry of velo_link, so their errors are correlated: this loop tests the solvers on top of it, not the odometry, and its std is optimistic"
+      ],
+      "unchecked_axes": [
+       {
+        "name": "roll",
+        "reason": "lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00",
+        "reason_code": "unobservable",
+        "std": 2.9774809199362164e-06,
+        "unit": "deg"
+       }
+      ],
+      "verdict": "pass"
+     }
+    ],
+    "verdict": "pass"
+   },
+   "command": [
+    "calibrex",
+    "check",
+    ".../bag_pool5",
+    "--vehicle-frame",
+    "base_link",
+    "--topic-kind",
+    ".../twist=wheel",
+    "--pairs",
+    "lidar-vehicle,imu-vehicle,ins-lidar,lidar-wheel_odometry,imu-lidar",
+    "--tf",
+    ".../frames_yaw1.yaml"
+   ],
+   "created_at": "2026-10-01T16:16:02.555435+00:00",
+   "overall_verdict": "fail",
+   "pairs": {
+    "imu-vehicle": {
+     "axes": {},
+     "coverage": "partial",
+     "status": "inconclusive",
+     "unchecked": [
+      "roll",
+      "pitch",
+      "yaw"
+     ]
+    },
+    "ins-lidar": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": 0.0567,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      },
+      "roll": {
+       "candidate_error_deg": 0.1138,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "pass",
+     "unchecked": [
+      "yaw",
+      "x",
+      "y",
+      "z"
+     ]
+    },
+    "lidar-vehicle": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": -0.5054,
+       "status": "warn",
+       "tolerance_deg": 0.5
+      },
+      "yaw": {
+       "candidate_error_deg": 1.3129,
+       "status": "fail",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "fail",
+     "unchecked": [
+      "roll"
+     ]
+    },
+    "lidar-wheel_odometry": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": -0.5049,
+       "status": "warn",
+       "tolerance_deg": 0.5
+      },
+      "yaw": {
+       "candidate_error_deg": 1.3089,
+       "status": "fail",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "fail",
+     "unchecked": [
+      "roll"
+     ]
+    }
+   },
+   "yaw_injected_deg": 1.0
+  },
+  "yaw3": {
+   "closure": {
+    "assumptions": [
+     "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+     "loops are a fundamental cycle basis; loops that share a member are correlated",
+     "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+     "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+     {
+      "child_frame": "velo_link",
+      "pair": "lidar-vehicle",
+      "parent_frame": "base_link",
+      "role": "independent"
+     },
+     {
+      "child_frame": "imu_link",
+      "pair": "imu-vehicle",
+      "parent_frame": "base_link",
+      "reason": "no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg))",
+      "role": "unusable"
+     },
+     {
+      "child_frame": "velo_link",
+      "pair": "ins-lidar",
+      "parent_frame": "imu_link",
+      "role": "independent"
+     },
+     {
+      "child_frame": "velo_link",
+      "pair": "lidar-wheel_odometry",
+      "parent_frame": "base_link",
+      "role": "independent"
+     }
+    ],
+    "loops": [
+     {
+      "axes": [
+       {
+        "candidate_error": -0.00026843368100342254,
+        "detectable_error": 0.5002684336810034,
+        "detection_probe": 1.0,
+        "detects_perturbation": true,
+        "estimate_std": 0.05851812295668918,
+        "name": "pitch",
+        "ratio": 0.0005368673620068451,
+        "status": "pass",
+        "tolerance": 0.5,
+        "tolerance_source": "floor",
+        "unit": "deg"
+       },
+       {
+        "candidate_error": 0.004112767187568119,
+        "detectable_error": 0.5041127671875681,
+        "detection_probe": 1.0,
+        "detects_perturbation": true,
+        "estimate_std": 0.07452839294653675,
+        "name": "yaw",
+        "ratio": 0.008225534375136238,
+        "status": "pass",
+        "tolerance": 0.5,
+        "tolerance_source": "floor",
+        "unit": "deg"
+       }
+      ],
+      "frames": [
+       "base_link",
+       "velo_link"
+      ],
+      "kind": "parallel",
+      "members": [
+       {
+        "child_frame": "velo_link",
+        "direction": "forward",
+        "estimator": "lidar_wheel_odometry",
+        "pair": "lidar-wheel_odometry",
+        "parent_frame": "base_link"
+       },
+       {
+        "child_frame": "velo_link",
+        "direction": "reverse",
+        "estimator": "vehicle_frame_rotation (lidar)",
+        "pair": "lidar-vehicle",
+        "parent_frame": "base_link"
+       }
+      ],
+      "notes": [
+       "translation not closed: lidar-vehicle, lidar-wheel_odometry do(es) not estimate it",
+       "lidar-wheel_odometry and lidar-vehicle share the lidar odometry of velo_link, so their errors are correlated: this loop tests the solvers on top of it, not the odometry, and its std is optimistic"
+      ],
+      "unchecked_axes": [
+       {
+        "name": "roll",
+        "reason": "lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00",
+        "reason_code": "unobservable",
+        "std": 2.977480919935464e-06,
+        "unit": "deg"
+       }
+      ],
+      "verdict": "pass"
+     }
+    ],
+    "verdict": "pass"
+   },
+   "command": [
+    "calibrex",
+    "check",
+    ".../bag_pool5",
+    "--vehicle-frame",
+    "base_link",
+    "--topic-kind",
+    ".../twist=wheel",
+    "--pairs",
+    "lidar-vehicle,imu-vehicle,ins-lidar,lidar-wheel_odometry,imu-lidar",
+    "--tf",
+    ".../frames_yaw3.yaml"
+   ],
+   "created_at": "2026-10-01T16:16:03.606959+00:00",
+   "overall_verdict": "fail",
+   "pairs": {
+    "imu-vehicle": {
+     "axes": {},
+     "coverage": "partial",
+     "status": "inconclusive",
+     "unchecked": [
+      "roll",
+      "pitch",
+      "yaw"
+     ]
+    },
+    "ins-lidar": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": 0.0587,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      },
+      "roll": {
+       "candidate_error_deg": 0.1128,
+       "status": "pass",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "pass",
+     "unchecked": [
+      "yaw",
+      "x",
+      "y",
+      "z"
+     ]
+    },
+    "lidar-vehicle": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": -0.524,
+       "status": "warn",
+       "tolerance_deg": 0.5
+      },
+      "yaw": {
+       "candidate_error_deg": 3.3128,
+       "status": "fail",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "fail",
+     "unchecked": [
+      "roll"
+     ]
+    },
+    "lidar-wheel_odometry": {
+     "axes": {
+      "pitch": {
+       "candidate_error_deg": -0.523,
+       "status": "warn",
+       "tolerance_deg": 0.5
+      },
+      "yaw": {
+       "candidate_error_deg": 3.3088,
+       "status": "fail",
+       "tolerance_deg": 0.5
+      }
+     },
+     "coverage": "partial",
+     "status": "fail",
+     "unchecked": [
+      "roll"
+     ]
+    }
+   },
+   "yaw_injected_deg": 3.0
+  }
+ }
+}

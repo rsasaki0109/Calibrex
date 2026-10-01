@@ -341,12 +341,12 @@ def evaluate_loop(
         notes.append(f"translation not closed: {', '.join(lacking)} do(es) not estimate it")
     counts: dict[str, list[str]] = {}
     for step in steps:
-        for name in step.edge.shared_inputs:
-            counts.setdefault(name, []).append(step.edge.pair)
-    for name, users in sorted(counts.items()):
+        for shared in step.edge.shared_inputs:
+            counts.setdefault(shared, []).append(step.edge.pair)
+    for shared, users in sorted(counts.items()):
         if len(users) > 1:
             notes.append(
-                f"{' and '.join(users)} share the {name}, so their errors are correlated: "
+                f"{' and '.join(users)} share the {shared}, so their errors are correlated: "
                 "this loop tests the solvers on top of it, not the odometry, and its std is "
                 "optimistic"
             )
