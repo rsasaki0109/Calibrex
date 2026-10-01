@@ -125,6 +125,94 @@ def iter_livox_points(
         yield header_s, np.asarray(cloud.xyz, dtype=np.float64), offsets
 
 
+LivoxScan: TypeAlias = tuple[float, FloatArray, "FloatArray | None"]
+
+
+class ScanStore:
+    """Decode a bag's scans and IMU once and replay them from memory.
+
+    The IMU-LiDAR estimators read the same scans several times (an odometry pass
+    per gyro-deskew iteration, the feedback check, the lever-arm pass). Passing
+    one store to all of them removes the repeated bag read and CDR decode; the
+    replayed values are bit-identical to a fresh read. Scans are held as decoded
+    (float32 when that is lossless) up to ``budget_bytes``; beyond that, or when a
+    consumer stops early, the stream is simply read from the bag again.
+    """
+
+    def __init__(self, budget_bytes: int = 2 << 30) -> None:
+        self.budget_bytes = budget_bytes
+        self.bytes_held = 0
+        self.hits = 0
+        self.reads = 0
+        self._scans: dict[tuple[object, ...], list[LivoxScan]] = {}
+        self._oversize: set[tuple[object, ...]] = set()
+        self._imu: dict[tuple[object, ...], ImuSamples] = {}
+
+    def scans(
+        self,
+        bag_dir: str | Path,
+        profile: LivoxStreamProfile,
+        *,
+        max_seconds: float | None = None,
+    ) -> Iterator[LivoxScan]:
+        """Yield what :func:`iter_livox_points` yields, replayed from memory when held."""
+
+        key: tuple[object, ...] = (
+            str(bag_dir),
+            profile.point_topic,
+            profile.point_time_field,
+            profile.point_time_encoding,
+            max_seconds,
+        )
+        held = self._scans.get(key)
+        if held is not None:
+            self.hits += 1
+            for header_s, xyz, offsets in held:
+                yield header_s, np.asarray(xyz, dtype=np.float64), offsets
+            return
+        self.reads += 1
+        collected: list[LivoxScan] | None = None if key in self._oversize else []
+        size = 0
+        complete = False
+        try:
+            for header_s, xyz, offsets in iter_livox_points(
+                bag_dir, profile, max_seconds=max_seconds
+            ):
+                if collected is not None:
+                    packed = _pack_points(xyz)
+                    size += packed.nbytes + (0 if offsets is None else offsets.nbytes)
+                    if self.bytes_held + size > self.budget_bytes:
+                        collected = None
+                        self._oversize.add(key)
+                    else:
+                        collected.append((header_s, packed, offsets))
+                yield header_s, xyz, offsets
+            complete = True
+        finally:
+            if complete and collected is not None:
+                self._scans[key] = collected
+                self.bytes_held += size
+
+    def imu(self, bag_dir: str | Path, profile: LivoxStreamProfile) -> ImuSamples:
+        """Return the IMU samples of a bag, reading them once."""
+
+        key: tuple[object, ...] = (str(bag_dir), profile.imu_topic, profile.acceleration_unit)
+        samples = self._imu.get(key)
+        if samples is None:
+            samples = load_livox_imu(bag_dir, profile)
+            self._imu[key] = samples
+        return samples
+
+
+def _pack_points(xyz: FloatArray) -> FloatArray:
+    """Store points as float32 when that reproduces them exactly (it does for decoded clouds)."""
+
+    narrow = xyz.astype(np.float32)
+    if np.array_equal(narrow.astype(np.float64), xyz):
+        return narrow
+    return xyz
+
+
 def load_livox_imu(bag_dir: str | Path, profile: LivoxStreamProfile) -> ImuSamples:
     """Read every IMU sample of a bag into SI units."""
 

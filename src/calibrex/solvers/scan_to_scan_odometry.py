@@ -82,10 +82,32 @@ def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatAr
     if xyz.size == 0:
         return xyz.reshape(0, 3)
     keys = np.floor(xyz / options.voxel_size_m).astype(np.int64)
-    _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
-    sums = np.zeros((counts.size, 3))
-    np.add.at(sums, inverse.reshape(-1), xyz)
+    flat = _flatten_voxel_keys(keys)
+    if flat is None:
+        _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+        sums = np.zeros((counts.size, 3))
+        np.add.at(sums, inverse.reshape(-1), xyz)
+        return sums / counts[:, None]
+    # One int64 per voxel keeps the lexicographic voxel order of the row-wise
+    # ``unique``, and ``bincount`` adds the points of a voxel in input order
+    # exactly like ``add.at``, so the result is bit-identical but much faster.
+    _, inverse, counts = np.unique(flat, return_inverse=True, return_counts=True)
+    inverse = inverse.reshape(-1)
+    sums = np.empty((counts.size, 3))
+    for axis in range(3):
+        sums[:, axis] = np.bincount(inverse, weights=xyz[:, axis], minlength=counts.size)
     return sums / counts[:, None]
+
+
+def _flatten_voxel_keys(keys: NDArray[np.int64]) -> NDArray[np.int64] | None:
+    """Pack ``(N, 3)`` voxel indices into one order-preserving int64 each, or ``None``."""
+
+    lows = keys.min(axis=0)
+    spans = keys.max(axis=0) - lows + 1
+    if int(spans[0]) * int(spans[1]) * int(spans[2]) >= 2**62:
+        return None
+    shifted = keys - lows
+    return np.asarray((shifted[:, 0] * spans[1] + shifted[:, 1]) * spans[2] + shifted[:, 2])
 
 
 def estimate_normals(
@@ -275,16 +297,15 @@ class IncrementalScanOdometry:
         motion = initial
         registration: ScanRegistration | None = None
         source = scan
+        measured: FloatArray | None = None  # the model does not depend on the motion estimate
         for _ in range(rounds):
             if deskew:
                 assert point_offsets_s is not None and gap is not None
                 if self.rotation_model is not None and time_s is not None:
+                    if measured is None:
+                        measured = self.rotation_model(time_s, point_offsets_s)
                     source = deskew_points_with_rotations(
-                        scan,
-                        point_offsets_s,
-                        self.rotation_model(time_s, point_offsets_s),
-                        motion,
-                        gap,
+                        scan, point_offsets_s, measured, motion, gap
                     )
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)

@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
+from calibrex.check.cache import EstimatorCache, cached_artifact
 from calibrex.check.tf_sources import LoadedSource, camchain_entries
 from calibrex.check.verdict import AxisEstimate
 from calibrex.core.calibration_check import (
@@ -39,6 +40,7 @@ from calibrex.core.calibration_check import (
 )
 
 if TYPE_CHECKING:
+    from calibrex.data.livox_ros2 import ScanStore
     from calibrex.evaluation.visual_rotation import CameraModel
 
 FloatArray: TypeAlias = NDArray[np.float64]
@@ -86,6 +88,7 @@ class EvidenceArtifact:
     role: str
     artifact: SavableArtifact
     policy_status: str | None = None
+    from_cache: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -102,6 +105,13 @@ class EstimatorRun:
     time_offset: CheckTimeOffset | None = None
     notes: tuple[str, ...] = ()
 
+    @property
+    def evidence_from_cache(self) -> bool | None:
+        """Whether every estimator artifact came from the cache; ``None`` when none is cacheable."""
+
+        flags = [item.from_cache for item in self.artifacts if item.from_cache is not None]
+        return all(flags) if flags else None
+
 
 @dataclass(frozen=True)
 class RunControls:
@@ -112,6 +122,9 @@ class RunControls:
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
     progress: Callable[[str], None] = field(default=lambda message: None)
+    cache: EstimatorCache | None = None
+    bag_sha256: str = ""
+    scan_store: ScanStore | None = None
 
 
 @dataclass(frozen=True)
@@ -343,9 +356,19 @@ def _require_pointcloud2(ctx: PairContext, topics: Sequence[str]) -> str:
 def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     """Rotation (and optionally lever arm) of ``T_lidar_imu`` from angular rates."""
 
+    from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
+    from calibrex.core.imu_lidar_translation import load_imu_lidar_translation
     from calibrex.data.livox_ros2 import LivoxStreamProfile
-    from calibrex.evaluation.imu_lidar_rotation import run_livox_imu_lidar_rotation
-    from calibrex.evaluation.imu_lidar_translation import run_livox_imu_lidar_translation
+    from calibrex.evaluation.imu_lidar_rotation import (
+        ImuLidarRunOptions,
+        rebase_rotation_reference,
+        run_livox_imu_lidar_rotation,
+    )
+    from calibrex.evaluation.imu_lidar_translation import (
+        ImuLidarTranslationOptions,
+        rebase_translation_reference,
+        run_livox_imu_lidar_translation,
+    )
 
     lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
     imu_topics = ctx.sensor_topics.get("imu", ())
@@ -365,19 +388,36 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     command = ["calibrex", "check", str(ctx.bag), "imu-lidar", lidar_topic, imu_topic]
     reference = "deployed candidate calibration (T_lidar_imu)"
     ctx.controls.progress(f"imu-lidar: rotation on {lidar_topic} + {imu_topic}")
-    rotation = run_livox_imu_lidar_rotation(
-        [ctx.bag],
-        profile,
-        dataset_family=DATASET_FAMILY,
-        dataset_license=DATASET_LICENSE,
-        reference_rotation=candidate[:3, :3],
-        max_seconds=ctx.controls.max_duration_s,
-        reference=reference,
-        command=command,
+    # The estimate does not depend on the candidate (it is only compared with it
+    # afterwards), so it is cached and the reference fields are rebased on a hit.
+    rotation_options = {
+        "profile": profile,
+        "max_seconds": ctx.controls.max_duration_s,
+        "options": ImuLidarRunOptions(),
+    }
+    rotation, rotation_cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "imu_lidar_rotation",
+        rotation_options,
+        loader=load_imu_lidar_rotation,
+        compute=lambda: run_livox_imu_lidar_rotation(
+            [ctx.bag],
+            profile,
+            dataset_family=DATASET_FAMILY,
+            dataset_license=DATASET_LICENSE,
+            reference_rotation=candidate[:3, :3],
+            max_seconds=ctx.controls.max_duration_s,
+            reference=reference,
+            command=command,
+            scan_store=ctx.controls.scan_store,
+        ),
+        rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
     )
     notes = [f"per-point time: field '{field_name}' read as {encoding}"]
+    cache_flag = rotation_cached if ctx.controls.cache is not None else None
     artifacts = [
-        EvidenceArtifact("rotation", rotation, rotation.policy_status),
+        EvidenceArtifact("rotation", rotation, rotation.policy_status, cache_flag),
     ]
     estimates: list[AxisEstimate] = []
     solved = rotation.rotation_quat_xyzw is not None and rotation.solver_status == "converged"
@@ -392,18 +432,41 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     reasons = list(rotation.policy_reasons)
     if ctx.controls.imu_lidar_translation and solved:
         ctx.controls.progress("imu-lidar: lever arm (translation) pass")
-        translation = run_livox_imu_lidar_translation(
-            [ctx.bag],
-            profile,
-            rotation,
-            dataset_family=DATASET_FAMILY,
-            dataset_license=DATASET_LICENSE,
-            reference_translation=candidate[:3, 3],
-            max_seconds=ctx.controls.max_duration_s,
-            reference=reference,
-            command=[*command, "translation"],
+        # The lever arm is solved from the rotation estimate (not the candidate),
+        # so its key is the rotation's key plus the translation options.
+        translation_options = {
+            **rotation_options,
+            "rotation_estimator": "imu_lidar_rotation",
+            "translation_options": ImuLidarTranslationOptions(),
+        }
+        translation, translation_cached = cached_artifact(
+            ctx.controls.cache,
+            ctx.controls.bag_sha256,
+            "imu_lidar_translation",
+            translation_options,
+            loader=load_imu_lidar_translation,
+            compute=lambda: run_livox_imu_lidar_translation(
+                [ctx.bag],
+                profile,
+                rotation,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                reference_translation=candidate[:3, 3],
+                max_seconds=ctx.controls.max_duration_s,
+                reference=reference,
+                command=[*command, "translation"],
+                scan_store=ctx.controls.scan_store,
+            ),
+            rebase=lambda hit: rebase_translation_reference(hit, candidate[:3, 3]),
         )
-        artifacts.append(EvidenceArtifact("translation", translation, translation.policy_status))
+        artifacts.append(
+            EvidenceArtifact(
+                "translation",
+                translation,
+                translation.policy_status,
+                translation_cached if ctx.controls.cache is not None else None,
+            )
+        )
         notes.append(f"translation estimator policy: {translation.policy_status}")
         if translation.translation_m is not None:
             translation_estimates = translation_axis_estimates(
@@ -592,10 +655,12 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         raise CheckSkipError(
             "missing_dependency", "camera-imu needs OpenCV: pip install 'calibrex[opencv]'"
         )
+    from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
     from calibrex.evaluation.camera_imu_rotation import (
         CameraImuRunOptions,
         run_ros2_camera_imu_rotation,
     )
+    from calibrex.evaluation.imu_lidar_rotation import rebase_rotation_reference
 
     camera_topics = ctx.sensor_topics.get("camera", ())
     image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
@@ -614,18 +679,33 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         f"camera-imu: {image_topic} + {imu_topics[0]} (intrinsics: {intrinsics_source})"
     )
     candidate = ctx.candidate  # T_cam_imu
-    artifact = run_ros2_camera_imu_rotation(
-        [ctx.bag],
-        image_topic=image_topic,
-        imu_topic=imu_topics[0],
-        camera=model,
-        dataset_family=DATASET_FAMILY,
-        dataset_license=DATASET_LICENSE,
-        acceleration_unit=ctx.controls.acceleration_unit,
-        reference_rotation=candidate[:3, :3],
-        reference="deployed candidate calibration (T_cam_imu)",
-        options=CameraImuRunOptions(max_seconds=ctx.controls.max_duration_s),
-        command=["calibrex", "check", str(ctx.bag), "camera-imu", image_topic, imu_topics[0]],
+    run_options = CameraImuRunOptions(max_seconds=ctx.controls.max_duration_s)
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "camera_imu_rotation",
+        {
+            "image_topic": image_topic,
+            "imu_topic": imu_topics[0],
+            "camera": model,
+            "acceleration_unit": ctx.controls.acceleration_unit,
+            "options": run_options,
+        },
+        loader=load_imu_lidar_rotation,
+        compute=lambda: run_ros2_camera_imu_rotation(
+            [ctx.bag],
+            image_topic=image_topic,
+            imu_topic=imu_topics[0],
+            camera=model,
+            dataset_family=DATASET_FAMILY,
+            dataset_license=DATASET_LICENSE,
+            acceleration_unit=ctx.controls.acceleration_unit,
+            reference_rotation=candidate[:3, :3],
+            reference="deployed candidate calibration (T_cam_imu)",
+            options=run_options,
+            command=["calibrex", "check", str(ctx.bag), "camera-imu", image_topic, imu_topics[0]],
+        ),
+        rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
     )
     solved = artifact.rotation_quat_xyzw is not None and artifact.solver_status == "converged"
     if artifact.rotation_quat_xyzw is not None:
@@ -639,7 +719,14 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         ]
     return EstimatorRun(
         estimator=f"{artifact.method} (camera)",
-        artifacts=(EvidenceArtifact("rotation", artifact, artifact.policy_status),),
+        artifacts=(
+            EvidenceArtifact(
+                "rotation",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
         solved=solved,
         policy_status=artifact.policy_status,
         policy_reasons=tuple(artifact.policy_reasons),
