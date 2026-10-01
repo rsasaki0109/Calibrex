@@ -347,3 +347,30 @@ def test_cli_runs_the_gnss_pairs_on_a_synthetic_bag(
     printed = capsys.readouterr().out
     assert "gnss-lidar" in printed and "gnss-imu" in printed
     assert validate_file(output).kind == "calibration-check"
+
+
+def test_gnss_duration_is_separate_from_the_general_duration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stubbed: Counters
+) -> None:
+    seen: list[float | None] = []
+    monkeypatch.setattr(
+        estimators,
+        "_iter_scans_plain",
+        lambda bag, profile, seconds: seen.append(seconds) or iter(()),
+    )
+    bag = write_bag(tmp_path / "bag")
+    for general, gnss in ((120.0, 600.0), (120.0, None), (None, None)):
+        artifact = build_calibration_check(
+            bag,
+            run=CheckRunOptions(
+                pairs=("gnss-lidar",),
+                max_duration_s=general,
+                gnss_max_duration_s=gnss,
+                scan_memory_mb=0,
+                evidence_dir=tmp_path / "ev",
+                base_dir=tmp_path,
+            ),
+        )
+        assert artifact.options is not None
+        assert artifact.options.gnss_max_duration_s == gnss
+    assert seen == [600.0, 120.0, None]
