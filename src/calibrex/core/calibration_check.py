@@ -228,6 +228,11 @@ class CheckOptions(StrictModel):
     translation_floor_m: float = Field(gt=0.0)
     detection_probe_deg: float = Field(gt=0.0)
     max_duration_s: float | None = None
+    gnss_max_duration_s: float | None = Field(
+        default=None,
+        description="seconds analysed by the GNSS pairs when --gnss-max-duration-s was given; "
+        "absent means they use max_duration_s",
+    )
     pairs: list[str] | None = None
     camera: str | None = None
     imu_lidar_translation: bool = True

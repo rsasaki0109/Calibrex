@@ -208,6 +208,48 @@ def evaluate_gnss_lidar_lever_arm(
     )
 
 
+def _within_seconds(
+    scans: Iterable[ScanItem], max_seconds: float | None
+) -> Iterable[ScanItem]:
+    """Stop after the scans within ``max_seconds`` of the first scan's header time."""
+
+    if max_seconds is None:
+        yield from scans
+        return
+    first: float | None = None
+    for scan in scans:
+        first = scan[0] if first is None else first
+        if scan[0] - first > max_seconds:
+            return
+        yield scan
+
+
+def rebase_gnss_lidar_reference(
+    artifact: GnssLidarLeverArmArtifact, reference_lever_arm: FloatArray | None
+) -> GnssLidarLeverArmArtifact:
+    """Recompute the reference comparison of an artifact for another reference lever arm.
+
+    The estimate, its std and the controls do not depend on the reference, which
+    is compared only after the fit; this rewrites ``reference_value`` and
+    ``error_to_reference`` (the antenna position in the LiDAR frame, metres).
+    """
+
+    records: list[GnssLidarDofRecord] = []
+    for record in artifact.dofs:
+        reference = None
+        if reference_lever_arm is not None and record.name != "time_offset":
+            reference = float(reference_lever_arm["xyz".index(record.name)])
+        records.append(
+            record.model_copy(
+                update={
+                    "reference_value": reference,
+                    "error_to_reference": None if reference is None else record.value - reference,
+                }
+            )
+        )
+    return artifact.model_copy(update={"dofs": records})
+
+
 def run_rtk_slam_lever_arm(
     sequences: Sequence[tuple[str | Path, str | Path]],
     calib_path: str | Path,
@@ -215,11 +257,14 @@ def run_rtk_slam_lever_arm(
     *,
     topic: str = "/livox/points",
     max_scans: int | None = None,
+    max_seconds: float | None = None,
     command: list[str] | None = None,
 ) -> GnssLidarLeverArmArtifact:
     """Run the evaluation on RTK-SLAM ``(bag directory, rtk.txt)`` sequences.
 
     Sequences of one rig are pooled; their windows keep separate alignments.
+    ``max_seconds`` keeps the scans within that many seconds of each sequence's
+    first scan (the cut ``calibrex check --gnss-max-duration-s`` makes).
     """
 
     opts = options or GnssLidarRunOptions()
@@ -244,7 +289,7 @@ def run_rtk_slam_lever_arm(
     for bag_dir, rtk in sequences:
         segmenter = collect_windows(
             track,
-            iter_livox_scans(bag_dir, topic),
+            _within_seconds(iter_livox_scans(bag_dir, topic), max_seconds),
             opts,
             prefix=f"{Path(bag_dir).name}/",
             max_scans=max_scans,

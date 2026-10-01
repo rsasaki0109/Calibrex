@@ -1243,6 +1243,11 @@ def _build_parser() -> argparse.ArgumentParser:
     gnss_lidar_rtk.add_argument("--output", type=Path, required=True)
     gnss_lidar_rtk.add_argument("--topic", default="/livox/points")
     gnss_lidar_rtk.add_argument("--max-scans", type=_positive_int)
+    gnss_lidar_rtk.add_argument(
+        "--max-seconds",
+        type=_positive_float,
+        help="use only the scans within S seconds of each sequence's first scan",
+    )
     gnss_lidar_rtk.add_argument("--json", action="store_true")
     gnss_lidar_rtk.set_defaults(func=_cmd_gnss_lidar_rtk_slam)
 
@@ -2859,11 +2864,12 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "Read candidate extrinsics from the bag's /tf_static and/or --tf files, classify "
             "the bag's sensor topics, and list the sensor pairs that can be checked. With "
-            "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar "
-            "and camera-imu runs and the candidate is judged against it (pass / warn / fail / "
-            "inconclusive per pair). With --vehicle-frame the ground-vehicle pairs lidar-vehicle, "
-            "imu-vehicle, ins-lidar and lidar-wheel_odometry run too. Other pairs are reported "
-            "as skipped."
+            "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar, "
+            "camera-imu and the GNSS pairs gnss-lidar (NavSatFix antenna lever arm) and "
+            "gnss-imu (composed from gnss-lidar and imu-lidar) runs and the candidate is "
+            "judged against it (pass / warn / fail / inconclusive per pair). With --vehicle-frame "
+            "the ground-vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar and "
+            "lidar-wheel_odometry run too. Other pairs are reported as skipped."
         ),
     )
     check.add_argument("bag", type=Path, help="rosbag2 directory or storage file")
@@ -2915,6 +2921,15 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="S",
         help="analyse only the first S seconds of each sensor stream",
+    )
+    check.add_argument(
+        "--gnss-max-duration-s",
+        type=_positive_float,
+        default=None,
+        metavar="S",
+        help="analyse the first S seconds for gnss-lidar (and so gnss-imu), instead of "
+        "--max-duration-s: the antenna lever arm needs several minutes of RTK-fixed windows, "
+        "more than imu-lidar",
     )
     check.add_argument(
         "--camera",
@@ -4081,6 +4096,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             ),
             pairs=pairs,
             max_duration_s=args.max_duration_s,
+            gnss_max_duration_s=args.gnss_max_duration_s,
             camera=args.camera,
             imu_lidar_translation=not args.no_imu_lidar_translation,
             acceleration_unit=args.acceleration_unit,
@@ -6338,12 +6354,15 @@ def _cmd_gnss_lidar_rtk_slam(args: argparse.Namespace) -> int:
     command += ["--calib", str(args.calib), "--output", str(args.output), "--topic", args.topic]
     if args.max_scans is not None:
         command += ["--max-scans", str(args.max_scans)]
+    if args.max_seconds is not None:
+        command += ["--max-seconds", str(args.max_seconds)]
     try:
         artifact = run_rtk_slam_lever_arm(
             list(zip(args.bag, args.rtk, strict=True)),
             args.calib,
             topic=args.topic,
             max_scans=args.max_scans,
+            max_seconds=args.max_seconds,
             command=command,
         )
         artifact.save(args.output)

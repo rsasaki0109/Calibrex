@@ -62,7 +62,14 @@ from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
 
 INVERTED_CONVENTION_PAIRS = frozenset(
-    {"imu-lidar", "lidar-vehicle", "imu-vehicle", "lidar-wheel_odometry"}
+    {
+        "imu-lidar",
+        "lidar-vehicle",
+        "imu-vehicle",
+        "lidar-wheel_odometry",
+        "gnss-lidar",
+        "gnss-imu",
+    }
 )
 """Pairs whose estimator reports ``T_second_first`` (the sensor's pose in the parent frame)."""
 BAG_DIGEST_PREFIX_BYTES = 64 * 1024 * 1024
@@ -151,6 +158,8 @@ class CheckRunOptions:
     verdict: VerdictOptions = field(default_factory=VerdictOptions)
     pairs: tuple[str, ...] | None = None
     max_duration_s: float | None = None
+    gnss_max_duration_s: float | None = None
+    """Seconds analysed by gnss-lidar (so by gnss-imu's GNSS input); ``None``: max_duration_s."""
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
@@ -248,6 +257,7 @@ def build_calibration_check(
             translation_floor_m=run.verdict.translation_floor_m,
             detection_probe_deg=run.verdict.detection_probe_deg,
             max_duration_s=run.max_duration_s,
+            gnss_max_duration_s=run.gnss_max_duration_s,
             pairs=list(run.pairs) if run.pairs is not None else None,
             camera=run.camera,
             imu_lidar_translation=run.imu_lidar_translation,
@@ -260,6 +270,11 @@ def build_calibration_check(
             "full run: each wired pair's native estimator was run and the candidate judged "
             "against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)",
         )
+        if run.gnss_max_duration_s is not None:
+            notes.append(
+                f"gnss-lidar analysed the first {run.gnss_max_duration_s:g} s "
+                "(--gnss-max-duration-s)"
+            )
         if run.max_duration_s is not None:
             notes.append(
                 f"only the first {run.max_duration_s:g} s of the sensor streams were analysed"
@@ -350,6 +365,7 @@ def _run_pairs(
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
         max_duration_s=run.max_duration_s,
+        gnss_max_duration_s=run.gnss_max_duration_s,
         camera=run.camera,
         imu_lidar_translation=run.imu_lidar_translation,
         acceleration_unit=run.acceleration_unit,
@@ -470,6 +486,7 @@ def _run_one(
             }
         )
     runtime = time.monotonic() - started
+    controls.memo[(estimators.PAIR_RUN_KEY, record.pair, tuple(record.frames))] = outcome
     judged = _judge(record, outcome, run.verdict, runtime)
     evidence = _write_evidence(record, outcome, evidence_dir, base_dir)
     update = {**judged, "evidence": [item.model_dump() for item in evidence]}

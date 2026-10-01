@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **`calibrex check`, Phase C2: `gnss-lidar` and `gnss-imu` from the bag's
+  NavSatFix topic.** New `calibrex.data.navsatfix_track` turns a `NavSatFix` topic
+  into the GNSS track the lever-arm estimator uses (header-stamp time, ellipsoidal
+  altitude, usable = `status >= 0` and `sqrt(trace(covariance)) <= 0.15 m`, which
+  reproduces RTK-SLAM's `blt_std` exactly; unknown covariance keeps only GBAS
+  fixes with a recorded fallback std). `gnss-lidar` judges the antenna lever arm in
+  the LiDAR frame (x, y, z; the antenna's rotation axes are listed as unchecked)
+  and is cached like `imu-lidar` (the fit does not use the candidate). `gnss-imu`
+  composes this run's `gnss-lidar` and `imu-lidar` evidence as `calibrex gnss-imu
+  compose` does, and is skipped (`missing_dependency`) when either is missing or
+  failed. New `--gnss-max-duration-s` gives the GNSS pairs their own span (they
+  need minutes of RTK-fixed windows); `calibrex gnss-lidar rtk-slam` gains
+  `--max-seconds`. `slac.calibration_check/v0.1` gains the optional
+  `options.gnss_max_duration_s`. On RTK-SLAM the bag path reproduces the `rtk.txt`
+  path to 0.2 mm (same windows); against the CAD antenna offset the pairs judge only
+  the axes with std under 1 cm (y on stadtgarten seq2, x on seq1), a +15 cm
+  error on an observable axis fails and z is never checked. See
+  `docs/tutorials/calibrex_check.md`.
+
 - **`calibrex check`, Phase C1: vehicle pairs, validated on KITTI raw.** With
   `--vehicle-frame`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar` and
   `lidar-wheel_odometry` now run their native estimators on bag data and are

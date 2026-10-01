@@ -275,3 +275,11 @@ def test_cli_pairs_bags_with_rtk_files(tmp_path: Path, monkeypatch: pytest.Monke
     ]
     assert validate_file(output).valid
     assert main([*base, "--bag", "a", "--rtk", "a.txt", "--bag", "b"]) == 2
+
+
+def test_max_seconds_keeps_the_scans_of_the_first_seconds() -> None:
+    from calibrex.evaluation.gnss_lidar_lever_arm import _within_seconds
+
+    scans = [(100.0 + 0.5 * index, np.zeros((1, 3))) for index in range(10)]
+    assert len(list(_within_seconds(scans, 2.0))) == 5  # 0, 0.5, 1, 1.5, 2.0 s
+    assert len(list(_within_seconds(scans, None))) == 10
