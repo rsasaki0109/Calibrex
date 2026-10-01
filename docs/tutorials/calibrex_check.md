@@ -1,11 +1,12 @@
 # Check a deployed calibration (`calibrex check`)
 
-Status: **Phase B** (imu-lidar, lidar-lidar, camera-imu). The command reads the
+Status: **Phase C1** (imu-lidar, lidar-lidar, camera-imu, and the opt-in vehicle
+pairs lidar-vehicle, imu-vehicle, ins-lidar, lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
 and, without `--plan`, runs the existing native estimator of each wired pair and
 judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
-`inconclusive` per pair, with the per-axis numbers behind it. Other pairs stay
-`skipped` with `method_not_wired`.
+`inconclusive` per pair, with the per-axis numbers behind it. The GNSS and
+camera-focal pairs stay `skipped` with `method_not_wired`.
 
 ```bash
 calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
@@ -44,8 +45,10 @@ through the tree.
 
 Topics are classified by message type: `lidar` (PointCloud2, Livox CustomMsg),
 `imu`, `camera` (Image, CompressedImage), `gnss` (NavSatFix), `odometry`,
-`twist` and `tf_static`. Odometry topics are labelled `wheel` or `ins` from
-tokens in their name, otherwise `unknown`.
+`twist` and `tf_static`. Odometry and twist topics are labelled `wheel` or `ins`
+from tokens in their name, otherwise `unknown`; `--topic-kind TOPIC=wheel|ins`
+(repeatable) sets the kind explicitly, is recorded in the topic's notes and in
+`options.topic_kinds`, and must name an odometry or twist topic of the bag.
 
 Each sensor topic is mapped to a tree frame in this order: `--frame-map
 TOPIC=FRAME`; the first message's `header.frame_id` when it is in the tree (for
@@ -83,13 +86,147 @@ was unobservable).
 
 ## Vehicle pairs are opt-in
 
-`lidar-vehicle` and `imu-vehicle` rest on non-holonomic ground-vehicle motion.
+`lidar-vehicle`, `imu-vehicle`, `ins-lidar` and `lidar-wheel_odometry` rest on
+ground-vehicle motion (`ins-lidar` needs only an INS, but is grouped with them).
 A `base_link` frame alone does not say the rig is a ground vehicle (on a
-hand-held rig it is just the IMU body frame), so these pairs are skipped with
-`no_vehicle_frame` unless you pass `--vehicle-frame <frame>`. If that frame is
-not in the tree the pairs are skipped with `frame_not_in_tree`. An automatic
-ground-vehicle motion test may replace the flag in Phase C. The artifact
-records `vehicle_frame` (absent when not given).
+hand-held rig it is just the IMU body frame), so `lidar-vehicle`, `imu-vehicle`
+and `lidar-wheel_odometry` are skipped with `no_vehicle_frame` unless you pass
+`--vehicle-frame <frame>`. If that frame is not in the tree the pairs are
+skipped with `frame_not_in_tree`. The artifact records `vehicle_frame` (absent
+when not given).
+
+## Phase C1: vehicle pairs
+
+| Pair | Needs in the bag | Estimator | Compared transform | Judged axes |
+| --- | --- | --- | --- | --- |
+| `lidar-vehicle` | a `PointCloud2` LiDAR | `slac.vehicle_frame_rotation` on LiDAR odometry (non-holonomic motion) | `T_vehicle_lidar` (planner `T_lidar_vehicle` inverted) | roll, pitch, yaw |
+| `imu-vehicle` | an IMU in frame F and an `ins` Odometry/Twist topic expressed in F | same solver on the INS's own body-frame velocity and angular rate | `T_vehicle_imu` | roll, pitch, yaw |
+| `ins-lidar` | an `ins` `nav_msgs/Odometry` (pose) and a `PointCloud2` LiDAR | trajectory hand-eye `slac.ins_lidar_hand_eye` | `T_ins_lidar` | roll, pitch, yaw, x, y (z only with a prior: unchecked) |
+| `lidar-wheel_odometry` | a `PointCloud2` LiDAR and a `wheel` Odometry/Twist topic | `slac.lidar_wheel_odometry` (speed `linear.x`, yaw rate `angular.z`) | `T_wheel_lidar` | roll, pitch, yaw (lever, speed scale and clock offset are in the evidence, not judged) |
+
+* **LiDAR odometry** is the one the KITTI runners use (`scan_to_scan_odometry`,
+  default options, sweeps registered as rigid snapshots). A per-point time field
+  is neither needed nor used, so KITTI-style clouds work; the three LiDAR pairs
+  share one odometry pass per run. A silence of more than 1 s in the stream
+  starts an independent segment: odometry is not chained across it, motions and
+  blocks never span it. This is how several recordings in one bag are pooled.
+* **`imu-vehicle` does not use the raw IMU.** A gyro and accelerometer carry no
+  velocity; the estimator needs the INS's body-frame velocity and rate. It reads
+  them from the `ins` topic's twist (Odometry twist is in `child_frame_id`), and
+  the topic must map to the same frame as the IMU, otherwise the pair is skipped
+  (`unsupported_sensor`; no INS topic at all is `missing_topic`).
+* **`ins-lidar`** takes the pose track of an `ins` `nav_msgs/Odometry`; a twist
+  cannot supply it (`unsupported_sensor`).
+* An axis the drive does not constrain, or whose held-out known-bad control was
+  not detected, is listed as unchecked and the pair is `partial`; a prior-only
+  axis is unchecked as well. Every estimate is independent of the candidate, so
+  the estimator artifacts are cached.
+* The verdict rule is unchanged (`check/verdict.py`).
+
+### Converting a KITTI raw drive
+
+```bash
+calibrex convert kitti-raw 2011_09_26_drive_0022_sync --calib-dir 2011_09_26 --output kitti_0022_bag
+calibrex check kitti_0022_bag --vehicle-frame base_link --topic-kind /oxts/twist=wheel \
+  --pairs lidar-vehicle,imu-vehicle,ins-lidar,lidar-wheel_odometry --output check.json
+```
+
+Several drives of one calibration may be given; they share one bag, with the
+minutes between them as stream gaps. Topics and frames:
+
+| Topic | Type | Frame | Content |
+| --- | --- | --- | --- |
+| `/velodyne_points` | `PointCloud2` | `velo_link` | x, y, z, intensity (float32). **No per-point time field**: KITTI raw has none and none is invented, so `imu-lidar` is `unsupported_sensor` |
+| `/oxts/imu` | `Imu` | `imu_link` | OXTS body-frame `wx..wz`, `ax..az`; no orientation |
+| `/oxts/fix` | `NavSatFix` | `imu_link` | OXTS lat/lon/alt. KITTI's GNSS solution is at the OXTS unit; the antenna lever arm is not published |
+| `/oxts/odometry` | `Odometry` | `odom` to `imu_link` | the INS pose as in `kitti_oxts_pose_world_imu` (Mercator, origin at each drive's first packet) and, in the twist, the **body-frame** velocity and rate |
+| `/oxts/twist` | `TwistStamped` | `base_link` | the same body-frame velocity and rate, as a wheel-odometry **proxy** (KITTI has no wheel odometry). By name it reads as an INS topic, so declare it with `--topic-kind /oxts/twist=wheel` |
+| `/tf_static` (transient local) | `TFMessage` | | `base_link` to `imu_link` (identity); `imu_link` to `velo_link` = inverse of `calib_imu_to_velo.txt` |
+
+KITTI's `vf, vl, vu` and `wf, wl, wu` are level-frame quantities
+(level = `Ry(pitch) Rx(roll)` body); the converter rotates them back with each
+packet's roll and pitch (`oxts_body_frame_motion`, the same function the KITTI
+runners use) before declaring them in `imu_link`/`base_link`.
+
+**`base_link` is defined as the OXTS/IMU frame**, KITTI's own convention (its
+calibration files give sensors relative to the OXTS unit and no vehicle frame is
+published). The vehicle pairs therefore report how far the sensor is from the
+OXTS frame taken as the vehicle; the OXTS unit itself sits about 1 deg in roll
+and 0.5 deg in pitch off the motion-defined vehicle frame
+([KITTI LiDAR-vehicle](../benchmarks/kitti_lidar_vehicle.md)), so a candidate
+with that definition is expected to sit near the pitch tolerance. The bag has a
+`calibrex_conversion.json` sidecar (source drives and digests, command,
+generator version and commit, frame and topic definitions). The db3 and
+`metadata.yaml` follow the rosbag2 sqlite3 layout and are read back by
+calibrex; they have not been opened with a ROS 2 install.
+
+### Phase C1 results on KITTI raw (development drives only)
+
+Drives 0005, 0009, 0014, 0015, 0022 of 2011_09_26, converted to bags; candidate
+= the vendor `calib_imu_to_velo` as `/tf_static`, `base_link` = OXTS frame.
+Drives 0027 to 0059 were not used. Defaults (`k = 3`, floors 0.5 deg).
+Entries are `|delta| / tolerance` in degrees; `[w]`/`[f]` mark warn/fail.
+
+**Bag path against the KITTI-text path.** For `lidar-vehicle`, `imu-vehicle` and
+`ins-lidar`, on all five single drives and on the five pooled in one bag, the
+bag run reproduces the text CLI (`calibrex lidar-vehicle kitti`, `imu-vehicle
+kitti`, `ins-lidar kitti`, same drives): rotation, every DoF value, every std
+and every held-out control statistic differ by exactly 0 (bit-identical; the
+INS pose is written as the quaternion the text path builds its matrix from, so
+no round trip enters). `lidar-wheel` differs on purpose: the text wheel proxy
+uses the level-frame `vf` and `wu`, the bag declares the body-frame speed and
+yaw rate. Rotation differences: 0.031 deg (0005), 0.021 (0009), 0.009 (0022),
+0.028 (0014), 0.024 (pooled), and 0.84 deg on 0015 where roll is unobservable
+(std 2.9 deg) and so moves with any input change. With the text path run on
+the body-frame proxy (`tools/compare_check_kitti_text.py --body-frame-wheel`) the
+difference is exactly 0 on 0005, 0022 and 0015.
+
+**Verdicts** (tolerances 0.50 deg unless noted):
+
+| Bag | `lidar-vehicle` | `imu-vehicle` | `ins-lidar` | `lidar-wheel_odometry` |
+| --- | --- | --- | --- | --- |
+| 5 drives pooled | pass, partial: pitch 0.50/0.50, yaw 0.31; roll unchecked | inconclusive | pass, partial: roll 0.11, pitch 0.06; yaw, x, y, z unchecked | pass, partial: pitch 0.50/0.50, yaw 0.31; roll unchecked |
+| 0005 (15 s) | inconclusive | pass, partial: pitch 0.18; roll, yaw unchecked (yaw control not detected) | inconclusive | pass, partial: pitch 0.27, yaw 0.50/0.50 |
+| 0009 (44 s) | pass, partial: yaw 0.26 | inconclusive | inconclusive | pass, partial: yaw 0.26 |
+| 0014 | pass, partial: pitch 0.34, yaw 0.17 | pass, partial: pitch 0.47, yaw 0.05 | inconclusive | pass, partial: pitch 0.34, yaw 0.17 |
+| 0015 | inconclusive | pass, partial: pitch 0.41 | inconclusive | pass, partial: yaw 0.30 |
+| 0022 (~80 s) | pass, partial: pitch 0.45 | inconclusive | pass, partial: roll 0.14, pitch 0.08 | pass, partial: pitch 0.45 |
+
+The overall verdict is `inconclusive` on every bag at baseline: no pair is
+fully covered, and `imu-lidar` is `skipped` (`unsupported_sensor`, as expected
+for a cloud without per-point time). `imu-vehicle` is `inconclusive` whenever its
+axes have std above 0.1 deg, which is most single drives. The pooled
+`lidar-vehicle` pitch error (0.50 deg) is the known OXTS-versus-vehicle offset
+of the `base_link = imu_link` definition, sitting on the tolerance; it is not a
+conversion error.
+
+**Known-bad candidates**, +1 and +3 deg yaw on `velo_link` (rotation about the
+`imu_link` z axis, `tools/make_check_frames_perturbation.py`, passed with `--tf`):
+
+| Bag | +1 deg | +3 deg |
+| --- | --- | --- |
+| pooled | `lidar-vehicle` fail (yaw 1.31 [f], pitch 0.51 [w]); `lidar-wheel` fail (yaw 1.31 [f]); **`ins-lidar` pass (yaw unchecked)**; overall fail | same with yaw 3.31 [f]; `ins-lidar` still pass |
+| 0009 | `lidar-vehicle` and `lidar-wheel` fail (yaw 1.26 [f]) | yaw 3.26 [f] |
+| 0014 | both fail (yaw 1.17 [f]) | yaw 3.17 [f] |
+| 0005 | `lidar-wheel` fail (yaw 1.50 [f]); `lidar-vehicle` inconclusive | yaw 3.50 [f] |
+| 0015 | `lidar-wheel` fail (yaw 1.30 [f]); `lidar-vehicle` inconclusive | yaw 3.29 [f] |
+| **0022** | **no flip**: `lidar-vehicle` and `lidar-wheel` pass, partial (pitch only, yaw unchecked) | **no flip** |
+
+`imu-vehicle` is unaffected by the LiDAR mount, as it should be. A flip needs
+the yaw axis to be observable: on 0022 the drive is long but yaw is unchecked
+(std 0.11 deg, above the 0.1 deg observability limit), so a 3 deg error passes
+with `coverage: partial`. A `pass (partial)` verdict says nothing about the
+unchecked axes, and `ins-lidar` never saw the yaw error on any bag because yaw
+is unchecked there. These are limits of 15 to 80 s drives; the pooled
+`lidar-vehicle` and `lidar-wheel` do see it.
+
+**Runtime** (8-core shared machine; the numbers marked "alone" ran with nothing
+else active). Drive 0022 alone, no cache: 116 s wall clock (LiDAR odometry
+101 s for `lidar-vehicle`, `ins-lidar` 11 s, `lidar-wheel` 1 s, `imu-vehicle` 0 s),
+peak 196 MB. Pooled five drives with two jobs in parallel: 389 s. The two known-bad
+re-judgements of each bag: 3 s (cache). The odometry pass is shared by the three
+LiDAR pairs; the KITTI text CLIs repeat it per command
+(0022: 106 s + 110 s + 234 s + 362 s for the four CLIs).
 
 ## Verdicts (Phase B)
 
@@ -98,6 +235,7 @@ records `vehicle_frame` (absent when not given).
 | `imu-lidar` | `imu-lidar` rotation (gyro against LiDAR odometry) and, unless `--no-imu-lidar-translation`, lever arm (accelerometer) | `T_lidar_imu` (the planner's `T_imu_lidar` inverted) | roll, pitch, yaw, x, y, z |
 | `lidar-lidar` | map registration, started at the candidate | `T_first_second` | roll, pitch, yaw, x, y, z |
 | `camera-imu` | targetless camera rotation against the gyro | `T_cam_imu` | roll, pitch, yaw |
+| vehicle pairs | see [Phase C1](#phase-c1-vehicle-pairs) | | |
 
 Per axis `i` the estimator reports an estimate, a standard deviation `std_i`
 (the larger of its analytic and jackknife values) and whether the axis is
@@ -319,10 +457,12 @@ transform, status and reason, a summary, and provenance. A run adds, as
 optional fields: `options` (thresholds and runtime controls), `evidence_dir`,
 `overall_verdict`, and per pair `compared_transform`, `axes`, `unchecked_axes`,
 `time_offset`, `estimator*`, `runtime_s`, `evidence` (each with `from_cache`)
-and `evidence_from_cache`.
+and `evidence_from_cache`; `options.topic_kinds` records `--topic-kind`.
 
 Each estimator's own schema'd artifact (`slac.imu_lidar_rotation/v0.1`,
-`slac.imu_lidar_translation/v0.1`, `slac.lidar_lidar_extrinsic/v0.1`) is written
+`slac.imu_lidar_translation/v0.1`, `slac.lidar_lidar_extrinsic/v0.1`; for the vehicle pairs
+`slac.vehicle_frame_rotation/v0.1`, `slac.ins_lidar_hand_eye/v0.1`,
+`slac.lidar_wheel_odometry/v0.1`) is written
 to `<output stem>_evidence/<pair>_<sensors>[_role].yaml`, referenced from the
 pair by relative path and SHA-256 (`evidence`; `evidence_artifact` repeats the
 first path). Those files hold the per-DoF estimates, jackknife and known-bad

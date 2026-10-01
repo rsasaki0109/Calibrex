@@ -402,6 +402,14 @@
           "title": "Sigma K",
           "type": "number"
         },
+        "topic_kinds": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "--topic-kind overrides: odometry/twist topic -> wheel or ins",
+          "title": "Topic Kinds",
+          "type": "object"
+        },
         "translation_floor_m": {
           "exclusiveMinimum": 0.0,
           "title": "Translation Floor M",

@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- **`calibrex check`, Phase C1: vehicle pairs, validated on KITTI raw.** With
+  `--vehicle-frame`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar` and
+  `lidar-wheel_odometry` now run their native estimators on bag data and are
+  judged by the existing verdict rule (unobservable axes, such as roll without
+  turns, are listed as unchecked). LiDAR odometry comes from `PointCloud2` scans
+  (one pass shared by the three LiDAR pairs; a stream gap over 1 s starts a new
+  segment, so several recordings can share a bag), the INS from a
+  `nav_msgs/Odometry` topic, the wheel from an Odometry or `TwistStamped` topic;
+  `imu-vehicle` uses the INS's body-frame velocity, not the raw IMU. New
+  `--topic-kind TOPIC=wheel|ins` classifies odometry and twist topics; twist
+  topics now fill the `ins`/`wheel` slots. `slac.calibration_check/v0.1` gains
+  the optional `options.topic_kinds`.
+  New `calibrex convert kitti-raw DRIVE... --output BAG [--calib-dir DIR]` writes
+  a KITTI raw drive as a rosbag2 (`/velodyne_points`, `/oxts/{imu,fix,odometry,twist}`,
+  transient-local `/tf_static` from `calib_imu_to_velo.txt`, `base_link` = the OXTS
+  frame, no invented per-point time) with a provenance sidecar, using a new
+  ROS-free rosbag2 sqlite3 writer (`calibrex.data.rosbag2_writer`) and CDR
+  encoders (`ros_cdr_writer`, shared with the tests) and a `TwistStamped` decoder.
+  On the development drives the bag run reproduces the KITTI-text CLIs exactly for
+  lidar-vehicle, imu-vehicle and ins-lidar (wheel: differs only by the declared
+  body-frame wheel proxy); +1 and +3 deg yaw on the Velodyne mount flips the
+  pooled lidar-vehicle and lidar-wheel verdicts to `fail`, and is not seen on
+  single drives whose yaw is unobservable. See
+  `docs/tutorials/calibrex_check.md`.
+
 - **`calibrex check` is 3x faster on a first run and instant on a re-check.**
   The `imu-lidar` and `camera-imu` estimates do not depend on the candidate, so
   their artifacts are cached (`--cache-dir`, default

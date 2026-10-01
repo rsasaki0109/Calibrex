@@ -457,6 +457,22 @@ class OdometryMessage:
 
 
 @dataclass(frozen=True)
+class TwistMessage:
+    """A decoded ``geometry_msgs/msg/TwistStamped`` or ``TwistWithCovarianceStamped``.
+
+    ``linear_velocity`` and ``angular_velocity`` are expressed in ``frame_id``.
+    ``covariance`` is the row-major 6x6 covariance, empty for a plain ``TwistStamped``.
+    """
+
+    topic: str
+    timestamp_ns: int
+    frame_id: str
+    linear_velocity: tuple[float, float, float]
+    angular_velocity: tuple[float, float, float]
+    covariance: tuple[float, ...] = ()
+
+
+@dataclass(frozen=True)
 class ImuMessage:
     """A decoded ``sensor_msgs/msg/Imu`` message.
 

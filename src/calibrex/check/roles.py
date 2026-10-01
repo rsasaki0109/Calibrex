@@ -50,7 +50,7 @@ def classify_message_type(message_type: str, topic: str) -> SensorRole | None:
 
 
 def classify_odometry_kind(topic: str) -> OdometryKind:
-    """Guess whether an odometry topic is wheel odometry or an INS/GNSS solution by name."""
+    """Guess by name whether an odometry or twist topic is wheel odometry or an INS/GNSS."""
 
     tokens = {token for token in re.split(r"[^a-z0-9]+", topic.lower()) if token}
     if tokens & _WHEEL_TOKENS:
@@ -62,26 +62,53 @@ def classify_odometry_kind(topic: str) -> OdometryKind:
 
 def classify_topics(
     connections: Sequence[tuple[Rosbag2Connection, int | None]],
+    kind_overrides: Mapping[str, OdometryKind] | None = None,
 ) -> list[CheckTopicRecord]:
-    """Build one record per topic that has a sensor role, sorted by topic."""
+    """Build one record per topic that has a sensor role, sorted by topic.
 
+    Odometry and twist topics get a kind (``wheel``, ``ins`` or ``unknown``) from
+    their name; ``kind_overrides`` (``--topic-kind``) sets it explicitly.
+    """
+
+    overrides = kind_overrides or {}
     records: list[CheckTopicRecord] = []
     for connection, count in connections:
         role = classify_message_type(connection.message_type, connection.topic)
         if role is None:
             continue
+        kind: OdometryKind | None = None
+        notes: list[str] = []
+        if role in {"odometry", "twist"}:
+            if connection.topic in overrides:
+                kind = overrides[connection.topic]
+                notes.append(f"kind '{kind}' set by --topic-kind")
+            else:
+                kind = classify_odometry_kind(connection.topic)
         records.append(
             CheckTopicRecord(
                 topic=connection.topic,
                 message_type=connection.message_type,
                 message_count=count,
                 role=role,
-                odometry_kind=(
-                    classify_odometry_kind(connection.topic) if role == "odometry" else None
-                ),
+                odometry_kind=kind,
+                notes=notes,
             )
         )
     return sorted(records, key=lambda record: record.topic)
+
+
+def parse_topic_kinds(items: Sequence[str]) -> dict[str, OdometryKind]:
+    """Parse repeated ``TOPIC=KIND`` overrides (``KIND`` is ``wheel`` or ``ins``)."""
+
+    kinds: dict[str, OdometryKind] = {}
+    for item in items:
+        topic, separator, kind = item.partition("=")
+        topic, kind = topic.strip(), kind.strip().lower()
+        if not separator or not topic or kind not in {"wheel", "ins"}:
+            msg = f"--topic-kind expects TOPIC=wheel or TOPIC=ins, got {item!r}"
+            raise DatasetError(msg)
+        kinds[topic] = "wheel" if kind == "wheel" else "ins"
+    return kinds
 
 
 def read_header_frames(

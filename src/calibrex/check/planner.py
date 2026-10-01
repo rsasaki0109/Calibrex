@@ -16,8 +16,8 @@ from calibrex.core.calibration_check import (
     CheckTransform,
 )
 
-# Sensor "slots" a pair draws from. ``ins`` and ``wheel`` are odometry topics
-# classified by name; ``vehicle`` is a frame, not a topic.
+# Sensor "slots" a pair draws from. ``ins`` and ``wheel`` are odometry or twist
+# topics classified by name or by --topic-kind; ``vehicle`` is a frame, not a topic.
 PAIR_SLOTS: dict[CheckPairName, tuple[str, str]] = {
     "imu-lidar": ("imu", "lidar"),
     "lidar-lidar": ("lidar", "lidar"),
@@ -44,8 +44,10 @@ class SensorInstance:
     header_frames: tuple[str, ...]
 
 
-def _slot_of(record: CheckTopicRecord) -> str | None:
-    if record.role == "odometry":
+def slot_of(record: CheckTopicRecord) -> str | None:
+    """The sensor slot a topic fills: a role, or ``ins``/``wheel`` for odometry and twist."""
+
+    if record.role in {"odometry", "twist"}:
         if record.odometry_kind == "ins":
             return "ins"
         if record.odometry_kind == "wheel":
@@ -61,7 +63,7 @@ def sensor_instances(topics: Sequence[CheckTopicRecord]) -> dict[str, list[Senso
 
     grouped: dict[str, dict[str, list[CheckTopicRecord]]] = {}
     for record in topics:
-        slot = _slot_of(record)
+        slot = slot_of(record)
         if slot is None:
             continue
         key = record.mapped_frame if record.mapped_frame is not None else f"topic:{record.topic}"
@@ -180,10 +182,15 @@ def plan_pairs(
         if missing:
             missing_reason = "no topic for: " + ", ".join(missing)
             unknown = sorted(
-                t.topic for t in topics if t.role == "odometry" and t.odometry_kind == "unknown"
+                t.topic
+                for t in topics
+                if t.role in {"odometry", "twist"} and t.odometry_kind == "unknown"
             )
             if unknown and any(slot in {"ins", "wheel"} for slot in missing):
-                missing_reason += f" (odometry topics of unknown kind: {', '.join(unknown)})"
+                missing_reason += (
+                    f" (odometry/twist topics of unknown kind: {', '.join(unknown)}; "
+                    "classify them with --topic-kind TOPIC=wheel|ins)"
+                )
             records.append(_skip(pair, "missing_topic", missing_reason))
             continue
         if first_slot == second_slot and len(instances[first_slot]) < 2:

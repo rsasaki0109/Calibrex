@@ -232,6 +232,10 @@ class CheckOptions(StrictModel):
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
+    topic_kinds: dict[str, str] = Field(
+        default_factory=dict,
+        description="--topic-kind overrides: odometry/twist topic -> wheel or ins",
+    )
 
 
 class CheckPairRecord(StrictModel):

@@ -1160,6 +1160,35 @@ def _build_parser() -> argparse.ArgumentParser:
     kitti_benchmark.add_argument("--json", action="store_true")
     kitti_benchmark.set_defaults(func=_cmd_demo_kitti_falsification_benchmark)
 
+    convert = subcommands.add_parser("convert", help="convert a public dataset into a rosbag2 bag")
+    convert_subcommands = convert.add_subparsers(dest="convert_command", required=True)
+    convert_kitti = convert_subcommands.add_parser(
+        "kitti-raw",
+        help="write a KITTI raw drive (Velodyne, OXTS, calibration) as a rosbag2 bag",
+        description=(
+            "Write /velodyne_points, /oxts/imu, /oxts/fix, /oxts/odometry (INS pose and "
+            "body-frame twist), /oxts/twist (wheel proxy) and a transient-local /tf_static "
+            "from calib_imu_to_velo.txt. base_link is defined as the OXTS/IMU frame; the "
+            "Velodyne cloud has no per-point time field because KITTI raw has none."
+        ),
+    )
+    convert_kitti.add_argument(
+        "drives",
+        type=Path,
+        nargs="+",
+        help="KITTI raw *_sync drive(s) of one calibration, e.g. 2011_09_26_drive_0005_sync",
+    )
+    convert_kitti.add_argument(
+        "--calib-dir",
+        type=Path,
+        default=None,
+        help="directory with calib_imu_to_velo.txt (default: the drive's parent directory)",
+    )
+    convert_kitti.add_argument("--output", type=Path, required=True, help="bag directory to write")
+    convert_kitti.add_argument("--overwrite", action="store_true", help="replace an existing bag")
+    convert_kitti.add_argument("--json", action="store_true")
+    convert_kitti.set_defaults(func=_cmd_convert_kitti_raw)
+
     kitti = subcommands.add_parser("kitti", help="KITTI raw utilities")
     kitti_subcommands = kitti.add_subparsers(dest="kitti_command", required=True)
     kitti_import = kitti_subcommands.add_parser(
@@ -2832,7 +2861,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "the bag's sensor topics, and list the sensor pairs that can be checked. With "
             "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar "
             "and camera-imu runs and the candidate is judged against it (pass / warn / fail / "
-            "inconclusive per pair). Other pairs are reported as skipped."
+            "inconclusive per pair). With --vehicle-frame the ground-vehicle pairs lidar-vehicle, "
+            "imu-vehicle, ins-lidar and lidar-wheel_odometry run too. Other pairs are reported "
+            "as skipped."
         ),
     )
     check.add_argument("bag", type=Path, help="rosbag2 directory or storage file")
@@ -2858,6 +2889,14 @@ def _build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="TOPIC=FRAME",
         help="map a sensor topic to a tree frame; repeatable",
+    )
+    check.add_argument(
+        "--topic-kind",
+        action="append",
+        default=[],
+        metavar="TOPIC=wheel|ins",
+        help="classify an odometry or twist topic as wheel odometry or an INS/GNSS solution "
+        "when its name does not say; repeatable",
     )
     check.add_argument(
         "--plan",
@@ -4010,6 +4049,7 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
 def _cmd_check(args: argparse.Namespace) -> int:
     from calibrex.check import build_calibration_check, format_check_table
     from calibrex.check.cache import default_cache_dir
+    from calibrex.check.roles import parse_topic_kinds
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
     from calibrex.check.verdict import VERDICT_ORDER, VerdictOptions
 
@@ -4060,6 +4100,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
         tf_files=args.tf,
         vehicle_frame=args.vehicle_frame,
         frame_overrides=parse_frame_map(args.frame_map),
+        topic_kinds=parse_topic_kinds(args.topic_kind),
         command=["calibrex", *args.invoked_argv],
         run=run_options,
         progress=progress,
@@ -4395,6 +4436,30 @@ def _require_kitti_lidar_camera_demo_files(dataset_path: Path) -> None:
             "the official KITTI raw download flow, or use the small synthetic "
             "fixture bundled with the example config."
         )
+
+
+def _cmd_convert_kitti_raw(args: argparse.Namespace) -> int:
+    from calibrex.data.kitti_raw_to_rosbag2 import convert_kitti_raw_to_rosbag2
+
+    result = convert_kitti_raw_to_rosbag2(
+        args.drives,
+        args.output,
+        calibration_dir=args.calib_dir,
+        command=["calibrex", *args.invoked_argv],
+        overwrite=args.overwrite,
+    )
+    payload = {
+        "bag": str(result.bag),
+        "provenance": str(result.provenance_path),
+        "message_counts": result.message_counts,
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        counts = ", ".join(f"{topic}: {count}" for topic, count in result.message_counts.items())
+        print(f"wrote {result.bag} ({counts})")
+        print(f"provenance: {result.provenance_path}")
+    return 0
 
 
 def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:

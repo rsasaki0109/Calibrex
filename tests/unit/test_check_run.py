@@ -346,3 +346,64 @@ def test_partial_coverage_is_recorded_and_printed(
     assert artifact.overall_verdict == "pass" and artifact.summary.partial_pairs == 1
     table = format_check_table(artifact)
     assert "pass (partial: roll, pitch only)" in table and "WARNING: 1 pair(s)" in table
+
+
+def test_cli_topic_kind_classifies_a_twist_topic_and_is_recorded(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    twist_bag = write_check_bag(
+        tmp_path / "twist.db3",
+        tf_messages=[default_tf()],
+        sensor_frames={
+            "/vehicle/twist": ("geometry_msgs/msg/TwistStamped", "imu_link"),
+            "/lidar_front/points": ("sensor_msgs/msg/PointCloud2", "lidar_front"),
+        },
+    )
+    args = ["check", str(twist_bag), "--plan", "--json", "--vehicle-frame", "base_link"]
+
+    assert main(args) == 0
+    plain = json.loads(capsys.readouterr().out)
+    wheel = next(p for p in plain["pairs"] if p["pair"] == "lidar-wheel_odometry")
+    assert (wheel["status"], wheel["reason_code"]) == ("skipped", "missing_topic")
+    assert "--topic-kind" in wheel["reason"]
+
+    assert main([*args, "--topic-kind", "/vehicle/twist=wheel"]) == 0
+    forced = json.loads(capsys.readouterr().out)
+    wheel = next(p for p in forced["pairs"] if p["pair"] == "lidar-wheel_odometry")
+    assert wheel["status"] == "planned"
+    twist = next(t for t in forced["topics"] if t["topic"] == "/vehicle/twist")
+    assert (twist["role"], twist["odometry_kind"]) == ("twist", "wheel")
+    assert main([*args, "--topic-kind", "/vehicle/twist=gps"]) == 2
+    assert "--topic-kind" in capsys.readouterr().err
+
+
+def test_cli_topic_kind_is_recorded_in_the_run_options(
+    tmp_path: Path, calls: list[PairContext]
+) -> None:
+    out = tmp_path / "check.json"
+    twist_bag = write_check_bag(
+        tmp_path / "twist.db3",
+        tf_messages=[default_tf()],
+        sensor_frames={"/vehicle/twist": ("geometry_msgs/msg/TwistStamped", "imu_link")},
+    )
+
+    assert (
+        main(
+            [
+                "check",
+                str(twist_bag),
+                "--topic-kind",
+                "/vehicle/twist=ins",
+                "--output",
+                str(out),
+                "--no-cache",
+                "--fail-on",
+                "never",
+            ]
+        )
+        == 0
+    )
+
+    artifact = json.loads(out.read_text())
+    assert artifact["options"]["topic_kinds"] == {"/vehicle/twist": "ins"}
+    validate_file(out)
