@@ -157,6 +157,80 @@ LiDAR without such a field is `unsupported_sensor`; deskewing needs it, and an
 undeskewed scan on a moving platform would be a biased yardstick. Livox
 `CustomMsg` is not read yet.
 
+## Phase B results on real recordings
+
+All runs are on development or already-spent recordings (Hilti exp21, NTU VIRAL
+tnp_01, RTK-SLAM construction_seq1); none touches a held-out recording. The
+candidate is each dataset's own deployed calibration. "Known-bad" rows add a
+deliberate yaw error to the candidate and re-judge the same bag. Defaults:
+`k = 3`, floors 0.5 deg and 0.02 m. Runtimes are wall-clock on a shared 8-core
+machine that was oversubscribed during these runs, so read them as upper
+bounds.
+
+| Recording / pair | Candidate | Verdict | Per-axis `|delta|` / tolerance | Unchecked | Runtime |
+| --- | --- | --- | --- | --- | ---: |
+| Hilti exp21, cam0 / IMU | Kalibr `calib_3_cam0-1` | `pass` | roll 0.19/0.50, pitch 0.33/0.50, yaw 0.25/0.50 deg | - | 5.8 min |
+| Hilti exp21, cam1 / IMU | Kalibr `calib_3_cam0-1` | `pass` | roll 0.15/0.50, pitch 0.33/0.50, yaw 0.19/0.53 deg | - | 5.8 min |
+| Hilti exp21, cam0 / IMU | known-bad, +1 deg yaw | `fail` | roll 0.19/0.50, pitch 0.33/0.50, **yaw 1.25/0.50** deg | - | 3.2 min |
+| Hilti exp21, cam0 / IMU | known-bad, +3 deg yaw | `fail` | roll 0.18/0.50, pitch 0.34/0.50, **yaw 3.25/0.50** deg | - | 3.3 min |
+| Hilti exp21 (first 40 s), IMU / Hesai PandarXT-32 | `lidar_calibration.yaml` | `pass` (one axis judged) | roll 0.12/0.50 deg | pitch (std 0.13 deg), yaw (0.19 deg) | 25 min |
+| Hilti exp21 (full 153 s, with lever arm), IMU / Hesai | `lidar_calibration.yaml` | not run to completion | stopped after 2.5 h; see Cost | - | - |
+| NTU tnp_01 (first 240 s), horz / vert LiDAR | design `T_Body2Lidar` | `fail` | pitch 0.52/0.50 (warn), yaw 0.19/0.50, x 0.011/0.020, **y 0.074/0.029, z 0.058/0.020** | roll (std 0.11 deg) | 34 min |
+| NTU tnp_01 (first 240 s) | known-bad, +1 deg yaw | `fail` | same, **yaw 1.19/0.50** (fail) | roll | 34 min |
+| NTU tnp_01 (first 240 s) | known-bad, +3 deg yaw | `fail` | same, **yaw 3.19/0.50** (fail) | roll | 34 min |
+| RTK-SLAM construction_seq1 (first 180 s), IMU / LiDAR | `calib.yaml` | `warn` | roll 0.22/0.50, pitch 0.03/0.50, yaw 0.20/0.50 deg; x 0.032/0.028 (warn), z 0.001/0.020 m | y (std 14 mm) | 94 min |
+| RTK-SLAM construction_seq1 (first 180 s) | known-bad, +1 deg yaw, rotation only | `warn` | yaw **0.80/0.50** (warn), roll 0.22, pitch 0.03 | - | 87 min |
+| RTK-SLAM construction_seq1 (first 180 s) | known-bad, +3 deg yaw, rotation only | `fail` | yaw **2.80/0.50** (fail), roll 0.22, pitch 0.04 | - | 86 min |
+
+What the table shows, including what does not look good:
+
+* **Known-bad flips.** On cam0 the verdict goes `pass` to `fail` at +1 deg (the
+  yaw error is 0.25 deg at baseline, so the added 1 deg exceeds twice the 0.5 deg
+  floor). On RTK-SLAM the rotation axes pass at baseline and the yaw axis goes
+  `pass` (0.20 deg) to `warn` (0.80 deg) at +1 deg and `fail` (2.80 deg) at +3 deg.
+  On NTU the yaw axis flips `pass` to `fail` at +1 deg; the pair was already
+  `fail` from translation, so the pair verdict does not move there. The
+  non-perturbed axes keep their baseline numbers to within 0.01 deg, as they should.
+* **The NTU design transform fails.** The deployed `T_Body2Lidar` values are
+  rounded design numbers; the registration puts the second LiDAR 7.4 cm and
+  5.8 cm away in y and z, and 0.5 deg in pitch, with standard deviations of
+  1 cm or less, and the held-out chi-square rises by about 22,700 when the
+  design value replaces the estimate. This matches the documented development
+  result (about 0.5 deg of pitch and 5 cm in y and z, see the
+  [NTU LiDAR-LiDAR benchmark](../benchmarks/ntu_viral_lidar_lidar.md)). No
+  independent measurement says which is right; the check says the data do not
+  support the design values at the stated accuracy. The estimator's own policy is
+  `inconclusive` (roll is unobservable), and roll is left unchecked.
+* **RTK-SLAM `warn` comes from the lever arm.** All three rotation axes pass.
+  The x lever-arm difference (3.2 cm against a 2.8 cm tolerance) warns, and the
+  translation estimator itself warns that its known-bad 20 mm shift on x was not
+  detected on held-out windows, so that estimate is weak. The y axis was not
+  constrained. The clock offset (10.1 ms) is reported, not judged.
+* **Detection power.** At baseline every judged rotation axis has a
+  `detectable_error` between 0.53 and 0.83 deg, except the NTU pitch axis
+  (1.03 deg, because the candidate is already 0.52 deg off): a 1 deg error on
+  any other axis would have been flagged. The floors dominate the tolerances: at
+  0.5 deg the rule cannot see errors much below that, whatever the estimator's
+  `std`.
+* **Hesai works, but one axis is not a full check.** The Hesai `timestamp`
+  field (float64 absolute seconds) is detected and read as absolute seconds. On
+  the first 40 s of exp21 only roll cleared the 0.1 deg observability bound, so the
+  pair is `pass` on a single axis and lists pitch and yaw as unchecked. Read the
+  `unchecked` column: a `pass` covers only the axes that were judged. The
+  per-axis rule is applied exactly as stated; whether a pair that judged fewer
+  than all rotation axes should be reported differently is an open question.
+* **Cost.** The LiDAR estimators dominate. IMU-LiDAR runs one odometry pass
+  plus up to five gyro-deskew refinement passes and a feedback check, each pass
+  about 0.4 s per scan on these streams: 180 s of Livox data took 87 to 94 minutes
+  and 40 s of Hesai data (58,000 points per scan) took 25 minutes on a loaded
+  machine, and a full 153 s Hesai run with the lever arm was stopped after 2.5
+  hours. The cost does not scale well with the window, so bound it with
+  `--max-duration-s`, `--pairs` and `--no-imu-lidar-translation`. LiDAR-LiDAR took
+  34 minutes for 240 s. Camera-IMU took 3 to 6 minutes for 153 s. The
+  imu-lidar and camera-imu estimates do not depend on the candidate, so the
+  perturbed runs above repeated the same solve; caching the estimate by bag and
+  options would make re-judging a new candidate instant (not done yet).
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest

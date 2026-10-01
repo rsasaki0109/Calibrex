@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- **`calibrex check`, Phase B (verdicts).** Without `--plan`, `calibrex check`
+  now runs the native estimator of `imu-lidar` (rotation, plus the lever arm
+  unless `--no-imu-lidar-translation`), `lidar-lidar` (map registration started
+  at the candidate) and `camera-imu` (needs OpenCV and intrinsics from a Kalibr
+  camchain or a `CameraInfo` topic) and judges the deployed transform against it.
+  Per estimated axis: `tolerance = max(k * std, floor)` (`--sigma-k` 3,
+  `--rotation-floor-deg` 0.5, `--translation-floor-m` 0.02), `pass` within one
+  tolerance, `fail` beyond two, `warn` between; unobservable axes are listed as
+  unchecked, and a pair with no judgeable axis, or whose estimator failed its own
+  held-out check, is `inconclusive`. Each axis records a detection-power
+  self-test (`detectable_error = tolerance + |delta|`, and whether a 1 deg error
+  would be flagged) without re-solving. The overall verdict is the worst pair
+  (`fail > warn > inconclusive > pass`; `inconclusive` when nothing ran). Each
+  estimator's schema'd artifact is written to `<output stem>_evidence/` and
+  referenced by relative path and SHA-256. New options: `--pairs`,
+  `--max-duration-s`, `--camera`, `--evidence-dir`, `--fail-on`,
+  `--acceleration-unit`, `--detection-probe-deg`. `slac.calibration_check/v0.1`
+  gains optional fields only (`options`, `evidence_dir`, per-pair `axes`,
+  `unchecked_axes`, `time_offset`, `evidence`, ...) and new reason codes; plan-only
+  artifacts stay valid. LiDAR support is generalised from Livox to any
+  `PointCloud2` with a per-point time field (offset seconds, absolute seconds as
+  Hesai writes it, or absolute nanoseconds), and the IMU-LiDAR and LiDAR-LiDAR
+  estimators accept a time window. Real-data validation (Hilti, NTU VIRAL,
+  RTK-SLAM, including known-bad yaw perturbations) is in
+  `docs/tutorials/calibrex_check.md`.
 - **`calibrex check`, Phase A (plan only).** `calibrex check BAG [--tf FILE]
   [--vehicle-frame FRAME] [--frame-map TOPIC=FRAME] [--plan]` audits the
   calibration deployed on a robot. It reads candidate extrinsics from the bag's
