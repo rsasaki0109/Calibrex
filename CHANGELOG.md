@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 0.5.0 - 2026-10-02
+
+Highlights:
+
+- **`calibrex check <bag>`**: a zero-config audit of the calibration deployed on a
+  bag. It reads `/tf_static` (or `--tf`), infers topic roles, runs native
+  estimators for 10 sensor pairs including GNSS and vehicle pairs, and reports
+  per-axis verdicts with partial coverage and detection power. It caches
+  estimators, checks rig closure, writes a self-contained HTML report (`--html`),
+  and `calibrex convert kitti-raw` turns KITTI raw drives into bags.
+- Pre-registered SOTA audits and a leaderboard: imu-lidar and lidar-vehicle are
+  supported, lidar-lidar is refuted.
+- Native methods for all 10 target sensor pairs.
+- A browser calibration page.
+- Camera-IMU static-window exclusion and a camera bound.
+
 - **`calibrex check`, Phase D: rig closure, HTML report, the 1 degree demo.** The
   estimates of a run are now also checked against each other: parallel estimates of
   one frame pair and cycles (a fundamental cycle basis) are judged with the pairs'
