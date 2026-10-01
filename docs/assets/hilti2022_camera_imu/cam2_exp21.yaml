@@ -2,99 +2,102 @@ schema_version: slac.imu_lidar_rotation/v0.1
 method: angular_rate_alignment/v0.1
 sensor_modality: camera
 solver_status: converged
-policy_status: inconclusive
+policy_status: pass
 policy_reasons:
-- 'not constrained by the data, so not calibrated: roll, pitch, yaw'
+- every rotation axis is estimated and held-out windows detect every control
 calibrated_dofs:
+- roll
+- pitch
+- yaw
 - time_offset
 - gyro_bias_x
 - gyro_bias_y
 - gyro_bias_z
 rotation_quat_xyzw:
-- 0.9999943297205335
-- 0.0031625661180769635
-- 0.0011035663601192045
-- -0.0003476256876156683
-time_offset_s: 0.0017023593275448915
+- 0.9999927026426622
+- 0.003439307945388434
+- 0.0012643198029086017
+- 0.0010804247855270871
+time_offset_s: 0.0015868282975379576
 gyro_bias_rps:
-- 0.0007687486499727469
-- 0.0018430552968862408
-- -0.000651453965396672
+- 0.0004330505496958583
+- 0.002735143066360261
+- -0.001564563429619331
 dofs:
 - name: roll
   unit: deg
-  value: -179.96056509319888
-  std_analytic: 0.06291522607859396
-  std_jackknife: 0.14159491904461535
-  std_reported: 0.14159491904461535
-  status: unobservable
+  value: 179.87569456206802
+  std_analytic: 0.08353605950247088
+  std_jackknife: 0.25919731624582537
+  std_reported: 0.25919731624582537
+  status: estimated
   reference_value: -179.84104865459915
-  error_to_reference: -0.11836549140056776
+  error_to_reference: -0.28194333442275726
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 131.47814504924645
+    holdout_delta_chi2: 47.37991091074855
     detected: true
 - name: pitch
   unit: deg
-  value: -0.12658475633841829
-  std_analytic: 0.07501393328091122
-  std_jackknife: 0.16199304405133638
-  std_reported: 0.16199304405133638
-  status: unobservable
+  value: -0.14445366078663732
+  std_analytic: 0.08991235600355894
+  std_jackknife: 0.14700810635536377
+  std_reported: 0.14700810635536377
+  status: estimated
   reference_value: 0.09104038483478591
-  error_to_reference: -0.21825328268254163
+  error_to_reference: -0.23706487606050894
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 99.373527767817
+    holdout_delta_chi2: 97.87142044779193
     detected: true
 - name: yaw
   unit: deg
-  value: 0.36236066648991166
-  std_analytic: 0.07603316348489171
-  std_jackknife: 0.22713199706572282
-  std_reported: 0.22713199706572282
-  status: unobservable
+  value: 0.394273680539152
+  std_analytic: 0.09759920391809933
+  std_jackknife: 0.23585558140404134
+  std_reported: 0.23585558140404134
+  status: estimated
   reference_value: 0.24284751643417815
-  error_to_reference: 0.11947589102861916
+  error_to_reference: 0.15129361112616393
   known_bad_control:
     amount: 1.0
     unit: deg
-    holdout_delta_chi2: 46.49996016719888
+    holdout_delta_chi2: 52.391535545739316
     detected: true
 - name: time_offset
   unit: s
-  value: 0.0017023593275448915
-  std_analytic: 7.245654915735255e-05
-  std_jackknife: 0.00012736287988517154
-  std_reported: 0.00012736287988517154
+  value: 0.0015868282975379576
+  std_analytic: 9.608203973397129e-05
+  std_jackknife: 0.0001583514139800816
+  std_reported: 0.0001583514139800816
   status: estimated
   known_bad_control:
     amount: 0.01
     unit: s
-    holdout_delta_chi2: 4520.979419309295
+    holdout_delta_chi2: 4273.133053920107
     detected: true
 - name: gyro_bias_x
   unit: rad/s
-  value: 0.0007687486499727469
-  std_analytic: 0.00018754718961020434
-  std_jackknife: 0.00047090666620076317
-  std_reported: 0.00047090666620076317
+  value: 0.0004330505496958583
+  std_analytic: 0.0002733456126341085
+  std_jackknife: 0.0007890962907504651
+  std_reported: 0.0007890962907504651
   status: estimated
 - name: gyro_bias_y
   unit: rad/s
-  value: 0.0018430552968862408
-  std_analytic: 0.0001879308896336515
-  std_jackknife: 0.0005472958591916651
-  std_reported: 0.0005472958591916651
+  value: 0.002735143066360261
+  std_analytic: 0.00027883619858863227
+  std_jackknife: 0.0010687247806448455
+  std_reported: 0.0010687247806448455
   status: estimated
 - name: gyro_bias_z
   unit: rad/s
-  value: -0.000651453965396672
-  std_analytic: 0.00018186828797518692
-  std_jackknife: 0.0002611165636200415
-  std_reported: 0.0002611165636200415
+  value: -0.001564563429619331
+  std_analytic: 0.0002678241896774756
+  std_jackknife: 0.0004434149121078588
+  std_reported: 0.0004434149121078588
   status: estimated
 options:
   holdout_every: 3
@@ -113,7 +116,7 @@ options:
   - 1
   rate_sigma_floor_rps: 0.01
   rate_sigma_fraction: 0.02
-  observable_rotation_std_deg: 0.1
+  observable_rotation_std_deg: 0.3
   observable_time_offset_std_s: 0.002
   frame_stride: 4
   visual_rotation:
@@ -122,6 +125,10 @@ options:
     essential: 873
     pure_rotation: 654
     failed: 0
+  min_window_rotation_deg: 1.0
+  static_windows_excluded: 2
+  static_windows_excluded_reason: 'accumulated window rotation below 1 deg: near-static
+    windows carry no rotation information'
   essential_inlier_fraction: 0.0
   max_features: 600
 windows:
@@ -129,13 +136,13 @@ windows:
   odometry_segments: 1
   unreliable_registrations: 0
   windows: 16
-  rate_intervals: 1510
+  rate_intervals: 1386
   imu_samples: 61012
-train_windows: 11
+train_windows: 9
 holdout_windows: 5
 jackknife_fits: 8
-train_median_rate_residual_rps: 0.012652650766252624
-holdout_median_rate_residual_rps: 0.017467373503716476
+train_median_rate_residual_rps: 0.016376067584528583
+holdout_median_rate_residual_rps: 0.01595014602174183
 reference: 'Kalibr camchain calib_3_cam2-camchain-imucam.yaml cam0: T_cam_imu, timeshift_cam_imu
   0.001939579925335353 s'
 deskew_passes: []
@@ -148,7 +155,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.camera_imu_rotation
   generator_version: 0.4.1
-  git_commit: 385db0c
+  git_commit: bc0f1dc
   command:
   - calibrex
   - camera-imu
@@ -172,4 +179,4 @@ provenance:
   input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
     MiB
   dataset_license: Hilti SLAM Challenge 2022 terms
-  created_at: '2026-09-30T13:27:36.694996+00:00'
+  created_at: '2026-10-01T05:12:28.357944+00:00'

@@ -92,6 +92,10 @@ class ImuLidarRunOptions:
     gyro_deskew_passes: int = 5
     deskew_convergence_sigma: float = 0.25
     feedback_check_deg: float = 2.0
+    # Windows whose accumulated reference rotation (sum of per-step angles) is
+    # below this many degrees are left out of the fit, the jackknife, and the
+    # holdout. 0 keeps every window (the IMU-LiDAR behaviour).
+    min_window_rotation_deg: float = 0.0
     windowing: WindowingOptions = field(default_factory=WindowingOptions)
     solver: RotationOptions = field(default_factory=RotationOptions)
 
@@ -110,6 +114,17 @@ class ImuLidarEvaluation:
     interval_count: int
     policy_status: ImuLidarPolicyStatus
     policy_reasons: tuple[str, ...]
+    static_windows_excluded: int = 0
+
+
+def window_rotation_deg(window: OdometryWindow) -> float:
+    """Return the accumulated rotation of a window: the sum of per-step angles."""
+
+    rotations = window.poses[:, :3, :3]
+    if len(rotations) < 2:
+        return 0.0
+    steps = np.transpose(rotations[:-1], (0, 2, 1)) @ rotations[1:]
+    return float(np.degrees(np.linalg.norm(Rotation.from_matrix(steps).as_rotvec(), axis=1).sum()))
 
 
 def evaluate_imu_lidar_rotation(
@@ -122,6 +137,11 @@ def evaluate_imu_lidar_rotation(
     """Fit on train windows; collect jackknife, control, and holdout evidence."""
 
     opts = options or ImuLidarRunOptions()
+    excluded = 0
+    if opts.min_window_rotation_deg > 0.0:
+        kept = [w for w in windows if window_rotation_deg(w) >= opts.min_window_rotation_deg]
+        excluded = len(windows) - len(kept)
+        windows = kept
     intervals = rate_intervals(windows, gyro, opts.solver)
     positions = np.arange(len(windows))
     holdout_ids = positions[positions % opts.holdout_every == 1]
@@ -134,6 +154,7 @@ def evaluate_imu_lidar_rotation(
         return ImuLidarEvaluation(
             result, (), len(train_ids), len(holdout_ids), 0, None, None, len(intervals),
             "fail", ("too few LiDAR rate intervals with gyro coverage to solve",),
+            excluded,
         )  # fmt: skip
     jackknife, fits = _jackknife(solver, gyro, train, train_ids, opts, result.rotation)
     reference = _reference_values(reference_rotation)
@@ -164,6 +185,7 @@ def evaluate_imu_lidar_rotation(
         interval_count=len(intervals),
         policy_status=status,
         policy_reasons=reasons,
+        static_windows_excluded=excluded,
     )
 
 

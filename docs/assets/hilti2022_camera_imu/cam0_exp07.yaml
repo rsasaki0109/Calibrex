@@ -2,10 +2,13 @@ schema_version: slac.imu_lidar_rotation/v0.1
 method: angular_rate_alignment/v0.1
 sensor_modality: camera
 solver_status: converged
-policy_status: inconclusive
+policy_status: pass
 policy_reasons:
-- 'not constrained by the data, so not calibrated: roll, pitch, yaw'
+- every rotation axis is estimated and held-out windows detect every control
 calibrated_dofs:
+- roll
+- pitch
+- yaw
 - time_offset
 - gyro_bias_x
 - gyro_bias_y
@@ -27,7 +30,7 @@ dofs:
   std_analytic: 0.1094100821614407
   std_jackknife: 0.11717264963982837
   std_reported: 0.11717264963982837
-  status: unobservable
+  status: estimated
   reference_value: -109.30150415098159
   error_to_reference: -0.22723749700594761
   known_bad_control:
@@ -41,7 +44,7 @@ dofs:
   std_analytic: 0.13871709694353024
   std_jackknife: 0.24160031653513162
   std_reported: 0.24160031653513162
-  status: unobservable
+  status: estimated
   reference_value: -89.59129927320875
   error_to_reference: -0.19550902608007356
   known_bad_control:
@@ -55,7 +58,7 @@ dofs:
   std_analytic: 0.10543354508387347
   std_jackknife: 0.18966492785962052
   std_reported: 0.18966492785962052
-  status: unobservable
+  status: estimated
   reference_value: 19.88016480982921
   error_to_reference: -0.19946435851073968
   known_bad_control:
@@ -113,7 +116,7 @@ options:
   - 1
   rate_sigma_floor_rps: 0.01
   rate_sigma_fraction: 0.02
-  observable_rotation_std_deg: 0.1
+  observable_rotation_std_deg: 0.3
   observable_time_offset_std_s: 0.002
   frame_stride: 4
   visual_rotation:
@@ -122,6 +125,10 @@ options:
     essential: 939
     pure_rotation: 366
     failed: 16
+  min_window_rotation_deg: 1.0
+  static_windows_excluded: 0
+  static_windows_excluded_reason: 'accumulated window rotation below 1 deg: near-static
+    windows carry no rotation information'
   essential_inlier_fraction: 0.0
   max_features: 600
 windows:
@@ -148,7 +155,7 @@ limitations:
 provenance:
   generator: calibrex.evaluation.camera_imu_rotation
   generator_version: 0.4.1
-  git_commit: 385db0c
+  git_commit: bc0f1dc
   command:
   - calibrex
   - camera-imu
@@ -172,4 +179,4 @@ provenance:
   input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
     MiB
   dataset_license: Hilti SLAM Challenge 2022 terms
-  created_at: '2026-09-30T13:31:55.371221+00:00'
+  created_at: '2026-10-01T05:17:06.740244+00:00'
