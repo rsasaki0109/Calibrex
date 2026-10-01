@@ -18,7 +18,7 @@ from calibrex.core.calibration_check import (
 
 # Sensor "slots" a pair draws from. ``ins`` and ``wheel`` are odometry topics
 # classified by name; ``vehicle`` is a frame, not a topic.
-_PAIR_SLOTS: dict[CheckPairName, tuple[str, str]] = {
+PAIR_SLOTS: dict[CheckPairName, tuple[str, str]] = {
     "imu-lidar": ("imu", "lidar"),
     "lidar-lidar": ("lidar", "lidar"),
     "camera-imu": ("camera", "imu"),
@@ -166,7 +166,7 @@ def plan_pairs(
     has_candidates = bool(tree.edges)
     records: list[CheckPairRecord] = []
     for pair in CHECK_PAIR_NAMES:
-        first_slot, second_slot = _PAIR_SLOTS[pair]
+        first_slot, second_slot = PAIR_SLOTS[pair]
         if pair not in wired_pairs:
             records.append(
                 _skip(pair, "method_not_wired", f"no check method is wired for {pair} yet")

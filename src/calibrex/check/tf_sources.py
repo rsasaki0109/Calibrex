@@ -383,6 +383,19 @@ def _camera_frame_name(key: str, entry: dict[str, Any]) -> tuple[str, str | None
     return key, None
 
 
+def camchain_entries(path: Path) -> list[tuple[str, str, dict[str, Any]]]:
+    """Return ``(key, frame name, entry)`` of every camera in a camchain-style file."""
+
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        return []
+    entries: list[tuple[str, str, dict[str, Any]]] = []
+    for key, entry in payload.items():
+        if _CAM_KEY.match(str(key)) and isinstance(entry, dict):
+            entries.append((str(key), _camera_frame_name(str(key), entry)[0], entry))
+    return entries
+
+
 # ----------------------------------------------------------------------- Kalibr
 
 

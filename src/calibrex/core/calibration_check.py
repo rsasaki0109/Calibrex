@@ -6,9 +6,12 @@ record per sensor pair that could be audited.  Transforms follow the
 ``T_parent_child`` convention (``p_parent = T p_child``); a pair named ``A-B``
 carries ``T_A_B`` composed through the static tree.
 
-Phase A only plans: every runnable pair has status ``planned``.  The verdict
-statuses and the evidence fields are reserved so later phases add data without
-changing this version.
+A plan-only run (``plan_only: true``) leaves every runnable pair ``planned``.
+A full run executes the native estimator of each wired pair and judges the
+candidate transform against it: the pair status becomes ``pass``, ``warn``,
+``fail`` or ``inconclusive`` and the pair record carries per-axis judgements,
+the estimator's evidence artifact (path and SHA-256) and the options used.
+These fields are optional additions, so plan-only artifacts stay valid.
 
 ``slac.check_frames/v0.1`` is the small input format accepted by
 ``calibrex check --tf`` for hand-written static frame trees.
@@ -62,6 +65,13 @@ CheckReasonCode = Literal[
     "no_candidate_calibration",
     "no_vehicle_frame",
     "method_not_wired",
+    "not_selected",
+    "unsupported_sensor",
+    "missing_intrinsics",
+    "missing_dependency",
+    "estimator_error",
+    "estimator_failed",
+    "no_judgeable_axes",
 ]
 CandidateSourceKind = Literal[
     "bag_tf_static",
@@ -138,6 +148,87 @@ class CheckFrameTree(StrictModel):
     overrides: list[str] = Field(default_factory=list)
 
 
+CheckAxisName = Literal["roll", "pitch", "yaw", "x", "y", "z"]
+CheckAxisStatus = Literal["pass", "warn", "fail"]
+
+
+class CheckAxisJudgement(StrictModel):
+    """One judged axis: candidate error against the estimator's value and uncertainty.
+
+    ``candidate_error`` is candidate minus estimate: for a rotation axis the
+    component of the small rotation ``R_candidate R_estimate^T`` about the axes
+    of the compared transform's parent frame (degrees, the convention the
+    estimator reports its standard deviation in); for a translation axis the
+    difference of the translation components (metres).
+
+    ``tolerance = max(sigma_k * std, floor)``. ``status`` is ``pass`` when
+    ``|candidate_error| <= tolerance``, ``fail`` when it exceeds twice the
+    tolerance, else ``warn``.
+
+    ``detectable_error`` is ``tolerance + |candidate_error|``: a deliberate
+    error larger than this on this axis, of either sign, would have pushed
+    ``|candidate_error|`` beyond ``tolerance`` and been flagged. It is derived
+    from the candidate error and uncertainty at hand; no solve is repeated.
+    ``detects_perturbation`` says whether the probe of
+    ``detection_probe`` (degrees, rotation axes only) is below that bound.
+    """
+
+    name: CheckAxisName
+    unit: Literal["deg", "m"]
+    candidate_error: float
+    estimate_std: float = Field(ge=0.0)
+    tolerance: float = Field(gt=0.0)
+    tolerance_source: Literal["sigma", "floor"]
+    ratio: float = Field(ge=0.0, description="abs(candidate_error) / tolerance")
+    status: CheckAxisStatus
+    detectable_error: float = Field(ge=0.0)
+    detection_probe: float | None = None
+    detects_perturbation: bool | None = None
+
+
+class CheckUncheckedAxis(StrictModel):
+    """An axis the estimator did not constrain, so the candidate is not judged on it."""
+
+    name: CheckAxisName
+    unit: Literal["deg", "m"]
+    std: float | None = Field(default=None, ge=0.0)
+    reason: str
+    reason_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+
+
+class CheckTimeOffset(StrictModel):
+    """The estimator's clock offset; reported, not judged."""
+
+    estimate_s: float
+    std_s: float | None = Field(default=None, ge=0.0)
+    status: Literal["estimated", "unobservable"]
+    note: str = "reported only; not judged"
+
+
+class CheckEvidenceRef(StrictModel):
+    """One estimator artifact written next to the check artifact."""
+
+    path: str = Field(description="relative to the check artifact's directory")
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    schema_version: str
+    role: str
+    policy_status: str | None = None
+
+
+class CheckOptions(StrictModel):
+    """Verdict thresholds and runtime controls used for a run."""
+
+    sigma_k: float = Field(gt=0.0)
+    rotation_floor_deg: float = Field(gt=0.0)
+    translation_floor_m: float = Field(gt=0.0)
+    detection_probe_deg: float = Field(gt=0.0)
+    max_duration_s: float | None = None
+    pairs: list[str] | None = None
+    camera: str | None = None
+    imu_lidar_translation: bool = True
+    acceleration_unit: Literal["mps2", "g"] = "mps2"
+
+
 class CheckPairRecord(StrictModel):
     """One candidate sensor pair and what was decided for it."""
 
@@ -151,6 +242,27 @@ class CheckPairRecord(StrictModel):
     reason: str | None = None
     evidence_artifact: str | None = None
     verdict: str | None = None
+    compared_transform: CheckTransform | None = Field(
+        default=None,
+        description=(
+            "the candidate in the estimator's convention (for example T_lidar_imu for "
+            "imu-lidar); axes are those of its parent frame"
+        ),
+    )
+    estimator: str | None = None
+    estimator_policy_status: str | None = None
+    estimator_policy_reasons: list[str] = Field(default_factory=list)
+    axes: list[CheckAxisJudgement] = Field(default_factory=list)
+    unchecked_axes: list[CheckUncheckedAxis] = Field(default_factory=list)
+    time_offset: CheckTimeOffset | None = None
+    evidence: list[CheckEvidenceRef] = Field(default_factory=list)
+    coverage: Literal["full", "partial"] | None = Field(
+        default=None,
+        description="partial when any rotation axis, or any translation axis the estimator "
+        "attempted, is unchecked",
+    )
+    runtime_s: float | None = Field(default=None, ge=0.0)
+    notes: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _status_fields_are_consistent(self) -> CheckPairRecord:
@@ -172,6 +284,11 @@ class CheckSummary(StrictModel):
     runnable_count: int = Field(ge=0)
     status_counts: dict[str, int] = Field(default_factory=dict)
     skipped_by_reason: dict[str, int] = Field(default_factory=dict)
+    partial_pairs: int = Field(
+        default=0,
+        ge=0,
+        description="run pairs that left at least one attempted axis unchecked",
+    )
 
 
 class CheckProvenance(StrictModel):
@@ -199,7 +316,17 @@ class CalibrationCheckArtifact(StrictModel):
     frame_tree: CheckFrameTree
     pairs: list[CheckPairRecord] = Field(default_factory=list)
     summary: CheckSummary
-    overall_verdict: str | None = None
+    overall_verdict: str | None = Field(
+        default=None,
+        description=(
+            "worst verdict over the pairs that ran (fail > warn > inconclusive > pass); "
+            "absent in a plan-only run; inconclusive when no pair ran"
+        ),
+    )
+    options: CheckOptions | None = None
+    evidence_dir: str | None = Field(
+        default=None, description="evidence directory, relative to the artifact"
+    )
     provenance: CheckProvenance
 
     @model_validator(mode="after")
@@ -219,7 +346,9 @@ def summarize_pairs(pairs: list[CheckPairRecord]) -> CheckSummary:
         status_counts[pair.status] = status_counts.get(pair.status, 0) + 1
         if pair.status == "skipped" and pair.reason_code is not None:
             skipped_by_reason[pair.reason_code] = skipped_by_reason.get(pair.reason_code, 0) + 1
+    partial = sum(1 for pair in pairs if pair.coverage == "partial")
     return CheckSummary(
+        partial_pairs=partial,
         pair_count=len(pairs),
         runnable_count=len(pairs) - status_counts.get("skipped", 0),
         status_counts=dict(sorted(status_counts.items())),

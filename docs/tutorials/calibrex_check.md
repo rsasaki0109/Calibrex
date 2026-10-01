@@ -1,18 +1,22 @@
 # Check a deployed calibration (`calibrex check`)
 
-Status: **Phase A, plan only.** The command reads the calibration deployed on a
-robot, works out which sensor pairs a bag can audit, and says why the others
-cannot be. No pair solver runs yet; later phases will run the existing native
-evidence methods per pair and add pass / warn / fail / inconclusive verdicts.
+Status: **Phase B** (imu-lidar, lidar-lidar, camera-imu). The command reads the
+calibration deployed on a robot, works out which sensor pairs a bag can audit,
+and, without `--plan`, runs the existing native estimator of each wired pair and
+judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
+`inconclusive` per pair, with the per-axis numbers behind it. Other pairs stay
+`skipped` with `method_not_wired`.
 
 ```bash
-calibrex check my_bag/ --plan --output check.json
+calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
+calibrex check my_bag/ --tf rig.urdf --output check.json          # run the estimators, judge
+calibrex check my_bag/ --pairs imu-lidar,camera-imu --max-duration-s 120 --output check.json
 calibrex check my_bag/ --tf rig.urdf --vehicle-frame base_link --plan  # ground vehicle
 calibrex validate check.json
 ```
 
-Without `--plan` the command behaves the same and prints a notice that solvers
-are not wired yet.
+`--plan` is unchanged and runs no estimator. Without `--output` the estimator
+artifacts go to `./calibrex_check_evidence/`.
 
 ## Candidate calibration
 
@@ -64,6 +68,16 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
 | `frames_not_connected` | the two frames are in different trees |
 | `method_not_wired` | no check method exists for the pair yet |
+| `not_selected` | a wired pair that `--pairs` or `--camera` left out |
+| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field (scans cannot be deskewed), a compressed camera image |
+| `missing_intrinsics` | `camera-imu` needs intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
+| `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`) |
+
+A run can also leave a pair `inconclusive` with one of `estimator_error` (the
+estimator raised; the message is recorded and the other pairs still run),
+`estimator_failed` (no solution, or the estimator failed its own held-out check,
+so its estimate is not a reliable yardstick) or `no_judgeable_axes` (every axis
+was unobservable).
 
 ## Vehicle pairs are opt-in
 
@@ -75,11 +89,178 @@ not in the tree the pairs are skipped with `frame_not_in_tree`. An automatic
 ground-vehicle motion test may replace the flag in Phase C. The artifact
 records `vehicle_frame` (absent when not given).
 
+## Verdicts (Phase B)
+
+| Pair | Estimator | Compared transform | Judged axes |
+| --- | --- | --- | --- |
+| `imu-lidar` | `imu-lidar` rotation (gyro against LiDAR odometry) and, unless `--no-imu-lidar-translation`, lever arm (accelerometer) | `T_lidar_imu` (the planner's `T_imu_lidar` inverted) | roll, pitch, yaw, x, y, z |
+| `lidar-lidar` | map registration, started at the candidate | `T_first_second` | roll, pitch, yaw, x, y, z |
+| `camera-imu` | targetless camera rotation against the gyro | `T_cam_imu` | roll, pitch, yaw |
+
+Per axis `i` the estimator reports an estimate, a standard deviation `std_i`
+(the larger of its analytic and jackknife values) and whether the axis is
+`estimated` or `unobservable`. Only estimated axes are judged; the rest are
+listed as `unchecked_axes` with the reason.
+
+* `delta_i` is candidate minus estimate. For rotations it is the component of
+  `rotvec(R_candidate R_estimate^T)` about the axes of the compared transform's
+  parent frame, in degrees; this is the convention the estimators report `std`
+  in. For translations it is the difference of the components, in metres.
+* `tolerance_i = max(k * std_i, floor)`, with `k = --sigma-k` (3),
+  rotation floor `--rotation-floor-deg` (0.5 deg) and translation floor
+  `--translation-floor-m` (0.02 m). Each axis records which one dominated
+  (`tolerance_source`).
+* Axis: `pass` if `|delta_i| <= tolerance_i`, `fail` if `|delta_i| > 2 * tolerance_i`,
+  otherwise `warn`.
+* Pair: `fail` if any judged axis fails, else `warn` if any warns, else `pass`.
+  `inconclusive` when no axis could be judged, the estimator did not solve, or
+  it failed its own held-out check. The estimator's clock offset is reported
+  (`time_offset`) but not judged.
+* Overall: the worst pair verdict in the order `fail > warn > inconclusive > pass`.
+  Skipped pairs do not count. If no pair ran the overall verdict is
+  `inconclusive`, never a silent pass. The exit status is 1 when the overall
+  verdict is at least `--fail-on` (default `fail`; `never` always exits 0).
+
+The estimator is told nothing about the candidate except, for `lidar-lidar`, its
+starting value (the solver is local, so a candidate outside its capture range
+shows up as a failed held-out check, not as a large `delta`); for the other two
+pairs the estimate is independent of the candidate. The estimator's own
+`reference` fields carry the candidate, so each evidence artifact also holds its
+`error_to_reference`.
+
+### Coverage
+
+A pair is `partial` when any rotation axis, or any translation axis the
+estimator attempted, is unchecked: because it is unobservable, or because the
+estimator's own known-bad control on that axis was not detected on held-out data
+(`control_not_detected`; the estimate is then not trusted as a yardstick). The
+table prints `pass (partial: roll only)`, the pair record carries
+`coverage: partial`, and the summary counts `partial_pairs`. A run whose pairs
+all pass but some are partial keeps the overall verdict `pass`, and the CLI
+prints a warning; a `pass` covers only the judged axes.
+
+### What error could this bag detect?
+
+Every judged axis records a detection-power self-test that re-solves nothing.
+If the candidate were wrong by a further `e` on that axis, either sign, the
+error would be `delta_i + e`; it is flagged (beyond tolerance) for both signs
+exactly when `e > tolerance_i + |delta_i|`. That bound is recorded as
+`detectable_error` (degrees or metres), and for rotation axes
+`detects_perturbation` says whether a `--detection-probe-deg` (1) error would
+have been flagged. A bag whose axes carry `detectable_error` of 0.8 deg catches
+1 deg errors; one with 2 deg cannot, and a `pass` from it only means "no
+error larger than that was seen".
+
+### Runtime controls
+
+`--pairs a,b` restricts pairs; `--camera TOPIC` restricts `camera-imu` to one
+image topic (or camera frame); `--max-duration-s S` analyses the first `S`
+seconds of each sensor stream (images, scans, IMU samples within that window;
+the IMU is still read in full but only the covered span is used);
+`--acceleration-unit` states the IMU unit for the lever arm (`g` for Livox
+`livox_ros_driver2` recordings). Progress is printed to stderr.
+
+LiDAR support: `PointCloud2` with a per-point time field. The field (`offset_time`,
+`t`, `time`, `timestamp`, ...) and its meaning (offset in seconds, absolute
+seconds as Hesai writes it, absolute nanoseconds as Livox writes it) are
+detected from the first message by comparing its values with the header stamp. A
+LiDAR without such a field is `unsupported_sensor`; deskewing needs it, and an
+undeskewed scan on a moving platform would be a biased yardstick. Livox
+`CustomMsg` is not read yet.
+
+## Phase B results on real recordings
+
+All runs are on development or already-spent recordings (Hilti exp21, NTU VIRAL
+tnp_01, RTK-SLAM construction_seq1); none touches a held-out recording. The
+candidate is each dataset's own deployed calibration. "Known-bad" rows add a
+deliberate yaw error to the candidate and re-judge the same bag. Defaults:
+`k = 3`, floors 0.5 deg and 0.02 m. Runtimes are wall-clock on a shared 8-core
+machine that was oversubscribed during these runs, so read them as upper
+bounds.
+
+| Recording / pair | Candidate | Verdict | Per-axis `|delta|` / tolerance | Unchecked | Runtime |
+| --- | --- | --- | --- | --- | ---: |
+| Hilti exp21, cam0 / IMU | Kalibr `calib_3_cam0-1` | `pass` | roll 0.19/0.50, pitch 0.33/0.50, yaw 0.25/0.50 deg | - | 5.8 min |
+| Hilti exp21, cam1 / IMU | Kalibr `calib_3_cam0-1` | `pass` | roll 0.15/0.50, pitch 0.33/0.50, yaw 0.19/0.53 deg | - | 5.8 min |
+| Hilti exp21, cam0 / IMU | known-bad, +1 deg yaw | `fail` | roll 0.19/0.50, pitch 0.33/0.50, **yaw 1.25/0.50** deg | - | 3.2 min |
+| Hilti exp21, cam0 / IMU | known-bad, +3 deg yaw | `fail` | roll 0.18/0.50, pitch 0.34/0.50, **yaw 3.25/0.50** deg | - | 3.3 min |
+| Hilti exp21 (first 40 s), IMU / Hesai PandarXT-32 | `lidar_calibration.yaml` | `pass (partial: roll only)` | roll 0.12/0.50 deg | pitch (std 0.13 deg), yaw (0.19 deg) | 25 min |
+| Hilti exp21 (full 153 s, with lever arm), IMU / Hesai | `lidar_calibration.yaml` | not run to completion | stopped after 2.5 h; see Cost | - | - |
+| NTU tnp_01 (first 240 s), horz / vert LiDAR | design `T_Body2Lidar` | `fail` | pitch 0.52/0.50 (warn), yaw 0.19/0.50, x 0.011/0.020, **y 0.074/0.029, z 0.058/0.020** | roll (std 0.11 deg) | 34 min |
+| NTU tnp_01 (first 240 s) | known-bad, +1 deg yaw | `fail` | same, **yaw 1.19/0.50** (fail) | roll | 34 min |
+| NTU tnp_01 (first 240 s) | known-bad, +3 deg yaw | `fail` | same, **yaw 3.19/0.50** (fail) | roll | 34 min |
+| RTK-SLAM construction_seq1 (first 180 s), IMU / LiDAR | `calib.yaml` | `pass (partial: roll, pitch, yaw, z only)` | roll 0.22/0.50, pitch 0.03/0.50, yaw 0.20/0.50 deg; z 0.001/0.020 m | x (`control_not_detected`), y (std 14 mm) | 94 min |
+| RTK-SLAM construction_seq1 (first 180 s) | known-bad, +1 deg yaw, rotation only | `warn` | yaw **0.80/0.50** (warn), roll 0.22, pitch 0.03 | - | 87 min |
+| RTK-SLAM construction_seq1 (first 180 s) | known-bad, +3 deg yaw, rotation only | `fail` | yaw **2.80/0.50** (fail), roll 0.22, pitch 0.04 | - | 86 min |
+
+What the table shows, including what does not look good:
+
+* **Known-bad flips.** On cam0 the verdict goes `pass` to `fail` at +1 deg (the
+  yaw error is 0.25 deg at baseline, so the added 1 deg exceeds twice the 0.5 deg
+  floor). On RTK-SLAM the rotation axes pass at baseline and the yaw axis goes
+  `pass` (0.20 deg) to `warn` (0.80 deg) at +1 deg and `fail` (2.80 deg) at +3 deg.
+  On NTU the yaw axis flips `pass` to `fail` at +1 deg; the pair was already
+  `fail` from translation, so the pair verdict does not move there. The
+  non-perturbed axes keep their baseline numbers to within 0.01 deg, as they should.
+* **The NTU design transform fails.** The deployed `T_Body2Lidar` values are
+  rounded design numbers; the registration puts the second LiDAR 7.4 cm and
+  5.8 cm away in y and z, and 0.5 deg in pitch, with standard deviations of
+  1 cm or less, and the held-out chi-square rises by about 22,700 when the
+  design value replaces the estimate. This matches the documented development
+  result (about 0.5 deg of pitch and 5 cm in y and z, see the
+  [NTU LiDAR-LiDAR benchmark](../benchmarks/ntu_viral_lidar_lidar.md)). No
+  independent measurement says which is right; the check says the data do not
+  support the design values at the stated accuracy. The estimator's own policy is
+  `inconclusive` (roll is unobservable), and roll is left unchecked.
+* **RTK-SLAM is a partial pass.** The first run judged x as a `warn` (3.2 cm
+  against 2.8 cm). The estimator's own known-bad 20 mm shift on x was not
+  detected on held-out windows, so x is now left unchecked with reason
+  `control_not_detected` (the same evidence, re-judged), and the pair is `pass`
+  with partial coverage. The y axis was not constrained. The clock offset
+  (10.1 ms) is reported, not judged. The +1 and +3 deg rows were rotation only
+  and are unaffected.
+* **Detection power.** At baseline every judged rotation axis has a
+  `detectable_error` between 0.53 and 0.83 deg, except the NTU pitch axis
+  (1.03 deg, because the candidate is already 0.52 deg off): a 1 deg error on
+  any other axis would have been flagged. The floors dominate the tolerances: at
+  0.5 deg the rule cannot see errors much below that, whatever the estimator's
+  `std`.
+* **Hesai works, but one axis is not a full check.** The Hesai `timestamp`
+  field (float64 absolute seconds) is detected and read as absolute seconds. On
+  the first 40 s of exp21 only roll cleared the 0.1 deg observability bound, so the
+  pair is `pass` on a single axis and lists pitch and yaw as unchecked. Read the
+  `unchecked` column: a `pass` covers only the axes that were judged. The
+  per-axis rule is applied exactly as stated; whether a pair that judged fewer
+  than all rotation axes should be reported differently is an open question.
+* **Cost.** The LiDAR estimators dominate. IMU-LiDAR runs one odometry pass
+  plus up to five gyro-deskew refinement passes and a feedback check, each pass
+  about 0.4 s per scan on these streams: 180 s of Livox data took 87 to 94 minutes
+  and 40 s of Hesai data (58,000 points per scan) took 25 minutes on a loaded
+  machine, and a full 153 s Hesai run with the lever arm was stopped after 2.5
+  hours. The cost does not scale well with the window, so bound it with
+  `--max-duration-s`, `--pairs` and `--no-imu-lidar-translation`. LiDAR-LiDAR took
+  34 minutes for 240 s. Camera-IMU took 3 to 6 minutes for 153 s. The
+  imu-lidar and camera-imu estimates do not depend on the candidate, so the
+  perturbed runs above repeated the same solve; caching the estimate by bag and
+  options would make re-judging a new candidate instant (not done yet).
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest
 (`metadata.yaml` in full; storage files by name, size and first 64 MiB, the
 same scope used by other bag-based artifacts), candidate sources, topics with
 roles and frames, the frame tree, per-pair records with the candidate
-transform, status and reason, a summary, and provenance. Fields for evidence
-artifacts and verdicts are reserved and empty in Phase A.
+transform, status and reason, a summary, and provenance. A run adds, as
+optional fields: `options` (thresholds and runtime controls), `evidence_dir`,
+`overall_verdict`, and per pair `compared_transform`, `axes`, `unchecked_axes`,
+`time_offset`, `estimator*`, `runtime_s` and `evidence`.
+
+Each estimator's own schema'd artifact (`slac.imu_lidar_rotation/v0.1`,
+`slac.imu_lidar_translation/v0.1`, `slac.lidar_lidar_extrinsic/v0.1`) is written
+to `<output stem>_evidence/<pair>_<sensors>[_role].yaml`, referenced from the
+pair by relative path and SHA-256 (`evidence`; `evidence_artifact` repeats the
+first path). Those files hold the per-DoF estimates, jackknife and known-bad
+controls, and policy status.
+
+No HTML report yet: the existing HTML helpers render calibration results, not
+check artifacts.
