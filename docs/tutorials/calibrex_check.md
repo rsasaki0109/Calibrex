@@ -529,7 +529,7 @@ tree, and the provenance (bag digest and its scope, candidate sources, command, 
 
 `tools/check_tf_injection_demo.py` turns `velo_link` of the KITTI pooled bag by +1 and +3
 degrees about its parent's z axis and runs `calibrex check` on each (details and the table in
-the [README](../../README.md#check-a-deployed-calibration)). Outputs, with absolute paths
+the [README](https://github.com/rsasaki0109/Calibrex#check-a-deployed-calibration)). Outputs, with absolute paths
 shortened, are in `docs/assets/calibrex_check_demo/`. The estimator cache key includes a digest
 of the working tree, so editing calibrex invalidates the cache; the first variant costs about
 6 minutes and the others seconds.
