@@ -1,0 +1,254 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: ntu-lidar-lidar-consistency
+title: NTU VIRAL LiDAR-LiDAR extrinsic, cross-recording consistency
+protocol:
+  protocol_id: ntu-lidar-lidar-v1
+  dataset_id: ntu_viral_evaluation_recordings
+  dataset_source_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+  data_license: CC BY-NC-SA 4.0
+  split_policy: one split per evaluation recording
+  splits:
+  - split_id: rtp_01_ros2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b3a2533d556a132d760272641355589c81b6c93f2b3e68ee0da2eb45e3e20fef
+    holdout_ids_sha256: 37617d0549f9ad4fa9699642af70a0834c013c759f1db06b1d270558bc6cd3fe
+  - split_id: spms_01_ros2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e3a3f3c6dc9127aa8c3238fbdab8ddea9121ed222a0ca730c3c45bbb6c15a57d
+    holdout_ids_sha256: 09d0e30548589c7917a4b190bdab91f2e10138ccc7b42bfe0648d622af9b4b48
+  - split_id: tnp_02_ros2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1f3c6505959b50773b03597aae48d52220699f050b57b41a8fce28bfe8678026
+    holdout_ids_sha256: fcbdb0ce825298c637082f6666e372355476f8bbf61e25572f45ff1231ada9c0
+  initial_estimate_policy: each method's own start; fitted methods start from the
+    design value
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a method without an estimate fails every split
+metrics:
+- name: cross_recording_consistency
+  label: cross-recording extrinsic consistency
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: max(rotation / 0.3 deg, translation / 3 cm) to the extrinsic fitted
+    on the other recordings
+methods:
+- method_id: calibrex_map
+  label: Calibrex LiDAR-LiDAR by map registration
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: scan_to_scan
+  label: Concurrent scan-to-scan registration
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: ntu_design
+  label: NTU VIRAL design value inv(T_body_horz) T_body_vert
+  implementation: calibrex_native
+  tool_name: ntu_viral
+trials:
+- method_id: calibrex_map
+  split_id: rtp_01_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 1.2878904412802434
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 1.4554526196794018
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 0.6866431333723795
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 1.2878904412802434
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 1.4554526196794018
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 0.6866431333723795
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 0.0
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 0.0
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2
+  status: success
+  metrics:
+    cross_recording_consistency: 0.0
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+method_summaries:
+  calibrex_map:
+    method_id: calibrex_map
+    trial_count: 3
+    success_count: 3
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      cross_recording_consistency:
+        metric: cross_recording_consistency
+        distribution:
+          count: 3
+          mean: 1.1433287314440082
+          median: 1.2878904412802434
+          standard_deviation: 0.3300914747177402
+          minimum: 0.6866431333723795
+          maximum: 1.4554526196794018
+          p90: 1.42194018399957
+          p95: 1.4386964018394859
+          mean_ci95_low: 0.6866431333723795
+          mean_ci95_high: 1.4554526196794015
+        rank: 2
+  scan_to_scan:
+    method_id: scan_to_scan
+    trial_count: 3
+    success_count: 3
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      cross_recording_consistency:
+        metric: cross_recording_consistency
+        distribution:
+          count: 3
+          mean: 1.1433287314440082
+          median: 1.2878904412802434
+          standard_deviation: 0.3300914747177402
+          minimum: 0.6866431333723795
+          maximum: 1.4554526196794018
+          p90: 1.42194018399957
+          p95: 1.4386964018394859
+          mean_ci95_low: 0.6866431333723795
+          mean_ci95_high: 1.4554526196794015
+        rank: 2
+  ntu_design:
+    method_id: ntu_design
+    trial_count: 3
+    success_count: 3
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      cross_recording_consistency:
+        metric: cross_recording_consistency
+        distribution:
+          count: 3
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+paired_comparisons:
+- reference_method_id: ntu_design
+  candidate_method_id: calibrex_map
+  metric: cross_recording_consistency
+  direction: lower
+  paired_count: 3
+  raw_delta_mean: 1.1433287314440082
+  improvement_mean: -1.1433287314440082
+  improvement_ci95_low: -1.4554526196794015
+  improvement_ci95_high: -0.6866431333723795
+- reference_method_id: ntu_design
+  candidate_method_id: scan_to_scan
+  metric: cross_recording_consistency
+  direction: lower
+  paired_count: 3
+  raw_delta_mean: 1.1433287314440082
+  improvement_mean: -1.1433287314440082
+  improvement_ci95_low: -1.4554526196794015
+  improvement_ci95_high: -0.6866431333723795
+reference_method_id: ntu_design
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- Consistency compares fits across recordings, not to an independent measurement.
+- The distribution value for ntu_design is fixed at zero by construction.
+provenance:
+  generator: tools/build_ntu_lidar_lidar_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-10-01T03:18:23.002970+00:00'
+  command: python tools/build_ntu_lidar_lidar_audit.py docs/assets/ntu_viral_lidar_lidar/scores.json
+    docs/assets
+  source_artifacts: {}
+  data_verified: true

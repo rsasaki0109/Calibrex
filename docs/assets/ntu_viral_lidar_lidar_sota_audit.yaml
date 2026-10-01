@@ -1,0 +1,67 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: ntu-lidar-lidar-v1
+protocol_id: ntu-lidar-lidar-v1
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+claim_text: On three NTU VIRAL recordings not used to develop the method, Calibrex's
+  LiDAR-LiDAR extrinsic is accurate against the dataset's design value and reproduces
+  across recordings.
+verdict: refuted
+achieved_dataset_families:
+- ntu_viral
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-rotation-vs-design
+  required: true
+  status: achieved
+  observed_value: 0.48941320796430315
+  threshold: 1.0
+  reason: observed 0.489413207964 meets less_equal 1
+  evidence_path: docs/assets/ntu_viral_lidar_lidar_accuracy_benchmark.yaml
+  evidence_sha256: a98047928eb762d93c5e67911019b6d7dcfabc8e9bb56b80e7b327014a48d4f4
+- requirement_id: calibrex-translation-vs-design
+  required: true
+  status: achieved
+  observed_value: 0.07743372340834102
+  threshold: 0.1
+  reason: observed 0.0774337234083 meets less_equal 0.1
+  evidence_path: docs/assets/ntu_viral_lidar_lidar_accuracy_benchmark.yaml
+  evidence_sha256: a98047928eb762d93c5e67911019b6d7dcfabc8e9bb56b80e7b327014a48d4f4
+- requirement_id: calibrex-not-worse-than-scan-to-scan
+  required: true
+  status: contradicted
+  observed_value: -0.004785398562469202
+  threshold: 0.0
+  reason: observed -0.00478539856247 does not meet greater_equal 0
+  evidence_path: docs/assets/ntu_viral_lidar_lidar_holdout_benchmark.yaml
+  evidence_sha256: 95ab069a92836e6f7938d50da10b43204c3c9f46aa0410c1a525312f5a192121
+- requirement_id: calibrex-cross-recording-consistency
+  required: true
+  status: contradicted
+  observed_value: 1.1433287314440082
+  threshold: 1.0
+  reason: observed 1.14332873144 does not meet less_equal 1
+  evidence_path: docs/assets/ntu_viral_lidar_lidar_consistency_benchmark.yaml
+  evidence_sha256: 723af6a1d8bec3e914354ba8e747c973ab330e67c644e545ac3a90fd83710ec9
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.4.1
+  git_commit: f5ab3c2
+  command: []
+  source_sha256:
+    protocol: 4a19b3f92068439043c2371b894f189e677a3ab106431f66c8f0459225eb166a
+    calibrex-rotation-vs-design: a98047928eb762d93c5e67911019b6d7dcfabc8e9bb56b80e7b327014a48d4f4
+    calibrex-translation-vs-design: a98047928eb762d93c5e67911019b6d7dcfabc8e9bb56b80e7b327014a48d4f4
+    calibrex-not-worse-than-scan-to-scan: 95ab069a92836e6f7938d50da10b43204c3c9f46aa0410c1a525312f5a192121
+    calibrex-cross-recording-consistency: 723af6a1d8bec3e914354ba8e747c973ab330e67c644e545ac3a90fd83710ec9
+  created_at: '2026-10-01T03:18:23.445262+00:00'

@@ -1,0 +1,83 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: ntu-lidar-lidar-v1
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+claim_text: On three NTU VIRAL recordings not used to develop the method, Calibrex's
+  LiDAR-LiDAR extrinsic is accurate against the dataset's design value and reproduces
+  across recordings.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: calibrex-rotation-vs-design
+  phase: audit
+  description: Calibrex rotation error to the design value <= 1.0 deg
+  dataset_family: ntu_viral
+  independent_rig: true
+  rig_id: ntu-viral-uav
+  evidence_path: ntu_viral_lidar_lidar_accuracy_benchmark.yaml
+  evidence_sha256: a98047928eb762d93c5e67911019b6d7dcfabc8e9bb56b80e7b327014a48d4f4
+  method_id: calibrex_map
+  metric: rotation_error_deg
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+- requirement_id: calibrex-translation-vs-design
+  phase: audit
+  description: Calibrex translation error to the design value <= 0.10 m
+  dataset_family: ntu_viral
+  independent_rig: false
+  evidence_path: ntu_viral_lidar_lidar_accuracy_benchmark.yaml
+  evidence_sha256: a98047928eb762d93c5e67911019b6d7dcfabc8e9bb56b80e7b327014a48d4f4
+  method_id: calibrex_map
+  metric: translation_error_m
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.1
+  required: true
+- requirement_id: calibrex-not-worse-than-scan-to-scan
+  phase: audit
+  description: paired 95 % CI lower bound of the improvement over scan_to_scan >=
+    0
+  dataset_family: ntu_viral
+  independent_rig: false
+  evidence_path: ntu_viral_lidar_lidar_holdout_benchmark.yaml
+  evidence_sha256: 95ab069a92836e6f7938d50da10b43204c3c9f46aa0410c1a525312f5a192121
+  method_id: calibrex_map
+  reference_method_id: scan_to_scan
+  metric: holdout_block_chi2
+  statistic: paired_improvement_ci95_low
+  comparison: greater_equal
+  threshold: 0.0
+  required: true
+- requirement_id: calibrex-cross-recording-consistency
+  phase: audit
+  description: Calibrex cross-recording consistency <= 1.0
+  dataset_family: ntu_viral
+  independent_rig: false
+  evidence_path: ntu_viral_lidar_lidar_consistency_benchmark.yaml
+  evidence_sha256: 723af6a1d8bec3e914354ba8e747c973ab330e67c644e545ac3a90fd83710ec9
+  method_id: calibrex_map
+  metric: cross_recording_consistency
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+provenance:
+  generator: tools/build_ntu_lidar_lidar_audit.py
+  generator_version: 0.4.1
+  command:
+  - python
+  - tools/build_ntu_lidar_lidar_audit.py
+  - docs/assets/ntu_viral_lidar_lidar/scores.json
+  - docs/assets
+  source_sha256:
+    preregistration: b44bcc2c9cda88fc15951880224fb9755def6e9eb1528de990521c356233776e
+    scores: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+  created_at: '2026-10-01T03:18:23.166846+00:00'

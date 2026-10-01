@@ -90,11 +90,53 @@ jackknife std of 0.108 deg is just above the 0.1 deg bound.
   jackknife and reference differences now use small rotations about the
   parent axes.
 
+## Pre-registered audit: refuted
+
+The claim, metrics, and thresholds were committed in
+[`ntu_viral_lidar_lidar_preregistration.yaml`](ntu_viral_lidar_lidar_preregistration.yaml)
+(commit `f5ab3c2`), before lidar-lidar ran on any evaluation recording. The
+evaluation recordings are rtp_01, spms_01, and tnp_02 (1333 samples, 45
+held-out blocks); development was tnp_01 only. Scoring runs
+`tools/score_ntu_lidar_lidar.py`, and the audit is built by
+`tools/build_ntu_lidar_lidar_audit.py`.
+
+**Verdict: `refuted`, 2/4 gates**
+([protocol](../assets/ntu_viral_lidar_lidar_sota_protocol.yaml),
+[result](../assets/ntu_viral_lidar_lidar_sota_audit.yaml)).
+
+| Gate | Observed | Threshold |
+| --- | --- | --- |
+| Rotation error to the design value | 0.489 deg | ≤ 1.0 deg |
+| Translation error to the design value | 0.077 m | ≤ 0.10 m |
+| Paired improvement over scan-to-scan on held-out blocks, 95 % CI low | −0.0048 | ≥ 0 |
+| Cross-recording consistency (mean) | 1.143 | ≤ 1.0 |
+
+- **Accuracy passes.** The pooled extrinsic is 0.49 deg and 7.7 cm from the
+  rounded design value: (pitch, yaw) +0.47 and −0.13 deg, and (y, z) −5.3 and
+  +4.7 cm, consistent with the development recording.
+- **The method does not beat concurrent scan-to-scan.** The paired 95 % CI low
+  is −0.0048: the two are tied. On tnp_01 they were also indistinguishable.
+- **Cross-recording consistency fails.** Fitting Calibrex on one recording and
+  on the others' train blocks disagrees by 1.29 (rtp_01), 1.46 (spms_01), and
+  0.69 (tnp_02), against the 1.0 bound of 0.3 deg / 3 cm. The recordings were
+  taken with the same rig and design values, so this is odometry-driven scatter
+  in the side-mounted 16-beam LiDAR, not a real difference.
+
+The development result is what the pre-registration records: Calibrex's fitted
+extrinsic differs from the design value by 0.46 deg of rotation and 6.2 cm of
+translation, but the three scored methods are statistically indistinguishable
+on tnp_01. The claim was therefore about **accuracy against the design value**
+and **cross-recording reproducibility**, not a margin over a baseline. The
+concurrent-scan and design baselines are reported for transparency only.
+
+The held-out recordings are now spent. A future claim would need to fix the
+cross-recording scatter (more samples per recording, the LiDAR clock offset,
+or a better side-mount odometry) and be pre-registered on new recordings.
+
 ## Next
 
 - Use more sequences.
 - Estimate the LiDAR-to-LiDAR clock offset.
-- Pre-register an audit on the held-back recordings (rtp_01, spms_01,
-  tnp_02) against an external baseline.
+- Improve roll, which the development recording leaves unobservable.
 
 No SOTA claim is made for lidar-lidar.
