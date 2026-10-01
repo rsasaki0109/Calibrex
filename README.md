@@ -231,7 +231,7 @@ bundle:
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.4.1/calibrex-0.4.1-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.0/calibrex-0.5.0-py3-none-any.whl"
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
@@ -281,7 +281,7 @@ Run the same evidence gates on every calibration change:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: rsasaki0109/Calibrex@v0.4.1
+- uses: rsasaki0109/Calibrex@v0.5.0
   with:
     candidate: calibration/candidate.yaml
     baseline: calibration/baseline.yaml
@@ -291,8 +291,8 @@ The action writes a GitHub Step Summary, fails on `FAIL` or `INCONCLUSIVE` by
 default, and exposes schema-valid evidence, comparison, SVG, and
 `calibration-ci.json` artifacts. See [Calibration CI](docs/tutorials/calibration_ci.md).
 
-Tried it on your rig? Share a sanitized result or a useful failure case in the
-[v0.4.1 launch discussion](https://github.com/rsasaki0109/Calibrex/discussions/61).
+Tried it on your rig? Share a sanitized result or a useful failure case in
+[Discussions](https://github.com/rsasaki0109/Calibrex/discussions/61).
 If the evidence-first workflow earns a place in your calibration stack,
 consider starring Calibrex so other robotics teams can find it.
 
@@ -533,11 +533,11 @@ not silently ranked together.
 ## Install
 
 The supported no-source install is the versioned wheel attached to the
-[v0.4.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.4.1):
+[v0.5.0 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.5.0):
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.4.1/calibrex-0.4.1-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.0/calibrex-0.5.0-py3-none-any.whl"
 ```
 
 Development checkouts and optional backends remain explicit:
