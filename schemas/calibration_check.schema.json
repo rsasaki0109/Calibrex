@@ -615,13 +615,20 @@
       "type": "array"
     },
     "vehicle_frame": {
-      "title": "Vehicle Frame",
-      "type": "string"
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vehicle Frame"
     }
   },
   "required": [
     "bag",
-    "vehicle_frame",
     "frame_tree",
     "summary",
     "provenance"

@@ -116,7 +116,7 @@ def build_calibration_check(
     bag: str | Path,
     *,
     tf_files: Sequence[str | Path] = (),
-    vehicle_frame: str = "base_link",
+    vehicle_frame: str | None = None,
     frame_overrides: Mapping[str, str] | None = None,
     command: Sequence[str] | None = None,
     wired_pairs: frozenset[str] = ALL_WIRED_PAIRS,
@@ -141,7 +141,7 @@ def build_calibration_check(
     topics: list[CheckTopicRecord] = map_topics_to_frames(
         candidates, header_frames, tree, hints, frame_overrides
     )
-    vehicle = normalize_frame_id(vehicle_frame)
+    vehicle = normalize_frame_id(vehicle_frame) if vehicle_frame else None
     pairs = plan_pairs(topics, tree, vehicle_frame=vehicle, wired_pairs=wired_pairs)
 
     notes = [
@@ -234,7 +234,11 @@ def format_check_table(artifact: CalibrationCheckArtifact) -> str:
     if unmapped:
         lines.append(f"unmapped topics: {', '.join(unmapped)}")
     lines.append("")
-    lines.append(f"pairs (vehicle frame '{artifact.vehicle_frame}'):")
+    lines.append(
+        f"pairs (vehicle frame '{artifact.vehicle_frame}'):"
+        if artifact.vehicle_frame
+        else "pairs (no --vehicle-frame: vehicle pairs are skipped):"
+    )
     pair_rows = [
         [
             pair.pair,

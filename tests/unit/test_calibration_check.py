@@ -104,7 +104,8 @@ def test_extra_fields_are_rejected(tmp_path: Path) -> None:
 
 
 def test_build_plans_synthetic_rig(tmp_path: Path) -> None:
-    artifact = build_calibration_check(_bag(tmp_path))
+    bag = _bag(tmp_path)
+    artifact = build_calibration_check(bag)
 
     roles = {topic.topic: topic.role for topic in artifact.topics}
     assert roles == {
@@ -124,7 +125,11 @@ def test_build_plans_synthetic_rig(tmp_path: Path) -> None:
     statuses = {(pair.pair, pair.status) for pair in artifact.pairs}
     assert ("lidar-lidar", "planned") in statuses
     assert ("imu-lidar", "planned") in statuses
-    assert ("lidar-vehicle", "planned") in statuses
+    assert ("lidar-vehicle", "skipped") in statuses
+    assert artifact.vehicle_frame is None
+    with_vehicle = build_calibration_check(bag, vehicle_frame="base_link")
+    assert ("lidar-vehicle", "planned") in {(p.pair, p.status) for p in with_vehicle.pairs}
+    assert with_vehicle.vehicle_frame == "base_link"
     assert ("ins-lidar", "skipped") in statuses
     assert "1 bag topic(s) without a sensor role" in artifact.provenance.notes[1]
 
@@ -142,7 +147,7 @@ def test_vehicle_frame_option_and_frame_map(tmp_path: Path) -> None:
     plain = build_calibration_check(bag, vehicle_frame="chassis")
     mapped = build_calibration_check(bag, frame_overrides={"/imu": "imu_link"})
 
-    assert {p.reason_code for p in plain.pairs if p.pair == "imu-vehicle"} == {"no_vehicle_frame"}
+    assert {p.reason_code for p in plain.pairs if p.pair == "imu-vehicle"} == {"frame_not_in_tree"}
     assert {p.reason_code for p in plain.pairs if p.pair == "imu-lidar"} == {"frame_not_in_tree"}
     (imu_lidar,) = [p for p in mapped.pairs if p.pair == "imu-lidar"]
     assert imu_lidar.status == "planned"

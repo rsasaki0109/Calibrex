@@ -7,7 +7,7 @@ evidence methods per pair and add pass / warn / fail / inconclusive verdicts.
 
 ```bash
 calibrex check my_bag/ --plan --output check.json
-calibrex check my_bag/ --tf rig.urdf --vehicle-frame base_link --plan
+calibrex check my_bag/ --tf rig.urdf --vehicle-frame base_link --plan  # ground vehicle
 calibrex validate check.json
 ```
 
@@ -19,7 +19,7 @@ are not wired yet.
 Candidate extrinsics come from the bag's `/tf_static` (the latest transform per
 child frame; a child that appears under two different parents is an error) and
 from any number of `--tf FILE` options. A file overrides `/tf_static` for the
-same child frame, and the override is listed in the report. Two files that
+same child frame (explicit user input wins), and the override is listed in the report. Two files that
 define the same frame differently are rejected. Every source is recorded with
 its SHA-256 (for `/tf_static`, the hash of the raw messages read).
 
@@ -60,10 +60,20 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | --- | --- |
 | `missing_topic` | no topic for a required role (or fewer than two LiDARs for `lidar-lidar`) |
 | `no_candidate_calibration` | the bag has no `/tf_static` and no `--tf` was given |
-| `no_vehicle_frame` | the vehicle frame (`--vehicle-frame`, default `base_link`) is not in the tree |
+| `no_vehicle_frame` | `--vehicle-frame` was not given, so vehicle pairs are not checked |
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
 | `frames_not_connected` | the two frames are in different trees |
 | `method_not_wired` | no check method exists for the pair yet |
+
+## Vehicle pairs are opt-in
+
+`lidar-vehicle` and `imu-vehicle` rest on non-holonomic ground-vehicle motion.
+A `base_link` frame alone does not say the rig is a ground vehicle (on a
+hand-held rig it is just the IMU body frame), so these pairs are skipped with
+`no_vehicle_frame` unless you pass `--vehicle-frame <frame>`. If that frame is
+not in the tree the pairs are skipped with `frame_not_in_tree`. An automatic
+ground-vehicle motion test may replace the flag in Phase C. The artifact
+records `vehicle_frame` (absent when not given).
 
 ## Artifact
 

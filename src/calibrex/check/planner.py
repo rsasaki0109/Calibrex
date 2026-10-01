@@ -151,7 +151,7 @@ def plan_pairs(
     topics: Sequence[CheckTopicRecord],
     tree: StaticFrameTree,
     *,
-    vehicle_frame: str = "base_link",
+    vehicle_frame: str | None = None,
     wired_pairs: frozenset[str] = ALL_WIRED_PAIRS,
 ) -> list[CheckPairRecord]:
     """Return one or more pair records for each candidate pair type.
@@ -201,22 +201,23 @@ def plan_pairs(
                 _skip(pair, "no_candidate_calibration", "no candidate extrinsics were found")
             )
             continue
-        vehicle = SensorInstance(
-            slot="vehicle",
-            label=vehicle_frame,
-            frame=vehicle_frame,
-            topics=(),
-            header_frames=(),
-        )
-        if "vehicle" in (first_slot, second_slot) and vehicle_frame not in tree:
+        if "vehicle" in (first_slot, second_slot) and vehicle_frame is None:
             records.append(
                 _skip(
                     pair,
                     "no_vehicle_frame",
-                    f"vehicle frame '{vehicle_frame}' is not in the candidate tree",
+                    "vehicle pairs assume ground-vehicle motion and are opt-in: pass "
+                    "--vehicle-frame <frame> to check them on a ground vehicle",
                 )
             )
             continue
+        vehicle = SensorInstance(
+            slot="vehicle",
+            label=vehicle_frame or "",
+            frame=vehicle_frame,
+            topics=(),
+            header_frames=(),
+        )
         # A sensor whose frame is unmapped or absent is reported once, not once per
         # combination; the remaining sensors are combined.
         usable: dict[str, list[SensorInstance]] = {}

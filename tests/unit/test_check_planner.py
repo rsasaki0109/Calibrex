@@ -251,13 +251,22 @@ def test_skip_no_candidate_calibration() -> None:
         assert (record.status, record.reason_code) == ("skipped", "no_candidate_calibration")
 
 
-def test_skip_no_vehicle_frame() -> None:
-    records = plan_pairs(_rig_topics(), _rig_tree(), vehicle_frame="base_footprint")
+def test_vehicle_pairs_are_opt_in() -> None:
+    records = plan_pairs(_rig_topics(), _rig_tree())
 
     for pair in ("lidar-vehicle", "imu-vehicle"):
         (record,) = _by_pair(records, pair)
         assert (record.status, record.reason_code) == ("skipped", "no_vehicle_frame")
+        assert "--vehicle-frame" in (record.reason or "")
     assert _by_pair(records, "imu-lidar")[0].status == "planned"
+
+
+def test_vehicle_frame_absent_from_tree_is_frame_not_in_tree() -> None:
+    records = plan_pairs(_rig_topics(), _rig_tree(), vehicle_frame="base_footprint")
+
+    for pair in ("lidar-vehicle", "imu-vehicle"):
+        assert {r.reason_code for r in _by_pair(records, pair)} == {"frame_not_in_tree"}
+        assert {r.status for r in _by_pair(records, pair)} == {"skipped"}
 
 
 def test_skip_frame_not_in_tree_unmapped_and_absent() -> None:

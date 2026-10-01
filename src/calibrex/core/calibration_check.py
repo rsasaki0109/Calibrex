@@ -193,7 +193,7 @@ class CalibrationCheckArtifact(StrictModel):
     schema_version: Literal["slac.calibration_check/v0.1"] = CALIBRATION_CHECK_SCHEMA_VERSION
     plan_only: bool = True
     bag: CheckBagInput
-    vehicle_frame: str
+    vehicle_frame: str | None = None
     candidate_sources: list[CheckCandidateSource] = Field(default_factory=list)
     topics: list[CheckTopicRecord] = Field(default_factory=list)
     frame_tree: CheckFrameTree

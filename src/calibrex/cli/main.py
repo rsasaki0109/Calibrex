@@ -2829,7 +2829,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "RTK-SLAM calib.yaml, or Hilti sensors list; repeatable; overrides bag /tf_static "
         "for the same child frame",
     )
-    check.add_argument("--vehicle-frame", default="base_link")
+    check.add_argument(
+        "--vehicle-frame",
+        default=None,
+        help="ground-vehicle frame (for example base_link); vehicle pairs assume "
+        "non-holonomic motion and are skipped unless this is given",
+    )
     check.add_argument(
         "--frame-map",
         action="append",

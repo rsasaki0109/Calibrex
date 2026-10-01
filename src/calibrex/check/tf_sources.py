@@ -541,8 +541,5 @@ def _load_hilti_sensors(path: Path, sensors: dict[str, Any], digest: str) -> Loa
         sha256=digest,
         edges=tuple(edges),
         hints=FrameHints(role_frames=roles),
-        notes=(
-            "extrinsics are read as T_parent_sensor with quaternion order x, y, z, w; "
-            "the file does not state the order",
-        ),
+        notes=("extrinsics are read as T_parent_sensor with quaternion order x, y, z, w",),
     )
