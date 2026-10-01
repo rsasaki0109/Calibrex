@@ -1243,6 +1243,11 @@ def _build_parser() -> argparse.ArgumentParser:
     gnss_lidar_rtk.add_argument("--output", type=Path, required=True)
     gnss_lidar_rtk.add_argument("--topic", default="/livox/points")
     gnss_lidar_rtk.add_argument("--max-scans", type=_positive_int)
+    gnss_lidar_rtk.add_argument(
+        "--max-seconds",
+        type=_positive_float,
+        help="use only the scans within S seconds of each sequence's first scan",
+    )
     gnss_lidar_rtk.add_argument("--json", action="store_true")
     gnss_lidar_rtk.set_defaults(func=_cmd_gnss_lidar_rtk_slam)
 
@@ -6349,12 +6354,15 @@ def _cmd_gnss_lidar_rtk_slam(args: argparse.Namespace) -> int:
     command += ["--calib", str(args.calib), "--output", str(args.output), "--topic", args.topic]
     if args.max_scans is not None:
         command += ["--max-scans", str(args.max_scans)]
+    if args.max_seconds is not None:
+        command += ["--max-seconds", str(args.max_seconds)]
     try:
         artifact = run_rtk_slam_lever_arm(
             list(zip(args.bag, args.rtk, strict=True)),
             args.calib,
             topic=args.topic,
             max_scans=args.max_scans,
+            max_seconds=args.max_seconds,
             command=command,
         )
         artifact.save(args.output)
