@@ -1,8 +1,8 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Know whether your LiDAR-camera calibration is trustworthy.</strong><br>
-  Evaluate robotics sensor extrinsics with holdouts, known-bad controls, and provenance you can reproduce.
+  <strong>Know whether your sensor calibration is trustworthy.</strong><br>
+  Evaluate GNSS, IMU, LiDAR, camera, and vehicle (wheel odometry, INS) extrinsics and time offsets with holdouts, known-bad controls, and provenance you can reproduce.
 </p>
 
 <p align="center">
@@ -18,11 +18,9 @@
 Calibrex is an open-source, ROS-independent Python toolkit that turns candidate
 extrinsics, time offsets, and trajectories into evidence backed by **holdout
 metrics, known-bad controls, observability checks, and reproducible provenance**.
-
-Use it when a transform must be more than a plausible number: evaluate native or
-adapter-produced LiDAR, camera, IMU, radar, RGB-D, hand-eye, and robot-world
-calibration without reducing the verdict to optimizer convergence or a single
-training residual.
+It ships native solvers for every sensor pair listed below, plus adapters for
+Kalibr, Open3D, and Autoware, and it reports `pass`, `warn`, `fail`, or
+`inconclusive` instead of optimizer convergence or a single training residual.
 
 **Try it in your browser:** the
 [browser calibration page](https://rsasaki0109.github.io/Calibrex/app/)
@@ -30,39 +28,85 @@ calibrates an IMU against a sensor trajectory (TUM): rotation, clock offset,
 gyro bias, and lever arm, with held-out evidence. It runs locally under
 Pyodide, so no data is uploaded.
 
-## LiDAR-camera evidence in five minutes
-
-Run the complete evidence path without ROS or a dataset download. The command
-evaluates the bundled deterministic KITTI-shaped fixture, writes a
-schema-valid result and review report, and verifies a digest-bound provenance
-bundle:
-
-```bash
-# Install the versioned GitHub Release wheel described in the Install section.
-
-calibrex demo kitti-lidar-camera-evidence \
-  --output-dir outputs/kitti-lidar-camera-evidence \
-  --strict-assessment
-calibrex validate outputs/kitti-lidar-camera-evidence/result.yaml
-calibrex verify outputs/kitti-lidar-camera-evidence/bundle.json
-```
-
-Open `outputs/kitti-lidar-camera-evidence/report.html` to inspect the projection
-evidence and known-bad perturbation probes. The checked fixture detects 16 of
-24 mandatory perturbation cases and passes all six falsification-policy gates
-in under one minute in the clean Windows wheel smoke test. This verifies the
-pipeline and evidence contracts; it is not a real-sensor accuracy claim or a
-standalone camera-LiDAR calibration algorithm. Supply an officially downloaded
-KITTI raw sequence with `--dataset-path` when evaluating real data.
-
 <p align="center">
-  <img src="docs/assets/calibrex-motion-calibration-loop.gif" alt="Calibrex simultaneous localization and calibration on TIERS Indoor02 real moving-platform data" width="100%">
+  <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
+  ·
+  <a href="#pre-registered-sota-audits"><strong>SOTA audits</strong></a>
+  ·
+  <a href="#calibration-coverage"><strong>Coverage</strong></a>
+  ·
+  <a href="#public-data-gallery"><strong>Public-data gallery</strong></a>
+  ·
+  <a href="#five-minute-quickstart"><strong>Five-minute quickstart</strong></a>
+  ·
+  <a href="#solid-state-lidar-quickstart"><strong>Solid-state quickstart</strong></a>
+  ·
+  <a href="docs/concepts/calibration_methods.md"><strong>Calibration methods</strong></a>
+  ·
+  <a href="docs/tutorials/public_datasets.md"><strong>Public-data demos</strong></a>
 </p>
 
+## Pre-registered SOTA audits
+
+Calibrex may call a method state of the art only for a claim that a frozen
+audit marks `supported`. The claim, scoring, held-out data, and thresholds are
+committed **before** the held-out data is scored, each piece of evidence is a
+digest-pinned artifact, and refuted audits stay on the
+[SOTA leaderboard](docs/benchmarks/sota_leaderboard.md). Standings as of
+2026-10-01:
+
+| Pair | Standing | Scope of the audited claim | Details |
+|---|:---:|---|---|
+| `imu-lidar` | supported 2, refuted 1 | Livox MID360 against LI-Init (GPL, run in a container): rotation and clock offset (4/4 gates), and the full extrinsic in a second round (4/4). The first full-extrinsic round was refuted (0/8) and stays listed. | [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) |
+| `lidar-vehicle` | supported 1 | Motion-only LiDAR-to-vehicle rotation against KITTI's `calib_imu_to_velo` on eight unseen drives (3/3 gates). Pitch and yaw only; roll stays unobservable. | [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md#pre-registered-audit-supported) |
+| `lidar-lidar` | refuted | NTU VIRAL (two Ouster OS1-16): refuted 2/4. Accuracy gates pass, but the method does not beat scan-to-scan and cross-recording consistency fails (1.143, bound 1.0). | [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md#pre-registered-audit-refuted) |
+| the other seven target pairs | no_claim | Native methods exist, but no audited claim yet. | [Leaderboard](docs/benchmarks/sota_leaderboard.md) |
+
+A `supported` standing is scoped to one dataset family and one comparison; it
+is not a general accuracy claim. Held-out data is reserved per pair, and a
+spent split cannot be reused for a second claim. The machine-readable
+standings are in
+[`sota_leaderboard.json`](docs/assets/sota_leaderboard.json).
+
+```bash
+calibrex sota audit protocol.yaml --output audit.yaml   # exit 0 only for supported
+```
+
+## Calibration coverage
+
+All ten target sensor pairs have a native method. "Audit standing" is the
+standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
+
+| Pair | Native command | Public data used | Audit standing |
+|---|---|---|:---:|
+| camera (focal lengths) | `calibrex camera-imu focal` | Hilti 2022 | no_claim |
+| camera ↔ IMU | `calibrex camera-imu rotation` | Hilti 2022 (dev exp21, exp07) | no_claim |
+| camera ↔ LiDAR | `calibrex camera-lidar ...`, `calibrex demo kitti-lidar-camera-evidence` | KITTI-shaped fixture, A2D2, ACFR | no_claim |
+| GNSS ↔ IMU | `calibrex gnss-imu compose` (from `calibrex gnss-lidar rtk-slam` and IMU-LiDAR) | RTK-SLAM | no_claim |
+| IMU ↔ LiDAR | `calibrex imu-lidar livox`, `livox-translation`, `trajectory` | RTK-SLAM, Zenodo MID360 driving | **supported** (2) / refuted (1) |
+| IMU ↔ vehicle | `calibrex imu-vehicle kitti` | KITTI raw | no_claim |
+| INS ↔ LiDAR | `calibrex ins-lidar kitti` | KITTI raw | no_claim |
+| LiDAR ↔ LiDAR | `calibrex lidar-lidar ros2` | NTU VIRAL | refuted |
+| LiDAR ↔ vehicle | `calibrex lidar-vehicle kitti` | KITTI raw | **supported** (1) |
+| LiDAR ↔ wheel odometry | `calibrex lidar-wheel trajectory`, `kitti` | KITTI raw (OXTS stands in for wheels) | no_claim |
+
+Also native or adapter-backed: hand-eye `AX=XB` and robot-world `AX=YB`
+(13 native methods, benchmarked below against OpenCV), radar extrinsics,
+RGB-D joint SLAC, and solid-state LiDAR clock-offset profiling, mostly through
+`calibrex calibrate <config>`. Open3D, Kalibr, Koide, ROS, and Autoware stay
+behind adapters. See [calibration methods](docs/concepts/calibration_methods.md)
+for solver-level detail, and the per-pair pages:
+[IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md),
+[LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md),
+[LiDAR-lidar](docs/benchmarks/ntu_viral_lidar_lidar.md),
+[camera-IMU](docs/benchmarks/hilti_camera_imu.md),
+[INS-LiDAR](docs/benchmarks/kitti_ins_lidar.md),
+[LiDAR-wheel](docs/benchmarks/lidar_wheel_odometry.md),
+[GNSS-LiDAR](docs/benchmarks/rtk_slam_gnss_lidar.md),
+[GNSS-IMU](docs/benchmarks/rtk_slam_gnss_imu.md).
+
 <p align="center">
-  <sub>Real TIERS Indoor02 moving-platform replay: a Velodyne VLP-16 motion map
-  supports online Ouster OS1 calibration, with 106 of 108 batches accepted by
-  holdout gates.</sub>
+  <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
 </p>
 
 ## Public-data gallery
@@ -127,10 +171,10 @@ KITTI raw sequence with `--dataset-path` when evaluating real data.
   <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
 </p>
 
-## LiDAR-camera evidence in five minutes
+## Five-minute quickstart
 
 Run the complete evidence path without ROS or a dataset download. The command
-evaluates the bundled deterministic KITTI-shaped fixture, writes a
+evaluates the bundled deterministic KITTI-shaped LiDAR-camera fixture, writes a
 schema-valid result and review report, and verifies a digest-bound provenance
 bundle:
 
@@ -153,140 +197,7 @@ pipeline and evidence contracts; it is not a real-sensor accuracy claim or a
 standalone camera-LiDAR calibration algorithm. Supply an officially downloaded
 KITTI raw sequence with `--dataset-path` when evaluating real data.
 
-Tried it on your rig? Share a sanitized result or a useful failure case in the
-[v0.4.1 launch discussion](https://github.com/rsasaki0109/Calibrex/discussions/61).
-If the evidence-first workflow earns a place in your calibration stack,
-consider starring Calibrex so other robotics teams can find it.
-
-## Solid-state LiDAR quickstart
-
-Start with the small Livox sample if you want a fast, no-ROS check. It writes a
-calibrated `result.yaml`, `report.html`, evidence sidecars, and a verified
-provenance bundle:
-
-```bash
-python -m pip install .
-calibrex demo livox-evidence \
-  --output-dir outputs/solid-state-livox-demo \
-  --json
-calibrex validate outputs/solid-state-livox-demo/result.yaml
-calibrex verify outputs/solid-state-livox-demo/bundle.json
-```
-
-For real per-point timing and clock-offset profiling, use the public TIERS
-VLP-16 ↔ Livox Horizon bag. The bag is about 7.18 GB and is never downloaded
-automatically; place it at `data/public/tiers_lidars_cali/LidarsCali.bag` as
-described in the [public-dataset tutorial](docs/tutorials/public_datasets.md#tiers-lidarscali-ros-1-bag-livox-horizon--avia).
-No ROS installation is required:
-
-```bash
-python -m pip install -e ".[rosbag1-lz4]"
-calibrex public-datasets show tiers_livox_lidars_cali --json
-calibrex inspect data/public/tiers_lidars_cali/LidarsCali.bag \
-  --type rosbag1 --json
-calibrex continuous-time-lidar-pair \
-  examples/public_datasets/tiers_livox_lidars_cali/online_continuous_time_config.yaml \
-  --output outputs/solid-state-tiers/continuous_time_lidar_pair.yaml \
-  --json
-calibrex validate \
-  outputs/solid-state-tiers/continuous_time_lidar_pair.yaml \
-  --kind continuous-time-lidar-pair
-```
-
-The timed artifact records the config and bag SHA-256, transform convention,
-candidate offsets, train/holdout RMSE, and fixed-odometry provenance. It also
-embeds `train_diagnostics` with final train residual percentiles, deterministic
-range bins, MAD rejection counts, and a train-only clock profile. The standalone
-diagnostic contract is available with:
-
-```bash
-calibrex schema continuous-time-lidar-train-diagnostics \
-  --output schemas/continuous_time_lidar_train_diagnostics.schema.json
-```
-
-The diagnostic profile fixes `holdout_used_for_selection: false`; use the
-pair-result holdout fields only for final evaluation. On the
-checked public run, the selected offset was **+40 ms** and train RMSE changed
-from **0.0957 m to 0.0240 m**, with **0.0242 m** holdout RMSE. This is an
-algorithmic estimate under the declared holdout: the public sequence has no
-independent clock ground truth.
-
-For an absolute solver-correctness gate, run the deterministic synthetic
-truth benchmark. It recovers a known extrinsic and **+30 ms** clock offset,
-then rejects a fixed-clock known-bad control:
-
-```bash
-python tools/run_solid_state_synthetic_benchmark.py \
-  --output outputs/solid-state-synthetic-benchmark.yaml \
-  --markdown-output outputs/solid-state-synthetic-benchmark.md \
-  --enforce
-calibrex validate outputs/solid-state-synthetic-benchmark.yaml \
-  --kind solid-state-synthetic-benchmark
-```
-
-This synthetic gate verifies solver mechanics, not real-sensor accuracy. An
-absolute real-sensor accuracy claim still requires independently measured
-extrinsics and clock truth. The checked result is available as a [schema-valid YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml)
-with a compact [Markdown report](docs/assets/solid-state-synthetic-benchmark-v01.md).
-
-The current solid-state evaluation scope is public-data-only. Use the
-[public benchmark runbook](docs/tutorials/solid_state_public_benchmark.md) to
-compare paired solver variants on the same capture windows, temporal holdouts,
-sampling seeds, and known-bad/control fixtures:
-
-```bash
-calibrex validate \
-  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
-  --kind solid-state-cross-dataset-benchmark-config
-python tools/run_solid_state_benchmark_replicates.py \
-  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
-  --output-root outputs/solid_state_benchmark_v02_replicates \
-  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
-  --split-id middle_holdout --split-id late_holdout \
-  --seed 0 --seed 17
-python tools/run_solid_state_benchmark_replicates.py \
-  examples/public_datasets/solid_state_cross_dataset_benchmark.yaml \
-  --output-root outputs/solid_state_benchmark_v03_replicates \
-  --output-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
-  --append-spec examples/public_datasets/solid_state_cross_dataset_benchmark_v02.yaml \
-  --split-id early_holdout --split-id middle_holdout --split-id late_holdout \
-  --seed 0 --seed 17 --seed 42
-python tools/run_solid_state_cross_dataset_benchmark.py \
-  examples/public_datasets/solid_state_cross_dataset_benchmark_v03.yaml \
-  --output outputs/solid_state_cross_dataset_benchmark_v03.yaml \
-  --markdown-output outputs/solid_state_cross_dataset_benchmark_v03.md \
-  --html-output outputs/solid_state_cross_dataset_benchmark_v03.html
-calibrex validate outputs/solid_state_cross_dataset_benchmark_v03.yaml \
-  --kind solid-state-cross-dataset-benchmark
-```
-
-This gate can support reproducible temporal-holdout comparisons, observability,
-point-time/deskew evidence, convergence/failure analysis, and known-bad
-detection. It cannot establish absolute extrinsic or clock accuracy because
-the public recordings do not provide independent metrology.
-
-The independent physical-metrology packet remains an optional future path for
-users who can obtain surveyed references. Its checked artifact is intentionally
-planned, not a result: [YAML template](docs/assets/solid-state-metrology-evaluation-v01.yaml)
-and [Markdown report](docs/assets/solid-state-metrology-evaluation-v01.md).
-
-<p align="center">
-  <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
-  ·
-  <a href="#public-data-gallery"><strong>Public-data gallery</strong></a>
-  ·
-  <a href="#five-minute-quickstart"><strong>Five-minute quickstart</strong></a>
-  ·
-  <a href="#solid-state-lidar-quickstart"><strong>Solid-state quickstart</strong></a>
-  ·
-  <a href="docs/concepts/calibration_methods.md"><strong>Calibration methods</strong></a>
-  ·
-  <a href="docs/tutorials/public_datasets.md"><strong>Public-data demos</strong></a>
-</p>
-
-## Five-minute quickstart
-
-Render and validate a committed result without ROS or a dataset download:
+To render and validate a committed result from a source checkout:
 
 ```bash
 git clone https://github.com/rsasaki0109/Calibrex.git
@@ -299,14 +210,6 @@ calibrex render examples/precomputed/result.yaml \
   --output outputs/quickstart/evidence-card.svg
 calibrex render examples/precomputed/result.yaml \
   --output-dir outputs/quickstart
-```
-
-Open `outputs/quickstart/report.html`, then inspect or verify the
-schema-valid sidecars. To recompute evidence from a declared public sample:
-
-```bash
-calibrex demo livox-evidence \
-  --output-dir outputs/livox_horizon_horizon_pcd_sample
 ```
 
 Before configuring a solve, diagnose a recording and save the result for
@@ -337,22 +240,10 @@ The action writes a GitHub Step Summary, fails on `FAIL` or `INCONCLUSIVE` by
 default, and exposes schema-valid evidence, comparison, SVG, and
 `calibration-ci.json` artifacts. See [Calibration CI](docs/tutorials/calibration_ci.md).
 
-## Calibration coverage
-
-| Calibration path | Native solve | Evidence | Public example | Maturity |
-|---|:---:|:---:|:---:|:---:|
-| LiDAR ↔ LiDAR | ✅ | ✅ | ✅ | 🟢 Alpha |
-| Camera ↔ LiDAR | ✅ | ✅ | ✅ | 🟡 Experimental |
-| Hand-eye `AX=XB` | ✅ | ✅ | ✅ | 🟢 Alpha |
-| Robot-world `AX=YB` | ✅ | ✅ | ✅ | 🟢 Alpha |
-| LiDAR ↔ IMU | — | ✅ | ✅ | 🟡 Evidence |
-| Radar extrinsic | ✅ | ✅ | ✅ | 🟡 Experimental |
-| RGB-D joint SLAC | ✅ | ✅ | ✅ | 🟡 Experimental |
-| Open3D / external tools | Adapter | ✅ | ✅ | 🔵 Adapter |
-
-<p align="center">
-  <img src="docs/assets/lidar-calibration-coverage.svg" alt="Calibrex LiDAR calibration coverage map" width="100%">
-</p>
+Tried it on your rig? Share a sanitized result or a useful failure case in the
+[v0.4.1 launch discussion](https://github.com/rsasaki0109/Calibrex/discussions/61).
+If the evidence-first workflow earns a place in your calibration stack,
+consider starring Calibrex so other robotics teams can find it.
 
 ## Public real-data benchmarks
 
@@ -401,44 +292,64 @@ RMSE on untouched holdout poses, retain failures in the denominator, and show
 95% bootstrap intervals across splits. See the [full protocol, citations,
 limitations, and reproducible provenance](docs/benchmarks/ethz_hand_eye_opencv.md).
 
-### Solid-state LiDAR: reproducible public-data evidence
+## Solid-state LiDAR quickstart
 
-The checked v0.3 solid-state protocol runs nine paired replicates per dataset
-across three temporal holdout boundaries and three deterministic sampling
-seeds. Lower holdout RMSE is better; positive improvement means adaptive is
-better than the uniform baseline.
+Start with the small Livox sample for a fast, no-ROS check. It writes a
+calibrated `result.yaml`, `report.html`, evidence sidecars, and a verified
+provenance bundle:
 
-| Public pair/control | Replicates | Adaptive win rate | Mean improvement (95% CI) | Outcome |
-|---|---:|---:|---:|---|
-| AgRob Modular-e Livox MID-70 ↔ RS-LiDAR | 9 | 0.556 | −1.34% (−10.16, 6.68) | mixed; adaptive 5/9 |
-| TIERS LidarsCali VLP-16 ↔ Livox Horizon | 9 | 1.00 | +78.76% (+76.00, 81.73) | adaptive 9/9 |
-| AIST GLIM identity control | 9 | 1.00 | +65.67% (+64.18, 66.95) | adaptive 9/9 |
+```bash
+python -m pip install .
+calibrex demo livox-evidence \
+  --output-dir outputs/solid-state-livox-demo \
+  --json
+calibrex validate outputs/solid-state-livox-demo/result.yaml
+calibrex verify outputs/solid-state-livox-demo/bundle.json
+```
 
-Across 27 scored replicates, adaptive wins 23/27 with mean improvement of
-47.70% and bootstrap 95% CI [34.43, 59.99]%. AgRob is retained as a useful
-counterexample rather than hidden: its result varies across split and seed.
-The full checked summary is the [v0.3 benchmark report](docs/assets/solid-state-cross-dataset-benchmark-v03.md).
-These are ground-truth-free temporal-holdout results, not a universal SOTA
-claim. Reproduce the runs and inspect the [public-dataset protocol](docs/tutorials/public_datasets.md#cross-dataset-solid-state-benchmark).
+- **Real timing and clock offset.** The public TIERS VLP-16 ↔ Livox Horizon
+  bag (about 7.18 GB, never downloaded automatically) is profiled with
+  `calibrex continuous-time-lidar-pair`; see the
+  [public-dataset tutorial](docs/tutorials/public_datasets.md#tiers-lidarscali-ros-1-bag-livox-horizon--avia).
+  On the checked run the selected offset was **+40 ms** and train RMSE changed
+  from **0.0957 m to 0.0240 m**, with **0.0242 m** holdout RMSE. This is an
+  algorithmic estimate under the declared holdout: the public sequence has no
+  independent clock ground truth.
+- **Synthetic truth gate.** A deterministic benchmark recovers a known
+  extrinsic and **+30 ms** clock offset and rejects a fixed-clock known-bad
+  control (`tools/run_solid_state_synthetic_benchmark.py`). It verifies solver
+  mechanics, not real-sensor accuracy. See the
+  [YAML artifact](docs/assets/solid-state-synthetic-benchmark-v01.yaml) and
+  [report](docs/assets/solid-state-synthetic-benchmark-v01.md).
+- **Public cross-dataset benchmark.** Paired solver variants are compared on
+  the same capture windows, temporal holdouts, and sampling seeds. In the v0.3
+  matrix, adaptive wins 23/27 replicates with mean improvement 47.70%
+  (bootstrap 95% CI [34.43, 59.99]%); AgRob Modular-e stays a visible
+  counterexample (5/9, mean −1.34%). The public-only v0.4 candidate scores
+  **27/27** replicates: adaptive wins **25/27**, mean improvement **57.20%**
+  (95% CI **[45.69, 67.43]%**), and 9 of 54 variant artifacts hit the declared
+  `max_iterations` category. See the
+  [v0.3 report](docs/assets/solid-state-cross-dataset-benchmark-v03.md),
+  [v0.4 report](docs/assets/solid-state-cross-dataset-benchmark-v04.md), and
+  [train-only selection note](docs/assets/solid-state-cross-dataset-benchmark-v04-train-selection.md).
+  These are ground-truth-free temporal-holdout results, not an absolute
+  accuracy or SOTA claim.
 
-The public-only v0.4 candidate is documented separately: `mad_scale=2.5` was
-fixed from AgRob train-only diagnostics before the v0.4 holdout matrix. See
-the [train-only selection note](docs/assets/solid-state-cross-dataset-benchmark-v04-train-selection.md),
-the schema-valid [v0.4 declaration](examples/public_datasets/solid_state_cross_dataset_benchmark_v04.yaml),
-and the completed [v0.4 benchmark report](docs/assets/solid-state-cross-dataset-benchmark-v04.md).
-
-The v0.4 public-only matrix scores **27/27** paired replicates: adaptive wins
-**25/27**, mean holdout improvement is **57.20%**, and the bootstrap 95% CI is
-**[45.69, 67.43]%**. AgRob improves to adaptive **7/9**, while TIERS and the
-GLIM identity control remain **9/9**. Nine of 54 variant artifacts hit the
-declared `max_iterations` category and remain visible in the report; this is
-comparative temporal-holdout evidence, not an absolute-GT or universal-SOTA
-claim.
+Full commands for every step are in the
+[solid-state public benchmark runbook](docs/tutorials/solid_state_public_benchmark.md).
+The independent physical-metrology packet remains an optional future path and
+is checked in as a planned template, not a result:
+[YAML](docs/assets/solid-state-metrology-evaluation-v01.yaml) and
+[report](docs/assets/solid-state-metrology-evaluation-v01.md).
 
 <details>
 <summary><b>What is implemented in the current alpha?</b></summary>
 
 - typed config, result, comparison, protocol, policy, and evidence schemas
+- native solvers for camera-IMU, IMU-LiDAR, GNSS-LiDAR/IMU, LiDAR-LiDAR,
+  LiDAR/IMU-vehicle, LiDAR-wheel odometry, and INS-LiDAR, each with held-out
+  windows, a block jackknife, and known-bad controls
+- pair-agnostic pre-registered SOTA audits and per-pair standings (`calibrex sota`)
 - offline and online/streaming LiDAR calibration for rosbag1, rosbag2, and MCAP
 - motion compensation, per-point deskew, and trajectory evidence
 - targetless camera-LiDAR mutual information and online monitoring
@@ -453,6 +364,52 @@ See the [calibration methods](docs/concepts/calibration_methods.md) and
 [changelog](CHANGELOG.md) for solver-level detail and limitations.
 
 </details>
+
+## Real data, honest verdicts
+
+Calibrex does not turn every run green. Weak excitation, failed controls, and
+refuted audits are reported as evidence, not hidden as demo noise. A sample of
+current results from the benchmark pages:
+
+| Pair / data | Result | Verdict |
+|---|---|:---:|
+| `lidar-lidar`, NTU VIRAL held-out audit | Accuracy gates pass (0.489 deg, 0.077 m to design), but no gain over scan-to-scan (paired CI low −0.0048) and cross-recording consistency 1.143 vs bound 1.0; 2/4 gates | ❌ Refuted |
+| `imu-lidar`, first full-extrinsic audit vs LI-Init | Lever-arm x unobservable on both recordings, so the claim was contradicted; kept on the leaderboard beside the later supported round | ❌ Refuted |
+| `camera-imu`, Hilti 2022 dev (exp21, exp07), 10 camera runs | 5 pass, 1 warn, 4 inconclusive; side and down cameras on exp07 still do not constrain rotation (jackknife 0.35-0.7 deg) | ⚠️ Inconclusive |
+| `ins-lidar`, KITTI drives 0005 + 0009 | Roll, pitch, and clock offset estimated; yaw and translations unobservable | ⚠️ Inconclusive |
+| `lidar-wheel`, KITTI (OXTS stand-in) | Rotation matches lidar-vehicle within 0.004 deg; a 1 % speed-scale control is not detected | ⚠️ Warn |
+| `imu-lidar`, MID360 driving | Roll estimated; yaw unobservable because a vehicle rotates almost only about the vertical axis | ⚠️ Inconclusive |
+| `imu-lidar`, MID360 hand-held (RTK-SLAM seq2) | Every rotation axis estimated; held-out windows detect every known-bad shift | ✅ Pass |
+
+The failure is part of the product: gates refuse to certify what the available
+data cannot falsify.
+
+## Why evidence?
+
+Most calibration tools stop after producing a transform. Calibrex asks the
+next question: **what evidence would falsify this transform?**
+
+| A matrix gives you | Calibrex adds |
+|---|---|
+| One estimated transform | Candidate, reference, and selected estimates kept separate |
+| One training residual | Train/holdout metrics and temporal stability |
+| Optimizer convergence | Known-bad perturbation challenges |
+| A covariance matrix | Rank, weak directions, and degeneracy warnings |
+| A screenshot | Schema-valid artifacts with input and producer provenance |
+| A result file | A digest-locked evidence bundle that can be verified later |
+
+```mermaid
+flowchart LR
+    A[Sensor data] --> B[Candidate calibration]
+    B --> C{Evidence gates}
+    C -->|Holdout| D[Generalization]
+    C -->|Known-bad| E[Falsification]
+    C -->|Observability| F[Weak directions]
+    D --> G[PASS / WARN / FAIL]
+    E --> G
+    F --> G
+    G --> H[HTML + schema-valid sidecars]
+```
 
 ## See the evidence at a glance
 
@@ -472,20 +429,6 @@ calibrex render result.yaml \
   --format evidence-card \
   --output evidence-card.svg
 ```
-
-## Why evidence?
-
-Most calibration tools stop after producing a transform. Calibrex asks the
-next question: **what evidence would falsify this transform?**
-
-| A matrix gives you | Calibrex adds |
-|---|---|
-| One estimated transform | Candidate, reference, and selected estimates kept separate |
-| One training residual | Train/holdout metrics and temporal stability |
-| Optimizer convergence | Known-bad perturbation challenges |
-| A covariance matrix | Rank, weak directions, and degeneracy warnings |
-| A screenshot | Schema-valid artifacts with input and producer provenance |
-| A result file | A digest-locked evidence bundle that can be verified later |
 
 ### Compare candidates without hiding incompatibilities
 
@@ -507,56 +450,6 @@ calibrex compare \
   --right-label "known bad" \
   --output comparison-table.svg
 ```
-
-```mermaid
-flowchart LR
-    A[Sensor data] --> B[Candidate calibration]
-    B --> C{Evidence gates}
-    C -->|Holdout| D[Generalization]
-    C -->|Known-bad| E[Falsification]
-    C -->|Observability| F[Weak directions]
-    D --> G[PASS / WARN / FAIL]
-    E --> G
-    F --> G
-    G --> H[HTML + schema-valid sidecars]
-```
-
-## Real data, honest verdicts
-
-Calibrex does not turn every run green. Weak excitation and failed controls are
-reported as evidence, not hidden as demo noise.
-
-| v0.3 evidence on TIERS Indoor02 | Observation | Verdict |
-|---|---:|:---:|
-| Native-deskew identity selftest | translation error **9.5 cm → 4.3 cm** | Improved |
-| Cross-segment trajectory drift proxy | **0.143 m** over 42 s | ✅ PASS |
-| Two-pass odometry trajectory gate | **0.366 m** | ❌ FAIL |
-| Anchored temporal +50 ms injection | offset tracked exactly | ✅ Detected |
-| LiDAR-IMU rotation evidence | 3.56 deg/s holdout RMSE | ⚠️ Yaw limited |
-
-The failure is part of the product: gates refuse to certify what the available
-data cannot falsify.
-
-## Install
-
-The supported no-source install is the versioned wheel attached to the
-[v0.4.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.4.1):
-
-```bash
-python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.4.1/calibrex-0.4.1-py3-none-any.whl"
-```
-
-Development checkouts and optional backends remain explicit:
-
-```bash
-python -m pip install -e ".[dev]"
-python -m pip install -e ".[open3d]"
-```
-
-The core package stays ROS-independent. ROS bags are read through typed data
-adapters, and GPL or ecosystem-specific tools stay behind optional adapter or
-subprocess boundaries.
 
 ## Outputs you can inspect and verify
 
@@ -585,6 +478,28 @@ calibrex compare reference.yaml candidate.yaml --enforce-compatible
 `render` never claims to recompute metrics. Cached inputs remain marked as
 cached, raw-input verification remains visible, and incompatible protocols are
 not silently ranked together.
+
+## Install
+
+The supported no-source install is the versioned wheel attached to the
+[v0.4.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.4.1):
+
+```bash
+python -m pip install \
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.4.1/calibrex-0.4.1-py3-none-any.whl"
+```
+
+Development checkouts and optional backends remain explicit:
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pip install -e ".[open3d]"
+```
+
+The core package stays ROS-independent. ROS bags are read through typed data
+adapters, and GPL or ecosystem-specific tools (for example LI-Init, used only
+as an audit baseline in a container) stay behind optional adapter or
+subprocess boundaries.
 
 ## Reproduce the README visuals
 
@@ -624,11 +539,23 @@ Tests fail if the committed evidence card drifts from its validated source.
 ## Documentation
 
 - [Documentation site](https://rsasaki0109.github.io/Calibrex/)
+- [SOTA leaderboard](docs/benchmarks/sota_leaderboard.md)
+- Benchmark pages: [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) ·
+  [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md) ·
+  [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md) ·
+  [Hilti camera-IMU](docs/benchmarks/hilti_camera_imu.md) ·
+  [KITTI INS-LiDAR](docs/benchmarks/kitti_ins_lidar.md) ·
+  [LiDAR-wheel odometry](docs/benchmarks/lidar_wheel_odometry.md) ·
+  [RTK-SLAM GNSS-LiDAR](docs/benchmarks/rtk_slam_gnss_lidar.md) ·
+  [RTK-SLAM GNSS-IMU](docs/benchmarks/rtk_slam_gnss_imu.md) ·
+  [ETHZ hand-eye](docs/benchmarks/ethz_hand_eye_opencv.md) ·
+  [ETHZ robot-world](docs/benchmarks/ethz_robot_world_hand_eye.md)
 - [SLAC concept](docs/concepts/slac.md)
 - [Calibration methods](docs/concepts/calibration_methods.md)
 - [Solid-state LiDAR calibration](docs/concepts/solid_state_lidar.md)
 - [Frame conventions](docs/concepts/frame_conventions.md)
 - [Public datasets](docs/tutorials/public_datasets.md)
+- [Your own data](docs/tutorials/your_own_data.md) · [Browser calibration](docs/tutorials/browser_calibration.md)
 - [Open3D adapter](docs/tutorials/open3d_slac.md)
 - [LiDAR-camera adapter](docs/tutorials/lidar_camera_adapter.md)
 - [License boundaries](docs/concepts/license_boundaries.md)

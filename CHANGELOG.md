@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **README refresh.** The README now covers all ten target sensor pairs, the
+  pre-registered SOTA audits and leaderboard standings, and current honest
+  verdicts; the duplicated quickstart and gallery GIF are removed and the
+  solid-state section is condensed.
 - **Camera-IMU evidence settings.** Near-static windows (accumulated rotation
   under 1.0 deg) are left out of the fit and the jackknife, and the rotation
   observability bound is 0.3 deg for cameras instead of the 0.1 deg inherited
