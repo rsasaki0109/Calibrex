@@ -297,6 +297,74 @@ class CheckPairRecord(StrictModel):
         return self
 
 
+class CheckClosureEdge(StrictModel):
+    """One pair estimate considered for the closure graph."""
+
+    pair: CheckPairName
+    parent_frame: str | None = None
+    child_frame: str | None = None
+    role: Literal["independent", "derived", "unusable"]
+    reason: str | None = Field(
+        default=None, description="why a derived or unusable estimate is not in any loop"
+    )
+
+
+class CheckClosureMember(StrictModel):
+    """One estimate traversed by a closure loop."""
+
+    pair: CheckPairName
+    parent_frame: str
+    child_frame: str
+    direction: Literal["forward", "reverse"] = Field(
+        description="forward: the loop goes parent to child (multiplies T_parent_child); "
+        "reverse: child to parent (multiplies its inverse)"
+    )
+    estimator: str | None = None
+
+
+class CheckClosure(StrictModel):
+    """One independent loop of the estimate graph: the product around it should be identity.
+
+    ``kind`` is ``parallel`` for two estimates of the same frame pair and
+    ``cycle`` for a longer loop. ``axes`` are judged with the verdict rule of
+    the pairs (``tolerance = max(sigma_k * std, floor)``, fail beyond twice the
+    tolerance); a rotation axis is the small rotation about the axes of
+    ``frames[0]`` (degrees), a translation axis the translation of the loop
+    product in ``frames[0]`` (metres). ``estimate_std`` is the first-order
+    propagation of the members' standard deviations assuming independent
+    members. ``candidate_error`` of an axis is the loop error (not a
+    candidate-minus-estimate error: a closure involves no candidate).
+    """
+
+    kind: Literal["parallel", "cycle"]
+    frames: list[str] = Field(description="the loop's frames in order; the first is its origin")
+    members: list[CheckClosureMember]
+    axes: list[CheckAxisJudgement] = Field(default_factory=list)
+    unchecked_axes: list[CheckUncheckedAxis] = Field(default_factory=list)
+    verdict: Literal["pass", "warn", "fail", "inconclusive"]
+    notes: list[str] = Field(default_factory=list)
+
+
+class CheckClosureReport(StrictModel):
+    """Consistency of the independent estimates of one run with each other.
+
+    Edges are the run's per-pair estimates (not the candidate); estimates that
+    are composed from other pairs' results are ``derived`` and excluded, since
+    they are not independent evidence. ``loops`` are a fundamental cycle basis
+    of the remaining graph. A loop that fails says the estimators disagree
+    with each other, so their verdicts on the candidate are less trustworthy;
+    it contains no information about the candidate itself.
+    """
+
+    assumptions: list[str] = Field(default_factory=list)
+    edges: list[CheckClosureEdge] = Field(default_factory=list)
+    loops: list[CheckClosure] = Field(default_factory=list)
+    verdict: str | None = Field(
+        default=None,
+        description="worst loop verdict (fail > warn > inconclusive > pass); absent without loops",
+    )
+
+
 class CheckSummary(StrictModel):
     """Counts derived from the pair records."""
 
@@ -339,11 +407,17 @@ class CalibrationCheckArtifact(StrictModel):
     overall_verdict: str | None = Field(
         default=None,
         description=(
-            "worst verdict over the pairs that ran (fail > warn > inconclusive > pass); "
+            "worst verdict over the pairs that ran (fail > warn > inconclusive > pass), "
+            "raised to at least warn when a closure loop fails; "
             "absent in a plan-only run; inconclusive when no pair ran"
         ),
     )
     options: CheckOptions | None = None
+    closures: CheckClosureReport | None = Field(
+        default=None,
+        description="closure of the run's estimates with each other (optional addition); "
+        "a failing loop raises overall_verdict to at least warn, never to fail",
+    )
     evidence_dir: str | None = Field(
         default=None, description="evidence directory, relative to the artifact"
     )

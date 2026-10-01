@@ -210,6 +210,249 @@
       "title": "CheckCandidateSource",
       "type": "object"
     },
+    "CheckClosure": {
+      "additionalProperties": false,
+      "description": "One independent loop of the estimate graph: the product around it should be identity.\n\n``kind`` is ``parallel`` for two estimates of the same frame pair and\n``cycle`` for a longer loop. ``axes`` are judged with the verdict rule of\nthe pairs (``tolerance = max(sigma_k * std, floor)``, fail beyond twice the\ntolerance); a rotation axis is the small rotation about the axes of\n``frames[0]`` (degrees), a translation axis the translation of the loop\nproduct in ``frames[0]`` (metres). ``estimate_std`` is the first-order\npropagation of the members' standard deviations assuming independent\nmembers. ``candidate_error`` of an axis is the loop error (not a\ncandidate-minus-estimate error: a closure involves no candidate).",
+      "properties": {
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/CheckAxisJudgement"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "frames": {
+          "description": "the loop's frames in order; the first is its origin",
+          "items": {
+            "type": "string"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "parallel",
+            "cycle"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/CheckClosureMember"
+          },
+          "title": "Members",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "unchecked_axes": {
+          "items": {
+            "$ref": "#/$defs/CheckUncheckedAxis"
+          },
+          "title": "Unchecked Axes",
+          "type": "array"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "frames",
+        "members",
+        "verdict"
+      ],
+      "title": "CheckClosure",
+      "type": "object"
+    },
+    "CheckClosureEdge": {
+      "additionalProperties": false,
+      "description": "One pair estimate considered for the closure graph.",
+      "properties": {
+        "child_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Frame"
+        },
+        "pair": {
+          "enum": [
+            "imu-lidar",
+            "lidar-lidar",
+            "camera-imu",
+            "camera-focal",
+            "gnss-lidar",
+            "gnss-imu",
+            "lidar-vehicle",
+            "imu-vehicle",
+            "ins-lidar",
+            "lidar-wheel_odometry"
+          ],
+          "title": "Pair",
+          "type": "string"
+        },
+        "parent_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Frame"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "why a derived or unusable estimate is not in any loop",
+          "title": "Reason"
+        },
+        "role": {
+          "enum": [
+            "independent",
+            "derived",
+            "unusable"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pair",
+        "role"
+      ],
+      "title": "CheckClosureEdge",
+      "type": "object"
+    },
+    "CheckClosureMember": {
+      "additionalProperties": false,
+      "description": "One estimate traversed by a closure loop.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "direction": {
+          "description": "forward: the loop goes parent to child (multiplies T_parent_child); reverse: child to parent (multiplies its inverse)",
+          "enum": [
+            "forward",
+            "reverse"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "estimator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimator"
+        },
+        "pair": {
+          "enum": [
+            "imu-lidar",
+            "lidar-lidar",
+            "camera-imu",
+            "camera-focal",
+            "gnss-lidar",
+            "gnss-imu",
+            "lidar-vehicle",
+            "imu-vehicle",
+            "ins-lidar",
+            "lidar-wheel_odometry"
+          ],
+          "title": "Pair",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pair",
+        "parent_frame",
+        "child_frame",
+        "direction"
+      ],
+      "title": "CheckClosureMember",
+      "type": "object"
+    },
+    "CheckClosureReport": {
+      "additionalProperties": false,
+      "description": "Consistency of the independent estimates of one run with each other.\n\nEdges are the run's per-pair estimates (not the candidate); estimates that\nare composed from other pairs' results are ``derived`` and excluded, since\nthey are not independent evidence. ``loops`` are a fundamental cycle basis\nof the remaining graph. A loop that fails says the estimators disagree\nwith each other, so their verdicts on the candidate are less trustworthy;\nit contains no information about the candidate itself.",
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/CheckClosureEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "loops": {
+          "items": {
+            "$ref": "#/$defs/CheckClosure"
+          },
+          "title": "Loops",
+          "type": "array"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "worst loop verdict (fail > warn > inconclusive > pass); absent without loops",
+          "title": "Verdict"
+        }
+      },
+      "title": "CheckClosureReport",
+      "type": "object"
+    },
     "CheckEvidenceRef": {
       "additionalProperties": false,
       "description": "One estimator artifact written next to the check artifact.",
@@ -1086,6 +1329,18 @@
       "title": "Candidate Sources",
       "type": "array"
     },
+    "closures": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CheckClosureReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "closure of the run's estimates with each other (optional addition); a failing loop raises overall_verdict to at least warn, never to fail"
+    },
     "evidence_dir": {
       "anyOf": [
         {
@@ -1123,7 +1378,7 @@
         }
       ],
       "default": null,
-      "description": "worst verdict over the pairs that ran (fail > warn > inconclusive > pass); absent in a plan-only run; inconclusive when no pair ran",
+      "description": "worst verdict over the pairs that ran (fail > warn > inconclusive > pass), raised to at least warn when a closure loop fails; absent in a plan-only run; inconclusive when no pair ran",
       "title": "Overall Verdict"
     },
     "pairs": {

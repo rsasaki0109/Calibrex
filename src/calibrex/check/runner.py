@@ -10,13 +10,19 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
 from calibrex import __version__
 from calibrex.check import estimators
 from calibrex.check.cache import EstimatorCache
+from calibrex.check.closure import (
+    ClosureEdge,
+    build_closure_report,
+    closure_floor_verdict,
+    edge_from_estimates,
+)
 from calibrex.check.estimators import (
     CheckSkipError,
     EstimatorRun,
@@ -45,6 +51,7 @@ from calibrex.core.calibration_check import (
     CheckAxisJudgement,
     CheckBagInput,
     CheckCandidateSource,
+    CheckClosureReport,
     CheckEvidenceRef,
     CheckFrameEdge,
     CheckFrameTree,
@@ -232,13 +239,14 @@ def build_calibration_check(
     options_record: CheckOptions | None = None
     evidence_dir_record: str | None = None
     overall: str | None = None
+    closures: CheckClosureReport | None = None
     if run is None:
         notes.insert(0, "plan only; no pair solver was run")
     else:
         topic_types = {connection.topic: connection.message_type for connection, _ in connections}
         base_dir = run.base_dir or Path.cwd()
         evidence_dir = run.evidence_dir or base_dir / "calibrex_check_evidence"
-        pairs = _run_pairs(
+        pairs, run_memo = _run_pairs(
             pairs,
             run,
             bag=bag_path,
@@ -250,7 +258,11 @@ def build_calibration_check(
             progress=progress,
             bag_sha256=input_sha256,
         )
-        overall = worst_verdict([pair.status for pair in pairs]) or "inconclusive"
+        closures = build_closure_report(pairs, _closure_edges(pairs, run_memo), run.verdict)
+        overall = (
+            worst_verdict([*(pair.status for pair in pairs), closure_floor_verdict(closures) or ""])
+            or "inconclusive"
+        )
         options_record = CheckOptions(
             sigma_k=run.verdict.sigma_k,
             rotation_floor_deg=run.verdict.rotation_floor_deg,
@@ -296,6 +308,7 @@ def build_calibration_check(
         summary=summarize_pairs(pairs),
         overall_verdict=overall,
         options=options_record,
+        closures=closures,
         evidence_dir=evidence_dir_record,
         provenance=CheckProvenance(
             generator="calibrex check",
@@ -361,7 +374,7 @@ def _run_pairs(
     base_dir: Path,
     progress: Callable[[str], None],
     bag_sha256: str = "",
-) -> list[CheckPairRecord]:
+) -> tuple[list[CheckPairRecord], dict[tuple[object, ...], Any]]:
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
         max_duration_s=run.max_duration_s,
@@ -419,7 +432,29 @@ def _run_pairs(
                 progress=progress,
             )
         )
-    return results
+    return results, controls.memo
+
+
+def _closure_edges(
+    pairs: Sequence[CheckPairRecord], memo: Mapping[tuple[object, ...], Any]
+) -> dict[tuple[str, tuple[str, ...]], ClosureEdge]:
+    """The estimate of every pair that produced one, keyed for the closure graph."""
+
+    edges: dict[tuple[str, tuple[str, ...]], ClosureEdge] = {}
+    for record in pairs:
+        outcome = memo.get((estimators.PAIR_RUN_KEY, record.pair, tuple(record.frames)))
+        transform = record.compared_transform
+        if outcome is None or transform is None or not outcome.solved:
+            continue
+        edges[(record.pair, tuple(record.frames))] = edge_from_estimates(
+            record.pair,
+            transform.parent_frame,
+            transform.child_frame,
+            outcome.compared,
+            outcome.estimates,
+            outcome.estimator,
+        )
+    return edges
 
 
 def _skipped(record: CheckPairRecord, code: str, reason: str) -> CheckPairRecord:
@@ -606,6 +641,34 @@ def _format_axis(axis: CheckAxisJudgement) -> str:
     )
 
 
+def _closure_lines(artifact: CalibrationCheckArtifact) -> list[str]:
+    report = artifact.closures
+    if report is None:
+        return []
+    lines = ["", "closure of the estimates (independent estimates against each other):"]
+    for edge in report.edges:
+        if edge.role != "independent":
+            lines.append(f"  {edge.pair}: {edge.role} ({edge.reason}); not in any loop")
+    if not report.loops:
+        lines.append("  no loop: fewer than two independent estimates share a frame")
+    for loop in report.loops:
+        label = " + ".join(
+            f"{m.pair}{'' if m.direction == 'forward' else '^-1'}" for m in loop.members
+        )
+        judged = "; ".join(
+            f"{a.name} {a.candidate_error:+.3g}/{a.tolerance:.3g} {a.unit}"
+            + ("" if a.status == "pass" else f" [{a.status}]")
+            for a in loop.axes
+        )
+        lines.append(f"  {loop.kind} {label}: {loop.verdict}" + (f" ({judged})" if judged else ""))
+        for item in loop.unchecked_axes:
+            lines.append(f"    unchecked {item.name}: {item.reason}")
+        lines.extend(f"    {note}" for note in loop.notes)
+    if report.verdict == "fail":
+        lines.append("  a failing loop raises the overall verdict to warn: the estimators disagree")
+    return lines
+
+
 def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     lines: list[str] = []
     rows: list[list[str]] = []
@@ -665,6 +728,7 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
             )
         for item in pair.unchecked_axes:
             lines.append(f"  {pair.pair}: unchecked {item.name}: {item.reason}")
+    lines.extend(_closure_lines(artifact))
     lines.append("")
     lines.append(f"overall verdict: {artifact.overall_verdict}")
     if artifact.summary.partial_pairs:
