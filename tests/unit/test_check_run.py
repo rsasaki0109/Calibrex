@@ -147,7 +147,9 @@ def test_adapters_receive_candidate_and_topics(
 ) -> None:
     build_calibration_check(bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev"))
 
-    first = next(c for c in calls if c.pair.pair == "imu-lidar" and c.pair.frames[1] == "lidar_front")
+    first = next(
+        c for c in calls if c.pair.pair == "imu-lidar" and c.pair.frames[1] == "lidar_front"
+    )
     assert first.sensor_topics["imu"] == ("/imu",)
     assert first.sensor_topics["lidar"] == ("/lidar_front/points",)
     assert first.pair.frames == ["imu_link", "lidar_front"]
