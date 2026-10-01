@@ -24,7 +24,7 @@ from calibrex.core.calibration_check import (
 )
 
 ARROW = " \u2192 "
-_ABSOLUTE_PATH = re.compile(r"(?<![\w.])/(?:[^\s'\"<>/]+/)*[^\s'\"<>/]+")
+_ABSOLUTE_PATH = re.compile(r"(?<![\w.|])/(?:[^\s'\"<>/]+/)*[^\s'\"<>/]+")
 
 _CSS = """
 :root {

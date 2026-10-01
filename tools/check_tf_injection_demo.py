@@ -41,7 +41,7 @@ from calibrex.visualization.check_report import write_check_html
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_PAIRS = ("lidar-vehicle", "imu-vehicle", "ins-lidar", "lidar-wheel_odometry", "imu-lidar")
 DEFAULT_DRIVES = ("0005", "0009", "0014", "0015", "0022")
-PATH = re.compile(r"(?<![\w.])/(?:[^\s'\"<>/]+/)*[^\s'\"<>/]+")
+PATH = re.compile(r"(?<![\w.|])/(?:[^\s'\"<>/]+/)*[^\s'\"<>/]+")
 
 
 def redact(text: str) -> str:

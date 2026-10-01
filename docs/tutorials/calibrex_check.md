@@ -1,6 +1,6 @@
 # Check a deployed calibration (`calibrex check`)
 
-Status: **Phase C2** (imu-lidar, lidar-lidar, camera-imu, the GNSS pairs gnss-lidar and
+Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, the GNSS pairs gnss-lidar and
 gnss-imu, and the opt-in vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar,
 lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
@@ -462,6 +462,77 @@ re-checking with another candidate costs 3 s.
 Choosing the spans: the lever arm needs about 30 or more 10 s windows inside
 RTK-fixed stretches, which on these sequences means 600 to 900 s of recording;
 the first 240 s of construction (17 windows) are not enough for any axis.
+
+## Phase D: closure, HTML report and the 1 degree demo
+
+### Rig closure
+
+Each pair is judged against the *candidate* on its own. Closure adds a
+candidate-free test: the run's own estimates form a graph of frames, and every
+loop of it must multiply to the identity.
+
+- **Edges** are the per-pair estimates `T_parent_child` (rotation, and translation
+  where the estimator reports it) with the estimator's per-axis std. Two methods
+  estimating the same frame pair (lidar-vehicle and lidar-wheel_odometry both give
+  `R_vehicle_lidar`) are parallel edges; lidar-vehicle, imu-vehicle and ins-lidar
+  form a cycle through the vehicle, IMU and LiDAR frames.
+- **Derived estimates are excluded.** `gnss-imu` is composed from this run's
+  gnss-lidar and imu-lidar results, so it is not independent evidence. It is listed
+  as `derived` in `closures.edges`. An estimate with no observed axis is `unusable`.
+- **Loops** are a fundamental cycle basis of the remaining graph (a spanning forest,
+  one loop per other edge). Loops that share a member are correlated.
+- **Error and std.** The closure error is `rotvec` of the loop product in degrees
+  (and the translation of the loop product in metres, only if every member estimates
+  it), in the axes of the loop's first frame. The std is propagated to first order
+  assuming independent members, which is optimistic when members share an input: the
+  three vehicle pairs that use LiDAR motion read the same LiDAR odometry, and a loop
+  with two of them carries a note saying so.
+- **Verdict.** The rule of the pairs: `tolerance = max(sigma_k * std, floor)`, pass
+  within 1x, fail beyond 2x. A closure axis is judged only if every member observes
+  everything that enters it (an unobserved member axis with a first-order weight above
+  0.05 makes the axis `unchecked`).
+- **Overall verdict.** A failing loop raises `overall_verdict` to at least `warn`,
+  never to `fail`. A closure contains no candidate: it says the estimators disagree
+  with each other, which makes their verdicts less trustworthy, not that the candidate
+  is wrong. A `warn` loop is reported but does not change the overall verdict.
+
+The result is the optional `closures` field (`edges`, `loops` with members,
+per-axis judgements, unchecked axes and notes, and the worst loop `verdict`).
+Without a loop (fewer than two independent estimates sharing frames) it is empty.
+
+On the pooled KITTI development bag (drives 0005, 0009, 0014, 0015, 0022) the one loop is
+lidar-wheel_odometry against lidar-vehicle: pitch -0.0003 deg, yaw +0.004 deg, `pass`; roll is
+unchecked because neither estimate observes it. That is small because both read the same LiDAR
+odometry, so it is a weak test of the odometry itself. The cycle through imu-vehicle and
+ins-lidar does not form: imu-vehicle is `inconclusive` on KITTI (its std is over the bound,
+the 10 Hz INS velocities are noisy), hence `unusable`, and ins-lidar does not observe yaw. The
+documented
+[KITTI closure](../benchmarks/kitti_lidar_vehicle.md#ins-vehicle-calibrex-imu-vehicle-kitti)
+(LiDAR-vehicle composed with KITTI's `calib_imu_to_velo` against INS-vehicle, within
+(-0.03, -0.03, +0.09) deg) uses estimates `calibrex check` refuses to judge for the same
+reason, so it stays a separate, benchmark-level statement.
+
+### HTML report
+
+```bash
+calibrex check my_bag/ --tf rig.urdf --output check.json --html check.html
+calibrex render check.json --html check.html     # re-render a saved artifact
+```
+
+One self-contained page (no scripts, no external assets, light and dark): the overall
+verdict banner, a table of the judged pairs (verdict, coverage, `|error| / tolerance` per
+axis, unchecked axes with reasons, detectable error, evidence file with SHA-256 and a link
+relative to the report), the skipped pairs with reasons, the closure loops, the candidate frame
+tree, and the provenance (bag digest and its scope, candidate sources, command, version).
+
+### The 1 degree demo
+
+`tools/check_tf_injection_demo.py` turns `velo_link` of the KITTI pooled bag by +1 and +3
+degrees about its parent's z axis and runs `calibrex check` on each (details and the table in
+the [README](../../README.md#check-a-deployed-calibration)). Outputs, with absolute paths
+shortened, are in `docs/assets/calibrex_check_demo/`. The estimator cache key includes a digest
+of the working tree, so editing calibrex invalidates the cache; the first variant costs about
+6 minutes and the others seconds.
 
 ## Phase B results on real recordings
 
