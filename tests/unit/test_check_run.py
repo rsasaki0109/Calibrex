@@ -408,3 +408,51 @@ def test_cli_topic_kind_is_recorded_in_the_run_options(
     artifact = json.loads(out.read_text())
     assert artifact["options"]["topic_kinds"] == {"/vehicle/twist": "ins"}
     validate_file(out)
+
+
+CLOSURE_PAIRS = ("imu-lidar", "lidar-lidar")
+
+
+def _closure_run(monkeypatch: pytest.MonkeyPatch, front: float, rear: float, lidar: float) -> Any:
+    errors = {"lidar_front": (0.0, 0.0, front), "lidar_rear": (0.0, 0.0, rear)}
+
+    def imu_lidar(ctx: PairContext) -> EstimatorRun:
+        return _run(errors[ctx.pair.frames[1]])
+
+    monkeypatch.setattr(
+        estimators,
+        "ESTIMATORS",
+        {"imu-lidar": imu_lidar, "lidar-lidar": lambda ctx: _run((0.0, 0.0, lidar))},
+    )
+
+
+def test_closure_over_the_estimates_floors_the_overall_verdict_at_warn(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # every pair is inside its 0.5 deg tolerance, but the three estimates do not close
+    _closure_run(monkeypatch, 0.45, -0.45, -0.45)
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=CLOSURE_PAIRS)
+    )
+
+    assert {r.status for r in artifact.pairs if r.axes} == {"pass"}
+    assert artifact.closures is not None
+    loop = artifact.closures.loops[0]
+    assert loop.kind == "cycle" and loop.verdict == "fail"
+    assert artifact.overall_verdict == "warn"
+    assert "closure of the estimates" in format_check_table(artifact)
+    # the schema round trip keeps the optional field
+    again = CalibrationCheckArtifact.model_validate(artifact.model_dump(mode="json"))
+    assert again.closures == artifact.closures
+
+
+def test_consistent_estimates_do_not_change_the_overall_verdict(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _closure_run(monkeypatch, 0.0, 0.0, 0.0)
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=CLOSURE_PAIRS)
+    )
+
+    assert artifact.closures is not None and artifact.closures.verdict == "pass"
+    assert artifact.overall_verdict == "pass"

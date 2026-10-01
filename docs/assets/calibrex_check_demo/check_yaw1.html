@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>calibrex check - bag_pool5</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1b2127; --muted: #5b6770; --line: #d8dde1; --panel: #f1f3f4;
+  --pass-bg: #d9f0e3; --pass-fg: #0f5a33; --warn-bg: #fff0c2; --warn-fg: #6a4a00;
+  --fail-bg: #ffd9d9; --fail-fg: #7a1616; --inc-bg: #e4e7ea; --inc-fg: #3d474f;
+  --bar: #7a8791; --accent: #2b6cb0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181c; --fg: #e4e8eb; --muted: #9aa6af; --line: #333c43; --panel: #1d2329;
+    --pass-bg: #163a28; --pass-fg: #8fe0b2; --warn-bg: #43380f; --warn-fg: #f2d37a;
+    --fail-bg: #4a1c1c; --fail-fg: #ffb4b4; --inc-bg: #2a3239; --inc-fg: #c1cad1;
+    --bar: #8b99a3; --accent: #7db2ee;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181c; --fg: #e4e8eb; --muted: #9aa6af; --line: #333c43; --panel: #1d2329;
+  --pass-bg: #163a28; --pass-fg: #8fe0b2; --warn-bg: #43380f; --warn-fg: #f2d37a;
+  --fail-bg: #4a1c1c; --fail-fg: #ffb4b4; --inc-bg: #2a3239; --inc-fg: #c1cad1;
+  --bar: #8b99a3; --accent: #7db2ee;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 32px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+p, li { max-width: 80ch; }
+.sub { color: var(--muted); margin: 0 0 16px; overflow-wrap: anywhere; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 4px;
+  font: 0.88em ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+.banner { border-radius: 8px; padding: 14px 16px; margin: 12px 0 8px; font-size: 1.05rem; }
+.banner strong { font-size: 1.3rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.banner ul { margin: 6px 0 0; padding-left: 20px; font-size: 0.92rem; }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-weight: 700;
+  font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.pass { background: var(--pass-bg); color: var(--pass-fg); }
+.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.fail { background: var(--fail-bg); color: var(--fail-fg); }
+.inconclusive, .skipped, .planned { background: var(--inc-bg); color: var(--inc-fg); }
+.tablewrap { overflow-x: auto; margin: 8px 0; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left;
+  vertical-align: top; }
+th { background: var(--panel); font-size: 0.8rem; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--muted); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.axis { display: grid; grid-template-columns: 4.2em 1fr; gap: 2px 8px; align-items: center;
+  margin: 2px 0; min-width: 230px; }
+.axis .name { color: var(--muted); }
+.meter { position: relative; height: 8px; background: var(--panel); border-radius: 4px;
+  border: 1px solid var(--line); overflow: hidden; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar); }
+.meter i.pass { background: var(--pass-fg); } .meter i.warn { background: var(--warn-fg); }
+.meter i.fail { background: var(--fail-fg); }
+.meter b { position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px;
+  background: var(--fg); opacity: 0.45; }
+.axis .val { grid-column: 2; font-size: 0.82rem; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 0.88rem; }
+.unchecked { color: var(--muted); font-size: 0.88rem; margin: 2px 0; }
+.legend { color: var(--muted); font-size: 0.85rem; }
+ul.tree, ul.tree ul { list-style: none; margin: 0; padding-left: 20px;
+  border-left: 1px solid var(--line); }
+ul.tree { border-left: 0; padding-left: 0; }
+ul.tree li { margin: 2px 0; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 8px 0; }
+dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+details { margin: 8px 0; } summary { cursor: pointer; }
+</style></head><body><main>
+<h1>calibrex check</h1>
+<p class="sub">Is the deployed calibration consistent with the data? Bag <code>.../bag_pool5</code>, 6 topics, vehicle frame <code>base_link</code>. Schema <code>slac.calibration_check/v0.1</code>.</p>
+<div class="banner fail"><strong>fail</strong> overall verdict<ul><li>4 pair(s) ran: 1 pass, 2 fail, 1 inconclusive</li><li>6 pair(s) skipped (see below)</li><li>4 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes</li><li>closure of the estimates: pass</li><li>4 axis judgement(s) outside the tolerance</li></ul></div>
+<h2>Pairs</h2>
+<p class="legend">Bars show |candidate error| as a fraction of twice the tolerance; the centre line is the tolerance (pass up to it, fail beyond twice it). tolerance = max(3 &sigma;, floor), floors 0.5 deg / 0.02 m. Detectable error: a deliberate error larger than this on the axis would be flagged.</p>
+<div class="tablewrap"><table><thead><tr><th>pair</th><th>verdict</th><th>|candidate error| / tolerance</th><th>detectable error</th><th>evidence</th></tr></thead><tbody><tr><td><b>lidar-vehicle</b><div class="note">velo_link / base_link</div></td><td><span class="badge fail">fail</span><div class="note">partial coverage</div></td><td><div class="axis"><span class="name">pitch</span><span class="meter" title="1.01 x tolerance"><i class="warn" style="width:51%"></i><b></b></span><span class="val">0.505 / 0.5 deg, 1&sigma; 0.0413 (1x) <span class="badge warn">warn</span></span></div><div class="axis"><span class="name">yaw</span><span class="meter" title="2.63 x tolerance"><i class="fail" style="width:100%"></i><b></b></span><span class="val">1.31 / 0.5 deg, 1&sigma; 0.0533 (2.6x) <span class="badge fail">fail</span></span></div><div class="unchecked"><b>roll</b> unchecked: not constrained by the data (reported std 0.4241 deg)</div></td><td>pitch 1.01 deg<br>yaw 1.81 deg</td><td><div>lidar-vehicle_velo_link_base_link.yaml (cache)<br><code>sha256 f186a0530192</code> <span class="note">slac.vehicle_frame_rotation/v0.1</span></div></td></tr><tr><td><b>imu-vehicle</b><div class="note">imu_link / base_link</div></td><td><span class="badge inconclusive">inconclusive</span></td><td><span class="note">none</span><div class="unchecked"><b>roll</b> unchecked: not constrained by the data (reported std 0.4558 deg)</div><div class="unchecked"><b>pitch</b> unchecked: not constrained by the data (reported std 0.1248 deg)</div><div class="unchecked"><b>yaw</b> unchecked: not constrained by the data (reported std 0.1504 deg)</div><div class="note">no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg))</div></td><td>-</td><td><div>imu-vehicle_imu_link_base_link.yaml (cache)<br><code>sha256 c5fb3e1b7459</code> <span class="note">slac.vehicle_frame_rotation/v0.1</span></div></td></tr><tr><td><b>ins-lidar</b><div class="note">imu_link / velo_link</div></td><td><span class="badge pass">pass</span><div class="note">partial coverage</div></td><td><div class="axis"><span class="name">roll</span><span class="meter" title="0.23 x tolerance"><i class="pass" style="width:11%"></i><b></b></span><span class="val">0.114 / 0.5 deg, 1&sigma; 0.0303 (0.23x)</span></div><div class="axis"><span class="name">pitch</span><span class="meter" title="0.11 x tolerance"><i class="pass" style="width:6%"></i><b></b></span><span class="val">0.0567 / 0.5 deg, 1&sigma; 0.0443 (0.11x)</span></div><div class="unchecked"><b>yaw</b> unchecked: not constrained by the data (reported std 0.1396 deg)</div><div class="unchecked"><b>x</b> unchecked: not constrained by the data (reported std 0.1118 m)</div><div class="unchecked"><b>y</b> unchecked: not constrained by the data (reported std 0.1363 m)</div><div class="unchecked"><b>z</b> unchecked: not constrained by the data (reported std 0.9232 m)</div></td><td>roll 0.614 deg<br>pitch 0.557 deg</td><td><div>ins-lidar_imu_link_velo_link.yaml (cache)<br><code>sha256 e54ec060f006</code> <span class="note">slac.ins_lidar_hand_eye/v0.1</span></div></td></tr><tr><td><b>lidar-wheel_odometry</b><div class="note">velo_link / base_link</div></td><td><span class="badge fail">fail</span><div class="note">partial coverage</div></td><td><div class="axis"><span class="name">pitch</span><span class="meter" title="1.01 x tolerance"><i class="warn" style="width:50%"></i><b></b></span><span class="val">0.505 / 0.5 deg, 1&sigma; 0.0414 (1x) <span class="badge warn">warn</span></span></div><div class="axis"><span class="name">yaw</span><span class="meter" title="2.62 x tolerance"><i class="fail" style="width:100%"></i><b></b></span><span class="val">1.31 / 0.5 deg, 1&sigma; 0.0521 (2.6x) <span class="badge fail">fail</span></span></div><div class="unchecked"><b>roll</b> unchecked: not constrained by the data (reported std 0.4218 deg)</div></td><td>pitch 1 deg<br>yaw 1.81 deg</td><td><div>lidar-wheel_odometry_velo_link_base_link.yaml (cache)<br><code>sha256 7d8c688c2d5a</code> <span class="note">slac.lidar_wheel_odometry/v0.1</span></div></td></tr></tbody></table></div>
+<h2>Skipped pairs</h2>
+<div class="tablewrap"><table><thead><tr><th>pair</th><th>reason</th><th>detail</th></tr></thead><tbody><tr><td><b>imu-lidar</b></td><td>unsupported_sensor</td><td>.../velodyne_points has no usable per-point time field, so its scans cannot be deskewed</td></tr><tr><td><b>lidar-lidar</b></td><td>missing_topic</td><td>needs two distinct lidar sensors, found one</td></tr><tr><td><b>camera-imu</b></td><td>missing_topic</td><td>no topic for: camera</td></tr><tr><td><b>camera-focal</b></td><td>method_not_wired</td><td>no check method is wired for camera-focal yet</td></tr><tr><td><b>gnss-lidar</b></td><td>not_selected</td><td>gnss-lidar was not selected by --pairs</td></tr><tr><td><b>gnss-imu</b></td><td>not_selected</td><td>gnss-imu was not selected by --pairs</td></tr></tbody></table></div>
+<h2>Closure of the estimates</h2><p class="note">Independent estimates judged against each other instead of against the candidate. A failing loop means the estimators disagree, so their verdicts on the candidate are less trustworthy; it raises the overall verdict to warn at most.</p><div class="tablewrap"><table><thead><tr><th>loop</th><th>members</th><th>verdict</th><th>closure error / tolerance (signed)</th></tr></thead><tbody><tr><td>parallel<div class="note">base_link → velo_link</div></td><td>lidar-wheel_odometry + lidar-vehicle (inverse)</td><td><span class="badge pass">pass</span></td><td><div class="axis"><span class="name">pitch</span><span class="meter" title="0.00 x tolerance"><i class="pass" style="width:0%"></i><b></b></span><span class="val">-0.000268 / 0.5 deg, 1&sigma; 0.0585 (0.00054x)</span></div><div class="axis"><span class="name">yaw</span><span class="meter" title="0.01 x tolerance"><i class="pass" style="width:0%"></i><b></b></span><span class="val">0.00411 / 0.5 deg, 1&sigma; 0.0745 (0.0082x)</span></div><div class="unchecked"><b>roll</b> unchecked: lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00</div><div class="note">translation not closed: lidar-vehicle, lidar-wheel_odometry do(es) not estimate it</div><div class="note">lidar-wheel_odometry and lidar-vehicle share the lidar odometry of velo_link, so their errors are correlated: this loop tests the solvers on top of it, not the odometry, and its std is optimistic</div></td></tr></tbody></table></div><ul><li><b>imu-vehicle</b>: unusable (no axis was constrained by the data: roll (not constrained by the data (reported std 0.4558 deg)); pitch (not constrained by the data (reported std 0.1248 deg)); yaw (not constrained by the data (reported std 0.1504 deg)))</li></ul><details><summary>assumptions</summary><ul><li>edges are this run&#x27;s per-pair estimates, not the candidate; derived pairs are excluded</li><li>loops are a fundamental cycle basis; loops that share a member are correlated</li><li>the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic</li><li>an axis is judged only if every member observes everything entering it; translation needs every member to estimate it</li></ul></details>
+<h2>Candidate frame tree</h2>
+<ul class="tree"><li><code>base_link</code><ul><li><code>imu_link</code> <span class="note">t=(0.000, 0.000, 0.000) m, q=(0.0000, 0.0000, 0.0000, 1.0000); bag_tf_static</span><ul><li><code>velo_link</code> <span class="note">t=(0.811, -0.307, 0.803) m, q=(-0.0074, 0.0010, 0.0091, 0.9999); frames_yaml</span></li></ul></li></ul></li></ul>
+<h2>Candidate sources</h2>
+<ul><li><code>bag_tf_static</code> .../bag_pool5 (2 frames) <code>sha256 16896cdaadf9</code></li><li><code>frames_yaml</code> .../frames_yaw1.yaml (1 frames) <code>sha256 766698706d11</code></li></ul>
+<details><summary>Topics and frame mapping</summary><div class="tablewrap"><table><thead><tr><th>topic</th><th>role</th><th>header frame</th><th>tree frame</th></tr></thead><tbody><tr><td><code>/oxts/fix</code></td><td>gnss</td><td>imu_link</td><td>imu_link (header)</td></tr><tr><td><code>/oxts/imu</code></td><td>imu</td><td>imu_link</td><td>imu_link (header)</td></tr><tr><td><code>/oxts/odometry</code></td><td>odometry/ins</td><td>imu_link</td><td>imu_link (header)</td></tr><tr><td><code>/oxts/twist</code></td><td>twist/wheel</td><td>base_link</td><td>base_link (header)</td></tr><tr><td><code>/tf_static</code></td><td>tf_static</td><td>-</td><td>-</td></tr><tr><td><code>/velodyne_points</code></td><td>lidar</td><td>velo_link</td><td>velo_link (header)</td></tr></tbody></table></div></details>
+<h2>Provenance</h2>
+<dl><dt>generator</dt><dd>calibrex check 0.4.1 (git <code>c04944b</code>)</dd><dt>created</dt><dd>2026-10-01T16:16:02.555435+00:00</dd><dt>command</dt><dd><code>calibrex check .../bag_pool5 --vehicle-frame base_link --topic-kind .../twist=wheel --pairs lidar-vehicle,imu-vehicle,ins-lidar,lidar-wheel_odometry,imu-lidar --tf .../frames_yaw1.yaml</code></dd><dt>bag digest</dt><dd><code>45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc</code><br><span class="note">scope: metadata.yaml in full; each storage file by name, size and first 64 MiB</span></dd><dt>evidence dir</dt><dd><code>check_yaw1_evidence</code></dd></dl>
+<ul><li>full run: each wired pair&#x27;s native estimator was run and the candidate judged against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)</li><li>0 bag topic(s) without a sensor role are not listed</li></ul>
+</main></body></html>

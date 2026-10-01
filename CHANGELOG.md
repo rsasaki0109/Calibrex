@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **`calibrex check`, Phase D: rig closure, HTML report, the 1 degree demo.** The
+  estimates of a run are now also checked against each other: parallel estimates of
+  one frame pair and cycles (a fundamental cycle basis) are judged with the pairs'
+  rule (`max(sigma_k * std, floor)`, first-order std assuming independent members,
+  axes unobserved by any member left unchecked); composed pairs (`gnss-imu`) are
+  excluded as derived. New optional `closures` field in `slac.calibration_check/v0.1`;
+  a failing loop raises `overall_verdict` to at least `warn`, never `fail`. New
+  `calibrex check --html PATH` and `calibrex render check.json --html PATH` write a
+  self-contained HTML report. `tools/check_tf_injection_demo.py` and
+  `docs/assets/calibrex_check_demo/` reproduce "a +1 degree yaw in the deployed tf
+  fails" on the pooled KITTI development drives; the README gains a `calibrex check`
+  section.
+
 - **`calibrex check`, Phase C2: `gnss-lidar` and `gnss-imu` from the bag's
   NavSatFix topic.** New `calibrex.data.navsatfix_track` turns a `NavSatFix` topic
   into the GNSS track the lever-arm estimator uses (header-stamp time, ellipsoidal

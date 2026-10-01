@@ -31,6 +31,8 @@ Pyodide, so no data is uploaded.
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
   ·
+  <a href="#check-a-deployed-calibration"><strong>calibrex check</strong></a>
+  ·
   <a href="#pre-registered-sota-audits"><strong>SOTA audits</strong></a>
   ·
   <a href="#calibration-coverage"><strong>Coverage</strong></a>
@@ -45,6 +47,55 @@ Pyodide, so no data is uploaded.
   ·
   <a href="docs/tutorials/public_datasets.md"><strong>Public-data demos</strong></a>
 </p>
+
+## Check a deployed calibration
+
+```bash
+calibrex check my_bag/ --output check.json --html check.html     # reads /tf_static; add --tf rig.urdf to override
+```
+
+`calibrex check` asks whether the extrinsics deployed on a robot agree with what
+a recording says. It reads the candidate transforms from the bag's `/tf_static`
+(or `--tf`: URDF, Kalibr, RTK-SLAM or Hilti calibration files), detects the
+sensor topics, works out which of the ten sensor pairs the bag can audit, runs
+the native estimator of each, and judges the deployed transform per axis against
+the estimate and its uncertainty: `pass`, `warn`, `fail` or `inconclusive`. It
+also checks the estimates against each other (rig closure) and reports which
+axes it could not judge. Vehicle pairs (LiDAR, IMU or wheel odometry against the
+vehicle frame) are opt-in with `--vehicle-frame base_link`.
+
+Demo: the KITTI raw development drives (0005, 0009, 0014, 0015, 0022) pooled into
+one bag, with `velo_link` of the deployed tf turned about its parent's z axis
+([script](tools/check_tf_injection_demo.py), first run about 6 minutes, the other
+variants seconds):
+
+| deployed tf | overall | lidar-vehicle | lidar-wheel_odometry | ins-lidar | imu-vehicle |
+|---|:---:|---|---|---|---|
+| vendor (KITTI calibration) | `inconclusive` | pass, partial | pass, partial | pass, partial | inconclusive |
+| `velo_link` yaw +1 deg | **`fail`** | **fail** (yaw 1.31 deg vs 0.5) | **fail** (yaw 1.31 deg vs 0.5) | pass, partial | inconclusive |
+| `velo_link` yaw +3 deg | **`fail`** | **fail** (yaw 3.31 deg vs 0.5) | **fail** (yaw 3.31 deg vs 0.5) | pass, partial | inconclusive |
+
+```text
+pair                  verdict                           |delta|/tolerance                                    unchecked
+lidar-vehicle         fail (partial: pitch, yaw only)   pitch 0.505/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll
+imu-vehicle           inconclusive                      -                                                    roll, pitch, yaw
+ins-lidar             pass (partial: roll, pitch only)  roll 0.114/0.5 deg; pitch 0.0567/0.5 deg             yaw, x, y, z
+lidar-wheel_odometry  fail (partial: pitch, yaw only)   pitch 0.505/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll
+overall verdict: fail                                    (velo_link yaw +1 deg)
+```
+
+Read it honestly: every vehicle pair has partial coverage (roll is not observable
+from planar driving, and ins-lidar cannot see yaw), so a `pass` covers only the
+judged axes. The vendor run is `inconclusive`, not `pass`, because the INS
+velocities are too noisy for imu-vehicle to judge anything on KITTI; and the vendor
+pitch (0.496 deg) sits right at the 0.5 deg tolerance floor. The two LiDAR-motion pairs read the same
+odometry, so they agree by construction. Only the 1 and 3 degree yaw errors are
+injected here; the numbers are the development drives, not a held-out claim.
+
+[Tutorial](docs/tutorials/calibrex_check.md) ·
+[demo summary](docs/assets/calibrex_check_demo/summary.md) ·
+[HTML report of the +1 deg run](docs/assets/calibrex_check_demo/check_yaw1.html)
+(download and open; GitHub shows HTML as source).
 
 ## Pre-registered SOTA audits
 
