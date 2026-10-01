@@ -44,10 +44,11 @@ from calibrex.core.imu_lidar_translation import (
 )
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import (
-    LIVOX_PROFILES,
     MID360_T_LIDAR_IMU,
+    LivoxStreamProfile,
     bag_input_digest,
     load_livox_imu,
+    resolve_profile,
 )
 from calibrex.evaluation.imu_lidar_rotation import (
     ImuLidarRunOptions,
@@ -184,7 +185,7 @@ def evaluate_imu_lidar_translation(
 
 def run_livox_imu_lidar_translation(
     bags: Sequence[str | Path],
-    profile: str,
+    profile: str | LivoxStreamProfile,
     rotation_artifact: ImuLidarRotationArtifact,
     options: ImuLidarTranslationOptions | None = None,
     *,
@@ -193,6 +194,8 @@ def run_livox_imu_lidar_translation(
     rotation_artifact_sha256: str | None = None,
     reference_translation: FloatArray | None = MID360_T_LIDAR_IMU[:3, 3],
     max_scans: int | None = None,
+    max_seconds: float | None = None,
+    reference: str | None = None,
     command: list[str] | None = None,
 ) -> ImuLidarTranslationArtifact:
     """Run gyro-deskewed odometry and the lever-arm evaluation on Livox ROS 2 bags."""
@@ -205,7 +208,7 @@ def run_livox_imu_lidar_translation(
     rotation = Rotation.from_quat(rotation_artifact.rotation_quat_xyzw).as_matrix()
     gyro_bias = np.asarray(rotation_artifact.gyro_bias_rps, dtype=np.float64)
     time_offset = rotation_artifact.time_offset_s
-    stream = LIVOX_PROFILES[profile]
+    stream = resolve_profile(profile)
     samples = _concatenate([load_livox_imu(bag, stream) for bag in bags])
     gyro = GyroSeries(samples.times_s, samples.gyro_rps)
     run_options = ImuLidarRunOptions(
@@ -217,6 +220,7 @@ def run_livox_imu_lidar_translation(
         run_options,
         rotation_model=gyro_rotation_model(gyro, rotation, gyro_bias, time_offset),
         max_scans=max_scans,
+        max_seconds=max_seconds,
     )
     imu = ImuPreintegrator(samples.times_s, samples.gyro_rps, samples.accel_mps2, gyro_bias)
     evaluation = evaluate_imu_lidar_translation(
@@ -242,8 +246,14 @@ def run_livox_imu_lidar_translation(
         imu_samples=len(samples.times_s),
         reference=None
         if reference_translation is None
-        else "Livox MID360 manual: IMU at (11.0, 23.29, -44.12) mm in the LiDAR frame",
-        limitations=list(MID360_TRANSLATION_LIMITATIONS),
+        else reference or "Livox MID360 manual: IMU at (11.0, 23.29, -44.12) mm in the LiDAR frame",
+        limitations=list(MID360_TRANSLATION_LIMITATIONS)
+        if reference is None
+        else [
+            "The reference translation is a given calibration (for example the deployed "
+            "one); it is a comparison, not ground truth.",
+            *MID360_TRANSLATION_LIMITATIONS[1:],
+        ],
         provenance=ImuLidarTranslationProvenance(
             generator=__name__,
             generator_version=__version__,
@@ -251,7 +261,7 @@ def run_livox_imu_lidar_translation(
             command=command or [],
             dataset_family=dataset_family,
             sequence_ids=[Path(bag).name for bag in bags],
-            stream_profile=profile,
+            stream_profile=stream.name,
             input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
             input_digest_scope=scope,
             dataset_license=dataset_license,

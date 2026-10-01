@@ -145,6 +145,39 @@ def test_livox_profiles_convert_absolute_point_times_and_g(
     assert np.allclose(samples.accel_mps2[:, 2], livox_ros2.STANDARD_GRAVITY_MPS2)
 
 
+def test_generic_profile_reads_absolute_seconds_and_stops_at_max_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Hesai PandarXT: float64 absolute seconds per point; header stamp = scan start.
+    header_ns = 1_650_529_602_387_975_000
+    stamps = [header_ns + i * 100_000_000 for i in range(5)]
+    clouds = iter(
+        SimpleNamespace(
+            timestamp_ns=stamp,
+            xyz=np.zeros((2, 3)),
+            point_time_offsets_s=np.array([stamp * 1e-9, stamp * 1e-9 + 0.08]),
+        )
+        for stamp in stamps
+    )
+    monkeypatch.setattr(
+        livox_ros2, "iter_messages", lambda bag, topics: iter([(None, s, b"") for s in stamps])
+    )
+    monkeypatch.setattr(
+        livox_ros2.ros_cdr, "decode_ros2_pointcloud2", lambda *a, **k: next(clouds)
+    )
+    profile = livox_ros2.LivoxStreamProfile(
+        "hesai", "/hesai/pandar", "/imu", "timestamp", "absolute_s", "mps2"
+    )
+
+    scans = list(livox_ros2.iter_livox_points("bag", profile, max_seconds=0.25))
+
+    assert len(scans) == 3  # scans at 0.0, 0.1 and 0.2 s; the one at 0.3 s is past the window
+    offsets = scans[1][2]
+    assert offsets is not None and np.allclose(offsets, [0.0, 0.08], atol=1e-5)
+    assert livox_ros2.resolve_profile(profile) is profile
+    assert livox_ros2.resolve_profile("rtk-slam").point_time_encoding == "offset_s"
+
+
 @functools.cache
 def _evaluation() -> Any:
     gyro, windows = synthetic(planar=False, seed=5)

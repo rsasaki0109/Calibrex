@@ -4,7 +4,8 @@ Livox drivers and recordings disagree on conventions, so a
 :class:`LivoxStreamProfile` states them explicitly per dataset:
 
 * the per-point time field and whether it holds an offset after the header
-  stamp (seconds) or an absolute time (nanoseconds); and
+  stamp (seconds), an absolute time in nanoseconds, or an absolute time in
+  seconds (for example a Hesai PandarXT ``timestamp`` float64); and
 * whether the IMU reports acceleration in m/s^2 or in g.
 
 The MID360 manual places the built-in IMU at (11.0, 23.29, -44.12) mm in the
@@ -47,7 +48,7 @@ class LivoxStreamProfile:
     point_topic: str
     imu_topic: str
     point_time_field: str | None
-    point_time_encoding: Literal["offset_s", "absolute_ns"]
+    point_time_encoding: Literal["offset_s", "absolute_ns", "absolute_s"]
     acceleration_unit: Literal["mps2", "g"]
 
 
@@ -80,11 +81,27 @@ class ImuSamples:
     accel_mps2: FloatArray
 
 
-def iter_livox_points(
-    bag_dir: str | Path, profile: LivoxStreamProfile
-) -> Iterator[tuple[float, FloatArray, FloatArray | None]]:
-    """Yield ``(header time s, (N, 3) points, per-point offsets s or None)``."""
+def resolve_profile(profile: str | LivoxStreamProfile) -> LivoxStreamProfile:
+    """Return a named built-in profile, or pass a custom profile through."""
 
+    if isinstance(profile, LivoxStreamProfile):
+        return profile
+    return LIVOX_PROFILES[profile]
+
+
+def iter_livox_points(
+    bag_dir: str | Path,
+    profile: LivoxStreamProfile,
+    *,
+    max_seconds: float | None = None,
+) -> Iterator[tuple[float, FloatArray, FloatArray | None]]:
+    """Yield ``(header time s, (N, 3) points, per-point offsets s or None)``.
+
+    ``max_seconds`` stops after the scans within that many seconds of the
+    first scan's header time.
+    """
+
+    first_s: float | None = None
     for _, timestamp_ns, payload in iter_messages(bag_dir, topics={profile.point_topic}):
         cloud = ros_cdr.decode_ros2_pointcloud2(
             profile.point_topic,
@@ -97,9 +114,15 @@ def iter_livox_points(
             raw = np.asarray(offsets, dtype=np.float64)
             if profile.point_time_encoding == "absolute_ns":
                 offsets = (raw - float(cloud.timestamp_ns)) * 1.0e-9
+            elif profile.point_time_encoding == "absolute_s":
+                offsets = raw - cloud.timestamp_ns * 1.0e-9
             else:
                 offsets = raw
-        yield cloud.timestamp_ns * 1.0e-9, np.asarray(cloud.xyz, dtype=np.float64), offsets
+        header_s = cloud.timestamp_ns * 1.0e-9
+        first_s = header_s if first_s is None else first_s
+        if max_seconds is not None and header_s - first_s > max_seconds:
+            break
+        yield header_s, np.asarray(cloud.xyz, dtype=np.float64), offsets
 
 
 def load_livox_imu(bag_dir: str | Path, profile: LivoxStreamProfile) -> ImuSamples:

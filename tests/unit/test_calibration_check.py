@@ -230,15 +230,17 @@ def test_cli_plan_table_output_and_validate(
     assert validate_file(output, "auto").kind == "calibration-check"
 
 
-def test_cli_without_plan_says_solvers_are_not_wired(
+def test_cli_without_plan_runs_estimators_and_degrades_gracefully(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    exit_code = main(["check", str(_bag(tmp_path))])
+    # The synthetic bag has headers only: every estimator fails or skips, none crashes.
+    exit_code = main(["check", str(_bag(tmp_path)), "--evidence-dir", str(tmp_path / "ev")])
 
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert "solvers are not wired yet" in captured.err
-    assert "calibrex check (plan)" in captured.out
+    assert "calibrex check (run)" in captured.out
+    assert "overall verdict:" in captured.out
+    assert "solvers are not wired" not in captured.err
 
 
 def test_cli_json_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

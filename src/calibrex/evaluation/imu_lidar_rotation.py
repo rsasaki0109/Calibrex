@@ -33,12 +33,13 @@ from calibrex.core.imu_lidar_rotation import (
 )
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import (
-    LIVOX_PROFILES,
     MID360_T_LIDAR_IMU,
     ImuSamples,
+    LivoxStreamProfile,
     bag_input_digest,
     iter_livox_points,
     load_livox_imu,
+    resolve_profile,
 )
 from calibrex.evaluation.odometry_windows import (
     OdometrySegmenter,
@@ -191,21 +192,30 @@ def evaluate_imu_lidar_rotation(
 
 def run_livox_imu_lidar_rotation(
     bags: Sequence[str | Path],
-    profile: str,
+    profile: str | LivoxStreamProfile,
     options: ImuLidarRunOptions | None = None,
     *,
     dataset_family: str,
     dataset_license: str,
     reference_rotation: FloatArray | None = MID360_T_LIDAR_IMU[:3, :3],
     max_scans: int | None = None,
+    max_seconds: float | None = None,
+    reference: str | None = None,
     command: list[str] | None = None,
 ) -> ImuLidarRotationArtifact:
-    """Run odometry and the rotation evaluation on Livox ROS 2 bags of one rig."""
+    """Run odometry and the rotation evaluation on Livox ROS 2 bags of one rig.
+
+    ``profile`` is a built-in profile name or a custom :class:`LivoxStreamProfile`
+    (any PointCloud2 LiDAR with a stated per-point time field).  ``max_seconds``
+    analyses only the first scans within that many seconds of each bag's first scan.
+    ``reference`` names the source of a non-MID360 ``reference_rotation`` (for
+    example a deployed calibration); without it the MID360 design text is recorded.
+    """
 
     opts = options or ImuLidarRunOptions()
     if not bags:
         raise ValueError("at least one bag is required")
-    stream = LIVOX_PROFILES[profile]
+    stream = resolve_profile(profile)
     samples = [load_livox_imu(bag, stream) for bag in bags]
     imu = _concatenate(samples)
     gyro = GyroSeries(imu.times_s, imu.gyro_rps)
@@ -218,7 +228,7 @@ def run_livox_imu_lidar_rotation(
         segmenter: OdometrySegmenter | None = None
         for bag in bags:
             segmenter = collect_odometry_windows(
-                iter_livox_points(bag, stream),
+                iter_livox_points(bag, stream, max_seconds=max_seconds),
                 opts.windowing,
                 covers=covers,
                 prefix=f"{Path(bag).name}/",
@@ -295,17 +305,23 @@ def run_livox_imu_lidar_rotation(
             command=command or [],
             dataset_family=dataset_family,
             sequence_ids=[Path(bag).name for bag in bags],
-            stream_profile=profile,
+            stream_profile=stream.name,
             input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
             input_digest_scope=scope,
             dataset_license=dataset_license,
         ),
         reference=None
         if reference_rotation is None
-        else "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
+        else reference or "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
         deskew_passes=passes,
         deskew_feedback_ratio=feedback,
-        limitations=list(MID360_LIMITATIONS),
+        limitations=list(MID360_LIMITATIONS)
+        if reference is None
+        else [
+            "The reference rotation is a given calibration (for example the deployed one); "
+            "it is a comparison, not ground truth.",
+            *MID360_LIMITATIONS[1:],
+        ],
     )
 
 
@@ -712,23 +728,24 @@ def score_imu_lidar_candidate(
 
 def collect_livox_windows(
     bags: Sequence[str | Path],
-    profile: str,
+    profile: str | LivoxStreamProfile,
     options: ImuLidarRunOptions | None = None,
     *,
     rotation_model: RotationModel | None = None,
     max_scans: int | None = None,
+    max_seconds: float | None = None,
 ) -> tuple[GyroSeries, list[OdometryWindow]]:
     """Load the gyro and the odometry windows of Livox bags (one rig)."""
 
     opts = options or ImuLidarRunOptions()
-    stream = LIVOX_PROFILES[profile]
+    stream = resolve_profile(profile)
     imu = _concatenate([load_livox_imu(bag, stream) for bag in bags])
     gyro = GyroSeries(imu.times_s, imu.gyro_rps)
     margin = opts.coverage_margin_s
     segmenter: OdometrySegmenter | None = None
     for bag in bags:
         segmenter = collect_odometry_windows(
-            iter_livox_points(bag, stream),
+            iter_livox_points(bag, stream, max_seconds=max_seconds),
             opts.windowing,
             covers=lambda time_s: gyro.covers(time_s - margin, time_s + margin),
             prefix=f"{Path(bag).name}/",

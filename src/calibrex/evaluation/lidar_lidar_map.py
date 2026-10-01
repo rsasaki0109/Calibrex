@@ -19,7 +19,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -53,6 +53,7 @@ from calibrex.solvers.scan_to_scan_odometry import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+PointTimeEncoding: TypeAlias = Literal["offset_s", "absolute_ns", "absolute_s"]
 _ROTATIONS = ("roll", "pitch", "yaw")
 LIMITATIONS: tuple[str, ...] = (
     "The reference LiDAR's odometry supplies the map; its drift over the map window "
@@ -183,22 +184,41 @@ def collect_map_samples(
     point_time_field: str | None,
     options: LidarLidarMapOptions | None = None,
     max_seconds: float | None = None,
+    point_time_encoding: PointTimeEncoding = "offset_s",
+    target_point_time_field: str | None = None,
+    target_point_time_encoding: PointTimeEncoding | None = None,
 ) -> tuple[list[MapSample], int]:
-    """Run the reference odometry, then build one sample per strided target scan."""
+    """Run the reference odometry, then build one sample per strided target scan.
+
+    ``point_time_field``/``point_time_encoding`` describe the reference LiDAR's
+    per-point time; the target uses the same unless ``target_point_time_field``
+    is given (LiDARs of different models).
+    """
 
     opts = options or LidarLidarMapOptions()
+    same_target_time = target_point_time_field is None and target_point_time_encoding is None
 
-    def profile(topic: str) -> LivoxStreamProfile:
-        return LivoxStreamProfile("lidar", topic, "", point_time_field, "offset_s", "mps2")
+    def profile(topic: str, target: bool = False) -> LivoxStreamProfile:
+        if target and not same_target_time:
+            return LivoxStreamProfile(
+                "lidar",
+                topic,
+                "",
+                target_point_time_field,
+                target_point_time_encoding or point_time_encoding,
+                "mps2",
+            )
+        return LivoxStreamProfile("lidar", topic, "", point_time_field, point_time_encoding, "mps2")
 
     odometry = IncrementalScanOdometry(opts.odometry)
     scans: list[NDArray[np.float32]] = []
     times: list[float] = []
     first: float | None = None
-    for time_s, points, offsets in iter_livox_points(bag, profile(reference_topic)):
+    reference_scan_stream = iter_livox_points(
+        bag, profile(reference_topic), max_seconds=max_seconds
+    )
+    for time_s, points, offsets in reference_scan_stream:
         first = time_s if first is None else first
-        if max_seconds is not None and time_s - first > max_seconds:
-            break
         finite = np.isfinite(points).all(axis=1)
         odometry.add(points[finite], time_s, None if offsets is None else offsets[finite])
         pose = odometry.poses[-1]
@@ -211,9 +231,10 @@ def collect_map_samples(
     reference_times = np.asarray(times)
     half = opts.map_half_window_scans
     samples: list[MapSample] = []
-    for index, (time_s, points, _) in enumerate(iter_livox_points(bag, profile(target_topic))):
-        if max_seconds is not None and time_s - first > max_seconds:
-            break
+    target_scans = iter_livox_points(
+        bag, profile(target_topic, target=True), max_seconds=max_seconds
+    )
+    for index, (time_s, points, _) in enumerate(target_scans):
         if index % opts.sample_every_scans:
             continue
         nearest = int(np.argmin(np.abs(reference_times - time_s)))
@@ -251,6 +272,9 @@ def run_ros2_lidar_lidar_map(
     reference: str | None = None,
     options: LidarLidarMapOptions | None = None,
     max_seconds: float | None = None,
+    point_time_encoding: PointTimeEncoding = "offset_s",
+    target_point_time_field: str | None = None,
+    target_point_time_encoding: PointTimeEncoding | None = None,
     command: list[str] | None = None,
 ) -> LidarLidarExtrinsicArtifact:
     """Calibrate ``T_reference_target`` for two LiDARs recorded in one ROS 2 bag."""
@@ -263,6 +287,9 @@ def run_ros2_lidar_lidar_map(
         point_time_field=point_time_field,
         options=opts,
         max_seconds=max_seconds,
+        point_time_encoding=point_time_encoding,
+        target_point_time_field=target_point_time_field,
+        target_point_time_encoding=target_point_time_encoding,
     )
     evaluation = evaluate_lidar_lidar_map(
         samples, initial, opts, reference_transform=reference_transform

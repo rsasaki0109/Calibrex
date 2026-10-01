@@ -26,6 +26,7 @@ from calibrex.core.benchmark import (
     render_benchmark_markdown,
     update_benchmark_table_in_markdown,
 )
+from calibrex.core.calibration_check import CHECK_PAIR_NAMES
 from calibrex.core.camera_imu_service import (
     build_camera_imu_service_plan,
     evaluate_camera_imu_service,
@@ -333,6 +334,20 @@ def main(argv: list[str] | None = None) -> int:
     except CalibrexError as exc:
         print(f"calibrex: error: {exc}", file=sys.stderr)
         return 2
+
+
+def _positive_float(value: str) -> float:
+    """Parse an argparse value as a positive finite number."""
+
+    try:
+        number = float(value)
+    except ValueError as exc:
+        msg = f"invalid positive number: {value!r}"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if not number > 0.0 or number == float("inf"):
+        msg = f"expected a positive number, got {value!r}"
+        raise argparse.ArgumentTypeError(msg)
+    return number
 
 
 def _positive_int(value: str) -> int:
@@ -2811,11 +2826,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     check = subcommands.add_parser(
         "check",
-        help="audit the calibration deployed on a robot against a bag (Phase A: plan only)",
+        help="audit the calibration deployed on a robot against a bag",
         description=(
             "Read candidate extrinsics from the bag's /tf_static and/or --tf files, classify "
-            "the bag's sensor topics, and list the sensor pairs that can be checked. Phase A "
-            "plans only: no pair solver runs, with or without --plan."
+            "the bag's sensor topics, and list the sensor pairs that can be checked. With "
+            "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar "
+            "and camera-imu runs and the candidate is judged against it (pass / warn / fail / "
+            "inconclusive per pair). Other pairs are reported as skipped."
         ),
     )
     check.add_argument("bag", type=Path, help="rosbag2 directory or storage file")
@@ -2845,7 +2862,74 @@ def _build_parser() -> argparse.ArgumentParser:
     check.add_argument(
         "--plan",
         action="store_true",
-        help="dry run (the only mode in Phase A; without it a notice says solvers are not wired)",
+        help="dry run: list the checkable pairs without running any estimator",
+    )
+    check.add_argument(
+        "--pairs",
+        default=None,
+        metavar="PAIR[,PAIR]",
+        help="run only these pairs, for example imu-lidar,camera-imu (default: every wired pair)",
+    )
+    check.add_argument(
+        "--max-duration-s",
+        type=_positive_float,
+        default=None,
+        metavar="S",
+        help="analyse only the first S seconds of each sensor stream",
+    )
+    check.add_argument(
+        "--camera",
+        default=None,
+        metavar="TOPIC",
+        help="check only this camera (image topic or frame name)",
+    )
+    check.add_argument(
+        "--sigma-k",
+        type=_positive_float,
+        default=3.0,
+        help="tolerance = max(K * std, floor); default 3",
+    )
+    check.add_argument(
+        "--rotation-floor-deg",
+        type=_positive_float,
+        default=0.5,
+        help="smallest rotation tolerance in degrees (default 0.5)",
+    )
+    check.add_argument(
+        "--translation-floor-m",
+        type=_positive_float,
+        default=0.02,
+        help="smallest translation tolerance in metres (default 0.02)",
+    )
+    check.add_argument(
+        "--detection-probe-deg",
+        type=_positive_float,
+        default=1.0,
+        help="rotation error used by the detection-power self-test (default 1)",
+    )
+    check.add_argument(
+        "--no-imu-lidar-translation",
+        action="store_true",
+        help="skip the IMU-LiDAR lever-arm estimate (rotation only; faster)",
+    )
+    check.add_argument(
+        "--acceleration-unit",
+        choices=["mps2", "g"],
+        default="mps2",
+        help="accelerometer unit of the IMU (only the IMU-LiDAR lever arm uses it)",
+    )
+    check.add_argument(
+        "--evidence-dir",
+        type=Path,
+        default=None,
+        help="where the estimator artifacts are written "
+        "(default: <output stem>_evidence next to --output, else ./calibrex_check_evidence)",
+    )
+    check.add_argument(
+        "--fail-on",
+        choices=["fail", "warn", "inconclusive", "never"],
+        default="fail",
+        help="exit with status 1 when the overall verdict is at least this bad (default fail)",
     )
     check.add_argument("--output", type=Path, help="write the slac.calibration_check artifact")
     check.add_argument("--json", action="store_true", help="emit machine-readable JSON")
@@ -3904,7 +3988,46 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
 
 def _cmd_check(args: argparse.Namespace) -> int:
     from calibrex.check import build_calibration_check, format_check_table
-    from calibrex.check.runner import parse_frame_map
+    from calibrex.check.runner import CheckRunOptions, parse_frame_map
+    from calibrex.check.verdict import VERDICT_ORDER, VerdictOptions
+
+    run_options = None
+    if not args.plan:
+        pairs = None
+        if args.pairs is not None:
+            pairs = tuple(item.strip() for item in args.pairs.split(",") if item.strip())
+            unknown = sorted(set(pairs) - set(CHECK_PAIR_NAMES))
+            if unknown or not pairs:
+                raise CalibrexError(
+                    f"--pairs: unknown pair(s) {', '.join(unknown) or '(none given)'}; "
+                    f"choose from {', '.join(CHECK_PAIR_NAMES)}"
+                )
+        base_dir = args.output.parent if args.output else Path.cwd()
+        evidence_dir = args.evidence_dir
+        if evidence_dir is None:
+            evidence_dir = (
+                args.output.with_name(args.output.stem + "_evidence")
+                if args.output
+                else Path.cwd() / "calibrex_check_evidence"
+            )
+        run_options = CheckRunOptions(
+            verdict=VerdictOptions(
+                sigma_k=args.sigma_k,
+                rotation_floor_deg=args.rotation_floor_deg,
+                translation_floor_m=args.translation_floor_m,
+                detection_probe_deg=args.detection_probe_deg,
+            ),
+            pairs=pairs,
+            max_duration_s=args.max_duration_s,
+            camera=args.camera,
+            imu_lidar_translation=not args.no_imu_lidar_translation,
+            acceleration_unit=args.acceleration_unit,
+            evidence_dir=evidence_dir,
+            base_dir=base_dir,
+        )
+
+    def progress(message: str) -> None:
+        print(message, file=sys.stderr, flush=True)
 
     artifact = build_calibration_check(
         args.bag,
@@ -3912,21 +4035,24 @@ def _cmd_check(args: argparse.Namespace) -> int:
         vehicle_frame=args.vehicle_frame,
         frame_overrides=parse_frame_map(args.frame_map),
         command=["calibrex", *args.invoked_argv],
+        run=run_options,
+        progress=progress,
     )
     payload = artifact.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)
-    if not args.plan:
-        print(
-            "note: check solvers are not wired yet (Phase A); showing the plan",
-            file=sys.stderr,
-        )
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(format_check_table(artifact))
         if args.output:
             print(f"artifact: {args.output}")
+    if (
+        artifact.overall_verdict is not None
+        and args.fail_on != "never"
+        and VERDICT_ORDER.index(artifact.overall_verdict) >= VERDICT_ORDER.index(args.fail_on)
+    ):
+        return 1
     return 0
 
 
