@@ -1,0 +1,1767 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: ntu-lidar-lidar-holdout
+title: NTU VIRAL LiDAR-LiDAR extrinsic, held-out blocks
+protocol:
+  protocol_id: ntu-lidar-lidar-v1
+  dataset_id: ntu_viral_evaluation_recordings
+  dataset_source_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+  data_license: CC BY-NC-SA 4.0
+  split_policy: 10-second blocks per recording; every third sorted key held out
+  splits:
+  - split_id: rtp_01_ros2/b001
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ac7f122d2e55df22f12dc9188a17a7338656790d3d926a4ffc1ffff40bf29755
+    holdout_ids_sha256: e4e4e7e030efd6cd2244151330784e4ae87c57de7b5175238d4c277082ee671d
+  - split_id: rtp_01_ros2/b004
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bad01ded91ab37c5a978c13ed081e5f2f802186bf64963133991e8cb846ed924
+    holdout_ids_sha256: c2d816d1ddaa1eb37c2bbe53275df509c84cdf3ecd4b8f31146506cfc712c84d
+  - split_id: rtp_01_ros2/b007
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 6de7b4d737dce907e77f8201204d247465134cd01365cb5b4cce4a3b5687494f
+    holdout_ids_sha256: a1424f7db206fcc64368b7b5deab92685a7746e86897c5e5d200bdde652e031e
+  - split_id: rtp_01_ros2/b010
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2318ed9cff41d54e778224da09ba27348218e9e2291cc65d917c4feba71d1a12
+    holdout_ids_sha256: 7afc801e28469b9ad3565a1f22c98dd7e3df2bd82fbab03710697b0fd8c877e3
+  - split_id: rtp_01_ros2/b013
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3a7024ee11db56a998e1e499126a2288255e1327f67616f95c34aeda0995a732
+    holdout_ids_sha256: 7ded192a284cc65002922abd594ef0c8ab6e7c84036b1a1e2b207b010889ff30
+  - split_id: rtp_01_ros2/b016
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 134b36af49e499056d706ece2f7facd7abbf629b0600a405488f2fec30eaf1cf
+    holdout_ids_sha256: 87a7407fea06a0a0419aab9ad80407f78adafdae8baf7c1fdbf52d5da29ad6a1
+  - split_id: rtp_01_ros2/b019
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ad661108b9ba720be39baf7af8ab49391d171fbb7589c7db3a0e8044313b79fd
+    holdout_ids_sha256: 46b6f567c5c83b2a4449a7596c9546fb14b640b77ca3c7cb1a4915c99dc90955
+  - split_id: rtp_01_ros2/b022
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 9d2e9f1893d1a1b3452829c23a3b9924a7a5f53d7bda84ecd2ec2fb0c000ae22
+    holdout_ids_sha256: 64365b4d8c3eeb46234f902e468d3aedef96a2487d5a0c1bfb9f1c9fd7e8b841
+  - split_id: rtp_01_ros2/b025
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 51964f0532ce48f3205cc0ec9933aec252b4b4b4534191db97e318a3d0454248
+    holdout_ids_sha256: 72514769a598ee5dc9791529ce4262c5aabb81997abc8ec3123256529995717a
+  - split_id: rtp_01_ros2/b028
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: dbda089e36736e599e356c53d37f54b50d37a2193e2b3a4df478bae2990670cb
+    holdout_ids_sha256: cec8b67156f3e3de26d8fc899fcb8a7af79d0e6cde9c814c88281a7e7c4c914d
+  - split_id: rtp_01_ros2/b031
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5bf1bf0e291f7a64ff2f3e79b94123590565ddc8be906f977de02816c270aa0c
+    holdout_ids_sha256: 43a6ff2206a090e53a807617fe1b713363a868874a565cef7949728793b6f853
+  - split_id: rtp_01_ros2/b034
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ff10040e4ce75bd227eeace66d951e995c0125ca023c43b30cccb9d312f08071
+    holdout_ids_sha256: 3d3cff4f11b29d6c79ea2202c738c5d3c390136cc3ba08e966361f739d7f1ce6
+  - split_id: rtp_01_ros2/b037
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a284c79f6764cca0ecea413c24d5d9059b8e1e8098e22de4dab45259bf674a81
+    holdout_ids_sha256: 16302035de16416265ba894463f3b76c54a77eced1725a3772bddb69addc2968
+  - split_id: rtp_01_ros2/b040
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 28af0c8f45bee842923dcf93f9bb6358caa73f08415baa6e4d0335b5b61b53c1
+    holdout_ids_sha256: 49a8a0d49d9c7c03ae816bcf70852664efc9e2718f58a1df5a8535f6f959486b
+  - split_id: rtp_01_ros2/b043
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d345e5d23a68556fd53e2569a170dd7f61d2b5da66a6381a938d5f36f40e547d
+    holdout_ids_sha256: 65ab0a89e8961ff7e7b10f511c4b1dc524ff2a2237b7b196934dfac9cdfd7d97
+  - split_id: rtp_01_ros2/b046
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 474683c0800b8df267bf42b640422d05686f894b067fddd63a0ef34ca5310994
+    holdout_ids_sha256: f1ae36ed4fb3a6cafe19d7c4970668b9d9a4a368f1bfc3353dda3021e13382e7
+  - split_id: spms_01_ros2/b002
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4bf6be506377018d9ec7392e99080d13400a21652a79386ce3fde7752a2499c2
+    holdout_ids_sha256: 61a71620e821e3bd7a346303138ee75259b290e31f7184919e93cab731d6e311
+  - split_id: spms_01_ros2/b005
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ec8b88af4ce00a78c97b1f18775e2b8d21e5eb98980ba7c0f448385cb113e2cc
+    holdout_ids_sha256: 49dbf773670f4de136b0a53e29a6e8c429b377e96dc28399abd2ae287243eb3d
+  - split_id: spms_01_ros2/b008
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b5ead9dcc1f971e25e92fe442caa6242f58754eb3556bac273e826f863940ab4
+    holdout_ids_sha256: 96b681d7a71c32091e0cd0de44848031015154d728fbc65f2a53822b85337b64
+  - split_id: spms_01_ros2/b011
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 47a9760fbea706e88fb69804dde43ff5f076a64c57e35cbe49366e1e6e4078ed
+    holdout_ids_sha256: 67acb0547ae75660e4cefbf745ded809a410e9caef8b8225f4a03e25babbee3c
+  - split_id: spms_01_ros2/b014
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 28d52ff2e579a54ddfd3f10cc2a7ac9f4a570ac2de0b1b19030b0b56a413d01b
+    holdout_ids_sha256: cd353fdf8d7f8074984a0fd022ae1fb4a81cbc9d218dbec54e828f392a776208
+  - split_id: spms_01_ros2/b017
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 79d9296eba752adcfb1e9d8a61d014e95aae872bf7c35b895e621c21f3ae6107
+    holdout_ids_sha256: b31e9c1e4c76bfa37b59e91002e66fc697fc8a0f62dfe267a9a7411dd1e08da8
+  - split_id: spms_01_ros2/b020
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4cd8dce920fad271f8251678375d23a793d9b667dbd1a2f6e8eb9086096d3704
+    holdout_ids_sha256: 072acd38e7e65a4ba374d0dc21d82fe9b9792ee5f5eb311980520fe28c535e89
+  - split_id: spms_01_ros2/b023
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 80bd850d70dea38ba4b414e6adab5b40e0b276093278ec0576cf36fc6970256b
+    holdout_ids_sha256: a5aaef546038763ce7ca76be4e48eaa053ee02a202761ea08069794d26bd6b76
+  - split_id: spms_01_ros2/b026
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c485f087336d663ebfca9f0399877e66943df322a08793b130b0d60537efbfa1
+    holdout_ids_sha256: 85ea8aef62c43aacc8cd4c5e8d013a3bf6457dd081d4a1908b4cd56f2685104a
+  - split_id: spms_01_ros2/b029
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e01c6ba3bdf1c0dd3ea5b4fdb0a9b859130c25988761be57be9718471021a771
+    holdout_ids_sha256: f2307e598e25a15189771577e70e2fbe4ba98d8fcc74e6a0d131e8c737a02db0
+  - split_id: spms_01_ros2/b032
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d2dfe879c6719483a736964207adc1175bf8a4550bc26c4feb0ebca9e4d2cb43
+    holdout_ids_sha256: 9463944a0955e19515c8e668485c77307c6ed4f9ad8372e713a6ab7c74e201d1
+  - split_id: spms_01_ros2/b035
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8ec7c91dbdcdc3a1bbf648f2523f2eecd095fb621bb96efbc5acdd3facd2d385
+    holdout_ids_sha256: 3ff00f95a3deee43fe1ba87557ee6a9621d2ab44a1646c805fedcae2f730dad3
+  - split_id: spms_01_ros2/b038
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 56151616255338f0cafe050edcda951da3a76488eae10f493b48e58172dc9517
+    holdout_ids_sha256: ce5de8298beb77435d36839c1a99a2ce39ec89cd00a0687db0a3f1f96e969bcd
+  - split_id: spms_01_ros2/b041
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: fbac56b5cd2267c9790221ee9f541e47848ac6926cc1f29d7d1ec1c08c7a9854
+    holdout_ids_sha256: 10d79b38f67a7812e70b5762fa22b4048a7541981a946f8a82db637468cf4a84
+  - split_id: tnp_02_ros2/b002
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 10ccec56ba9187077eab93fc20e93fd8b675b57bf1a58954a9e1c67929b53f0e
+    holdout_ids_sha256: fe6bebfa32d4ec90b9ae024d0bf0f37b13df8cacdb776725dcde1ff3784f60bc
+  - split_id: tnp_02_ros2/b005
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 271d179595314dad910831123135a4e18205b0efcbb8c18d31f53bb3d2e535d5
+    holdout_ids_sha256: c05ba447f518da4706008e15ec808a8ffb654b09132684ab27340df2ac58d025
+  - split_id: tnp_02_ros2/b008
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 701e5591711b37a51c4c6efdcc0a07ff80605c5e6702fccb6b7d5c994c66845c
+    holdout_ids_sha256: f826b93976dac41f0fbf0df8a89e137b78129b837724ab5f8702a26148976097
+  - split_id: tnp_02_ros2/b011
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: aef91584eacae8d39501d5b477acf71f8b85a1b9cffe2c3ea5aec7e099a9c844
+    holdout_ids_sha256: 61605cf3ce6026a2652905fb0ffc6da8c085c7ed14a9b4828e4138771b059858
+  - split_id: tnp_02_ros2/b014
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 554dbdbad5263981f5ae98314ea8990f8e218bf978fda9aca2b01d8cc2ffe154
+    holdout_ids_sha256: ac3e1d4fb47d0320f86967664f62cd0f2f687c864a5af63c12d8674dc7b64dd3
+  - split_id: tnp_02_ros2/b017
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d39b6d053448f96ac9f03b46f8e581d1ede0e80d7ed4d3da07232e067256f40a
+    holdout_ids_sha256: 77a838e8faf7c241a4e01b41e072ff7ceb22b3c929f1664f334d6fd5692639e5
+  - split_id: tnp_02_ros2/b020
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ca2f805a00865a8e9bf9877829409454bda1e954298ac5100c0ace3bb620a732
+    holdout_ids_sha256: df08c5ff084b4814e819641e69276f0f369357a57778c531798277c3a0aced45
+  - split_id: tnp_02_ros2/b023
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: af346adee4fe8aa5e5dee35cd9e086bae18751d5404017d5c2ccdc27483bf545
+    holdout_ids_sha256: bd6403a10da9df36c551eeacd1026f02cc7a59df162c96f476a4fd306630e067
+  - split_id: tnp_02_ros2/b026
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0d5f29a20809416bab6a8bd31499851df6dd77181b85202403f72048b7aaef65
+    holdout_ids_sha256: 7db21fa900cb8082fc95f2e086f0c82db87cb43dd30dc281aa9beaf0a7a3ff6f
+  - split_id: tnp_02_ros2/b029
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 6dc10500f00818e7faa45ce6d0b3890339b837f87313bcfdfd824a23a33a2b99
+    holdout_ids_sha256: 7788c56c7b8460d7fa849fb837e0272626b18078713bbb22df4defeb100e51fc
+  - split_id: tnp_02_ros2/b032
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5462296d987a0f59b9922698fe631e017d9bbd41f7ee7d2b131b55d7fab4cc1a
+    holdout_ids_sha256: 1118435e0c3b8fe5cd28a16ff5b45b4c186d0ccf23541c7d669138bf7535b11d
+  - split_id: tnp_02_ros2/b035
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 85b757225681bf9310112a5479047d903488dd60149e602c54122899ec871e04
+    holdout_ids_sha256: dd554995a0b15dc6d0663d9c94dd42ec53074e337a7aad64176377244da50e67
+  - split_id: tnp_02_ros2/b038
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 6d026adf50ff4fd9c4fbc19a81406dd1d0e02d9f5679c8eda436177752743e1b
+    holdout_ids_sha256: 71a3d3835ee2c71df440289cedd6c01e9f69bbdf3c318758b39f83eb0718f524
+  - split_id: tnp_02_ros2/b041
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bf406dabd73f873ba13b0d4a32bccef700173b696008d63a5f1ed43ae3ac884d
+    holdout_ids_sha256: 6cc221db5b84f431fbe99584e4de8739e62c06998331d7b9ff6d320168079e93
+  - split_id: tnp_02_ros2/b044
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 63560bb0ab51e573fc88de147af7dda0f7bf2e272b4128dea11ad9e7afe9677a
+    holdout_ids_sha256: 8297e9ea867fe816fb04cfbdf4b29fa0a8ea1a30d577afba956c686bdf188386
+  initial_estimate_policy: each method's own start; fitted methods start from the
+    design value
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a method without an estimate fails every split
+metrics:
+- name: holdout_block_chi2
+  label: held-out point-to-plane chi-square per point
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: mean of min((r / 0.1 m)^2, 25), lost points count 25
+methods:
+- method_id: calibrex_map
+  label: Calibrex LiDAR-LiDAR by map registration
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: scan_to_scan
+  label: Concurrent scan-to-scan registration
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: ntu_design
+  label: NTU VIRAL design value inv(T_body_horz) T_body_vert
+  implementation: calibrex_native
+  tool_name: ntu_viral
+trials:
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b001
+  status: success
+  metrics:
+    holdout_block_chi2: 17.28450590203837
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b004
+  status: success
+  metrics:
+    holdout_block_chi2: 23.499955102614535
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b007
+  status: success
+  metrics:
+    holdout_block_chi2: 23.168595068568134
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b010
+  status: success
+  metrics:
+    holdout_block_chi2: 23.809187262313362
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b013
+  status: success
+  metrics:
+    holdout_block_chi2: 23.511451874127783
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b016
+  status: success
+  metrics:
+    holdout_block_chi2: 21.703277150253008
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b019
+  status: success
+  metrics:
+    holdout_block_chi2: 22.905133124408366
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b022
+  status: success
+  metrics:
+    holdout_block_chi2: 22.543479714212346
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b025
+  status: success
+  metrics:
+    holdout_block_chi2: 23.17344317296991
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b028
+  status: success
+  metrics:
+    holdout_block_chi2: 22.060405230975437
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b031
+  status: success
+  metrics:
+    holdout_block_chi2: 21.917742185932163
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b034
+  status: success
+  metrics:
+    holdout_block_chi2: 15.403089677289136
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b037
+  status: success
+  metrics:
+    holdout_block_chi2: 16.65239116416731
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b040
+  status: success
+  metrics:
+    holdout_block_chi2: 19.04530255803463
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b043
+  status: success
+  metrics:
+    holdout_block_chi2: 15.17973160103431
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: rtp_01_ros2/b046
+  status: success
+  metrics:
+    holdout_block_chi2: 15.79911210553275
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b002
+  status: success
+  metrics:
+    holdout_block_chi2: 21.04104580408507
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b005
+  status: success
+  metrics:
+    holdout_block_chi2: 22.70379536058943
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b008
+  status: success
+  metrics:
+    holdout_block_chi2: 23.389183326650404
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b011
+  status: success
+  metrics:
+    holdout_block_chi2: 24.155806003289626
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b014
+  status: success
+  metrics:
+    holdout_block_chi2: 24.103869766135453
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b017
+  status: success
+  metrics:
+    holdout_block_chi2: 23.49889202078516
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b020
+  status: success
+  metrics:
+    holdout_block_chi2: 24.070290869958885
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b023
+  status: success
+  metrics:
+    holdout_block_chi2: 23.354627854915435
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b026
+  status: success
+  metrics:
+    holdout_block_chi2: 19.585653014692824
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b029
+  status: success
+  metrics:
+    holdout_block_chi2: 24.684726285865874
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b032
+  status: success
+  metrics:
+    holdout_block_chi2: 23.744987223308108
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b035
+  status: success
+  metrics:
+    holdout_block_chi2: 23.18439592960925
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b038
+  status: success
+  metrics:
+    holdout_block_chi2: 18.09846556239214
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: spms_01_ros2/b041
+  status: success
+  metrics:
+    holdout_block_chi2: 15.895105263625542
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b002
+  status: success
+  metrics:
+    holdout_block_chi2: 14.086898883703585
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b005
+  status: success
+  metrics:
+    holdout_block_chi2: 22.689996509761695
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b008
+  status: success
+  metrics:
+    holdout_block_chi2: 22.79732804015125
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b011
+  status: success
+  metrics:
+    holdout_block_chi2: 22.285962181824132
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b014
+  status: success
+  metrics:
+    holdout_block_chi2: 23.032106883268437
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b017
+  status: success
+  metrics:
+    holdout_block_chi2: 23.562470430437727
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b020
+  status: success
+  metrics:
+    holdout_block_chi2: 23.33838259029774
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b023
+  status: success
+  metrics:
+    holdout_block_chi2: 22.664251526495633
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b026
+  status: success
+  metrics:
+    holdout_block_chi2: 23.448962506242246
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b029
+  status: success
+  metrics:
+    holdout_block_chi2: 23.421781627756495
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b032
+  status: success
+  metrics:
+    holdout_block_chi2: 22.532047674297814
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b035
+  status: success
+  metrics:
+    holdout_block_chi2: 22.584191541629096
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b038
+  status: success
+  metrics:
+    holdout_block_chi2: 22.554171823614034
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b041
+  status: success
+  metrics:
+    holdout_block_chi2: 17.534179167795205
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: calibrex_map
+  split_id: tnp_02_ros2/b044
+  status: success
+  metrics:
+    holdout_block_chi2: 16.60952298874223
+  provenance:
+    command: score calibrex_map
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b001
+  status: success
+  metrics:
+    holdout_block_chi2: 17.25805910021193
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b004
+  status: success
+  metrics:
+    holdout_block_chi2: 23.511546719416256
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b007
+  status: success
+  metrics:
+    holdout_block_chi2: 23.176540990782318
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b010
+  status: success
+  metrics:
+    holdout_block_chi2: 23.807670885751545
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b013
+  status: success
+  metrics:
+    holdout_block_chi2: 23.517930082004433
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b016
+  status: success
+  metrics:
+    holdout_block_chi2: 21.719320103696507
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b019
+  status: success
+  metrics:
+    holdout_block_chi2: 22.916561145591537
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b022
+  status: success
+  metrics:
+    holdout_block_chi2: 22.555356530610744
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b025
+  status: success
+  metrics:
+    holdout_block_chi2: 23.183028507441698
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b028
+  status: success
+  metrics:
+    holdout_block_chi2: 22.07296797268744
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b031
+  status: success
+  metrics:
+    holdout_block_chi2: 21.91517134788392
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b034
+  status: success
+  metrics:
+    holdout_block_chi2: 15.35878004296649
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b037
+  status: success
+  metrics:
+    holdout_block_chi2: 16.651338728603744
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b040
+  status: success
+  metrics:
+    holdout_block_chi2: 19.111332740690205
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b043
+  status: success
+  metrics:
+    holdout_block_chi2: 15.174994872873448
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: rtp_01_ros2/b046
+  status: success
+  metrics:
+    holdout_block_chi2: 15.757488235179267
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b002
+  status: success
+  metrics:
+    holdout_block_chi2: 21.033734352390844
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b005
+  status: success
+  metrics:
+    holdout_block_chi2: 22.710621727096722
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b008
+  status: success
+  metrics:
+    holdout_block_chi2: 23.389687135468048
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b011
+  status: success
+  metrics:
+    holdout_block_chi2: 24.162111762503308
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b014
+  status: success
+  metrics:
+    holdout_block_chi2: 24.10202817689681
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b017
+  status: success
+  metrics:
+    holdout_block_chi2: 23.502125024948306
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b020
+  status: success
+  metrics:
+    holdout_block_chi2: 24.075531694835405
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b023
+  status: success
+  metrics:
+    holdout_block_chi2: 23.3605525475723
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b026
+  status: success
+  metrics:
+    holdout_block_chi2: 19.55109416240109
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b029
+  status: success
+  metrics:
+    holdout_block_chi2: 24.685930189256936
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b032
+  status: success
+  metrics:
+    holdout_block_chi2: 23.745579971001604
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b035
+  status: success
+  metrics:
+    holdout_block_chi2: 23.184767670527766
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b038
+  status: success
+  metrics:
+    holdout_block_chi2: 18.145961638581422
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: spms_01_ros2/b041
+  status: success
+  metrics:
+    holdout_block_chi2: 15.891967916010929
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b002
+  status: success
+  metrics:
+    holdout_block_chi2: 14.12947465793494
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b005
+  status: success
+  metrics:
+    holdout_block_chi2: 22.68264035083963
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b008
+  status: success
+  metrics:
+    holdout_block_chi2: 22.77376427262366
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b011
+  status: success
+  metrics:
+    holdout_block_chi2: 22.312427603246498
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b014
+  status: success
+  metrics:
+    holdout_block_chi2: 23.04296498433181
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b017
+  status: success
+  metrics:
+    holdout_block_chi2: 23.57291624506038
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b020
+  status: success
+  metrics:
+    holdout_block_chi2: 23.365081861647468
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b023
+  status: success
+  metrics:
+    holdout_block_chi2: 22.665233935352113
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b026
+  status: success
+  metrics:
+    holdout_block_chi2: 23.435494936569963
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b029
+  status: success
+  metrics:
+    holdout_block_chi2: 23.431391502919784
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b032
+  status: success
+  metrics:
+    holdout_block_chi2: 22.548761421280314
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b035
+  status: success
+  metrics:
+    holdout_block_chi2: 22.582962304335766
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b038
+  status: success
+  metrics:
+    holdout_block_chi2: 22.554425033850915
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b041
+  status: success
+  metrics:
+    holdout_block_chi2: 17.48915845245124
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: scan_to_scan
+  split_id: tnp_02_ros2/b044
+  status: success
+  metrics:
+    holdout_block_chi2: 16.56861128093475
+  provenance:
+    command: score scan_to_scan
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b001
+  status: success
+  metrics:
+    holdout_block_chi2: 17.519571550771136
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b004
+  status: success
+  metrics:
+    holdout_block_chi2: 23.543915908593974
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b007
+  status: success
+  metrics:
+    holdout_block_chi2: 23.210054240654937
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b010
+  status: success
+  metrics:
+    holdout_block_chi2: 23.810652562905663
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b013
+  status: success
+  metrics:
+    holdout_block_chi2: 23.52027273853222
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b016
+  status: success
+  metrics:
+    holdout_block_chi2: 21.69886941687168
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b019
+  status: success
+  metrics:
+    holdout_block_chi2: 22.984314294983413
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b022
+  status: success
+  metrics:
+    holdout_block_chi2: 22.569917778240388
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b025
+  status: success
+  metrics:
+    holdout_block_chi2: 23.202048671086423
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b028
+  status: success
+  metrics:
+    holdout_block_chi2: 22.06177002432548
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b031
+  status: success
+  metrics:
+    holdout_block_chi2: 21.933396088302604
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b034
+  status: success
+  metrics:
+    holdout_block_chi2: 15.47915380057882
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b037
+  status: success
+  metrics:
+    holdout_block_chi2: 17.00715587397548
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b040
+  status: success
+  metrics:
+    holdout_block_chi2: 19.100020081518018
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b043
+  status: success
+  metrics:
+    holdout_block_chi2: 15.4610147434861
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: rtp_01_ros2/b046
+  status: success
+  metrics:
+    holdout_block_chi2: 16.111389169887325
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b002
+  status: success
+  metrics:
+    holdout_block_chi2: 21.14770267204332
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b005
+  status: success
+  metrics:
+    holdout_block_chi2: 22.75794876654872
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b008
+  status: success
+  metrics:
+    holdout_block_chi2: 23.41643049176623
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b011
+  status: success
+  metrics:
+    holdout_block_chi2: 24.182481508846845
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b014
+  status: success
+  metrics:
+    holdout_block_chi2: 24.105335758149735
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b017
+  status: success
+  metrics:
+    holdout_block_chi2: 23.470808212576365
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b020
+  status: success
+  metrics:
+    holdout_block_chi2: 24.0920432589032
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b023
+  status: success
+  metrics:
+    holdout_block_chi2: 23.394922476538405
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b026
+  status: success
+  metrics:
+    holdout_block_chi2: 19.59080443891759
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b029
+  status: success
+  metrics:
+    holdout_block_chi2: 24.69785064916949
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b032
+  status: success
+  metrics:
+    holdout_block_chi2: 23.753129164672753
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b035
+  status: success
+  metrics:
+    holdout_block_chi2: 23.180013473462328
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b038
+  status: success
+  metrics:
+    holdout_block_chi2: 18.325666842209188
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: spms_01_ros2/b041
+  status: success
+  metrics:
+    holdout_block_chi2: 16.21326319797229
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b002
+  status: success
+  metrics:
+    holdout_block_chi2: 14.414191933589093
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b005
+  status: success
+  metrics:
+    holdout_block_chi2: 22.73140259495012
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b008
+  status: success
+  metrics:
+    holdout_block_chi2: 22.80668481010518
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b011
+  status: success
+  metrics:
+    holdout_block_chi2: 22.33555601723347
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b014
+  status: success
+  metrics:
+    holdout_block_chi2: 23.050062453181436
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b017
+  status: success
+  metrics:
+    holdout_block_chi2: 23.615063850166635
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b020
+  status: success
+  metrics:
+    holdout_block_chi2: 23.42199282852522
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b023
+  status: success
+  metrics:
+    holdout_block_chi2: 22.704185534991097
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b026
+  status: success
+  metrics:
+    holdout_block_chi2: 23.449715743491975
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b029
+  status: success
+  metrics:
+    holdout_block_chi2: 23.4396731938694
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b032
+  status: success
+  metrics:
+    holdout_block_chi2: 22.540455907614064
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b035
+  status: success
+  metrics:
+    holdout_block_chi2: 22.675406006920205
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b038
+  status: success
+  metrics:
+    holdout_block_chi2: 22.508553486930836
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b041
+  status: success
+  metrics:
+    holdout_block_chi2: 17.716488252264906
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+- method_id: ntu_design
+  split_id: tnp_02_ros2/b044
+  status: success
+  metrics:
+    holdout_block_chi2: 16.761026642637656
+  provenance:
+    command: score ntu_design
+    config_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    input_sha256: 2aa67aeea63e64ebb7adaf5ced831fb20c3d9ce8a8c86e386c9e2bdbb0f52363
+    notes: []
+method_summaries:
+  calibrex_map:
+    method_id: calibrex_map
+    trial_count: 45
+    success_count: 45
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_block_chi2:
+        metric: holdout_block_chi2
+        distribution:
+          count: 45
+          mean: 21.384664479030935
+          median: 22.689996509761695
+          standard_deviation: 2.9707443815310617
+          minimum: 14.086898883703585
+          maximum: 24.684726285865874
+          p90: 23.78350724671126
+          p95: 24.09715398690014
+          mean_ci95_low: 20.50556899829334
+          mean_ci95_high: 22.241273998000473
+        rank: 1
+  scan_to_scan:
+    method_id: scan_to_scan
+    trial_count: 45
+    success_count: 45
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_block_chi2:
+        metric: holdout_block_chi2
+        distribution:
+          count: 45
+          mean: 21.38633535153916
+          median: 22.68264035083963
+          standard_deviation: 2.9762429557056924
+          minimum: 14.12947465793494
+          maximum: 24.685930189256936
+          p90: 23.78283451985157
+          p95: 24.096728880484527
+          mean_ci95_low: 20.501819353401903
+          mean_ci95_high: 22.244833403074463
+        rank: 2
+  ntu_design:
+    method_id: ntu_design
+    trial_count: 45
+    success_count: 45
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      holdout_block_chi2:
+        metric: holdout_block_chi2
+        distribution:
+          count: 45
+          mean: 21.460275046954695
+          median: 22.73140259495012
+          standard_deviation: 2.8833123650243455
+          minimum: 14.414191933589093
+          maximum: 24.69785064916949
+          p90: 23.7876432036125
+          p95: 24.102677258300428
+          mean_ci95_low: 20.605322610658735
+          mean_ci95_high: 22.288232251984383
+        rank: 3
+paired_comparisons:
+- reference_method_id: scan_to_scan
+  candidate_method_id: calibrex_map
+  metric: holdout_block_chi2
+  direction: lower
+  paired_count: 45
+  raw_delta_mean: -0.001670872508225053
+  improvement_mean: 0.001670872508225053
+  improvement_ci95_low: -0.004785398562469202
+  improvement_ci95_high: 0.007856665399477701
+- reference_method_id: scan_to_scan
+  candidate_method_id: ntu_design
+  metric: holdout_block_chi2
+  direction: lower
+  paired_count: 45
+  raw_delta_mean: 0.07393969541553792
+  improvement_mean: -0.07393969541553792
+  improvement_ci95_low: -0.10690484385246833
+  improvement_ci95_high: -0.04257571519814201
+reference_method_id: scan_to_scan
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference LiDAR's odometry supplies the map and drifts over the map window.
+- The reported metric is dominated by the ordinary fraction of target points that
+  has no map support and is penalized at the clip value.
+- The design value is a rounded CAD figure, not an independent measurement.
+provenance:
+  generator: tools/build_ntu_lidar_lidar_audit.py
+  generator_version: 0.4.1
+  generated_at: '2026-10-01T03:18:22.929680+00:00'
+  command: python tools/build_ntu_lidar_lidar_audit.py docs/assets/ntu_viral_lidar_lidar/scores.json
+    docs/assets
+  source_artifacts: {}
+  data_verified: true

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **A pre-registered `lidar-lidar` audit is refuted** on three held-back
+  NTU VIRAL recordings (`ntu-lidar-lidar-v1`, 2/4 gates).
+  - Calibrex's fitted extrinsic is 0.49 deg and 7.7 cm from the rounded
+    design value (gates pass), but it does not beat concurrent scan-to-scan
+    (paired CI low −0.005) and the cross-recording consistency of
+    0.3 deg / 3 cm is violated (1.14 on average).
+  - Development was tnp_01 only; the claim was about accuracy against the
+    design value and reproducibility, not a margin over a baseline.
+  - Tools: `tools/score_ntu_lidar_lidar.py`,
+    `tools/build_ntu_lidar_lidar_audit.py`.
 - **A pre-registered `lidar-vehicle` audit is supported** on eight unseen
   KITTI drives (`kitti-lidar-vehicle-v1`, 3/3 gates).
   - Calibrex's motion-only rotation fits held-out LiDAR motion better than

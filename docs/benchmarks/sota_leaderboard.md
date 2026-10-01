@@ -18,7 +18,9 @@ As of 2026-10-01, **two pairs have supported SOTA claims**:
 See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md) and
 [KITTI LiDAR-Vehicle Rotation](kitti_lidar_vehicle.md#pre-registered-audit-supported)
 for the scope of each claim and what it does not claim. Every other target
-pair has a native method but no audited claim yet.
+pair has a native method but no audited claim yet, except `lidar-lidar`, whose
+pre-registered audit was refuted
+([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -29,7 +31,7 @@ pair has a native method but no audited claim yet.
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
 | `ins-lidar` | no_claim | 0 | 0 | 0 | yes |
-| `lidar-lidar` | no_claim | 0 | 0 | 0 | yes |
+| `lidar-lidar` | refuted | 0 | 1 | 0 | yes |
 | `lidar-vehicle` | supported | 1 | 0 | 0 | yes |
 | `lidar-wheel_odometry` | no_claim | 0 | 0 | 0 | yes |
 
@@ -38,6 +40,7 @@ pair has a native method but no audited claim yet.
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
+| `lidar-lidar` | targetless_lidar_lidar | rotation, translation | refuted | 2/4 | `ntu-lidar-lidar-v1` |
 | `lidar-vehicle` | targetless_lidar_vehicle | rotation | supported | 3/3 | `kitti-lidar-vehicle-v1` |
 
 The machine-readable version is

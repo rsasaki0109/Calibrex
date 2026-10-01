@@ -1,0 +1,69 @@
+# Pre-registration of the NTU VIRAL LiDAR-LiDAR extrinsic audit.
+#
+# Written on 2026-10-01, before lidar-lidar has been run on any of the
+# evaluation recordings below.  The scoring tool (tools/score_ntu_lidar_lidar.py)
+# and its thresholds were developed on tnp_01 only.  The audit protocol must
+# cite this file's SHA-256 and may not change any threshold, metric, recording,
+# or requirement listed here.
+claim: >-
+  On three NTU VIRAL recordings not used to develop the map-registration
+  method (rtp_01, spms_01, tnp_02), Calibrex's LiDAR-LiDAR extrinsic is accurate
+  against the dataset's design value and reproduces across recordings:
+  the fitted rotation and translation stay within a small tolerance of the
+  design extrinsic, and the extrinsic fitted on train blocks of one recording
+  agrees with the extrinsic fitted on the others' train blocks.
+scope:
+  modalities: [lidar, lidar]
+  quantities: [rotation, translation]
+  category: targetless_lidar_lidar
+recordings:
+  evaluation: [rtp_01, spms_01, tnp_02]
+  development_only: [tnp_01]
+methods:
+  calibrex_map: >-
+    T_reference_target from calibrex.solvers.lidar_lidar_map_solver (default
+    options, maps of +-5 reference scans) fitted on the pooled train blocks of
+    the evaluation recordings, started from the design value.
+  scan_to_scan: >-
+    the same solver with a map of only the nearest reference scan, fitted on
+    the same train blocks from the same start.  Reported, not gated.
+  ntu_design: >-
+    the dataset's design value inv(T_body_horz) T_body_vert.  Reported, not
+    gated.
+scoring:
+  motions: LiDAR odometry (default LidarLidarMapOptions), target scans every 10th reference scan
+  blocks: 10-second blocks per recording, keyed by recording and block; every third key (sorted) is held out
+  metric_holdout: >-
+    per held-out block, the mean of min((r / 0.1 m)^2, 25) over target points,
+    with r the point-to-plane residual against a map of +-10 reference scans
+    (lost points count 25); lower is better
+  metric_accuracy: >-
+    the fitted extrinsic against the design value: rotation error as the
+    geodesic angle (deg) and translation error as the Euclidean norm (m)
+  metric_consistency: >-
+    per recording, the max(rotation / 0.3 deg, translation / 3 cm) between the
+    extrinsic fitted on that recording's train blocks and the extrinsic fitted
+    on the other recordings' train blocks; lower is better
+failure_policy: a method without an estimate fails every split
+requirements:
+  - id: calibrex-rotation-vs-design
+    rule: calibrex_map rotation error to the design value <= 1.0 deg
+  - id: calibrex-translation-vs-design
+    rule: calibrex_map translation error to the design value <= 0.10 m
+  - id: calibrex-not-worse-than-scan-to-scan
+    rule: paired improvement of calibrex_map over scan_to_scan on held-out blocks, 95% bootstrap CI lower bound >= 0
+  - id: calibrex-cross-recording-consistency
+    rule: calibrex_map per-recording consistency <= 1.0
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+development_results_seen:
+  tnp_01_rotation_to_design_deg: 0.464
+  tnp_01_translation_to_design_m: 0.062
+  tnp_01_holdout_mean: {calibrex_map: 21.987, scan_to_scan: 21.993, ntu_design: 22.032}
+  note: >-
+    The three methods are statistically indistinguishable on tnp_01.  The
+    thresholds above therefore gate accuracy against the design value and
+    cross-recording reproducibility, not a margin over the baselines, which
+    are reported for transparency only.  roll stays unobservable on tnp_01
+    (jackknife std 0.108 deg) and is not gated.
