@@ -2859,9 +2859,10 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "Read candidate extrinsics from the bag's /tf_static and/or --tf files, classify "
             "the bag's sensor topics, and list the sensor pairs that can be checked. With "
-            "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar "
-            "and camera-imu runs and the candidate is judged against it (pass / warn / fail / "
-            "inconclusive per pair). With --vehicle-frame the ground-vehicle pairs lidar-vehicle, "
+            "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar, "
+            "camera-imu and the GNSS pairs gnss-lidar (NavSatFix antenna lever arm) and "
+            "gnss-imu (composed from gnss-lidar and imu-lidar) runs and the candidate is "
+            "judged against it (pass / warn / fail / inconclusive per pair). With --vehicle-frame the ground-vehicle pairs lidar-vehicle, "
             "imu-vehicle, ins-lidar and lidar-wheel_odometry run too. Other pairs are reported "
             "as skipped."
         ),

@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import math
+import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1306,8 +1307,329 @@ def run_lidar_wheel(ctx: PairContext) -> EstimatorRun:
     )
 
 
+# ------------------------------------------------------------ gnss-lidar / gnss-imu
+
+GNSS_ROTATION_REASON = (
+    "the GNSS antenna's orientation is not defined: the lever arm is a point offset, so "
+    "the candidate's rotation about the antenna is not judged"
+)
+PAIR_RUN_KEY = "pair_run"
+"""Memo key prefix under which the runner stores each pair's :class:`EstimatorRun`."""
+
+
+def _unjudged_rotation_axes(reason: str = GNSS_ROTATION_REASON) -> list[AxisEstimate]:
+    names: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw")
+    return [AxisEstimate(name, "deg", 0.0, 0.0, False, reason, "unobservable") for name in names]
+
+
+def _iter_scans_plain(bag: Path, profile: Any, max_seconds: float | None) -> Any:
+    from calibrex.data.livox_ros2 import iter_livox_points
+
+    return iter_livox_points(bag, profile, max_seconds=max_seconds)
+
+
+def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
+    """Antenna lever arm in the LiDAR frame from GNSS positions against LiDAR odometry.
+
+    The planner's candidate is ``T_gnss_lidar``; the estimate is the antenna
+    position in the LiDAR frame, the translation of ``T_lidar_gnss``. The fit
+    does not use the candidate (it is compared afterwards), so it is cached.
+    """
+
+    from calibrex import __version__
+    from calibrex.core.gnss_lidar_lever_arm import (
+        GnssLidarLeverArmArtifact,
+        GnssLidarLeverArmProvenance,
+        GnssLidarSegmentSummary,
+        load_gnss_lidar_lever_arm,
+    )
+    from calibrex.core.provenance import git_commit
+    from calibrex.data.livox_ros2 import LivoxStreamProfile
+    from calibrex.data.navsatfix_track import NavSatFixTrackOptions, read_navsatfix_track
+    from calibrex.data.rosbag2 import NAVSATFIX_TYPE
+    from calibrex.evaluation.gnss_lidar_lever_arm import (
+        RTK_SLAM_LIMITATIONS,
+        GnssLidarRunOptions,
+        build_gnss_lidar_artifact,
+        collect_windows,
+        evaluate_gnss_lidar_lever_arm,
+        rebase_gnss_lidar_reference,
+    )
+    from calibrex.solvers.gnss_lever_arm_solver import GnssTrackModel
+
+    gnss_topic = next(
+        (t for t in ctx.sensor_topics.get("gnss", ()) if ctx.topic_types.get(t) == NAVSATFIX_TYPE),
+        None,
+    )
+    if gnss_topic is None:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"GNSS topic(s) {', '.join(ctx.sensor_topics.get('gnss', ()))} are not "
+            "sensor_msgs/NavSatFix",
+        )
+    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    field_name, encoding = _point_time_or_skip(ctx.bag, lidar_topic)
+    profile = LivoxStreamProfile(
+        name=f"ros2-pointcloud2:{lidar_topic}",
+        point_topic=lidar_topic,
+        imu_topic="",
+        point_time_field=field_name,
+        point_time_encoding=encoding,
+        acceleration_unit=ctx.controls.acceleration_unit,
+    )
+    lever_candidate = invert_transform(ctx.candidate)[:3, 3]  # antenna in the LiDAR frame
+    track_options = NavSatFixTrackOptions()
+    run_options = GnssLidarRunOptions()
+    ctx.controls.progress(f"gnss-lidar: {gnss_topic} against LiDAR odometry on {lidar_topic}")
+
+    def compute() -> GnssLidarLeverArmArtifact:
+        try:
+            track, summary = read_navsatfix_track(ctx.bag, gnss_topic, track_options)
+        except ValueError as exc:
+            raise CheckSkipError(
+                "unsupported_sensor",
+                f"{exc}; a lever arm needs RTK-grade fixes (NavSatFix status >= 0 with a "
+                f"3-D std of at most {track_options.max_sigma_m:g} m)",
+            ) from exc
+        model = GnssTrackModel(track.times_s, track.enu_m, track.sigma_m)
+        scans = (
+            ctx.controls.scan_store.scans(ctx.bag, profile, max_seconds=ctx.controls.max_duration_s)
+            if ctx.controls.scan_store is not None
+            else _iter_scans_plain(ctx.bag, profile, ctx.controls.max_duration_s)
+        )
+        segmenter = collect_windows(model, scans, run_options, prefix=f"{ctx.bag.name}/")
+        evaluation = evaluate_gnss_lidar_lever_arm(
+            model, segmenter.windows, run_options, reference_lever_arm=lever_candidate
+        )
+        return build_gnss_lidar_artifact(
+            evaluation,
+            run_options,
+            segments=GnssLidarSegmentSummary(
+                scans_read=segmenter.scans_read,
+                scans_in_gnss_coverage=segmenter.scans_covered,
+                odometry_segments=segmenter.segments,
+                unreliable_registrations=segmenter.unreliable,
+                windows=len(segmenter.windows),
+                gnss_epochs_used=len(track.times_s),
+                gnss_epochs_rejected=track.rejected_epochs,
+            ),
+            provenance=GnssLidarLeverArmProvenance(
+                generator=__name__,
+                generator_version=__version__,
+                git_commit=git_commit(),
+                command=["calibrex", "check", str(ctx.bag), "gnss-lidar", gnss_topic, lidar_topic],
+                dataset_family=DATASET_FAMILY,
+                sequence_ids=[ctx.bag.name],
+                input_sha256=_digest_or_topic(ctx, gnss_topic, lidar_topic),
+                input_digest_scope=(
+                    "bag digest (metadata.yaml in full; storage files by name, size and first "
+                    f"64 MiB); GNSS from NavSatFix {gnss_topic}: {summary.kept} of "
+                    f"{summary.messages} fixes usable (no fix {summary.rejected_no_fix}, "
+                    f"std over {track_options.max_sigma_m:g} m {summary.rejected_sigma}, "
+                    f"unknown covariance {summary.rejected_unknown_quality})"
+                ),
+                dataset_license=DATASET_LICENSE,
+            ),
+            reference="deployed candidate calibration (antenna position in the LiDAR frame)",
+            limitations=(
+                *RTK_SLAM_LIMITATIONS[1:],
+                "GNSS fixes come from the bag's NavSatFix topic; usable fixes are those with "
+                "status >= 0 and a 3-D std (sqrt of the covariance trace) of at most "
+                f"{track_options.max_sigma_m:g} m.",
+                "The reference is the deployed candidate transform, not metrology.",
+            ),
+        )
+
+    artifact, from_cache = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "gnss_lidar_lever_arm",
+        {
+            "gnss_topic": gnss_topic,
+            "profile": profile,
+            "max_seconds": ctx.controls.max_duration_s,
+            "track": track_options,
+            "options": run_options,
+        },
+        loader=load_gnss_lidar_lever_arm,
+        compute=compute,
+        rebase=lambda hit: rebase_gnss_lidar_reference(hit, lever_candidate),
+    )
+    solved = artifact.lever_arm_m is not None and artifact.solver_status == "converged"
+    estimates: list[AxisEstimate] = []
+    if artifact.lever_arm_m is not None:
+        estimates = _unjudged_rotation_axes() + translation_axis_estimates(
+            artifact.dofs, lever_candidate, artifact.lever_arm_m
+        )
+        if artifact.policy_status == "fail":
+            reason = "the lever-arm estimate failed its held-out check: " + "; ".join(
+                artifact.policy_reasons
+            )
+            estimates = [
+                item if item.unit == "deg" else _unestimated(item, reason) for item in estimates
+            ]
+    segments = artifact.segments
+    return EstimatorRun(
+        estimator=artifact.method,
+        artifacts=(
+            EvidenceArtifact(
+                "lever_arm",
+                artifact,
+                artifact.policy_status,
+                from_cache if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=solved,
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=invert_transform(ctx.candidate),
+        time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s),
+        notes=(
+            f"GNSS from NavSatFix {gnss_topic}; per-point time: field '{field_name}' read "
+            f"as {encoding}",
+            f"{segments.windows} odometry windows in RTK-grade GNSS coverage "
+            f"({segments.scans_in_gnss_coverage} of {segments.scans_read} scans, "
+            f"{segments.gnss_epochs_used} usable fixes)",
+            "lever arm = antenna position in the LiDAR frame (translation of T_lidar_gnss); "
+            "rotation axes are not judged",
+        ),
+    )
+
+
+def _find_runs(ctx: PairContext, pair: str, frame: str) -> dict[str, EstimatorRun]:
+    """Runs of ``pair`` this check made with ``frame`` first, keyed by the second frame."""
+
+    found: dict[str, EstimatorRun] = {}
+    for key, value in ctx.controls.memo.items():
+        if key[0] == PAIR_RUN_KEY and key[1] == pair:
+            frames = key[2]
+            if isinstance(frames, tuple) and frames[0] == frame:
+                found[str(frames[1])] = value
+    return found
+
+
+def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
+    """Antenna lever arm in the IMU frame, composed from this check's GNSS-LiDAR and IMU-LiDAR.
+
+    The planner's candidate is ``T_gnss_imu``; the estimate is the antenna
+    position in the IMU frame, the translation of ``T_imu_gnss``.
+    """
+
+    from calibrex.evaluation.gnss_imu_lever_arm import compose_gnss_imu_lever_arm
+
+    gnss_frame, imu_frame = ctx.pair.frames
+    gnss_runs = _find_runs(ctx, "gnss-lidar", gnss_frame)
+    imu_runs = _find_runs(ctx, "imu-lidar", imu_frame)
+    shared = [lidar for lidar in gnss_runs if lidar in imu_runs]
+    if not shared:
+        missing = [
+            name
+            for name, runs in (("gnss-lidar", gnss_runs), ("imu-lidar", imu_runs))
+            if not runs
+        ]
+        raise CheckSkipError(
+            "missing_dependency",
+            "gnss-imu is composed from this check's own gnss-lidar and imu-lidar results for "
+            "the same LiDAR; "
+            + (
+                f"{' and '.join(missing)} gave no result (not selected with --pairs, or skipped)"
+                if missing
+                else "no LiDAR has both"
+            ),
+        )
+    lidar = shared[0]
+    gnss_run, imu_run = gnss_runs[lidar], imu_runs[lidar]
+    gnss_artifact = next((i.artifact for i in gnss_run.artifacts if i.role == "lever_arm"), None)
+    rotation = next((i.artifact for i in imu_run.artifacts if i.role == "rotation"), None)
+    translation = next((i.artifact for i in imu_run.artifacts if i.role == "translation"), None)
+    problems: list[str] = []
+    if (
+        gnss_artifact is None
+        or getattr(gnss_artifact, "lever_arm_m", None) is None
+        or gnss_run.policy_status == "fail"
+    ):
+        problems.append("gnss-lidar has no usable lever arm")
+    if (
+        rotation is None
+        or getattr(rotation, "rotation_quat_xyzw", None) is None
+        or imu_run.policy_status == "fail"
+    ):
+        problems.append("imu-lidar has no usable rotation")
+    if (
+        translation is None
+        or getattr(translation, "translation_m", None) is None
+        or getattr(translation, "policy_status", None) == "fail"
+    ):
+        problems.append("imu-lidar has no usable lever arm (translation)")
+    if problems or gnss_artifact is None or rotation is None or translation is None:
+        raise CheckSkipError(
+            "missing_dependency",
+            "the composition needs a solved gnss-lidar lever arm and an imu-lidar rotation and "
+            "lever arm that passed their held-out checks: " + "; ".join(problems),
+        )
+    lever_candidate = invert_transform(ctx.candidate)[:3, 3]  # antenna in the IMU frame
+    ctx.controls.progress(f"gnss-imu: composing gnss-lidar and imu-lidar for LiDAR {lidar}")
+    with tempfile.TemporaryDirectory() as scratch:
+        paths: dict[str, Path] = {}
+        for name, artifact in (
+            ("gnss_lidar_lever_arm", gnss_artifact),
+            ("imu_lidar_rotation", rotation),
+            ("imu_lidar_translation", translation),
+        ):
+            paths[name] = Path(scratch) / f"{name}.yaml"
+            artifact.save(paths[name])
+        composed = compose_gnss_imu_lever_arm(
+            paths["gnss_lidar_lever_arm"],
+            paths["imu_lidar_rotation"],
+            paths["imu_lidar_translation"],
+            reference_m=[float(v) for v in lever_candidate],
+            reference="deployed candidate calibration (antenna position in the IMU frame)",
+            command=["calibrex", "check", str(ctx.bag), "gnss-imu"],
+        )
+    by_axis = {item.name: item for item in composed.axes}
+    estimates = _unjudged_rotation_axes()
+    xyz: tuple[Literal["x", "y", "z"], ...] = ("x", "y", "z")
+    for index, name in enumerate(xyz):
+        record = by_axis[name]
+        observable = record.status == "estimated"
+        estimates.append(
+            AxisEstimate(
+                name,
+                "m",
+                float(lever_candidate[index]) - record.value_m,
+                record.std_m,
+                observable,
+                None
+                if observable
+                else (
+                    f"the composed std is {record.std_m:.4g} m (over the bound) or an input axis "
+                    "it depends on is not constrained"
+                ),
+                None if observable else "unobservable",
+            )
+        )
+    return EstimatorRun(
+        estimator=composed.method,
+        artifacts=(EvidenceArtifact("composed_lever_arm", composed, composed.policy_status, None),),
+        solved=True,
+        policy_status=composed.policy_status,
+        policy_reasons=tuple(composed.policy_reasons),
+        estimates=tuple(estimates),
+        compared=invert_transform(ctx.candidate),
+        notes=(
+            f"composed from this check's gnss-lidar and imu-lidar evidence (LiDAR {lidar}); "
+            "its std assumes independent inputs",
+            "lever arm = antenna position in the IMU frame (translation of T_imu_gnss); "
+            "rotation axes are not judged",
+        ),
+    )
+
+
 ESTIMATORS: dict[str, Adapter] = {
     "imu-lidar": run_imu_lidar,
+    "gnss-lidar": run_gnss_lidar,
+    "gnss-imu": run_gnss_imu,
     "lidar-lidar": run_lidar_lidar,
     "camera-imu": run_camera_imu,
     "lidar-vehicle": run_lidar_vehicle,

@@ -208,6 +208,32 @@ def evaluate_gnss_lidar_lever_arm(
     )
 
 
+def rebase_gnss_lidar_reference(
+    artifact: GnssLidarLeverArmArtifact, reference_lever_arm: FloatArray | None
+) -> GnssLidarLeverArmArtifact:
+    """Recompute the reference comparison of an artifact for another reference lever arm.
+
+    The estimate, its std and the controls do not depend on the reference, which
+    is compared only after the fit; this rewrites ``reference_value`` and
+    ``error_to_reference`` (the antenna position in the LiDAR frame, metres).
+    """
+
+    records: list[GnssLidarDofRecord] = []
+    for record in artifact.dofs:
+        reference = None
+        if reference_lever_arm is not None and record.name != "time_offset":
+            reference = float(reference_lever_arm["xyz".index(record.name)])
+        records.append(
+            record.model_copy(
+                update={
+                    "reference_value": reference,
+                    "error_to_reference": None if reference is None else record.value - reference,
+                }
+            )
+        )
+    return artifact.model_copy(update={"dofs": records})
+
+
 def run_rtk_slam_lever_arm(
     sequences: Sequence[tuple[str | Path, str | Path]],
     calib_path: str | Path,

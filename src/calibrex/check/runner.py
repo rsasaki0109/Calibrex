@@ -62,7 +62,14 @@ from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
 
 INVERTED_CONVENTION_PAIRS = frozenset(
-    {"imu-lidar", "lidar-vehicle", "imu-vehicle", "lidar-wheel_odometry"}
+    {
+        "imu-lidar",
+        "lidar-vehicle",
+        "imu-vehicle",
+        "lidar-wheel_odometry",
+        "gnss-lidar",
+        "gnss-imu",
+    }
 )
 """Pairs whose estimator reports ``T_second_first`` (the sensor's pose in the parent frame)."""
 BAG_DIGEST_PREFIX_BYTES = 64 * 1024 * 1024
@@ -470,6 +477,7 @@ def _run_one(
             }
         )
     runtime = time.monotonic() - started
+    controls.memo[(estimators.PAIR_RUN_KEY, record.pair, tuple(record.frames))] = outcome
     judged = _judge(record, outcome, run.verdict, runtime)
     evidence = _write_evidence(record, outcome, evidence_dir, base_dir)
     update = {**judged, "evidence": [item.model_dump() for item in evidence]}
