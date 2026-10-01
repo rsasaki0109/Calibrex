@@ -82,6 +82,22 @@ class ClosureEdge:
     trans_std_m: tuple[float, float, float] = (0.0, 0.0, 0.0)
     trans_observed: tuple[bool, bool, bool] = (False, False, False)
     estimator: str | None = None
+    shared_inputs: tuple[str, ...] = ()
+    """Inputs this estimate shares with other pairs (see :func:`shared_inputs_of`)."""
+
+
+def shared_inputs_of(pair: str, frames: Sequence[str]) -> tuple[str, ...]:
+    """The measurement stream a pair's estimate is computed from, when others use it too.
+
+    The three vehicle pairs that need LiDAR motion read the same LiDAR odometry
+    of the LiDAR frame, so their errors are correlated.
+    """
+
+    if pair in {"lidar-vehicle", "lidar-wheel_odometry"} and frames:
+        return (f"lidar odometry of {frames[0]}",)
+    if pair == "ins-lidar" and len(frames) > 1:
+        return (f"lidar odometry of {frames[1]}",)
+    return ()
 
 
 def edge_from_estimates(
@@ -91,6 +107,7 @@ def edge_from_estimates(
     compared: FloatArray,
     estimates: Sequence[AxisEstimate],
     estimator: str | None = None,
+    shared_inputs: tuple[str, ...] = (),
 ) -> ClosureEdge:
     """Recover the estimate from the candidate (``compared``) and its per-axis errors.
 
@@ -129,6 +146,7 @@ def edge_from_estimates(
         trans_std_m=(std("x"), std("y"), std("z")),
         trans_observed=(observed("x"), observed("y"), observed("z")),
         estimator=estimator,
+        shared_inputs=shared_inputs,
     )
 
 
@@ -321,6 +339,17 @@ def evaluate_loop(
     else:
         lacking = sorted({s.edge.pair for s in steps if s.edge.translation is None})
         notes.append(f"translation not closed: {', '.join(lacking)} do(es) not estimate it")
+    counts: dict[str, list[str]] = {}
+    for step in steps:
+        for name in step.edge.shared_inputs:
+            counts.setdefault(name, []).append(step.edge.pair)
+    for name, users in sorted(counts.items()):
+        if len(users) > 1:
+            notes.append(
+                f"{' and '.join(users)} share the {name}, so their errors are correlated: "
+                "this loop tests the solvers on top of it, not the odometry, and its std is "
+                "optimistic"
+            )
     judgement = judge_pair(estimates, options)
     members = [
         CheckClosureMember(

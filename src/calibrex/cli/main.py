@@ -3007,6 +3007,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="exit with status 1 when the overall verdict is at least this bad (default fail)",
     )
     check.add_argument("--output", type=Path, help="write the slac.calibration_check artifact")
+    check.add_argument(
+        "--html",
+        type=Path,
+        help="also write a self-contained HTML report (evidence links are relative to it)",
+    )
     check.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     check.set_defaults(func=_cmd_check)
 
@@ -3826,7 +3831,49 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 1 if result.quality.grade == "fail" else 0
 
 
+def _render_check_artifact(args: argparse.Namespace) -> int | None:
+    """Render a ``slac.calibration_check`` artifact; ``None`` when ``result`` is another kind."""
+
+    from calibrex.core.calibration_check import (
+        CALIBRATION_CHECK_SCHEMA_VERSION,
+        CalibrationCheckArtifact,
+    )
+    from calibrex.visualization.check_report import write_check_html
+
+    try:
+        payload = read_mapping(args.result)
+    except Exception:
+        return None
+    if not isinstance(payload, dict) or payload.get("schema_version") != (
+        CALIBRATION_CHECK_SCHEMA_VERSION
+    ):
+        return None
+    if args.format != "html":
+        _die("a calibration check artifact renders to --format html only")
+    artifact = CalibrationCheckArtifact.model_validate(payload)
+    target = args.html or args.result.with_suffix(".html")
+    if not target.is_absolute() and target.parent == Path("."):
+        target = (args.output_dir or args.result.parent) / target.name
+    write_check_html(artifact, target, artifact_dir=args.result.parent)
+    _emit(
+        {
+            "status": "ok",
+            "command": "render",
+            "render_only": True,
+            "recomputed_metrics": False,
+            "source_result": str(args.result),
+            "output_format": "html",
+            "html_report": str(target),
+        },
+        args.json,
+    )
+    return 0
+
+
 def _cmd_render(args: argparse.Namespace) -> int:
+    rendered = _render_check_artifact(args)
+    if rendered is not None:
+        return rendered
     if args.format == "evidence-card":
         if args.html is not None:
             _die("--html cannot be used with --format evidence-card")
@@ -4124,12 +4171,20 @@ def _cmd_check(args: argparse.Namespace) -> int:
     payload = artifact.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)
+    if args.html:
+        from calibrex.visualization.check_report import write_check_html
+
+        write_check_html(
+            artifact, args.html, artifact_dir=args.output.parent if args.output else Path.cwd()
+        )
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(format_check_table(artifact))
         if args.output:
             print(f"artifact: {args.output}")
+        if args.html:
+            print(f"html report: {args.html}")
     if (
         artifact.overall_verdict is not None
         and args.fail_on != "never"

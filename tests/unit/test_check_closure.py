@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -13,6 +15,7 @@ from calibrex.check.closure import (
     closure_floor_verdict,
     edge_from_estimates,
     evaluate_loop,
+    shared_inputs_of,
 )
 from calibrex.check.verdict import AxisEstimate, VerdictOptions
 from calibrex.core.calibration_check import CheckPairRecord, CheckTransform
@@ -299,3 +302,25 @@ def test_edge_from_estimates_inverts_the_candidate_error() -> None:
 
     np.testing.assert_allclose(recovered.rotation, estimate, atol=1e-12)
     assert recovered.translation is None
+
+
+def test_members_sharing_an_input_are_noted() -> None:
+    vehicle_lidar, _, _ = rig()
+    shared = shared_inputs_of("lidar-vehicle", ["lidar", "base"])
+    assert shared == ("lidar odometry of lidar",)
+    first = edge("lidar-vehicle", "base", "lidar", vehicle_lidar)
+    second = edge("lidar-wheel_odometry", "base", "lidar", vehicle_lidar)
+
+    plain = run_loop([first, second])
+    marked = run_loop(
+        [
+            replace(first, shared_inputs=shared),
+            replace(
+                second, shared_inputs=shared_inputs_of("lidar-wheel_odometry", ["lidar", "base"])
+            ),
+        ]
+    )
+
+    assert not any("share the" in note for note in plain.notes)
+    assert any("share the lidar odometry of lidar" in note for note in marked.notes)
+    assert shared_inputs_of("imu-lidar", ["imu", "lidar"]) == ()

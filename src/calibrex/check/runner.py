@@ -22,6 +22,7 @@ from calibrex.check.closure import (
     build_closure_report,
     closure_floor_verdict,
     edge_from_estimates,
+    shared_inputs_of,
 )
 from calibrex.check.estimators import (
     CheckSkipError,
@@ -453,6 +454,7 @@ def _closure_edges(
             outcome.compared,
             outcome.estimates,
             outcome.estimator,
+            shared_inputs_of(record.pair, record.frames),
         )
     return edges
 
