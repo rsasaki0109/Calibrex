@@ -29,7 +29,7 @@ SCALE = 3.0  # bar spans 0..SCALE x tolerance
 WIDTH = 960
 COL_W = 424
 COL_X = (28, 508)
-HEIGHT = 560
+HEIGHT = 576
 
 STYLE = """
     :root { --win:#f6f8fa; --bar:#e4e8ec; --edge:#d0d7de; --fg:#1f2328; --mute:#57606a;
@@ -101,7 +101,7 @@ def _pill(x: float, y: float, status: str) -> str:
 
 
 def _column(x: int, variant: dict[str, Any], title: str, command: str) -> list[str]:
-    parts = [f'<g transform="translate({x} 150)">']
+    parts = [f'<g transform="translate({x} 168)">']
     parts.append(f'<text x="0" y="0" class="h">{escape(title)}</text>')
     parts.append(f'<text x="0" y="22" class="s mute">{escape(command)}</text>')
     row_y = 46
@@ -198,7 +198,7 @@ def render_hero(root: Path = ROOT) -> str:
         f"deployed tf: {summary['frame']} yaw +{_tol(inj_deg)}\u00b0",
         escape(flag),
     )
-    out.append(f'<rect x="{COL_X[1] - 20}" y="140" width="1" height="330" fill="var(--edge)"/>')
+    out.append(f'<rect x="{COL_X[1] - 20}" y="158" width="1" height="330" fill="var(--edge)"/>')
     out.append(
         f'<text x="28" y="{HEIGHT - 52}" class="t">'
         f"A {_tol(inj_deg)}&#176; yaw error in the deployed tf on {escape(frame)} is caught: "
