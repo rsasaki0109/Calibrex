@@ -47,7 +47,12 @@ from calibrex.check.tf_sources import (
     merge_sources,
     sha256_file,
 )
-from calibrex.check.verdict import VerdictOptions, judge_pair, worst_verdict
+from calibrex.check.verdict import (
+    RIGID_SCAN_ROTATION_FLOOR_DEG,
+    VerdictOptions,
+    judge_pair,
+    worst_verdict,
+)
 from calibrex.core.calibration_check import (
     CalibrationCheckArtifact,
     CheckAxisJudgement,
@@ -172,6 +177,9 @@ class CheckRunOptions:
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
+    imu_lidar_deskew: Literal["auto", "gyro", "none"] = "auto"
+    """imu-lidar deskew: auto = per-point time when the cloud has it, rigid scans otherwise."""
+    rigid_scan_rotation_floor_deg: float = RIGID_SCAN_ROTATION_FLOOR_DEG
     evidence_dir: Path | None = None
     base_dir: Path | None = None
     cache_dir: Path | None = None
@@ -277,6 +285,8 @@ def build_calibration_check(
             camera=run.camera,
             imu_lidar_translation=run.imu_lidar_translation,
             acceleration_unit=run.acceleration_unit,
+            imu_lidar_deskew=run.imu_lidar_deskew,
+            rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
@@ -385,6 +395,8 @@ def _run_pairs(
         camera=run.camera,
         imu_lidar_translation=run.imu_lidar_translation,
         acceleration_unit=run.acceleration_unit,
+        imu_lidar_deskew=run.imu_lidar_deskew,
+        rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
         bag_sha256=bag_sha256,
@@ -597,6 +609,7 @@ def _judge(
         "time_offset": outcome.time_offset.model_dump() if outcome.time_offset else None,
         "runtime_s": runtime_s,
         "notes": list(outcome.notes),
+        "deskew": outcome.deskew,
     }
 
 
@@ -725,6 +738,17 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     for pair in artifact.pairs:
         if pair.status != "skipped" and pair.reason:
             lines.append(f"  {pair.pair}: {pair.reason}")
+        if pair.deskew == "none":
+            floor = (
+                artifact.options.rigid_scan_rotation_floor_deg
+                if artifact.options is not None
+                else None
+            )
+            lines.append(
+                f"  {pair.pair}: scans treated as rigid (deskew none): rotation floor "
+                f"{floor if floor is not None else RIGID_SCAN_ROTATION_FLOOR_DEG:g} deg; "
+                "the time offset includes the driver's scan-stamp convention"
+            )
         if pair.time_offset is not None:
             lines.append(
                 f"  {pair.pair}: time offset {pair.time_offset.estimate_s * 1e3:.2f} ms "

@@ -72,6 +72,13 @@ _UNITS: dict[str, Literal["deg", "s", "rad/s"]] = {
     "gyro_bias_y": "rad/s",
     "gyro_bias_z": "rad/s",
 }
+RIGID_SCAN_LIMITATIONS: tuple[str, ...] = (
+    "Scans were treated as rigid snapshots (deskew: none): points are not corrected for "
+    "motion during the sweep, which biases the LiDAR rotation rates towards the "
+    "sweep-average motion and the extrinsic by an amount that grows with the rotation rate.",
+    "The reported time offset includes a driver-dependent constant (the scan header stamp "
+    "may mark the start, middle or end of the sweep, about half a sweep of ~50 ms).",
+)
 MID360_LIMITATIONS: tuple[str, ...] = (
     "The reference rotation is the MID360 design value (IMU axes aligned with the "
     "LiDAR); it is not a measurement.",
@@ -98,6 +105,10 @@ class ImuLidarRunOptions:
     # below this many degrees are left out of the fit, the jackknife, and the
     # holdout. 0 keeps every window (the IMU-LiDAR behaviour).
     min_window_rotation_deg: float = 0.0
+    # "gyro": per-point-time deskew (LiDAR constant velocity, then gyro passes and
+    # a feedback check).  "none": rigid scans, every point is taken as stamped at
+    # the scan header stamp; for clouds without a per-point time field.
+    deskew: Literal["gyro", "none"] = "gyro"
     windowing: WindowingOptions = field(default_factory=WindowingOptions)
     solver: RotationOptions = field(default_factory=RotationOptions)
 
@@ -220,6 +231,10 @@ def run_livox_imu_lidar_rotation(
     if not bags:
         raise ValueError("at least one bag is required")
     stream = resolve_profile(profile)
+    rigid = opts.deskew == "none"
+    if rigid:
+        # Rigid scans: ignore any per-point time field, so no pass deskews.
+        stream = replace(stream, point_time_field=None)
     samples = [_load_imu(bag, stream, scan_store) for bag in bags]
     imu = _concatenate(samples)
     gyro = GyroSeries(imu.times_s, imu.gyro_rps)
@@ -250,9 +265,9 @@ def run_livox_imu_lidar_rotation(
     evaluation = evaluate_imu_lidar_rotation(
         gyro, segmenter.windows, opts, reference_rotation=reference_rotation
     )
-    passes = [_pass_record("lidar_constant_velocity", evaluation)]
+    passes = [_pass_record("rigid_none" if rigid else "lidar_constant_velocity", evaluation)]
     last_change: FloatArray | None = None
-    for _ in range(opts.gyro_deskew_passes):
+    for _ in range(0 if rigid else opts.gyro_deskew_passes):
         previous = evaluation.result
         if previous.rotation is None:
             break
@@ -274,7 +289,12 @@ def run_livox_imu_lidar_rotation(
         evaluation = _gate_convergence(evaluation, last_change)
     feedback = None
     final = evaluation.result
-    if opts.gyro_deskew_passes and opts.feedback_check_deg > 0.0 and final.rotation is not None:
+    if (
+        not rigid
+        and opts.gyro_deskew_passes
+        and opts.feedback_check_deg > 0.0
+        and final.rotation is not None
+    ):
         offset = Rotation.from_rotvec(
             np.full(3, math.radians(opts.feedback_check_deg) / math.sqrt(3.0))
         ).as_matrix()
@@ -319,13 +339,19 @@ def run_livox_imu_lidar_rotation(
         else reference or "Livox MID360 manual: IMU axes aligned with the LiDAR frame",
         deskew_passes=passes,
         deskew_feedback_ratio=feedback,
-        limitations=list(MID360_LIMITATIONS)
-        if reference is None
-        else [
-            "The reference rotation is a given calibration (for example the deployed one); "
-            "it is a comparison, not ground truth.",
-            *MID360_LIMITATIONS[1:],
+        limitations=[
+            *(
+                MID360_LIMITATIONS
+                if reference is None
+                else (
+                    "The reference rotation is a given calibration (for example the deployed "
+                    "one); it is a comparison, not ground truth.",
+                    *MID360_LIMITATIONS[1:],
+                )
+            ),
+            *(RIGID_SCAN_LIMITATIONS if rigid else ()),
         ],
+        extra_options={"deskew": "none"} if rigid else None,
     )
 
 

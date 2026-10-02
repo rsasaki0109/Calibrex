@@ -41,6 +41,8 @@ from calibrex.core.calibration_check import (
 ROTATION_AXES: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw")
 VERDICT_ORDER: tuple[str, ...] = ("pass", "inconclusive", "warn", "fail")
 FAIL_FACTOR = 2.0
+RIGID_SCAN_ROTATION_FLOOR_DEG = 1.5
+"""Default rotation floor of imu-lidar on clouds treated as rigid scans (no deskew)."""
 
 
 @dataclass(frozen=True)
@@ -81,12 +83,16 @@ class AxisEstimate:
     estimated: bool
     unchecked_reason: str | None = None
     unchecked_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+    floor: float | None = None
+    """A floor for this axis (in ``unit``) that applies when larger than the option's floor."""
 
 
 def judge_axis(estimate: AxisEstimate, options: VerdictOptions) -> CheckAxisJudgement:
     """Judge one estimated axis."""
 
     floor = options.rotation_floor_deg if estimate.unit == "deg" else options.translation_floor_m
+    if estimate.floor is not None:
+        floor = max(floor, estimate.floor)
     sigma_tolerance = options.sigma_k * estimate.std
     tolerance = max(sigma_tolerance, floor)
     error = abs(estimate.candidate_error)

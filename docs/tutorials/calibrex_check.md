@@ -76,7 +76,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
 | `method_not_wired` | no check method exists for the pair yet |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
-| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field (scans cannot be deskewed), a compressed camera image |
+| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field for `lidar-lidar` and `gnss-lidar` (`imu-lidar` runs such clouds as rigid scans), a compressed camera image |
 | `missing_intrinsics` | `camera-imu` needs intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
 | `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results |
 
@@ -138,7 +138,7 @@ minutes between them as stream gaps. Topics and frames:
 
 | Topic | Type | Frame | Content |
 | --- | --- | --- | --- |
-| `/velodyne_points` | `PointCloud2` | `velo_link` | x, y, z, intensity (float32). **No per-point time field**: KITTI raw has none and none is invented, so `imu-lidar` is `unsupported_sensor` |
+| `/velodyne_points` | `PointCloud2` | `velo_link` | x, y, z, intensity (float32). **No per-point time field**: KITTI raw has none and none is invented, so `imu-lidar` runs on rigid scans (no deskew; see "Clouds without per-point time") |
 | `/oxts/imu` | `Imu` | `imu_link` | OXTS body-frame `wx..wz`, `ax..az`; no orientation |
 | `/oxts/fix` | `NavSatFix` | `imu_link` | OXTS lat/lon/alt. KITTI's GNSS solution is at the OXTS unit; the antenna lever arm is not published |
 | `/oxts/odometry` | `Odometry` | `odom` to `imu_link` | the INS pose as in `kitti_oxts_pose_world_imu` (Mercator, origin at each drive's first packet) and, in the twist, the **body-frame** velocity and rate |
@@ -343,7 +343,8 @@ LiDAR support: `PointCloud2` with a per-point time field. The field (`offset_tim
 `t`, `time`, `timestamp`, ...) and its meaning (offset in seconds, absolute
 seconds as Hesai writes it, absolute nanoseconds as Livox writes it) are
 detected from the first message by comparing its values with the header stamp. A
-LiDAR without such a field is `unsupported_sensor`; deskewing needs it, and an
+LiDAR without such a field is `unsupported_sensor` for `lidar-lidar` and `gnss-lidar`
+(`imu-lidar` falls back to rigid scans, see "Clouds without per-point time"); deskewing needs it, and an
 undeskewed scan on a moving platform would be a biased yardstick. Livox
 `CustomMsg` is not read yet.
 
@@ -534,6 +535,145 @@ the [README](https://github.com/rsasaki0109/Calibrex#check-a-deployed-calibratio
 shortened, are in `docs/assets/calibrex_check_demo/`. The estimator cache key includes a digest
 of the working tree, so editing calibrex invalidates the cache; the first variant costs about
 6 minutes and the others seconds.
+
+## Clouds without per-point time (rigid scans)
+
+`imu-lidar` normally deskews every sweep with the cloud's per-point time field
+(a LiDAR constant-velocity pass, then up to five gyro-deskew passes and a
+feedback check). Many clouds have no such field: Autoware concatenated clouds,
+depth-camera clouds, KITTI Velodyne, many drivers. Those used to end
+`unsupported_sensor`. `--imu-lidar-deskew` now chooses:
+
+| Mode | Behaviour |
+| --- | --- |
+| `auto` (default) | per-point time field present: gyro deskew (unchanged, bit-identical); absent: **rigid scans** |
+| `gyro` | requires the field; skips the pair (`unsupported_sensor`) without it |
+| `none` | forces rigid scans, even when the field exists (used to measure the bias) |
+
+A cloud that has a time field is never silently run rigid: `auto` only falls
+back when the field is missing, and the pair record says which mode ran
+(`deskew: gyro | none`, plus a note in the table).
+
+**Rigid scans** treat every point as stamped at the scan's header stamp: one
+odometry pass, no constant-velocity or gyro deskew, no feedback check. The
+`slac.imu_lidar_rotation/v0.1` artifact records `options.deskew: none`, one
+`rigid_none` pass and the limitations below; the gyro-mode artifact is unchanged.
+Two consequences are documented rather than corrected:
+
+* the motion during a sweep is not compensated, so the rotation rates (and the
+  lever arm) are biased in proportion to how fast the rig turns;
+* the header stamp may mark the start, the middle or the end of the sweep
+  depending on the driver, and the clock offset absorbs that constant, so the
+  reported time offset includes about half a sweep (about 50 ms for a 10 Hz
+  LiDAR) of stamp convention. It is reported, never judged.
+
+### Measured bias
+
+Same bag, same window, the check run with `--imu-lidar-deskew gyro` and `none`
+(the gyro result is the reference for the bias; neither is ground truth).
+`delta` is the rigid estimate minus the gyro estimate, in the sensor axes of the
+estimator. Runtimes are wall-clock on a shared, oversubscribed 8-core machine.
+
+| Recording | Axis | gyro estimate (std) | rigid estimate (std) | delta |
+| --- | --- | ---: | ---: | ---: |
+| RTK-SLAM construction_seq1, first 180 s (hand-held Livox, 18 windows) | roll | -0.224 (0.057) deg | -0.426 (0.269) deg | -0.20 deg |
+| | pitch | 0.031 (0.038) deg | 0.038 (0.220) deg | +0.01 deg |
+| | yaw | -0.199 (0.045) deg | -0.639 (0.335) deg, not observable | -0.44 deg |
+| | time offset | 10.1 ms | 61.3 ms | +51.2 ms |
+| | lever arm | x 43 mm, z -43 mm (estimated), y not observable | not observable (std 21-26 mm) | - |
+| | runtime | 38.8 min | 8.4 min | |
+| Hilti exp21, first 40 s (hand-held Hesai PandarXT-32, 4 windows) | roll | -179.924 (0.068) deg | -179.873 (0.671) deg | +0.05 deg |
+| | pitch | 0.122 (0.126) deg | 0.187 (0.600) deg | +0.07 deg |
+| | yaw | -89.498 (0.193) deg | -88.975 (0.671) deg | +0.52 deg |
+| | time offset | 1.8 ms | 49.7 ms | +47.9 ms |
+| | lever arm | z 60 mm (std 3 mm) | not observable (std 40-135 mm) | - |
+| | runtime | 14.6 min | 1.9 min | |
+| MID360 driving (rosbag2_2024_04_16-14_17_01, first 120 s, vehicle, 12 windows; API run, no reference calibration) | roll | -0.376 (0.131) deg | -0.256 (0.181) deg | +0.12 deg |
+| | pitch | 0.127 (0.142) deg | 0.026 (0.187) deg | -0.10 deg |
+| | yaw | 0.679 (0.426) deg | 0.610 (0.513) deg | -0.07 deg |
+| | time offset | 2.6 ms | 53.6 ms | +51.0 ms |
+| | runtime | 32.7 min | 5.3 min | |
+| Synthetic rotating rig (unit test; pure rotation, 0.3 and 1.0 x the base motion, sweep 0.1 s) | roll / pitch / yaw error against the truth | at most 0.10 deg | at most 0.10 deg | none beyond the gyro result's own error |
+| | time offset | 7.6 / 11.9 ms | 57.3 / 62.1 ms | +49.7 / +50.2 ms |
+
+What the measurements say:
+
+* The rotation bias of rigid scans against the gyro deskew is **at most 0.52 deg**
+  on the two hand-held recordings (yaw is the worst axis on both), 0.12 deg on the
+  driving recording and about 0.1 deg or less on the synthetic rig. Every
+  estimate on the driving recording is within the gyro-mode std of the gyro one,
+  so it is not distinguishable from the gyro result there; fast hand-held motion
+  is where the bias shows. It is also much smaller than the
+  error of the LiDAR constant-velocity deskew that the gyro mode starts
+  from (RTK-SLAM yaw after that first pass: -2.8 deg against -0.2 deg at
+  the end), because the rigid scan does not impose a motion model at all.
+* The clock offset moves by +48 to +51 ms, about half a 0.1 s sweep, on all
+  three LiDARs, consistent with header stamps at the start of the sweep.
+* The reported standard deviations grow 3.5 to 10 times on the hand-held
+  recordings and 1.2 to 1.4 times on the vehicle (jackknife, not analytic): the
+  windows that deskewing makes consistent are noisier without it. Hilti's four
+  windows leave every axis unobservable; the lever arm is not observable on
+  either recording in rigid mode. That, not the bias, is what limits the verdict.
+* Bias is not a std: the rigid yaw offsets (0.44, 0.52 deg) are 3 to 10 times the
+  gyro-mode std of the same axis (0.045, 0.19 deg). Reading a rigid-scan estimate
+  at gyro-mode resolution would therefore mis-judge. Bias grows with rotation
+  rate; the hand-held recordings turn faster than a vehicle does.
+
+### Policy
+
+Chosen from those numbers:
+
+* **Rotation floor 1.5 deg for rigid scans** (`--rigid-scan-rotation-floor-deg`,
+  default 1.5; the global `--rotation-floor-deg` 0.5 still applies when it is
+  larger). 1.5 deg = the largest measured bias (0.52 deg) plus three times the
+  largest std that is still called estimated (0.3 deg), rounded up, so a bias of
+  the measured size cannot turn a good calibration into a `warn`. The tolerance
+  of such an axis is `max(3 std, 1.5 deg)` and `tolerance_source` says `floor`.
+* **Axes are called estimated at std <= 0.3 deg** (0.1 deg in gyro mode, a fifth
+  of its floor; the same ratio to the 1.5 deg floor), and the estimator's own
+  known-bad control is 1.5 deg (not 1 deg) so it must detect a shift as large as
+  the floor. An axis whose control is not detected is unchecked
+  (`control_not_detected`), as in gyro mode.
+* Translation keeps its normal floor; in practice the rigid lever arm is
+  unobservable, so the translation axes are listed as unchecked.
+* The time offset is reported with the stamp-convention caveat and never judged.
+* What a pass means changes: with the 1.5 deg floor a rigid-scan `pass` cannot
+  resolve a 1 deg error (`detects_perturbation: false` in the record); it can
+  resolve about 2 to 3 deg and larger. The detection power is in the table.
+
+Because rigid mode costs a fraction of the gyro runtime (one odometry pass), the
+estimate is also cached like the gyro one (its cache key includes the deskew
+mode, so the two never mix).
+
+### Result on Koide `indoor_easy_01` and `indoor_easy_02`
+
+These bags used to end `unsupported_sensor` for `imu-lidar`. The "LiDAR" is a
+**depth camera** (`/points2/decompressed`, plain x/y/z, `depth_camera_link`), not a
+spinning LiDAR, so this is a depth-camera-IMU check on a hand-held rig, and the
+median held-out rate residual is high (0.07 to 0.09 rad/s, against 0.01 for the
+LiDARs above). Zero-config run, rigid scans selected automatically:
+
+| Sequence | Verdict | Judged, `|delta|` / tolerance | Unchecked | Runtime | Held-out rate residual (median) |
+| --- | --- | --- | --- | ---: | ---: |
+| `indoor_easy_01` | `pass (partial: roll, pitch, yaw only)` | roll 0.08/1.5, pitch 0.66/1.5, yaw 0.07/1.5 deg | x, y, z (std 38, 30, 24 mm, `unobservable`) | 5.3 min | 0.069 rad/s |
+| `indoor_easy_02` | `pass (partial: roll, pitch, yaw only)` | roll 0.32/1.5, pitch 0.29/1.5, yaw 0.40/1.5 deg | x, y, z (std 18, 25, 28 mm, `unobservable`) | 6.9 min | 0.091 rad/s |
+
+Reported std 0.19 to 0.29 deg on every judged axis; the detectable error
+(tolerance plus the candidate's error) is 1.6 to 2.2 deg. Peak memory 2.3 GB with
+the default scan budget.
+
+The IMU-camera extrinsic from `/tf_static` agrees with the estimate to within
+0.7 deg on every axis, and the pair is `pass (partial: roll, pitch, yaw only)`;
+the lever arm is not observable. A deliberate +1 deg yaw error on
+`imu_link` (`tools/make_check_frames_perturbation.py ... imu_link 1`) is
+**not detected** (`pass`, yaw 0.94 / 1.5): that is the stated resolution of
+rigid scans, not a failure to look. +2 deg and +3 deg give `warn` and +4 deg
+gives `fail` on `indoor_easy_01`; each known-bad re-check is served from the
+cache in about 4 s. Autoware `all-sensors-bag1` is unchanged: `imu-lidar` is
+still skipped `degenerate_frames` (cloud and IMU are both in `base_link`).
+
+`gnss-lidar` and `lidar-lidar` still require a per-point time field; rigid
+scans are implemented for `imu-lidar` only.
 
 ## Phase B results on real recordings
 
@@ -732,15 +872,15 @@ already-rotated IMU stream.
 
 | Pair | Plan | Result |
 | --- | --- | --- |
-| `imu-lidar` | planned (`imu_link` / `depth_camera_link`) | skipped `unsupported_sensor`: `/points2/decompressed` has no per-point time field |
+| `imu-lidar` | planned (`imu_link` / `depth_camera_link`) | before: skipped `unsupported_sensor` (no per-point time field); now runs on rigid scans, see "Clouds without per-point time" |
 | `lidar-vehicle` (`--vehicle-frame imu_link`) | planned | not run (hand-held rig) |
 | `imu-vehicle` | skipped `degenerate_frames` | - |
 | others | skipped `missing_topic` | - |
 
-Both sequences give the same table. Runtime: plan 2.4-2.6 s; the `imu-lidar` skip
-4 s. Limitation: the "LiDAR" is a depth camera cloud without per-point time, so
-the IMU-LiDAR estimator, which deskews each scan, cannot run. Per-point time is
-a hard requirement for `imu-lidar`.
+Both sequences give the same plan (2.4-2.6 s). Limitation: the "LiDAR" is a depth
+camera cloud without per-point time, so the IMU-LiDAR estimator, which deskews
+each scan, cannot run in its normal mode; the rigid-scan result is in "Clouds without
+per-point time" above.
 
 ### Aqua `beach_pond_ros2` (plan only)
 
@@ -764,8 +904,9 @@ a hard requirement for `imu-lidar`.
 
 ### Remaining gaps
 
-- Per-point time is mandatory for the LiDAR pairs; clouds without it (the
-  Autoware concatenated cloud, Koide's depth-camera cloud) end `unsupported_sensor`.
+- Per-point time is mandatory for `lidar-lidar` and `gnss-lidar`. `imu-lidar` runs
+  clouds without it as rigid scans (see "Clouds without per-point time"); the
+  Autoware concatenated cloud has none and is skipped `degenerate_frames` there.
 - No bag here has the length or motion to give a verdict: the real-bag verdict
   tables remain the Phase B/C results above.
 - `CompressedImage` cameras remain `unsupported_sensor` (none of these bags had

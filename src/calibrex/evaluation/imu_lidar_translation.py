@@ -25,7 +25,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -96,6 +96,8 @@ class ImuLidarTranslationOptions:
     # moved x by +7 to +16 mm for reasons not yet identified (see the benchmark page).
     sensitivity_segment_durations_s: tuple[float, ...] = (3.0, 4.0)
     coverage_margin_s: float = 0.2
+    # "none": rigid scans (no per-point time deskew); see ImuLidarRunOptions.deskew.
+    deskew: Literal["gyro", "none"] = "gyro"
     windowing: WindowingOptions = field(default_factory=WindowingOptions)
     solver: TranslationOptions = field(default_factory=TranslationOptions)
 
@@ -211,6 +213,9 @@ def run_livox_imu_lidar_translation(
     gyro_bias = np.asarray(rotation_artifact.gyro_bias_rps, dtype=np.float64)
     time_offset = rotation_artifact.time_offset_s
     stream = resolve_profile(profile)
+    rigid = opts.deskew == "none"
+    if rigid:
+        stream = replace(stream, point_time_field=None)
     samples = _concatenate(
         [
             load_livox_imu(bag, stream) if scan_store is None else scan_store.imu(bag, stream)
@@ -223,9 +228,11 @@ def run_livox_imu_lidar_translation(
     )
     _, windows = collect_livox_windows(
         bags,
-        profile,
+        stream,
         run_options,
-        rotation_model=gyro_rotation_model(gyro, rotation, gyro_bias, time_offset),
+        rotation_model=None
+        if rigid
+        else gyro_rotation_model(gyro, rotation, gyro_bias, time_offset),
         max_scans=max_scans,
         max_seconds=max_seconds,
         scan_store=scan_store,
@@ -255,12 +262,24 @@ def run_livox_imu_lidar_translation(
         reference=None
         if reference_translation is None
         else reference or "Livox MID360 manual: IMU at (11.0, 23.29, -44.12) mm in the LiDAR frame",
-        limitations=list(MID360_TRANSLATION_LIMITATIONS)
-        if reference is None
-        else [
-            "The reference translation is a given calibration (for example the deployed "
-            "one); it is a comparison, not ground truth.",
-            *MID360_TRANSLATION_LIMITATIONS[1:],
+        limitations=[
+            *(
+                MID360_TRANSLATION_LIMITATIONS
+                if reference is None
+                else (
+                    "The reference translation is a given calibration (for example the "
+                    "deployed one); it is a comparison, not ground truth.",
+                    *MID360_TRANSLATION_LIMITATIONS[1:],
+                )
+            ),
+            *(
+                (
+                    "Scans were treated as rigid snapshots (deskew: none): the odometry is "
+                    "not corrected for motion during the sweep.",
+                )
+                if rigid
+                else ()
+            ),
         ],
         provenance=ImuLidarTranslationProvenance(
             generator=__name__,
@@ -317,6 +336,7 @@ def translation_artifact_from_evaluation(
             "observable_translation_std_m": opts.solver.observable_translation_std_m,
             "window_duration_s": opts.windowing.window_duration_s,
             "local_map_scans": opts.windowing.odometry.local_map_scans,
+            **({"deskew": "none"} if opts.deskew == "none" else {}),
         },
         windows=ImuLidarTranslationWindows(
             windows=windows,

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **`calibrex check` runs `imu-lidar` on clouds without per-point time** as rigid
+  scans (no deskew) instead of skipping them `unsupported_sensor`.
+  `--imu-lidar-deskew auto|gyro|none` (default `auto`: the per-point time field
+  when the cloud has one, so the gyro path is unchanged and bit-identical; rigid
+  scans only when it is absent or when `none` is forced). Measured against the
+  gyro deskew on RTK-SLAM construction_seq1 and Hilti exp21, the rigid rotation
+  differs by at most 0.52 deg (yaw), the reported std grows 3.5 to 10 times, the
+  lever arm becomes unobservable and the time offset absorbs about half a sweep
+  (+48 to +51 ms). Policy: rotation floor 1.5 deg for rigid scans
+  (`--rigid-scan-rotation-floor-deg`), axes estimated only at std <= 0.3 deg, a
+  1.5 deg known-bad control. Optional schema fields:
+  `CheckPairRecord.deskew`, `CheckOptions.imu_lidar_deskew` and
+  `rigid_scan_rotation_floor_deg` (`slac.calibration_check/v0.1` unchanged);
+  `ImuLidarRunOptions.deskew` and `ImuLidarTranslationOptions.deskew`; the
+  rotation/translation artifacts record `options.deskew: none` only in rigid mode.
+  Koide indoor_easy_01/02 (a depth-camera cloud) now give `pass (partial: roll,
+  pitch, yaw only)`. See the tutorial section "Clouds without per-point time".
 - README: a new top with a `calibrex check` hero image (`docs/assets/readme-check-hero.svg`,
   generated from the committed demo summary by `tools/generate_readme_check_hero.py`,
   light and dark aware, digest-bound to its sources), a feature strip, and a shorter nav.

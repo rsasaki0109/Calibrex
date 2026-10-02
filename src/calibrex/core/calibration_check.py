@@ -243,6 +243,16 @@ class CheckOptions(StrictModel):
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
+    imu_lidar_deskew: Literal["auto", "gyro", "none"] | None = Field(
+        default=None,
+        description="imu-lidar deskew selection: auto uses the per-point time field when the "
+        "cloud has one and rigid scans otherwise; absent in artifacts that predate the option",
+    )
+    rigid_scan_rotation_floor_deg: float | None = Field(
+        default=None,
+        gt=0.0,
+        description="rotation floor applied to imu-lidar axes judged on rigid scans (deskew none)",
+    )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
         description="--topic-kind overrides: odometry/twist topic -> wheel or ins",
@@ -275,6 +285,12 @@ class CheckPairRecord(StrictModel):
     axes: list[CheckAxisJudgement] = Field(default_factory=list)
     unchecked_axes: list[CheckUncheckedAxis] = Field(default_factory=list)
     time_offset: CheckTimeOffset | None = None
+    deskew: Literal["gyro", "none"] | None = Field(
+        default=None,
+        description="imu-lidar only: gyro when scans were deskewed with per-point time, none when "
+        "they were treated as rigid snapshots (larger rotation floor, time offset includes the "
+        "driver's stamp convention)",
+    )
     evidence: list[CheckEvidenceRef] = Field(default_factory=list)
     coverage: Literal["full", "partial"] | None = Field(
         default=None,
