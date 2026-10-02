@@ -1,8 +1,8 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Is your robot's calibration actually right?</strong><br>
-  One command audits the extrinsics deployed on a recording and tells you, honestly.
+  <strong>Check whether the sensor calibration on your robot is still right.</strong><br>
+  One command, honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle.
 </p>
 
 <p align="center">
