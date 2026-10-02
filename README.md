@@ -14,14 +14,13 @@
 </p>
 
 <p align="center">
-  <img alt="calibrex check catches a bad calibration and confirms the fix on KITTI: with a 3 degree yaw error in the deployed LiDAR transform the LiDAR points miss the bollards and lidar-vehicle fails; moving to the transform estimated from the data puts them back on the edges and the re-check passes" src="docs/assets/calibrex-check-story.gif" width="100%">
+  <img alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error in the deployed LiDAR transform the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes" src="docs/assets/calibrex-check-story.gif" width="100%">
 </p>
 
 <p align="center">
   <sub>Real <code>calibrex check</code> runs on KITTI development drives: a deployed
-  LiDAR transform with a 3° yaw error <b>fails</b>; the transform Calibrex estimates
-  from the data, deployed and re-checked, <b>passes</b> (pitch and yaw judged; roll is
-  not observable from driving).</sub>
+  LiDAR transform with a 3° yaw error <b>fails</b>; restoring the calibration file and
+  re-checking <b>passes</b> (pitch and yaw judged; roll is not observable from driving).</sub>
 </p>
 
 <table>

@@ -13,17 +13,17 @@
   "--cache-dir",
   ".../cache",
   "--tf",
-  ".../frames_act3_estimate.yaml",
+  ".../frames_act3.yaml",
   "--output",
   ".../act3.json",
   "--fail-on",
   "never"
  ],
- "created_at": "2026-10-02T12:17:04.083654+00:00",
+ "created_at": "2026-10-02T13:16:26.638970+00:00",
  "frame": "velo_link",
  "generator_version": "0.5.1",
- "git_commit": "ef27b8c",
- "overall_verdict": "warn",
+ "git_commit": "dac4f06",
+ "overall_verdict": "inconclusive",
  "pairs": {
   "imu-vehicle": {
    "axes": {},
@@ -38,20 +38,20 @@
   "ins-lidar": {
    "axes": {
     "pitch": {
-     "candidate_error_deg": 0.5792,
-     "ratio": 1.1583,
-     "status": "warn",
+     "candidate_error_deg": 0.0557,
+     "ratio": 0.1115,
+     "status": "pass",
      "tolerance_deg": 0.5
     },
     "roll": {
-     "candidate_error_deg": 0.1295,
-     "ratio": 0.2591,
+     "candidate_error_deg": 0.1143,
+     "ratio": 0.2287,
      "status": "pass",
      "tolerance_deg": 0.5
     }
    },
    "coverage": "partial",
-   "status": "warn",
+   "status": "pass",
    "unchecked": [
     "yaw",
     "x",
@@ -62,14 +62,14 @@
   "lidar-vehicle": {
    "axes": {
     "pitch": {
-     "candidate_error_deg": 0.0305,
-     "ratio": 0.0611,
+     "candidate_error_deg": -0.4961,
+     "ratio": 0.9922,
      "status": "pass",
      "tolerance_deg": 0.5
     },
     "yaw": {
-     "candidate_error_deg": 0.0049,
-     "ratio": 0.0099,
+     "candidate_error_deg": 0.3129,
+     "ratio": 0.6258,
      "status": "pass",
      "tolerance_deg": 0.5
     }
@@ -83,14 +83,14 @@
   "lidar-wheel_odometry": {
    "axes": {
     "pitch": {
-     "candidate_error_deg": 0.0308,
-     "ratio": 0.0615,
+     "candidate_error_deg": -0.4958,
+     "ratio": 0.9916,
      "status": "pass",
      "tolerance_deg": 0.5
     },
     "yaw": {
-     "candidate_error_deg": 0.0008,
-     "ratio": 0.0016,
+     "candidate_error_deg": 0.3089,
+     "ratio": 0.6179,
      "status": "pass",
      "tolerance_deg": 0.5
     }
@@ -106,10 +106,10 @@
  "velo_link_tf": {
   "parent_frame": "imu_link",
   "rotation_quat_xyzw": [
-   -0.0072877629777491956,
-   0.0056059615805609,
-   -0.002310767468001387,
-   0.9999550600198223
+   -0.007412087927097046,
+   0.0010150864839657396,
+   0.0003851882697583308,
+   0.9999719406973318
   ],
   "translation_m": [
    0.8105439720319256,
