@@ -27,6 +27,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.camera_focal_scale import CameraFocalScaleArtifact
+from calibrex.core.imu_lidar_rotation import ImuLidarRotationArtifact
+from calibrex.evaluation.visual_rotation import CameraModel
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.imu_lidar_rotation_solver import (
     GyroSeries,
@@ -184,6 +186,51 @@ def run_ros2_camera_focal_check(
 ) -> CameraFocalScaleArtifact:
     """Track the camera, then check its focal lengths against the gyro."""
 
+    from pathlib import Path
+
+    from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
+    from calibrex.core.provenance import sha256_path
+    from calibrex.evaluation.visual_rotation import CameraModel
+
+    rotation_digest = sha256_path(Path(rotation_artifact_path))
+    assert rotation_digest is not None
+    return run_camera_focal_check(
+        bag,
+        image_topic=image_topic,
+        imu_topic=imu_topic,
+        camera=CameraModel.from_kalibr(camera_entry),
+        rotation_artifact=load_imu_lidar_rotation(rotation_artifact_path),
+        rotation_artifact_sha256=rotation_digest,
+        dataset_family=dataset_family,
+        dataset_license=dataset_license,
+        frame_stride=frame_stride,
+        options=options,
+        command=command,
+    )
+
+
+def run_camera_focal_check(
+    bag: str,
+    *,
+    image_topic: str,
+    imu_topic: str,
+    camera: CameraModel,
+    rotation_artifact: ImuLidarRotationArtifact,
+    rotation_artifact_sha256: str,
+    dataset_family: str,
+    dataset_license: str,
+    frame_stride: int = 4,
+    max_seconds: float | None = None,
+    options: FocalScaleOptions | None = None,
+    command: list[str] | None = None,
+) -> CameraFocalScaleArtifact:
+    """Track the camera with ``camera``'s focal lengths, then regress its rates on the gyro's.
+
+    The rotation, clock offset and gyro bias come from ``rotation_artifact``
+    (digest ``rotation_artifact_sha256``); ``max_seconds`` limits the images
+    tracked (the whole IMU stream is kept: only the tracked windows are read).
+    """
+
     import hashlib
     from pathlib import Path
 
@@ -191,18 +238,17 @@ def run_ros2_camera_focal_check(
 
     from calibrex import __version__
     from calibrex.core.camera_focal_scale import CameraFocalProvenance, CameraFocalScaleArtifact
-    from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
-    from calibrex.core.provenance import git_commit, sha256_path
+    from calibrex.core.provenance import git_commit
     from calibrex.data.livox_ros2 import bag_input_digest
     from calibrex.data.ros2_camera_imu import iter_gray_images, load_ros2_imu
-    from calibrex.evaluation.visual_rotation import CameraModel, track_camera_rotations
+    from calibrex.evaluation.visual_rotation import track_camera_rotations
 
     opts = options or FocalScaleOptions()
-    rotation_artifact = load_imu_lidar_rotation(rotation_artifact_path)
     if rotation_artifact.rotation_quat_xyzw is None:
         raise ValueError("the rotation artifact has no rotation estimate")
-    camera = CameraModel.from_kalibr(camera_entry)
-    track = track_camera_rotations(iter_gray_images(bag, image_topic, stride=frame_stride), camera)
+    track = track_camera_rotations(
+        iter_gray_images(bag, image_topic, stride=frame_stride, max_seconds=max_seconds), camera
+    )
     imu = load_ros2_imu(bag, imu_topic)
     result = estimate_focal_scale(
         GyroSeries(imu.times_s, imu.gyro_rps),
@@ -213,8 +259,6 @@ def run_ros2_camera_focal_check(
         opts,
     )
     digest, _ = bag_input_digest([bag])
-    rotation_digest = sha256_path(Path(rotation_artifact_path))
-    assert rotation_digest is not None
     return CameraFocalScaleArtifact(
         policy_status=result.status,  # type: ignore[arg-type]
         policy_reasons=list(result.reasons),
@@ -237,6 +281,7 @@ def run_ros2_camera_focal_check(
             "max_holdout_sigma": opts.max_holdout_sigma,
             "max_optical_axis_deviation_sigma": opts.max_optical_axis_deviation_sigma,
             "observable_ratio_std": opts.observable_ratio_std,
+            **({"max_seconds": max_seconds} if max_seconds is not None else {}),
         },
         limitations=[
             "The ratio also absorbs anything else that scales tracked rotations, such as "
@@ -251,7 +296,7 @@ def run_ros2_camera_focal_check(
             dataset_family=dataset_family,
             sequence_ids=[Path(bag).name],
             image_topic=image_topic,
-            rotation_artifact_sha256=rotation_digest,
+            rotation_artifact_sha256=rotation_artifact_sha256,
             input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
             dataset_license=dataset_license,
         ),

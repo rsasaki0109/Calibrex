@@ -6,8 +6,9 @@ lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
 and, without `--plan`, runs the existing native estimator of each wired pair and
 judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
-`inconclusive` per pair, with the per-axis numbers behind it. The camera-focal
-pair stays `skipped` with `method_not_wired`.
+`inconclusive` per pair, with the per-axis numbers behind it. Every pair is
+wired; `camera-focal` judges the deployed focal lengths rather than an
+extrinsic (see [camera-focal](#camera-focal-the-deployed-focal-length)).
 
 ```bash
 calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
@@ -74,17 +75,120 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
 | `frames_not_connected` | the two frames are in different trees |
 | `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
-| `method_not_wired` | no check method exists for the pair yet |
+| `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
 | `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field for `lidar-lidar` and `gnss-lidar` (`imu-lidar` runs such clouds as rigid scans), a compressed camera image |
 | `missing_intrinsics` | `camera-imu` needs intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
-| `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results |
+| `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results; `camera-focal` needs this check's own `camera-imu` result for the same camera (selected, solved, not failed, rotation std at most 0.5 deg about every axis) |
 
 A run can also leave a pair `inconclusive` with one of `estimator_error` (the
 estimator raised; the message is recorded and the other pairs still run),
 `estimator_failed` (no solution, or the estimator failed its own held-out check,
 so its estimate is not a reliable yardstick) or `no_judgeable_axes` (every axis
 was unobservable).
+
+## camera-focal: the deployed focal length
+
+`camera-focal` audits the **intrinsics**, not an extrinsic. It reuses the
+`camera-imu` tracking idea: a rotation about the camera y axis moves features by
+`fx_true * theta`, which the tracker reads as `theta * fx_true / fx_used`
+(`fy` for the x axis; the optical axis does not depend on the focal length and
+is the control). Regressing the camera's angular rates on the gyro's, with the
+camera-IMU rotation, clock offset and gyro bias fixed, gives the scale
+`s = f_estimate / f_candidate` per focal length (`fx` from the y-axis ratio,
+`fy` from the x-axis ratio). Target-free; same estimator as
+`calibrex camera-imu focal`.
+
+Decisions:
+
+* **Candidate.** The deployed `fx`, `fy` of the Kalibr camchain (`--tf`) or the
+  `CameraInfo` topic, the same intrinsics `camera-imu` uses. The candidate
+  extrinsic of the pair is not used.
+* **Judgement.** `|s - 1|` against `tolerance = max(k * std_s, floor)`, `k =
+  --sigma-k` (3), floor `--focal-scale-floor` (default 0.005, a fraction: 0.5 %).
+  `pass` within the tolerance, `fail` beyond twice it, else `warn`; the pair is
+  the worst of `fx`, `fy`. The floor is the documented agreement of the Hilti
+  forward cameras with Kalibr (within 0.5 %, [benchmark](../benchmarks/hilti_camera_imu.md));
+  a smaller floor would flag Kalibr itself. In practice `k * std` (1.1-1.4 % on
+  the usable cameras) dominates and the floor only binds for a very precise run.
+* **Unchecked focal lengths.** A component whose ratio std exceeds the
+  estimator's 0.005 bound is `unchecked` (`unobservable`); if the optical-axis
+  control ratio is not 1 within 3 std (something besides the focal length scales
+  the rotations) both are `unchecked` (`control_not_detected`). If the estimator
+  fails its own held-out check the pair is `inconclusive` (`estimator_failed`).
+  Coverage is `partial` when one of the two is unchecked.
+* **Record.** Not a rotation or translation axis: the pair carries an optional
+  `focal_scale` record (`components[]` with candidate and estimated px, `scale`,
+  `scale_std`, `scale_error`, `tolerance`, `status`, `detectable_error`,
+  `detects_perturbation`; `unchecked[]`; the optical-axis ratio; the floor).
+  `axes` and `unchecked_axes` stay empty and `compared_transform` is absent;
+  `slac.calibration_check/v0.1` only gained optional fields. The pair is not an
+  edge of the closure graph.
+* **Dependency.** Like `gnss-imu`, it consumes this run's `camera-imu` result
+  for the same camera: skipped `missing_dependency` (with the reason) if
+  `camera-imu` was not selected (`--pairs`, `--camera`), was skipped or failed,
+  produced no rotation, failed its own held-out check, or has a rotation std
+  above 0.5 deg about any axis (a rotation error `d` mixes rate between camera
+  axes by about `sin d`, 0.9 % at 0.5 deg: the size of the floor).
+  It uses `camera-imu`'s **estimated** rotation, clock offset and gyro bias
+  (what the standalone CLI takes from the rotation artifact), not the candidate
+  extrinsic: the estimate is what the data support, and a wrong candidate
+  rotation would leak rate between axes and masquerade as a focal error.
+* **Cache.** The artifact depends on the candidate only through the focal length
+  that normalizes the tracked features (the scale `s` absorbs it to first order),
+  never on the candidate extrinsic. It is cached (`camera_focal_scale`) under the
+  bag digest, topics, the full camera model (so a different deployed focal or
+  distortion re-tracks), frame stride, `--max-duration-s`, the estimator options
+  and the `camera-imu` estimate (rotation, offset, bias; not its digest, which
+  moves with the candidate). A hit rewrites only the provenance digest of the
+  rotation artifact to this run's `camera-imu` evidence. Verdict thresholds and
+  the candidate extrinsic never miss. A deliberately wrong focal length changes
+  the camera model, so it recomputes `camera-imu` and `camera-focal`.
+* **Detection power.** `detectable_error = tolerance + |s - 1|` (a fractional
+  focal error, no re-solve); `detects_perturbation` compares it with a 1 %
+  probe.
+* **Cost.** The tracking is repeated (it is not shared with `camera-imu`):
+  about 80-130 s per camera on 153 s of Hilti exp21; 0.02 s from the cache.
+
+### Results on Hilti exp21 (development recording)
+
+Deployed focal lengths from Kalibr (`calib_3_cam*-camchain-imucam.yaml`), full
+153 s, defaults (k = 3, floor 0.5 %). "+1 %" and "+3 %" re-run the whole check
+with `fx`, `fy` of a camchain copy scaled by 1.01 and 1.03 (known-bad). Scale
+`s` is `estimate / deployed` with its jackknife std; `-` marks a focal length
+that was `unchecked` (std over 0.005).
+
+| Camera | Deployed (Kalibr) | fx scale | fy scale | Verdict | +1 % | +3 % |
+| --- | --- | --- | --- | --- | --- | --- |
+| cam0 | pass (partial: fy only) | - (std 0.0064) | 0.9950 +- 0.0047 | `pass` | `inconclusive` (std over bound) | `inconclusive` |
+| cam1 | pass | 1.0010 +- 0.0037 | 0.9936 +- 0.0040 | `pass` | `warn` (fy 0.9807) | `fail` (fy 0.9630) |
+| cam2 | inconclusive | - (0.0060) | - (0.0098) | `inconclusive` (`no_judgeable_axes`) | `warn` (fx 0.9818) | `inconclusive` (`estimator_failed`; fx 0.9611 would be `fail`) |
+| cam3 | inconclusive | - (0.0127) | - (0.0054) | `inconclusive` (`estimator_failed`: held-out disagreement) | `inconclusive` | `inconclusive` |
+| cam4 | inconclusive | - (0.0080) | - (0.0098) | `inconclusive` (`no_judgeable_axes`) | `inconclusive` | `inconclusive` |
+
+* Only cam1 (both) and cam0 (fy) are judgeable on the deployed intrinsics, the
+  forward cameras that the estimator's own benchmark documents as usable. The
+  side and down cameras keep scattering by 1-2 % and are not judged: the pair
+  says `inconclusive` rather than passing them.
+* **Known-bad.** The +3 % error flips cam1 from `pass` to `fail`; +1 % flips it
+  to `warn`. cam2 flips to `warn` at +1 % but at +3 % the estimator fails its own
+  held-out check, so the pair is `inconclusive` (the estimate on the judged
+  component is 4 % off, but the check refuses to call it). cam0, cam3 and cam4
+  stay `inconclusive` under the perturbation: they are not constrained well
+  enough to see it.
+* **Detectable error** on the judgeable components: 1.2-1.9 % (tolerance
+  1.1-1.4 % plus the observed error). A 1 % focal error is therefore at the edge:
+  it was flagged on cam1 (`warn`) and cam2 because the estimate of the perturbed
+  run happened to land beyond the tolerance, not because it is guaranteed; a 3 %
+  error is flagged. Read a `pass` as "no focal error larger than about 1.5 %".
+* **Equivalence.** The check's `camera-focal` evidence equals
+  `calibrex camera-imu focal` on the same bag, camera, intrinsics and the check's
+  own `camera-imu` evidence as `--rotation`: ratios, stds, held-out ratios,
+  focal estimates, policy and options are bit-identical on all five cameras.
+* **Runtime** (full 153 s, 8 cores, two jobs in parallel): `camera-imu` 84-164 s
+  and `camera-focal` 80-130 s per camera (about 3-4.5 min together); re-check
+  with another candidate or `--sigma-k`: 0.03 s each from the cache, 2.8 s wall.
+* exp07 was not run; exp01-exp04 are held out and were not touched.
 
 ## Vehicle pairs are opt-in
 
@@ -834,7 +938,7 @@ Bugs found by this exercise (all fixed, with unit tests):
 | --- | --- | --- |
 | `imu-lidar` | skipped `degenerate_frames` (both in `base_link`) | (before the fix: `unsupported_sensor`, no per-point time) |
 | `camera-imu` x3 | planned (camera link / `base_link`) | inconclusive, `no_judgeable_axes`: roll/pitch/yaw std 15-46 deg over 36 s |
-| `camera-focal` | planned | `method_not_wired` |
+| `camera-focal` | planned | `method_not_wired` when this run was made; with `camera-focal` wired it is skipped `missing_dependency` (camera-imu is inconclusive) |
 | `gnss-lidar`, `gnss-imu` | skipped `frame_not_in_tree` (`POS_REF`) | with `--frame-map /gnss/fix=gnss_ins_link`: skipped `unsupported_sensor` (cloud has no per-point time) |
 | `lidar-vehicle`, `imu-vehicle` | skipped `degenerate_frames` | (before the fix: `lidar-vehicle` inconclusive in 98 s, no axis constrained) |
 | `lidar-lidar`, `ins-lidar`, `lidar-wheel_odometry` | skipped `missing_topic` | - |

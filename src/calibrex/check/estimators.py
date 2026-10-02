@@ -33,7 +33,12 @@ from numpy.typing import NDArray
 
 from calibrex.check.cache import EstimatorCache, cached_artifact
 from calibrex.check.tf_sources import LoadedSource, camchain_entries
-from calibrex.check.verdict import RIGID_SCAN_ROTATION_FLOOR_DEG, AxisEstimate
+from calibrex.check.verdict import (
+    RIGID_SCAN_ROTATION_FLOOR_DEG,
+    AxisEstimate,
+    FocalEstimate,
+    FocalRecord,
+)
 from calibrex.core.calibration_check import (
     CheckAxisName,
     CheckPairRecord,
@@ -110,6 +115,8 @@ class EstimatorRun:
     notes: tuple[str, ...] = ()
     deskew: Literal["gyro", "none"] | None = None
     """imu-lidar: how the scans were deskewed (``none`` = rigid scans)."""
+    focal: FocalRecord | None = None
+    """camera-focal: the focal-length estimates (the pair is judged on these, not on axes)."""
 
     @property
     def evidence_from_cache(self) -> bool | None:
@@ -834,6 +841,221 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         compared=candidate,
         time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s),
         notes=(f"intrinsics: {intrinsics_source}",),
+    )
+
+
+# --------------------------------------------------------------- camera-focal
+#
+# camera-focal judges the deployed *intrinsics* (fx, fy), not an extrinsic. The candidate
+# is the focal length of the camchain / CameraInfo that camera-imu also uses; the estimate
+# is a scale s (f_est = s * f_candidate, the camera/gyro rate ratio measured with features
+# normalized by the candidate focal). It consumes this run's camera-imu *estimate* (rotation,
+# clock offset, gyro bias), like the standalone `calibrex camera-imu focal` consumes the
+# rotation artifact. The candidate extrinsic is not used: a wrong candidate rotation would
+# leak rate between camera axes, while the estimated rotation is what the data support. The
+# estimate depends on the candidate only through the normalization of the tracked features
+# (s absorbs it to first order), so it is cached under the camera model, the camera-imu
+# estimate and the options, never under the candidate extrinsic.
+
+FOCAL_RATE_FLOOR_NOTE = (
+    "the focal scale is the camera/gyro rate ratio about the camera y (fx) and x (fy) axes; "
+    "it also absorbs anything else that scales tracked rotations, so the optical-axis ratio "
+    "(which must be 1) is the control"
+)
+_ROTATION_AXIS_NAMES = ("roll", "pitch", "yaw")
+FOCAL_MAX_ROTATION_STD_DEG = 0.5
+"""Largest camera-imu rotation std (any axis) for which camera-focal runs.
+
+A rotation error of ``d`` mixes angular rate between camera axes by about ``sin d``
+(0.9 % per 0.5 deg at equal rates), the size of the focal-scale floor. Axes are
+therefore not required to pass camera-imu's own 0.3 deg observability bound, only
+to be known to 0.5 deg; looser rotations make the focal ratio unreliable, so the
+pair is skipped instead of judged.
+"""
+
+
+def _camera_imu_dependency(ctx: PairContext) -> tuple[EstimatorRun, Any]:
+    """This run's camera-imu result for the same camera and IMU, or a missing_dependency skip."""
+
+    run = ctx.controls.memo.get((PAIR_RUN_KEY, "camera-imu", tuple(ctx.pair.frames)))
+    if run is None:
+        raise CheckSkipError(
+            "missing_dependency",
+            "camera-focal reuses this check's camera-imu rotation, clock offset and gyro bias; "
+            "camera-imu gave no result for this camera (not selected with --pairs or --camera, "
+            "skipped, or failed)",
+        )
+    rotation = next((i.artifact for i in run.artifacts if i.role == "rotation"), None)
+    problems: list[str] = []
+    if not run.solved or getattr(rotation, "rotation_quat_xyzw", None) is None:
+        problems.append("camera-imu produced no rotation estimate")
+    if run.policy_status == "fail":
+        problems.append("camera-imu failed its own held-out check")
+    loose = [
+        f"{item.name} ({item.std:.2f} deg)"
+        for item in run.estimates
+        if item.name in _ROTATION_AXIS_NAMES
+        and not (math.isfinite(item.std) and item.std <= FOCAL_MAX_ROTATION_STD_DEG)
+    ]
+    if loose:
+        problems.append(
+            f"camera-imu's rotation std exceeds {FOCAL_MAX_ROTATION_STD_DEG:g} deg about "
+            + ", ".join(loose)
+        )
+    if problems:
+        raise CheckSkipError(
+            "missing_dependency",
+            "camera-focal needs a camera-imu rotation that is solved and known to within "
+            f"{FOCAL_MAX_ROTATION_STD_DEG:g} deg about every axis: "
+            + "; ".join(problems),
+        )
+    return run, rotation
+
+
+def _rotation_digest(artifact: Any) -> str:
+    """SHA-256 of the saved camera-imu rotation artifact (the evidence file's digest)."""
+
+    from calibrex.core.provenance import sha256_path
+
+    with tempfile.TemporaryDirectory() as scratch:
+        path = Path(scratch) / "rotation.yaml"
+        artifact.save(path)
+        digest = sha256_path(path)
+    assert digest is not None
+    return digest
+
+
+def run_camera_focal(ctx: PairContext) -> EstimatorRun:
+    """Deployed focal lengths against the gyro, on this check's camera-imu estimate."""
+
+    from calibrex.core.camera_focal_scale import (
+        CameraFocalScaleArtifact,
+        load_camera_focal_scale,
+    )
+    from calibrex.evaluation.camera_focal import FocalScaleOptions, run_camera_focal_check
+
+    _run, rotation = _camera_imu_dependency(ctx)
+    camera_topics = ctx.sensor_topics.get("camera", ())
+    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
+    imu_topics = ctx.sensor_topics.get("imu", ())
+    if image_topic is None or not imu_topics:
+        raise CheckSkipError("missing_topic", "camera-focal needs an Image and an IMU topic")
+    model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, ctx.pair.frames[0])
+    ctx.controls.progress(
+        f"camera-focal: {image_topic} + {imu_topics[0]} (intrinsics: {intrinsics_source})"
+    )
+    focal_options = FocalScaleOptions()
+    rotation_digest = _rotation_digest(rotation)
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "camera_focal_scale",
+        {
+            "image_topic": image_topic,
+            "imu_topic": imu_topics[0],
+            "camera": model,
+            "frame_stride": 4,
+            "max_seconds": ctx.controls.max_duration_s,
+            "options": focal_options,
+            # the camera-imu estimate, not the candidate: the rotation, clock offset, bias
+            "rotation_quat_xyzw": rotation.rotation_quat_xyzw,
+            "time_offset_s": rotation.time_offset_s,
+            "gyro_bias_rps": rotation.gyro_bias_rps,
+        },
+        loader=load_camera_focal_scale,
+        compute=lambda: run_camera_focal_check(
+            str(ctx.bag),
+            image_topic=image_topic,
+            imu_topic=imu_topics[0],
+            camera=model,
+            rotation_artifact=rotation,
+            rotation_artifact_sha256=rotation_digest,
+            dataset_family=DATASET_FAMILY,
+            dataset_license=DATASET_LICENSE,
+            frame_stride=4,
+            max_seconds=ctx.controls.max_duration_s,
+            options=focal_options,
+            command=["calibrex", "check", str(ctx.bag), "camera-focal", image_topic, imu_topics[0]],
+        ),
+        rebase=lambda hit: hit.model_copy(
+            update={
+                "provenance": hit.provenance.model_copy(
+                    update={"rotation_artifact_sha256": rotation_digest}
+                )
+            }
+        ),
+    )
+    assert isinstance(artifact, CameraFocalScaleArtifact)
+    return EstimatorRun(
+        estimator=f"{artifact.method} (camera focal)",
+        artifacts=(
+            EvidenceArtifact(
+                "focal_scale",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=True,
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=(),
+        compared=ctx.candidate,
+        notes=(
+            f"intrinsics: {intrinsics_source}",
+            "the rotation, clock offset and gyro bias are camera-imu's estimate from this run",
+            FOCAL_RATE_FLOOR_NOTE,
+        ),
+        focal=focal_record_of(artifact, intrinsics_source),
+    )
+
+
+def focal_record_of(artifact: Any, intrinsics_source: str | None = None) -> FocalRecord:
+    """The judged quantities of a focal-scale artifact: ``fx`` from the y ratio, ``fy`` from x."""
+
+    bound = float(artifact.options.get("observable_ratio_std", 0.005))
+    control_off = artifact.policy_status == "warn"
+    ratios = artifact.rate_ratio
+    stds = artifact.rate_ratio_std
+    components: list[FocalEstimate] = []
+    spec: tuple[tuple[Literal["fx", "fy"], int, float, float, float], ...] = (
+        ("fx", 1, artifact.fx_used_px, artifact.fx_estimate_px, artifact.fx_std_px),
+        ("fy", 0, artifact.fy_used_px, artifact.fy_estimate_px, artifact.fy_std_px),
+    )
+    for name, index, used, estimate, std_px in spec:
+        std = float(stds[index])
+        reason: str | None = None
+        code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+        if control_off:
+            code = "control_not_detected"
+            reason = (
+                "the optical-axis control ratio differs from 1, so something besides the focal "
+                "length scales the rotations and the scale is not trusted as a focal length"
+            )
+        elif std > bound:
+            code = "unobservable"
+            reason = (
+                f"the {'y' if name == 'fx' else 'x'}-axis ratio std {std:.4f} exceeds the "
+                f"bound {bound:g}"
+            )
+        components.append(
+            FocalEstimate(
+                name=name,
+                candidate_px=float(used),
+                estimate_px=float(estimate),
+                estimate_std_px=float(std_px),
+                scale=float(ratios[index]),
+                scale_std=std,
+                estimated=reason is None,
+                unchecked_reason=reason,
+                unchecked_code=code,
+            )
+        )
+    return FocalRecord(
+        components=tuple(components),
+        optical_axis_ratio=float(ratios[2]),
+        optical_axis_ratio_std=float(stds[2]),
+        intrinsics_source=intrinsics_source,
     )
 
 
@@ -1723,6 +1945,7 @@ ESTIMATORS: dict[str, Adapter] = {
     "gnss-imu": run_gnss_imu,
     "lidar-lidar": run_lidar_lidar,
     "camera-imu": run_camera_imu,
+    "camera-focal": run_camera_focal,
     "lidar-vehicle": run_lidar_vehicle,
     "imu-vehicle": run_imu_vehicle,
     "ins-lidar": run_ins_lidar,

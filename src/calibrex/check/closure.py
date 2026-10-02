@@ -388,7 +388,10 @@ def build_closure_report(
     """
 
     ran = [
-        record for record in records if record.status in {"pass", "warn", "fail", "inconclusive"}
+        record
+        for record in records
+        if record.status in {"pass", "warn", "fail", "inconclusive"}
+        and record.pair != "camera-focal"  # intrinsics, not an extrinsic: no edge in the graph
     ]
     if not ran:
         return None

@@ -50,6 +50,7 @@ from calibrex.check.tf_sources import (
 from calibrex.check.verdict import (
     RIGID_SCAN_ROTATION_FLOOR_DEG,
     VerdictOptions,
+    judge_focal,
     judge_pair,
     worst_verdict,
 )
@@ -60,6 +61,7 @@ from calibrex.core.calibration_check import (
     CheckCandidateSource,
     CheckClosureReport,
     CheckEvidenceRef,
+    CheckFocalComponent,
     CheckFrameEdge,
     CheckFrameTree,
     CheckOptions,
@@ -279,6 +281,7 @@ def build_calibration_check(
             rotation_floor_deg=run.verdict.rotation_floor_deg,
             translation_floor_m=run.verdict.translation_floor_m,
             detection_probe_deg=run.verdict.detection_probe_deg,
+            focal_scale_floor=run.verdict.focal_scale_floor,
             max_duration_s=run.max_duration_s,
             gnss_max_duration_s=run.gnss_max_duration_s,
             pairs=list(run.pairs) if run.pairs is not None else None,
@@ -423,7 +426,7 @@ def _run_pairs(
             )
             continue
         sensor_topics = _sensor_topics(record, topics)
-        if run.camera is not None and record.pair == "camera-imu":
+        if run.camera is not None and record.pair in {"camera-imu", "camera-focal"}:
             camera_topics = sensor_topics.get("camera", ())
             if run.camera not in camera_topics and run.camera not in record.frames:
                 results.append(
@@ -569,6 +572,8 @@ def _judge(
     options: VerdictOptions,
     runtime_s: float,
 ) -> dict[str, object]:
+    if outcome.focal is not None:
+        return _judge_focal(record, outcome, options, runtime_s)
     judgement = judge_pair(outcome.estimates, options)
     status: str = judgement.verdict
     reason_code: str | None = None
@@ -610,6 +615,51 @@ def _judge(
         "runtime_s": runtime_s,
         "notes": list(outcome.notes),
         "deskew": outcome.deskew,
+    }
+
+
+def _judge_focal(
+    record: CheckPairRecord,
+    outcome: EstimatorRun,
+    options: VerdictOptions,
+    runtime_s: float,
+) -> dict[str, object]:
+    """Judge camera-focal: the focal scale record replaces the per-axis judgements."""
+
+    assert outcome.focal is not None
+    judgement = judge_focal(outcome.focal, options)
+    status: str = judgement.verdict
+    reason_code: str | None = None
+    reason: str | None = None
+    if outcome.policy_status == "fail":
+        status = "inconclusive"
+        reason_code = "estimator_failed"
+        reason = (
+            "the estimator failed its own held-out check, so its estimate is not a "
+            "reliable yardstick: " + "; ".join(outcome.policy_reasons)
+        )
+    elif not judgement.record.components:
+        reason_code = "no_judgeable_axes"
+        reason = "no focal length was constrained by the data: " + "; ".join(
+            f"{item.name} ({item.reason})" for item in judgement.record.unchecked
+        )
+    return {
+        "status": status,
+        "verdict": status,
+        "reason_code": reason_code,
+        "reason": reason,
+        "compared_transform": None,
+        "estimator": outcome.estimator,
+        "estimator_policy_status": outcome.policy_status,
+        "estimator_policy_reasons": list(outcome.policy_reasons),
+        "axes": [],
+        "unchecked_axes": [],
+        "focal_scale": judgement.record.model_dump(),
+        "coverage": judgement.coverage,
+        "time_offset": None,
+        "runtime_s": runtime_s,
+        "notes": list(outcome.notes),
+        "deskew": None,
     }
 
 
@@ -655,6 +705,12 @@ def _format_axis(axis: CheckAxisJudgement) -> str:
     unit = "deg" if axis.unit == "deg" else "m"
     return f"{axis.name} {abs(axis.candidate_error):.3g}/{axis.tolerance:.3g} {unit}" + (
         "" if axis.status == "pass" else f" [{axis.status}]"
+    )
+
+
+def _format_focal(item: CheckFocalComponent) -> str:
+    return f"{item.name} scale {item.scale:.4f} (|s-1| {abs(item.scale_error) * 100:.2g} %/" + (
+        f"{item.tolerance * 100:.2g} %)" + ("" if item.status == "pass" else f" [{item.status}]")
     )
 
 
@@ -705,9 +761,18 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
         detect = "; ".join(
             f"{axis.name} {axis.detectable_error:.3g} {axis.unit}" for axis in pair.axes
         )
+        judged_names: list[str] = [axis.name for axis in pair.axes]
+        if pair.focal_scale is not None:
+            scale = pair.focal_scale
+            judged = "; ".join(_format_focal(item) for item in scale.components) or "-"
+            unchecked = ", ".join(item.name for item in scale.unchecked) or "-"
+            detect = "; ".join(
+                f"{item.name} {item.detectable_error * 100:.2g} %" for item in scale.components
+            )
+            judged_names = [item.name for item in scale.components]
         verdict: str = pair.status
-        if pair.coverage == "partial" and pair.axes:
-            verdict += f" (partial: {', '.join(axis.name for axis in pair.axes)} only)"
+        if pair.coverage == "partial" and judged_names:
+            verdict += f" (partial: {', '.join(judged_names)} only)"
         rows.append(
             [
                 pair.pair,
@@ -756,6 +821,14 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
             )
         for item in pair.unchecked_axes:
             lines.append(f"  {pair.pair}: unchecked {item.name}: {item.reason}")
+        if pair.focal_scale is not None:
+            for focal in pair.focal_scale.unchecked:
+                lines.append(f"  {pair.pair}: unchecked {focal.name}: {focal.reason}")
+            if pair.focal_scale.optical_axis_ratio is not None:
+                lines.append(
+                    f"  {pair.pair}: optical-axis control ratio "
+                    f"{pair.focal_scale.optical_axis_ratio:.4f} (must be 1)"
+                )
     lines.extend(_closure_lines(artifact))
     lines.append("")
     lines.append(f"overall verdict: {artifact.overall_verdict}")

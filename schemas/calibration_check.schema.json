@@ -510,6 +510,178 @@
       "title": "CheckEvidenceRef",
       "type": "object"
     },
+    "CheckFocalComponent": {
+      "additionalProperties": false,
+      "description": "One judged focal length: the deployed value against the gyro-implied one.\n\n``scale = estimate / candidate`` (the camera/gyro rate ratio the estimator\nmeasures with features normalized by the candidate focal length) and\n``scale_error = scale - 1``. ``tolerance = max(sigma_k * scale_std, floor)``\nwith the focal-scale floor; ``status`` is ``pass`` when\n``|scale_error| <= tolerance``, ``fail`` beyond twice the tolerance, else\n``warn``. ``detectable_error = tolerance + |scale_error|`` is the smallest\nrelative focal-length error the run would have flagged (no re-solve);\n``detects_perturbation`` says whether ``detection_probe`` (a relative\nerror, 0.01 = 1 %) is above it.",
+      "properties": {
+        "candidate_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Candidate Px",
+          "type": "number"
+        },
+        "detectable_error": {
+          "minimum": 0.0,
+          "title": "Detectable Error",
+          "type": "number"
+        },
+        "detection_probe": {
+          "exclusiveMinimum": 0.0,
+          "title": "Detection Probe",
+          "type": "number"
+        },
+        "detects_perturbation": {
+          "title": "Detects Perturbation",
+          "type": "boolean"
+        },
+        "estimate_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Estimate Px",
+          "type": "number"
+        },
+        "estimate_std_px": {
+          "minimum": 0.0,
+          "title": "Estimate Std Px",
+          "type": "number"
+        },
+        "name": {
+          "enum": [
+            "fx",
+            "fy"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "ratio": {
+          "description": "abs(scale_error) / tolerance",
+          "minimum": 0.0,
+          "title": "Ratio",
+          "type": "number"
+        },
+        "scale": {
+          "exclusiveMinimum": 0.0,
+          "title": "Scale",
+          "type": "number"
+        },
+        "scale_error": {
+          "title": "Scale Error",
+          "type": "number"
+        },
+        "scale_std": {
+          "minimum": 0.0,
+          "title": "Scale Std",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tolerance": {
+          "exclusiveMinimum": 0.0,
+          "title": "Tolerance",
+          "type": "number"
+        },
+        "tolerance_source": {
+          "enum": [
+            "sigma",
+            "floor"
+          ],
+          "title": "Tolerance Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "candidate_px",
+        "estimate_px",
+        "estimate_std_px",
+        "scale",
+        "scale_std",
+        "scale_error",
+        "tolerance",
+        "tolerance_source",
+        "ratio",
+        "status",
+        "detectable_error",
+        "detection_probe",
+        "detects_perturbation"
+      ],
+      "title": "CheckFocalComponent",
+      "type": "object"
+    },
+    "CheckFocalScale": {
+      "additionalProperties": false,
+      "description": "Intrinsics record of ``camera-focal``: focal lengths judged as a scale of the candidate.\n\ncamera-focal checks the deployed intrinsics, not an extrinsic, so it has no\nper-axis rotation or translation judgements; this record holds its\njudgements instead. The optical-axis ratio is the estimator's control (it\ndoes not depend on the focal length and should be 1).",
+      "properties": {
+        "components": {
+          "items": {
+            "$ref": "#/$defs/CheckFocalComponent"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "floor": {
+          "description": "focal-scale floor of the tolerance (relative)",
+          "exclusiveMinimum": 0.0,
+          "title": "Floor",
+          "type": "number"
+        },
+        "intrinsics_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "where the deployed focal lengths came from",
+          "title": "Intrinsics Source"
+        },
+        "optical_axis_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Optical Axis Ratio"
+        },
+        "optical_axis_ratio_std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Optical Axis Ratio Std"
+        },
+        "unchecked": {
+          "items": {
+            "$ref": "#/$defs/CheckUncheckedFocal"
+          },
+          "title": "Unchecked",
+          "type": "array"
+        }
+      },
+      "required": [
+        "floor"
+      ],
+      "title": "CheckFocalScale",
+      "type": "object"
+    },
     "CheckFrameEdge": {
       "additionalProperties": false,
       "description": "One static edge of the candidate tree.",
@@ -602,6 +774,20 @@
           "exclusiveMinimum": 0.0,
           "title": "Detection Probe Deg",
           "type": "number"
+        },
+        "focal_scale_floor": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "relative floor of the camera-focal tolerance (0.005 = 0.5 %); absent in artifacts that predate camera-focal",
+          "title": "Focal Scale Floor"
         },
         "gnss_max_duration_s": {
           "anyOf": [
@@ -843,6 +1029,18 @@
           "default": null,
           "description": "true when every cacheable estimator artifact of the pair came from the estimator cache (the runtime is then the cache lookup, not the estimator's); absent when caching was off or the estimator is not cacheable",
           "title": "Evidence From Cache"
+        },
+        "focal_scale": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckFocalScale"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "camera-focal only: the focal lengths judged as a scale of the deployed ones (axes and unchecked_axes stay empty for this pair)"
         },
         "frames": {
           "items": {
@@ -1376,6 +1574,71 @@
         "reason"
       ],
       "title": "CheckUncheckedAxis",
+      "type": "object"
+    },
+    "CheckUncheckedFocal": {
+      "additionalProperties": false,
+      "description": "A focal length the estimator did not constrain, so the candidate is not judged on it.",
+      "properties": {
+        "candidate_px": {
+          "exclusiveMinimum": 0.0,
+          "title": "Candidate Px",
+          "type": "number"
+        },
+        "name": {
+          "enum": [
+            "fx",
+            "fy"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "reason_code": {
+          "enum": [
+            "unobservable",
+            "control_not_detected",
+            "no_estimate"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "scale_std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale Std"
+        }
+      },
+      "required": [
+        "name",
+        "candidate_px",
+        "reason",
+        "reason_code"
+      ],
+      "title": "CheckUncheckedFocal",
       "type": "object"
     }
   },
