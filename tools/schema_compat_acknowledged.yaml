@@ -5,22 +5,14 @@
 # Calibrex cannot read.  Every entry needs a reason a reviewer can verify.  The
 # checker fails when an entry no longer matches anything, so this list cannot
 # silently outlive the problem it excuses.
+#
+# Baseline v0.5.0: the narrowings acknowledged against v0.4.1
+# (external_run container_digest, result RunInfo.provenance, the A2D2 manifest)
+# are part of v0.5.0 itself and no longer show up as differences.
 acknowledged:
-  - key: external_run.schema.json#ExternalExecution.container_digest
+  - key: artifact:examples/raw_replay/synthetic/config.yaml
     reason: >-
-      Accepted as a v0.1 fix (maintainer decision, 2026-09-29): container
-      execution evidence must pin an immutable sha256 image digest, since a
-      mutable tag cannot reproduce the run.  v0.1 external runs that recorded a
-      tag-style reference no longer validate and must be re-imported with the
-      resolved digest.
-  - key: result.schema.json#RunInfo.provenance
-    reason: >-
-      Intentional discriminator (maintainer decision, 2026-09-29): a provenance
-      map that declares provenance_version must be a valid ResultProvenance.
-      No released v0.1 result can carry that key, since it did not exist before
-      the provenance contract.  Every legacy map, including an empty or omitted
-      one, stays schema-valid and loads as a blocked legacy result.
-  - key: artifact:examples/public_datasets/a2d2_pandey_mutual_information/manifest.yaml
-    reason: >-
-      Already invalid when v0.4.1 was released (provenance member lists in a
-      string-valued map); the working-tree copy is fixed and validates.
+      Digest-bound replay stub declared as slac.config/v0.1 but lacking
+      dataset, sensors, and frames; it was already invalid when v0.5.0 was
+      released and is tracked in KNOWN_INVALID_ARTIFACTS in
+      tests/unit/test_schema_registry.py.
