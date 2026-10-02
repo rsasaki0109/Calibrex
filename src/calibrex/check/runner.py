@@ -89,6 +89,7 @@ INVERTED_CONVENTION_PAIRS = frozenset(
 )
 """Pairs whose estimator reports ``T_second_first`` (the sensor's pose in the parent frame)."""
 BAG_DIGEST_PREFIX_BYTES = 64 * 1024 * 1024
+_DIGEST_CHUNK_BYTES = 8 * 1024 * 1024
 BAG_DIGEST_SCOPE = "metadata.yaml in full; each storage file by name, size and first 64 MiB"
 
 
@@ -119,7 +120,13 @@ def bag_input_digest(bag: str | Path) -> tuple[str, str, str | None]:
         digest.update(file.name.encode("utf-8"))
         digest.update(str(file.stat().st_size).encode("ascii"))
         with file.open("rb") as stream:
-            digest.update(stream.read(BAG_DIGEST_PREFIX_BYTES))
+            remaining = BAG_DIGEST_PREFIX_BYTES
+            while remaining > 0:  # chunked: a browser (WORKERFS) must not hold 64 MiB at once
+                chunk = stream.read(min(remaining, _DIGEST_CHUNK_BYTES))
+                if not chunk:
+                    break
+                digest.update(chunk)
+                remaining -= len(chunk)
     return digest.hexdigest(), BAG_DIGEST_SCOPE, storage_id
 
 

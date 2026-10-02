@@ -1122,6 +1122,40 @@ per-point time" above.
   one); no bag here exercised Livox `CustomMsg`.
 - Sensor-class is not inferred beyond the message type (sonar counts as LiDAR).
 
+## Plan a bag in the browser
+
+**[Open the bag check page](../app/check.html)** to run `calibrex check --plan` on your own
+bag without installing anything. It is the same planner as the command line
+(`calibrex.check.browser` calls `build_calibration_check`), running under
+[Pyodide](https://pyodide.org) in a Web Worker. It shows the candidate sources and the
+frame tree it read, each sensor topic with its role, frame and frame source (and why a
+topic was ignored), and every sensor pair as *can be checked* or skipped with its reason
+code. It ends with a download of the `slac.calibration_check/v0.1` plan and the command
+that runs the full check locally:
+
+```bash
+calibrex check my_bag --tf rig.urdf --vehicle-frame base_link --output check.json --html check.html
+```
+
+- **Plan only.** The estimators are not run in the browser; they need the whole bag and
+  minutes of compute, so use the printed command for the pass / warn / fail verdicts.
+- **Data stays in the page.** Dropped files are never uploaded.
+- **Large bags.** The files are mounted with Emscripten WORKERFS, which serves reads from
+  your file on demand, so `sqlite3` (or the MCAP reader) touches only the pages it needs
+  and a multi-gigabyte `.db3` is never copied into memory. A 4 GB `.db3` plans in a few
+  seconds. For an `.mcap`, also add its `metadata.yaml`; without it the whole file is
+  scanned for its channels. `zstd`-compressed MCAP chunks work; `lz4` chunks need the
+  command line.
+- **Inputs.** The bag's `metadata.yaml` and storage file(s) (or a whole folder, or a bare
+  `.mcap`), optional `--tf` calibration files of the formats above, an opt-in vehicle frame
+  ([why](#vehicle-pairs-are-opt-in)) and `--frame-map TOPIC=FRAME` lines. The sample button
+  plans a 266 KB synthetic bag (`tools/build_check_sample_bag.py`).
+- **Not in the browser.** `--topic-kind`, `--pairs` and the verdict options are CLI-only,
+  as is anything that runs an estimator.
+
+`tools/check_browser_check_page.mjs` drives the page in headless Chrome (sample or your own
+files) and `tools/check_browser_page.mjs` runs its Python call under Pyodide in Node.
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest
