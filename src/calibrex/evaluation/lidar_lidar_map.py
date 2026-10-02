@@ -64,6 +64,14 @@ LIMITATIONS: tuple[str, ...] = (
 )
 
 
+RIGID_SCAN_LIMITATIONS: tuple[str, ...] = (
+    "The reference LiDAR's scans were treated as rigid snapshots (deskew: none): its "
+    "odometry, and so the map every target scan is registered to, is not corrected for "
+    "motion during the sweep; the target scans never are. The extrinsic is biased by an "
+    "amount that grows with the platform's speed.",
+)
+
+
 @dataclass(frozen=True)
 class LidarLidarMapOptions:
     """Sampling, blocking, evidence, and observability settings."""
@@ -81,6 +89,10 @@ class LidarLidarMapOptions:
     observable_rotation_std_deg: float = 0.1
     observable_translation_std_m: float = 0.02
     holdout_residual_ratio: float = 2.0
+    # "constant_velocity": the reference odometry deskews each sweep with the cloud's
+    # per-point time (the target scans are registered as given).  "none": rigid
+    # scans, for reference clouds without a per-point time field.
+    deskew: Literal["constant_velocity", "none"] = "constant_velocity"
     preprocess: ScanOdometryOptions = field(
         default_factory=lambda: ScanOdometryOptions(
             voxel_size_m=0.2, min_range_m=1.0, max_range_m=40.0
@@ -196,6 +208,11 @@ def collect_map_samples(
     """
 
     opts = options or LidarLidarMapOptions()
+    if opts.deskew == "none":
+        # Rigid scans: no per-point time is decoded or used.
+        point_time_field = None
+        target_point_time_field = None
+        target_point_time_encoding = None
     same_target_time = target_point_time_field is None and target_point_time_encoding is None
 
     def profile(topic: str, target: bool = False) -> LivoxStreamProfile:
@@ -220,7 +237,10 @@ def collect_map_samples(
     for time_s, points, offsets in reference_scan_stream:
         first = time_s if first is None else first
         finite = np.isfinite(points).all(axis=1)
-        odometry.add(points[finite], time_s, None if offsets is None else offsets[finite])
+        use_time = offsets is not None and opts.deskew != "none"
+        odometry.add(
+            points[finite], time_s, offsets[finite] if use_time and offsets is not None else None
+        )
         pose = odometry.poses[-1]
         local = preprocess_scan(points[finite], opts.preprocess)
         scans.append((local @ pose[:3, :3].T + pose[:3, 3]).astype(np.float32))
@@ -342,9 +362,10 @@ def run_ros2_lidar_lidar_map(
             "max_correspondence_m": opts.solver.max_correspondence_m,
             "huber_m": opts.solver.huber_m,
             "iterations": opts.solver.iterations,
+            **({"deskew": "none"} if opts.deskew == "none" else {}),
         },
         reference=reference,
-        limitations=list(LIMITATIONS),
+        limitations=[*LIMITATIONS, *(RIGID_SCAN_LIMITATIONS if opts.deskew == "none" else ())],
         provenance=LidarLidarProvenance(
             generator=__name__,
             generator_version=__version__,

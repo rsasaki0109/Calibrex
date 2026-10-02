@@ -77,7 +77,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
 | `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
-| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field for `lidar-lidar` and `gnss-lidar` (`imu-lidar` runs such clouds as rigid scans), a compressed camera image |
+| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field only when `--lidar-lidar-deskew`, `--gnss-lidar-deskew` or `--imu-lidar-deskew` is forced to `constant_velocity`/`gyro` (by default such clouds run as rigid scans), a compressed camera image |
 | `missing_intrinsics` | `camera-imu` needs intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
 | `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results; `camera-focal` needs this check's own `camera-imu` result for the same camera (selected, solved, not failed, rotation std at most 0.5 deg about every axis) |
 
@@ -447,16 +447,17 @@ LiDAR support: `PointCloud2` with a per-point time field. The field (`offset_tim
 `t`, `time`, `timestamp`, ...) and its meaning (offset in seconds, absolute
 seconds as Hesai writes it, absolute nanoseconds as Livox writes it) are
 detected from the first message by comparing its values with the header stamp. A
-LiDAR without such a field is `unsupported_sensor` for `lidar-lidar` and `gnss-lidar`
-(`imu-lidar` falls back to rigid scans, see "Clouds without per-point time"); deskewing needs it, and an
-undeskewed scan on a moving platform would be a biased yardstick. Livox
+LiDAR without such a field runs as rigid scans in `imu-lidar`, `lidar-lidar` (reference
+cloud) and `gnss-lidar` (see "Clouds without per-point time"): an undeskewed scan on a
+moving platform is a biased yardstick, so the larger floors and the record's
+`deskew: none` say so. Livox
 `CustomMsg` is not read yet.
 
 ## Phase C2: GNSS pairs
 
 | Pair | Needs in the bag | Estimator | Compared | Judged axes |
 | --- | --- | --- | --- | --- |
-| `gnss-lidar` | `NavSatFix` topic and a PointCloud2 LiDAR with per-point time | windowed variable projection of GNSS positions against deskewed LiDAR odometry (`slac.gnss_lidar_lever_arm/v0.1`) | antenna position in the LiDAR frame (translation of `T_lidar_gnss`) | x, y, z |
+| `gnss-lidar` | `NavSatFix` topic and a PointCloud2 LiDAR (per-point time deskews; without it, rigid scans) | windowed variable projection of GNSS positions against deskewed LiDAR odometry (`slac.gnss_lidar_lever_arm/v0.1`) | antenna position in the LiDAR frame (translation of `T_lidar_gnss`) | x, y, z |
 | `gnss-imu` | the same, plus `imu-lidar` (rotation and lever arm) in the same run | composition of the three artifacts as `calibrex gnss-imu compose` does (`slac.gnss_imu_lever_arm/v0.1`) | antenna position in the IMU frame (translation of `T_imu_gnss`) | x, y, z |
 
 The roll, pitch and yaw of both pairs are listed as **unchecked** with the reason
@@ -525,7 +526,7 @@ policy status and the held-out residual (2.20 against 2.21 cm) agree as well.
 | stadtgarten_seq2, `imu-lidar` 120 s, gnss 900 s (whole bag) | pass, partial: y 0.28 / 2.0 cm; x, z unchecked | pass, partial: y 0.73 / 2.9 cm; x, z unchecked | 37 windows; x 5.13 +/- 1.04 cm (just over the 1 cm bound), z 4.0 +/- 4.1 cm |
 | stadtgarten_seq1, `imu-lidar` 120 s, gnss 600 s | **warn**, partial: x 2.15 / 2.0 cm; y, z unchecked | inconclusive (`no_judgeable_axes`) | 45 windows; x 5.55 +/- 0.64 cm; y 1.4 cm and z 1.3 cm std over the bound |
 | construction_seq1, gnss 240 s | inconclusive (`no_judgeable_axes`) | not run | 17 windows; x std 2.4 cm |
-| KITTI 0009 (`/oxts/fix`) | skipped (`unsupported_sensor`) | skipped (`missing_dependency`) | the LiDAR has no per-point time; the OXTS covariance is 0.74 m (not RTK) |
+| KITTI 0009 (`/oxts/fix`) | skipped (`unsupported_sensor`) | skipped (`missing_dependency`) | the OXTS covariance is 0.74 m (not RTK); the cloud's missing per-point time no longer matters, it would run as rigid scans |
 
 On a candidate that is the dataset's own CAD calibration, `gnss-lidar` finds the
 antenna **1.7 to 2.2 cm further out in x** on both sequences (seq1 5.55 cm,
@@ -646,7 +647,9 @@ of the working tree, so editing calibrex invalidates the cache; the first varian
 (a LiDAR constant-velocity pass, then up to five gyro-deskew passes and a
 feedback check). Many clouds have no such field: Autoware concatenated clouds,
 depth-camera clouds, KITTI Velodyne, many drivers. Those used to end
-`unsupported_sensor`. `--imu-lidar-deskew` now chooses:
+`unsupported_sensor`. `--imu-lidar-deskew` now chooses (`lidar-lidar` and
+`gnss-lidar` have the same switch, see "lidar-lidar and gnss-lidar on rigid
+scans" below):
 
 | Mode | Behaviour |
 | --- | --- |
@@ -776,8 +779,108 @@ gives `fail` on `indoor_easy_01`; each known-bad re-check is served from the
 cache in about 4 s. Autoware `all-sensors-bag1` is unchanged: `imu-lidar` is
 still skipped `degenerate_frames` (cloud and IMU are both in `base_link`).
 
-`gnss-lidar` and `lidar-lidar` still require a per-point time field; rigid
-scans are implemented for `imu-lidar` only.
+### lidar-lidar and gnss-lidar on rigid scans
+
+Both pairs used the per-point time field for exactly one thing: the constant-velocity
+deskew inside LiDAR odometry (`IncrementalScanOdometry`). Neither pair reads it
+anywhere else, so a cloud without the field is a defensible input, not a missing
+one, and the same switch exists for each:
+
+| Pair | What the time field deskews | Rigid mode |
+| --- | --- | --- |
+| `lidar-lidar` | only the **reference** LiDAR's odometry, hence the map (the target scans are registered as given in both modes, so the target needs no time field at all, and `calibrex check` no longer asks for one) | `--lidar-lidar-deskew auto\|constant_velocity\|none` |
+| `gnss-lidar` | the LiDAR odometry that the GNSS track is compared with | `--gnss-lidar-deskew auto\|constant_velocity\|none` |
+
+`auto` (default) deskews with the field when the cloud has it (the default path
+is unchanged, bit-identical: the artifact options and the cache key differ only
+when rigid mode is chosen, and `options.deskew: none` plus one extra limitation
+are recorded only then) and runs rigid scans when it is absent; `none` forces
+rigid scans; `constant_velocity` requires the field and skips the pair without
+it. The pair record says which mode ran (`deskew: constant_velocity | none`;
+`gnss-imu` says `none` when either of its inputs ran rigid). `--imu-lidar-deskew`
+and `--rigid-scan-rotation-floor-deg` are unchanged and apply to `imu-lidar` only.
+
+**Measured bias** (rigid minus constant-velocity deskew; same bag, window and
+candidate; neither is ground truth; the runs were made two at a time on a shared
+8-core machine, so the runtimes are indicative):
+
+| Recording | DoF | deskewed (std) | rigid (std) | rigid - deskewed |
+| --- | --- | ---: | ---: | ---: |
+| `lidar-lidar`: NTU VIRAL tnp_01, first 240 s (239 samples; dev recording) | roll | 90.028 (0.108, unobservable) deg | 90.098 (0.106) deg | +0.070 deg |
+| | pitch | -0.525 (0.053) deg | -0.567 (0.048) deg | -0.042 deg |
+| | yaw | 179.810 (0.031) deg | 179.784 (0.037) deg | -0.026 deg |
+| | x / y / z | -510.5 / -44.0 / 52.5 (4.4 / 9.8 / 5.7) mm | -511.2 / -48.9 / 53.5 (6.2 / 8.4 / 4.4) mm | -0.7 / -4.9 / +1.1 mm |
+| | runtime, held-out chi-square control | 10.9 min | 10.0 min; every control detected except roll (delta chi-square -685) | |
+| `gnss-lidar`: RTK-SLAM stadtgarten_seq2, GNSS span 900 s (hand-held MID360, 37 / 36 windows) | x | 51.3 (10.4, unobservable) mm | 48.6 (18.4) mm | -2.7 mm |
+| | y | -2.8 (5.5) mm | 38.8 (13.7) mm | **+41.5 mm** |
+| | z | 39.9 (40.8, unobservable) mm | 34.7 (22.3) mm | -5.3 mm |
+| | time offset | -23.4 (12.1, unobservable) ms | +40.8 (4.5) ms | +64.2 ms |
+| | runtime | 12.3 min | 10.0 min | |
+| `gnss-lidar`: RTK-SLAM stadtgarten_seq1, GNSS span 600 s (45 / 46 windows) | x | 55.5 (6.4) mm | 51.3 (10.8) mm | -4.2 mm |
+| | y | -18.7 (13.6, unobservable) mm | 7.7 (11.8) mm | +26.4 mm |
+| | z | 75.1 (13.2, unobservable) mm | 65.3 (21.6) mm | -9.8 mm |
+| | time offset | -20.7 (13.3, unobservable) ms | +44.7 (2.2) ms | +65.5 ms |
+| | runtime | 15.7 min | 12.1 min | |
+
+What the numbers say:
+
+* **lidar-lidar is nearly insensitive.** The rigid reference odometry moves every
+  DoF by at most 0.07 deg and 4.9 mm, inside the deskewed run's own std on all
+  axes but roll (which is unobservable there), and the stds do not grow. This is
+  one slow platform (NTU VIRAL's UAV on tnp_01) and only the reference side is
+  affected; a fast platform was not measured and the bias grows with speed.
+* **gnss-lidar is not.** On the hand-held pole, the rigid odometry shifts the
+  lever arm's y by 26 and 42 mm (5 to 8 times the deskewed std) in the same
+  direction on both sequences, and the stds grow 1.7 to 2.5 times on the axes
+  that were estimated when deskewed (seq2 x, y; seq1 x). Rigid scans are the
+  right answer only when there is no per-point time; they are a coarse yardstick.
+* The time offset moves by +64 to +66 ms, about two thirds of a 0.1 s sweep (the
+  header stamp convention), and is reported, never judged.
+* Rigid runs were only 8 to 23 % faster, not several times faster as for
+  `imu-lidar`: here the deskew passes are cheap next to the registration itself.
+
+**Policy** (stated, not tuned per recording):
+
+* `lidar-lidar`: bias at most 0.07 deg and 5 mm with unchanged stds, so the
+  observability thresholds (0.1 deg, 0.02 m) and the known-bad controls (1 deg,
+  0.05 m) keep their defaults. Floor = largest measured bias + 3 x the largest
+  rigid std measured on an estimated axis, rounded up: rotation 0.07 + 3 x 0.106 =
+  0.39, so **0.5 deg** (equal to the default floor, it relaxes nothing);
+  translation 0.0049 + 3 x 0.0084 = 0.030 m, **0.03 m** (default 0.02 m). The
+  judge's own `3 x std` tolerance still applies on top (`max(3 std, floor)`).
+* `gnss-lidar` (and `gnss-imu`, which composes it): estimated at std <= **0.02 m**
+  (0.01 m deskewed; rigid stds measured 11 to 22 mm), the estimator's own
+  known-bad control **0.11 m**, translation floor **0.11 m** = 41.5 mm + 3 x
+  22 mm (the largest rigid std on an estimated axis) = 0.108 m, rounded up. The rotation axes are never judged for GNSS.
+  A rigid `gnss-lidar` pass therefore resolves antenna-offset errors of about
+  0.11 m and larger (`detectable_error`); it cannot separate a CAD rounding
+  from a miscalibration at 2 cm as the deskewed run can on seq1.
+* Constants live in `calibrex.check.estimators`
+  (`LIDAR_LIDAR_RIGID_*`, `GNSS_LIDAR_RIGID_*`); the CLI flags select the mode only.
+
+**Verdicts under the policy** (`--lidar-lidar-deskew none` / `--gnss-lidar-deskew
+none`, the dataset's own candidate and known-bad antenna offsets in a `--tf` copy
+of `calib.yaml`; the estimate is cached, so each known-bad re-check took 3 to 4 s):
+
+| Recording, candidate | Deskewed (default path) | Rigid |
+| --- | --- | --- |
+| NTU tnp_01 `lidar-lidar`, nominal body-transform frames | fail: pitch 0.525/0.5 [w], y 0.074/0.029 [f], z 0.0575/0.02 [f]; roll unchecked | fail: pitch 0.567/0.5 [w], y 0.079/0.03 [f], z 0.059/0.03 [w]; roll unchecked; detectable pitch 1.07 deg, yaw 0.72 deg, x 41 mm, y 109 mm, z 89 mm |
+| stadtgarten_seq2 `gnss-lidar`, CAD offset | pass (partial: y 0.0028/0.02 m); x, z unchecked | pass (partial: x 0.015/0.11, y 0.039/0.11 m); z unchecked; detectable x 0.125, y 0.149 m |
+| seq2, antenna y +15 cm | **fail** (y 15.3 cm) | warn (y 0.111/0.11 m) |
+| seq2, antenna x +15 cm | pass, x unchecked | warn (x 0.135/0.11 m) |
+| stadtgarten_seq1 `gnss-lidar`, CAD offset | warn (partial: x 0.0215/0.02 m); y, z unchecked | pass (partial: x 0.017/0.11, y 0.008/0.11 m); z unchecked; detectable x 0.127, y 0.118 m |
+| seq1, antenna y +15 cm | not judged (y unchecked) | warn (y 0.142/0.11 m) |
+| seq1, antenna x +15 cm | **fail** (x 12.9 cm) | warn (x 0.133/0.11 m) |
+
+Reading it: a rigid `gnss-lidar` cannot tell a 15 cm antenna error from a 11 cm
+one and never reaches `fail` below 22 cm; it also hides the 2 cm CAD-versus-estimate
+tension that the deskewed run reports on seq1. In exchange it judges y and x on
+recordings where the deskewed run left them unobservable (seq1 y, seq2 x), which
+is how a 15 cm error becomes a `warn` there instead of nothing. For `lidar-lidar` the
+rigid verdict on tnp_01 reproduces the deskewed pitch and y calls and softens z
+from `fail` to `warn`, because its tolerance floor (3 cm) is above the deskewed
+run's 2 cm. Nothing here claims rigid mode matches the deskewed path on fast
+platforms: tnp_01 is a slow UAV and was the only `lidar-lidar` recording measured.
 
 ## Phase B results on real recordings
 
@@ -939,7 +1042,7 @@ Bugs found by this exercise (all fixed, with unit tests):
 | `imu-lidar` | skipped `degenerate_frames` (both in `base_link`) | (before the fix: `unsupported_sensor`, no per-point time) |
 | `camera-imu` x3 | planned (camera link / `base_link`) | inconclusive, `no_judgeable_axes`: roll/pitch/yaw std 15-46 deg over 36 s |
 | `camera-focal` | planned | `method_not_wired` when this run was made; with `camera-focal` wired it is skipped `missing_dependency` (camera-imu is inconclusive) |
-| `gnss-lidar`, `gnss-imu` | skipped `frame_not_in_tree` (`POS_REF`) | with `--frame-map /gnss/fix=gnss_ins_link`: skipped `unsupported_sensor` (cloud has no per-point time) |
+| `gnss-lidar`, `gnss-imu` | skipped `frame_not_in_tree` (`POS_REF`) | with `--frame-map /gnss/fix=gnss_ins_link`: before, skipped `unsupported_sensor` (cloud has no per-point time); now planned and run on rigid scans, ends `inconclusive` (`estimator_failed`: too few GNSS-covered windows in 36 s), 13 s |
 | `lidar-vehicle`, `imu-vehicle` | skipped `degenerate_frames` | (before the fix: `lidar-vehicle` inconclusive in 98 s, no axis constrained) |
 | `lidar-lidar`, `ins-lidar`, `lidar-wheel_odometry` | skipped `missing_topic` | - |
 
@@ -954,7 +1057,7 @@ refuses to judge rather than passing or failing. Whether the verdict would flip 
 recording was not tested.
 
 Limitations: the 36 s bag is too short for the camera and GNSS estimators; the
-concatenated cloud has no per-point time, so no LiDAR pair is solvable; because
+concatenated cloud has no per-point time, so `imu-lidar` is degenerate (cloud and IMU both in `base_link`), `lidar-lidar` has one cloud, and `gnss-lidar` (rigid scans, with `--frame-map`) has too little RTK-grade coverage in 36 s; because
 the cloud and the IMU are in `base_link`, the physical Velodyne and IMU
 extrinsics are not checkable from this bag at all. The IMU "frame" of
 `camera-imu` is `base_link`, i.e. the check compares the camera with the
@@ -1008,9 +1111,11 @@ per-point time" above.
 
 ### Remaining gaps
 
-- Per-point time is mandatory for `lidar-lidar` and `gnss-lidar`. `imu-lidar` runs
-  clouds without it as rigid scans (see "Clouds without per-point time"); the
-  Autoware concatenated cloud has none and is skipped `degenerate_frames` there.
+- Per-point time is optional: `imu-lidar`, `lidar-lidar` and `gnss-lidar` run clouds
+  without it as rigid scans (see "Clouds without per-point time"). The Autoware
+  concatenated cloud has none: `imu-lidar` is skipped `degenerate_frames` there,
+  `lidar-lidar` has one cloud, and `gnss-lidar` (with `--frame-map`) is
+  `inconclusive` on 36 s of data. No real bag here newly became judgeable.
 - No bag here has the length or motion to give a verdict: the real-bag verdict
   tables remain the Phase B/C results above.
 - `CompressedImage` cameras remain `unsupported_sensor` (none of these bags had

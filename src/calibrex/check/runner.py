@@ -182,6 +182,10 @@ class CheckRunOptions:
     imu_lidar_deskew: Literal["auto", "gyro", "none"] = "auto"
     """imu-lidar deskew: auto = per-point time when the cloud has it, rigid scans otherwise."""
     rigid_scan_rotation_floor_deg: float = RIGID_SCAN_ROTATION_FLOOR_DEG
+    lidar_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
+    """lidar-lidar: auto = per-point time when the reference cloud has it, rigid scans otherwise."""
+    gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
+    """gnss-lidar: auto = per-point time when the cloud has it, rigid scans otherwise."""
     evidence_dir: Path | None = None
     base_dir: Path | None = None
     cache_dir: Path | None = None
@@ -290,6 +294,8 @@ def build_calibration_check(
             acceleration_unit=run.acceleration_unit,
             imu_lidar_deskew=run.imu_lidar_deskew,
             rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
+            lidar_lidar_deskew=run.lidar_lidar_deskew,
+            gnss_lidar_deskew=run.gnss_lidar_deskew,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
@@ -400,6 +406,8 @@ def _run_pairs(
         acceleration_unit=run.acceleration_unit,
         imu_lidar_deskew=run.imu_lidar_deskew,
         rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
+        lidar_lidar_deskew=run.lidar_lidar_deskew,
+        gnss_lidar_deskew=run.gnss_lidar_deskew,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
         bag_sha256=bag_sha256,
@@ -742,6 +750,32 @@ def _closure_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     return lines
 
 
+def _rigid_summary(pair: str, artifact: CalibrationCheckArtifact) -> str:
+    """The summary line of a pair whose LiDAR scans were treated as rigid."""
+
+    if pair == "imu-lidar":
+        floor = (
+            artifact.options.rigid_scan_rotation_floor_deg
+            if artifact.options is not None
+            and artifact.options.rigid_scan_rotation_floor_deg is not None
+            else RIGID_SCAN_ROTATION_FLOOR_DEG
+        )
+        floors = f"rotation floor {floor:g} deg"
+    elif pair == "lidar-lidar":
+        floors = (
+            f"rotation floor {estimators.LIDAR_LIDAR_RIGID_ROTATION_FLOOR_DEG:g} deg, "
+            f"translation floor {estimators.LIDAR_LIDAR_RIGID_TRANSLATION_FLOOR_M:g} m"
+        )
+    else:
+        floors = f"translation floor {estimators.GNSS_LIDAR_RIGID_TRANSLATION_FLOOR_M:g} m"
+    clock = (
+        "; the time offset includes the driver's scan-stamp convention"
+        if pair != "lidar-lidar"
+        else ""
+    )
+    return f"scans treated as rigid (deskew none): {floors}{clock}"
+
+
 def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     lines: list[str] = []
     rows: list[list[str]] = []
@@ -804,16 +838,7 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
         if pair.status != "skipped" and pair.reason:
             lines.append(f"  {pair.pair}: {pair.reason}")
         if pair.deskew == "none":
-            floor = (
-                artifact.options.rigid_scan_rotation_floor_deg
-                if artifact.options is not None
-                else None
-            )
-            lines.append(
-                f"  {pair.pair}: scans treated as rigid (deskew none): rotation floor "
-                f"{floor if floor is not None else RIGID_SCAN_ROTATION_FLOOR_DEG:g} deg; "
-                "the time offset includes the driver's scan-stamp convention"
-            )
+            lines.append(f"  {pair.pair}: {_rigid_summary(pair.pair, artifact)}")
         if pair.time_offset is not None:
             lines.append(
                 f"  {pair.pair}: time offset {pair.time_offset.estimate_s * 1e3:.2f} ms "

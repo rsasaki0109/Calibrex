@@ -2983,6 +2983,22 @@ def _build_parser() -> argparse.ArgumentParser:
         "fast rotation); gyro requires the field",
     )
     check.add_argument(
+        "--lidar-lidar-deskew",
+        choices=["auto", "constant_velocity", "none"],
+        default="auto",
+        help="lidar-lidar: auto (default) deskews the reference LiDAR's odometry with its "
+        "per-point time field and treats a reference cloud without one as rigid scans; none "
+        "forces rigid scans (biased at speed); constant_velocity requires the field",
+    )
+    check.add_argument(
+        "--gnss-lidar-deskew",
+        choices=["auto", "constant_velocity", "none"],
+        default="auto",
+        help="gnss-lidar: auto (default) deskews the LiDAR odometry with the cloud's "
+        "per-point time field and treats clouds without one as rigid scans; none forces "
+        "rigid scans (biased at speed); constant_velocity requires the field",
+    )
+    check.add_argument(
         "--rigid-scan-rotation-floor-deg",
         type=_positive_float,
         default=None,
@@ -4176,6 +4192,8 @@ def _cmd_check(args: argparse.Namespace) -> int:
             imu_lidar_translation=not args.no_imu_lidar_translation,
             acceleration_unit=args.acceleration_unit,
             imu_lidar_deskew=args.imu_lidar_deskew,
+            lidar_lidar_deskew=args.lidar_lidar_deskew,
+            gnss_lidar_deskew=args.gnss_lidar_deskew,
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None

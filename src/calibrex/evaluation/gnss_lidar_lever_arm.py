@@ -76,6 +76,14 @@ RTK_SLAM_LIMITATIONS: tuple[str, ...] = (
 )
 
 
+RIGID_SCAN_LIMITATIONS: tuple[str, ...] = (
+    "LiDAR scans were treated as rigid snapshots (deskew: none): the odometry that the "
+    "GNSS track is compared with is not corrected for motion during the sweep, so the "
+    "lever arm and the clock offset are biased by an amount that grows with the platform's "
+    "speed and turn rate.",
+)
+
+
 @dataclass(frozen=True)
 class GnssLidarRunOptions:
     """Segmentation, holdout, controls, and solver settings."""
@@ -89,6 +97,10 @@ class GnssLidarRunOptions:
     coverage_margin_s: float = 0.3
     min_correspondences: int = 200
     max_registration_rmse_m: float = 0.3
+    # "constant_velocity": the LiDAR odometry deskews each sweep with the cloud's
+    # per-point time.  "none": rigid scans (every scan point-time offset is dropped),
+    # for clouds without a per-point time field.
+    deskew: Literal["constant_velocity", "none"] = "constant_velocity"
     solver: LeverArmOptions = field(default_factory=LeverArmOptions)
     odometry: ScanOdometryOptions = field(
         default_factory=lambda: ScanOdometryOptions(
@@ -135,12 +147,15 @@ def collect_windows(
     """Stream scans once, keeping odometry only where the GNSS track covers them."""
 
     margin = options.coverage_margin_s
+    stream: Iterable[ScanItem] = scans
+    if options.deskew == "none":
+        stream = ((item[0], item[1], None) for item in scans)
 
     def covers(time_s: float) -> bool:
         return track.continuous(time_s - margin, time_s + margin)
 
     return collect_odometry_windows(
-        scans,
+        stream,
         windowing_options(options),
         covers=covers,
         prefix=prefix,
@@ -368,6 +383,7 @@ def build_gnss_lidar_artifact(
             "observable_time_offset_std_s": solver.observable_time_offset_std_s,
             "local_map_scans": options.odometry.local_map_scans,
             "voxel_size_m": options.odometry.voxel_size_m,
+            **({"deskew": "none"} if options.deskew == "none" else {}),
         },
         segments=segments,
         train_windows=evaluation.train_windows,

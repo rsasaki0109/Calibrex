@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **`calibrex check` runs `lidar-lidar` and `gnss-lidar` on clouds without
+  per-point time** as rigid scans, like `imu-lidar` (#99). Both pairs used the
+  field only to deskew LiDAR odometry (`lidar-lidar`: the reference LiDAR's map;
+  the target scans were never deskewed, so the target no longer needs the field;
+  `gnss-lidar`: the odometry compared with GNSS), so rigid scans are defensible.
+  `--lidar-lidar-deskew` and `--gnss-lidar-deskew` `auto|constant_velocity|none`
+  (default `auto`: the field when present, bit-identical default path; rigid
+  otherwise or when forced). `LidarLidarMapOptions.deskew` and
+  `GnssLidarRunOptions.deskew`; artifacts record `options.deskew: none` and a
+  limitation only in rigid mode. Measured rigid minus deskewed: lidar-lidar on
+  NTU VIRAL tnp_01 at most 0.07 deg and 5 mm (stds unchanged); gnss-lidar on
+  RTK-SLAM stadtgarten_seq2/seq1 y +41.5/+26.4 mm, x -2.7/-4.2 mm, z -5.3/-9.8 mm,
+  time offset +64 ms, stds 1.7 to 2.5 times larger. Policy: lidar-lidar floors
+  0.5 deg / 0.03 m with default thresholds; gnss-lidar (and gnss-imu) estimated at
+  std <= 2 cm, control and translation floor 0.11 m. Optional schema fields:
+  `CheckOptions.lidar_lidar_deskew`, `gnss_lidar_deskew`; `CheckPairRecord.deskew`
+  also takes `constant_velocity` (`slac.calibration_check/v0.1` unchanged). No
+  real bag we hold newly becomes judgeable (Autoware: one concatenated cloud in
+  `base_link`, `gnss-lidar` with `--frame-map` is `inconclusive` on 36 s; Koide:
+  one cloud, no GNSS). See the tutorial section "lidar-lidar and gnss-lidar on
+  rigid scans".
 - **`calibrex check` wires `camera-focal`**: the deployed focal lengths (Kalibr
   camchain or `CameraInfo`) are judged against the gyro as a scale
   `s = f_estimate / f_candidate`, `|s - 1|` against `max(k * std, floor)` with the

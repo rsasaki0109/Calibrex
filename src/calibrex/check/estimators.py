@@ -113,8 +113,8 @@ class EstimatorRun:
     compared: FloatArray
     time_offset: CheckTimeOffset | None = None
     notes: tuple[str, ...] = ()
-    deskew: Literal["gyro", "none"] | None = None
-    """imu-lidar: how the scans were deskewed (``none`` = rigid scans)."""
+    deskew: Literal["gyro", "constant_velocity", "none"] | None = None
+    """LiDAR pairs: how the scans were deskewed (``none`` = rigid scans)."""
     focal: FocalRecord | None = None
     """camera-focal: the focal-length estimates (the pair is judged on these, not on axes)."""
 
@@ -138,6 +138,8 @@ class RunControls:
     acceleration_unit: Literal["mps2", "g"] = "mps2"
     imu_lidar_deskew: Literal["auto", "gyro", "none"] = "auto"
     rigid_scan_rotation_floor_deg: float = RIGID_SCAN_ROTATION_FLOOR_DEG
+    lidar_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
+    gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
     progress: Callable[[str], None] = field(default=lambda message: None)
     cache: EstimatorCache | None = None
     bag_sha256: str = ""
@@ -357,16 +359,6 @@ def classify_point_time(values: Any, header_ns: int) -> PointTimeEncoding | None
     return None
 
 
-def _point_time_or_skip(bag: Path, topic: str) -> tuple[str, PointTimeEncoding]:
-    spec = detect_point_time(bag, topic)
-    if spec is None:
-        raise CheckSkipError(
-            "unsupported_sensor",
-            f"{topic} has no usable per-point time field, so its scans cannot be deskewed",
-        )
-    return spec
-
-
 RIGID_SCAN_OBSERVABLE_ROTATION_STD_DEG = 0.3
 """Largest reported rotation std of a rigid-scan axis still called estimated.
 
@@ -418,6 +410,33 @@ def select_imu_lidar_deskew(
             "unsupported_sensor",
             f"{topic} has no usable per-point time field, so its scans cannot be deskewed "
             "(--imu-lidar-deskew none treats them as rigid scans)",
+        )
+    return "none", None
+
+
+def select_odometry_deskew(
+    bag: Path,
+    topic: str,
+    mode: Literal["auto", "constant_velocity", "none"],
+    flag: str,
+) -> tuple[Literal["constant_velocity", "none"], tuple[str, PointTimeEncoding] | None]:
+    """Choose how a LiDAR-odometry pair treats ``topic``: per-point-time deskew or rigid scans.
+
+    ``auto`` uses the per-point time field whenever the cloud has one and falls
+    back to rigid scans only when it has none; ``none`` forces rigid scans;
+    ``constant_velocity`` requires the field and skips the pair without it.
+    """
+
+    if mode == "none":
+        return "none", None
+    spec = detect_point_time(bag, topic)
+    if spec is not None:
+        return "constant_velocity", spec
+    if mode == "constant_velocity":
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"{topic} has no usable per-point time field, so its scans cannot be deskewed "
+            f"({flag} none treats them as rigid scans)",
         )
     return "none", None
 
@@ -613,6 +632,41 @@ def _unestimated(
 # --------------------------------------------------------------- lidar-lidar
 
 
+LIDAR_LIDAR_RIGID_ROTATION_FLOOR_DEG = 0.5
+"""Rotation floor of lidar-lidar on rigid reference scans.
+
+Measured rigid-minus-deskewed bias on NTU VIRAL tnp_01 was at most 0.07 deg and the
+reported stds did not grow, so the observability threshold (0.1 deg) and the
+known-bad controls keep their default values. Largest bias + 3 x the largest
+rigid std (0.106 deg) = 0.39 deg, rounded up to 0.5 deg, which is the default floor.
+"""
+LIDAR_LIDAR_RIGID_TRANSLATION_FLOOR_M = 0.03
+"""Translation floor of lidar-lidar on rigid reference scans.
+
+Largest measured bias 4.9 mm + 3 x the largest rigid std (8.4 mm) = 0.030 m.
+"""
+
+
+def lidar_lidar_run_options(deskew: Literal["constant_velocity", "none"]) -> Any:
+    """Estimator options of the lidar-lidar adapter for a deskew mode."""
+
+    from calibrex.evaluation.lidar_lidar_map import LidarLidarMapOptions
+
+    return LidarLidarMapOptions(deskew=deskew)
+
+
+def _rigid_note(mode: str, flag: str, topic: str) -> str:
+    why = (
+        f"the cloud {topic} has no per-point time field"
+        if mode == "auto"
+        else f"forced by {flag} none"
+    )
+    return (
+        f"deskew none: {why}; scans are treated as rigid snapshots (no motion correction) "
+        "and the axes use the rigid-scan floors"
+    )
+
+
 def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
     """``T_reference_target`` by map registration, started from the candidate."""
 
@@ -620,8 +674,17 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
 
     reference_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("first", ()))
     target_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("second", ()))
-    ref_field, ref_encoding = _point_time_or_skip(ctx.bag, reference_topic)
-    tgt_field, tgt_encoding = _point_time_or_skip(ctx.bag, target_topic)
+    # Only the reference odometry deskews (the target scans are registered as given),
+    # so only the reference cloud needs a per-point time field.
+    deskew, ref_time = select_odometry_deskew(
+        ctx.bag, reference_topic, ctx.controls.lidar_lidar_deskew, "--lidar-lidar-deskew"
+    )
+    rigid = deskew == "none"
+    ref_field: str | None = None
+    ref_encoding: PointTimeEncoding = "offset_s"
+    if ref_time is not None:
+        ref_field, ref_encoding = ref_time
+    options = lidar_lidar_run_options(deskew)
     ctx.controls.progress(f"lidar-lidar: {reference_topic} -> {target_topic}")
     artifact = run_ros2_lidar_lidar_map(
         ctx.bag,
@@ -630,8 +693,10 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
         initial=ctx.candidate,
         point_time_field=ref_field,
         point_time_encoding=ref_encoding,
-        target_point_time_field=tgt_field,
-        target_point_time_encoding=tgt_encoding,
+        # the target's own time field is never used: it is read as the reference's
+        target_point_time_field=None,
+        target_point_time_encoding=ref_encoding,
+        options=options,
         dataset_family=DATASET_FAMILY,
         dataset_license=DATASET_LICENSE,
         reference_transform=ctx.candidate,
@@ -640,8 +705,10 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
         command=["calibrex", "check", str(ctx.bag), "lidar-lidar", reference_topic, target_topic],
     )
     notes = [
-        f"per-point time: {reference_topic} field '{ref_field}' ({ref_encoding}), "
-        f"{target_topic} field '{tgt_field}' ({tgt_encoding})",
+        _rigid_note(ctx.controls.lidar_lidar_deskew, "--lidar-lidar-deskew", reference_topic)
+        if rigid
+        else f"per-point time: {reference_topic} field '{ref_field}' ({ref_encoding}) deskews "
+        "the reference odometry; the target scans are registered as given",
         "the solver starts at the candidate; a candidate far outside the capture range "
         "of the registration is reported through the held-out residual, not a large delta",
     ]
@@ -657,6 +724,16 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
             ctx.candidate[:3, 3],
             estimate[:3, 3],
         )
+        if rigid:
+            estimates = [
+                replace(
+                    item,
+                    floor=LIDAR_LIDAR_RIGID_ROTATION_FLOOR_DEG
+                    if item.unit == "deg"
+                    else LIDAR_LIDAR_RIGID_TRANSLATION_FLOOR_M,
+                )
+                for item in estimates
+            ]
     if artifact.reference_holdout_delta_chi2 is not None:
         notes.append(
             "held-out chi-square increase when the candidate replaces the estimate: "
@@ -671,6 +748,7 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
         estimates=tuple(estimates),
         compared=ctx.candidate,
         notes=tuple(notes),
+        deskew=deskew,
     )
 
 
@@ -1636,6 +1714,44 @@ def _iter_scans_plain(bag: Path, profile: Any, max_seconds: float | None) -> Any
     return iter_livox_points(bag, profile, max_seconds=max_seconds)
 
 
+GNSS_LIDAR_RIGID_TRANSLATION_FLOOR_M = 0.11
+"""Translation floor of gnss-lidar (and gnss-imu) on rigid scans.
+
+Largest measured rigid-minus-deskewed bias 41.5 mm (RTK-SLAM stadtgarten_seq2, y)
+plus three times the largest rigid std measured on an estimated axis (22 mm)
+= 0.108 m, rounded up to 0.11 m (the observability threshold below, 3 x 20 mm, gives
+0.1015 m, the same after rounding).
+"""
+GNSS_LIDAR_RIGID_OBSERVABLE_TRANSLATION_STD_M = 0.02
+"""Largest reported std of a rigid-scan lever-arm axis still called estimated.
+
+Twice the deskewed 0.01 m: the rigid stds measured 11 to 22 mm against 5 to 41 mm.
+"""
+GNSS_LIDAR_RIGID_CONTROL_M = GNSS_LIDAR_RIGID_TRANSLATION_FLOOR_M
+"""The estimator's own known-bad shift must be detectable at the size of the floor."""
+
+
+def gnss_lidar_run_options(deskew: Literal["constant_velocity", "none"]) -> Any:
+    """Estimator options of the gnss-lidar adapter for a deskew mode."""
+
+    from dataclasses import replace as dc_replace
+
+    from calibrex.evaluation.gnss_lidar_lever_arm import GnssLidarRunOptions
+
+    options = GnssLidarRunOptions()
+    if deskew == "constant_velocity":
+        return options
+    return dc_replace(
+        options,
+        deskew="none",
+        lever_arm_control_m=GNSS_LIDAR_RIGID_CONTROL_M,
+        solver=dc_replace(
+            options.solver,
+            observable_translation_std_m=GNSS_LIDAR_RIGID_OBSERVABLE_TRANSLATION_STD_M,
+        ),
+    )
+
+
 def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
     """Antenna lever arm in the LiDAR frame from GNSS positions against LiDAR odometry.
 
@@ -1656,8 +1772,8 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
     from calibrex.data.navsatfix_track import NavSatFixTrackOptions, read_navsatfix_track
     from calibrex.data.rosbag2 import NAVSATFIX_TYPE
     from calibrex.evaluation.gnss_lidar_lever_arm import (
+        RIGID_SCAN_LIMITATIONS,
         RTK_SLAM_LIMITATIONS,
-        GnssLidarRunOptions,
         build_gnss_lidar_artifact,
         collect_windows,
         evaluate_gnss_lidar_lever_arm,
@@ -1676,7 +1792,14 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
             "sensor_msgs/NavSatFix",
         )
     lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
-    field_name, encoding = _point_time_or_skip(ctx.bag, lidar_topic)
+    deskew, point_time = select_odometry_deskew(
+        ctx.bag, lidar_topic, ctx.controls.gnss_lidar_deskew, "--gnss-lidar-deskew"
+    )
+    rigid = deskew == "none"
+    field_name: str | None = None
+    encoding: PointTimeEncoding = "offset_s"
+    if point_time is not None:
+        field_name, encoding = point_time
     profile = LivoxStreamProfile(
         name=f"ros2-pointcloud2:{lidar_topic}",
         point_topic=lidar_topic,
@@ -1687,7 +1810,7 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
     )
     lever_candidate = invert_transform(ctx.candidate)[:3, 3]  # antenna in the LiDAR frame
     track_options = NavSatFixTrackOptions()
-    run_options = GnssLidarRunOptions()
+    run_options = gnss_lidar_run_options(deskew)
     max_seconds = (
         ctx.controls.gnss_max_duration_s
         if ctx.controls.gnss_max_duration_s is not None
@@ -1746,6 +1869,7 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
             reference="deployed candidate calibration (antenna position in the LiDAR frame)",
             limitations=(
                 *RTK_SLAM_LIMITATIONS[1:],
+                *(RIGID_SCAN_LIMITATIONS if rigid else ()),
                 "GNSS fixes come from the bag's NavSatFix topic; usable fixes are those with "
                 "status >= 0 and a 3-D std (sqrt of the covariance trace) of at most "
                 f"{track_options.max_sigma_m:g} m.",
@@ -1781,6 +1905,13 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
             estimates = [
                 item if item.unit == "deg" else _unestimated(item, reason) for item in estimates
             ]
+        elif rigid:
+            estimates = [
+                item
+                if item.unit == "deg"
+                else replace(item, floor=GNSS_LIDAR_RIGID_TRANSLATION_FLOOR_M)
+                for item in estimates
+            ]
     segments = artifact.segments
     return EstimatorRun(
         estimator=artifact.method,
@@ -1798,9 +1929,15 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
         estimates=tuple(estimates),
         compared=invert_transform(ctx.candidate),
         time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s),
+        deskew=deskew,
         notes=(
-            f"GNSS from NavSatFix {gnss_topic}; per-point time: field '{field_name}' read "
-            f"as {encoding}",
+            f"GNSS from NavSatFix {gnss_topic}; "
+            + (
+                _rigid_note(ctx.controls.gnss_lidar_deskew, "--gnss-lidar-deskew", lidar_topic)
+                + "; the time offset includes the driver's scan-stamp convention"
+                if rigid
+                else f"per-point time: field '{field_name}' read as {encoding}"
+            ),
             f"{segments.windows} odometry windows in RTK-grade GNSS coverage "
             f"({segments.scans_in_gnss_coverage} of {segments.scans_read} scans, "
             f"{segments.gnss_epochs_used} usable fixes)",
@@ -1901,6 +2038,7 @@ def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
             command=["calibrex", "check", str(ctx.bag), "gnss-imu"],
         )
     by_axis = {item.name: item for item in composed.axes}
+    rigid = "none" in (gnss_run.deskew, imu_run.deskew)
     estimates = _unjudged_rotation_axes()
     xyz: tuple[Literal["x", "y", "z"], ...] = ("x", "y", "z")
     for index, name in enumerate(xyz):
@@ -1920,6 +2058,7 @@ def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
                     "it depends on is not constrained"
                 ),
                 None if observable else "unobservable",
+                GNSS_LIDAR_RIGID_TRANSLATION_FLOOR_M if rigid else None,
             )
         )
     return EstimatorRun(
@@ -1930,6 +2069,7 @@ def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
         policy_reasons=tuple(composed.policy_reasons),
         estimates=tuple(estimates),
         compared=invert_transform(ctx.candidate),
+        deskew="none" if rigid else None,
         notes=(
             f"composed from this check's gnss-lidar and imu-lidar evidence (LiDAR {lidar}); "
             "its std assumes independent inputs",
