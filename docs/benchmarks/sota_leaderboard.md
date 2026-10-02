@@ -6,7 +6,7 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-10-01, **two pairs have supported SOTA claims**:
+As of 2026-10-02, **two pairs have supported SOTA claims**:
 
 - **`imu-lidar`** (Livox MID360, against LI-Init):
   - rotation and clock offset;
@@ -20,12 +20,15 @@ See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md) and
 for the scope of each claim and what it does not claim. Every other target
 pair has a native method but no audited claim yet, except `lidar-lidar`, whose
 pre-registered audit was refuted
-([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
+([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)),
+and `camera-imu`, whose pre-registered audit was also refuted (6/7 gates; the
+`constrained` gate failed on the shortest recording,
+[Hilti camera-IMU](hilti_camera_imu.md#pre-registered-audit-refuted)).
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
 | `camera` | no_claim | 0 | 0 | 0 | yes |
-| `camera-imu` | no_claim | 0 | 0 | 0 | yes |
+| `camera-imu` | refuted | 0 | 1 | 0 | yes |
 | `camera-lidar` | no_claim | 0 | 0 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
@@ -37,6 +40,7 @@ pre-registered audit was refuted
 
 | Pair | Category | Quantities | Verdict | Gates (achieved/total) | Protocol |
 | --- | --- | --- | --- | --- | --- |
+| `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 6/7 | `hilti-camera-imu-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |

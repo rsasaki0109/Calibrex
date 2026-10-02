@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **A pre-registered `camera-imu` audit is refuted** on four unseen Hilti 2022
+  recordings (`hilti-camera-imu-v1`, 6/7 gates).
+  - Against Kalibr, the forward cameras (cam0, cam1) are within 0.70 deg and
+    0.33 ms on every unit, reproduce across recordings to 0.43 deg, and
+    reproduce the Kalibr cam0-to-cam1 rotation to 0.41 deg (all gates pass).
+  - The `constrained` gate fails: on the shortest recording (exp04, 126 s)
+    one or two axes of both cameras are unobservable at the 0.3 deg bound.
+  - Development was exp21 and exp07 only; exp01-exp04 are now spent.
+  - Tools: `tools/score_hilti_camera_imu.py`,
+    `tools/build_hilti_camera_imu_audit.py`.
 - **`calibrex check` runs `lidar-lidar` and `gnss-lidar` on clouds without
   per-point time** as rigid scans, like `imu-lidar` (#99). Both pairs used the
   field only to deskew LiDAR odometry (`lidar-lidar`: the reference LiDAR's map;

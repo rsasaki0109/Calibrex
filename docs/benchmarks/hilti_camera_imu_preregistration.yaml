@@ -1,0 +1,228 @@
+# Pre-registration of the Hilti 2022 camera-IMU rotation audit.
+# It is binding once committed; its SHA-256 is cited by the audit protocol, and
+# camera-imu is run on an evaluation recording only after this commit.
+#
+# Written on 2026-10-02.  Calibrex's camera-IMU method (calibrex camera-imu
+# rotation, with the static-window exclusion and 0.3 deg camera observability
+# bound of PR #88) and every threshold below were developed on exp21 and exp07
+# only.  exp01-exp04 have not been tracked, integrated, or scored by any
+# Calibrex estimator.  The audit protocol may not change any threshold, metric,
+# recording, camera, or requirement listed here.
+#
+# This is an accuracy-against-a-reference audit (like the KITTI LiDAR-vehicle
+# audit), not a "beats a baseline" audit: no targetless external camera-IMU
+# baseline is available (OpenVINS / VINS are not integrated).  The reference is
+# Hilti's target-based Kalibr calibration, which is itself a calibration with
+# error, not ground truth.
+claim: >-
+  On four Hilti 2022 recordings not used to develop the method (exp01, exp02,
+  exp03, exp04), Calibrex's targetless camera-IMU rotation for the two forward
+  Alphasense cameras (cam0, cam1) agrees with Hilti's Kalibr calibration to
+  within 1.0 deg in rotation angle and 0.5 ms in clock offset, is constrained
+  by the data on all three rotation axes, reproduces across recordings to
+  within 0.75 deg, and reproduces the Kalibr cam0-to-cam1 relative rotation
+  (in which a rig-level IMU-frame offset cancels) to within 0.5 deg.
+  The claim covers the forward cameras only; the side and down cameras
+  (cam2-cam4) are neither claimed nor gated.
+scope:
+  modalities: [camera, imu]
+  quantities: [rotation, time_offset]
+  category: targetless_camera_imu
+recordings:
+  evaluation: [exp01, exp02, exp03, exp04]
+  development_only: [exp21, exp07]
+  cameras_gated: [cam0, cam1]
+  cameras_reported_not_gated: [cam2, cam3, cam4]
+  bag_metadata_checked: >-
+    metadata.yaml only (no image or IMU data read): durations 227.7, 430.3,
+    309.5, 125.8 s; per recording the camera topics hold 9108/17211/12379/5029
+    images (cam0) and /alphasense/imu holds 90917/171801/123557/50198 samples
+    (about 40 Hz and 399 Hz).
+methods:
+  calibrex_native: >-
+    calibrex camera-imu rotation, run separately on each evaluation recording
+    and each gated camera with the recipe in run_recipe, with the camera's
+    intrinsics from the Kalibr camchain and /alphasense/imu.  The camchain's
+    T_cam_imu and timeshift_cam_imu are not an input of the estimator; the
+    estimator records them only as a comparison and the scorer reads them.
+  kalibr_reference: >-
+    T_cam_imu and timeshift_cam_imu of calib_3_cam0-1-camchain-imucam.yaml.
+    Reported as the reference, not gated as a method.
+run_recipe:
+  frozen_code_commit_note: >-
+    Run from a checkout whose tools/ and src/ equal frozen_code_commit; the
+    commit that adds this file changes docs only.
+  environment:
+    python: "3.12.3"
+    calibrex_version: "0.5.0 (the .venv of this repository, installed editable at the frozen commit)"
+    opencv: "4.14.0 (cv2.__version__)"
+    numpy: "2.5.2"
+    scipy: "1.18.0"
+    git_commit: frozen_code_commit
+  command_per_unit: >-
+    calibrex camera-imu rotation $HILTI/exp0N_ros2
+    --camchain $HILTI/calibration_files/calib_3_cam0-1-camchain-imucam.yaml
+    --camera camK --imu-topic /alphasense/imu
+    --image-topic /alphasense/camK/image_raw --frame-stride 4
+    --min-window-rotation-deg 1.0 --observable-rotation-std-deg 0.3
+    --dataset-family hilti2022 --dataset-license "Hilti SLAM Challenge 2022 terms"
+    --output $OUT/camK_exp0N.yaml
+  per_unit_values: >-
+    N in 1, 2, 3, 4 and K in 0, 1: eight commands.  $HILTI is the dataset
+    directory, which holds exp0N_ros2 and calibration_files; --camera selects
+    the camchain key cam0 or cam1 of the shared file.
+  defaults_relied_on: >-
+    CLAHE, 600 features at quality 0.001, 10 s windows, every third window
+    held out, an 8-group jackknife, 1 deg and 10 ms known-bad controls,
+    pairs 1 step.  The two options passed explicitly equal the camera defaults
+    and are checked by the scorer against the artifact.
+  scorer: >-
+    python tools/score_hilti_camera_imu.py MANIFEST.json OUT_DIR, run
+    unchanged from the frozen commit.  MANIFEST.json lists the eight artifacts
+    (null for an estimator exception) and the camchain of each camera; cam2-cam4
+    may be added and are reported, never gated.  The audit is then assembled
+    with python tools/build_hilti_camera_imu_audit.py SCORES.json
+    docs/benchmarks/hilti_camera_imu_preregistration.yaml OUT_DIR, whose
+    benchmark metrics and requirement thresholds are fixed at the frozen commit
+    and mirror the requirements below.
+  rerun_policy: >-
+    A unit is run once.  A rerun is allowed only when the process failed
+    before writing an artifact (killed, out of memory, I/O error), with the same command.
+    Every artifact and every failed attempt is kept and listed in the audit.
+scoring:
+  per_unit: one unit is one gated camera on one recording (8 units)
+  tolerance: >-
+    every "<=" gate holds when the value is at most the threshold plus 1e-9
+    (round-off of the rotation arithmetic); the dev metrics are unaffected.
+  metric_rotation_error: >-
+    the geodesic angle (deg) of R_est R_ref^T, with R the 3x3 rotation block of
+    T_cam_imu and R_est that of the artifact's rotation_quat_xyzw
+  metric_time_error: >-
+    (time_offset_s of the artifact - Kalibr timeshift_cam_imu) in ms, gated in
+    absolute value; both follow t_imu = t_cam + dt
+  metric_constrained: >-
+    the artifact's roll, pitch and yaw records all have status "estimated" and
+    std_reported <= 0.3 deg, and at least 2 of the 3 known_bad_control (1 deg)
+    records of roll, pitch and yaw have detected = true
+  metric_consistency: >-
+    per camera, the maximum over all pairs of scored evaluation recordings of
+    the geodesic angle (deg) between the two estimated T_cam_imu rotations
+    (the spread of the estimates, not an angle to Kalibr); undefined with fewer
+    than two scored recordings
+  metric_relative: >-
+    per recording scored for both cameras, the geodesic angle (deg) of
+    (R_est_cam0 R_est_cam1^T)(R_ref_cam0 R_ref_cam1^T)^T
+  usable_unit: >-
+    a unit is usable only if at least 8 windows remain after static-window
+    exclusion (train_windows + holdout_windows of the artifact) and at most 25
+    percent of its tracked frame pairs fail (sum of options.visual_rotation
+    failed over sum of pairs); otherwise it is inconclusive, never a pass or a
+    fail, and it has no metrics
+  scored_recording: a recording is scored for both cameras when both of its gated units are scored
+failure_policy: >-
+  a unit is failed when its artifact is missing or unreadable (an estimator
+  exception), or, for a usable unit, when solver_status is not converged,
+  policy_status is fail, or the rotation is absent.  A failed unit has no
+  metrics and fails requirement no-failed-units.  policy_status warn or
+  inconclusive does not fail a unit; such a unit is judged by the
+  constrained metric.  A unit that is not usable is inconclusive and does not
+  count.
+requirements:
+  - id: rotation-vs-kalibr
+    rule: every scored unit has rotation error <= 1.0 deg
+  - id: time-offset-vs-kalibr
+    rule: every scored unit has time error <= 0.5 ms
+  - id: constrained
+    rule: every scored unit satisfies metric_constrained
+  - id: no-failed-units
+    rule: no unit is failed (failure_policy)
+  - id: cross-recording-consistency
+    rule: per gated camera with at least two scored recordings, metric_consistency <= 0.75 deg
+  - id: relative-cam0-cam1
+    rule: every recording where both cameras are scored has relative error <= 0.5 deg
+  - id: scored-recordings-coverage
+    rule: at least 3 of the 4 recordings are scored for both cameras
+verdict_rules:
+  supported: >-
+    no requirement fails, requirements rotation-vs-kalibr, time-offset-vs-kalibr,
+    constrained, no-failed-units, cross-recording-consistency and
+    relative-cam0-cam1 are all evaluated and pass, and scored-recordings-coverage holds
+  refuted: >-
+    any of the requirements other than scored-recordings-coverage fails on a
+    scored unit, failed unit, camera or recording
+  inconclusive: >-
+    no requirement fails but scored-recordings-coverage does not hold (fewer
+    than 3 recordings scored for both cameras)
+  note: a refuted audit stays in the leaderboard
+  audit_mapping: >-
+    calibrex sota audit reports supported / refuted / incomplete; incomplete is
+    this file's inconclusive.  The builder leaves scored-recordings-coverage
+    without evidence when the coverage rule is not met, so the audit is
+    incomplete unless a requirement is contradicted.  scores.json carries the
+    same verdict computed by the scorer.
+threshold_rationale:
+  rule: >-
+    Each threshold is twice the worst development value of its metric over the
+    two forward cameras on exp21 and exp07, rounded up to the next 0.25 deg
+    (0.5 ms for the time offset).  The factor is set before
+    scoring and not tuned.  It covers recordings that differ from the
+    development ones (construction sites and stairs against an outdoor
+    building and a corridor) and sampling noise of the window jackknife, which
+    is 0.1-0.3 deg per axis.
+  rotation_error: dev worst 0.454 deg (cam0 exp21); 2x = 0.91; threshold 1.0
+  time_error: dev worst 0.21 ms (cam0 exp21); 2x = 0.42; threshold 0.5
+  consistency: dev worst 0.315 deg (cam1, exp21 vs exp07); 2x = 0.63; threshold 0.75
+  relative: dev worst 0.199 deg (exp07); 2x = 0.40; threshold 0.5
+  caveat: >-
+    The rotation threshold is about 2.5 times the 0.4 deg rig-level offset seen
+    on both forward cameras against Kalibr (about -0.3 deg about the IMU z axis
+    on exp21, about -0.1 deg on exp07), so the audit passes if that offset persists; it
+    does not show that the offset is a Kalibr error or a gyro-frame effect.
+    The offset about the IMU z axis is not reproduced across the two
+    development recordings (forward-camera common offset -0.33 deg on exp21,
+    -0.12 deg on exp07), so it may not be a fixed property of the rig.
+invalidates:
+  - a Calibrex code change affecting the camera-IMU path after the frozen commit
+  - changing the scorer or the builder after the frozen commit, or scoring with any other options
+  - an artifact whose min_window_rotation_deg or observable_rotation_std_deg differs from 1.0 and 0.3
+  - running any camera-IMU estimator on exp01-exp04 before this file is committed
+  - changing a threshold, camera, recording, or requirement after seeing a result
+  - dropping a recording or unit for any reason other than usable_unit
+analysis_plan:
+  - The scoring tool tools/score_hilti_camera_imu.py and the builder tools/build_hilti_camera_imu_audit.py are frozen at frozen_code_commit; they were tested on exp21 and exp07 only (unit tests plus a development run that reproduces the development table).
+  - Verify the bag hashes in evaluation_data_sha256 before running; a mismatch invalidates the audit.
+  - Run the eight commands of run_recipe and keep every artifact, including failures.
+  - Score with the scorer, add cam2-cam4 as reported units, and report every unit.
+  - Build the audit with the builder and record it through calibrex sota audit with this file's SHA-256; publish it on the leaderboard whether it is supported, refuted or incomplete.
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+  note: >-
+    One rig and one dataset family.  cam0 and cam1 share a scene and a Kalibr
+    run, so their units are not independent evidence.
+frozen_code_commit: 7fd89ee4b3cf9d87b11a575a5134b3b471a07ba3
+evaluation_data_sha256:
+  exp01:
+    exp01_ros2/exp01_ros2.db3: a046f19c6a95da1780a6cfe2adc32b453f1dc3c704ff6a1202aa14b09bbd82c9
+    exp01_ros2/metadata.yaml: 85193c80dd8a8aaa5a63d716096878c6a1e45436fd26183e1d5f958329f0077a
+  exp02:
+    exp02_ros2/exp02_ros2.db3: 284715690eddb498ddcd24b54a5be09d3173704cf7836754eeb567e94e13b7da
+    exp02_ros2/metadata.yaml: 07978984cefedaae2ff447f6a1606377e0ae1ffda5c7145018341ba5b7c6aff7
+  exp03:
+    exp03_ros2/exp03_ros2.db3: 4ea88921c9e0f3ae0e33023c27e496dc01be6193f97c5162307ab9711e66f305
+    exp03_ros2/metadata.yaml: 6f8e2099d4f001f25c7c2db920c4652021d974a3b59345cfc336662df66ee59f
+  exp04:
+    exp04_ros2/exp04_ros2.db3: 8de96251621c5f940a6a2a00e2b699af93a991aa08f2ccd9d27d0c0ececb4144
+    exp04_ros2/metadata.yaml: f256bd10ec4a65fec68ab91455108ba73ac3791043f81e05846be93922d21100
+  calibration_files/calib_3_cam0-1-camchain-imucam.yaml: 344ab530f12ea3eb8c658bdc005368275eccd70bca559a9fab8713a98cb1c60e
+# SHA-256 of the full bytes of each file, computed by sha256sum without reading any message.
+development_results_seen:
+  rotation_error_deg: {cam0_exp21: 0.454, cam1_exp21: 0.408, cam0_exp07: 0.360, cam1_exp07: 0.364}
+  time_error_ms: {cam0_exp21: 0.21, cam1_exp21: 0.08, cam0_exp07: 0.15, cam1_exp07: 0.00}
+  constrained: {cam0_exp21: "yes (policy warn: yaw control missed)", cam1_exp21: yes, cam0_exp07: yes, cam1_exp07: yes}
+  consistency_deg: {cam0: 0.147, cam1: 0.315}
+  relative_cam0_cam1_deg: {exp21: 0.076, exp07: 0.199}
+  side_cameras_not_claimed: >-
+    cam2-cam4 on exp07 are 0.96-1.88 deg from Kalibr and unobservable; cam3
+    yaw is unobservable on exp21; their cross-recording angles are 0.78-1.53 deg.
+    A claim over all five cameras would already fail on development data.

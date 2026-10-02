@@ -1,0 +1,159 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: hilti-camera-imu-consistency
+title: Hilti camera-IMU cross-recording consistency
+protocol:
+  protocol_id: hilti-camera-imu-v1
+  dataset_id: hilti2022_exp01_exp04_forward_cameras
+  dataset_source_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+  data_license: Hilti SLAM Challenge 2022 terms
+  split_policy: one split per gated camera
+  splits:
+  - split_id: cam0
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bb8ed8e018a9cffe14f6407f366078a55e7571cc3da5505cdd1dffec63a3e12e
+    holdout_ids_sha256: 63ba21b7b6344ee4a6567babbe997ceff45a0d0975e1e7bad1b981717c7cc769
+  - split_id: cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b1306fc65adcca3c1afc2d30ed24aab43f5e8519cd627198cef52a155bb13538
+    holdout_ids_sha256: f8542340b7f3f2ed51cb51051d5d88142a7134537f99f15f83a752baf1bcf7b3
+  initial_estimate_policy: none; the estimator does not read Kalibr's T_cam_imu
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: an estimator failure or policy fail on a usable unit fails the trial
+metrics:
+- name: consistency_deg
+  label: largest pairwise rotation angle across scored recordings
+  unit: deg
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: per camera, max over pairs of scored recordings of the geodesic
+    angle
+methods:
+- method_id: kalibr_reference
+  label: Hilti Kalibr calibration (the reference; error against itself is 0)
+  implementation: calibrex_native
+  tool_name: kalibr
+- method_id: calibrex_native
+  label: Calibrex targetless camera-IMU rotation
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: kalibr_reference
+  split_id: cam0
+  status: success
+  metrics:
+    consistency_deg: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    input_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam1
+  status: success
+  metrics:
+    consistency_deg: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    input_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    notes: []
+- method_id: calibrex_native
+  split_id: cam0
+  status: success
+  metrics:
+    consistency_deg: 0.3472028637663105
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    input_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    notes: []
+- method_id: calibrex_native
+  split_id: cam1
+  status: success
+  metrics:
+    consistency_deg: 0.4299395353782442
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    input_sha256: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+    notes: []
+method_summaries:
+  kalibr_reference:
+    method_id: kalibr_reference
+    trial_count: 2
+    success_count: 2
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      consistency_deg:
+        metric: consistency_deg
+        distribution:
+          count: 2
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 2
+    success_count: 2
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      consistency_deg:
+        metric: consistency_deg
+        distribution:
+          count: 2
+          mean: 0.38857119957227737
+          median: 0.38857119957227737
+          standard_deviation: 0.041368335805966855
+          minimum: 0.3472028637663105
+          maximum: 0.4299395353782442
+          p90: 0.4216658682170508
+          p95: 0.4258027017976475
+          mean_ci95_low: 0.3472028637663105
+          mean_ci95_high: 0.4299395353782442
+        rank: 2
+paired_comparisons:
+- reference_method_id: kalibr_reference
+  candidate_method_id: calibrex_native
+  metric: consistency_deg
+  direction: lower
+  paired_count: 2
+  raw_delta_mean: 0.38857119957227737
+  improvement_mean: -0.38857119957227737
+  improvement_ci95_low: -0.4299395353782442
+  improvement_ci95_high: -0.3472028637663105
+reference_method_id: kalibr_reference
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference is Hilti's target-based Kalibr calibration, not ground truth.
+- cam0 and cam1 share a scene and a Kalibr run; their units are not independent.
+provenance:
+  generator: tools/build_hilti_camera_imu_audit.py
+  generator_version: 0.5.0
+  generated_at: '2026-10-02T09:37:30.648661+00:00'
+  command: python tools/build_hilti_camera_imu_audit.py SCORES.json PREREGISTRATION
+    OUT
+  source_artifacts: {}
+  data_verified: true
