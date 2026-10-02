@@ -58,6 +58,12 @@ def test_generator_writes_expected_gif(tmp_path: Path) -> None:
     assert len(frames) == tool.N_FRAMES
     with Image.open(output) as gif:
         assert gif.size == (960, 540)
-        assert gif.n_frames == tool.N_FRAMES
+        # Pillow merges identical consecutive (hold) frames, summing their durations.
+        assert 60 <= gif.n_frames <= tool.N_FRAMES
+        total_ms = 0
+        for index in range(gif.n_frames):
+            gif.seek(index)
+            total_ms += int(gif.info["duration"])
+        assert total_ms == tool.N_FRAMES * tool.FRAME_MS
         assert gif.info["loop"] == 0
     assert output.stat().st_size <= 1_500_000
