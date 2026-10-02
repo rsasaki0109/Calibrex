@@ -1,0 +1,121 @@
+{
+ "bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "command": [
+  "calibrex",
+  "check",
+  ".../bag_pool5",
+  "--vehicle-frame",
+  "base_link",
+  "--topic-kind",
+  "/oxts/twist=wheel",
+  "--pairs",
+  "lidar-vehicle,lidar-wheel_odometry,ins-lidar,imu-vehicle",
+  "--cache-dir",
+  ".../cache",
+  "--tf",
+  ".../frames_step_-2.75.yaml",
+  "--output",
+  ".../step_-2.75.json",
+  "--fail-on",
+  "never"
+ ],
+ "created_at": "2026-10-02T10:58:08.625052+00:00",
+ "frame": "velo_link",
+ "generator_version": "0.5.1",
+ "git_commit": "e8473bf",
+ "overall_verdict": "fail",
+ "pairs": {
+  "imu-vehicle": {
+   "axes": {},
+   "coverage": "partial",
+   "status": "inconclusive",
+   "unchecked": [
+    "roll",
+    "pitch",
+    "yaw"
+   ]
+  },
+  "ins-lidar": {
+   "axes": {
+    "pitch": {
+     "candidate_error_deg": 0.053,
+     "ratio": 0.106,
+     "status": "pass",
+     "tolerance_deg": 0.5
+    },
+    "roll": {
+     "candidate_error_deg": 0.1156,
+     "ratio": 0.2313,
+     "status": "pass",
+     "tolerance_deg": 0.5
+    }
+   },
+   "coverage": "partial",
+   "status": "pass",
+   "unchecked": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ]
+  },
+  "lidar-vehicle": {
+   "axes": {
+    "pitch": {
+     "candidate_error_deg": -0.4703,
+     "ratio": 0.9406,
+     "status": "pass",
+     "tolerance_deg": 0.5
+    },
+    "yaw": {
+     "candidate_error_deg": -2.437,
+     "ratio": 4.874,
+     "status": "fail",
+     "tolerance_deg": 0.5
+    }
+   },
+   "coverage": "partial",
+   "status": "fail",
+   "unchecked": [
+    "roll"
+   ]
+  },
+  "lidar-wheel_odometry": {
+   "axes": {
+    "pitch": {
+     "candidate_error_deg": -0.4707,
+     "ratio": 0.9413,
+     "status": "pass",
+     "tolerance_deg": 0.5
+    },
+    "yaw": {
+     "candidate_error_deg": -2.441,
+     "ratio": 4.882,
+     "status": "fail",
+     "tolerance_deg": 0.5
+    }
+   },
+   "coverage": "partial",
+   "status": "fail",
+   "unchecked": [
+    "roll"
+   ]
+  }
+ },
+ "schema": "calibrex.check_yaw_sweep_step/v0",
+ "velo_link_tf": {
+  "parent_frame": "imu_link",
+  "rotation_quat_xyzw": [
+   -0.007385595666011776,
+   0.0011926544625899772,
+   -0.023610223110302357,
+   0.9996932469096073
+  ],
+  "translation_m": [
+   0.8105439720319256,
+   -0.30705437225086085,
+   0.8027239945583536
+  ]
+ },
+ "yaw_injected_deg": -2.75
+}

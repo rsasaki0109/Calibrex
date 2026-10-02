@@ -1,0 +1,66 @@
+{
+  "animation": {
+    "fps": 10,
+    "frames": 48,
+    "height": 540,
+    "width": 960
+  },
+  "calibrex_commit": "e8473bf",
+  "calibrex_version": "0.5.1",
+  "caveats": [
+    "A single sweep: sparse (about 10k points within 25 m) and with no ground truth; the thickness figure is a local-planarity proxy, not an accuracy measure.",
+    "Rotation-only deskew: the translation during the 0.1 s sweep is ignored.",
+    "The deskew uses the imu-lidar estimate for this same sequence (not held out); the GIF illustrates the correction, it is not evidence of calibration accuracy.",
+    "The morph between raw and deskewed positions is a linear blend for display."
+  ],
+  "commands": [
+    "python tools/mid360_deskew_gif.py extract --bag <construction_seq1>",
+    "python tools/mid360_deskew_gif.py render"
+  ],
+  "dataset": {
+    "bag_digest_scope": "bag metadata.yaml in full; bag databases by size and first 64 MiB",
+    "bag_digest_sha256": "8e84d0f8a5859e60fcc50f5c1bcb7daef18c919e08074116051bb419d42d9c83",
+    "license": "CC BY 4.0 (https://huggingface.co/datasets/Willyzw/rtk-slam-dataset)",
+    "name": "RTK-SLAM",
+    "sequence": "construction_seq1 (spent for claims; used here for visuals only)",
+    "topics": [
+      "/livox/points",
+      "/livox/imu"
+    ]
+  },
+  "deskew": {
+    "applied_with": "calibrex.solvers.scan_to_scan_odometry.deskew_points_with_rotations",
+    "gyro_bias_rps": [
+      0.027681118354510852,
+      -0.0023280608297496868,
+      0.00604590691067269
+    ],
+    "model": "calibrex.solvers.imu_lidar_rotation_solver.gyro_rotation_model",
+    "time_offset_s": 0.010021723731840827,
+    "translation": "none (rotation-only)"
+  },
+  "generator": "tools/mid360_deskew_gif.py",
+  "inputs": {
+    "calib_yaml_sha256": "5122c12b6fff44cf6ebea2e41f9ad80e1d24b342dce3e6966e69f8ebf63bb9c7",
+    "extract_commit": "e8473bf",
+    "imu_lidar_estimate_artifact": {
+      "path": "mid360_imu_lidar_rotation_rtk_slam_construction_seq1.yaml",
+      "sha256": "d3e70e871e9c602e519a8830a56bbb0747650c5c52e3069f43f79b6a7704f49b"
+    },
+    "intermediate_npz": {
+      "path": "docs/assets/mid360-deskew/construction_seq1_sweep.npz",
+      "sha256": "da5ad12cc93027bf9e55f108bc7240bc0366c387defe9802ba23bb5cdf3a3ccf"
+    },
+    "scan_header_s": 1764590213.1975563
+  },
+  "metrics": {
+    "sweep_mean_rate_deg_s": 180.29613059113004,
+    "sweep_rotation_deg": 17.765846223068312,
+    "thickness_deskewed_cm": 2.1870740285277783,
+    "thickness_raw_cm": 3.4195444388733316
+  },
+  "output": "docs/assets/mid360-deskew.gif",
+  "schema": "calibrex.readme_pointcloud_gif/v1",
+  "sha256": "27482539bb07e31d984784e390e22e122ace51401df17bd5552d2cff6f2d42df",
+  "size_bytes": 982472
+}

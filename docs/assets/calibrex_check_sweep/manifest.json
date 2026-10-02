@@ -1,0 +1,49 @@
+{
+ "angles_deg": [
+  -3.0,
+  -2.75,
+  -2.5,
+  -2.25,
+  -2.0,
+  -1.75,
+  -1.5,
+  -1.25,
+  -1.0,
+  -0.75,
+  -0.5,
+  -0.25,
+  0.0,
+  0.25,
+  0.5,
+  0.75,
+  1.0,
+  1.25,
+  1.5,
+  1.75,
+  2.0,
+  2.25,
+  2.5,
+  2.75,
+  3.0
+ ],
+ "bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "dataset": "KITTI raw 2011_09_26 (CC BY-NC-SA 3.0, non-commercial use only)",
+ "drives": [
+  "0005",
+  "0009",
+  "0014",
+  "0015",
+  "0022"
+ ],
+ "frame": "velo_link",
+ "generator_version": "0.5.1",
+ "git_commit": "e8473bf",
+ "pairs": [
+  "lidar-vehicle",
+  "lidar-wheel_odometry",
+  "ins-lidar",
+  "imu-vehicle"
+ ],
+ "perturbation": "R' = Rz(yaw) * R about the parent (imu_link=base_link) z axis; translation unchanged (tools/make_check_frames_perturbation.py)",
+ "schema": "calibrex.check_yaw_sweep_manifest/v0"
+}

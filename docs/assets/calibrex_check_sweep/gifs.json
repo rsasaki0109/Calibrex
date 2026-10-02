@@ -1,0 +1,127 @@
+{
+ "animation": {
+  "fps": 10,
+  "height": 540,
+  "width": 960
+ },
+ "calibrex_version": "0.5.1",
+ "check_command": [
+  "calibrex",
+  "check",
+  ".../bag_pool5",
+  "--vehicle-frame",
+  "base_link",
+  "--topic-kind",
+  "/oxts/twist=wheel",
+  "--pairs",
+  "lidar-vehicle,lidar-wheel_odometry,ins-lidar,imu-vehicle",
+  "--cache-dir",
+  ".../cache",
+  "--tf",
+  ".../frames_step_-3.00.yaml",
+  "--output",
+  ".../step_-3.00.json",
+  "--fail-on",
+  "never"
+ ],
+ "check_command_note": "shown for the first step; --tf and --output differ per step",
+ "check_generator_version": "0.5.1",
+ "check_git_commit": "e8473bf",
+ "dataset_license": "KITTI raw data, CC BY-NC-SA 3.0: non-commercial use only; the GIFs contain a KITTI camera image and must stay non-commercial",
+ "drives": [
+  "0005",
+  "0009",
+  "0014",
+  "0015",
+  "0022"
+ ],
+ "generator": "tools/check_sweep_gifs.py",
+ "gif_commands": [
+  "python tools/check_sweep_gifs.py yaw-sweep --drive-dir <KITTI drive 0005> --image-index 100",
+  "python tools/check_sweep_gifs.py rig --drive-dir <KITTI drive 0005>"
+ ],
+ "gifs": {
+  "docs/assets/calibrex-check-rig.gif": {
+   "sha256": "3f6fb99bb464e2a0807f6acf4bfe310faedad6a1972899b4089a7d71ec03c2b1",
+   "size_bytes": 586499
+  },
+  "docs/assets/calibrex-check-yaw-sweep.gif": {
+   "sha256": "63238e3e7ed49259bc91de41ca523e6f966d023421cdd11d7e9c3ca84bb27522",
+   "size_bytes": 902799
+  }
+ },
+ "git_commit": "e8473bf0d48320e55ff16e362baf41a18bca61bb",
+ "overlay": {
+  "drive": "2011_09_26_drive_0005_sync",
+  "image_index": 100,
+  "kitti_input_sha256": {
+   "0000000100.bin": "450650e58a8b6a9f3f3a827ea8c3cdced2be9ddba1bc63e9cf281fab98ace179",
+   "0000000100.png": "9dc9f7dfe4012180969a1a68075406e4f51e66f703b3d8ce0ab9ece8da0563d8",
+   "calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+   "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+   "calib_velo_to_cam.txt": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266"
+  },
+  "projection": "pixel = P_rect_02 R_rect_00 T_cam<-velo inv(T_base<-velo) T_base<-velo(delta) p, T_base<-velo(delta) = [Rz(delta) R | t]"
+ },
+ "perturbation": "R' = Rz(yaw) * R about the parent (imu_link=base_link) z axis; translation unchanged (tools/make_check_frames_perturbation.py)",
+ "pooled_bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "rig_rotation_exaggeration": 8,
+ "schema": "calibrex.check_sweep_gifs/v0",
+ "steps": {
+  "angles_deg": [
+   -3.0,
+   -2.75,
+   -2.5,
+   -2.25,
+   -2.0,
+   -1.75,
+   -1.5,
+   -1.25,
+   -1.0,
+   -0.75,
+   -0.5,
+   -0.25,
+   0.0,
+   0.25,
+   0.5,
+   0.75,
+   1.0,
+   1.25,
+   1.5,
+   1.75,
+   2.0,
+   2.25,
+   2.5,
+   2.75,
+   3.0
+  ],
+  "count": 25,
+  "summary_sha256": {
+   "step_+0.00.json": "e02ea14e56ee15a7d3f6fa601db15e8f84777343af240dbefbee7b2f366ca557",
+   "step_+0.25.json": "aa3b8fa56a37dd9432af37740504d05a5ee0356ed60af245c6b21fbb87c53294",
+   "step_+0.50.json": "5b42f4541f3f5aa9e242462b5860cc8c2c04593587a142ea467b598d91c46bbd",
+   "step_+0.75.json": "c839f40cb4c90cefd55c899c659f5367297173de2e738af2dc35b4e17ddac334",
+   "step_+1.00.json": "9c20f090d1a31567d21bb8fcf3672066e9c20ac6fa3d36ff7173b0f6b84cb042",
+   "step_+1.25.json": "b1c189357f1c4e9e1dfb96f523b9988e737d55f26c25003dfc756c98fe69c94b",
+   "step_+1.50.json": "3dd68485f33ffbc7940ec7a3dc9a9e16ef0222a499bfb6ddc048db75649b26ef",
+   "step_+1.75.json": "da4d27437bf518e550b4a6bde04f11dc2f043b3ba935ad43072fd8a14a1396bd",
+   "step_+2.00.json": "2aac8cdcbc98a89df13f0404aa547ce1fc1d7bdee314837c8b4c71924757d878",
+   "step_+2.25.json": "9dcd8d168ae20c0484152a6405bafb45cf461c15049c6537348124ecdc6f84b8",
+   "step_+2.50.json": "78ab2ef927f2883a5ebbd10c6b6d4ea193e806b851130780d13fbf411c7c829b",
+   "step_+2.75.json": "9bf53988171dd071d61a2663df0d069c33e4ed762e4dc65da7eab988da507d83",
+   "step_+3.00.json": "a15be2c63c0b372d6c79b98e3d73e6ac076d0fe7afd16fb9fbe66ca297ad5b4e",
+   "step_-0.25.json": "8fc96b853c65a1981f3639a38b45bf7fdd1b65f6b1957e14729ccade106c9a69",
+   "step_-0.50.json": "7c3f1c03376419e69fada4d047ecd8b6929d39c1940c791f229de3835f7bba7c",
+   "step_-0.75.json": "88f5a3271c47c2ff0b5bdce658dd1336becfda5f5050b718ee5a2905c444a2ad",
+   "step_-1.00.json": "e936c2ddc40c929c48f2aec2524f9ffc06605d6389d27468da87377257e3395d",
+   "step_-1.25.json": "4ac5271cdb94edfb9e1c67259ded63b5cdb0d79e76b4a5cd9455604ddd205df6",
+   "step_-1.50.json": "2467770f6c19e78ea9c048bcf4304aebb0eae30b194c5d732124d849709167ff",
+   "step_-1.75.json": "5de2c36e5afbac0174bc519469877d8a3fdc62fa8a6b6ebea27ff8661a3378eb",
+   "step_-2.00.json": "7f0e6ee5f19520627486963d1a179221995704ec0d6f88b5bf5c24f4bb76fc5d",
+   "step_-2.25.json": "e4684539f193e785e507289fd5cd19f41ab9de6ba59ab647c09bceb4cc1ce243",
+   "step_-2.50.json": "930e639d51a79d4aa6cdd47462faf544ca54cc0de8def02de98c26a3e1901bb2",
+   "step_-2.75.json": "14759fa6778c28c33d70aed0dc80612c51625d03da3a52c0ad9d6d409baba3a5",
+   "step_-3.00.json": "6f567ccec87e7d7d6f3a574f987708b83bfe11a84a87bd3aff8ae930d65cb70a"
+  }
+ }
+}

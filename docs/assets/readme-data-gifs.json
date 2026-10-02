@@ -1,0 +1,46 @@
+{
+  "schema_version": "calibrex.readme_data_gifs/v1",
+  "description": "README GIFs rendered from real calibration runs by their own generators; each provenance file records input digests, the calibrex version and commit, and the commands.",
+  "assets": [
+    {
+      "output": "docs/assets/calibrex-check-yaw-sweep.gif",
+      "generator": "tools/check_sweep_gifs.py",
+      "provenance": "docs/assets/calibrex_check_sweep/gifs.json",
+      "dataset_license": "KITTI raw (CC BY-NC-SA 3.0, non-commercial)",
+      "sha256": "63238e3e7ed49259bc91de41ca523e6f966d023421cdd11d7e9c3ca84bb27522",
+      "size_bytes": 902799
+    },
+    {
+      "output": "docs/assets/calibrex-check-rig.gif",
+      "generator": "tools/check_sweep_gifs.py",
+      "provenance": "docs/assets/calibrex_check_sweep/gifs.json",
+      "dataset_license": "KITTI raw (CC BY-NC-SA 3.0, non-commercial)",
+      "sha256": "3f6fb99bb464e2a0807f6acf4bfe310faedad6a1972899b4089a7d71ec03c2b1",
+      "size_bytes": 586499
+    },
+    {
+      "output": "docs/assets/lidar-lidar-snap.gif",
+      "generator": "tools/lidar_lidar_snap_gif.py",
+      "provenance": "docs/assets/lidar-lidar-snap/manifest.json",
+      "dataset_license": "NTU VIRAL (CC BY-NC-SA 4.0)",
+      "sha256": "161eab2276d93b69bc3cd8ca404f3ff78c8077782ef7c5f4b341c81fc3f67718",
+      "size_bytes": 1117363
+    },
+    {
+      "output": "docs/assets/mid360-deskew.gif",
+      "generator": "tools/mid360_deskew_gif.py",
+      "provenance": "docs/assets/mid360-deskew/manifest.json",
+      "dataset_license": "RTK-SLAM (CC BY 4.0)",
+      "sha256": "27482539bb07e31d984784e390e22e122ace51401df17bd5552d2cff6f2d42df",
+      "size_bytes": 982472
+    },
+    {
+      "output": "docs/assets/camera-imu-lock.gif",
+      "generator": "tools/generate_camera_imu_lock_gif.py",
+      "provenance": "docs/assets/camera_imu_lock/series.provenance.json",
+      "dataset_license": "Hilti SLAM Challenge 2022 terms",
+      "sha256": "9075fb85b6758eee2ceb213408ed5dbf5ab5fd4bc124a46aa88c52ded4a9f017",
+      "size_bytes": 712437
+    }
+  ]
+}

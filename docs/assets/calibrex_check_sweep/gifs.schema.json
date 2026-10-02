@@ -1,0 +1,64 @@
+{
+  "$id": "https://calibrex.dev/schemas/calibrex.check_sweep_gifs/v0",
+  "title": "calibrex check sweep GIF provenance manifest",
+  "type": "object",
+  "required": [
+    "schema",
+    "generator",
+    "calibrex_version",
+    "git_commit",
+    "pooled_bag_input_sha256",
+    "steps",
+    "check_command",
+    "gif_commands",
+    "overlay",
+    "gifs",
+    "dataset_license",
+    "animation"
+  ],
+  "properties": {
+    "schema": { "const": "calibrex.check_sweep_gifs/v0" },
+    "generator": { "const": "tools/check_sweep_gifs.py" },
+    "calibrex_version": { "type": "string" },
+    "git_commit": { "type": "string" },
+    "pooled_bag_input_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "steps": {
+      "type": "object",
+      "required": ["count", "angles_deg", "summary_sha256"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1 },
+        "angles_deg": { "type": "array", "items": { "type": "number" } },
+        "summary_sha256": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "overlay": {
+      "type": "object",
+      "required": ["drive", "image_index", "projection", "kitti_input_sha256"],
+      "properties": {
+        "kitti_input_sha256": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "gifs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["sha256", "size_bytes"],
+        "properties": {
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "size_bytes": { "type": "integer", "maximum": 1500000 }
+        }
+      }
+    },
+    "dataset_license": { "type": "string", "pattern": "non-commercial" },
+    "animation": {
+      "type": "object",
+      "required": ["width", "height", "fps"]
+    }
+  }
+}
