@@ -56,7 +56,7 @@ with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checkin
     ---
 
     Drop a ROS 2 bag on the [bag check page](app/check.html) to see which sensor pairs
-    `calibrex check` could audit and why others are skipped. Files are read in place
+    `calibrex check` can check and why others are skipped. Files are read in place
     and never uploaded.
 
 -   :material-flag-checkered: **Pre-registered SOTA claims**

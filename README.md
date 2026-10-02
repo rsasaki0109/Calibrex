@@ -56,7 +56,7 @@
   <tr>
     <td width="33%" valign="top">
       <strong>🔍 One command</strong><br>
-      Reads <code>/tf_static</code>, finds the sensors, and audits up to ten pairs (GNSS, IMU, LiDAR, camera, vehicle).
+      Reads <code>/tf_static</code>, finds the sensors, and checks up to ten pairs (GNSS, IMU, LiDAR, camera, vehicle).
     </td>
     <td width="33%" valign="top">
       <strong>⚖️ Honest verdicts</strong><br>
@@ -76,7 +76,7 @@ calibrex check my_bag/ --html check.html
 
 **Try it in your browser:** the
 [bag check page](https://rsasaki0109.github.io/Calibrex/app/check.html) plans
-`calibrex check` on your own rosbag2 (which sensor pairs can be audited, with
+`calibrex check` on your own rosbag2 (which sensor pairs can be checked, with
 the frame tree it read; multi-GB bags are read lazily), and the
 [browser calibration page](https://rsasaki0109.github.io/Calibrex/app/)
 calibrates an IMU against a sensor trajectory (TUM): rotation, clock offset,
@@ -108,7 +108,7 @@ calibrex check my_bag/ --output check.json --html check.html     # reads /tf_sta
 `calibrex check` asks whether the extrinsics deployed on a robot agree with what
 a recording says. It reads the candidate transforms from the bag's `/tf_static`
 (or `--tf`: URDF, Kalibr, RTK-SLAM or Hilti calibration files), detects the
-sensor topics, works out which of the ten sensor pairs the bag can audit, runs
+sensor topics, works out which of the ten sensor pairs the bag can check, runs
 the native estimator of each, and judges the deployed transform per axis against
 the estimate and its uncertainty: `pass`, `warn`, `fail` or `inconclusive`. It
 also checks the estimates against each other (rig closure) and reports which

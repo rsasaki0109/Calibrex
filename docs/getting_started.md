@@ -28,7 +28,7 @@ pair the data cannot judge reads `inconclusive` rather than `pass`.
 - [Check a deployed calibration](tutorials/calibrex_check.md): the full tutorial,
   with the KITTI yaw-injection demo.
 - [Check a bag in the browser](app/check.html): drop a rosbag2 and see which sensor
-  pairs `calibrex check` could audit, with no install; the files never leave the page
+  pairs `calibrex check` can check, with no install; the files never leave the page
   ([how it works](tutorials/calibrex_check.md#plan-a-bag-in-the-browser)).
 - [Browser calibration](tutorials/browser_calibration.md): calibrate an IMU against
   a trajectory without installing anything; data stays in the page.
