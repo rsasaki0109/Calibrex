@@ -340,7 +340,9 @@ def render_frame(
         top_value = max(rmse_history[0], 1e-6)
         pts = [
             (
-                x0 + 20 + (x1 - x0 - 40) * i / (N_HOLD + N_SOLVE + N_LOCK),
+                x0
+                + 20
+                + (x1 - x0 - 40) * min(i / (N_HOLD + N_SOLVE + N_LOCK + N_COMPARE - 1), 1.0),
                 sy1 - 5 - (sy1 - sy0 - 10) * min(v / top_value, 1.0),
             )
             for i, v in enumerate(rmse_history)
