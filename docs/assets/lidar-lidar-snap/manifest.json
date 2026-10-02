@@ -1,0 +1,79 @@
+{
+  "animation": {
+    "fps": 10,
+    "frames": 60,
+    "height": 540,
+    "width": 960
+  },
+  "animation_parameters": {
+    "interpolation": "SE(3): slerp rotation, lerp translation, smoothstep easing",
+    "residual": "median |point-to-plane| from calibrex MapSample.residuals, 7 samples",
+    "start": "estimate left-perturbed by rotvec deg [3.5, -3.0, 3.5] and [0.22, -0.18, 0.12] m"
+  },
+  "calibrex_commit": "e8473bf",
+  "calibrex_version": "0.5.1",
+  "caveats": [
+    "Real data, but the 7 target scans use one shared 0.2 m-voxel map of 71 reference scans, not calibrex's per-sample 11-scan maps.",
+    "Ground returns are hidden for display only; the residual uses all points.",
+    "The start offset is synthetic and labelled as such; the estimate is from the full recording, not from this window.",
+    "The design value is a rounded datasheet number, not a measurement."
+  ],
+  "commands": [
+    "python tools/lidar_lidar_snap_gif.py extract --bag <tnp_01_rosbag2>",
+    "python tools/lidar_lidar_snap_gif.py render"
+  ],
+  "dataset": {
+    "bag_digest_scope": "bag metadata.yaml in full; bag databases by size and first 64 MiB",
+    "bag_digest_sha256": "b6663d87777a90269c6b2b3baa7fafd9760a3c8834e699197bba46fccf83b491",
+    "license": "CC BY-NC-SA 4.0",
+    "name": "NTU VIRAL",
+    "recording": "tnp_01 (development recording)",
+    "topics": [
+      "/os1_cloud_node1/points",
+      "/os1_cloud_node2/points"
+    ]
+  },
+  "generator": "tools/lidar_lidar_snap_gif.py",
+  "inputs": {
+    "extract_commit": "e8473bf",
+    "extrinsic_artifact": {
+      "note": "calibrex lidar-lidar ros2 on the full recording (see its provenance)",
+      "path": "docs/assets/ntu_viral_lidar_lidar/tnp_01.yaml",
+      "sha256": "997a247ea5e2221ed1852801dec8962d0662915cfeda22a00d4f2536d2931fa6"
+    },
+    "intermediate_npz": {
+      "path": "docs/assets/lidar-lidar-snap/tnp_01_window.npz",
+      "sha256": "fb1b8bcf11e2820e485e07d0e1e3fbefde3821aaa3fd9d5e47e2ccb8b2b11070"
+    },
+    "sample_scans": [
+      580,
+      590,
+      600,
+      610,
+      620,
+      630,
+      640
+    ],
+    "window_scans_10hz": [
+      570,
+      650
+    ]
+  },
+  "metrics": {
+    "design_offset_deg_m": [
+      0.4861515655055471,
+      0.07210532774556228
+    ],
+    "design_residual_m": 0.0463769286412276,
+    "estimate_residual_m": 0.04398428152563687,
+    "start_offset_deg_m": [
+      5.787918451395113,
+      0.31947370282203635
+    ],
+    "start_residual_m": 0.19102774576222076
+  },
+  "output": "docs/assets/lidar-lidar-snap.gif",
+  "schema": "calibrex.readme_pointcloud_gif/v1",
+  "sha256": "161eab2276d93b69bc3cd8ca404f3ff78c8077782ef7c5f4b341c81fc3f67718",
+  "size_bytes": 1117363
+}
