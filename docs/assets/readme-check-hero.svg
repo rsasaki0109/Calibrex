@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="title description">
+<title id="title">calibrex check catches a 1 degree yaw error in a deployed tf</title>
+<desc id="description">On pooled KITTI development drives, the vendor tf is overall inconclusive; with velo_link yaw +1 deg the overall verdict is fail (yaw 1.31 deg against a 0.5 deg tolerance).</desc>
+<metadata id="calibrex-provenance">{&quot;artifact&quot;:&quot;calibrex.readme-check-hero&quot;,&quot;calibrex_version&quot;:&quot;0.4.1&quot;,&quot;demo_git_commit&quot;:&quot;c04944b&quot;,&quot;demo_schema&quot;:&quot;calibrex.check_tf_injection_demo/v0&quot;,&quot;generator&quot;:&quot;tools/generate_readme_check_hero.py&quot;,&quot;generator_version&quot;:&quot;1&quot;,&quot;sources&quot;:{&quot;docs/assets/calibrex_check_demo/summary.json&quot;:&quot;87543ddf00f5d7dcd8b914515893efea37262532381aa7a924c41282f249c69b&quot;,&quot;docs/assets/calibrex_check_demo/summary.md&quot;:&quot;4268eee9a4af8f24c920bd46faafd12912db9e2035a6a766830381e9f8e65040&quot;,&quot;docs/assets/calibrex_check_demo/terminal_summary.txt&quot;:&quot;488be4e30e4d7f98c2f4b9793cf95baf06ae5a0313377f50730541c5d8a09790&quot;}}</metadata>
+<style>
+    :root { --win:#f6f8fa; --bar:#e4e8ec; --edge:#d0d7de; --fg:#1f2328; --mute:#57606a;
+      --track:#d8dee4; --tick:#57606a; --pass:#1a7f37; --warn:#9a6700; --fail:#cf222e;
+      --inc:#6e7781; --pillfg:#ffffff; --prompt:#0969da; }
+    @media (prefers-color-scheme: dark) {
+      :root { --win:#0d1117; --bar:#161b22; --edge:#30363d; --fg:#e6edf3; --mute:#8b949e;
+        --track:#21262d; --tick:#8b949e; --pass:#2ea043; --warn:#d29922; --fail:#f85149;
+        --inc:#6e7681; --pillfg:#0d1117; --prompt:#58a6ff; }
+    }
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+      fill: var(--fg); }
+    .mute { fill: var(--mute); }
+    .h { font-size: 15px; font-weight: 700; }
+    .t { font-size: 14px; }
+    .s { font-size: 13px; }
+    .pill-text { font-size: 13px; font-weight: 700; fill: var(--pillfg); text-anchor: middle; }
+    .pass { fill: var(--pass); } .warn { fill: var(--warn); }
+    .fail { fill: var(--fail); } .inconclusive { fill: var(--inc); }
+    .prompt { fill: var(--prompt); font-weight: 700; }
+</style>
+<rect x="1" y="1" width="958" height="558" rx="14" fill="var(--win)" stroke="var(--edge)" stroke-width="2"/>
+<path d="M1 15a14 14 0 0 1 14-14h930a14 14 0 0 1 14 14v26H1z" fill="var(--bar)"/>
+<circle cx="28" cy="22" r="6" fill="#ff5f57"/><circle cx="48" cy="22" r="6" fill="#febc2e"/><circle cx="68" cy="22" r="6" fill="#28c840"/>
+<text x="480.0" y="27" class="s mute" text-anchor="middle">calibrex check &#183; KITTI development drives 0005, 0009, 0014, 0015, 0022 (pooled)</text>
+<text x="28" y="78" class="t"><tspan class="prompt">$</tspan> calibrex check bag_pool5 --vehicle-frame base_link</text>
+<text x="28" y="104" class="t"><tspan class="prompt">$</tspan> calibrex check bag_pool5 --vehicle-frame base_link <tspan class="prompt">--tf frames_yaw1.yaml</tspan></text>
+<text x="28" y="130" class="s mute">verdict per sensor pair; bar = worst judged axis, tick = tolerance, full width = 3x tolerance</text>
+<g transform="translate(28 150)">
+<text x="0" y="0" class="h">deployed tf: vendor calibration</text>
+<text x="0" y="22" class="s mute">no override</text>
+<text x="0" y="62" class="t">lidar-vehicle</text>
+<rect x="214" y="46" width="62" height="22" rx="11" class="pass"/><text x="245.0" y="62" class="pill-text">PASS</text>
+<text x="284" y="62" class="s mute">&#9680; partial</text>
+<rect x="0" y="78" width="260" height="8" rx="4" fill="var(--track)"/>
+<rect x="0" y="78" width="86.0" height="8" rx="4" class="pass"/>
+<rect x="86.7" y="74" width="2" height="16" fill="var(--tick)"/>
+<text x="270" y="87" class="s">pitch 0.496/0.5&#176;</text>
+<text x="0" y="124" class="t">lidar-wheel_odometry</text>
+<rect x="214" y="108" width="62" height="22" rx="11" class="pass"/><text x="245.0" y="124" class="pill-text">PASS</text>
+<text x="284" y="124" class="s mute">&#9680; partial</text>
+<rect x="0" y="140" width="260" height="8" rx="4" fill="var(--track)"/>
+<rect x="0" y="140" width="85.9" height="8" rx="4" class="pass"/>
+<rect x="86.7" y="136" width="2" height="16" fill="var(--tick)"/>
+<text x="270" y="149" class="s">pitch 0.496/0.5&#176;</text>
+<text x="0" y="186" class="t">ins-lidar</text>
+<rect x="214" y="170" width="62" height="22" rx="11" class="pass"/><text x="245.0" y="186" class="pill-text">PASS</text>
+<text x="284" y="186" class="s mute">&#9680; partial</text>
+<rect x="0" y="202" width="260" height="8" rx="4" fill="var(--track)"/>
+<rect x="0" y="202" width="19.8" height="8" rx="4" class="pass"/>
+<rect x="86.7" y="198" width="2" height="16" fill="var(--tick)"/>
+<text x="270" y="211" class="s">roll 0.114/0.5&#176;</text>
+<text x="0" y="248" class="t">imu-vehicle</text>
+<rect x="214" y="232" width="128" height="22" rx="11" class="inconclusive"/><text x="278.0" y="248" class="pill-text">INCONCLUSIVE</text>
+<rect x="0" y="264" width="260" height="8" rx="4" fill="var(--track)"/>
+<text x="270" y="273" class="s mute">no axis judged</text>
+<rect x="0" y="292" width="424" height="1" fill="var(--edge)"/>
+<text x="0" y="322" class="h">overall:</text>
+<rect x="84" y="305" width="128" height="22" rx="11" class="inconclusive"/><text x="148.0" y="321" class="pill-text">INCONCLUSIVE</text>
+</g>
+<g transform="translate(508 150)">
+<text x="0" y="0" class="h">deployed tf: velo_link yaw +1°</text>
+<text x="0" y="22" class="s mute">--tf frames_yaw1.yaml</text>
+<text x="0" y="62" class="t">lidar-vehicle</text>
+<rect x="214" y="46" width="62" height="22" rx="11" class="fail"/><text x="245.0" y="62" class="pill-text">FAIL</text>
+<text x="284" y="62" class="s mute">&#9680; partial</text>
+<rect x="0" y="78" width="260" height="8" rx="4" fill="var(--track)"/>
+<rect x="0" y="78" width="227.6" height="8" rx="4" class="fail"/>
+<rect x="86.7" y="74" width="2" height="16" fill="var(--tick)"/>
+<text x="270" y="87" class="s">yaw 1.31/0.5&#176;</text>
+<text x="0" y="124" class="t">lidar-wheel_odometry</text>
+<rect x="214" y="108" width="62" height="22" rx="11" class="fail"/><text x="245.0" y="124" class="pill-text">FAIL</text>
+<text x="284" y="124" class="s mute">&#9680; partial</text>
+<rect x="0" y="140" width="260" height="8" rx="4" fill="var(--track)"/>
+<rect x="0" y="140" width="226.9" height="8" rx="4" class="fail"/>
+<rect x="86.7" y="136" width="2" height="16" fill="var(--tick)"/>
+<text x="270" y="149" class="s">yaw 1.31/0.5&#176;</text>
+<text x="0" y="186" class="t">ins-lidar</text>
+<rect x="214" y="170" width="62" height="22" rx="11" class="pass"/><text x="245.0" y="186" class="pill-text">PASS</text>
+<text x="284" y="186" class="s mute">&#9680; partial</text>
+<rect x="0" y="202" width="260" height="8" rx="4" fill="var(--track)"/>
+<rect x="0" y="202" width="19.7" height="8" rx="4" class="pass"/>
+<rect x="86.7" y="198" width="2" height="16" fill="var(--tick)"/>
+<text x="270" y="211" class="s">roll 0.114/0.5&#176;</text>
+<text x="0" y="248" class="t">imu-vehicle</text>
+<rect x="214" y="232" width="128" height="22" rx="11" class="inconclusive"/><text x="278.0" y="248" class="pill-text">INCONCLUSIVE</text>
+<rect x="0" y="264" width="260" height="8" rx="4" fill="var(--track)"/>
+<text x="270" y="273" class="s mute">no axis judged</text>
+<rect x="0" y="292" width="424" height="1" fill="var(--edge)"/>
+<text x="0" y="322" class="h">overall:</text>
+<rect x="84" y="305" width="62" height="22" rx="11" class="fail"/><text x="115.0" y="321" class="pill-text">FAIL</text>
+</g>
+<rect x="488" y="140" width="1" height="330" fill="var(--edge)"/>
+<text x="28" y="508" class="t">A 1&#176; yaw error in the deployed tf on velo_link is caught: yaw 1.31&#176; vs 0.5&#176; tolerance.</text>
+<text x="28" y="534" class="s mute">partial = some axes not judged; development data, not a held-out claim</text>
+</svg>

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- README: a new top with a `calibrex check` hero image (`docs/assets/readme-check-hero.svg`,
+  generated from the committed demo summary by `tools/generate_readme_check_hero.py`,
+  light and dark aware, digest-bound to its sources), a feature strip, and a shorter nav.
+
 ## 0.5.0 - 2026-10-02
 
 Highlights:

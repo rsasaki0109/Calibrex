@@ -1,8 +1,8 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Know whether your sensor calibration is trustworthy.</strong><br>
-  Evaluate GNSS, IMU, LiDAR, camera, and vehicle (wheel odometry, INS) extrinsics and time offsets with holdouts, known-bad controls, and provenance you can reproduce.
+  <strong>Is your robot's calibration actually right?</strong><br>
+  One command audits the extrinsics deployed on a recording and tells you, honestly.
 </p>
 
 <p align="center">
@@ -11,16 +11,33 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
-  <img alt="Evidence" src="https://img.shields.io/badge/evidence-schema--validated-38bdf8">
-  <img alt="Provenance" src="https://img.shields.io/badge/provenance-recorded-818cf8">
 </p>
 
-Calibrex is an open-source, ROS-independent Python toolkit that turns candidate
-extrinsics, time offsets, and trajectories into evidence backed by **holdout
-metrics, known-bad controls, observability checks, and reproducible provenance**.
-It ships native solvers for every sensor pair listed below, plus adapters for
-Kalibr, Open3D, and Autoware, and it reports `pass`, `warn`, `fail`, or
-`inconclusive` instead of optimizer convergence or a single training residual.
+<p align="center">
+  <img alt="calibrex check on pooled KITTI development drives: the vendor tf is inconclusive, a +1 degree yaw error injected into velo_link makes lidar-vehicle and lidar-wheel_odometry fail (yaw 1.31 deg against a 0.5 deg tolerance)" src="docs/assets/readme-check-hero.svg" width="900">
+</p>
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>🔍 One command</strong><br>
+      Reads <code>/tf_static</code>, finds the sensors, and audits up to ten pairs (GNSS, IMU, LiDAR, camera, vehicle).
+    </td>
+    <td width="33%" valign="top">
+      <strong>⚖️ Honest verdicts</strong><br>
+      Per-axis <code>pass</code> / <code>warn</code> / <code>fail</code> / <code>inconclusive</code>, with partial coverage and detection power reported.
+    </td>
+    <td width="33%" valign="top">
+      <strong>🧪 Pre-registered SOTA</strong><br>
+      Thresholds are frozen before held-out data is scored; refuted audits stay on the leaderboard.
+    </td>
+  </tr>
+</table>
+
+```bash
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.0/calibrex-0.5.0-py3-none-any.whl"
+calibrex check my_bag/ --html check.html
+```
 
 **Try it in your browser:** the
 [browser calibration page](https://rsasaki0109.github.io/Calibrex/app/)
@@ -29,23 +46,19 @@ gyro bias, and lever arm, with held-out evidence. It runs locally under
 Pyodide, so no data is uploaded.
 
 <p align="center">
-  <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Documentation</strong></a>
+  <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Docs</strong></a>
   ·
-  <a href="#check-a-deployed-calibration"><strong>calibrex check</strong></a>
+  <a href="#check-a-deployed-calibration"><strong>Check</strong></a>
   ·
   <a href="#pre-registered-sota-audits"><strong>SOTA audits</strong></a>
   ·
   <a href="#calibration-coverage"><strong>Coverage</strong></a>
   ·
-  <a href="#public-data-gallery"><strong>Public-data gallery</strong></a>
+  <a href="#public-data-gallery"><strong>Gallery</strong></a>
   ·
-  <a href="#five-minute-quickstart"><strong>Five-minute quickstart</strong></a>
+  <a href="#five-minute-quickstart"><strong>Quickstart</strong></a>
   ·
-  <a href="#solid-state-lidar-quickstart"><strong>Solid-state quickstart</strong></a>
-  ·
-  <a href="docs/concepts/calibration_methods.md"><strong>Calibration methods</strong></a>
-  ·
-  <a href="docs/tutorials/public_datasets.md"><strong>Public-data demos</strong></a>
+  <a href="docs/concepts/calibration_methods.md"><strong>Methods</strong></a>
 </p>
 
 ## Check a deployed calibration
@@ -439,6 +452,13 @@ data cannot falsify.
 
 Most calibration tools stop after producing a transform. Calibrex asks the
 next question: **what evidence would falsify this transform?**
+
+Calibrex is an open-source, ROS-independent Python toolkit that turns candidate
+extrinsics, time offsets, and trajectories into evidence backed by **holdout
+metrics, known-bad controls, observability checks, and reproducible provenance**.
+It ships native solvers for every sensor pair listed below, plus adapters for
+Kalibr, Open3D, and Autoware, and it reports `pass`, `warn`, `fail`, or
+`inconclusive` instead of optimizer convergence or a single training residual.
 
 | A matrix gives you | Calibrex adds |
 |---|---|
