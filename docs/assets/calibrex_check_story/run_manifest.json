@@ -1,4 +1,5 @@
 {
+ "act3_deployed_tf": "the bag's /tf_static (KITTI vendor calibration), yaw 0 deg",
  "bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
  "dataset": "KITTI raw 2011_09_26 (CC BY-NC-SA 3.0, non-commercial use only)",
  "drives": [
@@ -8,18 +9,11 @@
   "0015",
   "0022"
  ],
- "estimate_derivation": "R_estimate = E^T R_candidate, E = rotvec(roll=0, pitch, yaw candidate errors of the lidar-vehicle pair in the act-1 check)",
- "estimate_rotation_quat_xyzw": [
-  -0.007287762977749195,
-  0.005605961580560899,
-  -0.0023107674680013864,
-  0.9999550600198222
- ],
  "frame": "velo_link",
  "injected_yaw_deg": 3.0,
  "schema": "calibrex.check_story_manifest/v0",
  "summary_sha256": {
-  "act1_deployed_wrong.json": "6efe3baaae3b6a375a22040b8508f49e79243022eb4e27d18ea2d7a24dbc96b3",
-  "act3_recheck_estimate.json": "f34575c622d79611265ae674561076e1a5dbb06b2adff61aea01a2d352126031"
+  "act1_deployed_wrong.json": "db7e1f4513965023390f02e2a110ffa696efcb24aba5ab0fc8c5757a5b783fba",
+  "act3_recheck_vendor.json": "b27a143fb2a762f9b5d8edc05ebf5d119bfd6f5fdc9c263b73cad3a88e33ca12"
  }
 }

@@ -1,11 +1,11 @@
 """Run the two real ``calibrex check`` runs behind the "check story" GIF.
 
 Act 1 deploys a wrong tf (``velo_link`` turned by ``--yaw-deg`` about the parent z axis)
-and checks it. The estimate calibrex derived from the data is recovered from that run's
-per-axis errors exactly as the closure code does (``R_estimate = E^T R_candidate`` with
-``E`` the candidate-minus-estimate rotation; roll is not observable so its error is 0).
-Act 3 writes that estimate as the deployed tf and checks again. Summaries are written to
-``--out-dir`` so ``tools/check_story_gif.py`` renders without re-running check::
+and checks it. Act 3 restores the calibration file (the KITTI vendor tf from the bag's
+``/tf_static``, i.e. the same perturbation with a 0 deg yaw) and checks again. Calibrex
+checks the calibrations here; it is not shown estimating or fixing anything. Summaries
+are written to ``--out-dir`` so ``tools/check_story_gif.py`` renders without re-running
+check::
 
     python tools/check_story_run.py --bag BAG --work-dir /tmp/story \\
         --out-dir docs/assets/calibrex_check_story
@@ -21,10 +21,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import yaml
-from scipy.spatial.transform import Rotation
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from check_yaw_sweep_run import CLI_SNIPPET, sha256_file, summarize
@@ -34,38 +30,6 @@ STORY_SCHEMA = "calibrex.check_story_summary/v0"
 MANIFEST_SCHEMA = "calibrex.check_story_manifest/v0"
 PAIRS = "lidar-vehicle,lidar-wheel_odometry,ins-lidar,imu-vehicle"
 FRAME = "velo_link"
-
-
-def estimate_rotation(artifact: dict[str, Any], pair: str = "lidar-vehicle") -> np.ndarray:
-    """Calibrex's own ``R_base<-velo`` for ``pair``: ``E^T R_compared`` (closure convention)."""
-
-    record = next(p for p in artifact["pairs"] if p["pair"] == pair)
-    errors = {axis["name"]: axis["candidate_error"] for axis in record["axes"]}
-    rot_error = [errors.get(name, 0.0) for name in ("roll", "pitch", "yaw")]
-    compared = Rotation.from_quat(record["compared_transform"]["rotation_quat_xyzw"]).as_matrix()
-    return Rotation.from_rotvec(np.radians(rot_error)).as_matrix().T @ compared
-
-
-def write_frames(path: Path, artifact: dict[str, Any], quat: list[float]) -> None:
-    """A ``slac.check_frames`` file with ``velo_link`` carrying ``quat`` (translation kept)."""
-
-    edge = next(
-        e["transform"]
-        for e in artifact["frame_tree"]["edges"]
-        if e["transform"]["child_frame"] == FRAME
-    )
-    payload = {
-        "schema_version": "slac.check_frames/v0.1",
-        "frames": [
-            {
-                "name": FRAME,
-                "parent": edge["parent_frame"],
-                "translation_m": [float(v) for v in edge["translation_m"]],
-                "rotation_quat_xyzw": quat,
-            }
-        ],
-    }
-    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
 def run_check(
@@ -109,29 +73,28 @@ def main(argv: list[str] | None = None) -> int:
     cache = args.cache_dir or args.work_dir / "cache"
     env = dict(os.environ, PYTHONPATH=str(REPO / "src"))
 
-    frames1 = args.work_dir / "frames_act1.yaml"
-    subprocess.run(
-        [
-            sys.executable,
-            str(REPO / "tools/make_check_frames_perturbation.py"),
-            str(args.bag),
-            FRAME,
-            f"{args.yaw_deg:g}",
-            "--output",
-            str(frames1),
-        ],
-        check=True,
-        env=env,
-    )
-    art1, cmd1 = run_check(args.bag, cache, frames1, args.work_dir / "act1.json", env)
-    quat = [float(v) for v in Rotation.from_matrix(estimate_rotation(art1)).as_quat()]
-    frames3 = args.work_dir / "frames_act3_estimate.yaml"
-    write_frames(frames3, art1, quat)
-    art3, cmd3 = run_check(args.bag, cache, frames3, args.work_dir / "act3.json", env)
+    frames = {}
+    for act, yaw in (("act1", args.yaw_deg), ("act3", 0.0)):
+        frames[act] = args.work_dir / f"frames_{act}.yaml"
+        subprocess.run(
+            [
+                sys.executable,
+                str(REPO / "tools/make_check_frames_perturbation.py"),
+                str(args.bag),
+                FRAME,
+                f"{yaw:g}",
+                "--output",
+                str(frames[act]),
+            ],
+            check=True,
+            env=env,
+        )
+    art1, cmd1 = run_check(args.bag, cache, frames["act1"], args.work_dir / "act1.json", env)
+    art3, cmd3 = run_check(args.bag, cache, frames["act3"], args.work_dir / "act3.json", env)
 
     outputs = {
         "act1_deployed_wrong.json": summarize(art1, args.yaw_deg, cmd1),
-        "act3_recheck_estimate.json": summarize(art3, 0.0, cmd3),
+        "act3_recheck_vendor.json": summarize(art3, 0.0, cmd3),
     }
     for name, summary in outputs.items():
         summary["schema"] = STORY_SCHEMA
@@ -143,9 +106,7 @@ def main(argv: list[str] | None = None) -> int:
         "schema": MANIFEST_SCHEMA,
         "frame": FRAME,
         "injected_yaw_deg": args.yaw_deg,
-        "estimate_rotation_quat_xyzw": quat,
-        "estimate_derivation": "R_estimate = E^T R_candidate, E = rotvec(roll=0, pitch, yaw "
-        "candidate errors of the lidar-vehicle pair in the act-1 check)",
+        "act3_deployed_tf": "the bag's /tf_static (KITTI vendor calibration), yaw 0 deg",
         "bag_input_sha256": art1["bag"]["input_sha256"],
         "summary_sha256": {n: sha256_file(args.out_dir / n) for n in outputs},
         "dataset": "KITTI raw 2011_09_26 (CC BY-NC-SA 3.0, non-commercial use only)",

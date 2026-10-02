@@ -17,6 +17,8 @@ if str(TOOLS_DIR) not in sys.path:
 import check_story_gif as story  # noqa: E402
 import check_story_run as story_run  # noqa: E402
 
+ACT1_NAME = "act1_deployed_wrong.json"
+ACT3_NAME = "act3_recheck_vendor.json"
 KITTI_DRIVE = Path.home() / "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync"
 
 
@@ -26,32 +28,36 @@ def test_story_summaries_tell_fail_then_pass() -> None:
     for act in (act1, act3):
         assert act["schema"] == story_run.STORY_SCHEMA
         assert "--tf" in act["command"]
+    assert act1["yaw_injected_deg"] == 3.0
+    assert act3["yaw_injected_deg"] == 0.0  # act 3 is a real check at the vendor tf
     rec1, rec3 = story.lidar_vehicle(act1), story.lidar_vehicle(act3)
     assert rec1["status"] == "fail"
     assert rec1["axes"]["yaw"]["status"] == "fail"
     assert rec3["status"] == "pass"
     assert set(rec3["axes"]) == {"pitch", "yaw"}  # partial coverage: roll is not observable
     assert rec3["unchecked"] == ["roll"]
-    assert abs(rec3["axes"]["yaw"]["candidate_error_deg"]) < 0.05
+    assert abs(rec3["axes"]["yaw"]["candidate_error_deg"]) < rec3["axes"]["yaw"]["tolerance_deg"]
     assert abs(rec1["axes"]["yaw"]["candidate_error_deg"]) > 3.0
 
 
 def test_run_manifest_binds_the_summaries() -> None:
     run = story.load_json(story.RUN_MANIFEST)
     assert "non-commercial" in run["dataset"]
+    assert set(run["summary_sha256"]) == {ACT1_NAME, ACT3_NAME}
     for name, digest in run["summary_sha256"].items():
         assert digest == story_run.sha256_file(story.STORY_DIR / name)
-    quat = np.array(run["estimate_rotation_quat_xyzw"])
-    assert abs(np.linalg.norm(quat) - 1.0) < 1e-9
+    assert "estimate_rotation_quat_xyzw" not in run  # no calibrex estimate is deployed
 
 
-def test_act3_tf_is_the_estimate_and_vendor_is_close() -> None:
+def test_act3_tf_is_the_vendor_tf() -> None:
     act1 = story.load_json(story.ACT1)
     act3 = story.load_json(story.ACT3)
-    assert abs(story.vendor_to_estimate_yaw_deg(act1) - 0.31) < 0.02
-    # act 3 deployed the estimate: its tf differs from the act-1 tf by about the injected yaw
+    vendor = story.vendor_tf(act1)
+    # act 3 deploys the vendor calibration, not a calibrex estimate: tf equal to the vendor tf
+    assert np.allclose(story.velo_tf(act3), vendor, atol=1e-6)
+    # ... and act 1 is the vendor tf turned by the injected yaw
     delta = abs(story.yaw_between_deg(story.velo_tf(act1), story.velo_tf(act3)))
-    assert abs(delta - (act1["yaw_injected_deg"] + story.vendor_to_estimate_yaw_deg(act1))) < 0.2
+    assert abs(delta - act1["yaw_injected_deg"]) < 1e-3
 
 
 def test_slerp_endpoints_and_monotonic_yaw() -> None:
@@ -74,8 +80,9 @@ def test_provenance_names_the_gif_and_licence() -> None:
     assert provenance["generator"] == "tools/check_story_gif.py"
     assert "non-commercial" in provenance["dataset_license"]
     run = story.load_json(story.RUN_MANIFEST)
-    for name in ("act1_deployed_wrong.json", "act3_recheck_estimate.json"):
+    for name in (ACT1_NAME, ACT3_NAME):
         assert provenance["summaries_sha256"][name] == run["summary_sha256"][name]
+    assert "vendor" in provenance["story"]["act3_deployed_tf"]
     assert story.GIF.name in json.dumps(provenance)
 
 

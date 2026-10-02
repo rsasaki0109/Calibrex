@@ -22,10 +22,10 @@ hide:
 
 </div>
 
-<div class="cx-visual"><img src="assets/calibrex-check-story.gif" alt="calibrex check catches a bad calibration and confirms the fix on KITTI: with a 3 degree yaw error the LiDAR points miss the bollards and lidar-vehicle fails; the transform estimated from the data passes the re-check"></div>
+<div class="cx-visual"><img src="assets/calibrex-check-story.gif" alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes"></div>
 
 <p class="cx-caption">Real <code>calibrex check</code> runs on KITTI development drives: a deployed LiDAR transform
-with a 3° yaw error <b>fails</b>; the transform Calibrex estimates from the data, deployed and re-checked,
+with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checking
 <b>passes</b> (pitch and yaw judged; roll is not observable from driving).</p>
 
 </div>

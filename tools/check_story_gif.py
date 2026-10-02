@@ -1,10 +1,15 @@
-"""Render the "catch a bad calibration, then see the fix" README GIF from real check runs.
+"""Render the "catch a bad calibration, confirm the good one" README GIF from real check runs.
 
 Three acts, one pair (lidar-vehicle) shown prominently:
 
 1. the deployed tf is wrong (``velo_link`` yaw +3 deg): ``calibrex check`` says FAIL;
-2. the tf slides (slerp) to the transform calibrex estimated from the data;
-3. that estimate is deployed and ``calibrex check`` is re-run: PASS.
+2. the tf slides (slerp) back to the vendor KITTI calibration (the calibration file is
+   restored; interpolated, not a check result);
+3. ``calibrex check`` is re-run at the vendor tf: PASS.
+
+Calibrex checks calibrations here; it is not shown fixing the camera alignment.  The
+lidar-vehicle frame is LiDAR-to-vehicle-motion, about 0.5 deg from the KITTI OXTS
+``base_link``, so it is never deployed in the camera overlay.
 
 Inputs: the two real check summaries and ``run_manifest.json`` under
 ``docs/assets/calibrex_check_story/`` (written by ``tools/check_story_run.py``) and, for
@@ -41,7 +46,7 @@ if TYPE_CHECKING:
 REPO = Path(__file__).resolve().parents[1]
 STORY_DIR = REPO / "docs/assets/calibrex_check_story"
 ACT1 = STORY_DIR / "act1_deployed_wrong.json"
-ACT3 = STORY_DIR / "act3_recheck_estimate.json"
+ACT3 = STORY_DIR / "act3_recheck_vendor.json"
 RUN_MANIFEST = STORY_DIR / "run_manifest.json"
 PROVENANCE = STORY_DIR / "provenance.json"
 GIF = Path("docs/assets/calibrex-check-story.gif")
@@ -101,13 +106,6 @@ def vendor_tf(act1: dict[str, Any]) -> np.ndarray:
     """The unperturbed (vendor) ``T_base<-velo``: act 1's tf with its injected yaw undone."""
 
     return sweep.perturbed_velo_tf(velo_tf(act1), -act1["yaw_injected_deg"])
-
-
-def vendor_to_estimate_yaw_deg(act1: dict[str, Any]) -> float:
-    """Yaw distance between the vendor tf and calibrex's estimate (act-1 error minus injected)."""
-
-    axis = lidar_vehicle(act1)["axes"]["yaw"]
-    return abs(abs(axis["candidate_error_deg"]) - abs(act1["yaw_injected_deg"]))
 
 
 def slerp_rotation(r0: np.ndarray, r1: np.ndarray, t: float) -> np.ndarray:
@@ -200,7 +198,7 @@ def overlay(
 def draw_steps_row(draw: Any, active: int, y: int) -> None:
     """Three step chips; the active one is lit."""
 
-    labels = ("1  Deployed calibration", "2  Calibrex estimate", "3  Re-check")
+    labels = ("1  Deployed calibration", "2  Restore the calibration", "3  Re-check")
     font = sweep.load_font(13, True)
     x = 16
     chip_w = (sweep.WIDTH - 32 - 2 * 14) // 3
@@ -288,7 +286,12 @@ def draw_card(
             f"yaw  |δ| = {error:.2f}°",
         )
         note = (
-            f"pitch also judged: |δ| {abs(pitch['candidate_error_deg']):.2f}° ({pitch['status']})"
+            f"pitch also judged: |δ| {abs(pitch['candidate_error_deg']):.2f}° ({pitch['status']}"
+            + (
+                ", at the tolerance)"
+                if pitch["status"] == "pass" and pitch["ratio"] >= 0.9
+                else ")"
+            )
         )
         draw.text((x0 + 14, y1 - 8), note, font=sweep.load_font(11), fill=MUTED, anchor="ls")
     else:
@@ -302,7 +305,7 @@ def draw_card(
             interpolated_yaw,
             tolerance_deg,
             (150, 162, 180),
-            f"yaw offset from estimate = {interpolated_yaw:.2f}°",
+            f"yaw offset from vendor tf = {interpolated_yaw:.2f}°",
         )
         draw.text(
             (x0 + 14, y1 - 8),
@@ -390,7 +393,9 @@ def build(
     rec1, rec3 = lidar_vehicle(act1), lidar_vehicle(act3)
     yaw_start = abs(rec1["axes"]["yaw"]["candidate_error_deg"])
     yaw_end = abs(rec3["axes"]["yaw"]["candidate_error_deg"])
-    off_vendor = vendor_to_estimate_yaw_deg(act1)
+    pitch_end = abs(rec3["axes"]["pitch"]["candidate_error_deg"])
+    tolerance = rec3["axes"]["yaw"]["tolerance_deg"]
+    assert np.allclose(tf3, vendor, atol=1e-6), "act 3 must deploy the vendor tf"
     inj = act1["yaw_injected_deg"]
 
     def render(tf: np.ndarray) -> tuple[PILImage.Image, PILImage.Image]:
@@ -434,18 +439,15 @@ def build(
         offset = abs(yaw_between_deg(tf, tf3))
         frame = compose_frame(
             step=2,
-            title="2  Calibrex estimate from the data",
-            subtitle="moving to the transform estimated from the data",
+            title="2  Restore the calibration file",
+            subtitle="velo_link goes back to the KITTI vendor tf; interpolated, not a check result",
             panel_image=main,
             inset_image=inset,
             record=None,
             interpolated_yaw=offset,
             footnotes=[
-                (
-                    "the estimate comes from LiDAR odometry of the drive (no target, no markers)",
-                    TEXT,
-                ),
-                ("the points slide onto the edges", MUTED),
+                ("restoring the calibration file: velo_link returns to the vendor KITTI tf", TEXT),
+                ("the points slide back onto the bollards", MUTED),
             ],
         )
         frames.append(frame)
@@ -457,19 +459,21 @@ def build(
     f3 = compose_frame(
         step=3,
         title="3  Re-check: PASS",
-        subtitle="the estimate is now the deployed tf, and calibrex check is run again",
+        subtitle="the vendor calibration is deployed and calibrex check is run again",
         panel_image=main,
         inset_image=inset,
         record=rec3,
         interpolated_yaw=None,
         footnotes=[
             (
-                f"yaw |δ| is now {yaw_end:.2f}°; pitch and yaw judged: a partial PASS",
+                f"the vendor calibration passes: yaw |δ| {yaw_end:.2f}° "
+                f"(tolerance {tolerance:.1f}°); pitch and yaw judged; "
+                "roll is not observable from driving",
                 TEXT,
             ),
             (
-                f"for reference, the vendor KITTI tf is yaw {off_vendor:.2f}° from this estimate; "
-                "roll is not observable from driving",
+                f"pitch |δ| {pitch_end:.2f}° sits at the {tolerance:.1f}° tolerance: the OXTS "
+                "(base_link) frame is ~0.5° from the motion-defined vehicle frame",
                 MUTED,
             ),
             (
@@ -521,13 +525,17 @@ def build_provenance(drive_dir: Path, image_index: int, frames: int) -> dict[str
             "act1": "deployed velo_link yaw "
             f"{act1['yaw_injected_deg']:+g} deg (R' = Rz(yaw) R about base_link z): calibrex check "
             f"lidar-vehicle {lidar_vehicle(act1)['status']}",
-            "act2": "slerp of velo_link rotation (lerp of translation) from the act-1 tf to the "
-            "estimate; interpolated, not a check result",
-            "act3": "estimate deployed as --tf, calibrex check re-run: lidar-vehicle "
+            "act2": "slerp of velo_link rotation (lerp of translation) from the act-1 tf back to "
+            "the KITTI vendor tf; interpolated, not a check result",
+            "act3": "vendor tf (yaw 0) deployed as --tf, calibrex check re-run: lidar-vehicle "
             f"{lidar_vehicle(act3)['status']} (partial: pitch, yaw)",
-            "estimate_derivation": run["estimate_derivation"],
-            "estimate_rotation_quat_xyzw": run["estimate_rotation_quat_xyzw"],
-            "vendor_to_estimate_yaw_deg": round(vendor_to_estimate_yaw_deg(act1), 4),
+            "act3_deployed_tf": run["act3_deployed_tf"],
+            "act3_lidar_vehicle_errors_deg": {
+                name: axis["candidate_error_deg"]
+                for name, axis in lidar_vehicle(act3)["axes"].items()
+            },
+            "overlay_note": "the overlay at act 3 is the pure vendor projection; the lidar-vehicle "
+            "frame is not the camera-LiDAR calibration and is never deployed here",
             "overall_verdicts_not_shown": {
                 "act1": act1["overall_verdict"],
                 "act3": act3["overall_verdict"],
