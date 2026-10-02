@@ -26,14 +26,38 @@ def load_gif_tool() -> ModuleType:
     return module
 
 
+DATA_GIF_REGISTRY = ROOT / "docs" / "assets" / "readme-data-gifs.json"
+
+
+def load_data_gif_registry() -> dict:
+    return json.loads(DATA_GIF_REGISTRY.read_text(encoding="utf-8"))
+
+
+def test_readme_data_gifs_are_digest_bound_to_generators_and_provenance() -> None:
+    registry = load_data_gif_registry()
+    assert registry["schema_version"] == "calibrex.readme_data_gifs/v1"
+    assert registry["assets"]
+    for asset in registry["assets"]:
+        gif = ROOT / asset["output"]
+        assert asset["sha256"] == hashlib.sha256(gif.read_bytes()).hexdigest()
+        assert asset["size_bytes"] == gif.stat().st_size
+        assert asset["size_bytes"] <= 1_500_000
+        assert (ROOT / asset["generator"]).is_file()
+        provenance = ROOT / asset["provenance"]
+        assert provenance.is_file()
+        assert Path(asset["output"]).name in provenance.read_text(encoding="utf-8")
+        assert asset["dataset_license"]
+
+
 def test_readme_gallery_jobs_match_readme_gifs() -> None:
     tool = load_gif_tool()
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     readme_gifs = set(re.findall(r'docs/assets/[^"]+\.gif', readme))
     gallery_gifs = {job.output.as_posix() for job in tool.README_GIF_JOBS}
+    data_gifs = {asset["output"] for asset in load_data_gif_registry()["assets"]}
 
-    assert readme_gifs <= gallery_gifs
+    assert readme_gifs <= gallery_gifs | data_gifs
     assert "docs/assets/calibrex-motion-calibration-loop.gif" in readme_gifs
     assert readme.index("## Public-data gallery") < readme.index("## Five-minute quickstart")
     hero_jobs = [job for job in tool.README_GIF_JOBS if job.readme_role == "hero"]
