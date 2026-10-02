@@ -252,14 +252,97 @@ IMU-LiDAR defaults and results are unchanged):
   `inconclusive` on yaw (0.31 deg). The 0.3 deg bound did not rescue them.
 
 The bound is a judgement made from development data on two recordings. It has
-not been validated on held-out recordings (exp01-exp04 are untouched).
+been validated on held-out recordings only by the pre-registered audit below,
+which refuted the claim on the shortest recording (exp04).
+
+## Pre-registered audit: refuted
+
+The claim, metrics, and thresholds were committed in
+[`hilti_camera_imu_preregistration.yaml`](hilti_camera_imu_preregistration.yaml)
+(commit `c4d51d2`, SHA-256 `fad67cd1...a3ec1`), before camera-imu ran on any
+evaluation recording. The code was frozen at commit `7fd89ee`; `src/` and
+`tools/` were identical to it when the audit ran, and the bag hashes matched
+the pre-registration. The evaluation recordings are exp01-exp04 and the gated
+cameras are cam0 and cam1 (eight units); development was exp21 and exp07 only.
+Each unit ran the pre-registered `calibrex camera-imu rotation` command once
+(`--frame-stride 4 --min-window-rotation-deg 1.0 --observable-rotation-std-deg 0.3`),
+and no run crashed or was repeated. Scoring is `tools/score_hilti_camera_imu.py`
+and the audit is built by `tools/build_hilti_camera_imu_audit.py`, both unchanged
+([protocol](../assets/hilti_camera_imu_sota_protocol.yaml),
+[result](../assets/hilti_camera_imu_sota_audit.yaml),
+[scores](../assets/hilti2022_camera_imu_audit/scores.json), and the eight
+artifacts beside it).
+
+**Verdict: `refuted`, 6/7 gates.** All eight units are usable and scored.
+
+| Unit | Rotation to Kalibr | Time error | Constrained | Windows | Failed pairs | Policy |
+| --- | ---: | ---: | :---: | ---: | ---: | --- |
+| cam0 exp01 | 0.552 deg | -0.33 ms | yes | 24 | 0.2 % | pass |
+| cam0 exp02 | 0.435 deg | -0.24 ms | yes | 48 | 1.6 % | pass |
+| cam0 exp03 | 0.696 deg | +0.13 ms | yes | 36 | 2.4 % | pass |
+| cam0 exp04 | 0.497 deg | -0.02 ms | **no** | 14 | 2.7 % | inconclusive |
+| cam1 exp01 | 0.377 deg | -0.08 ms | yes | 24 | 0.3 % | pass |
+| cam1 exp02 | 0.383 deg | -0.33 ms | yes | 48 | 1.4 % | pass |
+| cam1 exp03 | 0.365 deg | +0.04 ms | yes | 35 | 2.0 % | warn |
+| cam1 exp04 | 0.512 deg | -0.33 ms | **no** | 15 | 2.6 % | inconclusive |
+
+Cross-recording consistency (largest angle between two recordings' estimates):
+cam0 0.347 deg, cam1 0.430 deg. Relative cam0-to-cam1 rotation error:
+exp01 0.300, exp02 0.193, exp03 0.375, exp04 0.406 deg.
+
+| Requirement | Observed | Threshold | Result |
+| --- | --- | --- | :---: |
+| rotation-vs-kalibr (every unit) | max 0.696 deg | <= 1.0 deg | pass |
+| time-offset-vs-kalibr (every unit) | max 0.332 ms | <= 0.5 ms | pass |
+| constrained (every unit) | 2 of 8 units not constrained | 0 | **fail** |
+| no-failed-units | 0 failed | 0 | pass |
+| cross-recording-consistency | max 0.430 deg (cam1) | <= 0.75 deg | pass |
+| relative-cam0-cam1 | max 0.406 deg (exp04) | <= 0.5 deg | pass |
+| scored-recordings-coverage | 4 of 4 recordings | >= 3 | pass |
+
+- **The accuracy and reproducibility gates pass with margin.** The worst
+  rotation error against Kalibr is 0.70 deg (development worst 0.45), the worst
+  clock offset error is 0.33 ms, the estimates of one camera agree across
+  recordings to 0.43 deg, and the Kalibr relative rotation is reproduced to
+  0.41 deg. The rig-level offset seen in development did not break any gate.
+- **The `constrained` gate fails on exp04, for both cameras.** exp04 is the
+  shortest recording (125.8 s), and only 14 (cam0) and 15 (cam1) windows
+  survive the static-window exclusion, against 24-48 elsewhere. On cam0 the
+  pitch jackknife std is 0.354 deg (bound 0.3, so pitch is `unobservable`); on
+  cam1 roll (0.404 deg) and yaw (0.350 deg) are. The three known-bad controls
+  were detected in all of them, and the rotation errors of those units are
+  0.50 and 0.51 deg, so the data was not wrong; it was not sufficient to
+  constrain every axis to the 0.3 deg the claim required. This is what the
+  observability bound exists to report.
+- **cam1 exp03 passes `constrained` narrowly.** Its pitch control was not
+  detected (2 of 3 detected, the minimum) and its policy is `warn`.
+- Because the claim said "constrained by the data on all three rotation axes",
+  a short recording that cannot do so contradicts it. The pre-registered rule is
+  not changed after seeing this, and the audit stays on the leaderboard.
+
+The result is a mixed one. Against Kalibr, the method is accurate on
+construction-site recordings, but the claim as written (every unit constrained)
+does not hold on the shortest recording. The thresholds were set from two
+development recordings, and the 0.3 deg observability bound did not generalise
+to the shortest evaluation recording. A future
+claim could pre-register a minimum recording length or window count, or report
+`constrained` per recording rather than per unit, but that would be a new
+claim on new recordings.
+
+Runtime was 1240 s of wall time with two runs in parallel (cam0 and cam1 each
+199, 502, 409, and 129 s for exp01-exp04).
+
+The held-out recordings are now spent for camera-IMU. cam2-cam4 were not run on
+them.
 
 ## Next steps
 
 - Understand the side-camera errors.
 - Decide how the audit treats a rig-level IMU-frame offset. The rotation of
   each camera relative to the gyro frame is what this method estimates.
-- Pre-register an audit on exp01-exp04 against Kalibr and a targetless
-  external baseline.
+- Decide how a short recording is judged: the pre-registered audit on
+  exp01-exp04 was refuted by the `constrained` gate on the 126 s exp04 alone.
+  A new claim needs new recordings (exp01-exp04 are spent) and, ideally, a
+  targetless external baseline.
 
-No SOTA claim is made for camera-IMU.
+No SOTA claim is made for camera-IMU: its pre-registered audit is refuted.

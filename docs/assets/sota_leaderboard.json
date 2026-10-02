@@ -1,6 +1,35 @@
 {
   "entries": [
     {
+      "achieved_dataset_families": [
+        "hilti2022"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "hilti-camera-imu-v1",
+      "audit_path": "docs/assets/hilti_camera_imu_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "557d8675e1496b995a880d37118a69c44f7a09a9cbcd728eaf86090e0dc901c8",
+      "claim_text": "On four Hilti 2022 recordings not used to develop the method, Calibrex's targetless camera-IMU rotation for the two forward cameras agrees with Kalibr within 1.0 deg and 0.5 ms, is constrained on all three axes, reproduces across recordings within 0.75 deg, and reproduces Kalibr's cam0-to-cam1 rotation within 0.5 deg.",
+      "pair_id": "camera-imu",
+      "protocol_id": "hilti-camera-imu-v1",
+      "requirement_counts": {
+        "achieved": 6,
+        "contradicted": 1
+      },
+      "scope": {
+        "category": "targetless_camera_imu",
+        "modalities": [
+          "camera",
+          "imu"
+        ],
+        "quantities": [
+          "rotation",
+          "time_offset"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
       "achieved_dataset_families": [],
       "achieved_independent_rig_count": 0,
       "audit_id": "mid360-imu-lidar-extrinsic-vs-li-init-v1",
@@ -155,8 +184,8 @@
     {
       "incomplete_claims": 0,
       "pair_id": "camera-imu",
-      "refuted_claims": 0,
-      "standing": "no_claim",
+      "refuted_claims": 1,
+      "standing": "refuted",
       "supported_claims": 0,
       "target": true
     },
@@ -235,6 +264,7 @@
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
       "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
       "docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml",
+      "docs/assets/hilti_camera_imu_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -258,10 +288,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-10-01T03:49:14.085689+00:00",
+    "created_at": "2026-10-02T09:37:55.600093+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
-    "generator_version": "0.4.1",
-    "git_commit": "f5ab3c2"
+    "generator_version": "0.5.0",
+    "git_commit": "c4d51d2"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

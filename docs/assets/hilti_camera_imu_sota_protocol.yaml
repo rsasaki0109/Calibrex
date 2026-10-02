@@ -1,0 +1,118 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: hilti-camera-imu-v1
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_camera_imu
+claim_text: On four Hilti 2022 recordings not used to develop the method, Calibrex's
+  targetless camera-IMU rotation for the two forward cameras agrees with Kalibr within
+  1.0 deg and 0.5 ms, is constrained on all three axes, reproduces across recordings
+  within 0.75 deg, and reproduces Kalibr's cam0-to-cam1 rotation within 0.5 deg.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: rotation-vs-kalibr
+  phase: audit
+  description: every scored unit has rotation error <= 1.0 deg
+  dataset_family: hilti2022
+  independent_rig: true
+  rig_id: hilti2022-alphasense
+  evidence_path: hilti_camera_imu_units_benchmark.yaml
+  evidence_sha256: 32da53f1cda63e15b7e924d317512580a882f96a899c001472f953850145059e
+  method_id: calibrex_native
+  metric: rotation_error_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+- requirement_id: time-offset-vs-kalibr
+  phase: audit
+  description: every scored unit has time error <= 0.5 ms
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_units_benchmark.yaml
+  evidence_sha256: 32da53f1cda63e15b7e924d317512580a882f96a899c001472f953850145059e
+  method_id: calibrex_native
+  metric: time_error_ms_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: constrained
+  phase: audit
+  description: every scored unit is constrained
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_units_benchmark.yaml
+  evidence_sha256: 32da53f1cda63e15b7e924d317512580a882f96a899c001472f953850145059e
+  method_id: calibrex_native
+  metric: constrained_violation
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: no-failed-units
+  phase: audit
+  description: no usable unit fails
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_units_benchmark.yaml
+  evidence_sha256: 32da53f1cda63e15b7e924d317512580a882f96a899c001472f953850145059e
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: cross-recording-consistency
+  phase: audit
+  description: per camera consistency <= 0.75 deg
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_consistency_benchmark.yaml
+  evidence_sha256: 2ca8cb85ed26a76ef4e743ea33d2c7a504a64b12df0654e29dd68316df451a49
+  method_id: calibrex_native
+  metric: consistency_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.75
+  required: true
+- requirement_id: relative-cam0-cam1
+  phase: audit
+  description: every recording scored for both cameras has relative error <= 0.5 deg
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_relative_benchmark.yaml
+  evidence_sha256: 011f3c028120a1aa1dcf8649b0b7e3386f7c247c4819aa57a0da988f9a875cb4
+  method_id: calibrex_native
+  metric: relative_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: scored-recordings-coverage
+  phase: audit
+  description: at least 3 of 4 recordings scored for both cameras
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_relative_benchmark.yaml
+  evidence_sha256: 011f3c028120a1aa1dcf8649b0b7e3386f7c247c4819aa57a0da988f9a875cb4
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.25
+  required: true
+provenance:
+  generator: tools/build_hilti_camera_imu_audit.py
+  generator_version: 0.5.0
+  command:
+  - python
+  - tools/build_hilti_camera_imu_audit.py
+  - SCORES.json
+  source_sha256:
+    preregistration: fad67cd1a2cd37d2c32a1485deb6f4390c647a8a3753d0e184d6626bd8ba3ec1
+    scores: fcca95adb0de2b1c5ecadc5b8fbbb6b26517388e00ffd0dd8289fc367724be37
+  created_at: '2026-10-02T09:37:30.730791+00:00'
