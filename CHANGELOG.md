@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **`calibrex check` wires `camera-focal`**: the deployed focal lengths (Kalibr
+  camchain or `CameraInfo`) are judged against the gyro as a scale
+  `s = f_estimate / f_candidate`, `|s - 1|` against `max(k * std, floor)` with the
+  new `--focal-scale-floor` (default 0.005). It consumes this run's `camera-imu`
+  estimate (skipped `missing_dependency` when that is absent, failed or looser
+  than 0.5 deg), is cached under the camera model and the `camera-imu` estimate,
+  and equals `calibrex camera-imu focal` bit for bit on Hilti exp21 cam0-cam4.
+  On exp21 only cam1 (fx, fy) and cam0 (fy) are judgeable; +3 % known-bad
+  flips cam1 to `fail`, +1 % to `warn`; the other cameras stay `inconclusive`.
+  Optional schema fields: `CheckPairRecord.focal_scale` (new `CheckFocalScale`),
+  `CheckOptions.focal_scale_floor`; `slac.calibration_check/v0.1` unchanged
+  otherwise. `run_camera_focal_check` splits out from the standalone runner
+  (`max_seconds` option).
 - **`calibrex check` runs `imu-lidar` on clouds without per-point time** as rigid
   scans (no deskew) instead of skipping them `unsupported_sensor`.
   `--imu-lidar-deskew auto|gyro|none` (default `auto`: the per-point time field

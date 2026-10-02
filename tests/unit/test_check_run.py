@@ -91,6 +91,7 @@ def calls(monkeypatch: pytest.MonkeyPatch) -> list[PairContext]:
             "imu-lidar": wrap(_run((0.1, 0.0, 0.2), tag="il")),
             "lidar-lidar": wrap(_run((0.0, 0.9, 0.0), tag="ll")),
             "camera-imu": wrap(CheckSkipError("missing_intrinsics", "no intrinsics for stub")),
+            "camera-focal": wrap(CheckSkipError("missing_dependency", "stub: camera-imu skipped")),
             "gnss-lidar": wrap(CheckSkipError("unsupported_sensor", "stub: no RTK-grade fixes")),
         },
     )
@@ -121,7 +122,7 @@ def test_full_run_verdicts_evidence_and_options(
     assert _by(artifact, "lidar-lidar")[0].status == "warn"  # 0.9 deg vs tolerance 0.5
     camera = _by(artifact, "camera-imu")[0]
     assert (camera.status, camera.reason_code) == ("skipped", "missing_intrinsics")
-    assert _by(artifact, "camera-focal")[0].reason_code == "method_not_wired"
+    assert _by(artifact, "camera-focal")[0].reason_code == "missing_dependency"
     assert artifact.overall_verdict == "warn"
     assert any("running imu-lidar" in message for message in messages)
 
@@ -229,7 +230,7 @@ def test_nothing_ran_is_inconclusive(tmp_path: Path, bag: Path, calls: list[Pair
         bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("camera-focal",))
     )
 
-    assert not calls
+    assert {c.pair.pair for c in calls} == {"camera-focal"}  # the stub skips it
     assert artifact.overall_verdict == "inconclusive"
     assert not (tmp_path / "ev").exists()
 

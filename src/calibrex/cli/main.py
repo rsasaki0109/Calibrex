@@ -2962,6 +2962,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="rotation error used by the detection-power self-test (default 1)",
     )
     check.add_argument(
+        "--focal-scale-floor",
+        type=_positive_float,
+        default=0.005,
+        metavar="FRACTION",
+        help="smallest camera-focal tolerance as a fraction of the deployed focal length "
+        "(default 0.005 = 0.5 %%); the tolerance is max(K * std, floor)",
+    )
+    check.add_argument(
         "--no-imu-lidar-translation",
         action="store_true",
         help="skip the IMU-LiDAR lever-arm estimate (rotation only; faster)",
@@ -4159,6 +4167,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
                 rotation_floor_deg=args.rotation_floor_deg,
                 translation_floor_m=args.translation_floor_m,
                 detection_probe_deg=args.detection_probe_deg,
+                focal_scale_floor=args.focal_scale_floor,
             ),
             pairs=pairs,
             max_duration_s=args.max_duration_s,

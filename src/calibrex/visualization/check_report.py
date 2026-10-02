@@ -19,6 +19,7 @@ from calibrex.core.calibration_check import (
     CalibrationCheckArtifact,
     CheckAxisJudgement,
     CheckClosure,
+    CheckFocalComponent,
     CheckFrameEdge,
     CheckPairRecord,
 )
@@ -131,6 +132,22 @@ def _axis_row(axis: CheckAxisJudgement, *, signed: bool = False) -> str:
     )
 
 
+def _focal_row(item: CheckFocalComponent) -> str:
+    fill = min(item.ratio / 2.0, 1.0) * 100.0
+    sigma = f", 1&sigma; {_number(item.scale_std * 100.0)} %" if item.scale_std else ""
+    return (
+        '<div class="axis">'
+        f'<span class="name">{escape(item.name)}</span>'
+        f'<span class="meter" title="{item.ratio:.2f} x tolerance"><i class="{item.status}" '
+        f'style="width:{fill:.0f}%"></i><b></b></span>'
+        f'<span class="val">scale {item.scale:.4f}: {_number(abs(item.scale_error) * 100.0)} / '
+        f"{_number(item.tolerance * 100.0)} %{sigma} ({_number(item.ratio, 2)}x), "
+        f"{_number(item.estimate_px, 4)} px against {_number(item.candidate_px, 4)} px deployed"
+        f"{'' if item.status == 'pass' else ' ' + _badge(item.status)}</span>"
+        "</div>"
+    )
+
+
 def _evidence_cell(pair: CheckPairRecord, artifact_dir: Path | None, html_dir: Path | None) -> str:
     if not pair.evidence:
         return '<span class="note">none</span>'
@@ -156,7 +173,9 @@ def _pair_rows(
         if pair.status == "skipped":
             continue
         verdict = _badge(pair.status)
-        if pair.coverage == "partial" and pair.axes:
+        if pair.coverage == "partial" and (
+            pair.axes or (pair.focal_scale is not None and pair.focal_scale.components)
+        ):
             verdict += '<div class="note">partial coverage</div>'
         axes = "".join(_axis_row(axis) for axis in pair.axes) or '<span class="note">none</span>'
         unchecked = "".join(
@@ -168,6 +187,25 @@ def _pair_rows(
             f"{escape(axis.name)} {_number(axis.detectable_error)} {axis.unit}"
             for axis in pair.axes
         )
+        if pair.focal_scale is not None:
+            focal = pair.focal_scale
+            axes = "".join(_focal_row(item) for item in focal.components) or (
+                '<span class="note">none</span>'
+            )
+            unchecked = "".join(
+                f'<div class="unchecked"><b>{escape(item.name)}</b> unchecked: '
+                f"{escape(item.reason)}</div>"
+                for item in focal.unchecked
+            )
+            if focal.optical_axis_ratio is not None:
+                unchecked += (
+                    '<div class="unchecked">optical-axis control ratio '
+                    f"{focal.optical_axis_ratio:.4f} (must be 1)</div>"
+                )
+            detect = "<br>".join(
+                f"{escape(item.name)} {_number(item.detectable_error * 100.0)} %"
+                for item in focal.components
+            )
         reason = f'<div class="note">{escape(pair.reason)}</div>' if pair.reason else ""
         rows.append(
             "<tr>"
@@ -329,7 +367,7 @@ def _banner(artifact: CalibrationCheckArtifact) -> str:
         axis
         for pair in artifact.pairs
         if pair.status in {"warn", "fail"}
-        for axis in pair.axes
+        for axis in (*pair.axes, *(pair.focal_scale.components if pair.focal_scale else ()))
         if axis.status != "pass"
     ]
     if worst_axes:

@@ -202,6 +202,69 @@ class CheckUncheckedAxis(StrictModel):
     reason_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
 
 
+FocalName = Literal["fx", "fy"]
+
+
+class CheckFocalComponent(StrictModel):
+    """One judged focal length: the deployed value against the gyro-implied one.
+
+    ``scale = estimate / candidate`` (the camera/gyro rate ratio the estimator
+    measures with features normalized by the candidate focal length) and
+    ``scale_error = scale - 1``. ``tolerance = max(sigma_k * scale_std, floor)``
+    with the focal-scale floor; ``status`` is ``pass`` when
+    ``|scale_error| <= tolerance``, ``fail`` beyond twice the tolerance, else
+    ``warn``. ``detectable_error = tolerance + |scale_error|`` is the smallest
+    relative focal-length error the run would have flagged (no re-solve);
+    ``detects_perturbation`` says whether ``detection_probe`` (a relative
+    error, 0.01 = 1 %) is above it.
+    """
+
+    name: FocalName
+    candidate_px: float = Field(gt=0.0)
+    estimate_px: float = Field(gt=0.0)
+    estimate_std_px: float = Field(ge=0.0)
+    scale: float = Field(gt=0.0)
+    scale_std: float = Field(ge=0.0)
+    scale_error: float
+    tolerance: float = Field(gt=0.0)
+    tolerance_source: Literal["sigma", "floor"]
+    ratio: float = Field(ge=0.0, description="abs(scale_error) / tolerance")
+    status: CheckAxisStatus
+    detectable_error: float = Field(ge=0.0)
+    detection_probe: float = Field(gt=0.0)
+    detects_perturbation: bool
+
+
+class CheckUncheckedFocal(StrictModel):
+    """A focal length the estimator did not constrain, so the candidate is not judged on it."""
+
+    name: FocalName
+    candidate_px: float = Field(gt=0.0)
+    scale: float | None = None
+    scale_std: float | None = Field(default=None, ge=0.0)
+    reason: str
+    reason_code: Literal["unobservable", "control_not_detected", "no_estimate"]
+
+
+class CheckFocalScale(StrictModel):
+    """Intrinsics record of ``camera-focal``: focal lengths judged as a scale of the candidate.
+
+    camera-focal checks the deployed intrinsics, not an extrinsic, so it has no
+    per-axis rotation or translation judgements; this record holds its
+    judgements instead. The optical-axis ratio is the estimator's control (it
+    does not depend on the focal length and should be 1).
+    """
+
+    components: list[CheckFocalComponent] = Field(default_factory=list)
+    unchecked: list[CheckUncheckedFocal] = Field(default_factory=list)
+    optical_axis_ratio: float | None = None
+    optical_axis_ratio_std: float | None = Field(default=None, ge=0.0)
+    floor: float = Field(gt=0.0, description="focal-scale floor of the tolerance (relative)")
+    intrinsics_source: str | None = Field(
+        default=None, description="where the deployed focal lengths came from"
+    )
+
+
 class CheckTimeOffset(StrictModel):
     """The estimator's clock offset; reported, not judged."""
 
@@ -253,6 +316,12 @@ class CheckOptions(StrictModel):
         gt=0.0,
         description="rotation floor applied to imu-lidar axes judged on rigid scans (deskew none)",
     )
+    focal_scale_floor: float | None = Field(
+        default=None,
+        gt=0.0,
+        description="relative floor of the camera-focal tolerance (0.005 = 0.5 %); "
+        "absent in artifacts that predate camera-focal",
+    )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
         description="--topic-kind overrides: odometry/twist topic -> wheel or ins",
@@ -285,6 +354,11 @@ class CheckPairRecord(StrictModel):
     axes: list[CheckAxisJudgement] = Field(default_factory=list)
     unchecked_axes: list[CheckUncheckedAxis] = Field(default_factory=list)
     time_offset: CheckTimeOffset | None = None
+    focal_scale: CheckFocalScale | None = Field(
+        default=None,
+        description="camera-focal only: the focal lengths judged as a scale of the deployed "
+        "ones (axes and unchecked_axes stay empty for this pair)",
+    )
     deskew: Literal["gyro", "none"] | None = Field(
         default=None,
         description="imu-lidar only: gyro when scans were deskewed with per-point time, none when "

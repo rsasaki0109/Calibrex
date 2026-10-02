@@ -35,7 +35,11 @@ from calibrex.core.calibration_check import (
     CheckAxisJudgement,
     CheckAxisName,
     CheckAxisStatus,
+    CheckFocalComponent,
+    CheckFocalScale,
     CheckUncheckedAxis,
+    CheckUncheckedFocal,
+    FocalName,
 )
 
 ROTATION_AXES: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw")
@@ -43,6 +47,16 @@ VERDICT_ORDER: tuple[str, ...] = ("pass", "inconclusive", "warn", "fail")
 FAIL_FACTOR = 2.0
 RIGID_SCAN_ROTATION_FLOOR_DEG = 1.5
 """Default rotation floor of imu-lidar on clouds treated as rigid scans (no deskew)."""
+
+
+FOCAL_SCALE_FLOOR = 0.005
+"""Default relative floor of the camera-focal tolerance (0.5 %).
+
+The Hilti 2022 forward cameras (exp21 cam0/cam1) agree with Kalibr's focal
+lengths within 0.5 %; a floor below that would flag Kalibr itself. For every
+camera the documented jackknife std is 0.2-1.3 %, so ``sigma_k * std`` (about
+1.5-4 %) is the binding term and the floor only matters for a very precise run.
+"""
 
 
 @dataclass(frozen=True)
@@ -53,6 +67,8 @@ class VerdictOptions:
     rotation_floor_deg: float = 0.5
     translation_floor_m: float = 0.02
     detection_probe_deg: float = 1.0
+    focal_scale_floor: float = FOCAL_SCALE_FLOOR
+    focal_detection_probe: float = 0.01
 
     def __post_init__(self) -> None:
         if (
@@ -61,10 +77,12 @@ class VerdictOptions:
                 self.rotation_floor_deg,
                 self.translation_floor_m,
                 self.detection_probe_deg,
+                self.focal_scale_floor,
+                self.focal_detection_probe,
             )
             <= 0.0
         ):
-            raise ValueError("sigma_k, both floors and the detection probe must be positive")
+            raise ValueError("sigma_k, the floors and the detection probes must be positive")
 
 
 @dataclass(frozen=True)
@@ -169,3 +187,113 @@ def judge_pair(estimates: Sequence[AxisEstimate], options: VerdictOptions) -> Pa
         "fail" if "fail" in statuses else "warn" if "warn" in statuses else "pass"
     )
     return PairJudgement(verdict, tuple(axes), tuple(unchecked))
+
+
+@dataclass(frozen=True)
+class FocalEstimate:
+    """One focal length as reported by the camera-focal estimator.
+
+    ``scale`` is ``estimate / candidate`` and ``scale_std`` its std.
+    """
+
+    name: FocalName
+    candidate_px: float
+    estimate_px: float
+    estimate_std_px: float
+    scale: float
+    scale_std: float
+    estimated: bool
+    unchecked_reason: str | None = None
+    unchecked_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+
+
+@dataclass(frozen=True)
+class FocalRecord:
+    """The focal-length estimates of one camera-focal run and the estimator's control."""
+
+    components: tuple[FocalEstimate, ...]
+    optical_axis_ratio: float | None = None
+    optical_axis_ratio_std: float | None = None
+    intrinsics_source: str | None = None
+
+
+def judge_focal_component(estimate: FocalEstimate, options: VerdictOptions) -> CheckFocalComponent:
+    """Judge one estimated focal length: ``|scale - 1|`` against ``max(k std, floor)``."""
+
+    sigma_tolerance = options.sigma_k * estimate.scale_std
+    tolerance = max(sigma_tolerance, options.focal_scale_floor)
+    error = estimate.scale - 1.0
+    status: CheckAxisStatus
+    if abs(error) <= tolerance:
+        status = "pass"
+    elif abs(error) > FAIL_FACTOR * tolerance:
+        status = "fail"
+    else:
+        status = "warn"
+    detectable = tolerance + abs(error)
+    return CheckFocalComponent(
+        name=estimate.name,
+        candidate_px=estimate.candidate_px,
+        estimate_px=estimate.estimate_px,
+        estimate_std_px=estimate.estimate_std_px,
+        scale=estimate.scale,
+        scale_std=estimate.scale_std,
+        scale_error=error,
+        tolerance=tolerance,
+        tolerance_source="sigma" if sigma_tolerance > options.focal_scale_floor else "floor",
+        ratio=abs(error) / tolerance,
+        status=status,
+        detectable_error=detectable,
+        detection_probe=options.focal_detection_probe,
+        detects_perturbation=detectable < options.focal_detection_probe,
+    )
+
+
+@dataclass(frozen=True)
+class FocalJudgement:
+    """Judged focal lengths and the verdict derived from them."""
+
+    verdict: Literal["pass", "warn", "fail", "inconclusive"]
+    record: CheckFocalScale
+
+    @property
+    def coverage(self) -> Literal["full", "partial"]:
+        """``partial`` when a focal length was attempted but not judged."""
+
+        return "partial" if self.record.unchecked else "full"
+
+
+def judge_focal(record: FocalRecord, options: VerdictOptions) -> FocalJudgement:
+    """Judge every estimated focal length and list the rest as unchecked."""
+
+    components: list[CheckFocalComponent] = []
+    unchecked: list[CheckUncheckedFocal] = []
+    for estimate in record.components:
+        if estimate.estimated:
+            components.append(judge_focal_component(estimate, options))
+        else:
+            unchecked.append(
+                CheckUncheckedFocal(
+                    name=estimate.name,
+                    candidate_px=estimate.candidate_px,
+                    scale=estimate.scale if estimate.scale > 0.0 else None,
+                    scale_std=estimate.scale_std if estimate.scale_std < float("inf") else None,
+                    reason=estimate.unchecked_reason or "not constrained by the data",
+                    reason_code=estimate.unchecked_code or "unobservable",
+                )
+            )
+    scale_record = CheckFocalScale(
+        components=components,
+        unchecked=unchecked,
+        optical_axis_ratio=record.optical_axis_ratio,
+        optical_axis_ratio_std=record.optical_axis_ratio_std,
+        floor=options.focal_scale_floor,
+        intrinsics_source=record.intrinsics_source,
+    )
+    if not components:
+        return FocalJudgement("inconclusive", scale_record)
+    statuses = {item.status for item in components}
+    verdict: Literal["pass", "warn", "fail"] = (
+        "fail" if "fail" in statuses else "warn" if "warn" in statuses else "pass"
+    )
+    return FocalJudgement(verdict, scale_record)
