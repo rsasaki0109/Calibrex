@@ -789,6 +789,24 @@
           "description": "relative floor of the camera-focal tolerance (0.005 = 0.5 %); absent in artifacts that predate camera-focal",
           "title": "Focal Scale Floor"
         },
+        "gnss_lidar_deskew": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "constant_velocity",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "gnss-lidar deskew selection (LiDAR odometry): auto uses the per-point time field when the cloud has one and rigid scans otherwise",
+          "title": "Gnss Lidar Deskew"
+        },
         "gnss_max_duration_s": {
           "anyOf": [
             {
@@ -824,6 +842,24 @@
           "default": true,
           "title": "Imu Lidar Translation",
           "type": "boolean"
+        },
+        "lidar_lidar_deskew": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "constant_velocity",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "lidar-lidar deskew selection (reference odometry): auto uses the per-point time field when the reference cloud has one and rigid scans otherwise",
+          "title": "Lidar Lidar Deskew"
         },
         "max_duration_s": {
           "anyOf": [
@@ -955,6 +991,7 @@
             {
               "enum": [
                 "gyro",
+                "constant_velocity",
                 "none"
               ],
               "type": "string"
@@ -964,7 +1001,7 @@
             }
           ],
           "default": null,
-          "description": "imu-lidar only: gyro when scans were deskewed with per-point time, none when they were treated as rigid snapshots (larger rotation floor, time offset includes the driver's stamp convention)",
+          "description": "LiDAR pairs: gyro (imu-lidar) or constant_velocity (lidar-lidar, gnss-lidar) when scans were deskewed with per-point time, none when they were treated as rigid snapshots (larger floors, any time offset includes the driver's stamp convention)",
           "title": "Deskew"
         },
         "estimator": {

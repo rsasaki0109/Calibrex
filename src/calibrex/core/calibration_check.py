@@ -322,6 +322,16 @@ class CheckOptions(StrictModel):
         description="relative floor of the camera-focal tolerance (0.005 = 0.5 %); "
         "absent in artifacts that predate camera-focal",
     )
+    lidar_lidar_deskew: Literal["auto", "constant_velocity", "none"] | None = Field(
+        default=None,
+        description="lidar-lidar deskew selection (reference odometry): auto uses the per-point "
+        "time field when the reference cloud has one and rigid scans otherwise",
+    )
+    gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] | None = Field(
+        default=None,
+        description="gnss-lidar deskew selection (LiDAR odometry): auto uses the per-point "
+        "time field when the cloud has one and rigid scans otherwise",
+    )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
         description="--topic-kind overrides: odometry/twist topic -> wheel or ins",
@@ -359,11 +369,11 @@ class CheckPairRecord(StrictModel):
         description="camera-focal only: the focal lengths judged as a scale of the deployed "
         "ones (axes and unchecked_axes stay empty for this pair)",
     )
-    deskew: Literal["gyro", "none"] | None = Field(
+    deskew: Literal["gyro", "constant_velocity", "none"] | None = Field(
         default=None,
-        description="imu-lidar only: gyro when scans were deskewed with per-point time, none when "
-        "they were treated as rigid snapshots (larger rotation floor, time offset includes the "
-        "driver's stamp convention)",
+        description="LiDAR pairs: gyro (imu-lidar) or constant_velocity (lidar-lidar, gnss-lidar) "
+        "when scans were deskewed with per-point time, none when they were treated as rigid "
+        "snapshots (larger floors, any time offset includes the driver's stamp convention)",
     )
     evidence: list[CheckEvidenceRef] = Field(default_factory=list)
     coverage: Literal["full", "partial"] | None = Field(

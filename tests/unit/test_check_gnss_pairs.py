@@ -104,7 +104,7 @@ def stubbed(monkeypatch: pytest.MonkeyPatch) -> Counters:
     asset = load_gnss_lidar_lever_arm(GNSS_ASSET)
 
     monkeypatch.setattr(
-        estimators, "_point_time_or_skip", lambda bag, topic: ("offset_time", "offset_s")
+        estimators, "detect_point_time", lambda bag, topic: ("offset_time", "offset_s")
     )
     monkeypatch.setattr(estimators, "_iter_scans_plain", lambda bag, profile, seconds: iter(()))
     import calibrex.evaluation.gnss_lidar_lever_arm as evaluation
