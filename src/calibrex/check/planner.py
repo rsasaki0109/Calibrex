@@ -47,6 +47,8 @@ class SensorInstance:
 def slot_of(record: CheckTopicRecord) -> str | None:
     """The sensor slot a topic fills: a role, or ``ins``/``wheel`` for odometry and twist."""
 
+    if record.ignored_reason is not None:
+        return None
     if record.role in {"odometry", "twist"}:
         if record.odometry_kind == "ins":
             return "ins"
@@ -126,6 +128,24 @@ def _evaluate_combo(
 ) -> CheckPairRecord:
     instances = (first, second)
     assert first.frame is not None and second.frame is not None
+    if first.frame == second.frame:
+        if "vehicle" in (first.slot, second.slot):
+            sensor = second if first.slot == "vehicle" else first
+            detail = (
+                f"the {sensor.slot} data of {', '.join(sensor.topics)} is stamped in the "
+                f"vehicle frame '{first.frame}' itself (typically a cloud or IMU stream "
+                "already transformed into base_link), so the candidate extrinsic is the "
+                "identity by construction and says nothing about the physical mounting"
+            )
+        else:
+            detail = (
+                f"both sensors are stamped in the same frame '{first.frame}' (typically "
+                "streams already transformed into base_link), so the candidate extrinsic "
+                "is the identity by construction and says nothing about the physical "
+                "mounting; point the topics at their sensor frames with --frame-map, or "
+                "give the sensor frames in --tf"
+            )
+        return _skip(pair, "degenerate_frames", detail, instances)
     transform = tree.lookup(first.frame, second.frame)
     if transform is None:
         return _skip(

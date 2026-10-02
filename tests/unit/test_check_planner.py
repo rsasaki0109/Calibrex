@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+from tests.unit.test_rosbag2 import _write_sqlite_bag
 
 from calibrex.check.frame_tree import FrameHints, StaticEdge, StaticFrameTree
 from calibrex.check.planner import plan_pairs
@@ -10,12 +13,14 @@ from calibrex.check.roles import (
     classify_message_type,
     classify_odometry_kind,
     classify_topics,
+    flag_unreadable_pointclouds,
     map_topics_to_frames,
     parse_topic_kinds,
 )
 from calibrex.core.calibration_check import CheckPairRecord, CheckTopicRecord
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.geometry import SE3
+from calibrex.data.ros_cdr_writer import encode_pointcloud2
 from calibrex.data.rosbag2 import Rosbag2Connection
 
 IDENTITY = (0.0, 0.0, 0.0, 1.0)
@@ -379,3 +384,79 @@ def test_unknown_twist_kind_is_reported_with_the_remedy() -> None:
     assert record.reason_code == "missing_topic"
     assert "/vehicle/twist" in (record.reason or "")
     assert "--topic-kind" in (record.reason or "")
+
+
+# ----------------------------------------- real-bag integration regressions
+
+
+def test_shared_sensor_frame_is_skipped_not_planned_as_identity() -> None:
+    """Autoware stamps the concatenated cloud and the IMU both in base_link."""
+
+    topics = [_topic("/imu", "imu", "base"), _topic("/concat", "lidar", "base")]
+    tree = _tree(("base", "cam", 1.0))
+
+    (record,) = _by_pair(plan_pairs(topics, tree), "imu-lidar")
+
+    assert (record.status, record.reason_code) == ("skipped", "degenerate_frames")
+    assert record.reason is not None and "identity" in record.reason
+
+
+def test_sensor_stamped_in_the_vehicle_frame_skips_vehicle_pairs() -> None:
+    topics = [_topic("/concat", "lidar", "base"), _topic("/imu", "imu", "imu")]
+    tree = _tree(("base", "imu", 0.0))
+
+    records = plan_pairs(topics, tree, vehicle_frame="base")
+
+    (lidar_vehicle,) = _by_pair(records, "lidar-vehicle")
+    assert lidar_vehicle.reason_code == "degenerate_frames"
+    assert "vehicle frame 'base'" in (lidar_vehicle.reason or "")
+    (imu_vehicle,) = _by_pair(records, "imu-vehicle")
+    assert imu_vehicle.reason_code != "degenerate_frames"
+
+
+def test_ignored_topic_fills_no_sensor_slot() -> None:
+    twin = _topic("/points2/compressed", "lidar", "lf").model_copy(
+        update={"ignored_reason": "the data is Draco-encoded"}
+    )
+    topics = [_topic("/imu", "imu", "imu"), twin, _topic("/points2/decompressed", "lidar", "lf")]
+
+    (record,) = _by_pair(plan_pairs(topics, _rig_tree()), "imu-lidar")
+
+    assert record.status == "planned"
+    assert record.topics == ["/imu", "/points2/decompressed"]
+
+
+def test_encoded_pointcloud_topic_is_flagged_and_raw_one_is_kept(tmp_path: Path) -> None:
+    """Koide's /points2/compressed is a Draco blob typed PointCloud2."""
+
+    fields = [("x", 0, 7, 1), ("y", 4, 7, 1), ("z", 8, 7, 1)]
+    raw = encode_pointcloud2(
+        frame_id="cam", timestamp_ns=1, fields=fields, point_step=12, data=bytes(12 * 100)
+    )
+    draco = encode_pointcloud2(
+        frame_id="cam",
+        timestamp_ns=1,
+        fields=fields,
+        point_step=12,
+        data=b"DRACO\x02\x03" + bytes(5),
+    )
+    bag = tmp_path / "bag.db3"
+    _write_sqlite_bag(
+        bag,
+        topics=[
+            ("/a/compressed", "sensor_msgs/msg/PointCloud2"),
+            ("/b/raw", "sensor_msgs/msg/PointCloud2"),
+        ],
+        messages=[("/a/compressed", 1, draco), ("/b/raw", 2, raw)],
+    )
+    records = [
+        CheckTopicRecord(
+            topic="/a/compressed", message_type="sensor_msgs/msg/PointCloud2", role="lidar"
+        ),
+        CheckTopicRecord(topic="/b/raw", message_type="sensor_msgs/msg/PointCloud2", role="lidar"),
+    ]
+
+    flagged = flag_unreadable_pointclouds(bag, records)
+
+    assert flagged[0].ignored_reason is not None and "Draco" in flagged[0].ignored_reason
+    assert flagged[1].ignored_reason is None

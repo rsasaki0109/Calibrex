@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **`calibrex check` on real third-party bags with `/tf_static`** (Autoware
+  all-sensors-bag1, Koide indoor_easy, Aqua beach_pond MCAP; see the tutorial's
+  "Real bags with /tf_static"). Fixes: ROS 2 `CameraInfo`/`Image` payloads with
+  CDR end padding no longer fail; PointCloud2 topics that are not raw point
+  arrays (Draco) are ignored (`ignored_reason`, optional field on topic
+  records); pairs whose two frames coincide are skipped with the new reason code
+  `degenerate_frames` (enum widening, `slac.calibration_check/v0.1` unchanged).
+
 ## 0.5.0 - 2026-10-02
 
 Highlights:

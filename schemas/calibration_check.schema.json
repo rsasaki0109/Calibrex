@@ -844,6 +844,7 @@
                 "missing_topic",
                 "frame_not_in_tree",
                 "frames_not_connected",
+                "degenerate_frames",
                 "no_candidate_calibration",
                 "no_vehicle_frame",
                 "method_not_wired",
@@ -1121,6 +1122,19 @@
           ],
           "default": null,
           "title": "Header Frame Id"
+        },
+        "ignored_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "why the topic is not used as a sensor stream (for example a Draco-encoded PointCloud2); such a topic fills no sensor slot",
+          "title": "Ignored Reason"
         },
         "mapped_frame": {
           "anyOf": [
