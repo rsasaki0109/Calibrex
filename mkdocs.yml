@@ -9,24 +9,43 @@ docs_dir: docs
 
 theme:
   name: material
+  logo: assets/brand/logo.svg
+  favicon: assets/brand/favicon.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: teal
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: indigo
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: teal
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
   features:
     - navigation.instant
     - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.footer
     - navigation.top
+    - search.suggest
+    - search.highlight
     - content.code.copy
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search
@@ -39,25 +58,33 @@ markdown_extensions:
       permalink: true
   - pymdownx.superfences
   - pymdownx.highlight
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 nav:
   - Home: index.md
-  - Development Roadmap: development_roadmap.md
-  - Benchmarks:
-      - SOTA Leaderboard: benchmarks/sota_leaderboard.md
+  - Get started:
+      - Install and first check: getting_started.md
+      - Check a deployed calibration: tutorials/calibrex_check.md
+      - Browser calibration: tutorials/browser_calibration.md
+      - Calibration CI: tutorials/calibration_ci.md
+      - Calibrate your own data: tutorials/your_own_data.md
+      - Public datasets: tutorials/public_datasets.md
+  - Benchmarks & SOTA:
+      - SOTA leaderboard: benchmarks/sota_leaderboard.md
+      - MID360 IMU-LiDAR: benchmarks/mid360_imu_lidar.md
+      - KITTI LiDAR-Vehicle: benchmarks/kitti_lidar_vehicle.md
+      - NTU VIRAL LiDAR-LiDAR: benchmarks/ntu_viral_lidar_lidar.md
+      - Hilti 2022 Camera-IMU: benchmarks/hilti_camera_imu.md
       - KITTI INS-LiDAR: benchmarks/kitti_ins_lidar.md
       - RTK-SLAM GNSS-LiDAR: benchmarks/rtk_slam_gnss_lidar.md
-      - MID360 IMU-LiDAR: benchmarks/mid360_imu_lidar.md
-      - Hilti 2022 Camera-IMU: benchmarks/hilti_camera_imu.md
-      - NTU VIRAL LiDAR-LiDAR: benchmarks/ntu_viral_lidar_lidar.md
-      - KITTI LiDAR-Vehicle: benchmarks/kitti_lidar_vehicle.md
       - RTK-SLAM GNSS-IMU: benchmarks/rtk_slam_gnss_imu.md
       - LiDAR-Wheel Odometry: benchmarks/lidar_wheel_odometry.md
       - ETHZ Native vs OpenCV Hand-Eye: benchmarks/ethz_hand_eye_opencv.md
       - ETHZ Robot-World Hand-Eye: benchmarks/ethz_robot_world_hand_eye.md
-      - KITTI I2I Performance Plan: research/pandey_i2i_performance.md
-      - Camera-LiDAR SOTA Plan: research/camera_lidar_sota_plan.md
-      - Solid-state LiDAR OSS baselines: research/solid_state_lidar_oss_baselines.md
   - Concepts:
       - SLAC: concepts/slac.md
       - LiDAR SLAC: concepts/lidar_slac.md
@@ -67,41 +94,43 @@ nav:
       - Frame Conventions: concepts/frame_conventions.md
       - License Boundaries: concepts/license_boundaries.md
       - Problem Builder: concepts/problem_builder.md
-  - Tutorials:
-      - Browser Calibration: tutorials/browser_calibration.md
-      - Calibration CI: tutorials/calibration_ci.md
-      - Check a deployed calibration: tutorials/calibrex_check.md
-      - Public Datasets: tutorials/public_datasets.md
+  - Reference:
+      - Schemas: reference/schemas.md
+      - External Adapters: reference/external_adapters.md
+      - Open3D SLAC Adapter: tutorials/open3d_slac.md
+      - Targetless LiDAR-Camera Adapter: tutorials/lidar_camera_adapter.md
+      - ADRs:
+          - "0001: Core Is ROS-Independent": adr/0001-core-is-ros-independent.md
+          - "0004: LiDAR-Main v0.1 Evaluation Protocol": adr/0004-lidar-main-v0-1-evaluation-protocol.md
+          - "0005: v0.2 Motion, Camera, and Temporal Direction": adr/0005-v0-2-motion-camera-temporal-direction.md
+          - "0006: Rename to slac": adr/0006-rename-to-slac.md
+          - "0007: v0.3 SLAC Direction": adr/0007-v0-3-slac-direction.md
+          - "0008: v0.4 Direction — Full-Scale Modality PASS and Absolute Time": adr/0008-v0-4-scale-and-absolute-time.md
+          - "0009: Restore Calibrex Name": adr/0009-restore-calibrex-name.md
+          - "0010: v0.5 — Reconcile v0.4 and Operational Trust": adr/0010-v0-5-reconcile-v0-4-and-operational-trust.md
+      - Roadmap: development_roadmap.md
+      - Changelog: changelog.md
+  - Internals:
+      - Calibration Lifecycle Registry: reference/lifecycle_registry.md
+      - Capture Manifest: reference/capture_manifest.md
+      - Raw Replay and Field Replacement: reference/raw_replay.md
+      - Multi-LiDAR Service: reference/multi_lidar_service.md
+      - Camera--IMU Service: reference/camera_imu_service.md
+      - Radar Service: reference/radar_service.md
+      - RadarScan Adapter: reference/radar_scan_adapter.md
+      - Autoware Export: reference/autoware_export.md
+      - Autoware Promotion: reference/autoware_promotion.md
+      - Autoware Smoke: reference/autoware_smoke.md
+      - Koide Input Readiness: reference/koide_readiness.md
+      - Koide Official Handoff: reference/koide_handoff.md
+      - Koide Pilot Acceptance: reference/koide_pilot.md
+      - Koide Real Execution Handoff: reference/koide_real_pilot.md
+      - Operational KPIs and Pilot Acceptance: reference/operational_kpis.md
       - Solid-state public benchmark: tutorials/solid_state_public_benchmark.md
+      - Solid-state metrology collection: tutorials/solid_state_metrology_collection.md
       - Solid-state benchmark report v0.3: assets/solid-state-cross-dataset-benchmark-v03.md
       - Solid-state v0.4 train-only selection: assets/solid-state-cross-dataset-benchmark-v04-train-selection.md
       - Solid-state benchmark report v0.4: assets/solid-state-cross-dataset-benchmark-v04.md
-      - Open3D SLAC Adapter: tutorials/open3d_slac.md
-      - Targetless LiDAR-Camera Adapter: tutorials/lidar_camera_adapter.md
-  - ADRs:
-      - "0001: Core Is ROS-Independent": adr/0001-core-is-ros-independent.md
-      - "0004: LiDAR-Main v0.1 Evaluation Protocol": adr/0004-lidar-main-v0-1-evaluation-protocol.md
-      - "0005: v0.2 Motion, Camera, and Temporal Direction": adr/0005-v0-2-motion-camera-temporal-direction.md
-      - "0006: Rename to slac": adr/0006-rename-to-slac.md
-      - "0007: v0.3 SLAC Direction": adr/0007-v0-3-slac-direction.md
-      - "0008: v0.4 Direction — Full-Scale Modality PASS and Absolute Time": adr/0008-v0-4-scale-and-absolute-time.md
-      - "0009: Restore Calibrex Name": adr/0009-restore-calibrex-name.md
-      - "0010: v0.5 — Reconcile v0.4 and Operational Trust": adr/0010-v0-5-reconcile-v0-4-and-operational-trust.md
-  - Schemas Reference: reference/schemas.md
-  - Calibration Lifecycle Registry: reference/lifecycle_registry.md
-  - Capture Manifest: reference/capture_manifest.md
-  - Raw Replay and Field Replacement: reference/raw_replay.md
-  - Multi-LiDAR Service: reference/multi_lidar_service.md
-  - Camera--IMU Service: reference/camera_imu_service.md
-  - Radar Service: reference/radar_service.md
-  - RadarScan Adapter: reference/radar_scan_adapter.md
-  - External Adapters: reference/external_adapters.md
-  - Autoware Export: reference/autoware_export.md
-  - Autoware Promotion: reference/autoware_promotion.md
-  - Autoware Smoke: reference/autoware_smoke.md
-  - Koide Input Readiness: reference/koide_readiness.md
-  - Koide Official Handoff: reference/koide_handoff.md
-  - Koide Pilot Acceptance: reference/koide_pilot.md
-  - Koide Real Execution Handoff: reference/koide_real_pilot.md
-  - Operational KPIs and Pilot Acceptance: reference/operational_kpis.md
-  - Changelog: changelog.md
+      - KITTI I2I Performance Plan: research/pandey_i2i_performance.md
+      - Camera-LiDAR SOTA Plan: research/camera_lidar_sota_plan.md
+      - Solid-state LiDAR OSS baselines: research/solid_state_lidar_oss_baselines.md

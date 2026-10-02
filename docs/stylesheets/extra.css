@@ -1,0 +1,73 @@
+/* Calibrex site theme: dark slate header, teal accent, orange data colour. */
+:root > * {
+  --md-primary-fg-color: #0f172a;
+  --md-primary-fg-color--light: #1e293b;
+  --md-primary-fg-color--dark: #020617;
+  --md-primary-bg-color: #e2e8f0;
+  --md-primary-bg-color--light: #94a3b8;
+  --md-accent-fg-color: #0d9488;
+  --md-typeset-a-color: #0f766e;
+}
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0b1120;
+  --md-default-bg-color--light: #111a2e;
+  --md-default-fg-color: #e2e8f0;
+  --md-default-fg-color--light: #cbd5e1;
+  --md-typeset-color: #e2e8f0;
+  --md-typeset-a-color: #2dd4bf;
+  --md-accent-fg-color: #2dd4bf;
+  --md-code-bg-color: #111a2e;
+  --md-footer-bg-color: #020617;
+}
+.md-header, .md-tabs { background-color: #0f172a; }
+.md-header__title { font-weight: 600; letter-spacing: .01em; }
+.md-header__button.md-logo img { height: 1.7rem; width: auto; }
+.md-typeset h1, .md-typeset h2 { font-weight: 700; letter-spacing: -.01em; }
+.md-typeset code { font-size: .85em; }
+.md-typeset table:not([class]) { border-radius: .4rem; font-size: .8rem; }
+
+/* Home page */
+.cx-hero { text-align: center; padding: 2.2rem 0 1rem; }
+.cx-hero .cx-eyebrow { color: #0d9488; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; font-size: .72rem; margin: 0; }
+[data-md-color-scheme="slate"] .cx-hero .cx-eyebrow { color: #2dd4bf; }
+.cx-hero h1 { font-size: clamp(1.8rem, 4.4vw, 2.7rem); line-height: 1.1; margin: .4rem auto .8rem;
+  max-width: 28ch; text-wrap: balance; color: var(--md-default-fg-color); }
+.cx-hero .cx-sub { max-width: 46rem; margin: 0 auto 1.2rem; font-size: .95rem;
+  color: var(--md-default-fg-color--light); }
+.cx-hero .cx-buttons .md-button { margin: .25rem .2rem; }
+.cx-hero .md-button--primary { background: #0d9488; border-color: #0d9488; color: #fff; }
+.cx-hero .md-button:not(.md-button--primary) { color: var(--md-typeset-a-color);
+  border-color: currentColor; background: transparent; }
+.cx-visual { margin: 1.6rem auto 0; max-width: 52rem; border-radius: .6rem; overflow: hidden;
+  background: #0f172a; box-shadow: 0 10px 40px -12px rgba(2, 6, 23, .55);
+  border: 1px solid rgba(148, 163, 184, .25); }
+.cx-visual img { display: block; width: 100%; height: auto; }
+.cx-caption { max-width: 46rem; margin: .6rem auto 0; font-size: .7rem;
+  color: var(--md-default-fg-color--light); text-align: center; }
+.cx-section { margin-top: 3rem; }
+.cx-section > h2 { text-align: center; margin-bottom: .3rem; }
+
+.md-typeset .grid.cards > ul > li { border-radius: .6rem; }
+.md-typeset .grid.cards > ul > li:hover { border-color: #14b8a6; box-shadow: 0 4px 20px -8px #14b8a6; }
+
+.cx-showcase { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+.cx-showcase figure { margin: 0; border: .05rem solid var(--md-default-fg-color--lightest);
+  border-radius: .6rem; overflow: hidden; background: var(--md-default-bg-color); }
+.cx-showcase img { display: block; width: 100%; height: auto; background: #0f172a; }
+.cx-showcase figcaption { padding: .6rem .8rem .8rem; font-size: .72rem; line-height: 1.5; }
+@media (max-width: 44.9375em) { .cx-showcase { grid-template-columns: 1fr; } }
+
+.cx-pill { display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .68rem;
+  font-weight: 700; color: #fff; }
+.cx-pill.supported { background: #15803d; } .cx-pill.refuted { background: #b91c1c; }
+.cx-pill.no_claim { background: #64748b; }
+
+.cx-showcase figcaption { font-style: normal; text-align: left; color: var(--md-default-fg-color); }
+.md-typeset .cx-section .grid.cards, .md-typeset .cx-section .grid.cards > ul, .md-typeset .cx-section .grid.cards > ol {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+@media (max-width: 44.9375em) {
+  .md-typeset .cx-section .grid.cards, .md-typeset .cx-section .grid.cards > ul { grid-template-columns: 1fr !important; } }
+.md-typeset h1 { color: var(--md-default-fg-color); }
+.md-typeset table:not([class]) td code { white-space: nowrap; }
+.cx-section table { display: block; overflow-x: auto; }
