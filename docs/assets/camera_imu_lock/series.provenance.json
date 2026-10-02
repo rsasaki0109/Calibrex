@@ -1,0 +1,50 @@
+{
+  "calibrex_git_commit": "e8473bf",
+  "calibrex_version": "0.5.1",
+  "commands": [
+    "python tools/extract_camera_imu_lock_series.py --bag <hilti2022>/exp21_ros2 --camchain <hilti2022>/calibration_files/calib_3_cam0-1-camchain-imucam.yaml --artifact docs/assets/hilti2022_camera_imu/cam0_exp21.yaml --bag-sha256-file <hilti2022>/exp21_raw_bag.sha256",
+    "python tools/generate_camera_imu_lock_gif.py"
+  ],
+  "dataset": {
+    "camera": "cam0",
+    "family": "hilti2022",
+    "image_topic": "/alphasense/cam0/image_raw",
+    "imu_topic": "/alphasense/imu",
+    "license": "Hilti SLAM Challenge 2022 terms",
+    "role": "development recording (held-out exp01-exp04 never touched)",
+    "sequence": "exp21_ros2"
+  },
+  "estimate_artifact_generator_version": "0.4.1",
+  "estimate_artifact_git_commit": "bc0f1dc",
+  "gif": {
+    "frame_ms": 80,
+    "frames": 84,
+    "height": 540,
+    "path": "docs/assets/camera-imu-lock.gif",
+    "sha256": "6da2e6f196d2d5182bdd4d7eb156c100d8c45a2f49f47450b838b59525c3596a",
+    "size_bytes": 712879,
+    "width": 960
+  },
+  "inputs_sha256": {
+    "bag_metadata_yaml": "2b492378e6bbc00cfe6b894ea71d0f1ab9acd311a12e706fcf763a15c62eabcf",
+    "bag_sha256_file_contents": "dd96adebdce2868d37875dafaf7fbca37bf1fa1800de0bc49ec622c6a771bf32",
+    "camchain": "344ab530f12ea3eb8c658bdc005368275eccd70bca559a9fab8713a98cb1c60e",
+    "estimate_artifact": "00ef5a5abc6fd6a19ca4fc64757c9da20094b02751adf0847c65dde52ca85a7c"
+  },
+  "output": "docs/assets/camera-imu-lock.gif",
+  "schema": "slac.gif_series_provenance/v0.1",
+  "series": "docs/assets/camera_imu_lock/series.npz",
+  "tracking_options": "VisualRotationOptions() defaults, frame_stride=4 (as the artifact)",
+  "visual_rotation_stats": {
+    "essential": 1000,
+    "failed": 0,
+    "pairs": 1527,
+    "pure_rotation": 527
+  },
+  "window": {
+    "camera_intervals": 81,
+    "duration_s": 8.0,
+    "imu_samples": 3434,
+    "start_s_in_bag": 1650529739.0982366
+  }
+}
