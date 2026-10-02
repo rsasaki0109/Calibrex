@@ -18,7 +18,8 @@ def test_readme_uses_versioned_github_release_wheel() -> None:
         f"v{version}/calibrex-{version}-py3-none-any.whl"
     )
 
-    assert readme.count(wheel_url) == 2
+    # hero quickstart, five-minute quickstart, and the Install section
+    assert readme.count(wheel_url) == 3
     assert "currently distributed from source" not in readme
     assert "pypi.org" not in readme.lower()
     assert "python -m pip install calibrex" not in readme.lower()

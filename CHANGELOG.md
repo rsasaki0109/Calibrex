@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- README: a new top with a `calibrex check` hero image (`docs/assets/readme-check-hero.svg`,
+  generated from the committed demo summary by `tools/generate_readme_check_hero.py`,
+  light and dark aware, digest-bound to its sources), a feature strip, and a shorter nav.
 - **`calibrex check` on real third-party bags with `/tf_static`** (Autoware
   all-sensors-bag1, Koide indoor_easy, Aqua beach_pond MCAP; see the tutorial's
   "Real bags with /tf_static"). Fixes: ROS 2 `CameraInfo`/`Image` payloads with
