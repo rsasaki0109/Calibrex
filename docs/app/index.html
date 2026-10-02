@@ -5,75 +5,110 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calibrex Browser Calibration</title>
 <meta name="description" content="Calibrate an IMU against a sensor trajectory in the browser with Calibrex and Pyodide. Your data never leaves the page.">
+<link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root {
-    --bg: #f7f8fa; --panel: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #e1e5ec;
-    --accent: #2f6fde; --accent-text: #ffffff; --pass: #1f8a4c; --warn: #b7791f; --fail: #c53030;
-    --inconclusive: #6b7280; --code: #f0f2f6;
+    --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #475569; --line: #e2e8f0;
+    --accent: #0d9488; --accent-text: #ffffff; --link: #0f766e; --pass: #15803d; --warn: #b45309; --fail: #b91c1c;
+    --inconclusive: #64748b; --code: #f1f5f9; --header: #0f172a;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #11141a; --panel: #1a1f28; --text: #e6e9ef; --muted: #9aa3b2; --line: #2b3240;
-      --accent: #6b9bff; --accent-text: #0b0e13; --pass: #4ade80; --warn: #fbbf24; --fail: #f87171;
-      --inconclusive: #9ca3af; --code: #232a36;
+      --bg: #0b1120; --panel: #111a2e; --text: #e2e8f0; --muted: #94a3b8; --line: #243049;
+      --accent: #2dd4bf; --accent-text: #04201c; --link: #2dd4bf; --pass: #22c55e; --warn: #f59e0b; --fail: #ef4444;
+      --inconclusive: #64748b; --code: #0b1120; --header: #020617;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #11141a; --panel: #1a1f28; --text: #e6e9ef; --muted: #9aa3b2; --line: #2b3240;
-    --accent: #6b9bff; --accent-text: #0b0e13; --pass: #4ade80; --warn: #fbbf24; --fail: #f87171;
-    --inconclusive: #9ca3af; --code: #232a36;
+    --bg: #0b1120; --panel: #111a2e; --text: #e2e8f0; --muted: #94a3b8; --line: #243049;
+    --accent: #2dd4bf; --accent-text: #04201c; --link: #2dd4bf; --pass: #22c55e; --warn: #f59e0b; --fail: #ef4444;
+    --inconclusive: #64748b; --code: #0b1120; --header: #020617;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
-  header h1 { margin: 0 0 4px; font-size: 1.6rem; }
-  header p { margin: 0; color: var(--muted); }
-  a { color: var(--accent); }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-    padding: 18px; margin-top: 18px; }
+    font: 15px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .site-header { background: var(--header); color: #e2e8f0; }
+  .site-header .bar { max-width: 980px; margin: 0 auto; padding: 12px 16px; display: flex;
+    align-items: center; gap: 12px; flex-wrap: wrap; }
+  .site-header img { height: 28px; width: 28px; }
+  .site-header .brand { font-weight: 700; color: #fff; text-decoration: none; margin-right: auto; }
+  .site-header a.nav { color: #cbd5e1; text-decoration: none; font-size: 0.9rem; }
+  .site-header a.nav:hover { color: #2dd4bf; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 16px 64px; }
+  .intro h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.15; letter-spacing: -0.01em; }
+  .intro p { margin: 0 0 8px; color: var(--muted); max-width: 46rem; }
+  .privacy { display: inline-block; margin-top: 4px; padding: 3px 12px; border-radius: 999px; font-size: 0.82rem;
+    font-weight: 600; background: var(--code); border: 1px solid var(--line); color: var(--text); }
+  a { color: var(--link); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; margin-top: 20px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
   .panel h2 { margin: 0 0 12px; font-size: 1.1rem; }
+  .panel h3 { font-size: 1rem; margin: 22px 0 6px; }
+  .quick { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 20px;
+    padding: 16px 20px; border-radius: 12px; border: 1px solid var(--accent); background: var(--panel); }
+  .quick p { margin: 0; color: var(--muted); flex: 1 1 260px; }
+  .divider { margin: 18px 0 6px; color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
   label.field { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 0.92rem; }
   label.field span.hint { font-weight: 400; color: var(--muted); font-size: 0.84rem; }
-  input[type=file], select { width: 100%; padding: 7px; border: 1px solid var(--line);
-    border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+  input[type=file], select { width: 100%; padding: 8px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
   .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
   .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-  button { font: inherit; border-radius: 6px; padding: 9px 16px; cursor: pointer;
+  button { font: inherit; border-radius: 8px; padding: 9px 18px; cursor: pointer;
     border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  button:hover:not(:disabled) { border-color: var(--accent); }
   button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button.big { padding: 12px 22px; font-size: 1rem; }
   button:disabled { opacity: 0.55; cursor: not-allowed; }
-  #log { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
-    border-radius: 6px; padding: 10px; margin: 12px 0 0; max-height: 180px; overflow: auto; white-space: pre-wrap; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 700;
-    font-size: 0.82rem; color: #fff; text-transform: uppercase; letter-spacing: 0.03em; }
+  #log { font: 12.5px/1.45 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
+    border-radius: 8px; padding: 10px; margin: 14px 0 0; max-height: 180px; overflow: auto; white-space: pre-wrap; }
+  .badge { display: inline-block; padding: 2px 12px; border-radius: 999px; font-weight: 700;
+    font-size: 0.8rem; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; vertical-align: middle; margin-left: 6px; }
   .badge.pass { background: var(--pass); } .badge.warn { background: var(--warn); }
   .badge.fail { background: var(--fail); } .badge.inconclusive { background: var(--inconclusive); }
   .table-wrap { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.92rem; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; background: var(--code); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.85rem; }
   .reasons { color: var(--muted); margin: 6px 0 0; padding-left: 18px; }
-  pre.matrix { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
-    padding: 10px; border-radius: 6px; overflow-x: auto; }
+  pre.matrix { font: 13px/1.5 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
+    padding: 12px; border-radius: 8px; overflow-x: auto; }
   .muted { color: var(--muted); }
-  code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.88em; }
   #results[hidden] { display: none; }
 </style>
 </head>
 <body>
+<header class="site-header">
+  <div class="bar">
+    <img src="../assets/brand/logo.svg" alt="">
+    <a class="brand" href="../">Calibrex</a>
+    <a class="nav" href="../getting_started/">Get started</a>
+    <a class="nav" href="../benchmarks/sota_leaderboard/">Leaderboard</a>
+    <a class="nav" href="../">Docs</a>
+    <a class="nav" href="https://github.com/rsasaki0109/Calibrex">GitHub</a>
+  </div>
+</header>
 <main>
-  <header>
-    <h1>Calibrex browser calibration</h1>
-    <p>Calibrate an IMU against a sensor trajectory — rotation, clock offset, gyro bias, and lever arm, with held-out evidence.
-      Everything runs locally in your browser (Python via <a href="https://pyodide.org">Pyodide</a>); no data is uploaded.
+  <div class="intro">
+    <h1>Calibrate an IMU against a sensor trajectory in your browser.</h1>
+    <p>Estimates the rotation, clock offset, gyro bias, and lever arm between an IMU and a LiDAR (or any sensor with a TUM pose trajectory), with held-out evidence and a pass / warn / fail verdict.
       <a href="../benchmarks/mid360_imu_lidar/">How the method is validated</a>.</p>
-  </header>
+    <span class="privacy">Runs locally via <a href="https://pyodide.org">Pyodide</a>; your data never leaves this page.</span>
+  </div>
+
+  <div class="quick">
+    <p><b>New here?</b> Run the full pipeline on a generated 120 s hand-held recording with known truth, no files needed.</p>
+    <button id="example" class="primary big" disabled>Use a synthetic example</button>
+  </div>
 
   <section class="panel" aria-labelledby="inputs-title">
-    <h2 id="inputs-title">1. Inputs</h2>
+    <h2 id="inputs-title">Or calibrate your own recording</h2>
     <div class="grid">
       <label class="field">IMU CSV
         <span class="hint"><code>t, gx, gy, gz, ax, ay, az</code> — seconds, rad/s, m/s² or g</span>
@@ -92,13 +127,12 @@
     <label class="check"><input id="rotation-only" type="checkbox"> Rotation, clock offset, and gyro bias only (skip the lever arm)</label>
     <div class="actions">
       <button id="run" class="primary" disabled>Calibrate</button>
-      <button id="example" disabled>Use a synthetic example</button>
     </div>
     <div id="log" role="status" aria-live="polite">Loading Python…</div>
   </section>
 
   <section id="results" class="panel" hidden aria-labelledby="results-title">
-    <h2 id="results-title">2. Results</h2>
+    <h2 id="results-title">Results</h2>
     <div id="truth" class="muted"></div>
     <h3>Rotation, clock offset, gyro bias <span id="rotation-badge"></span></h3>
     <ul id="rotation-reasons" class="reasons"></ul>

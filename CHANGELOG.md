@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Docs site revamp: custom theme and logo, a landing page that leads with `calibrex check`,
+  tabbed navigation (Get started, Benchmarks & SOTA, Concepts, Reference, Internals),
+  and a restyled browser calibration page.
+
 ## 0.5.1 - 2026-10-02
 
 Highlights:
