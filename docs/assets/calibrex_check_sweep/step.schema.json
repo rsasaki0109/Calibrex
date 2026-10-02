@@ -1,0 +1,72 @@
+{
+  "$id": "https://calibrex.dev/schemas/calibrex.check_yaw_sweep_step/v0",
+  "title": "calibrex check yaw-sweep step summary",
+  "type": "object",
+  "required": [
+    "schema",
+    "yaw_injected_deg",
+    "frame",
+    "overall_verdict",
+    "pairs",
+    "velo_link_tf",
+    "command",
+    "created_at",
+    "generator_version",
+    "bag_input_sha256"
+  ],
+  "properties": {
+    "schema": { "const": "calibrex.check_yaw_sweep_step/v0" },
+    "yaw_injected_deg": { "type": "number" },
+    "frame": { "const": "velo_link" },
+    "overall_verdict": { "enum": ["pass", "warn", "fail", "inconclusive"] },
+    "pairs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "axes", "unchecked"],
+        "properties": {
+          "status": { "enum": ["pass", "warn", "fail", "inconclusive"] },
+          "coverage": { "type": ["string", "null"] },
+          "unchecked": { "type": "array", "items": { "type": "string" } },
+          "axes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["candidate_error_deg", "tolerance_deg", "ratio", "status"],
+              "properties": {
+                "candidate_error_deg": { "type": "number" },
+                "tolerance_deg": { "type": "number", "exclusiveMinimum": 0 },
+                "ratio": { "type": "number" },
+                "status": { "enum": ["pass", "warn", "fail", "inconclusive"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "velo_link_tf": {
+      "type": "object",
+      "required": ["parent_frame", "translation_m", "rotation_quat_xyzw"],
+      "properties": {
+        "parent_frame": { "type": "string" },
+        "translation_m": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "rotation_quat_xyzw": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "command": { "type": "array", "items": { "type": "string" } },
+    "created_at": { "type": "string" },
+    "generator_version": { "type": "string" },
+    "git_commit": { "type": ["string", "null"] },
+    "bag_input_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
