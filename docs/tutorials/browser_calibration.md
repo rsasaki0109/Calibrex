@@ -16,6 +16,10 @@ The computation, held-out evidence, and artifacts are the same as for the
 difference is that the sensor motion comes from a trajectory you already
 have, instead of Calibrex's own LiDAR odometry.
 
+Looking for `calibrex check` instead? The [bag check page](../app/check.html) plans it on
+your own rosbag2 in the browser; see
+[Plan a bag in the browser](calibrex_check.md#plan-a-bag-in-the-browser).
+
 ## Inputs
 
 | Input | Format |

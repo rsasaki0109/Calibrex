@@ -75,9 +75,12 @@ calibrex check my_bag/ --html check.html
 ```
 
 **Try it in your browser:** the
+[bag check page](https://rsasaki0109.github.io/Calibrex/app/check.html) plans
+`calibrex check` on your own rosbag2 (which sensor pairs can be audited, with
+the frame tree it read; multi-GB bags are read lazily), and the
 [browser calibration page](https://rsasaki0109.github.io/Calibrex/app/)
 calibrates an IMU against a sensor trajectory (TUM): rotation, clock offset,
-gyro bias, and lever arm, with held-out evidence. It runs locally under
+gyro bias, and lever arm, with held-out evidence. Both run locally under
 Pyodide, so no data is uploaded.
 
 <p align="center">

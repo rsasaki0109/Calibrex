@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calibrex Bag Check</title>
+<meta name="description" content="Plan calibrex check on your own rosbag2 in the browser: which sensor pairs can be audited, with the frame tree it read. Files are read in place and never uploaded.">
+<link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="bar">
+    <img src="../assets/brand/logo.svg" alt="">
+    <a class="brand" href="../">Calibrex</a>
+    <a class="nav current" href="check.html" aria-current="page">Check a bag</a>
+    <a class="nav" href="./">Calibrate an IMU</a>
+    <a class="nav" href="../getting_started/">Get started</a>
+    <a class="nav" href="../benchmarks/sota_leaderboard/">Leaderboard</a>
+    <a class="nav" href="../">Docs</a>
+    <a class="nav" href="https://github.com/rsasaki0109/Calibrex">GitHub</a>
+  </div>
+</header>
+<main>
+  <div class="intro">
+    <h1>See what <code>calibrex check</code> could audit on your own bag.</h1>
+    <p>Drop a ROS 2 bag and, if you have one, the calibration file your robot runs. Calibrex reads the transforms, classifies the sensor topics, and lists every sensor pair it could check, or why it could not.
+      <a href="../tutorials/calibrex_check/">What the check does</a>.</p>
+    <div class="pills">
+      <span class="privacy">Runs locally via <a href="https://pyodide.org">Pyodide</a>: files are read in place and never leave this page.</span>
+      <span class="privacy plan">Plan only: the estimators run on your machine with the CLI.</span>
+    </div>
+  </div>
+
+  <div class="quick">
+    <p><b>New here?</b> Plan a tiny synthetic bag (266&nbsp;KB, an IMU, two LiDARs, a camera, a GNSS receiver and <code>/tf_static</code>) and see the full result in a few seconds.</p>
+    <button id="sample" class="primary big" disabled>Try a sample bag</button>
+  </div>
+
+  <section class="panel" aria-labelledby="inputs-title">
+    <h2 id="inputs-title">Or plan your own bag</h2>
+    <div id="drop" class="dropzone" tabindex="-1">
+      <p><strong>Drop a rosbag2 folder here</strong>, or its <code>metadata.yaml</code> and <code>.db3</code> / <code>.mcap</code> file(s). A bare <code>.mcap</code> works too.</p>
+      <div class="actions" style="justify-content:center;margin-top:0">
+        <button id="pick-files" type="button">Choose files…</button>
+        <button id="pick-folder" type="button">Choose a folder…</button>
+      </div>
+      <input id="bag-files" type="file" multiple accept=".db3,.mcap,.yaml,.yml">
+      <input id="bag-folder" type="file" webkitdirectory>
+      <ul id="bag-list" class="files" aria-live="polite"></ul>
+      <p class="note" style="margin-top:10px">Multi-gigabyte files are fine: Calibrex reads only the pages it needs from your disk (Emscripten WORKERFS) and never copies the bag into memory.
+        With an <code>.mcap</code>, add its <code>metadata.yaml</code> to skip a scan of the whole file.</p>
+    </div>
+
+    <details class="opt" open>
+      <summary>Calibration file (optional)</summary>
+      <p class="note" style="margin:0 0 10px">The extrinsics your robot runs, if they are not already in the bag's <code>/tf_static</code>:
+        a URDF, a <code>slac.check_frames</code> YAML, a Kalibr <code>camchain-imucam</code>, an RTK-SLAM <code>calib.yaml</code>, or a Hilti <code>lidar_calibration.yaml</code>. A file overrides <code>/tf_static</code> for the same child frame (<code>--tf</code>).</p>
+      <div class="actions" style="margin-top:0">
+        <button id="pick-tf" type="button">Add calibration file(s)…</button>
+      </div>
+      <input id="tf-files" type="file" multiple hidden>
+      <ul id="tf-list" class="files"></ul>
+    </details>
+
+    <details id="vehicle-details" class="opt">
+      <summary>Vehicle frame and frame map (optional)</summary>
+      <div class="grid">
+        <label class="field">Vehicle frame
+          <span class="hint">Opt-in. The vehicle pairs (<code>lidar-vehicle</code>, <code>imu-vehicle</code>, <code>ins-lidar</code>, <code>lidar-wheel_odometry</code>) assume a ground vehicle that drives non-holonomically, so they are planned only when you name its frame (<code>--vehicle-frame</code>). Leave it empty for a drone, an arm, or a hand-held rig.</span>
+          <input id="vehicle-frame" type="text" placeholder="base_link" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="field">Frame map
+          <span class="hint">One <code>TOPIC=FRAME</code> per line (<code>--frame-map</code>): point a topic at the sensor frame it really comes from, when its header names another frame (for example streams already transformed into <code>base_link</code>).</span>
+          <textarea id="frame-map" placeholder="/ouster/points=os_sensor&#10;/camera/image_raw=camera_optical" spellcheck="false"></textarea>
+        </label>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="run" class="primary" disabled>Plan the check</button>
+      <button id="clear" type="button">Clear</button>
+    </div>
+    <div id="log" role="status" aria-live="polite">Starting Python (about 30 MB the first time)…</div>
+    <div id="error" class="error" role="alert" hidden></div>
+  </section>
+
+  <section id="results" class="panel" hidden aria-labelledby="results-title">
+    <h2 id="results-title">Plan for <code id="bag-name"></code></h2>
+    <div id="stats" class="stats"></div>
+    <div id="reasons" class="note"></div>
+
+    <h3>Candidate calibration</h3>
+    <ul id="sources" class="sources"></ul>
+    <p class="note">Candidate extrinsics are the transforms your robot deploys; <code>calibrex check</code> judges them against what the sensor data says.</p>
+
+    <h3>Frame tree</h3>
+    <div id="tree"></div>
+
+    <h3>Sensor pairs</h3>
+    <div class="table-wrap"><table id="pairs"></table></div>
+    <p id="vehicle-hint" class="note" hidden>The vehicle pairs are opt-in: they assume a ground vehicle. If this is one, <a href="#vehicle-frame" id="open-vehicle">enter its frame</a> (for example <code>base_link</code>) and plan again.</p>
+
+    <h3>Topics</h3>
+    <div class="table-wrap"><table id="topics"></table></div>
+    <p id="topic-note" class="note"></p>
+
+    <h3>Run the full check on your machine</h3>
+    <div class="callout">
+      <p><b>This page is the plan only.</b> The estimators (LiDAR odometry, IMU, camera, GNSS) are not run in the browser: they need the whole bag and minutes of compute. Run them locally and you get the per-axis pass / warn / fail verdicts and an HTML report:</p>
+    </div>
+    <div class="codebox" style="margin-top:12px"><pre id="cmd"></pre><button id="copy-cmd" type="button">Copy</button></div>
+    <p class="note">Replace the bag path with where it lives on your machine. Install once with:</p>
+    <div class="codebox"><pre id="install"></pre><button id="copy-install" type="button">Copy</button></div>
+    <div class="actions">
+      <button id="download" class="primary">Download plan JSON</button>
+      <button id="copy-plan-cmd" type="button">Copy the <code>--plan</code> command</button>
+    </div>
+    <p class="note">The download is the <code>slac.calibration_check/v0.1</code> artifact with provenance (input digest, Calibrex version, and the equivalent command); check it with <code>calibrex validate</code>.</p>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const BAG_FILE = /\.(db3|mcap)$/i;
+const SAMPLE = {
+  label: "check_sample",
+  urls: ["samples/check_sample/metadata.yaml", "samples/check_sample/check_sample_0.db3"],
+};
+const ACTION_CODES = new Set(["no_vehicle_frame", "frame_not_in_tree", "frames_not_connected",
+  "degenerate_frames", "no_candidate_calibration", "missing_intrinsics"]);
+const CODE_TEXT = {
+  missing_topic: "missing topic", frame_not_in_tree: "frame not in tree",
+  frames_not_connected: "frames not connected", degenerate_frames: "degenerate frames",
+  no_candidate_calibration: "no calibration", no_vehicle_frame: "no vehicle frame",
+  method_not_wired: "not wired", not_selected: "not selected", unsupported_sensor: "unsupported sensor",
+  missing_intrinsics: "missing intrinsics", missing_dependency: "missing dependency",
+  estimator_error: "estimator error", estimator_failed: "estimator failed", no_judgeable_axes: "nothing judgeable",
+};
+let bagFiles = [];       // File objects of the bag (metadata.yaml, .db3/.mcap)
+let tfFiles = [];        // File objects of calibration files
+let folderName = null;   // bag directory name, when a folder was chosen or dropped
+let useSample = false;
+let ready = false, busy = false, version = "";
+let lastArtifact = null, lastCommands = null;
+
+const escapeHtml = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const log = (text) => { $("log").textContent += "\n" + text; $("log").scrollTop = 1e9; };
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  const units = ["KiB", "MiB", "GiB", "TiB"];
+  let value = bytes / 1024, index = 0;
+  while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
+  return value.toFixed(value < 10 ? 2 : 1) + " " + units[index];
+}
+
+// ---------------------------------------------------------------- the worker
+const worker = new Worker("check-worker.js");
+worker.onmessage = (event) => {
+  const message = event.data;
+  if (message.type === "log") log(message.text);
+  else if (message.type === "ready") { ready = true; version = message.version; log("Ready."); refresh(); }
+  else if (message.type === "failed") log(message.text);
+  else if (message.type === "result") finish(message.payload);
+};
+worker.onerror = (event) => log("Worker error: " + (event.message || "unknown"));
+
+// ---------------------------------------------------------------- inputs
+function refresh() {
+  const hasInput = useSample || bagFiles.length > 0;
+  $("sample").disabled = !ready || busy;
+  $("run").disabled = !ready || busy || !hasInput;
+  $("run").textContent = ready ? "Plan the check" : "Loading Python…";
+  const chip = (file, kind, index) => `<li><code>${escapeHtml(file.name)}</code> <span class="size">${formatSize(file.size)}</span>` +
+    `<button class="x" type="button" data-kind="${kind}" data-index="${index}" aria-label="Remove ${escapeHtml(file.name)}">×</button></li>`;
+  $("bag-list").innerHTML = useSample
+    ? `<li><code>check_sample</code> <span class="size">synthetic sample bag, 266 KiB</span><button class="x" type="button" data-kind="sample" aria-label="Remove the sample">×</button></li>`
+    : bagFiles.map((file, index) => chip(file, "bag", index)).join("");
+  $("tf-list").innerHTML = tfFiles.map((file, index) => chip(file, "tf", index)).join("");
+}
+
+function addBagFiles(files, relativeFolder) {
+  const kept = files.filter((file) => file.name === "metadata.yaml" || BAG_FILE.test(file.name));
+  const skipped = files.length - kept.length;
+  if (skipped) log("Ignored " + skipped + " file(s) that are not part of a rosbag2 (only metadata.yaml, .db3 and .mcap are used).");
+  if (!kept.length) return;
+  useSample = false;
+  for (const file of kept) {
+    const index = bagFiles.findIndex((other) => other.name === file.name);
+    if (index >= 0) bagFiles.splice(index, 1, file); else bagFiles.push(file);
+  }
+  if (relativeFolder) folderName = relativeFolder;
+  refresh();
+}
+
+function addTfFiles(files) {
+  for (const file of files) {
+    if (!tfFiles.some((other) => other.name === file.name && other.size === file.size)) tfFiles.push(file);
+  }
+  refresh();
+}
+
+$("pick-files").addEventListener("click", () => $("bag-files").click());
+$("pick-folder").addEventListener("click", () => $("bag-folder").click());
+$("pick-tf").addEventListener("click", () => $("tf-files").click());
+$("bag-files").addEventListener("change", (event) => { addBagFiles([...event.target.files]); event.target.value = ""; });
+$("bag-folder").addEventListener("change", (event) => {
+  const files = [...event.target.files];
+  const first = files.find((file) => file.webkitRelativePath);
+  addBagFiles(files, first ? first.webkitRelativePath.split("/")[0] : null);
+  event.target.value = "";
+});
+$("tf-files").addEventListener("change", (event) => { addTfFiles([...event.target.files]); event.target.value = ""; });
+
+// Drag and drop: walk dropped folders (two levels deep at most; only bag files are kept).
+function readEntries(reader) {
+  return new Promise((resolve, reject) => {
+    const all = [];
+    const next = () => reader.readEntries((batch) => { if (!batch.length) resolve(all); else { all.push(...batch); next(); } }, reject);
+    next();
+  });
+}
+const entryFile = (entry) => new Promise((resolve, reject) => entry.file(resolve, reject));
+async function collect(entry, depth, out) {
+  if (entry.isFile) {
+    if (entry.name === "metadata.yaml" || BAG_FILE.test(entry.name)) out.push(await entryFile(entry));
+  } else if (entry.isDirectory && depth < 2) {
+    for (const child of await readEntries(entry.createReader())) await collect(child, depth + 1, out);
+  }
+}
+const drop = $("drop");
+for (const type of ["dragenter", "dragover"]) drop.addEventListener(type, (event) => { event.preventDefault(); drop.classList.add("over"); });
+for (const type of ["dragleave", "drop"]) drop.addEventListener(type, () => drop.classList.remove("over"));
+drop.addEventListener("drop", async (event) => {
+  event.preventDefault();
+  const items = [...(event.dataTransfer.items || [])].filter((item) => item.kind === "file");
+  const entries = items.map((item) => (item.webkitGetAsEntry ? item.webkitGetAsEntry() : null));
+  if (entries.every(Boolean) && entries.length) {
+    const files = [];
+    for (const entry of entries) await collect(entry, 0, files);
+    const directory = entries.length === 1 && entries[0].isDirectory ? entries[0].name : null;
+    addBagFiles(files, directory);
+  } else {
+    addBagFiles([...event.dataTransfer.files]);
+  }
+});
+window.addEventListener("dragover", (event) => event.preventDefault());
+window.addEventListener("drop", (event) => event.preventDefault());
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button.x");
+  if (!button) return;
+  if (button.dataset.kind === "sample") useSample = false;
+  else if (button.dataset.kind === "tf") tfFiles.splice(Number(button.dataset.index), 1);
+  else { bagFiles.splice(Number(button.dataset.index), 1); if (!bagFiles.length) folderName = null; }
+  refresh();
+});
+$("clear").addEventListener("click", () => {
+  bagFiles = []; tfFiles = []; folderName = null; useSample = false;
+  $("vehicle-frame").value = ""; $("frame-map").value = "";
+  $("error").hidden = true; $("results").hidden = true;
+  refresh();
+});
+
+// ---------------------------------------------------------------- running
+function request() {
+  const storage = bagFiles.filter((file) => BAG_FILE.test(file.name));
+  const bare = !bagFiles.some((file) => file.name === "metadata.yaml") && storage.length === 1;
+  let label;
+  if (useSample) label = SAMPLE.label;
+  else if (folderName) label = folderName;
+  else if (bare) label = storage[0].name;
+  else label = storage.length ? storage[0].name.replace(BAG_FILE, "").replace(/_\d+$/, "") : "bag";
+  return {
+    bag_label: label,
+    tf_labels: useSample ? [] : tfFiles.map((file) => file.name),
+    vehicle_frame: $("vehicle-frame").value.trim() || null,
+    frame_map: $("frame-map").value.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#")),
+  };
+}
+
+function plan() {
+  busy = true; refresh();
+  $("error").hidden = true;
+  log(useSample ? "Planning the sample bag…" : "Planning " + bagFiles.map((file) => file.name).join(", ") + "…");
+  worker.postMessage({
+    type: "plan",
+    bag: useSample ? { urls: SAMPLE.urls } : { files: bagFiles },
+    tf: useSample ? [] : tfFiles,
+    request: request(),
+  });
+}
+$("run").addEventListener("click", plan);
+$("sample").addEventListener("click", () => {
+  bagFiles = []; tfFiles = []; folderName = null; useSample = true;
+  plan();
+});
+
+function finish(payload) {
+  busy = false; refresh();
+  if (!payload.ok) {
+    $("error").hidden = false;
+    $("error").textContent = payload.error;
+    log("Failed: " + payload.error);
+    return;
+  }
+  log("Done in " + payload.seconds.toFixed(1) + " s.");
+  lastArtifact = payload.artifact;
+  lastCommands = { command: payload.command, plan: payload.plan_command };
+  render(payload.artifact, payload.command);
+}
+
+// ---------------------------------------------------------------- results
+const fmtXyz = (t) => "(" + t.map((v) => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(3)).join(", ") + ") m";
+const sourceLabel = { bag_tf_static: "bag /tf_static", urdf: "URDF", frames_yaml: "frames YAML",
+  kalibr_camchain: "Kalibr camchain", rtk_slam_calib: "RTK-SLAM calib.yaml", hilti_sensors: "Hilti sensors" };
+
+function render(artifact, command) {
+  $("results").hidden = false;
+  $("bag-name").textContent = artifact.bag.path;
+  const summary = artifact.summary;
+  const reasons = Object.entries(summary.skipped_by_reason || {});
+  $("stats").innerHTML =
+    `<div class="stat ok"><div class="n">${summary.runnable_count}</div><div class="l">can be checked</div></div>` +
+    `<div class="stat"><div class="n">${summary.pair_count - summary.runnable_count}</div><div class="l">skipped</div></div>` +
+    `<div class="stat"><div class="n">${artifact.topics.filter((t) => t.role !== "tf_static").length}</div><div class="l">sensor topics</div></div>` +
+    `<div class="stat"><div class="n">${artifact.frame_tree.frames.length}</div><div class="l">frames in the tree</div></div>`;
+  $("reasons").innerHTML = reasons.length
+    ? "Skipped: " + reasons.map(([code, count]) => `${count} <code>${code}</code>`).join(", ") + "."
+    : "";
+
+  $("sources").innerHTML = artifact.candidate_sources.length
+    ? artifact.candidate_sources.map((source) =>
+        `<li><b>${sourceLabel[source.kind] || escapeHtml(source.kind)}</b> <code>${escapeHtml(source.path || "")}</code>: ${source.frame_count} frame(s)` +
+        (source.sha256 ? ` <span class="muted">sha256 ${source.sha256.slice(0, 12)}</span>` : "") +
+        (source.notes.length ? `<br><span class="muted">${source.notes.map(escapeHtml).join("; ")}</span>` : "") + "</li>").join("")
+    : `<li class="muted">None: the bag has no <code>/tf_static</code> and no calibration file was given, so no pair can be planned.</li>`;
+
+  renderTree(artifact);
+  renderPairs(artifact);
+  renderTopics(artifact);
+  $("cmd").textContent = command;
+  const wheelVersion = version || "0.5.1";
+  $("install").textContent = `python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v${wheelVersion}/calibrex-${wheelVersion}-py3-none-any.whl"`;
+  $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderTree(artifact) {
+  const tree = artifact.frame_tree;
+  if (!tree.frames.length) { $("tree").innerHTML = `<p class="muted">No frames.</p>`; return; }
+  const children = {};
+  for (const edge of tree.edges) (children[edge.transform.parent_frame] = children[edge.transform.parent_frame] || []).push(edge);
+  const topicsOf = {};
+  for (const topic of artifact.topics) if (topic.mapped_frame && topic.role !== "tf_static") (topicsOf[topic.mapped_frame] = topicsOf[topic.mapped_frame] || []).push(topic.topic);
+  const node = (frame, edge) => {
+    const kids = (children[frame] || []).slice().sort((a, b) => a.transform.child_frame.localeCompare(b.transform.child_frame));
+    return `<li><span class="frame">${escapeHtml(frame)}</span>` +
+      (edge ? `<span class="xyz">${fmtXyz(edge.transform.translation_m)}${edge.source !== "bag_tf_static" ? " · " + escapeHtml(sourceLabel[edge.source] || edge.source) : ""}</span>` : `<span class="xyz">root</span>`) +
+      (topicsOf[frame] ? `<span class="topics">← ${topicsOf[frame].map(escapeHtml).join(", ")}</span>` : "") +
+      (kids.length ? `<ul>${kids.map((kid) => node(kid.transform.child_frame, kid)).join("")}</ul>` : "") + "</li>";
+  };
+  $("tree").innerHTML = `<ul class="tree">${tree.roots.map((root) => node(root, null)).join("")}</ul>` +
+    (tree.overrides.length ? `<p class="note">Overridden by a calibration file: ${tree.overrides.map((o) => `<code>${escapeHtml(o)}</code>`).join(", ")}</p>` : "");
+}
+
+function renderPairs(artifact) {
+  const rows = artifact.pairs.map((pair) => {
+    const sensors = pair.sensors.length ? pair.sensors.map(escapeHtml).join(" / ") : "—";
+    if (pair.status === "planned") {
+      const t = pair.candidate_transform;
+      return `<tr><td class="mono">${pair.pair}</td><td class="mono">${sensors}</td><td><span class="pill planned">can be checked</span></td>` +
+        `<td class="wrap dim">candidate <span class="mono">T_${escapeHtml(t.parent_frame)}_${escapeHtml(t.child_frame)}</span>, translation <span class="mono nowrap">${fmtXyz(t.translation_m)}</span></td></tr>`;
+    }
+    const tone = ACTION_CODES.has(pair.reason_code) ? "action" : "skipped";
+    return `<tr><td class="mono">${pair.pair}</td><td class="mono">${sensors}</td>` +
+      `<td><span class="pill ${tone}">skipped</span> <code>${pair.reason_code}</code></td>` +
+      `<td class="wrap dim">${escapeHtml(pair.reason)}</td></tr>`;
+  });
+  $("vehicle-hint").hidden = !artifact.pairs.some((pair) => pair.reason_code === "no_vehicle_frame");
+  $("pairs").innerHTML = `<tr><th>Pair</th><th>Sensors</th><th>Status</th><th class="wrap">Detail</th></tr>` + rows.join("");
+}
+
+function renderTopics(artifact) {
+  const rows = artifact.topics.map((topic) => {
+    const source = topic.frame_source ? `<span class="pill source">${topic.frame_source.replace("_", " ")}</span>` : "";
+    const detail = topic.ignored_reason
+      ? `<span class="pill action">ignored</span> ${escapeHtml(topic.ignored_reason)}`
+      : (topic.notes.length ? escapeHtml(topic.notes.join("; ")) : "");
+    return `<tr><td class="mono">${escapeHtml(topic.topic)}</td><td class="dim">${escapeHtml(topic.message_type)}</td>` +
+      `<td><span class="pill role">${topic.role || "—"}${topic.odometry_kind ? " · " + topic.odometry_kind : ""}</span>${topic.ignored_reason ? ' <span class="pill action">ignored</span>' : ""}</td>` +
+      `<td class="mono">${escapeHtml(topic.header_frame_id || "—")}</td><td class="mono">${escapeHtml(topic.mapped_frame || "—")}</td>` +
+      `<td>${source}</td><td class="num">${topic.message_count ?? "—"}</td><td class="wrap dim">${detail}</td></tr>`;
+  });
+  $("topics").innerHTML = `<tr><th>Topic</th><th>Type</th><th>Role</th><th>Header frame</th><th>Mapped frame</th><th>Frame source</th><th>Messages</th><th class="wrap">Ignored / notes</th></tr>` + rows.join("");
+  const hidden = artifact.bag.topic_count - artifact.topics.length;
+  $("topic-note").textContent = hidden > 0 ? `${hidden} other topic(s) of the bag have no sensor role and are not listed.` : "";
+}
+
+$("open-vehicle").addEventListener("click", (event) => {
+  event.preventDefault();
+  $("vehicle-details").open = true;
+  $("vehicle-frame").scrollIntoView({ behavior: "smooth", block: "center" });
+  $("vehicle-frame").focus();
+});
+
+// ---------------------------------------------------------------- output actions
+async function copy(text, button) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (_) {
+    const area = Object.assign(document.createElement("textarea"), { value: text });
+    document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+  }
+  const label = button.textContent;
+  button.textContent = "Copied";
+  setTimeout(() => { button.textContent = label; }, 1200);
+}
+$("copy-cmd").addEventListener("click", (event) => copy($("cmd").textContent, event.currentTarget));
+$("copy-install").addEventListener("click", (event) => copy($("install").textContent, event.currentTarget));
+$("copy-plan-cmd").addEventListener("click", (event) => lastCommands && copy(lastCommands.plan, event.currentTarget));
+$("download").addEventListener("click", () => {
+  if (!lastArtifact) return;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(lastArtifact, null, 2) + "\n"], { type: "application/json" }));
+  const link = Object.assign(document.createElement("a"), { href: url, download: "check_plan.json" });
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+refresh();
+</script>
+</body>
+</html>

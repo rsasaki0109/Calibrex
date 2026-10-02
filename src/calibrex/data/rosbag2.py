@@ -40,6 +40,7 @@ from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import yaml
 
@@ -401,6 +402,32 @@ class Rosbag2Reader:
         yield from self.read_radar_scans(topic=topic)
 
 
+
+def open_sqlite_readonly(path: str | Path) -> sqlite3.Connection:
+    """Open a rosbag2 ``.db3`` read-only.
+
+    The normal ``mode=ro`` open is tried first, so a bag on a regular disk behaves
+    exactly as before (including a bag whose ``-wal`` file holds recent messages).
+    A bag that sqlite cannot open in place, such as a WAL-mode database on a
+    read-only file system that cannot create the ``-shm`` file, is reopened with
+    ``immutable=1``, which skips locking and journal files. That is what lets the
+    browser check page read a multi-gigabyte ``.db3`` mounted lazily with
+    Emscripten WORKERFS.
+    """
+
+    quoted = quote(str(path), safe="/:\\")
+    connection = sqlite3.connect(f"file:{quoted}?mode=ro", uri=True)
+    try:
+        connection.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchall()
+    except sqlite3.OperationalError:
+        connection.close()
+        return sqlite3.connect(f"file:{quoted}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        connection.close()
+        raise
+    return connection
+
+
 def iter_messages(
     path: str | Path,
     *,
@@ -473,7 +500,7 @@ def list_rosbag2_connections(
 
 
 def _sqlite_connections(db_path: Path) -> list[Rosbag2Connection]:
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    conn = open_sqlite_readonly(db_path)
     try:
         try:
             rows = conn.execute(
@@ -543,7 +570,7 @@ def iter_topic_messages(
         )
         if connection is None:
             return
-        conn = sqlite3.connect(f"file:{storage_path}?mode=ro", uri=True)
+        conn = open_sqlite_readonly(storage_path)
         try:
             query = (
                 "SELECT timestamp, data FROM messages WHERE topic_id = ? "
@@ -712,7 +739,7 @@ def _iter_sqlite_messages(
     topics: set[str] | None,
     decompress_message: Callable[[bytes], bytes] | None = None,
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    conn = open_sqlite_readonly(db_path)
     try:
         try:
             topic_rows = conn.execute(

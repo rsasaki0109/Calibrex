@@ -5,6 +5,19 @@
 - Docs site revamp: custom theme and logo, a landing page that leads with `calibrex check`,
   tabbed navigation (Get started, Benchmarks & SOTA, Concepts, Reference, Internals),
   and a restyled browser calibration page.
+- **Bag check in the browser** (`docs/app/check.html`): plans `calibrex check --plan` on your
+  own rosbag2 under Pyodide in a Web Worker. The bag (`.db3` or `.mcap`, multi-GB is fine) is
+  mounted with Emscripten WORKERFS and read lazily, never copied into memory. Takes optional
+  `--tf` calibration files, `--vehicle-frame` and `--frame-map`; shows the frame tree, topic
+  roles and pair table, a plan-JSON download and the equivalent local command. A committed
+  synthetic sample bag (`docs/app/samples/check_sample`, `tools/build_check_sample_bag.py`)
+  loads with one click. Python side: `calibrex.check.browser.plan_bag_for_browser` and
+  `plan_request_json`; `tools/check_browser_check_page.mjs` drives the page in headless Chrome.
+  - `calibrex.data.rosbag2.open_sqlite_readonly`: percent-encodes the path in the sqlite URI
+    and falls back to `immutable=1` only when a plain read-only open fails (a WAL-mode bag on a
+    read-only file system); a bag that opens today is opened exactly as before.
+  - The bag input digest is hashed in 8 MiB chunks (same digest, bounded memory).
+  - `encode_image` and `encode_camera_info` in `calibrex.data.ros_cdr_writer`.
 
 ## 0.5.1 - 2026-10-02
 

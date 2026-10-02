@@ -17,7 +17,8 @@ hide:
 <div class="cx-buttons" markdown="1">
 
 [Get started](getting_started.md){ .md-button .md-button--primary }
-[Try in the browser](app/){ .md-button }
+[Check a bag in the browser](app/check.html){ .md-button }
+[Calibrate an IMU in the browser](app/){ .md-button }
 [GitHub :fontawesome-brands-github:](https://github.com/rsasaki0109/Calibrex){ .md-button }
 
 </div>
@@ -49,6 +50,14 @@ with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checkin
 
     Partial coverage is named, not hidden: a `pass` covers only the judged axes, and
     detection power tells you whether the data could have caught a wrong calibration.
+
+-   :material-web: **Plan a check in your browser**
+
+    ---
+
+    Drop a ROS 2 bag on the [bag check page](app/check.html) to see which sensor pairs
+    `calibrex check` could audit and why others are skipped. Files are read in place
+    and never uploaded.
 
 -   :material-flag-checkered: **Pre-registered SOTA claims**
 

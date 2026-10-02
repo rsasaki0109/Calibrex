@@ -15,6 +15,8 @@ from calibrex.data.ros_cdr import decode_ros2_header_frame_id
 from calibrex.data.ros_cdr_writer import (
     POINT_FIELD_FLOAT32,
     CdrWriter,
+    encode_camera_info,
+    encode_image,
     encode_imu,
     encode_navsatfix,
     encode_odometry,
@@ -23,6 +25,8 @@ from calibrex.data.ros_cdr_writer import (
     encode_twist_stamped,
 )
 from calibrex.data.rosbag2 import (
+    CAMERA_INFO_TYPE,
+    IMAGE_TYPE,
     IMU_TYPE,
     NAVSATFIX_TYPE,
     ODOMETRY_TYPE,
@@ -108,6 +112,55 @@ def test_imu_roundtrip(tmp_path: Path) -> None:
     assert message.angular_velocity == (0.1, -0.2, 0.3)
     assert message.linear_acceleration == (0.01, 0.02, 9.81)
     assert message.orientation_covariance[0] == -1.0  # no orientation estimate
+
+
+def test_image_and_camera_info_roundtrip(tmp_path: Path) -> None:
+    pixels = bytes(range(12))
+    k = (100.0, 0.0, 2.0, 0.0, 101.0, 1.5, 0.0, 0.0, 1.0)
+    with _bag(tmp_path / "bag") as writer:
+        writer.add_topic("/camera/image_raw", IMAGE_TYPE)
+        writer.add_topic("/camera/camera_info", CAMERA_INFO_TYPE)
+        writer.write(
+            "/camera/image_raw",
+            STAMP_NS,
+            encode_image(
+                frame_id="camera_optical",
+                timestamp_ns=STAMP_NS,
+                height=3,
+                width=4,
+                encoding="mono8",
+                step=4,
+                data=pixels,
+            ),
+        )
+        writer.write(
+            "/camera/camera_info",
+            STAMP_NS,
+            encode_camera_info(
+                frame_id="camera_optical",
+                timestamp_ns=STAMP_NS,
+                height=3,
+                width=4,
+                k=k,
+                d=(0.1, -0.05, 0.0, 0.0, 0.0),
+            ),
+        )
+    image = _first(tmp_path / "bag", "/camera/image_raw", IMAGE_TYPE)
+    assert (image.frame_id, image.height, image.width, image.encoding) == (
+        "camera_optical",
+        3,
+        4,
+        "mono8",
+    )
+    assert image.data_length == len(pixels)
+    info = _first(tmp_path / "bag", "/camera/camera_info", CAMERA_INFO_TYPE)
+    assert info.k == k
+    assert info.d == (0.1, -0.05, 0.0, 0.0, 0.0)
+    assert info.p[:3] == k[:3] and info.distortion_model == "plumb_bob"
+    with pytest.raises(ValueError):
+        encode_image(
+            frame_id="c", timestamp_ns=0, height=2, width=2, encoding="mono8", step=2, data=b"x"
+        )
 
 
 def test_navsatfix_roundtrip(tmp_path: Path) -> None:
