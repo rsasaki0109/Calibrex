@@ -616,6 +616,24 @@
           "description": "seconds analysed by the GNSS pairs when --gnss-max-duration-s was given; absent means they use max_duration_s",
           "title": "Gnss Max Duration S"
         },
+        "imu_lidar_deskew": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "gyro",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "imu-lidar deskew selection: auto uses the per-point time field when the cloud has one and rigid scans otherwise; absent in artifacts that predate the option",
+          "title": "Imu Lidar Deskew"
+        },
         "imu_lidar_translation": {
           "default": true,
           "title": "Imu Lidar Translation",
@@ -647,6 +665,20 @@
           ],
           "default": null,
           "title": "Pairs"
+        },
+        "rigid_scan_rotation_floor_deg": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "rotation floor applied to imu-lidar axes judged on rigid scans (deskew none)",
+          "title": "Rigid Scan Rotation Floor Deg"
         },
         "rotation_floor_deg": {
           "exclusiveMinimum": 0.0,
@@ -731,6 +763,23 @@
           "default": null,
           "description": "partial when any rotation axis, or any translation axis the estimator attempted, is unchecked",
           "title": "Coverage"
+        },
+        "deskew": {
+          "anyOf": [
+            {
+              "enum": [
+                "gyro",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "imu-lidar only: gyro when scans were deskewed with per-point time, none when they were treated as rigid snapshots (larger rotation floor, time offset includes the driver's stamp convention)",
+          "title": "Deskew"
         },
         "estimator": {
           "anyOf": [

@@ -2967,6 +2967,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help="skip the IMU-LiDAR lever-arm estimate (rotation only; faster)",
     )
     check.add_argument(
+        "--imu-lidar-deskew",
+        choices=["auto", "gyro", "none"],
+        default="auto",
+        help="imu-lidar deskew: auto (default) deskews with the cloud's per-point time field "
+        "and treats clouds without one as rigid scans; none forces rigid scans (biased on "
+        "fast rotation); gyro requires the field",
+    )
+    check.add_argument(
+        "--rigid-scan-rotation-floor-deg",
+        type=_positive_float,
+        default=None,
+        metavar="DEG",
+        help="rotation floor for imu-lidar axes judged on rigid scans (default 1.5)",
+    )
+    check.add_argument(
         "--acceleration-unit",
         choices=["mps2", "g"],
         default="mps2",
@@ -4113,7 +4128,11 @@ def _cmd_check(args: argparse.Namespace) -> int:
     from calibrex.check.cache import default_cache_dir
     from calibrex.check.roles import parse_topic_kinds
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
-    from calibrex.check.verdict import VERDICT_ORDER, VerdictOptions
+    from calibrex.check.verdict import (
+        RIGID_SCAN_ROTATION_FLOOR_DEG,
+        VERDICT_ORDER,
+        VerdictOptions,
+    )
 
     run_options = None
     if not args.plan:
@@ -4147,6 +4166,12 @@ def _cmd_check(args: argparse.Namespace) -> int:
             camera=args.camera,
             imu_lidar_translation=not args.no_imu_lidar_translation,
             acceleration_unit=args.acceleration_unit,
+            imu_lidar_deskew=args.imu_lidar_deskew,
+            rigid_scan_rotation_floor_deg=(
+                args.rigid_scan_rotation_floor_deg
+                if args.rigid_scan_rotation_floor_deg is not None
+                else RIGID_SCAN_ROTATION_FLOOR_DEG
+            ),
             evidence_dir=evidence_dir,
             base_dir=base_dir,
             cache_dir=None

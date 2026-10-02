@@ -214,7 +214,7 @@ def test_a_perturbed_candidate_reuses_the_cached_estimate(
         return _rotation_artifact(reference)
 
     monkeypatch.setattr(rotation_module, "run_livox_imu_lidar_rotation", fake_rotation)
-    monkeypatch.setattr(estimators, "_point_time_or_skip", lambda *a: ("t", "offset_s"))
+    monkeypatch.setattr(estimators, "detect_point_time", lambda *a: ("t", "offset_s"))
     cache = EstimatorCache(tmp_path, code="v1")
 
     # T_imu_lidar candidates: the true calibration, then yawed by +1 deg (parent axes of

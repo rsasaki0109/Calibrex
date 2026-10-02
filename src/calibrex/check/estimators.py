@@ -24,7 +24,7 @@ import importlib.util
 import math
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias
 
@@ -33,7 +33,7 @@ from numpy.typing import NDArray
 
 from calibrex.check.cache import EstimatorCache, cached_artifact
 from calibrex.check.tf_sources import LoadedSource, camchain_entries
-from calibrex.check.verdict import AxisEstimate
+from calibrex.check.verdict import RIGID_SCAN_ROTATION_FLOOR_DEG, AxisEstimate
 from calibrex.core.calibration_check import (
     CheckAxisName,
     CheckPairRecord,
@@ -44,6 +44,7 @@ from calibrex.core.calibration_check import (
 
 if TYPE_CHECKING:
     from calibrex.data.livox_ros2 import ScanStore
+    from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
     from calibrex.evaluation.visual_rotation import CameraModel
 
 FloatArray: TypeAlias = NDArray[np.float64]
@@ -107,6 +108,8 @@ class EstimatorRun:
     compared: FloatArray
     time_offset: CheckTimeOffset | None = None
     notes: tuple[str, ...] = ()
+    deskew: Literal["gyro", "none"] | None = None
+    """imu-lidar: how the scans were deskewed (``none`` = rigid scans)."""
 
     @property
     def evidence_from_cache(self) -> bool | None:
@@ -126,6 +129,8 @@ class RunControls:
     camera: str | None = None
     imu_lidar_translation: bool = True
     acceleration_unit: Literal["mps2", "g"] = "mps2"
+    imu_lidar_deskew: Literal["auto", "gyro", "none"] = "auto"
+    rigid_scan_rotation_floor_deg: float = RIGID_SCAN_ROTATION_FLOOR_DEG
     progress: Callable[[str], None] = field(default=lambda message: None)
     cache: EstimatorCache | None = None
     bag_sha256: str = ""
@@ -355,6 +360,61 @@ def _point_time_or_skip(bag: Path, topic: str) -> tuple[str, PointTimeEncoding]:
     return spec
 
 
+RIGID_SCAN_OBSERVABLE_ROTATION_STD_DEG = 0.3
+"""Largest reported rotation std of a rigid-scan axis still called estimated.
+
+The gyro-mode default is 0.1 deg (a fifth of the 0.5 deg floor); the same ratio
+to the 1.5 deg rigid-scan floor gives 0.3 deg. Fixed (not tied to the floor
+option) so changing the floor does not invalidate the cached estimate.
+"""
+RIGID_SCAN_CONTROL_DEG = 1.5
+"""Size of the estimator's own known-bad rotation control on rigid scans.
+
+The control must detect a shift as large as the tolerance floor, because that is
+the smallest error the verdict can resolve there (1 deg in gyro mode, whose floor
+is 0.5 deg, but not resolvable on rigid scans).
+"""
+
+
+def imu_lidar_run_options(deskew: Literal["gyro", "none"]) -> ImuLidarRunOptions:
+    """Estimator options of the imu-lidar adapter for a deskew mode."""
+
+    from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
+    from calibrex.solvers.imu_lidar_rotation_solver import RotationOptions
+
+    if deskew == "gyro":
+        return ImuLidarRunOptions()
+    return ImuLidarRunOptions(
+        deskew="none",
+        rotation_control_deg=RIGID_SCAN_CONTROL_DEG,
+        solver=RotationOptions(observable_rotation_std_deg=RIGID_SCAN_OBSERVABLE_ROTATION_STD_DEG),
+    )
+
+
+def select_imu_lidar_deskew(
+    bag: Path, topic: str, mode: Literal["auto", "gyro", "none"]
+) -> tuple[Literal["gyro", "none"], tuple[str, PointTimeEncoding] | None]:
+    """Choose how imu-lidar deskews ``topic``: per-point time (gyro) or rigid scans (none).
+
+    ``auto`` uses the per-point time field whenever the cloud has one and falls
+    back to rigid scans only when it has none; ``none`` forces rigid scans;
+    ``gyro`` requires the field and skips the pair without it.
+    """
+
+    if mode == "none":
+        return "none", None
+    spec = detect_point_time(bag, topic)
+    if spec is not None:
+        return "gyro", spec
+    if mode == "gyro":
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"{topic} has no usable per-point time field, so its scans cannot be deskewed "
+            "(--imu-lidar-deskew none treats them as rigid scans)",
+        )
+    return "none", None
+
+
 def _require_pointcloud2(ctx: PairContext, topics: Sequence[str]) -> str:
     for topic in topics:
         if ctx.topic_types.get(topic) == POINTCLOUD2_TYPE:
@@ -376,7 +436,6 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     from calibrex.core.imu_lidar_translation import load_imu_lidar_translation
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation.imu_lidar_rotation import (
-        ImuLidarRunOptions,
         rebase_rotation_reference,
         run_livox_imu_lidar_rotation,
     )
@@ -391,7 +450,13 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     if not imu_topics:
         raise CheckSkipError("missing_topic", "no IMU topic for the pair")
     imu_topic = imu_topics[0]
-    field_name, encoding = _point_time_or_skip(ctx.bag, lidar_topic)
+    deskew, point_time = select_imu_lidar_deskew(
+        ctx.bag, lidar_topic, ctx.controls.imu_lidar_deskew
+    )
+    field_name: str | None = None
+    encoding: PointTimeEncoding = "offset_s"
+    if point_time is not None:
+        field_name, encoding = point_time
     profile = LivoxStreamProfile(
         name=f"ros2-pointcloud2:{lidar_topic}+imu:{imu_topic}",
         point_topic=lidar_topic,
@@ -400,6 +465,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         point_time_encoding=encoding,
         acceleration_unit=ctx.controls.acceleration_unit,
     )
+    rigid = deskew == "none"
     candidate = invert_transform(ctx.candidate)  # T_lidar_imu
     command = ["calibrex", "check", str(ctx.bag), "imu-lidar", lidar_topic, imu_topic]
     reference = "deployed candidate calibration (T_lidar_imu)"
@@ -409,7 +475,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     rotation_options = {
         "profile": profile,
         "max_seconds": ctx.controls.max_duration_s,
-        "options": ImuLidarRunOptions(),
+        "options": imu_lidar_run_options(deskew),
     }
     rotation, rotation_cached = cached_artifact(
         ctx.controls.cache,
@@ -420,6 +486,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         compute=lambda: run_livox_imu_lidar_rotation(
             [ctx.bag],
             profile,
+            imu_lidar_run_options(deskew),
             dataset_family=DATASET_FAMILY,
             dataset_license=DATASET_LICENSE,
             reference_rotation=candidate[:3, :3],
@@ -430,7 +497,17 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         ),
         rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
     )
-    notes = [f"per-point time: field '{field_name}' read as {encoding}"]
+    if rigid:
+        notes = [
+            "deskew none: the cloud has no per-point time field"
+            if ctx.controls.imu_lidar_deskew == "auto"
+            else "deskew none: forced by --imu-lidar-deskew none",
+            "scans are treated as rigid snapshots (no motion correction); rotation axes use a "
+            f"floor of {ctx.controls.rigid_scan_rotation_floor_deg:g} deg and the time offset "
+            "includes the driver's scan-stamp convention (about half a sweep)",
+        ]
+    else:
+        notes = [f"per-point time: field '{field_name}' read as {encoding}"]
     cache_flag = rotation_cached if ctx.controls.cache is not None else None
     artifacts = [
         EvidenceArtifact("rotation", rotation, rotation.policy_status, cache_flag),
@@ -441,6 +518,11 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         estimates += rotation_axis_estimates(
             rotation.dofs, candidate[:3, :3], _pose_rotation(rotation)
         )
+        if rigid:
+            estimates = [
+                replace(item, floor=ctx.controls.rigid_scan_rotation_floor_deg)
+                for item in estimates
+            ]
     else:
         estimates += rotation_axis_estimates(rotation.dofs, candidate[:3, :3], candidate[:3, :3])
         estimates = [_unestimated(item) for item in estimates]
@@ -453,7 +535,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         translation_options = {
             **rotation_options,
             "rotation_estimator": "imu_lidar_rotation",
-            "translation_options": ImuLidarTranslationOptions(),
+            "translation_options": ImuLidarTranslationOptions(deskew=deskew),
         }
         translation, translation_cached = cached_artifact(
             ctx.controls.cache,
@@ -465,6 +547,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
                 [ctx.bag],
                 profile,
                 rotation,
+                ImuLidarTranslationOptions(deskew=deskew),
                 dataset_family=DATASET_FAMILY,
                 dataset_license=DATASET_LICENSE,
                 reference_translation=candidate[:3, 3],
@@ -508,6 +591,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         compared=candidate,
         time_offset=time_offset_of(rotation.dofs, rotation.time_offset_s),
         notes=tuple(notes),
+        deskew=deskew,
     )
 
 
