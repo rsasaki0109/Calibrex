@@ -462,3 +462,19 @@ def test_rosbag2_capture_manifest_decodes_image_and_camera_info(tmp_path: Path) 
     summary_streams = {stream.topic: stream for stream in summary.streams}
     assert summary_streams["/camera/image"].sample_frame_id == "camera_frame"
     assert summary_streams["/camera/camera_info"].sample_frame_id == "camera_info_frame"
+
+
+def test_ros2_camera_info_tolerates_end_of_message_alignment_padding() -> None:
+    """Autoware's CameraInfo publisher pads the payload to a 4-byte multiple."""
+
+    base = _ros2_camera_info()
+    padding = b"\x00" * ((-(len(base) - 4)) % 4)
+    assert padding, "fixture must end off a 4-byte boundary for this test"
+    padded = decode_ros2_camera_info("/camera/camera_info", 0, base + padding)
+    plain = decode_ros2_camera_info("/camera/camera_info", 0, base)
+    assert padded.k == plain.k and padded.frame_id == plain.frame_id
+    # Non-zero or over-long tails are still rejected.
+    with pytest.raises(DatasetError, match="trailing"):
+        decode_ros2_camera_info("/camera/camera_info", 0, base + b"\x00\x00\x00\x00")
+    with pytest.raises(DatasetError, match="trailing"):
+        decode_ros2_camera_info("/camera/camera_info", 0, base + b"\x00\x00\x01"[: len(padding)])

@@ -5,6 +5,13 @@
 - README: a new top with a `calibrex check` hero image (`docs/assets/readme-check-hero.svg`,
   generated from the committed demo summary by `tools/generate_readme_check_hero.py`,
   light and dark aware, digest-bound to its sources), a feature strip, and a shorter nav.
+- **`calibrex check` on real third-party bags with `/tf_static`** (Autoware
+  all-sensors-bag1, Koide indoor_easy, Aqua beach_pond MCAP; see the tutorial's
+  "Real bags with /tf_static"). Fixes: ROS 2 `CameraInfo`/`Image` payloads with
+  CDR end padding no longer fail; PointCloud2 topics that are not raw point
+  arrays (Draco) are ignored (`ignored_reason`, optional field on topic
+  records); pairs whose two frames coincide are skipped with the new reason code
+  `degenerate_frames` (enum widening, `slac.calibration_check/v0.1` unchanged).
 
 ## 0.5.0 - 2026-10-02
 

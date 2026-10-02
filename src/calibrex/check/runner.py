@@ -35,6 +35,7 @@ from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
 from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.roles import (
     classify_topics,
+    flag_unreadable_pointclouds,
     map_topics_to_frames,
     read_header_frames,
 )
@@ -228,6 +229,7 @@ def build_calibration_check(
             unknown_topics
         )
         raise DatasetError(msg)
+    candidates = flag_unreadable_pointclouds(bag_path, candidates)
     header_frames = read_header_frames(bag_path, candidates)
     topics: list[CheckTopicRecord] = map_topics_to_frames(
         candidates, header_frames, tree, hints, frame_overrides
@@ -786,6 +788,9 @@ def format_check_table(artifact: CalibrationCheckArtifact) -> str:
     ]
     if unmapped:
         lines.append(f"unmapped topics: {', '.join(unmapped)}")
+    for topic in artifact.topics:
+        if topic.ignored_reason:
+            lines.append(f"ignored topic {topic.topic}: {topic.ignored_reason}")
     lines.append("")
     lines.append(
         f"pairs (vehicle frame '{artifact.vehicle_frame}'):"
