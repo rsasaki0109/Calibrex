@@ -1,0 +1,25 @@
+{
+ "bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "dataset": "KITTI raw 2011_09_26 (CC BY-NC-SA 3.0, non-commercial use only)",
+ "drives": [
+  "0005",
+  "0009",
+  "0014",
+  "0015",
+  "0022"
+ ],
+ "estimate_derivation": "R_estimate = E^T R_candidate, E = rotvec(roll=0, pitch, yaw candidate errors of the lidar-vehicle pair in the act-1 check)",
+ "estimate_rotation_quat_xyzw": [
+  -0.007287762977749195,
+  0.005605961580560899,
+  -0.0023107674680013864,
+  0.9999550600198222
+ ],
+ "frame": "velo_link",
+ "injected_yaw_deg": 3.0,
+ "schema": "calibrex.check_story_manifest/v0",
+ "summary_sha256": {
+  "act1_deployed_wrong.json": "6efe3baaae3b6a375a22040b8508f49e79243022eb4e27d18ea2d7a24dbc96b3",
+  "act3_recheck_estimate.json": "f34575c622d79611265ae674561076e1a5dbb06b2adff61aea01a2d352126031"
+ }
+}
