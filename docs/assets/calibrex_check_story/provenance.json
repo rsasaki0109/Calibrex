@@ -1,0 +1,117 @@
+{
+ "calibrex_version": "0.5.1",
+ "check_command_note": "--tf and --output differ per act; frames files are in the work dir",
+ "check_commands": {
+  "act1": [
+   "calibrex",
+   "check",
+   ".../bag_pool5",
+   "--vehicle-frame",
+   "base_link",
+   "--topic-kind",
+   "/oxts/twist=wheel",
+   "--pairs",
+   "lidar-vehicle,lidar-wheel_odometry,ins-lidar,imu-vehicle",
+   "--cache-dir",
+   ".../cache",
+   "--tf",
+   ".../frames_act1.yaml",
+   "--output",
+   ".../act1.json",
+   "--fail-on",
+   "never"
+  ],
+  "act3": [
+   "calibrex",
+   "check",
+   ".../bag_pool5",
+   "--vehicle-frame",
+   "base_link",
+   "--topic-kind",
+   "/oxts/twist=wheel",
+   "--pairs",
+   "lidar-vehicle,lidar-wheel_odometry,ins-lidar,imu-vehicle",
+   "--cache-dir",
+   ".../cache",
+   "--tf",
+   ".../frames_act3_estimate.yaml",
+   "--output",
+   ".../act3.json",
+   "--fail-on",
+   "never"
+  ]
+ },
+ "check_generator_version": "0.5.1",
+ "check_git_commit": "ef27b8c",
+ "dataset_license": "KITTI raw data, CC BY-NC-SA 3.0: non-commercial use only; the GIF contains a KITTI camera image and must stay non-commercial",
+ "drives": [
+  "0005",
+  "0009",
+  "0014",
+  "0015",
+  "0022"
+ ],
+ "generator": "tools/check_story_gif.py",
+ "gif": {
+  "frames": 16,
+  "height": 540,
+  "sha256": "a2099532fd9041bc4259a774c96c46efb2eef3c0b19923855c3b5bddd0b3cb91",
+  "size_bytes": 376881,
+  "width": 960
+ },
+ "gif_commands": [
+  "python tools/check_story_run.py --bag <pooled KITTI dev bag> --work-dir <dir>",
+  "python tools/check_story_gif.py render --drive-dir <KITTI drive 0005> --image-index 60"
+ ],
+ "git_commit": "ef27b8ca906693c7f24c4329b04050cc45c914ac",
+ "output": "docs/assets/calibrex-check-story.gif",
+ "overlay": {
+  "crop_px": [
+   500,
+   54,
+   1100,
+   375
+  ],
+  "drive": "2011_09_26_drive_0005_sync (a dev drive)",
+  "image_index": 60,
+  "kitti_input_sha256": {
+   "0000000060.bin": "0b11899261209e678a4599335ae6b8446c4e5c7c3101ae474b90b808ba779ad0",
+   "0000000060.png": "66f9fc93c8b759461c529a729f5f12e4ebc66a21e3af10d86cd22ad6f4dfe7ad",
+   "calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+   "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+   "calib_velo_to_cam.txt": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266"
+  },
+  "points": "ground returns hidden (velo z < -1.55 m), distance 5-25 m kept",
+  "zoom_region_px": [
+   846,
+   255,
+   1002,
+   333
+  ]
+ },
+ "pooled_bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "run_tool": "tools/check_story_run.py",
+ "schema": "calibrex.check_story_gif/v0",
+ "story": {
+  "act1": "deployed velo_link yaw +3 deg (R' = Rz(yaw) R about base_link z): calibrex check lidar-vehicle fail",
+  "act2": "slerp of velo_link rotation (lerp of translation) from the act-1 tf to the estimate; interpolated, not a check result",
+  "act3": "estimate deployed as --tf, calibrex check re-run: lidar-vehicle pass (partial: pitch, yaw)",
+  "estimate_derivation": "R_estimate = E^T R_candidate, E = rotvec(roll=0, pitch, yaw candidate errors of the lidar-vehicle pair in the act-1 check)",
+  "estimate_rotation_quat_xyzw": [
+   -0.007287762977749195,
+   0.005605961580560899,
+   -0.0023107674680013864,
+   0.9999550600198222
+  ],
+  "overall_verdicts_not_shown": {
+   "act1": "fail",
+   "act3": "warn"
+  },
+  "vendor_to_estimate_yaw_deg": 0.3128
+ },
+ "summaries_sha256": {
+  "act1_deployed_wrong.json": "6efe3baaae3b6a375a22040b8508f49e79243022eb4e27d18ea2d7a24dbc96b3",
+  "act3_recheck_estimate.json": "f34575c622d79611265ae674561076e1a5dbb06b2adff61aea01a2d352126031",
+  "run_manifest.json": "de60ce3020ee6bc208741dea633fdb0dce6a6eede992494d0ecf1344335396d4"
+ }
+}
