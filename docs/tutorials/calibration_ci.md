@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check calibration evidence
         id: calibrex
-        uses: rsasaki0109/Calibrex@v0.5.0
+        uses: rsasaki0109/Calibrex@v0.5.1
         with:
           candidate: calibration/candidate.yaml
           baseline: calibration/baseline.yaml

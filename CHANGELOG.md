@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.5.1 - 2026-10-02
+
+Highlights:
+
+- **`calibrex check` covers all ten sensor pairs**, now including `camera-focal`.
+- Clouds without per-point time are handled as rigid scans for `imu-lidar`,
+  `lidar-lidar`, and `gnss-lidar`, with floors set from measured bias.
+- First runs on real third-party ROS 2 bags that ship their own `/tf_static`,
+  with three integration fixes: CameraInfo padding, Draco-compressed clouds,
+  and `degenerate_frames`.
+- README hero for the zero-config check.
+- A pre-registered Hilti camera-IMU audit is refuted (6/7 gates) and added to
+  the SOTA leaderboard.
+
 - **A pre-registered `camera-imu` audit is refuted** on four unseen Hilti 2022
   recordings (`hilti-camera-imu-v1`, 6/7 gates).
   - Against Kalibr, the forward cameras (cam0, cam1) are within 0.70 deg and

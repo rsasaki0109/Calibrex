@@ -35,7 +35,7 @@
 </table>
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.0/calibrex-0.5.0-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
 calibrex check my_bag/ --html check.html
 ```
 
@@ -245,7 +245,7 @@ bundle:
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.0/calibrex-0.5.0-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
@@ -295,7 +295,7 @@ Run the same evidence gates on every calibration change:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: rsasaki0109/Calibrex@v0.5.0
+- uses: rsasaki0109/Calibrex@v0.5.1
   with:
     candidate: calibration/candidate.yaml
     baseline: calibration/baseline.yaml
@@ -554,11 +554,11 @@ not silently ranked together.
 ## Install
 
 The supported no-source install is the versioned wheel attached to the
-[v0.5.0 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.5.0):
+[v0.5.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.5.1):
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.0/calibrex-0.5.0-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
 ```
 
 Development checkouts and optional backends remain explicit:
