@@ -92,6 +92,21 @@ class CdrReader:
 
         return len(self._data) - self._offset
 
+    def only_end_padding_remains(self) -> bool:
+        """Return whether the unread tail is trailing XCDR1 alignment padding.
+
+        Some CDR writers (for example the one used by Autoware's CameraInfo
+        publishers) pad a message to a 4-byte multiple after a final uint8
+        field; such zero bytes are not payload.
+        """
+
+        remaining = self.remaining
+        if remaining == 0:
+            return True
+        if remaining >= 4 or (len(self._data) - 4) % 4 != 0:
+            return False
+        return not any(self._data[self._offset :])
+
     def align(self, alignment: int) -> None:
         """Advance the cursor to the next ``alignment``-byte boundary.
 
@@ -381,7 +396,7 @@ def decode_ros2_image(
         max_height=max_height,
         max_data_bytes=max_data_bytes,
     )
-    if reader.remaining:
+    if not reader.only_end_padding_remains():
         raise DatasetError(
             f"sensor_msgs/msg/Image payload has {reader.remaining} trailing byte(s)"
         )
@@ -463,7 +478,7 @@ def decode_ros2_camera_info(
         max_height=max_height,
         max_distortion_coefficients=max_distortion_coefficients,
     )
-    if reader.remaining:
+    if not reader.only_end_padding_remains():
         raise DatasetError(
             f"sensor_msgs/msg/CameraInfo payload has {reader.remaining} trailing byte(s)"
         )
@@ -484,6 +499,47 @@ def decode_ros2_camera_info(
         roi=roi,
         header_stamp_ns=header_stamp_ns,
     )
+
+
+def ros2_pointcloud2_payload_problem(data: bytes) -> str | None:
+    """Return why a CDR ``PointCloud2`` does not hold a raw point array, else ``None``.
+
+    Point-cloud transport plugins (Draco, zlib, ...) republish an *encoded* blob
+    as a ``PointCloud2`` whose ``data`` is far shorter than ``width * height *
+    point_step``; reading it as points yields garbage.  This only parses the
+    header, so it is cheap.
+    """
+
+    try:
+        reader = CdrReader(data)
+        reader.read_int32()
+        reader.read_uint32()
+        reader.read_string()
+        height = reader.read_uint32()
+        width = reader.read_uint32()
+        for _ in range(reader.read_uint32()):
+            reader.read_string()
+            reader.read_uint32()
+            reader.read_uint8()
+            reader.align(4)
+            reader.read_uint32()
+        reader.read_bool()
+        reader.align(4)
+        point_step = reader.read_uint32()
+        reader.read_uint32()
+        payload = reader.read_byte_sequence()
+    except DatasetError:
+        return None  # a truncated header is reported by the decoder, not by this probe
+    expected = int(height) * int(width) * int(point_step)
+    if b"DRACO" in bytes(payload[:32]):
+        return f"the data is Draco-encoded ({len(payload)} bytes), not a raw point array"
+    if expected and len(payload) < expected:
+        return (
+            f"the data holds {len(payload)} bytes but {int(height) * int(width)} points of "
+            f"{int(point_step)} bytes are declared ({expected}): an encoded or truncated "
+            "cloud, not a raw point array"
+        )
+    return None
 
 
 def decode_ros2_pointcloud2(

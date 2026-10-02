@@ -62,6 +62,7 @@ CheckReasonCode = Literal[
     "missing_topic",
     "frame_not_in_tree",
     "frames_not_connected",
+    "degenerate_frames",
     "no_candidate_calibration",
     "no_vehicle_frame",
     "method_not_wired",
@@ -129,6 +130,11 @@ class CheckTopicRecord(StrictModel):
     header_frame_id: str | None = None
     mapped_frame: str | None = None
     frame_source: FrameSource | None = None
+    ignored_reason: str | None = Field(
+        default=None,
+        description="why the topic is not used as a sensor stream (for example a "
+        "Draco-encoded PointCloud2); such a topic fills no sensor slot",
+    )
     notes: list[str] = Field(default_factory=list)
 
 

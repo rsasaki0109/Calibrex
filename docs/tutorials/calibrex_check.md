@@ -73,6 +73,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `no_vehicle_frame` | `--vehicle-frame` was not given, so vehicle pairs are not checked |
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
 | `frames_not_connected` | the two frames are in different trees |
+| `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
 | `method_not_wired` | no check method exists for the pair yet |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
 | `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field (scans cannot be deskewed), a compressed camera image |
@@ -643,6 +644,133 @@ verdicts and per-axis numbers (roll, pitch and yaw errors agree to 1e-15; the
 reference fields are recomputed for the candidate, so they differ from a fresh
 solve only in the last bit). Peak memory was 0.75 GB (Hilti) and 1.2 GB (RTK-SLAM)
 with the default scan budget.
+
+## Real bags with /tf_static
+
+The zero-config path (no `--tf`, candidate read from the bag's `/tf_static`) was
+first exercised only on synthetic bags and our own KITTI conversions. These are
+third-party ROS 2 bags that ship their own `/tf_static`, run with calibrex 0.5.0
+plus the fixes listed below. Nothing here is a benchmark: none of these bags
+yields a `pass`, `warn` or `fail`, and that is the honest result. Licenses were
+not shipped with the local copies and were not verified; check each source before
+redistributing anything. No data from these bags is committed.
+
+Bugs found by this exercise (all fixed, with unit tests):
+
+- **CameraInfo with end padding.** Autoware's CDR `CameraInfo` carries 3 trailing
+  zero bytes (alignment padding after the final `uint8`); the decoder rejected it
+  (`payload has 3 trailing byte(s)`) and `camera-imu` ended `estimator_error` on
+  every camera. Zero padding to a 4-byte multiple is now accepted for `CameraInfo`
+  and `Image`; any other tail is still rejected.
+- **Draco-encoded cloud picked as the LiDAR.** Koide's `/points2/compressed` is a
+  Draco blob typed `sensor_msgs/msg/PointCloud2`, sorted before its decompressed
+  twin, so the estimator tried to read it as points (garbage, `invalid value
+  encountered in cast`). Topics whose first message is not a raw point array are
+  now recorded with `ignored_reason` (optional topic field) and fill no sensor slot.
+- **Identity candidates presented as a check.** Autoware's concatenated cloud and
+  its IMU are both stamped in `base_link`, so `imu-lidar` and the vehicle pairs
+  planned an identity transform `base_link`/`base_link`. They are now skipped with
+  the new reason code `degenerate_frames` (an added enum value; the artifact
+  stays `slac.calibration_check/v0.1`).
+
+### Autoware `all-sensors-bag1`
+
+- **Origin.** `migrated/autoware_data/all-sensors-bag1` (Autoware sample data, a
+  real vehicle; sqlite3, 36.5 s). No license file accompanies the local copy;
+  not verified.
+- **Frame tree.** `/tf_static` (1 message) gives 14 frames, one root `base_link`:
+  `base_link` > `sensor_kit_base_link` > {`camera_{left,right,top}/camera_link` >
+  `.../camera_optical_link`, `gnss_ins_link`, `velodyne_{front,left,right}_base_link`
+  > `velodyne_*`}. Sensor frame ids are found in the tree except `/gnss/fix`
+  (`POS_REF`).
+- **Ignored gracefully.** The applanix custom messages and `VelodyneScan` packets
+  have no sensor role and are not listed; `/tf` (dynamic) is not used.
+- **Topic mapping.** The cameras map by header to their `camera_*/camera_link`
+  frames (not the optical frames; the check composes through the tree either way).
+  The concatenated cloud and the IMU map to `base_link`. `/gnss/fix` is
+  `UNMAPPED`.
+
+| Pair | Plan (`--vehicle-frame base_link`) | Result |
+| --- | --- | --- |
+| `imu-lidar` | skipped `degenerate_frames` (both in `base_link`) | (before the fix: `unsupported_sensor`, no per-point time) |
+| `camera-imu` x3 | planned (camera link / `base_link`) | inconclusive, `no_judgeable_axes`: roll/pitch/yaw std 15-46 deg over 36 s |
+| `camera-focal` | planned | `method_not_wired` |
+| `gnss-lidar`, `gnss-imu` | skipped `frame_not_in_tree` (`POS_REF`) | with `--frame-map /gnss/fix=gnss_ins_link`: skipped `unsupported_sensor` (cloud has no per-point time) |
+| `lidar-vehicle`, `imu-vehicle` | skipped `degenerate_frames` | (before the fix: `lidar-vehicle` inconclusive in 98 s, no axis constrained) |
+| `lidar-lidar`, `ins-lidar`, `lidar-wheel_odometry` | skipped `missing_topic` | - |
+
+Runtime: plan 2.7 s; all three `camera-imu` pairs 67 s (OpenCV, intrinsics from
+`CameraInfo`); a repeat with a changed candidate 28 s.
+
+**Known-bad.** A `--tf` file turning `camera_left/camera_link` by +1 degree about
+its z axis leaves `camera-imu` for that camera `inconclusive`
+(`no_judgeable_axes`), the same as the deployed candidate. The verdict does not
+flip because the estimator constrains no axis on 36 s of driving; the check
+refuses to judge rather than passing or failing. Whether the verdict would flip on a longer
+recording was not tested.
+
+Limitations: the 36 s bag is too short for the camera and GNSS estimators; the
+concatenated cloud has no per-point time, so no LiDAR pair is solvable; because
+the cloud and the IMU are in `base_link`, the physical Velodyne and IMU
+extrinsics are not checkable from this bag at all. The IMU "frame" of
+`camera-imu` is `base_link`, i.e. the check compares the camera with the
+already-rotated IMU stream.
+
+### Koide hard-localization `indoor_easy_01` and `indoor_easy_02`
+
+- **Origin.** `koide_hard_localization/sequences/indoor_easy_0{1,2}` (Koide's hard
+  point-cloud localization dataset, hand-held; sqlite3, 139 s). License not
+  recorded with the local copy; not verified. The directory also holds a
+  zero-byte `indoor_easy_0N_0.db3`; the real storage is the file named by
+  `metadata.yaml`.
+- **Frame tree.** `/tf_static` (2 messages) gives 6 frames, root `camera_base`:
+  `camera_base` > {`camera_body`, `camera_visor`, `depth_camera_link`} and
+  `depth_camera_link` > {`imu_link`, `rgb_camera_link`}. `/imu` maps to
+  `imu_link` and both clouds to `depth_camera_link`.
+- **Clouds.** `/points2/decompressed` is a plain x/y/z `PointCloud2`;
+  `/points2/compressed` is Draco and is ignored (`ignored_reason`).
+
+| Pair | Plan | Result |
+| --- | --- | --- |
+| `imu-lidar` | planned (`imu_link` / `depth_camera_link`) | skipped `unsupported_sensor`: `/points2/decompressed` has no per-point time field |
+| `lidar-vehicle` (`--vehicle-frame imu_link`) | planned | not run (hand-held rig) |
+| `imu-vehicle` | skipped `degenerate_frames` | - |
+| others | skipped `missing_topic` | - |
+
+Both sequences give the same table. Runtime: plan 2.4-2.6 s; the `imu-lidar` skip
+4 s. Limitation: the "LiDAR" is a depth camera cloud without per-point time, so
+the IMU-LiDAR estimator, which deskews each scan, cannot run. Per-point time is
+a hard requirement for `imu-lidar`.
+
+### Aqua `beach_pond_ros2` (plan only)
+
+- **Origin.** `aqua_localization/mbes_slam/beach_pond_ros2` (an underwater
+  multibeam-sonar SLAM recording, converted to MCAP/ROS 2 from
+  `seaward.science/files/pos-datasets/bag/beach_pond.tar.gz`; 9474 s). License not
+  recorded locally; not verified.
+- **Frame tree.** `/tf_static` (1 message) gives 14 frames, root `base_link`
+  (`norbit`, `ustrain_imu`, `gps_port`, `gps_stbd`, `wassp`, `nortek_dvl`,
+  `rbr_ctd`, `gantry`, ...). The MCAP + `/tf_static` path works end to end: all
+  sensor topics map by header (`/norbit/detections` to `norbit`, both IMU topics
+  to `ustrain_imu`, `/nav/sensors/navsat/ubx_pos/fix` to `gps_stbd`).
+- **Plan.** `imu-lidar` (`ustrain_imu` / `norbit`), `gnss-lidar` (`gps_stbd` /
+  `norbit`) and `gnss-imu` are `planned`; `ins-lidar` and `lidar-wheel_odometry`
+  are skipped `missing_topic` and name `/nav/processed/odometry` as an odometry
+  topic of unknown kind (`--topic-kind`); the rest are skipped. Plan time 2.9 s on
+  a 9474 s bag.
+- **Limitation.** The role comes from the message type, so the sonar
+  `PointCloud2` counts as a "lidar" and the plan lists pairs that make no physical
+  sense for a sonar. No estimator was run on it.
+
+### Remaining gaps
+
+- Per-point time is mandatory for the LiDAR pairs; clouds without it (the
+  Autoware concatenated cloud, Koide's depth-camera cloud) end `unsupported_sensor`.
+- No bag here has the length or motion to give a verdict: the real-bag verdict
+  tables remain the Phase B/C results above.
+- `CompressedImage` cameras remain `unsupported_sensor` (none of these bags had
+  one); no bag here exercised Livox `CustomMsg`.
+- Sensor-class is not inferred beyond the message type (sonar counts as LiDAR).
 
 ## Artifact
 

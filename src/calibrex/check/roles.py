@@ -9,13 +9,18 @@ from pathlib import Path
 from calibrex.check.frame_tree import FrameHints, StaticFrameTree, normalize_frame_id
 from calibrex.core.calibration_check import CheckTopicRecord, OdometryKind, SensorRole
 from calibrex.core.exceptions import DatasetError
-from calibrex.data.ros_cdr import decode_ros2_header_frame_id, decode_ros2_odometry
+from calibrex.data.ros_cdr import (
+    decode_ros2_header_frame_id,
+    decode_ros2_odometry,
+    ros2_pointcloud2_payload_problem,
+)
 from calibrex.data.rosbag2 import (
     IMAGE_TYPE,
     IMU_TYPE,
     LIDAR_MESSAGE_TYPES,
     NAVSATFIX_TYPE,
     ODOMETRY_TYPE,
+    POINTCLOUD2_TYPE,
     TF_MESSAGE_TYPE,
     Rosbag2Connection,
     iter_topic_messages,
@@ -137,6 +142,39 @@ def read_header_frames(
             frame = None
         frames[record.topic] = normalize_frame_id(frame) if frame else None
     return frames
+
+
+def flag_unreadable_pointclouds(
+    bag: str | Path,
+    records: Sequence[CheckTopicRecord],
+) -> list[CheckTopicRecord]:
+    """Mark PointCloud2 topics whose first message is not a raw point array.
+
+    A transport-compressed cloud (for example Draco) published next to its
+    decompressed twin would otherwise be picked as the sensor stream. Such a
+    topic gets ``ignored_reason`` and fills no sensor slot.
+    """
+
+    flagged: list[CheckTopicRecord] = []
+    for record in records:
+        if record.role != "lidar" or record.message_type != POINTCLOUD2_TYPE:
+            flagged.append(record)
+            continue
+        problem: str | None = None
+        try:
+            for _conn, _timestamp_ns, data in iter_topic_messages(bag, record.topic, limit=1):
+                problem = ros2_pointcloud2_payload_problem(data)
+        except DatasetError as error:
+            problem = f"the first message could not be read ({error})"
+        if problem is None:
+            flagged.append(record)
+        else:
+            flagged.append(
+                record.model_copy(
+                    update={"ignored_reason": problem, "notes": [*record.notes, problem]}
+                )
+            )
+    return flagged
 
 
 def map_topics_to_frames(
