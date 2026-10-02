@@ -133,14 +133,19 @@ rotations, in which any common IMU-frame offset cancels.
 
 | exp21 | First version | Current version |
 | --- | --- | --- |
-| Common IMU-frame offset (deg) | (-0.14, +0.07, -0.41) | (+0.05, +0.10, -0.35) |
-| Per-camera residual after removing it (deg) | 0.17-0.40 | 0.21-0.69 |
+| Common IMU-frame offset (deg) | (-0.14, +0.07, -0.41) | (-0.135, -0.055, -0.34) |
+| Per-camera residual after removing it (deg) | 0.17-0.40 | 0.11-0.39 (0.18 / 0.11 / 0.38 / 0.39 / 0.27 for cam0-cam4) |
 
 **What the evidence shows**
 
-- **A rotation of about -0.4 deg about the IMU vertical axis is shared by
-  every camera.** The cameras face forward (cam0, cam1), down (cam2), left
-  (cam3), and right (cam4).
+- **On exp21 a rotation of about -0.34 deg about the IMU vertical axis is
+  shared by every camera.** The cameras face forward (cam0, cam1), down
+  (cam2), left (cam3), and right (cam4).
+- **The z component is not reproduced across recordings.** The forward
+  cameras' common offset is (-0.22, -0.17, -0.33) deg on exp21 and
+  (-0.26, -0.20, -0.12) deg on exp07: x and y agree, z does not. Only exp21
+  and exp07 are available, and the side cameras on exp07 are not usable, so
+  the offset about z is not established as a property of the rig.
 - **It is not translation leakage.** The opposite-facing cam3 and cam4 carry
   the same sign, whereas leakage would flip it.
 - **It is not coning.** The rotation increments are already preintegrated.
