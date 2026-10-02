@@ -22,11 +22,11 @@ hide:
 
 </div>
 
-<div class="cx-visual"><img src="assets/lidar-lidar-snap.gif" alt="Two Ouster LiDARs on NTU VIRAL: the second LiDAR's scans move from a perturbed extrinsic to the calibrex estimate and snap onto the first LiDAR's map; the median point-to-plane residual drops from 19.1 cm to 4.4 cm"></div>
+<div class="cx-visual"><img src="assets/calibrex-check-story.gif" alt="calibrex check catches a bad calibration and confirms the fix on KITTI: with a 3 degree yaw error the LiDAR points miss the bollards and lidar-vehicle fails; the transform estimated from the data passes the re-check"></div>
 
-<p class="cx-caption"><b>LiDAR ↔ LiDAR calibration snaps into focus</b> (NTU VIRAL tnp_01, real data):
-from a labelled perturbed start to the <code>calibrex lidar-lidar</code> estimate; median
-point-to-plane residual 19.1 → 4.4 cm.</p>
+<p class="cx-caption">Real <code>calibrex check</code> runs on KITTI development drives: a deployed LiDAR transform
+with a 3° yaw error <b>fails</b>; the transform Calibrex estimates from the data, deployed and re-checked,
+<b>passes</b> (pitch and yaw judged; roll is not observable from driving).</p>
 
 </div>
 
@@ -76,8 +76,8 @@ Every frame comes from a real recording, rendered by Calibrex's own code.
 
 <div class="cx-showcase">
   <figure>
-    <img src="assets/calibrex-check-yaw-sweep.gif" alt="A yaw error injected into the deployed velo_link transform, swept from -3 to +3 degrees, with the real calibrex check verdict at each step" loading="lazy">
-    <figcaption><b>What a check looks like</b> (KITTI development drives). Not a calibration running: a yaw error from −3° to +3° is injected into the deployed <code>velo_link</code> transform and each step is one real <code>calibrex check</code> run. Errors of about 1° or more turn lidar-vehicle to <code>fail</code>; the overall verdict stays <code>inconclusive</code> at 0° because imu-vehicle cannot judge on KITTI.</figcaption>
+    <img src="assets/lidar-lidar-snap.gif" alt="Two Ouster LiDARs on NTU VIRAL: the second LiDAR scans snap onto the first LiDAR map" loading="lazy">
+    <figcaption><b>LiDAR ↔ LiDAR snaps into focus</b> (NTU VIRAL tnp_01). From a labelled perturbed start to the <code>calibrex lidar-lidar</code> estimate; median point-to-plane residual 19.1 → 4.4 cm (the design value gives 4.6 cm).</figcaption>
   </figure>
   <figure>
     <img src="assets/mid360-deskew.gif" alt="A hand-held Livox MID360 sweep before and after gyro deskewing" loading="lazy">
