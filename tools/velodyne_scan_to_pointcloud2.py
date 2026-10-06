@@ -3,7 +3,9 @@
 Autoware sample bags carry per-sensor Velodyne packets (sensor frames, per-firing time)
 next to a concatenated cloud already transformed into ``base_link``. ``calibrex check``
 cannot test the physical mounting from the transformed cloud; this writes a derived bag
-whose clouds are in the sensor frames::
+whose clouds are in the sensor frames (Autoware axes: x forward, y left; VLP-16 and VLP-32C
+verified against an Autoware concatenated cloud, dual return and other models are
+experimental/unverified)::
 
     python tools/velodyne_scan_to_pointcloud2.py BAG OUT_BAG \
         --drop /sensing/lidar/concatenated/pointcloud
@@ -20,7 +22,14 @@ from calibrex.data.rosbag2_velodyne import convert_velodyne_bag
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser(
+        description=__doc__.split("\n\n")[0],
+        epilog=(
+            "Axes are Autoware's (x forward, y left). VLP-16 and VLP-32C single return are "
+            "verified against an Autoware concatenated cloud; dual return and other models "
+            "are experimental and unverified."
+        ),
+    )
     parser.add_argument("bag", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--drop", action="append", default=[], metavar="TOPIC")

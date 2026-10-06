@@ -16,7 +16,7 @@
   error instead of "file is not a database"). No schema change.
 - **`calibrex check` on the Autoware sample bag: raw Velodyne packets, VelocityReport, motion
   explanation.** New ROS-independent decoder `calibrex.data.velodyne_packets` for
-  `velodyne_msgs/msg/VelodyneScan` (VLP-16 and VLP-32C, single/dual return, per-point firing
+  `velodyne_msgs/msg/VelodyneScan` (VLP-16 and VLP-32C single return, per-point firing
   time) and `tools/velodyne_scan_to_pointcloud2.py` (`calibrex.data.rosbag2_velodyne`), which
   writes a derived bag with per-sensor clouds in the sensor frames; `VelodyneScan` topics are
   planned as an ignored `lidar` with that hint. Autoware `VelocityReport`
@@ -24,8 +24,13 @@
   twist topic. A `no_judgeable_axes` `imu-lidar`/`camera-imu` reason now ends with "recording too
   short or too static: N s with integrated IMU rotation ...; need ..." computed from the
   recording's gyro. Real data: all-sensors-bag1 (36.5 s, straight 97 m drive, 1.5 deg total yaw)
-  stays `inconclusive` for every pair, with the exact reason; docs table updated. No schema
-  change (reason text only).
+  gives real `lidar-lidar` verdicts on the converted bag (front/left and front/right `pass`;
+  +1/+3 deg and +5 cm perturbations `fail`), while the IMU and GNSS pairs stay `inconclusive`
+  with the exact reason. The decoder is verified against the bag's concatenated cloud
+  (`tools/validate_velodyne_decode.py`: VLP-16 median 0.03 cm, VLP-32C 1.8 to 3.1 cm, Autoware
+  x-forward axes by default; dual return and other models unverified); `VelocityReport` is
+  verified on the 873 messages of the Autoware `sample-rosbag`. No schema change (reason text
+  only).
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide

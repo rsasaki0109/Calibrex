@@ -71,7 +71,7 @@ def test_vlp32c_packet_geometry() -> None:
     assert velodyne_model_of_packet(packet) == "vlp32c"
     payload = _scan_payload("velodyne_left", [packet])
 
-    cloud = decode_velodyne_scan("/l", 0, payload)
+    cloud = decode_velodyne_scan("/l", 0, payload, x_forward=False)
 
     assert cloud.frame_id == "velodyne_left"
     assert cloud.point_count == 12 * 32

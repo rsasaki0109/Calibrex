@@ -854,6 +854,11 @@ def decode_ros2_velocity_report(topic: str, timestamp_ns: int, data: bytes) -> T
     The report carries the vehicle's longitudinal and lateral speed and heading
     rate in the vehicle frame; they map to ``linear = (lon, lat, 0)`` and
     ``angular = (0, 0, heading_rate)``.
+
+    Layout (``std_msgs/Header`` then three float32) verified on the 873 messages of the
+    Autoware ``sample-rosbag`` (``autoware_vehicle_msgs/msg/VelocityReport``, 30 s,
+    0 to 13.1 m/s). The ``autoware_auto_vehicle_msgs`` flavour is assumed to share it;
+    it had no messages (all-sensors-bag1) to verify on.
     """
 
     reader = CdrReader(data)

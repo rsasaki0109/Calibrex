@@ -9,11 +9,23 @@ frame rather than in ``base_link``. This module converts a scan into a
 offsets, ROS-independent and written from the public VLP-16 and VLP-32C user
 manuals (angles, units and firing sequences below are the manuals' values).
 
-Supported: VLP-16 (product id 0x22) and Puck LITE / Hi-Res (0x21, 0x24) and
-VLP-32C (0x28), single or dual return. Other models raise ``DatasetError``.
-Point positions are in the sensor frame, in metres; no intrinsic calibration
-file is read (the factory ``VLP-32C`` per-laser azimuth offsets are the
-manual's constants).
+Supported: VLP-16 (product id 0x21 or 0x22) and VLP-32C (0x28). Other models raise
+``DatasetError``. Point positions are in the sensor frame, in metres; no intrinsic
+calibration file is read (the VLP-32C per-laser azimuth offsets are the manual's
+constants).
+
+Axes: the manual's convention is x right, y forward (azimuth clockwise from +y).
+Autoware's drivers publish the sensor frame with x forward, y left; that is the
+default here (``x_forward=True``) because it matches the ``velodyne_*`` frames of an
+Autoware ``/tf_static``. Pass ``x_forward=False`` for the manual's axes.
+
+Verification (Autoware ``all-sensors-bag1``, see the check tutorial): decoded
+VLP-16 front points transformed with the bag's ``/tf_static`` reproduce the
+concatenated ``base_link`` cloud of the same scan to a median of under 1 mm; for the
+two VLP-32C scans the per-laser azimuth offsets and elevations fitted to that cloud
+equal the constants here to 0.06 deg (a common bias, not per laser). Not verified:
+dual-return packets (the return-mode byte is ignored, so both returns are emitted as
+if one) and any model other than the two above; treat those as experimental.
 """
 
 from __future__ import annotations
@@ -128,6 +140,7 @@ def decode_velodyne_scan(
     *,
     min_range_m: float = 0.4,
     max_range_m: float = 200.0,
+    x_forward: bool = True,
 ) -> PointCloud2Message:
     """Decode a ``VelodyneScan`` into a cloud in the sensor frame with per-point time.
 
@@ -152,6 +165,8 @@ def decode_velodyne_scan(
         time_parts.append(offset_s[valid] + (stamp - first_stamp) * 1.0e-9)
     if xyz_parts:
         xyz_all = np.concatenate(xyz_parts)
+        if x_forward:  # manual axes (x right, y forward) -> x forward, y left
+            xyz_all = np.stack([xyz_all[:, 1], -xyz_all[:, 0], xyz_all[:, 2]], axis=1)
         intensity_all: np.ndarray | None = np.concatenate(intensity_parts)
         time_all: np.ndarray | None = np.concatenate(time_parts)
     else:
