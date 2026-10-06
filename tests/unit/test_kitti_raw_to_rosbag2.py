@@ -272,3 +272,156 @@ def test_several_drives_of_one_calibration_share_a_bag_with_a_gap(tmp_path: Path
     assert [c for c, _ in list_rosbag2_connections(bag) if c.topic == TF_STATIC_TOPIC]
     info = (bag / "metadata.yaml").read_text()
     assert earlier.name in info and later.name in info
+
+
+# ------------------------------------------------------------------------- the camera
+
+
+def _png(rows: np.ndarray) -> bytes:
+    """A minimal 8-bit grayscale PNG (filter 0 rows, one IDAT)."""
+
+    import struct
+    import zlib
+
+    def chunk(kind: bytes, payload: bytes) -> bytes:
+        body = kind + payload
+        return struct.pack(">I", len(payload)) + body + struct.pack(">I", zlib.crc32(body))
+
+    height, width = rows.shape
+    raw = b"".join(b"\x00" + rows[row].tobytes() for row in range(height))
+    header = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+R_VELO_CAM = Rotation.from_euler("xyz", [-90.0, 0.3, -90.0], degrees=True).as_matrix()
+T_VELO_CAM = np.array([-0.004, -0.076, -0.272])
+R_RECT = Rotation.from_euler("xyz", [0.2, -0.3, 0.1], degrees=True).as_matrix()
+P_RECT_02 = np.array([[721.5, 0.0, 609.6, 44.86], [0.0, 721.5, 172.9, 0.2], [0.0, 0.0, 1.0, 0.003]])
+IMAGE_SHAPE = (8, 12)
+
+
+def add_camera(drive: Path) -> np.ndarray:
+    """``image_02`` and the camera calibration files; returns the written pixel rows."""
+
+    day = drive.parent
+    (day / "calib_velo_to_cam.txt").write_text(
+        "calib_time: fake\n"
+        f"R: {' '.join(f'{v:.12e}' for v in R_VELO_CAM.reshape(-1))}\n"
+        f"T: {' '.join(f'{v:.12e}' for v in T_VELO_CAM)}\n",
+        encoding="utf-8",
+    )
+    (day / "calib_cam_to_cam.txt").write_text(
+        "calib_time: fake\n"
+        f"R_rect_00: {' '.join(f'{v:.12e}' for v in R_RECT.reshape(-1))}\n"
+        f"S_rect_02: {IMAGE_SHAPE[1]}.0 {IMAGE_SHAPE[0]}.0\n"
+        f"P_rect_02: {' '.join(f'{v:.12e}' for v in P_RECT_02.reshape(-1))}\n",
+        encoding="utf-8",
+    )
+    (drive / "image_02" / "data").mkdir(parents=True)
+    (drive / "image_02" / "timestamps.txt").write_text(
+        "\n".join(f"2011-01-01 12:00:00.{index}20000000" for index in range(FRAMES)) + "\n",
+        encoding="utf-8",
+    )
+    rows = np.arange(IMAGE_SHAPE[0] * IMAGE_SHAPE[1], dtype=np.uint8).reshape(IMAGE_SHAPE)
+    for index in range(FRAMES):
+        (drive / "image_02" / "data" / f"{index:010d}.png").write_bytes(_png(rows + index))
+    return rows
+
+
+def test_camera_is_opt_in(converted: tuple[Path, Path]) -> None:
+    _drive, bag = converted
+    topics = {conn.topic for conn, _ in list_rosbag2_connections(bag)}
+    assert "/camera/image_raw" not in topics and "/camera/camera_info" not in topics
+
+
+def test_camera_images_info_and_tf_follow_the_vendor_calibration(tmp_path: Path) -> None:
+    drive = write_drive(tmp_path)
+    rows = add_camera(drive)
+    bag = tmp_path / "bag"
+
+    result = convert_kitti_raw_to_rosbag2(drive, bag, camera="image_02")
+
+    assert result.message_counts["/camera/image_raw"] == FRAMES
+    assert result.message_counts["/camera/camera_info"] == FRAMES
+    listing = {c.topic: c.message_type for c, _ in list_rosbag2_connections(bag)}
+    assert listing["/camera/image_raw"] == "sensor_msgs/msg/Image"
+    assert listing["/camera/camera_info"] == "sensor_msgs/msg/CameraInfo"
+    images = decode(bag, "/camera/image_raw", "sensor_msgs/msg/Image")
+    assert {(m.frame_id, m.encoding, m.width, m.height) for m in images} == {
+        ("cam2_optical", "mono8", IMAGE_SHAPE[1], IMAGE_SHAPE[0])
+    }
+    from calibrex.data import ros_cdr
+
+    payloads = [
+        (stamp, payload) for _c, stamp, payload in iter_topic_messages(bag, "/camera/image_raw")
+    ]
+    full = ros_cdr.decode_ros2_image("/camera/image_raw", *payloads[3])
+    assert full.data is not None
+    np.testing.assert_array_equal(
+        np.frombuffer(bytes(full.data), dtype=np.uint8).reshape(IMAGE_SHAPE), rows + 3
+    )
+    # stamped with the camera's own timestamps.txt (0.1 s per frame)
+    assert (images[1].timestamp_ns - images[0].timestamp_ns) == 100_000_000
+    info = decode(bag, "/camera/camera_info", "sensor_msgs/msg/CameraInfo")[0]
+    assert info.frame_id == "cam2_optical" and (info.width, info.height) == (12, 8)
+    assert info.k[0] == pytest.approx(721.5) and info.k[2] == pytest.approx(609.6)
+    assert not any(info.d)  # rectified images: no distortion
+
+    # tf: T_imu_cam2 = T_imu_velo * inv(T_cam2_velo), T_cam2_velo = [I | K^-1 P[:,3]] R_rect [R|T]
+    source = load_bag_tf_static(bag)
+    assert source is not None
+    edges = {(e.parent, e.child): e.transform for e in source.edges}
+    assert set(edges) == {
+        ("base_link", "imu_link"),
+        ("imu_link", "velo_link"),
+        ("imu_link", "cam2_optical"),
+    }
+    velo_cam0 = np.eye(4)
+    velo_cam0[:3, :3], velo_cam0[:3, 3] = R_VELO_CAM, T_VELO_CAM
+    rect = np.eye(4)
+    rect[:3, :3] = R_RECT
+    shift = np.eye(4)
+    shift[:3, 3] = np.linalg.solve(P_RECT_02[:, :3], P_RECT_02[:, 3])
+    t_cam_velo = shift @ rect @ velo_cam0
+    vendor = load_kitti_ins_lidar_drive(drive).vendor_t_imu_lidar
+    expected = vendor @ np.linalg.inv(t_cam_velo)
+    got = edges[("imu_link", "cam2_optical")]
+    np.testing.assert_allclose(got.translation_m, expected[:3, 3], atol=1e-9)
+    np.testing.assert_allclose(
+        Rotation.from_quat(got.rotation_quat_xyzw).as_matrix(), expected[:3, :3], atol=1e-9
+    )
+    # the camera <- velodyne transform the check composes through the tree is the vendor one
+    composed = np.linalg.inv(expected) @ vendor
+    np.testing.assert_allclose(composed, t_cam_velo, atol=1e-9)
+
+    record = json.loads((bag / CONVERSION_FILENAME).read_text())
+    assert record["camera"]["frame"] == "cam2_optical"
+    assert len(record["camera"]["calib_cam_to_cam_sha256"]) == 64
+    assert "/camera/image_raw" in record["topics"]
+
+
+def test_camera_errors_name_the_missing_files(tmp_path: Path) -> None:
+    drive = write_drive(tmp_path)
+    with pytest.raises(DatasetError, match=r"image_02/data"):
+        convert_kitti_raw_to_rosbag2(drive, tmp_path / "a", camera="image_02")
+    add_camera(drive)
+    (drive.parent / "calib_cam_to_cam.txt").unlink()
+    with pytest.raises(DatasetError, match=r"calib_cam_to_cam\.txt"):
+        convert_kitti_raw_to_rosbag2(drive, tmp_path / "b", camera="image_02")
+
+
+def test_cli_convert_with_camera(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    drive = write_drive(tmp_path)
+    add_camera(drive)
+    bag = tmp_path / "b"
+    code = main(
+        ["convert", "kitti-raw", str(drive), "--camera", "image_02", "--output", str(bag), "--json"]
+    )
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["message_counts"]["/camera/image_raw"] == FRAMES

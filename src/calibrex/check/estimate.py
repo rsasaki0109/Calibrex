@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import math
+import warnings
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -84,7 +85,7 @@ from calibrex.data.rosbag2 import list_rosbag2_connections
 
 PLACEHOLDER_ROOT = "__estimate_placeholder__"
 """Frame that joins sensor frames no prior connects; never exported."""
-NEEDS_INITIAL_GUESS = frozenset({"lidar-lidar"})
+NEEDS_INITIAL_GUESS = frozenset({"lidar-lidar", "camera-lidar"})
 """Pairs whose estimator starts from the candidate transform."""
 NOT_ESTIMATED_PAIRS = frozenset({"camera-focal"})
 """Pairs that judge intrinsics, not an extrinsic: there is nothing to estimate."""
@@ -102,9 +103,10 @@ CAMCHAIN_FILENAME = "camchain-imucam.yaml"
 ARTIFACT_FILENAME = "bag_estimate.json"
 
 LIDAR_LIDAR_PRIOR_HINT = (
-    "lidar-lidar registration starts from a rough extrinsic: pass a prior with --tf FILE "
-    "(a slac.check_frames YAML or URDF that connects the two LiDAR frames to within a few "
-    "degrees and decimetres); only that start is used, the estimate comes from the bag"
+    "lidar-lidar registration and camera-lidar edge alignment start from a rough extrinsic: "
+    "pass a prior with --tf FILE (a slac.check_frames YAML or URDF that connects the two "
+    "frames to within a few degrees and decimetres); only that start is used, the estimate "
+    "comes from the bag"
 )
 
 
@@ -604,7 +606,12 @@ def urdf_joints_text(frames: EstimateFrames, *, bag_name: str) -> str:
         "<!-- origin is T_parent_child; rpy is the fixed-axis roll, pitch, yaw. -->",
     ]
     for entry in frames.entries:
-        roll, pitch, yaw = Rotation.from_quat(entry.transform.rotation_quat_xyzw).as_euler("xyz")
+        with warnings.catch_warnings():
+            # an optical frame to a LiDAR frame is a quarter turn: exactly gimbal-locked rpy
+            warnings.simplefilter("ignore", UserWarning)
+            roll, pitch, yaw = Rotation.from_quat(entry.transform.rotation_quat_xyzw).as_euler(
+                "xyz"
+            )
         x, y, z = entry.transform.translation_m
         if entry.axes_from_prior:
             lines.append(
@@ -911,7 +918,7 @@ def build_bag_estimate(
             record = _skipped(
                 record,
                 "no_candidate_calibration",
-                f"{record.pair} map registration needs a rough initial extrinsic and no --tf "
+                f"{record.pair} starts from a rough initial extrinsic and no --tf "
                 "prior connects its frames",
             )
         gated.append(record)

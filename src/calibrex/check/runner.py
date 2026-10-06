@@ -458,7 +458,7 @@ def _run_pairs(
             )
             continue
         sensor_topics = _sensor_topics(record, topics)
-        if run.camera is not None and record.pair in {"camera-imu", "camera-focal"}:
+        if run.camera is not None and record.pair in {"camera-imu", "camera-focal", "camera-lidar"}:
             camera_topics = sensor_topics.get("camera", ())
             if run.camera not in camera_topics and run.camera not in record.frames:
                 results.append(
@@ -531,7 +531,7 @@ def _will_run(
         return False
     if run.pairs is not None and record.pair not in run.pairs:
         return False
-    if run.camera is not None and record.pair in {"camera-imu", "camera-focal"}:
+    if run.camera is not None and record.pair in {"camera-imu", "camera-focal", "camera-lidar"}:
         camera_topics = _sensor_topics(record, topics).get("camera", ())
         if run.camera not in camera_topics and run.camera not in record.frames:
             return False

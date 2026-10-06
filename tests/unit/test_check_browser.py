@@ -78,6 +78,8 @@ def test_plan_of_the_sample_bag() -> None:
     assert planned == [
         ("camera-focal", "camera_optical", "imu_link"),
         ("camera-imu", "camera_optical", "imu_link"),
+        ("camera-lidar", "camera_optical", "lidar_front"),
+        ("camera-lidar", "camera_optical", "lidar_rear"),
         ("gnss-imu", "gnss_link", "imu_link"),
         ("gnss-lidar", "gnss_link", "lidar_front"),
         ("gnss-lidar", "gnss_link", "lidar_rear"),
@@ -92,7 +94,7 @@ def test_plan_of_the_sample_bag() -> None:
         "ins-lidar": "missing_topic",
         "lidar-wheel_odometry": "missing_topic",
     }
-    assert artifact.summary.runnable_count == 8
+    assert artifact.summary.runnable_count == 10
     assert artifact.provenance.command == ["calibrex", "check", "check_sample", "--plan"]
     assert any("browser" in note for note in artifact.provenance.notes)
     assert result["command"] == "calibrex check check_sample --output check.json --html check.html"
@@ -189,7 +191,7 @@ def test_plan_request_json_reports_errors_instead_of_raising(tmp_path: Path) -> 
     ok = json.loads(
         plan_request_json(json.dumps({"bag_dir": str(COMMITTED_SAMPLE), "bag_label": "s"}))
     )
-    assert ok["ok"] and ok["artifact"]["summary"]["runnable_count"] == 8
+    assert ok["ok"] and ok["artifact"]["summary"]["runnable_count"] == 10
     empty = json.loads(plan_request_json(json.dumps({"bag_dir": str(tmp_path)})))
     assert not empty["ok"] and "no rosbag2 data" in empty["error"]
     (tmp_path / "bad.db3").write_bytes(b"this is not a sqlite database" * 20)
@@ -215,7 +217,7 @@ def test_plan_of_a_bare_mcap(tmp_path: Path) -> None:
     _write_mcap_bag(tmp_path / "sample.mcap", messages=messages)
     result = json.loads(plan_request_json(json.dumps({"bag_dir": str(tmp_path)})))
     assert result["ok"] and result["artifact"]["bag"]["storage_identifier"] == "mcap"
-    assert result["artifact"]["summary"]["runnable_count"] == 8
+    assert result["artifact"]["summary"]["runnable_count"] == 10
 
 
 def test_plan_path_imports_without_opencv_open3d_or_ros(tmp_path: Path) -> None:
@@ -233,7 +235,7 @@ def test_plan_path_imports_without_opencv_open3d_or_ros(tmp_path: Path) -> None:
         "import json\n"
         f"r = json.loads(plan_request_json(json.dumps({{'bag_dir': {str(COMMITTED_SAMPLE)!r}}})))\n"
         "assert r['ok'], r\n"
-        "assert r['artifact']['summary']['runnable_count'] == 8\n"
+        "assert r['artifact']['summary']['runnable_count'] == 10\n"
     )
     env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
     completed = subprocess.run(

@@ -48,6 +48,26 @@
   bags drops by about 20 % (KITTI lidar-vehicle, RTK-SLAM gnss-lidar), 25 % (RTK-SLAM imu-lidar)
   and 50 % (Koide rigid-scan imu-lidar); every artifact is bit-identical
   (`tools/compare_check_artifacts.py`). No schema change.
+- **`camera-lidar` in `calibrex check`, `estimate` and `drift`.** The pair that was missing from
+  the check: targetless edge alignment (the Levinson-Thrun objective, image edges against LiDAR
+  near-side depth discontinuities, re-implemented natively) pooled over up to 48 frames and
+  maximised from the candidate, with a leave-one-block-out jackknife std and a held-out known-bad
+  control per axis (2 deg, both directions, t >= 2); the usual verdict rule applies. **Only the
+  rotation is judged**: translation is always `unchecked` (parallax resolves it too weakly; a 5 cm
+  error is not detected). Intrinsics come from a `CameraInfo` or a Kalibr camchain (like
+  `camera-imu`), no OpenCV; `--camera` selects the camera; the estimate is cached under a key that
+  includes the candidate; `calibrex estimate` needs a rough `--tf` prior (like `lidar-lidar`);
+  `calibrex drift` includes it, and now re-expresses near-half-turn rotation vectors so an
+  optical-to-LiDAR rotation does not read as a 254 deg change. New evidence artifact
+  `slac.camera_lidar_edge/v0.1` (`edge_alignment`), registered as `camera-lidar-edge`;
+  `slac.calibration_check`, `slac.bag_estimate` and `slac.calibration_drift` gain the
+  `camera-lidar` pair name (additive). `calibrex convert kitti-raw --camera image_02` also writes
+  the rectified images, `CameraInfo` and the `imu_link` to camera tf, so the vendor calibration can
+  be checked. Real data (Hilti 2022 `cam0` + PandarXT-32, KITTI development drives 0005 and 0009;
+  [benchmark](docs/benchmarks/camera_lidar_check.md)): the reference calibration passes on all 8
+  recordings (judged axes only), 23 of 27 rotation errors of 1, 3 and 5 deg are flagged, the rest
+  `inconclusive` or `pass` with the axis unchecked; first-run time 20-100 s. Development evidence,
+  no leaderboard claim.
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide
