@@ -179,6 +179,14 @@ class EdgeAlignmentOptions:
         if self.blocks < 3 or self.min_frames < self.blocks:
             raise ValueError("need at least three blocks and as many frames as blocks")
 
+    @property
+    def effective_spacing_s(self) -> float:
+        """Seconds between scans: spread ``max_frames`` over ``max_seconds`` when it is set."""
+
+        if self.max_seconds is None:
+            return self.spacing_s
+        return max(self.spacing_s, self.max_seconds / self.max_frames)
+
     def as_dict(self) -> dict[str, Any]:
         """Schema-safe record of the options."""
 
@@ -903,7 +911,7 @@ def run_ros2_camera_lidar_edge(
         bag,
         inputs.image_topic,
         inputs.lidar_topic,
-        spacing_s=opts.spacing_s,
+        spacing_s=opts.effective_spacing_s,
         max_frames=opts.max_frames,
         max_seconds=opts.max_seconds,
         max_gap_s=opts.max_gap_s,

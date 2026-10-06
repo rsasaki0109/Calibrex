@@ -354,3 +354,29 @@ def test_check_cli_runs_camera_lidar_and_writes_json(good_bag: Path, tmp_path: P
     payload = json.loads(output.read_text())
     (record,) = [p for p in payload["pairs"] if p["pair"] == "camera-lidar"]
     assert record["status"] == "pass"
+
+
+# ---------------------------------------------------------------------------------- drift
+
+
+def test_drift_flags_a_remounted_camera_and_ignores_translation(
+    tmp_path: Path, truth: np.ndarray
+) -> None:
+    from calibrex.check.drift import build_calibration_drift
+
+    remounted = perturbed(truth, (0.0, 2.5, 0.0))
+    bags = [
+        write_bag(tmp_path / "rec1", truth),
+        write_bag(tmp_path / "rec2", truth),
+        write_bag(tmp_path / "rec3", remounted),
+    ]
+    artifact = build_calibration_drift(
+        bags, output_dir=tmp_path / "drift", run=CheckRunOptions(pairs=("camera-lidar",))
+    )
+    (pair,) = [p for p in artifact.pairs if p.pair == "camera-lidar"]
+    assert artifact.overall_verdict == "drift" and pair.verdict == "drift"
+    assert pair.deviating_bags == ["rec3"]
+    axes = {axis.name: axis for axis in pair.axes}
+    assert axes["pitch"].status == "drift"
+    assert not any(name in axes and axes[name].status == "drift" for name in ("x", "y", "z"))
+    assert axes["pitch"].max_abs_difference == pytest.approx(2.5, abs=0.7)
