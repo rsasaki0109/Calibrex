@@ -164,6 +164,29 @@ injected here; the numbers are the development drives, not a held-out claim.
 [HTML report of the +1 deg run](docs/assets/calibrex_check_demo/check_yaw1.html)
 (download and open; GitHub shows HTML as source).
 
+### No calibration yet? Estimate first
+
+`calibrex check` needs a candidate. With a bag but no calibration, every pair is
+`skipped (no_candidate_calibration)`. `calibrex estimate` is the one-command path to one:
+
+```bash
+calibrex estimate my_bag/ --output est/                     # add --tf rough.yaml for a prior
+calibrex check other_bag/ --tf est/frames.yaml              # verify on a different recording
+```
+
+It runs the same native estimators and keeps the estimates (`est/bag_estimate.json`,
+`slac.bag_estimate/v0.1`): per pair the transform, each axis with its standard deviation,
+and whether the data **observed** it (`observed`, `unobservable`, `control_not_detected`,
+`not_estimated`), with the bag digest and settings as provenance. From the observed
+frames it writes `frames.yaml` (loads directly with `--tf`), ROS 2
+`static_transform_publisher` commands and a launch file, and URDF joints (plus a Kalibr
+`camchain-imucam.yaml` when `--tf` gave a camchain). A frame with an axis the data did not
+observe is **never** written as if measured: it is written only when a rough `--tf` prior
+supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted and listed
+under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a
+rough lever arm from `--tf`; lidar-lidar registration also starts from a `--tf` prior, and
+camera-IMU needs the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
+
 ## Pre-registered SOTA audits
 
 Calibrex may call a method state of the art only for a claim that a frozen

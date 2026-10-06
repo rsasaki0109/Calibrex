@@ -1,0 +1,1179 @@
+{
+  "$defs": {
+    "CheckBagInput": {
+      "additionalProperties": false,
+      "description": "The bag that was audited.\n\nThe digest follows the repository precedent for tens-of-gigabyte bags:\n``metadata.yaml`` in full, and each storage file by name, size and first\n64 MiB (see ``input_digest_scope``).",
+      "properties": {
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "storage_identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Storage Identifier"
+        },
+        "topic_count": {
+          "minimum": 0,
+          "title": "Topic Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "topic_count",
+        "input_sha256",
+        "input_digest_scope"
+      ],
+      "title": "CheckBagInput",
+      "type": "object"
+    },
+    "CheckCandidateSource": {
+      "additionalProperties": false,
+      "description": "One origin of candidate extrinsics.",
+      "properties": {
+        "frame_count": {
+          "minimum": 0,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bag_tf_static",
+            "urdf",
+            "frames_yaml",
+            "kalibr_camchain",
+            "rtk_slam_calib",
+            "hilti_sensors"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "kind",
+        "frame_count"
+      ],
+      "title": "CheckCandidateSource",
+      "type": "object"
+    },
+    "CheckEvidenceRef": {
+      "additionalProperties": false,
+      "description": "One estimator artifact written next to the check artifact.",
+      "properties": {
+        "from_cache": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "true when the estimator artifact was read from the estimator cache instead of being recomputed; absent when the estimator is not cached",
+          "title": "From Cache"
+        },
+        "path": {
+          "description": "relative to the check artifact's directory",
+          "title": "Path",
+          "type": "string"
+        },
+        "policy_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Status"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "schema_version",
+        "role"
+      ],
+      "title": "CheckEvidenceRef",
+      "type": "object"
+    },
+    "CheckProvenance": {
+      "additionalProperties": false,
+      "description": "Generator lineage and input digests.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "input_sha256",
+        "input_digest_scope",
+        "created_at"
+      ],
+      "title": "CheckProvenance",
+      "type": "object"
+    },
+    "CheckTimeOffset": {
+      "additionalProperties": false,
+      "description": "The estimator's clock offset; reported, not judged.",
+      "properties": {
+        "estimate_s": {
+          "title": "Estimate S",
+          "type": "number"
+        },
+        "note": {
+          "default": "reported only; not judged",
+          "title": "Note",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std S"
+        }
+      },
+      "required": [
+        "estimate_s",
+        "status"
+      ],
+      "title": "CheckTimeOffset",
+      "type": "object"
+    },
+    "CheckTopicRecord": {
+      "additionalProperties": false,
+      "description": "One bag topic, its role and the tree frame it maps to.",
+      "properties": {
+        "frame_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "override",
+                "header",
+                "source_topic_hint",
+                "role_default"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Source"
+        },
+        "header_frame_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Header Frame Id"
+        },
+        "ignored_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "why the topic is not used as a sensor stream (for example a Draco-encoded PointCloud2); such a topic fills no sensor slot",
+          "title": "Ignored Reason"
+        },
+        "mapped_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapped Frame"
+        },
+        "message_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Count"
+        },
+        "message_type": {
+          "title": "Message Type",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "odometry_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "wheel",
+                "ins",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Odometry Kind"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "lidar",
+                "imu",
+                "camera",
+                "gnss",
+                "odometry",
+                "twist",
+                "tf_static"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "topic": {
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic",
+        "message_type"
+      ],
+      "title": "CheckTopicRecord",
+      "type": "object"
+    },
+    "CheckTransform": {
+      "additionalProperties": false,
+      "description": "``T_parent_child``: maps ``child_frame`` points into ``parent_frame``.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "CheckTransform",
+      "type": "object"
+    },
+    "EstimateAxis": {
+      "additionalProperties": false,
+      "description": "One axis of a pair's estimate.\n\n``value`` is the estimated value (degrees about the parent frame's axes for\na rotation axis, metres for a translation axis); it is absent unless the\nestimator produced one. ``status`` says whether the data observed it:\n``observed``; ``unobservable`` (the data did not constrain it);\n``control_not_detected`` (the estimator's known-bad control on this axis was\nnot detected on held-out data, so the value is not trusted);\n``no_estimate`` (the estimator produced no value); ``not_estimated`` (this\nestimator does not attempt the axis, for example the translation of a\ncamera-IMU rotation estimate).",
+      "properties": {
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "unobservable",
+            "control_not_detected",
+            "no_estimate",
+            "not_estimated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "status"
+      ],
+      "title": "EstimateAxis",
+      "type": "object"
+    },
+    "EstimateExportFile": {
+      "additionalProperties": false,
+      "description": "One file derived from the estimate.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "frames_yaml",
+            "static_transform_publisher",
+            "launch_yaml",
+            "urdf_joints",
+            "kalibr_camchain"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "description": "relative to the estimate artifact's directory",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "EstimateExportFile",
+      "type": "object"
+    },
+    "EstimateFrameEntry": {
+      "additionalProperties": false,
+      "description": "One frame written to the exported tree (``T_parent_frame``).",
+      "properties": {
+        "axes_from_prior": {
+          "description": "axes the data did not observe, taken from the --tf prior",
+          "items": {
+            "enum": [
+              "roll",
+              "pitch",
+              "yaw",
+              "x",
+              "y",
+              "z"
+            ],
+            "type": "string"
+          },
+          "title": "Axes From Prior",
+          "type": "array"
+        },
+        "frame": {
+          "title": "Frame",
+          "type": "string"
+        },
+        "pair": {
+          "enum": [
+            "imu-lidar",
+            "lidar-lidar",
+            "camera-imu",
+            "camera-focal",
+            "gnss-lidar",
+            "gnss-imu",
+            "lidar-vehicle",
+            "imu-vehicle",
+            "ins-lidar",
+            "lidar-wheel_odometry"
+          ],
+          "title": "Pair",
+          "type": "string"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "transform": {
+          "$ref": "#/$defs/CheckTransform"
+        }
+      },
+      "required": [
+        "frame",
+        "parent",
+        "pair",
+        "transform"
+      ],
+      "title": "EstimateFrameEntry",
+      "type": "object"
+    },
+    "EstimateFrameOmission": {
+      "additionalProperties": false,
+      "description": "A frame left out of the exported tree because no complete, measured edge exists.",
+      "properties": {
+        "frame": {
+          "title": "Frame",
+          "type": "string"
+        },
+        "pair": {
+          "anyOf": [
+            {
+              "enum": [
+                "imu-lidar",
+                "lidar-lidar",
+                "camera-imu",
+                "camera-focal",
+                "gnss-lidar",
+                "gnss-imu",
+                "lidar-vehicle",
+                "imu-vehicle",
+                "ins-lidar",
+                "lidar-wheel_odometry"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pair"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "frame",
+        "reason"
+      ],
+      "title": "EstimateFrameOmission",
+      "type": "object"
+    },
+    "EstimateFrames": {
+      "additionalProperties": false,
+      "description": "The exported static frame tree.",
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/EstimateFrameEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "omitted": {
+          "items": {
+            "$ref": "#/$defs/EstimateFrameOmission"
+          },
+          "title": "Omitted",
+          "type": "array"
+        },
+        "root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Root"
+        }
+      },
+      "title": "EstimateFrames",
+      "type": "object"
+    },
+    "EstimateOptions": {
+      "additionalProperties": false,
+      "description": "Estimator settings used for the run.",
+      "properties": {
+        "acceleration_unit": {
+          "default": "mps2",
+          "enum": [
+            "mps2",
+            "g"
+          ],
+          "title": "Acceleration Unit",
+          "type": "string"
+        },
+        "camera": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera"
+        },
+        "frame_map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Frame Map",
+          "type": "object"
+        },
+        "gnss_lidar_deskew": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "constant_velocity",
+            "none"
+          ],
+          "title": "Gnss Lidar Deskew",
+          "type": "string"
+        },
+        "gnss_max_duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gnss Max Duration S"
+        },
+        "imu_lidar_deskew": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "gyro",
+            "none"
+          ],
+          "title": "Imu Lidar Deskew",
+          "type": "string"
+        },
+        "imu_lidar_translation": {
+          "default": true,
+          "title": "Imu Lidar Translation",
+          "type": "boolean"
+        },
+        "lidar_lidar_deskew": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "constant_velocity",
+            "none"
+          ],
+          "title": "Lidar Lidar Deskew",
+          "type": "string"
+        },
+        "max_duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Duration S"
+        },
+        "pairs": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pairs"
+        },
+        "topic_kinds": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Topic Kinds",
+          "type": "object"
+        }
+      },
+      "title": "EstimateOptions",
+      "type": "object"
+    },
+    "EstimatePairRecord": {
+      "additionalProperties": false,
+      "description": "One sensor pair and what the bag's data say about its extrinsic.",
+      "properties": {
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/EstimateAxis"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "deskew": {
+          "anyOf": [
+            {
+              "enum": [
+                "gyro",
+                "constant_velocity",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deskew"
+        },
+        "estimator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimator"
+        },
+        "estimator_policy_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Estimator Policy Reasons",
+          "type": "array"
+        },
+        "estimator_policy_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimator Policy Status"
+        },
+        "evidence": {
+          "description": "estimator artifacts; their reference fields compare against the placeholder or prior, not against a deployed calibration, and are not meaningful",
+          "items": {
+            "$ref": "#/$defs/CheckEvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "evidence_from_cache": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence From Cache"
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "enum": [
+                "prior",
+                "placeholder_identity"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "where the non-observed axes of 'transform' come from: the --tf prior (rough, user supplied) or the identity placeholder",
+          "title": "Fill"
+        },
+        "frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "pair": {
+          "enum": [
+            "imu-lidar",
+            "lidar-lidar",
+            "camera-imu",
+            "camera-focal",
+            "gnss-lidar",
+            "gnss-imu",
+            "lidar-vehicle",
+            "imu-vehicle",
+            "ins-lidar",
+            "lidar-wheel_odometry"
+          ],
+          "title": "Pair",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "missing_topic",
+                "frame_not_in_tree",
+                "frames_not_connected",
+                "degenerate_frames",
+                "no_candidate_calibration",
+                "no_vehicle_frame",
+                "method_not_wired",
+                "not_selected",
+                "unsupported_sensor",
+                "missing_intrinsics",
+                "missing_dependency",
+                "estimator_error",
+                "estimator_failed",
+                "no_judgeable_axes"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
+        },
+        "runtime_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime S"
+        },
+        "sensors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensors",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "partial",
+            "failed",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "time_offset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckTimeOffset"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "topics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Topics",
+          "type": "array"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckTransform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the estimate in the estimator's convention; axes that are not 'observed' hold the value named by 'fill' and are not measurements"
+        }
+      },
+      "required": [
+        "pair",
+        "status"
+      ],
+      "title": "EstimatePairRecord",
+      "type": "object"
+    },
+    "EstimateSummary": {
+      "additionalProperties": false,
+      "description": "Counts over the pair records.",
+      "properties": {
+        "frames_omitted": {
+          "minimum": 0,
+          "title": "Frames Omitted",
+          "type": "integer"
+        },
+        "frames_written": {
+          "minimum": 0,
+          "title": "Frames Written",
+          "type": "integer"
+        },
+        "pair_count": {
+          "minimum": 0,
+          "title": "Pair Count",
+          "type": "integer"
+        },
+        "skipped_by_reason": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Skipped By Reason",
+          "type": "object"
+        },
+        "status_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Status Counts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "pair_count",
+        "frames_written",
+        "frames_omitted"
+      ],
+      "title": "EstimateSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Calibration estimated from a bag, with its observability and provenance.",
+  "properties": {
+    "bag": {
+      "$ref": "#/$defs/CheckBagInput"
+    },
+    "evidence_dir": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Evidence Dir"
+    },
+    "exports": {
+      "items": {
+        "$ref": "#/$defs/EstimateExportFile"
+      },
+      "title": "Exports",
+      "type": "array"
+    },
+    "frames": {
+      "$ref": "#/$defs/EstimateFrames"
+    },
+    "next_steps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Next Steps",
+      "type": "array"
+    },
+    "options": {
+      "$ref": "#/$defs/EstimateOptions"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/EstimatePairRecord"
+      },
+      "title": "Pairs",
+      "type": "array"
+    },
+    "prior_sources": {
+      "description": "rough priors (--tf files and the bag's /tf_static) used only to start estimators that need an initial guess and to fill axes the data did not observe",
+      "items": {
+        "$ref": "#/$defs/CheckCandidateSource"
+      },
+      "title": "Prior Sources",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CheckProvenance"
+    },
+    "schema_version": {
+      "const": "slac.bag_estimate/v0.1",
+      "default": "slac.bag_estimate/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/EstimateSummary"
+    },
+    "topics": {
+      "items": {
+        "$ref": "#/$defs/CheckTopicRecord"
+      },
+      "title": "Topics",
+      "type": "array"
+    },
+    "vehicle_frame": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vehicle Frame"
+    }
+  },
+  "required": [
+    "bag",
+    "summary",
+    "options",
+    "provenance"
+  ],
+  "title": "BagEstimateArtifact",
+  "type": "object"
+}

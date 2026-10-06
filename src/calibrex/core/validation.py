@@ -94,6 +94,7 @@ ValidationKind = Literal[
     "lidar-wheel-odometry",
     "camera-focal-scale",
     "calibration-check",
+    "bag-estimate",
     "check-frames",
     "sota-audit-protocol",
     "sota-audit-result",

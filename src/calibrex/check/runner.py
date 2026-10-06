@@ -204,6 +204,30 @@ class CheckRunOptions:
     """Memory for reusing decoded LiDAR scans across passes; 0 re-reads the bag every pass."""
 
 
+def classify_bag_topics(
+    bag: Path,
+    connections: Sequence[Any],
+    topic_kinds: Mapping[str, OdometryKind] | None,
+) -> tuple[list[CheckTopicRecord], dict[str, str | None]]:
+    """Classify the bag's topics and read their header frame ids (before frame mapping)."""
+
+    candidates = classify_topics(connections, topic_kinds)
+    unknown_topics = sorted(
+        topic
+        for topic in (topic_kinds or {})
+        if not any(
+            record.topic == topic and record.role in {"odometry", "twist"} for record in candidates
+        )
+    )
+    if unknown_topics:
+        msg = "--topic-kind: not an odometry or twist topic of the bag: " + ", ".join(
+            unknown_topics
+        )
+        raise DatasetError(msg)
+    candidates = flag_unreadable_pointclouds(bag, candidates)
+    return candidates, read_header_frames(bag, candidates)
+
+
 def _quiet(_message: str) -> None:
     return None
 
@@ -240,21 +264,7 @@ def build_calibration_check(
     tree, overrides = merge_sources(bag_source, file_sources)
     hints = merge_hints(file_sources)
 
-    candidates = classify_topics(connections, topic_kinds)
-    unknown_topics = sorted(
-        topic
-        for topic in (topic_kinds or {})
-        if not any(
-            record.topic == topic and record.role in {"odometry", "twist"} for record in candidates
-        )
-    )
-    if unknown_topics:
-        msg = "--topic-kind: not an odometry or twist topic of the bag: " + ", ".join(
-            unknown_topics
-        )
-        raise DatasetError(msg)
-    candidates = flag_unreadable_pointclouds(bag_path, candidates)
-    header_frames = read_header_frames(bag_path, candidates)
+    candidates, header_frames = classify_bag_topics(bag_path, connections, topic_kinds)
     topics: list[CheckTopicRecord] = map_topics_to_frames(
         candidates, header_frames, tree, hints, frame_overrides
     )

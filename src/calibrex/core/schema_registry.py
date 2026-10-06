@@ -35,6 +35,7 @@ from calibrex.core.assessment import (
     AssessmentArtifact,
     assessment_json_schema,
 )
+from calibrex.core.bag_estimate import BagEstimateArtifact, bag_estimate_json_schema
 from calibrex.core.benchmark import (
     BenchmarkArtifact,
     BenchmarkDefinition,
@@ -843,6 +844,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("camera-focal-scale", CameraFocalScaleArtifact, camera_focal_scale_json_schema),
     _entry("calibration-check", CalibrationCheckArtifact, calibration_check_json_schema),
     _entry("check-frames", CheckFramesFile, check_frames_json_schema),
+    _entry("bag-estimate", BagEstimateArtifact, bag_estimate_json_schema),
     _entry(
         "lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema
     ),
