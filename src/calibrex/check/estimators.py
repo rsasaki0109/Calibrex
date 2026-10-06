@@ -456,6 +456,36 @@ def _require_pointcloud2(ctx: PairContext, topics: Sequence[str]) -> str:
 # ----------------------------------------------------------------- imu-lidar
 
 
+def _require_gyro_rate(ctx: PairContext, imu_topic: str) -> None:
+    """Skip imu-lidar when the IMU is too slow for the estimator's gyro coverage rule."""
+
+    from calibrex.data.livox_ros2 import LivoxStreamProfile, load_livox_imu
+    from calibrex.solvers.imu_lidar_rotation_solver import MAX_GYRO_GAP_S
+
+    profile = LivoxStreamProfile(
+        name=f"imu-rate:{imu_topic}",
+        point_topic="",
+        imu_topic=imu_topic,
+        point_time_field=None,
+        point_time_encoding="offset_s",
+        acceleration_unit=ctx.controls.acceleration_unit,
+    )
+    store = ctx.controls.scan_store
+    samples = store.imu(ctx.bag, profile) if store is not None else load_livox_imu(ctx.bag, profile)
+    if len(samples.times_s) < 2:
+        return
+    interval = float(np.median(np.diff(samples.times_s)))
+    if interval > MAX_GYRO_GAP_S:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"{imu_topic} runs at about {1.0 / interval:.1f} Hz (median interval "
+            f"{interval * 1e3:.0f} ms); imu-lidar compares LiDAR rotation with the gyro over "
+            f"each scan interval and needs gyro samples at least every {MAX_GYRO_GAP_S * 1e3:.0f} "
+            f"ms (>= {1.0 / MAX_GYRO_GAP_S:.0f} Hz), so a slower IMU covers no interval "
+            "(KITTI's OXTS unit is 10 Hz)",
+        )
+
+
 def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     """Rotation (and optionally lever arm) of ``T_lidar_imu`` from angular rates."""
 
@@ -477,6 +507,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
     if not imu_topics:
         raise CheckSkipError("missing_topic", "no IMU topic for the pair")
     imu_topic = imu_topics[0]
+    _require_gyro_rate(ctx, imu_topic)
     deskew, point_time = select_imu_lidar_deskew(
         ctx.bag, lidar_topic, ctx.controls.imu_lidar_deskew
     )

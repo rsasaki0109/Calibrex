@@ -238,6 +238,13 @@ def _estimate_axes(
     return result, axes, observed
 
 
+def _axis_gist(axis: EstimateAxis) -> str:
+    """One axis as ``unobservable (std 0.16 deg)`` for a failure reason."""
+
+    std = "" if axis.std is None else f" (reported std {axis.std:.3g} {axis.unit})"
+    return f"{axis.status}{std}"
+
+
 def _withdrawn(axes: Sequence[EstimateAxis], reason: str | None) -> list[EstimateAxis]:
     """Axes of a pair whose estimate is not trusted: nothing is observed."""
 
@@ -294,7 +301,9 @@ def _pair_record(
     elif not observed:
         status = "failed"
         reason_code = "no_judgeable_axes"
-        reason = "no axis was constrained by the data"
+        reason = "no axis was constrained by the data: " + "; ".join(
+            f"{axis.name} {_axis_gist(axis)}" for axis in attempted
+        )
     elif all(axis.status == "observed" for axis in attempted):
         status = "estimated"
     else:
@@ -318,7 +327,12 @@ def _pair_record(
             "estimator_policy_reasons": list(outcome.policy_reasons),
             "transform": _transform_record(matrix, parent, child) if usable else None,
             "fill": fill if usable else None,
-            "axes": axes if usable else _withdrawn(axes, reason),
+            # A pair that solved but constrained nothing keeps each axis's own status and
+            # reported std (no values), so the reader sees how far the data were from
+            # observing it; any other failure withdraws every axis.
+            "axes": axes
+            if usable or reason_code == "no_judgeable_axes"
+            else _withdrawn(axes, reason),
             "time_offset": outcome.time_offset,
             "deskew": outcome.deskew,
         }

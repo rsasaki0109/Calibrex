@@ -9,7 +9,11 @@ from typing import Any
 import numpy as np
 import pytest
 from tests.unit.check_fixtures import default_tf, write_check_bag
-from tests.unit.test_check_cache import _imu_lidar_context, _rotation_artifact
+from tests.unit.test_check_cache import (  # noqa: F401
+    _imu_lidar_context,
+    _rotation_artifact,
+    fast_imu,
+)
 from tests.unit.test_imu_lidar_rotation import TRUE_ROTATION
 
 from calibrex.check import estimators
@@ -36,6 +40,8 @@ from calibrex.core.calibration_check import (
 from calibrex.core.imu_lidar_rotation import ImuLidarRotationArtifact
 from calibrex.evaluation import imu_lidar_rotation as rotation_module
 from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
+
+pytestmark = pytest.mark.usefixtures("fast_imu")
 
 
 def _no_time(monkeypatch: pytest.MonkeyPatch) -> list[str]:
