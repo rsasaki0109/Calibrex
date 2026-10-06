@@ -16,6 +16,14 @@ from calibrex import __version__
 from calibrex.calibration_ci import (
     run_calibration_ci,
 )
+from calibrex.cli.help import (
+    CHECK_ADVANCED_TITLE,
+    CHECK_ARGUMENT_GROUPS,
+    HELP_EPILOG,
+    CalibrexArgumentParser,
+    GroupedHelpFormatter,
+    group_arguments,
+)
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assess_evidence_file,
@@ -435,9 +443,11 @@ def _overconfidence_scale(value: str) -> float:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="calibrex")
+    parser = CalibrexArgumentParser(
+        prog="calibrex", formatter_class=GroupedHelpFormatter, epilog=HELP_EPILOG
+    )
     parser.add_argument("--version", action="version", version=f"Calibrex {__version__}")
-    subcommands = parser.add_subparsers(dest="command", required=True)
+    subcommands = parser.add_subparsers(dest="command", required=True, metavar="<command>")
 
     doctor = subcommands.add_parser(
         "doctor",
@@ -3053,6 +3063,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     check.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     check.set_defaults(func=_cmd_check)
+    group_arguments(check, CHECK_ARGUMENT_GROUPS, rest_title=CHECK_ADVANCED_TITLE)
 
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
     inspect.add_argument("path", type=Path)
