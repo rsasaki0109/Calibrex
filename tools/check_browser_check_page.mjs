@@ -82,12 +82,21 @@ async function runInPage(mode, capSeconds, pairs) {
       for (const box of boxes) box.checked = wanted.includes(box.value) && !box.disabled;
     }, pairs);
   }
+  if (cameraOption) await page.$eval("#run-camera", (element, value) => { element.value = value; }, cameraOption);
   const started = Date.now();
   await page.click("#run-estimators");
+  let lastLine = "";
+  const watcher = setInterval(async () => {
+    try {
+      const line = await page.evaluate(() => document.getElementById("prog-line").textContent + " | " + document.getElementById("prog-detail").textContent);
+      if (line !== lastLine) { lastLine = line; console.log(`[${((Date.now() - started) / 1000).toFixed(0)} s]`, line); }
+    } catch (_) { /* page busy */ }
+  }, 30000);
   await page.waitForFunction(
     () => !document.getElementById("run-results").hidden || !document.getElementById("run-error").hidden,
     { timeout: timeoutMs, polling: 250 },
   );
+  clearInterval(watcher);
   const error = await page.$eval("#run-error", (element) => (element.hidden ? null : element.textContent));
   if (error) { fail("run reported: " + error); return null; }
   const shown = await page.evaluate(() => ({
@@ -155,7 +164,6 @@ if (bagFiles.length === 0) {
   if (vehicle || topicKinds.length) await page.click("#vehicle-details > summary");
   if (vehicle) await page.type("#vehicle-frame", vehicle);
   if (topicKinds.length) await page.type("#topic-kind", topicKinds.join("\n"));
-  if (cameraOption) await page.type("#run-camera", cameraOption);
   await (await page.$("#bag-files")).uploadFile(...bagFiles);
   if (tfFiles.length) await (await page.$("#tf-files")).uploadFile(...tfFiles);
   const started = Date.now();
