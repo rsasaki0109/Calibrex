@@ -202,6 +202,12 @@ def test_overall_verdict_ranking_and_options_validation() -> None:
 # ------------------------------------------------- artifact and CLI on stubbed estimators
 
 ERRORS_PER_BAG: list[tuple[float, float, float]] = []
+#: (estimate_s, std_s, status) of the stub's clock offset per run; empty means 2 ms +- 1 ms
+OFFSETS_PER_BAG: list[tuple[float, float, str]] = []
+
+
+def _set_offsets(*per_bag: tuple[float, float, str]) -> None:
+    OFFSETS_PER_BAG[:] = [offset for offset in per_bag for _ in range(2)]
 
 
 def _set_errors(*per_bag: tuple[float, float, float]) -> None:
@@ -212,6 +218,7 @@ def _set_errors(*per_bag: tuple[float, float, float]) -> None:
 
 def _stub(ctx: PairContext) -> EstimatorRun:
     errors = ERRORS_PER_BAG.pop(0)
+    value, std, status = OFFSETS_PER_BAG.pop(0) if OFFSETS_PER_BAG else (0.002, 0.001, "estimated")
     estimates = tuple(
         AxisEstimate(name, "deg", error, 0.05, True)  # type: ignore[arg-type]
         for name, error in zip(("roll", "pitch", "yaw"), errors, strict=True)
@@ -224,7 +231,11 @@ def _stub(ctx: PairContext) -> EstimatorRun:
         policy_reasons=("ok",),
         estimates=estimates,
         compared=invert_transform(ctx.candidate),
-        time_offset=CheckTimeOffset(estimate_s=0.002, std_s=0.001, status="estimated"),
+        time_offset=CheckTimeOffset(
+            estimate_s=value,
+            std_s=std,
+            status=status,  # type: ignore[arg-type]
+        ),
     )
 
 
@@ -322,3 +333,100 @@ def test_attribution_uses_all_axes_of_the_pair_together() -> None:
     assert pair.verdict == "drift"
     assert pair.deviating_bags == ["c"]
     assert [e.bag for a in pair.axes for e in a.leave_one_out if e.deviates] == ["c"] * 3
+
+
+# ------------------------------------------------------------------ clock offset
+
+
+def test_time_offset_floor_protects_a_small_std() -> None:
+    # 1 ms apart with 0.1 ms stds: seven combined sigma but under the 2 ms floor
+    obs = [_obs("a", 0.0020, 0.0001), _obs("b", 0.0030, 0.0001)]
+    record = assess_axis("time_offset", "s", obs, OPTIONS, floor_override=0.002)
+    assert record.status == "stable" and record.unit == "s"
+    assert record.floor_source == "time_offset" and record.floor == pytest.approx(0.002)
+    assert record.pairwise[0].exceeds is False
+    assert record.pairwise[0].z == pytest.approx(-1.0 / (math.sqrt(2) * 0.1), rel=1e-6)
+    bigger = [_obs("a", 0.0020, 0.0001), _obs("b", 0.0075, 0.0001)]
+    assert assess_axis("time_offset", "s", bigger, OPTIONS, floor_override=0.002).status == "drift"
+
+
+def test_compare_pair_flags_and_attributes_a_clock_offset_change_alone() -> None:
+    axes: list[tuple[Any, Any, list[Observation]]] = [
+        ("yaw", "deg", [_obs(b, 0.3, 0.05) for b in "abc"])
+    ]
+    clock = [_obs("a", 0.0018, 0.0002), _obs("b", 0.0019, 0.0002), _obs("c", 0.0118, 0.0002)]
+    pair = compare_pair("camera-imu", None, None, axes, ["a", "b", "c"], OPTIONS, time_offset=clock)
+    assert pair.verdict == "drift" and pair.attribution == "bag"
+    assert pair.deviating_bags == ["c"]
+    assert [a.status for a in pair.axes] == ["stable"]
+    assert pair.time_offset is not None and pair.time_offset.status == "drift"
+    assert [e.bag for e in pair.time_offset.leave_one_out if e.deviates] == ["c"]
+    (change,) = pair.changes
+    assert change.bag == "c" and change.time_offset_delta_s == pytest.approx(0.01, abs=2e-4)
+    assert change.axes_delta["yaw"] == pytest.approx(0.0)
+    # the clock offset alone with two bags cannot be attributed
+    two_axes: list[tuple[Any, Any, list[Observation]]] = [
+        ("yaw", "deg", [_obs("a", 0.3, 0.05), _obs("c", 0.3, 0.05)])
+    ]
+    two = compare_pair(
+        "camera-imu", None, None, two_axes, ["a", "c"], OPTIONS, time_offset=[clock[0], clock[2]]
+    )
+    assert two.verdict == "drift" and two.attribution == "ambiguous"
+
+
+def test_unobserved_clock_offsets_are_skipped_and_a_pair_can_be_stable_on_time_alone() -> None:
+    clock = [
+        _obs("a", 0.0018, 0.0002),
+        _obs("b", 0.5, 0.2, "unobservable"),
+        _obs("c", 0.0019, 0.0002),
+    ]
+    pair = compare_pair("imu-lidar", None, None, [], ["a", "b", "c"], OPTIONS, time_offset=clock)
+    assert pair.time_offset is not None
+    assert pair.time_offset.bags_observed == 2 and pair.verdict == "stable"
+    assert pair.bags_compared == ["a", "c"]
+    only_one = compare_pair("imu-lidar", None, None, [], ["a", "b"], OPTIONS, time_offset=clock[:2])
+    assert only_one.verdict == "inconclusive"
+    assert "clock offset" in (only_one.reason or "")
+
+
+def test_time_offset_floor_options() -> None:
+    assert OPTIONS.time_offset_floor_s("camera-imu") == pytest.approx(0.002)
+    custom = DriftOptions(time_offset_floors_s={"default": 0.004, "camera-imu": 0.0005})
+    assert custom.time_offset_floor_s("camera-imu") == pytest.approx(0.0005)
+    assert custom.time_offset_floor_s("imu-lidar") == pytest.approx(0.004)
+    with pytest.raises(ValueError):
+        DriftOptions(time_offset_floors_s={"camera-imu": 0.001})
+    with pytest.raises(ValueError):
+        DriftOptions(time_offset_floors_s={"default": 0.0})
+
+
+def _clock_change() -> None:
+    _set_errors((0.1, 0.0, 0.2), (0.12, 0.0, 0.18), (0.1, 0.0, 0.2))
+    _set_offsets(
+        (0.0020, 0.0002, "estimated"),
+        (0.0021, 0.0002, "estimated"),
+        (0.0120, 0.0002, "estimated"),
+    )
+
+
+def test_drift_artifact_reports_a_clock_offset_change(tmp_path: Path, bags: list[Path]) -> None:
+    _clock_change()
+    out = tmp_path / "drift"
+    artifact = _run(bags, out)
+    pair = next(p for p in artifact.pairs if p.pair == "imu-lidar")
+    assert [a.status for a in pair.axes] == ["stable"] * 3
+    assert pair.verdict == "drift" and pair.deviating_bags == ["rec3.db3"]
+    assert pair.time_offset is not None and pair.time_offset.status == "drift"
+    assert artifact.summary.time_offsets_tested == 2  # two LiDAR pairs
+    assert artifact.summary.time_offsets_drifting == 2
+    assert artifact.thresholds.time_offset_floors_s["default"] == pytest.approx(0.002)
+    assert any("clock offset" in step for step in artifact.next_steps)
+    text = format_drift_text(artifact, out)
+    assert " dt " in text and "time offset +9.950 ms" in text
+    _clock_change()
+    args = ["drift", *map(str, bags), "--output", str(out), "--no-cache", "-q"]
+    html_path = tmp_path / "r.html"
+    # a 20 ms floor swallows the 10 ms change: stable, so the exit code is 0 even by default
+    assert main([*args, "--html", str(html_path), "--time-offset-floor-ms", "20"]) == 0
+    assert "time_offset" in html_path.read_text(encoding="utf-8")
+    assert validate_file(out / ARTIFACT_NAME).kind == "calibration-drift"

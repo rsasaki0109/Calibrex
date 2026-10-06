@@ -43,7 +43,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -67,6 +67,7 @@ from calibrex.core.calibration_drift import (
     DriftPairwise,
     DriftSummary,
     DriftThresholds,
+    DriftTimeOffsetRecord,
     DriftVerdict,
     FloorSource,
 )
@@ -76,6 +77,16 @@ from calibrex.core.provenance import git_commit, sha256_path
 DRIFT_VERDICT_ORDER: tuple[str, ...] = ("stable", "inconclusive", "drift")
 ARTIFACT_NAME = "calibration_drift.json"
 ROTATION_AXES: tuple[str, ...] = ("roll", "pitch", "yaw")
+TIME_OFFSET = "time_offset"
+#: Minimum detectable clock-offset change per pair type (seconds); see the module docstring.
+DEFAULT_TIME_OFFSET_FLOORS_S: dict[str, float] = {
+    "default": 0.002,
+}
+#: Pair types whose estimated clock offset is not a measurement of a sensor clock offset.
+TIME_OFFSET_SKIPPED: dict[str, str] = {
+    "lidar-wheel_odometry": "the wheel-odometry time offset is quantised to the odometry "
+    "sample lattice (and is a proxy on INS-derived twists); it is not a clock-offset measurement",
+}
 _MIN_STD = 1e-9
 
 
@@ -88,6 +99,14 @@ class DriftOptions:
     rigid_scan_rotation_floor_deg: float = RIGID_SCAN_ROTATION_FLOOR_DEG
     translation_floor_m: float = 0.02
     chi2_alpha: float = 0.01
+    time_offset_floors_s: Mapping[str, float] = dataclasses.field(
+        default_factory=lambda: dict(DEFAULT_TIME_OFFSET_FLOORS_S)
+    )
+
+    def time_offset_floor_s(self, pair: str) -> float:
+        """The minimum detectable clock-offset change of a pair type, in seconds."""
+
+        return float(self.time_offset_floors_s.get(pair, self.time_offset_floors_s["default"]))
 
     def __post_init__(self) -> None:
         positive = (
@@ -96,6 +115,9 @@ class DriftOptions:
             self.rigid_scan_rotation_floor_deg,
             self.translation_floor_m,
         )
+        floors = self.time_offset_floors_s
+        if "default" not in floors or min(floors.values()) <= 0.0:
+            raise ValueError("time_offset_floors_s needs a positive 'default' and positive floors")
         if min(positive) <= 0.0 or not 0.0 < self.chi2_alpha < 1.0:
             raise ValueError(
                 "sigma_k and the floors must be positive and chi2_alpha must be in (0, 1)"
@@ -108,6 +130,7 @@ class DriftOptions:
             rigid_scan_rotation_floor_deg=self.rigid_scan_rotation_floor_deg,
             translation_floor_m=self.translation_floor_m,
             chi2_alpha=self.chi2_alpha,
+            time_offset_floors_s=dict(self.time_offset_floors_s),
         )
 
 
@@ -159,23 +182,33 @@ def _inconsistent(
     return exceeding and p_value < options.chi2_alpha
 
 
+def _record(model: Any, **fields: Any) -> DriftAxisRecord:
+    record: DriftAxisRecord = model(**fields)
+    return record
+
+
 def assess_axis(
-    name: CheckAxisName,
-    unit: Literal["deg", "m"],
+    name: CheckAxisName | Literal["time_offset"],
+    unit: Literal["deg", "m", "s"],
     observations: Sequence[Observation],
     options: DriftOptions,
     *,
     rigid_scan: bool = False,
     deviating: Sequence[str] | None = None,
+    floor_override: float | None = None,
 ) -> DriftAxisRecord:
     """Test one axis for consistency across the bags that observed it.
 
     ``deviating`` names the bags to treat as the odd ones out (the pair-level attribution of
-    :func:`compare_pair`); by default they are found on this axis alone.
+    :func:`compare_pair`); by default they are found on this axis alone. The clock offset of a
+    pair is tested as the axis ``time_offset`` in seconds (``unit="s"``) with ``floor_override``
+    set to its per-pair-type floor.
     """
 
     source: FloorSource
-    if unit == "m":
+    if unit == "s":
+        source, floor = "time_offset", floor_override if floor_override else 0.002
+    elif unit == "m":
         source, floor = "translation", options.translation_floor_m
     elif rigid_scan:
         source, floor = "rigid_scan_rotation", options.rigid_scan_rotation_floor_deg
@@ -194,8 +227,10 @@ def assess_axis(
         for o in observations
     ]
     used = [o for o in observations if o.used]
+    model: Any = DriftTimeOffsetRecord if unit == "s" else DriftAxisRecord
     if len(used) < 2:
-        return DriftAxisRecord(
+        return _record(
+            model,
             name=name,
             unit=unit,
             observations=records,
@@ -276,7 +311,8 @@ def assess_axis(
             "a pair exceeds its tolerance but the chi-square test does not reject homogeneity "
             f"(p = {p_value:.3g} >= {options.chi2_alpha:g})"
         )
-    return DriftAxisRecord(
+    return _record(
+        model,
         name=name,
         unit=unit,
         observations=records,
@@ -306,7 +342,10 @@ def _rotation_delta_deg(bag_deg: Sequence[float], reference_deg: Sequence[float]
 
 
 def _changes(
-    axes: Sequence[DriftAxisRecord], deviating: Sequence[str], bags: Sequence[str]
+    axes: Sequence[DriftAxisRecord],
+    deviating: Sequence[str],
+    bags: Sequence[str],
+    time_offset: DriftAxisRecord | None = None,
 ) -> list[DriftBagChange]:
     """Per deviating bag: its offset from the rest, and the angle on the rotation when complete."""
 
@@ -314,13 +353,17 @@ def _changes(
     targets = list(deviating)
     if ambiguous:
         # two bags differ and neither can be blamed: report the later one against the earlier
-        seen = [b for b in bags if any(o.bag == b and o.used for a in axes for o in a.observations)]
+        every = [*axes, *([time_offset] if time_offset is not None else [])]
+        seen = [
+            b for b in bags if any(o.bag == b and o.used for a in every for o in a.observations)
+        ]
         targets = seen[1:2]
     result: list[DriftBagChange] = []
     for bag in targets:
         axes_delta: dict[str, float] = {}
         absolute: dict[str, tuple[float, float]] = {}
-        for axis in axes:
+        time_delta: float | None = None
+        for axis in [*axes, *([time_offset] if time_offset is not None else [])]:
             used = [o for o in axis.observations if o.used and o.value is not None]
             if axis.bags_observed < 2 or bag not in {o.bag for o in used}:
                 continue
@@ -334,6 +377,9 @@ def _changes(
                 [float(o.value or 0.0) for o in others],
                 [float(o.std or _MIN_STD) for o in others],
             )
+            if axis.name == TIME_OFFSET:
+                time_delta = value - mean
+                continue
             axes_delta[axis.name] = value - mean
             absolute[axis.name] = (value, mean)
         rotation = None
@@ -347,6 +393,7 @@ def _changes(
                 reference="other_bag" if ambiguous else "mean_of_others",
                 rotation_delta_deg=rotation,
                 axes_delta=axes_delta,
+                time_offset_delta_s=time_delta,
             )
         )
     return result
@@ -401,46 +448,70 @@ def compare_pair(
     options: DriftOptions,
     *,
     rigid_scan: bool = False,
+    time_offset: Sequence[Observation] | None = None,
+    time_offset_skipped: str | None = None,
 ) -> DriftPairRecord:
-    """Test every axis of one pair and derive the pair verdict and the deviating bags."""
+    """Test every axis (and the clock offset) of one pair; derive the verdict and deviating bags.
 
-    records = [
-        assess_axis(name, unit, observations, options, rigid_scan=rigid_scan)
-        for name, unit, observations in axes
-    ]
-    drifting = [a for a in records if a.status == "drift"]
-    tested = [a for a in records if a.status != "inconclusive"]
-    verdict: DriftVerdict = "drift" if drifting else "stable" if tested else "inconclusive"
-    deviating: list[str] = []
-    if drifting:
-        # attribute on all the pair's axes together: one bag moved, not one axis' worth of bags
-        deviating = _pair_deviating(records, options)
+    ``time_offset`` holds the per-bag clock-offset observations in seconds (``None`` when the pair
+    type has none to compare; ``time_offset_skipped`` then says why).
+    """
+
+    floor = options.time_offset_floor_s(pair)
+
+    def assess_all(deviating: Sequence[str] | None) -> list[DriftAxisRecord]:
         records = [
             assess_axis(
                 name, unit, observations, options, rigid_scan=rigid_scan, deviating=deviating
             )
             for name, unit, observations in axes
         ]
+        if time_offset is not None:
+            records.append(
+                assess_axis(
+                    "time_offset",
+                    "s",
+                    time_offset,
+                    options,
+                    deviating=deviating,
+                    floor_override=floor,
+                )
+            )
+        return records
+
+    all_records = assess_all(None)
+    drifting = [a for a in all_records if a.status == "drift"]
+    tested = [a for a in all_records if a.status != "inconclusive"]
+    verdict: DriftVerdict = "drift" if drifting else "stable" if tested else "inconclusive"
+    deviating: list[str] = []
+    if drifting:
+        # attribute on all the pair's axes together: one bag moved, not one axis' worth of bags
+        deviating = _pair_deviating(all_records, options)
+        all_records = assess_all(deviating)
+    time_record = next((a for a in all_records if a.name == TIME_OFFSET), None)
+    records = [a for a in all_records if a.name != TIME_OFFSET]
     changes: list[DriftBagChange] = []
     attribution: Literal["bag", "ambiguous"] | None = None
     if verdict == "drift":
         attribution = "bag" if deviating else "ambiguous"
-        changes = _changes(records, deviating, bags)
+        changes = _changes(records, deviating, bags, time_record)
     return DriftPairRecord.model_validate(
         {
             "pair": pair,
             "parent_frame": parent_frame,
             "child_frame": child_frame,
             "verdict": verdict,
-            "reason": "no axis was observed in at least two bags"
+            "reason": "no axis or clock offset was observed in at least two bags"
             if verdict == "inconclusive"
             else None,
             "bags_compared": [
                 b
                 for b in bags
-                if any(o.bag == b and o.used for a in records for o in a.observations)
+                if any(o.bag == b and o.used for a in all_records for o in a.observations)
             ],
             "axes": records,
+            "time_offset": time_record,
+            "time_offset_skipped": time_offset_skipped,
             "deviating_bags": deviating,
             "attribution": attribution,
             "changes": changes,
@@ -506,7 +577,37 @@ def compare_estimates(
                     observations.append(Observation(name, found.value, found.std, found.status))
             axes.append((axis_name, unit, observations))
         rigid = any(r.deskew == "none" for r in per_bag.values())
-        pairs.append(compare_pair(pair, parent, child, axes, names, options, rigid_scan=rigid))
+        skipped = TIME_OFFSET_SKIPPED.get(pair)
+        offsets: list[Observation] | None = None
+        if skipped is None and any(r.time_offset is not None for r in per_bag.values()):
+            offsets = []
+            for name in names:
+                bag_record = per_bag.get(name)
+                found_offset = bag_record.time_offset if bag_record is not None else None
+                if found_offset is None:
+                    offsets.append(Observation(name, None, None, "pair_not_estimated"))
+                else:
+                    offsets.append(
+                        Observation(
+                            name,
+                            found_offset.estimate_s,
+                            found_offset.std_s,
+                            "observed" if found_offset.status == "estimated" else "unobservable",
+                        )
+                    )
+        pairs.append(
+            compare_pair(
+                pair,
+                parent,
+                child,
+                axes,
+                names,
+                options,
+                rigid_scan=rigid,
+                time_offset=offsets,
+                time_offset_skipped=skipped,
+            )
+        )
     return pairs
 
 
@@ -518,7 +619,20 @@ def next_steps(pairs: Sequence[DriftPairRecord]) -> list[str]:
 
     steps: list[str] = []
     for pair in pairs:
-        if pair.verdict == "drift" and pair.attribution == "bag":
+        clock = (
+            pair.time_offset is not None
+            and pair.time_offset.status == "drift"
+            and all(a.status != "drift" for a in pair.axes)
+        )
+        if pair.verdict == "drift" and clock:
+            who = ", ".join(pair.deviating_bags) or "the recordings"
+            steps.append(
+                f"{pair.pair}: only the clock offset differs ({who}); the extrinsic is "
+                "consistent. Check the sensor time synchronisation (PTP / driver timestamping "
+                "settings, hardware vs software stamps) of that recording, or re-estimate and "
+                "apply the offset for it"
+            )
+        elif pair.verdict == "drift" and pair.attribution == "bag":
             who = ", ".join(pair.deviating_bags)
             steps.append(
                 f"{pair.pair}: {who} disagrees with the other recording(s); recalibrate it "
@@ -549,7 +663,8 @@ def next_steps(pairs: Sequence[DriftPairRecord]) -> list[str]:
         )
         steps.append(
             "stable means no change larger than each axis' minimum detectable change was "
-            f"found{extra}; axes the data did not observe in two bags are not covered"
+            f"found{extra}; axes (and clock offsets) the data did not observe in two bags are "
+            "not covered"
         )
     return steps
 
@@ -635,6 +750,11 @@ def build_calibration_drift(
     for pair in pairs:
         counts[pair.verdict] = counts.get(pair.verdict, 0) + 1
     tested = [a for p in pairs for a in p.axes if a.status != "inconclusive"]
+    offsets = [
+        p.time_offset
+        for p in pairs
+        if p.time_offset is not None and p.time_offset.status != "inconclusive"
+    ]
     digest = hashlib.sha256(
         "\n".join(sorted(ref.input_sha256 for ref in refs)).encode("utf-8")
     ).hexdigest()
@@ -658,6 +778,8 @@ def build_calibration_drift(
             verdict_counts=dict(sorted(counts.items())),
             axes_tested=len(tested),
             axes_drifting=sum(1 for a in tested if a.status == "drift"),
+            time_offsets_tested=len(offsets),
+            time_offsets_drifting=sum(1 for a in offsets if a.status == "drift"),
         ),
         thresholds=options.thresholds(),
         options=estimates[0][1].options,
@@ -679,9 +801,17 @@ def build_calibration_drift(
 # ------------------------------------------------------------------------------ text
 
 
+def unit_scale(unit: str) -> tuple[float, str]:
+    """Display scale and label of an axis unit: deg, m shown as cm, s shown as ms."""
+
+    return {"deg": (1.0, "deg"), "m": (100.0, "cm"), "s": (1000.0, "ms")}[unit]
+
+
 def _cell(value: float, std: float, unit: str) -> str:
     if unit == "deg":
         return f"{value:+.3f} +- {std:.3f}"
+    if unit == "s":
+        return f"{value * 1e3:+.3f} +- {std * 1e3:.3f}"
     return f"{value * 100:+.2f} +- {std * 100:.2f}"
 
 
@@ -696,7 +826,8 @@ def format_drift_text(artifact: CalibrationDriftArtifact, output_dir: Path) -> s
         + ", ".join(f"{b.name} [{b.runtime_s:.0f}s]" for b in artifact.bags),
         f"overall: {artifact.overall_verdict}  (a change is flagged beyond "
         f"max({artifact.thresholds.sigma_k:g} sigma, floor) with chi-square "
-        f"p < {artifact.thresholds.chi2_alpha:g}; rotation in deg, translation in cm)",
+        f"p < {artifact.thresholds.chi2_alpha:g}; rotation in deg, translation in cm, "
+        "time offset in ms)",
     ]
     for pair in artifact.pairs:
         frames = f"  T_{pair.parent_frame}_{pair.child_frame}" if pair.parent_frame else ""
@@ -705,8 +836,11 @@ def format_drift_text(artifact: CalibrationDriftArtifact, output_dir: Path) -> s
             lines.append(f"  {pair.reason}")
         header = "  axis  " + "  ".join(n.rjust(width) for n in bag_names)
         lines.append(header + "   max|diff|  min detectable  status")
-        for axis in pair.axes:
-            scale = 1.0 if axis.unit == "deg" else 100.0
+        rows: list[DriftAxisRecord] = [*pair.axes]
+        if pair.time_offset is not None:
+            rows.append(pair.time_offset)
+        for axis in rows:
+            scale = unit_scale(axis.unit)[0]
             cells = []
             for name in bag_names:
                 obs = next((o for o in axis.observations if o.bag == name), None)
@@ -722,9 +856,10 @@ def format_drift_text(artifact: CalibrationDriftArtifact, output_dir: Path) -> s
                 if axis.minimum_detectable_change is None
                 else f"{axis.minimum_detectable_change * scale:.3f}"
             )
-            lines.append(
-                f"  {axis.name:<5} {'  '.join(cells)}   {diff:>8}  {floor:>14}  {axis.status}"
-            )
+            label = "dt" if axis.name == TIME_OFFSET else axis.name
+            lines.append(f"  {label:<5} {'  '.join(cells)}   {diff:>8}  {floor:>14}  {axis.status}")
+        if pair.time_offset_skipped:
+            lines.append(f"  time offset not compared: {pair.time_offset_skipped}")
         if pair.verdict == "drift":
             for change in pair.changes:
                 angle = (
@@ -733,10 +868,13 @@ def format_drift_text(artifact: CalibrationDriftArtifact, output_dir: Path) -> s
                     else ""
                 )
                 ref = "the other bag" if change.reference == "other_bag" else "the others"
-                deltas = ", ".join(
+                delta_parts = [
                     f"{k} {v:+.3f} deg" if k in ROTATION_AXES else f"{k} {v * 100:+.2f} cm"
                     for k, v in change.axes_delta.items()
-                )
+                ]
+                if change.time_offset_delta_s is not None:
+                    delta_parts.append(f"time offset {change.time_offset_delta_s * 1e3:+.3f} ms")
+                deltas = ", ".join(delta_parts)
                 lines.append(f"  {change.bag} vs {ref}: {deltas}{angle}")
             if pair.attribution == "ambiguous":
                 lines.append("  deviating bag: cannot be told (two bags, or the bags split)")

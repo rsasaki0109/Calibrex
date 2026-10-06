@@ -106,7 +106,8 @@
           "enum": [
             "rotation",
             "rigid_scan_rotation",
-            "translation"
+            "translation",
+            "time_offset"
           ],
           "title": "Floor Source",
           "type": "string"
@@ -288,6 +289,19 @@
           "default": null,
           "description": "angle of the rotation between this bag's estimated rotation and the reference, when all three rotation axes were observed in both",
           "title": "Rotation Delta Deg"
+        },
+        "time_offset_delta_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "this bag's clock offset minus the reference, when it was compared in both",
+          "title": "Time Offset Delta S"
         }
       },
       "required": [
@@ -410,7 +424,7 @@
     },
     "DriftObservation": {
       "additionalProperties": false,
-      "description": "One bag's estimate of one axis.",
+      "description": "One bag's estimate of one axis (or of the pair's clock offset, in seconds).",
       "properties": {
         "bag": {
           "title": "Bag",
@@ -575,6 +589,31 @@
           "default": null,
           "title": "Reason"
         },
+        "time_offset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DriftTimeOffsetRecord"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the pair's clock offset compared across bags (same tests as an axis); absent when the pair type has no meaningful offset (see time_offset_skipped)"
+        },
+        "time_offset_skipped": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "why the clock offset of this pair type is not compared",
+          "title": "Time Offset Skipped"
+        },
         "verdict": {
           "enum": [
             "stable",
@@ -670,6 +709,32 @@
           "title": "Pair Count",
           "type": "integer"
         },
+        "time_offsets_drifting": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Offsets Drifting"
+        },
+        "time_offsets_tested": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Offsets Tested"
+        },
         "verdict_counts": {
           "additionalProperties": {
             "type": "integer"
@@ -712,6 +777,14 @@
           "title": "Sigma K",
           "type": "number"
         },
+        "time_offset_floors_s": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "minimum detectable clock-offset change per pair type, in seconds; 'default' applies to a pair type not listed",
+          "title": "Time Offset Floors S",
+          "type": "object"
+        },
         "translation_floor_m": {
           "exclusiveMinimum": 0.0,
           "title": "Translation Floor M",
@@ -726,6 +799,186 @@
         "chi2_alpha"
       ],
       "title": "DriftThresholds",
+      "type": "object"
+    },
+    "DriftTimeOffsetRecord": {
+      "additionalProperties": false,
+      "description": "Consistency of one pair's clock offset (seconds) across bags.\n\nThe same record as an axis (observations, pairwise z with the floor, chi-square, leave-one-out)\nwith ``name`` fixed to ``time_offset``. ``unit`` is ``s``, so it is not a rotation or\ntranslation axis.",
+      "properties": {
+        "bags_observed": {
+          "minimum": 0,
+          "title": "Bags Observed",
+          "type": "integer"
+        },
+        "chi2": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chi2"
+        },
+        "dof": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dof"
+        },
+        "floor": {
+          "exclusiveMinimum": 0.0,
+          "title": "Floor",
+          "type": "number"
+        },
+        "floor_source": {
+          "default": "time_offset",
+          "enum": [
+            "rotation",
+            "rigid_scan_rotation",
+            "translation",
+            "time_offset"
+          ],
+          "title": "Floor Source",
+          "type": "string"
+        },
+        "leave_one_out": {
+          "items": {
+            "$ref": "#/$defs/DriftLeaveOneOut"
+          },
+          "title": "Leave One Out",
+          "type": "array"
+        },
+        "max_abs_difference": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Abs Difference"
+        },
+        "minimum_detectable_change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "smallest pairwise tolerance over the bags that observed the axis: a change smaller than this cannot be flagged between those bags",
+          "title": "Minimum Detectable Change"
+        },
+        "name": {
+          "const": "time_offset",
+          "default": "time_offset",
+          "title": "Name",
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/DriftObservation"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Value"
+        },
+        "pairwise": {
+          "items": {
+            "$ref": "#/$defs/DriftPairwise"
+          },
+          "title": "Pairwise",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "stable",
+            "inconclusive",
+            "drift"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unit": {
+          "const": "s",
+          "default": "s",
+          "title": "Unit",
+          "type": "string"
+        },
+        "weighted_mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Mean"
+        },
+        "weighted_mean_std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Mean Std"
+        }
+      },
+      "required": [
+        "observations",
+        "bags_observed",
+        "status",
+        "floor"
+      ],
+      "title": "DriftTimeOffsetRecord",
       "type": "object"
     },
     "EstimateOptions": {
