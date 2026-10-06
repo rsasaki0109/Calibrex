@@ -187,6 +187,10 @@ under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) the
 rough lever arm from `--tf`; lidar-lidar registration also starts from a `--tf` prior, and
 camera-IMU needs the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
 
+Real-data results, with the splits, exact commands and the failures (Hilti camera-IMU, Koide
+imu-lidar, KITTI vehicle pairs, RTK-SLAM GNSS pairs):
+[`calibrex estimate` on real data](docs/benchmarks/estimate_real_data.md).
+
 ## Pre-registered SOTA audits
 
 Calibrex may call a method state of the art only for a claim that a frozen

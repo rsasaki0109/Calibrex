@@ -48,6 +48,19 @@ class Clock:
 # ------------------------------------------------------------------ helpers
 
 
+def test_stage_before_the_first_pair_measures_from_construction() -> None:
+    """``calibrex estimate`` announces its plan before any pair: not 44 h of uptime."""
+
+    out = io.StringIO()
+    clock = Clock()
+    clock.now = 158_400.0  # a machine that has been up for 44 h
+    progress = PlainProgress(out, clock)
+    clock.now += 2.0
+    progress("estimate: 4 pair(s) to estimate")
+    assert "[2s elapsed]" in out.getvalue()
+    assert "44h" not in out.getvalue()
+
+
 def test_format_duration_and_eta() -> None:
     assert format_duration(4.4) == "4s"
     assert format_duration(185) == "3m05s"

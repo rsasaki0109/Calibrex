@@ -368,3 +368,112 @@ def test_export_is_rooted_at_the_prior_so_the_trees_stay_compatible(
     # next to the bag's /tf_static the exported file is still one tree (it overrides imu_link)
     plan = build_calibration_check(bag, tf_files=[out / FRAMES_FILENAME])
     assert "lidar_front" in plan.frame_tree.roots
+
+
+# ------------------------------------------- real-data shapes (KITTI vehicle, RTK-SLAM GNSS)
+
+
+def _pose(rotvec_deg: tuple[float, float, float], xyz: tuple[float, float, float]) -> Any:
+    matrix = np.eye(4)
+    matrix[:3, :3] = Rotation.from_rotvec(np.radians(rotvec_deg)).as_matrix()
+    matrix[:3, 3] = xyz
+    return matrix
+
+
+def test_topic_of_the_root_frame_is_mapped_in_the_export(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """RTK-SLAM round trip: the IMU is the export root, so its topic must be mapped to it.
+
+    The root is not an entry of ``frames.yaml``; without ``/imu -> imu`` in ``topic_frames``
+    the checked bag's IMU topic keeps its header frame and ``imu-lidar`` / ``gnss-imu`` are
+    skipped as ``frame_not_in_tree``.
+    """
+
+    _install(monkeypatch, {"imu-lidar": _imu_lidar_full})
+    prior = tmp_path / "prior.yaml"
+    prior.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": "slac.check_frames/v0.1",
+                "frames": [
+                    {
+                        "name": "lidar_front",
+                        "parent": "imu",
+                        "translation_m": [0.5, -0.25, 0.1],
+                        "rotation_quat_xyzw": [0.0, 0.0, 0.0, 1.0],
+                    }
+                ],
+                "topic_frames": {"/imu": "imu", "/lidar_front/points": "lidar_front"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "est"
+    artifact = _estimate(bag, out, tf_files=(prior,))
+    assert artifact.frames.root == "imu"
+    assert "lidar_front" in [e.frame for e in artifact.frames.entries]
+    exported = yaml.safe_load((out / FRAMES_FILENAME).read_text(encoding="utf-8"))
+    assert exported["topic_frames"]["/imu"] == "imu"
+    # the exported file alone lets check find the IMU in the tree
+    plan = build_calibration_check(bag, tf_files=[out / FRAMES_FILENAME])
+    imu_pair = next(p for p in plan.pairs if p.pair == "imu-lidar" and "lidar_front" in p.frames)
+    assert imu_pair.reason_code != "frame_not_in_tree"
+
+
+def test_vehicle_pair_keeps_the_prior_roll_and_is_marked_not_measured() -> None:
+    """KITTI: pitch and yaw observed; roll and the lever arm are the prior's; vehicle root."""
+
+    from calibrex.check.estimate import Relation, build_frame_tree
+
+    prior = _pose((-0.85, 0.10, 0.04), (0.81, -0.31, 0.80))
+    estimate = _pose((-0.85, 0.52, -0.31), (0.81, -0.31, 0.80))  # roll = the prior's
+    relation = Relation(
+        "lidar-vehicle",
+        "base_link",
+        "velo_link",
+        estimate,
+        frozenset({"pitch", "yaw"}),
+        True,
+        prior,
+    )
+    frames, edges = build_frame_tree([relation], [], [], "base_link")
+    assert frames.root == "base_link"
+    (entry,) = frames.entries
+    assert (entry.parent, entry.frame) == ("base_link", "velo_link")
+    assert entry.axes_from_prior == ["roll", "x", "y", "z"]
+    rotvec = Rotation.from_quat(entry.transform.rotation_quat_xyzw).as_rotvec()
+    assert np.degrees(rotvec) == pytest.approx([-0.85, 0.52, -0.31], abs=1e-6)
+    assert entry.transform.translation_m == pytest.approx([0.81, -0.31, 0.80])
+    assert len(edges) == 1
+
+
+def test_vehicle_pair_without_a_prior_is_omitted_not_exported_as_measured() -> None:
+    from calibrex.check.estimate import Relation, build_frame_tree
+
+    relation = Relation(
+        "lidar-vehicle",
+        "base_link",
+        "velo_link",
+        _pose((0.0, 0.5, -0.3), (0.0, 0.0, 0.0)),
+        frozenset({"pitch", "yaw"}),
+        False,
+    )
+    frames, _ = build_frame_tree([relation], [], [], "base_link")
+    assert frames.entries == []
+
+
+def test_gnss_lever_arm_with_one_observed_axis_keeps_the_prior_for_the_rest() -> None:
+    """RTK-SLAM: only y observed; the antenna orientation, x and z are the CAD prior's."""
+
+    from calibrex.check.estimate import Relation, build_frame_tree
+
+    prior = _pose((0.0, 0.0, 0.0), (0.023, -0.023, 0.090))
+    estimate = _pose((0.0, 0.0, 0.0), (0.023, -0.0157, 0.090))
+    relation = Relation("gnss-imu", "imu", "gnss_antenna", estimate, frozenset({"y"}), True, prior)
+    frames, _ = build_frame_tree([relation], [], [], None, None)
+    (entry,) = frames.entries
+    assert entry.parent == "imu"
+    assert entry.axes_from_prior == ["roll", "pitch", "yaw", "x", "z"]
+    assert entry.transform.translation_m == pytest.approx([0.023, -0.0157, 0.090])
+    assert entry.transform.rotation_quat_xyzw == pytest.approx([0.0, 0.0, 0.0, 1.0])
