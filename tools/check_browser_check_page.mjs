@@ -8,15 +8,19 @@
 //   npm install --no-save --no-package-lock puppeteer-core
 //   node tools/check_browser_check_page.mjs --url http://127.0.0.1:8124/app/check.html \
 //        --out /tmp/checkpage [--chrome /usr/bin/google-chrome] \
-//        [--bag PATH ...] [--tf FILE ...] [--vehicle-frame base_link]
+//        [--bag PATH ...] [--tf FILE ...] [--vehicle-frame base_link] \
+//        [--run [--cap 60] [--pairs lidar-vehicle,imu-vehicle] [--mode check|estimate]]
 //
 // Without --bag it clicks "Try a sample bag" and asserts the plan (8 pairs can be checked, 4
 // skipped), then screenshots the page in light and dark themes and at phone width. With --bag
 // (files of a rosbag2: metadata.yaml and the .db3/.mcap) it uploads them through the file
 // picker, which hands the worker real File objects, so a multi-GB bag exercises WORKERFS lazy
-// reads exactly as a user's drop does; it prints the plan and does not assert counts.
+// reads exactly as a user's drop does; it prints the plan and does not assert counts. With --run it
+// then presses "Run in the browser" (duration cap --cap seconds, default 60; the planned pairs, or
+// --pairs) and writes the run's JSON, text and timings to --out/run_<mode>.json. The sample is
+// always run in both modes (check, estimate) and asserted.
 import puppeteer from "puppeteer-core";
-import { mkdirSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 
 const args = process.argv.slice(2);
 const option = (name, fallback = null) => {
@@ -30,10 +34,14 @@ const chrome = option("--chrome", "/usr/bin/google-chrome");
 const bagFiles = many("--bag");
 const tfFiles = many("--tf");
 const vehicle = option("--vehicle-frame");
+const doRun = args.includes("--run");
+const cap = option("--cap", "60");
+const runPairs = option("--pairs");
+const runModeOption = option("--mode", "check");
 const timeoutMs = Number(option("--timeout-ms", "900000"));
 mkdirSync(out, { recursive: true });
 
-const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ["--no-sandbox"] });
+const browser = await puppeteer.launch({ executablePath: chrome, headless: true, protocolTimeout: timeoutMs, args: ["--no-sandbox"] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 900 });
 page.on("pageerror", (error) => console.log("pageerror:", error.message));
@@ -62,6 +70,36 @@ async function waitResult() {
   }));
 }
 
+// Press "Run in the browser" and wait for the result; returns what the page shows and its payload.
+async function runInPage(mode, capSeconds, pairs) {
+  await page.select("#run-mode", mode);
+  await page.$eval("#run-cap", (element, value) => { element.value = value; }, String(capSeconds));
+  if (pairs) {
+    await page.$$eval("#run-pairs input[name=pair]", (boxes, wanted) => {
+      for (const box of boxes) box.checked = wanted.includes(box.value) && !box.disabled;
+    }, pairs);
+  }
+  const started = Date.now();
+  await page.click("#run-estimators");
+  await page.waitForFunction(
+    () => !document.getElementById("run-results").hidden || !document.getElementById("run-error").hidden,
+    { timeout: timeoutMs, polling: 250 },
+  );
+  const error = await page.$eval("#run-error", (element) => (element.hidden ? null : element.textContent));
+  if (error) { fail("run reported: " + error); return null; }
+  const shown = await page.evaluate(() => ({
+    title: document.getElementById("run-title").textContent,
+    stats: [...document.querySelectorAll("#run-stats .stat")].map((e) => e.textContent.trim().replace(/\s+/g, " ")),
+    text: document.getElementById("run-text").textContent,
+    downloads: [...document.querySelectorAll("#run-downloads button")].map((e) => e.textContent),
+    reportLength: document.getElementById("run-report").hidden ? 0 : document.getElementById("run-report").srcdoc.length,
+    finished: [...document.querySelectorAll("#prog-done li")].map((e) => e.textContent.trim().replace(/\s+/g, " ")),
+    payload: lastRun,
+  }));
+  shown.wallSeconds = (Date.now() - started) / 1000;
+  return shown;
+}
+
 if (bagFiles.length === 0) {
   await page.click("#sample");
   const result = await waitResult();
@@ -81,6 +119,25 @@ if (bagFiles.length === 0) {
     const plannedAgain = again.pairs.filter((row) => row.includes("can be checked")).length;
     console.log("with --vehicle-frame base_link:", plannedAgain, "pairs can be checked");
     if (plannedAgain <= planned) fail("vehicle frame did not enable the vehicle pairs");
+    // Run mode: the planned pairs of the sample as a ground vehicle, check then estimate.
+    const checkRun = await runInPage("check", 20, null);
+    if (checkRun) {
+      console.log("run (check):", checkRun.wallSeconds.toFixed(1), "s;", checkRun.stats.join(" | "));
+      console.log(checkRun.finished.join("\n"));
+      if (!checkRun.finished.length) fail("no pair finished in the progress list");
+      if (!checkRun.downloads.some((text) => text.includes("check JSON"))) fail("no check JSON download");
+      if (checkRun.reportLength < 1000) fail("the HTML report was not rendered");
+      if (!checkRun.payload.ok || checkRun.payload.artifact.plan_only) fail("run payload is a plan");
+      if (!checkRun.payload.artifact.provenance.notes.some((note) => note.includes("browser"))) fail("browser note missing from provenance");
+      if (!checkRun.payload.artifact.overall_verdict) fail("no overall verdict");
+    }
+    const estimateRun = await runInPage("estimate", 20, null);
+    if (estimateRun) {
+      console.log("run (estimate):", estimateRun.wallSeconds.toFixed(1), "s;", estimateRun.stats.join(" | "));
+      if (!estimateRun.payload.ok || estimateRun.payload.mode !== "estimate") fail("estimate run did not return an estimate");
+      if (!Object.keys(estimateRun.payload.files).length && estimateRun.payload.artifact.frames.entries.length) fail("estimate exported no files");
+    }
+    await page.screenshot({ path: out + "/sample_run.png", fullPage: true });
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
     await new Promise((resolve) => setTimeout(resolve, 500)); // theme transitions
     await page.screenshot({ path: out + "/sample_dark.png", fullPage: true });
@@ -103,6 +160,16 @@ if (bagFiles.length === 0) {
   if (result) {
     console.log(JSON.stringify(result, null, 1));
     await page.screenshot({ path: out + "/own_bag_desktop.png", fullPage: true });
+    if (doRun) {
+      const run = await runInPage(runModeOption, cap, runPairs ? runPairs.split(",") : null);
+      if (run) {
+        console.log("run:", run.wallSeconds.toFixed(1), "s wall;", run.payload.seconds.toFixed(1), "s in Python");
+        console.log(run.finished.join("\n"));
+        console.log(run.text);
+        writeFileSync(out + "/run_" + runModeOption + ".json", JSON.stringify(run.payload, null, 1));
+        await page.screenshot({ path: out + "/own_bag_run.png", fullPage: true });
+      }
+    }
   }
 }
 await browser.close();

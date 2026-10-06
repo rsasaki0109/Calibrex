@@ -14,10 +14,12 @@ import pytest
 import yaml
 
 from calibrex.check.browser import (
+    EventProgress,
     check_command,
     locate_bag,
     plan_bag_for_browser,
     plan_request_json,
+    run_request_json,
 )
 from calibrex.check.runner import BAG_DIGEST_SCOPE, bag_input_digest
 from calibrex.core.calibration_check import CalibrationCheckArtifact
@@ -306,3 +308,100 @@ def test_bag_digest_reads_in_chunks_but_hashes_the_same_prefix(
     expected.update(storage.read_bytes()[:10_000])
     assert digest == expected.hexdigest()
     assert (scope, storage_id) == (BAG_DIGEST_SCOPE, "mcap")
+
+
+def test_run_path_imports_without_opencv_open3d_or_ros() -> None:
+    """The non-camera run path (check and estimate) needs only numpy, scipy and the bag."""
+
+    script = (
+        "import importlib.abc, sys\n"
+        "class Block(importlib.abc.MetaPathFinder):\n"
+        "    def find_spec(self, name, path, target=None):\n"
+        "        if name.split('.')[0] in {'cv2', 'open3d', 'matplotlib', 'rclpy', 'rosbag2_py',\n"
+        "                                  'PIL', 'mcap'}:\n"
+        "            raise ImportError('blocked ' + name)\n"
+        "sys.meta_path.insert(0, Block())\n"
+        "from calibrex.check.browser import run_request_json\n"
+        "import json\n"
+        "for mode in ('check', 'estimate'):\n"
+        f"    request = {{'bag_dir': {str(COMMITTED_SAMPLE)!r}, 'mode': mode,\n"
+        "               'pairs': ['lidar-lidar', 'gnss-lidar'], 'max_duration_s': 5}\n"
+        "    r = json.loads(run_request_json(json.dumps(request)))\n"
+        "    assert r['ok'], r\n"
+    )
+    env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+    completed = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, env=env, check=False
+    )
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_run_request_check_mode_reports_progress_and_validates() -> None:
+    events: list[str] = []
+    request = {
+        "bag_dir": str(COMMITTED_SAMPLE),
+        "bag_label": "check_sample",
+        "vehicle_frame": "base_link",
+        "pairs": ["lidar-lidar", "lidar-vehicle"],
+        "max_duration_s": 5,
+    }
+    reply = json.loads(run_request_json(json.dumps(request), events.append))
+    assert reply["ok"] and reply["mode"] == "check"
+    artifact = CalibrationCheckArtifact.model_validate(reply["artifact"])
+    assert not artifact.plan_only and artifact.bag.path == "check_sample"
+    assert artifact.options is not None and artifact.options.max_duration_s == 5.0
+    assert any("browser" in note for note in artifact.provenance.notes)
+    assert "calibrex check (run)" in reply["text"] and "<html" in reply["html"].lower()
+    assert reply["command"] == (
+        "calibrex check check_sample --vehicle-frame base_link --pairs lidar-lidar,lidar-vehicle "
+        "--max-duration-s 5 --output check.json --html check.html"
+    )
+    kinds = [json.loads(item)["event"] for item in events]
+    assert kinds[0] == "run_started" and kinds[-1] == "run_finished"
+    assert "pair_started" in kinds
+    ran = {pair.pair for pair in artifact.pairs if pair.status != "skipped"}
+    assert ran <= {"lidar-lidar", "lidar-vehicle"}
+
+
+def test_run_request_estimate_mode_returns_the_exports() -> None:
+    request = {
+        "bag_dir": str(COMMITTED_SAMPLE),
+        "mode": "estimate",
+        "pairs": ["lidar-lidar"],
+        "max_duration_s": 5,
+    }
+    reply = json.loads(run_request_json(json.dumps(request)))
+    assert reply["ok"] and reply["mode"] == "estimate"
+    assert reply["artifact"]["schema_version"] == "slac.bag_estimate/v0.1"
+    assert reply["command"].startswith("calibrex estimate ")
+    assert reply["text"].startswith("calibrex estimate")
+    assert all(isinstance(text, str) for text in reply["files"].values())
+
+
+def test_run_request_reports_errors_instead_of_raising(tmp_path: Path) -> None:
+    reply = json.loads(run_request_json(json.dumps({"bag_dir": str(tmp_path)})))
+    assert reply["ok"] is False and "no rosbag2 data" in reply["error"]
+    assert json.loads(run_request_json("not json"))["ok"] is False
+
+
+def test_event_progress_throttles_ticks() -> None:
+    now = [0.0]
+    events: list[dict[str, object]] = []
+    progress = EventProgress(
+        lambda text: events.append(json.loads(text)), clock=lambda: now[0], tick_interval_s=1.0
+    )
+    progress.pair_started(1, 2, "lidar-vehicle (a / b)")
+    progress.set_scan_total(100)
+    progress.stage("odometry")
+    for step in range(10):
+        now[0] += 0.3
+        progress.tick(step, None)
+    ticks = [event for event in events if event["event"] == "tick"]
+    assert 1 <= len(ticks) <= 4 and ticks[0]["total"] == 100
+    progress.pair_finished("lidar-vehicle (a / b)", "pass", 3.0, None)
+    assert events[-1] == {
+        "event": "pair_finished",
+        "label": "lidar-vehicle (a / b)",
+        "status": "pass",
+        "runtime_s": 3.0,
+    }

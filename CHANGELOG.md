@@ -8,6 +8,16 @@
   observability status (non-observed axes greyed, "NOT MEASURED"), exported/omitted frame tree,
   export digests, copyable `calibrex check --tf` and `static_transform_publisher` commands. No
   schema change.
+- **Run `calibrex check` and `calibrex estimate` in the browser.** The bag check page
+  (`app/check.html`) now runs the pair estimators in the Pyodide worker after the plan: pick
+  the pairs, a duration cap (default 60 s) and a mode, watch per-pair and per-scan progress
+  (`calibrex.check.browser.EventProgress`, a `CheckProgress` that posts JSON events), and get
+  the verdict table, the `--html` report, the `slac.calibration_check` JSON (or the
+  `slac.bag_estimate` JSON and `frames.yaml`) to download. New Python entry point
+  `calibrex.check.browser.run_request_json`. The page reads files through WORKERFS with a
+  1 MiB read-ahead (3x faster than slice-per-page). Verified on KITTI `k0015` in headless
+  Chrome against the CLI: same verdicts, numbers within 1e-5. Feasibility per pair is in the
+  tutorial. No schema change.
 - **`calibrex estimate` real-data validation** (KITTI vehicle pairs, RTK-SLAM GNSS pairs; see
   `docs/benchmarks/estimate_real_data.md`). Two fixes: the exported `topic_frames` now include
   the export root's topics (an IMU-rooted export lost `/imu -> imu`, so `check --tf frames.yaml`
