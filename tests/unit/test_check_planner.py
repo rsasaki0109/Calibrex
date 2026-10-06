@@ -200,6 +200,8 @@ def test_all_pairs_planned_with_composed_transforms() -> None:
         "lidar-lidar",
         "camera-imu",
         "camera-focal",
+        "camera-lidar",
+        "camera-lidar",
         "gnss-lidar",
         "gnss-lidar",
         "gnss-imu",
@@ -222,6 +224,12 @@ def test_all_pairs_planned_with_composed_transforms() -> None:
     assert imu_lidar.candidate_transform is not None
     assert imu_lidar.candidate_transform.translation_m == pytest.approx([1.0, 0.0, 0.0])
     assert imu_lidar.topics == ["/imu", "/lidar_f"]
+    # camera-lidar carries T_camera_lidar through the tree: parent camera, child LiDAR
+    camera_lidar = _by_pair(records, "camera-lidar")[0]
+    assert camera_lidar.frames == ["cam", "lf"]
+    assert camera_lidar.candidate_transform is not None
+    assert camera_lidar.candidate_transform.translation_m == pytest.approx([-1.0, 0.0, 0.0])
+    assert camera_lidar.topics == ["/cam", "/lidar_f"]
 
 
 def test_skip_missing_topic() -> None:
@@ -229,7 +237,7 @@ def test_skip_missing_topic() -> None:
 
     records = plan_pairs(topics, _rig_tree(), vehicle_frame="base")
 
-    for pair in ("camera-imu", "camera-focal", "gnss-lidar", "gnss-imu"):
+    for pair in ("camera-imu", "camera-focal", "camera-lidar", "gnss-lidar", "gnss-imu"):
         (record,) = _by_pair(records, pair)
         assert (record.status, record.reason_code) == ("skipped", "missing_topic")
     assert "camera" in (_by_pair(records, "camera-imu")[0].reason or "")

@@ -1194,6 +1194,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="directory with calib_imu_to_velo.txt (default: the drive's parent directory)",
     )
+    convert_kitti.add_argument(
+        "--camera",
+        default=None,
+        metavar="DIR",
+        help="also write this camera (for example image_02): /camera/image_raw, "
+        "/camera/camera_info and the imu_link to camera tf, so camera-lidar can be checked",
+    )
     convert_kitti.add_argument("--output", type=Path, required=True, help="bag directory to write")
     convert_kitti.add_argument("--overwrite", action="store_true", help="replace an existing bag")
     convert_kitti.add_argument("--json", action="store_true")
@@ -2875,7 +2882,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "Read candidate extrinsics from the bag's /tf_static and/or --tf files, classify "
             "the bag's sensor topics, and list the sensor pairs that can be checked. With "
             "--plan that is all; without it the native estimator of imu-lidar, lidar-lidar, "
-            "camera-imu and the GNSS pairs gnss-lidar (NavSatFix antenna lever arm) and "
+            "camera-imu, camera-lidar (targetless edge alignment; rotation only) and the GNSS "
+            "pairs gnss-lidar (NavSatFix antenna lever arm) and "
             "gnss-imu (composed from gnss-lidar and imu-lidar) runs and the candidate is "
             "judged against it (pass / warn / fail / inconclusive per pair). With --vehicle-frame "
             "the ground-vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar and "
@@ -3087,7 +3095,8 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "For a bag with no calibration yet: run the native estimators of calibrex check "
             "(imu-lidar, camera-imu, the GNSS pairs, and with --vehicle-frame the "
-            "ground-vehicle pairs; lidar-lidar needs a rough --tf prior to start from) and "
+            "ground-vehicle pairs; lidar-lidar and camera-lidar need a rough --tf prior to start "
+            "from) and "
             "keep their estimates, each axis with its standard deviation and whether the data "
             "observed it. Writes bag_estimate.json (slac.bag_estimate/v0.1) and, for the "
             "frames whose six axes are observed (or filled from a --tf prior and marked), a "
@@ -3106,7 +3115,8 @@ def _build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="FILE",
         help="rough prior (URDF, slac.check_frames YAML, Kalibr camchain, ...; repeatable): "
-        "starts lidar-lidar registration and supplies the axes the data cannot observe, "
+        "starts lidar-lidar registration and camera-lidar edge alignment and supplies the axes "
+        "the data cannot observe, "
         "which the exported YAML then marks as NOT MEASURED",
     )
     estimate.add_argument(
@@ -5001,6 +5011,7 @@ def _cmd_convert_kitti_raw(args: argparse.Namespace) -> int:
         calibration_dir=args.calib_dir,
         command=["calibrex", *args.invoked_argv],
         overwrite=args.overwrite,
+        camera=args.camera,
     )
     payload = {
         "bag": str(result.bag),

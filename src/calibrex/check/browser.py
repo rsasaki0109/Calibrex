@@ -36,6 +36,7 @@ STORAGE_SUFFIXES = (".db3", ".mcap")
 BROWSER_RUNNABLE_PAIRS = (
     "imu-lidar",
     "lidar-lidar",
+    "camera-lidar",
     "lidar-vehicle",
     "imu-vehicle",
     "ins-lidar",

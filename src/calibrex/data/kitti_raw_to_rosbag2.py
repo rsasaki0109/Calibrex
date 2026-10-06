@@ -36,6 +36,15 @@ Contents and frames
 ``/tf_static`` (``tf2_msgs/TFMessage``, transient-local)
     ``base_link -> imu_link`` (identity) and ``imu_link -> velo_link``
     (``T_imu_velo``, the inverse of ``calib_imu_to_velo.txt``).
+``/camera/image_raw`` and ``/camera/camera_info`` (only with ``camera="image_02"`` or another
+camera directory; opt-in)
+    The rectified, 8-bit luminance images of one KITTI camera and its pinhole ``CameraInfo``
+    (``K`` from ``P_rect``; no distortion, the images are already rectified), stamped with
+    that camera's ``timestamps.txt``, in the optical frame ``cam<N>_optical`` (``z`` forward).
+    ``/tf_static`` then also carries ``imu_link -> cam<N>_optical``, composed from
+    ``calib_imu_to_velo.txt``, ``calib_velo_to_cam.txt`` and the rectification and baseline
+    of ``calib_cam_to_cam.txt``, so ``calibrex check`` judges the vendor Velodyne-camera
+    calibration (``camera-lidar``).
 
 ``base_link`` is **defined as the OXTS/IMU frame** (KITTI's own convention: the
 calibration files give sensors relative to the OXTS unit, and no separate
@@ -61,11 +70,13 @@ from scipy.spatial.transform import Rotation
 from calibrex import __version__
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.provenance import git_commit
-from calibrex.data.kitti import read_timestamps
+from calibrex.data.kitti import read_calibration_file, read_png_luminance, read_timestamps
 from calibrex.data.kitti_ins_lidar import KittiInsLidarDrive, load_kitti_ins_lidar_drive
 from calibrex.data.ros_cdr_writer import (
     POINT_FIELD_FLOAT32,
     Transform,
+    encode_camera_info,
+    encode_image,
     encode_imu,
     encode_navsatfix,
     encode_odometry,
@@ -86,6 +97,8 @@ FIX_TOPIC = "/oxts/fix"
 ODOMETRY_TOPIC = "/oxts/odometry"
 TWIST_TOPIC = "/oxts/twist"
 TF_STATIC_TOPIC = "/tf_static"
+IMAGE_TOPIC = "/camera/image_raw"
+CAMERA_INFO_TOPIC = "/camera/camera_info"
 LIDAR_FRAME = "velo_link"
 IMU_FRAME = "imu_link"
 BASE_FRAME = "base_link"
@@ -135,6 +148,7 @@ def convert_kitti_raw_to_rosbag2(
     calibration_dir: str | Path | None = None,
     command: list[str] | None = None,
     overwrite: bool = False,
+    camera: str | None = None,
 ) -> KittiConversionResult:
     """Write KITTI raw ``*_sync`` drive(s) as one rosbag2 directory ``output``.
 
@@ -142,6 +156,10 @@ def convert_kitti_raw_to_rosbag2(
     one calibration (the same rig on the same day). The minutes between drives
     are gaps in every stream; each drive keeps its own local OXTS origin, as the
     KITTI runners treat pooled drives.
+
+    ``camera`` (for example ``"image_02"``) also writes that camera's images, its
+    ``CameraInfo`` and the ``imu_link -> cam<N>_optical`` transform; drives without the
+    camera directory are an error.
     """
 
     roots = (
@@ -193,6 +211,9 @@ def convert_kitti_raw_to_rosbag2(
             _quat(vendor[:3, :3]),
         ),
     ]
+    camera_setup = _camera_setup(roots, calibration_root, vendor, camera) if camera else None
+    if camera_setup is not None:
+        tf_static.append(camera_setup.tf)
     provenance: dict[str, Any] = {
         "schema_version": CONVERSION_SCHEMA,
         "generator": "calibrex convert kitti-raw",
@@ -243,6 +264,21 @@ def convert_kitti_raw_to_rosbag2(
             "imu_link->velo_link (T_imu_velo)",
         },
     }
+    if camera_setup is not None:
+        provenance["camera"] = camera_setup.provenance
+        topics_record = provenance["topics"]
+        topics_record[IMAGE_TOPIC] = (
+            f"Image {camera_setup.frame}: rectified 8-bit luminance (mono8) of {camera}, stamped "
+            "with the camera's timestamps.txt"
+        )
+        topics_record[CAMERA_INFO_TOPIC] = (
+            f"CameraInfo {camera_setup.frame}: pinhole K from P_rect, no distortion (the images "
+            "are rectified); one per image"
+        )
+        topics_record[TF_STATIC_TOPIC] += (
+            f", imu_link->{camera_setup.frame} (T_imu_velo composed with the inverse of the "
+            "vendor Velodyne-to-rectified-camera transform)"
+        )
     counts = dict.fromkeys((LIDAR_TOPIC, IMU_TOPIC, FIX_TOPIC, ODOMETRY_TOPIC, TWIST_TOPIC), 0)
     with Rosbag2Writer(
         output,
@@ -260,6 +296,11 @@ def convert_kitti_raw_to_rosbag2(
             first_ns,
             encode_tf_message(tf_static, secs=first_ns // 10**9, nsecs=first_ns % 10**9),
         )
+        if camera_setup is not None:
+            writer.add_topic(IMAGE_TOPIC, "sensor_msgs/msg/Image")
+            writer.add_topic(CAMERA_INFO_TOPIC, "sensor_msgs/msg/CameraInfo")
+            counts[IMAGE_TOPIC] = 0
+            counts[CAMERA_INFO_TOPIC] = 0
         for topic, message_type in (
             (LIDAR_TOPIC, "sensor_msgs/msg/PointCloud2"),
             (IMU_TOPIC, "sensor_msgs/msg/Imu"),
@@ -270,6 +311,8 @@ def convert_kitti_raw_to_rosbag2(
             writer.add_topic(topic, message_type)
         for (root, drive), (oxts_ns, velodyne_ns) in zip(loaded, stamps, strict=True):
             _write_drive(writer, root, drive, oxts_ns, velodyne_ns, counts)
+            if camera_setup is not None:
+                _write_camera(writer, root, camera_setup, counts)
     counts[TF_STATIC_TOPIC] = 1
     provenance["message_counts"] = counts
     sidecar = Path(output) / CONVERSION_FILENAME
@@ -363,3 +406,140 @@ def _write_drive(
             ),
         )
         counts[LIDAR_TOPIC] += 1
+
+
+@dataclass(frozen=True)
+class _CameraSetup:
+    directory: str
+    frame: str
+    tf: Transform
+    k: tuple[float, ...]
+    width: int
+    height: int
+    provenance: dict[str, Any]
+
+
+def _camera_setup(
+    roots: Sequence[Path], calibration_root: Path, vendor: FloatArray, camera: str
+) -> _CameraSetup:
+    for root in roots:
+        if (
+            not (root / camera / "data").is_dir()
+            or not (root / camera / "timestamps.txt").is_file()
+        ):
+            raise DatasetError(f"{root} has no {camera}/data or {camera}/timestamps.txt")
+    cam_to_cam = calibration_root / "calib_cam_to_cam.txt"
+    velo_to_cam = calibration_root / "calib_velo_to_cam.txt"
+    for path in (cam_to_cam, velo_to_cam):
+        if not path.is_file():
+            raise DatasetError(f"{path} is missing (needed to place {camera})")
+    number = "".join(ch for ch in camera if ch.isdigit()).lstrip("0") or "0"
+    suffix = number.zfill(2)
+    cam = read_calibration_file(cam_to_cam)
+    extrinsic = read_calibration_file(velo_to_cam)
+    projection = cam.get(f"P_rect_{suffix}")
+    rectification = cam.get("R_rect_00")
+    size = cam.get(f"S_rect_{suffix}")
+    if projection is None or len(projection) != 12 or rectification is None or size is None:
+        raise DatasetError(f"{cam_to_cam} has no P_rect_{suffix}, R_rect_00 and S_rect_{suffix}")
+    rotation = np.asarray(extrinsic["R"], dtype=np.float64).reshape(3, 3)
+    translation = np.asarray(extrinsic["T"], dtype=np.float64)
+    projection_matrix = np.asarray(projection, dtype=np.float64).reshape(3, 4)
+    intrinsics = projection_matrix[:, :3]
+    # KITTI's P_rect = K [I | t]: the camera sits at t (the stereo baseline) from camera 0.
+    baseline = np.linalg.solve(intrinsics, projection_matrix[:, 3])
+    rect = np.eye(4)
+    rect[:3, :3] = np.asarray(rectification, dtype=np.float64).reshape(3, 3)
+    velo_cam0 = np.eye(4)
+    velo_cam0[:3, :3] = rotation
+    velo_cam0[:3, 3] = translation
+    shift = np.eye(4)
+    shift[:3, 3] = baseline
+    t_cam_velo = shift @ rect @ velo_cam0
+    t_imu_cam = vendor @ np.linalg.inv(t_cam_velo)
+    frame = f"cam{number}_optical"
+    width, height = round(size[0]), round(size[1])
+    k = tuple(float(v) for v in intrinsics.reshape(-1))
+    tx, ty, tz = (float(v) for v in t_imu_cam[:3, 3])
+    return _CameraSetup(
+        directory=camera,
+        frame=frame,
+        tf=(IMU_FRAME, frame, (tx, ty, tz), _quat(t_imu_cam[:3, :3])),
+        k=k,
+        width=width,
+        height=height,
+        provenance={
+            "directory": camera,
+            "frame": frame,
+            "calib_cam_to_cam_sha256": _file_sha256(cam_to_cam),
+            "calib_velo_to_cam_sha256": _file_sha256(velo_to_cam),
+            "image_size_px": [width, height],
+            "k": list(k),
+            "rectified_baseline_m": [float(v) for v in baseline],
+            "t_cam_velo": [[float(v) for v in row] for row in t_cam_velo],
+            "convention": "tf imu_link->frame is T_imu_cam = T_imu_velo * inv(T_cam_velo); "
+            "T_cam_velo = [I|baseline] * R_rect_00 * [R|T] of calib_velo_to_cam.txt",
+        },
+    )
+
+
+def _gray_rows(path: Path) -> tuple[int, int, bytes]:
+    """``(height, width, mono8 bytes)`` of a PNG: OpenCV when installed, else the stdlib decoder."""
+
+    try:
+        import cv2
+    except ImportError:
+        cv2 = None
+    if cv2 is not None:
+        image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise DatasetError(f"cannot read {path}")
+        return int(image.shape[0]), int(image.shape[1]), np.ascontiguousarray(image).tobytes()
+    decoded = read_png_luminance(path)
+    if decoded is None:
+        raise DatasetError(f"cannot decode {path}")
+    pixels = np.clip(np.rint(np.asarray(decoded.rows, dtype=np.float64)), 0, 255).astype(np.uint8)
+    return decoded.height, decoded.width, pixels.tobytes()
+
+
+def _write_camera(
+    writer: Rosbag2Writer, root: Path, setup: _CameraSetup, counts: dict[str, int]
+) -> None:
+    stamps = {
+        item.index: item.timestamp_ns
+        for item in read_timestamps(root / setup.directory / "timestamps.txt")
+    }
+    for index in sorted(stamps):
+        path = root / setup.directory / "data" / f"{index:010d}.png"
+        if not path.is_file():
+            continue
+        height, width, data = _gray_rows(path)
+        stamp = stamps[index]
+        writer.write(
+            CAMERA_INFO_TOPIC,
+            stamp,
+            encode_camera_info(
+                frame_id=setup.frame,
+                timestamp_ns=stamp,
+                height=height,
+                width=width,
+                k=setup.k,
+                distortion_model="plumb_bob",
+                d=(0.0, 0.0, 0.0, 0.0, 0.0),
+            ),
+        )
+        writer.write(
+            IMAGE_TOPIC,
+            stamp,
+            encode_image(
+                frame_id=setup.frame,
+                timestamp_ns=stamp,
+                height=height,
+                width=width,
+                encoding="mono8",
+                step=width,
+                data=data,
+            ),
+        )
+        counts[IMAGE_TOPIC] += 1
+        counts[CAMERA_INFO_TOPIC] += 1

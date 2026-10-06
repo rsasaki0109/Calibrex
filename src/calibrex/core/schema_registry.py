@@ -85,6 +85,10 @@ from calibrex.core.camera_lidar_correspondence_quality import (
     CameraLidarCorrespondenceQualityArtifact,
     camera_lidar_correspondence_quality_json_schema,
 )
+from calibrex.core.camera_lidar_edge import (
+    CameraLidarEdgeArtifact,
+    camera_lidar_edge_json_schema,
+)
 from calibrex.core.camera_lidar_failure_analysis import (
     CameraLidarFailureAnalysisArtifact,
     camera_lidar_failure_analysis_json_schema,
@@ -843,6 +847,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
     _entry("gnss-imu-lever-arm", GnssImuLeverArmArtifact, gnss_imu_lever_arm_json_schema),
     _entry("camera-focal-scale", CameraFocalScaleArtifact, camera_focal_scale_json_schema),
+    _entry("camera-lidar-edge", CameraLidarEdgeArtifact, camera_lidar_edge_json_schema),
     _entry("calibration-check", CalibrationCheckArtifact, calibration_check_json_schema),
     _entry("check-frames", CheckFramesFile, check_frames_json_schema),
     _entry("bag-estimate", BagEstimateArtifact, bag_estimate_json_schema),

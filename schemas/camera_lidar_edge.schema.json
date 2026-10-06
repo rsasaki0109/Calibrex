@@ -1,0 +1,557 @@
+{
+  "$defs": {
+    "CameraLidarEdgeControl": {
+      "additionalProperties": false,
+      "description": "Held-out objective drop after shifting one DoF of the fit in both directions.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "detected_blocks": {
+          "minimum": 0,
+          "title": "Detected Blocks",
+          "type": "integer"
+        },
+        "held_out_blocks": {
+          "minimum": 0,
+          "title": "Held Out Blocks",
+          "type": "integer"
+        },
+        "mean_objective_drop": {
+          "title": "Mean Objective Drop",
+          "type": "number"
+        },
+        "min_t_statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "smaller of the two directions' one-sided t statistics of the per-block objective drops",
+          "title": "Min T Statistic"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "held_out_blocks",
+        "detected_blocks",
+        "mean_objective_drop",
+        "detected"
+      ],
+      "title": "CameraLidarEdgeControl",
+      "type": "object"
+    },
+    "CameraLidarEdgeDofRecord": {
+      "additionalProperties": false,
+      "description": "One DoF of ``T_camera_lidar`` with its uncertainty and evidence.",
+      "properties": {
+        "at_search_bound": {
+          "default": false,
+          "title": "At Search Bound",
+          "type": "boolean"
+        },
+        "delta_from_start": {
+          "description": "estimate minus the start (candidate) in the DoF's unit; rotation DoFs are the rotation vector of the left correction in the camera frame",
+          "title": "Delta From Start",
+          "type": "number"
+        },
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarEdgeControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_jackknife": {
+          "minimum": 0.0,
+          "title": "Std Jackknife",
+          "type": "number"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "delta_from_start",
+        "std_jackknife",
+        "std_reported",
+        "status"
+      ],
+      "title": "CameraLidarEdgeDofRecord",
+      "type": "object"
+    },
+    "CameraLidarEdgeObjective": {
+      "additionalProperties": false,
+      "description": "The edge-alignment objective at the start and at the estimate.",
+      "properties": {
+        "estimate": {
+          "title": "Estimate",
+          "type": "number"
+        },
+        "gain": {
+          "title": "Gain",
+          "type": "number"
+        },
+        "start": {
+          "title": "Start",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start",
+        "estimate",
+        "gain"
+      ],
+      "title": "CameraLidarEdgeObjective",
+      "type": "object"
+    },
+    "CameraLidarEdgeProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "image_topic": {
+          "title": "Image Topic",
+          "type": "string"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "lidar_topic": {
+          "title": "Lidar Topic",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "image_topic",
+        "lidar_topic",
+        "input_sha256",
+        "input_digest_scope",
+        "dataset_license"
+      ],
+      "title": "CameraLidarEdgeProvenance",
+      "type": "object"
+    },
+    "CameraLidarEdgeSamples": {
+      "additionalProperties": false,
+      "description": "The synchronized frames the estimate rests on.",
+      "properties": {
+        "blocks": {
+          "minimum": 0,
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "edge_points": {
+          "minimum": 0,
+          "title": "Edge Points",
+          "type": "integer"
+        },
+        "first_frame_time_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Frame Time S"
+        },
+        "frames": {
+          "minimum": 0,
+          "title": "Frames",
+          "type": "integer"
+        },
+        "last_frame_time_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Frame Time S"
+        },
+        "max_abs_time_gap_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Abs Time Gap S"
+        },
+        "median_abs_time_gap_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Abs Time Gap S"
+        },
+        "median_rings": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Rings"
+        }
+      },
+      "required": [
+        "frames",
+        "edge_points",
+        "blocks"
+      ],
+      "title": "CameraLidarEdgeSamples",
+      "type": "object"
+    },
+    "CameraLidarEdgeTransform": {
+      "additionalProperties": false,
+      "description": "``T_camera_lidar`` as translation and quaternion.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "CameraLidarEdgeTransform",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one targetless camera-LiDAR extrinsic estimate.",
+  "properties": {
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "roll",
+          "pitch",
+          "yaw",
+          "x",
+          "y",
+          "z"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "camera": {
+      "additionalProperties": true,
+      "title": "Camera",
+      "type": "object"
+    },
+    "dofs": {
+      "items": {
+        "$ref": "#/$defs/CameraLidarEdgeDofRecord"
+      },
+      "title": "Dofs",
+      "type": "array"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "edge_alignment/v0.1",
+      "default": "edge_alignment/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "objective": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraLidarEdgeObjective"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CameraLidarEdgeProvenance"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference"
+    },
+    "samples": {
+      "$ref": "#/$defs/CameraLidarEdgeSamples"
+    },
+    "schema_version": {
+      "const": "slac.camera_lidar_edge/v0.1",
+      "default": "slac.camera_lidar_edge/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "insufficient_samples"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "start_transform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraLidarEdgeTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "transform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraLidarEdgeTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "dofs",
+    "samples",
+    "jackknife_fits",
+    "options",
+    "provenance"
+  ],
+  "title": "CameraLidarEdgeArtifact",
+  "type": "object"
+}

@@ -1020,8 +1020,7 @@ def _camera_imu_dependency(ctx: PairContext) -> tuple[EstimatorRun, Any]:
         raise CheckSkipError(
             "missing_dependency",
             "camera-focal needs a camera-imu rotation that is solved and known to within "
-            f"{FOCAL_MAX_ROTATION_STD_DEG:g} deg about every axis: "
-            + "; ".join(problems),
+            f"{FOCAL_MAX_ROTATION_STD_DEG:g} deg about every axis: " + "; ".join(problems),
         )
     return run, rotation
 
@@ -2016,9 +2015,7 @@ def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
     shared = [lidar for lidar in gnss_runs if lidar in imu_runs]
     if not shared:
         missing = [
-            name
-            for name, runs in (("gnss-lidar", gnss_runs), ("imu-lidar", imu_runs))
-            if not runs
+            name for name, runs in (("gnss-lidar", gnss_runs), ("imu-lidar", imu_runs)) if not runs
         ]
         raise CheckSkipError(
             "missing_dependency",
@@ -2121,6 +2118,158 @@ def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
     )
 
 
+# --------------------------------------------------------------- camera-lidar
+#
+# camera-lidar aligns image edges with LiDAR depth discontinuities (Levinson and Thrun's
+# objective, pooled over frames; see calibrex.evaluation.camera_lidar_edge). The search
+# starts at the candidate, so the estimate depends on it and the cache key includes it.
+# Only the rotation is estimated: parallax resolves translation too weakly on every
+# recording tried, and the artifact says so.
+
+CAMERA_LIDAR_TRANSLATION_REASON = (
+    "translation is not estimated: the edge objective sees it only through parallax, and on "
+    "the recordings evaluated its estimate differed from the reference by up to 11 cm"
+)
+
+
+def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
+    """``T_camera_lidar`` rotation by aligning LiDAR depth edges with image edges."""
+
+    from calibrex.core.camera_lidar_edge import load_camera_lidar_edge
+    from calibrex.evaluation.camera_lidar_edge import (
+        CameraLidarRunInputs,
+        EdgeAlignmentOptions,
+        EdgeCamera,
+        run_ros2_camera_lidar_edge,
+    )
+
+    camera_topics = ctx.sensor_topics.get("camera", ())
+    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
+    if image_topic is None:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"camera topic(s) {', '.join(camera_topics)} are not sensor_msgs/Image "
+            "(compressed images are not supported by the check yet)",
+        )
+    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
+    model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
+    camera = EdgeCamera(
+        model.fx, model.fy, model.cx, model.cy, model.distortion_model, tuple(model.distortion)
+    )
+    point_time = detect_point_time(ctx.bag, lidar_topic)
+    candidate = ctx.candidate  # T_camera_lidar
+    options = EdgeAlignmentOptions(max_seconds=ctx.controls.max_duration_s)
+    ctx.controls.progress(
+        f"camera-lidar: {image_topic} + {lidar_topic} (intrinsics: {intrinsics_source})"
+    )
+    command = ("calibrex", "check", str(ctx.bag), "camera-lidar", image_topic, lidar_topic)
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "camera_lidar_edge",
+        {
+            "image_topic": image_topic,
+            "lidar_topic": lidar_topic,
+            "camera": camera,
+            "point_time": point_time,
+            "candidate": [round(float(v), 9) for v in candidate.ravel()],
+            "options": options,
+        },
+        loader=load_camera_lidar_edge,
+        compute=lambda: run_ros2_camera_lidar_edge(
+            ctx.bag,
+            CameraLidarRunInputs(
+                image_topic=image_topic,
+                lidar_topic=lidar_topic,
+                camera=camera,
+                candidate=candidate,
+                point_time=point_time,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                parent_frame=camera_frame,
+                child_frame=lidar_frame,
+                reference="deployed candidate calibration (T_camera_lidar)",
+                command=command,
+                input_sha256=_digest_or_topic(ctx, image_topic, lidar_topic),
+                input_digest_scope=(
+                    "bag digest (metadata.yaml in full; storage files by name, size and first "
+                    "64 MiB)"
+                ),
+            ),
+            options,
+        ),
+        rebase=lambda hit: hit,
+    )
+    solved = artifact.transform is not None
+    estimate = (
+        transform_matrix(artifact.transform.translation_m, artifact.transform.rotation_quat_xyzw)
+        if artifact.transform is not None
+        else candidate
+    )
+    errors = rotation_errors_deg(candidate[:3, :3], estimate[:3, :3])
+    by_name = {record.name: record for record in artifact.dofs}
+    names: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw", "x", "y", "z")
+    estimates: list[AxisEstimate] = []
+    for index, name in enumerate(names):
+        record = by_name[name]
+        rotation = index < 3
+        unit: Literal["deg", "m"] = "deg" if rotation else "m"
+        error = (
+            errors[index] if rotation else float(candidate[index - 3, 3] - estimate[index - 3, 3])
+        )
+        control = record.known_bad_control
+        if record.status == "estimated":
+            estimates.append(AxisEstimate(name, unit, error, record.std_reported, True))
+            continue
+        code: Literal["unobservable", "control_not_detected", "no_estimate"] = "unobservable"
+        if not solved:
+            reason, code = "the estimator produced no estimate", "no_estimate"
+        elif not rotation:
+            reason = CAMERA_LIDAR_TRANSLATION_REASON
+        elif control is not None and not control.detected:
+            reason = (
+                f"the estimator's known-bad control on this axis ({control.amount:g} deg) was "
+                f"not detected on held-out frames (t = {control.min_t_statistic or 0.0:.1f}), "
+                "so the estimate is not trusted as a yardstick"
+            )
+            code = "control_not_detected"
+        else:
+            bound = ", at the search bound" if record.at_search_bound else ""
+            reason = (
+                f"not constrained by the data (reported std {record.std_reported:.4g} deg{bound})"
+            )
+        estimates.append(AxisEstimate(name, unit, error, record.std_reported, False, reason, code))
+    samples = artifact.samples
+    notes = [
+        f"intrinsics: {intrinsics_source}",
+        f"{samples.frames} frame(s), {samples.edge_points} LiDAR edge points; the camera frame "
+        "must be the optical frame (z forward)",
+    ]
+    if artifact.objective is not None:
+        notes.append(
+            f"edge-alignment objective {artifact.objective.start:.4f} at the candidate, "
+            f"{artifact.objective.estimate:.4f} at the estimate"
+        )
+    return EstimatorRun(
+        estimator=f"{artifact.method} (camera-lidar)",
+        artifacts=(
+            EvidenceArtifact(
+                "edge_alignment",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=solved,
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=candidate,
+        notes=tuple(notes),
+    )
+
+
 ESTIMATORS: dict[str, Adapter] = {
     "imu-lidar": run_imu_lidar,
     "gnss-lidar": run_gnss_lidar,
@@ -2128,6 +2277,7 @@ ESTIMATORS: dict[str, Adapter] = {
     "lidar-lidar": run_lidar_lidar,
     "camera-imu": run_camera_imu,
     "camera-focal": run_camera_focal,
+    "camera-lidar": run_camera_lidar,
     "lidar-vehicle": run_lidar_vehicle,
     "imu-vehicle": run_imu_vehicle,
     "ins-lidar": run_ins_lidar,

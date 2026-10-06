@@ -35,7 +35,7 @@ TEMPLATE_SCHEMA_VERSION = "slac.check_frames_template/v0.1"
 SLOT_MESSAGE_TYPES: dict[str, str] = {
     "imu": "sensor_msgs/msg/Imu",
     "lidar": "sensor_msgs/msg/PointCloud2",
-    "camera": "sensor_msgs/msg/Image (plus a CameraInfo for camera-imu)",
+    "camera": "sensor_msgs/msg/Image (plus a CameraInfo for camera-imu and camera-lidar)",
     "gnss": "sensor_msgs/msg/NavSatFix",
     "ins": "nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins)",
     "wheel": "nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)",
