@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = ROOT / "tools"
 if str(TOOLS_DIR) not in sys.path:
@@ -28,6 +30,7 @@ def test_transcript_tells_estimate_check_drift() -> None:
 
 
 def test_transcript_lines_fit_the_terminal_panel() -> None:
+    pytest.importorskip("PIL")
     transcript = wf.load_transcript()
     mono = wf.load_mono(wf.FONT_SIZE)
     width = wf.PANEL[2] - wf.PANEL[0] - 28
@@ -45,6 +48,7 @@ def test_transcript_outputs_keep_the_honest_parts() -> None:
 
 
 def test_gif_renders_within_budget(tmp_path: Path) -> None:
+    pytest.importorskip("PIL")
     out = tmp_path / "workflow.gif"
     assert wf.render(out) == 0
     assert 0 < out.stat().st_size <= wf.MAX_BYTES
