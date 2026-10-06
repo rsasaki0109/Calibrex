@@ -1,0 +1,923 @@
+{
+  "$defs": {
+    "CheckProvenance": {
+      "additionalProperties": false,
+      "description": "Generator lineage and input digests.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "input_sha256",
+        "input_digest_scope",
+        "created_at"
+      ],
+      "title": "CheckProvenance",
+      "type": "object"
+    },
+    "DriftAxisRecord": {
+      "additionalProperties": false,
+      "description": "Consistency of one axis of one pair across bags.",
+      "properties": {
+        "bags_observed": {
+          "minimum": 0,
+          "title": "Bags Observed",
+          "type": "integer"
+        },
+        "chi2": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chi2"
+        },
+        "dof": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dof"
+        },
+        "floor": {
+          "exclusiveMinimum": 0.0,
+          "title": "Floor",
+          "type": "number"
+        },
+        "floor_source": {
+          "enum": [
+            "rotation",
+            "rigid_scan_rotation",
+            "translation"
+          ],
+          "title": "Floor Source",
+          "type": "string"
+        },
+        "leave_one_out": {
+          "items": {
+            "$ref": "#/$defs/DriftLeaveOneOut"
+          },
+          "title": "Leave One Out",
+          "type": "array"
+        },
+        "max_abs_difference": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Abs Difference"
+        },
+        "minimum_detectable_change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "smallest pairwise tolerance over the bags that observed the axis: a change smaller than this cannot be flagged between those bags",
+          "title": "Minimum Detectable Change"
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/DriftObservation"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Value"
+        },
+        "pairwise": {
+          "items": {
+            "$ref": "#/$defs/DriftPairwise"
+          },
+          "title": "Pairwise",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "stable",
+            "inconclusive",
+            "drift"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "weighted_mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Mean"
+        },
+        "weighted_mean_std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Mean Std"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "observations",
+        "bags_observed",
+        "status",
+        "floor",
+        "floor_source"
+      ],
+      "title": "DriftAxisRecord",
+      "type": "object"
+    },
+    "DriftBagChange": {
+      "additionalProperties": false,
+      "description": "How far one bag sits from the others on the pair's rotation, when it deviates.",
+      "properties": {
+        "axes_delta": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "this bag minus the reference, per observed axis",
+          "title": "Axes Delta",
+          "type": "object"
+        },
+        "bag": {
+          "title": "Bag",
+          "type": "string"
+        },
+        "reference": {
+          "enum": [
+            "other_bag",
+            "mean_of_others"
+          ],
+          "title": "Reference",
+          "type": "string"
+        },
+        "rotation_delta_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "angle of the rotation between this bag's estimated rotation and the reference, when all three rotation axes were observed in both",
+          "title": "Rotation Delta Deg"
+        }
+      },
+      "required": [
+        "bag",
+        "reference"
+      ],
+      "title": "DriftBagChange",
+      "type": "object"
+    },
+    "DriftBagRef": {
+      "additionalProperties": false,
+      "description": "One recording and the per-bag estimate it was judged from.",
+      "properties": {
+        "estimate_path": {
+          "description": "the bag's slac.bag_estimate artifact, relative to the drift artifact",
+          "title": "Estimate Path",
+          "type": "string"
+        },
+        "estimate_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Estimate Sha256",
+          "type": "string"
+        },
+        "estimator_cache_hits": {
+          "minimum": 0,
+          "title": "Estimator Cache Hits",
+          "type": "integer"
+        },
+        "estimator_runs": {
+          "minimum": 0,
+          "title": "Estimator Runs",
+          "type": "integer"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "pair_statuses": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "estimate status of each pair in this bag",
+          "title": "Pair Statuses",
+          "type": "object"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "runtime_s": {
+          "minimum": 0.0,
+          "title": "Runtime S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "path",
+        "input_sha256",
+        "input_digest_scope",
+        "estimate_path",
+        "estimate_sha256",
+        "runtime_s",
+        "estimator_cache_hits",
+        "estimator_runs"
+      ],
+      "title": "DriftBagRef",
+      "type": "object"
+    },
+    "DriftLeaveOneOut": {
+      "additionalProperties": false,
+      "description": "One bag against the weighted mean of the consensus bags (three or more bags).\n\nThe consensus is the bags that remain after the deviating ones are removed; ``deviates``\nmarks the removed bags.",
+      "properties": {
+        "bag": {
+          "title": "Bag",
+          "type": "string"
+        },
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "deviates": {
+          "title": "Deviates",
+          "type": "boolean"
+        },
+        "std": {
+          "minimum": 0.0,
+          "title": "Std",
+          "type": "number"
+        },
+        "tolerance": {
+          "exclusiveMinimum": 0.0,
+          "title": "Tolerance",
+          "type": "number"
+        },
+        "z": {
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "bag",
+        "delta",
+        "std",
+        "z",
+        "tolerance",
+        "deviates"
+      ],
+      "title": "DriftLeaveOneOut",
+      "type": "object"
+    },
+    "DriftObservation": {
+      "additionalProperties": false,
+      "description": "One bag's estimate of one axis.",
+      "properties": {
+        "bag": {
+          "title": "Bag",
+          "type": "string"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "observed",
+                "unobservable",
+                "control_not_detected",
+                "no_estimate",
+                "not_estimated"
+              ],
+              "type": "string"
+            },
+            {
+              "const": "pair_not_estimated",
+              "type": "string"
+            }
+          ],
+          "title": "Status"
+        },
+        "std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std"
+        },
+        "used": {
+          "description": "true when the data observed the axis and it enters the tests",
+          "title": "Used",
+          "type": "boolean"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "bag",
+        "status",
+        "used"
+      ],
+      "title": "DriftObservation",
+      "type": "object"
+    },
+    "DriftPairRecord": {
+      "additionalProperties": false,
+      "description": "One sensor pair compared across bags.",
+      "properties": {
+        "attribution": {
+          "anyOf": [
+            {
+              "enum": [
+                "bag",
+                "ambiguous"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attribution"
+        },
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/DriftAxisRecord"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "bags_compared": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Bags Compared",
+          "type": "array"
+        },
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/DriftBagChange"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "child_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Frame"
+        },
+        "deviating_bags": {
+          "description": "bags that disagree with the rest on a drifting axis; empty when two bags differ (which one moved cannot be told) or when the bags split into groups",
+          "items": {
+            "type": "string"
+          },
+          "title": "Deviating Bags",
+          "type": "array"
+        },
+        "pair": {
+          "enum": [
+            "imu-lidar",
+            "lidar-lidar",
+            "camera-imu",
+            "camera-focal",
+            "gnss-lidar",
+            "gnss-imu",
+            "lidar-vehicle",
+            "imu-vehicle",
+            "ins-lidar",
+            "lidar-wheel_odometry"
+          ],
+          "title": "Pair",
+          "type": "string"
+        },
+        "parent_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Frame"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "verdict": {
+          "enum": [
+            "stable",
+            "inconclusive",
+            "drift"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pair",
+        "verdict"
+      ],
+      "title": "DriftPairRecord",
+      "type": "object"
+    },
+    "DriftPairwise": {
+      "additionalProperties": false,
+      "description": "Difference of two bags on one axis, ``bag_a`` minus ``bag_b``.",
+      "properties": {
+        "bag_a": {
+          "title": "Bag A",
+          "type": "string"
+        },
+        "bag_b": {
+          "title": "Bag B",
+          "type": "string"
+        },
+        "difference": {
+          "title": "Difference",
+          "type": "number"
+        },
+        "exceeds": {
+          "title": "Exceeds",
+          "type": "boolean"
+        },
+        "ratio": {
+          "description": "|difference| / tolerance; above 1 is a change",
+          "minimum": 0.0,
+          "title": "Ratio",
+          "type": "number"
+        },
+        "std": {
+          "minimum": 0.0,
+          "title": "Std",
+          "type": "number"
+        },
+        "tolerance": {
+          "exclusiveMinimum": 0.0,
+          "title": "Tolerance",
+          "type": "number"
+        },
+        "z": {
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "bag_a",
+        "bag_b",
+        "difference",
+        "std",
+        "z",
+        "tolerance",
+        "ratio",
+        "exceeds"
+      ],
+      "title": "DriftPairwise",
+      "type": "object"
+    },
+    "DriftSummary": {
+      "additionalProperties": false,
+      "description": "Counts over the pair records.",
+      "properties": {
+        "axes_drifting": {
+          "minimum": 0,
+          "title": "Axes Drifting",
+          "type": "integer"
+        },
+        "axes_tested": {
+          "minimum": 0,
+          "title": "Axes Tested",
+          "type": "integer"
+        },
+        "bag_count": {
+          "minimum": 0,
+          "title": "Bag Count",
+          "type": "integer"
+        },
+        "pair_count": {
+          "minimum": 0,
+          "title": "Pair Count",
+          "type": "integer"
+        },
+        "verdict_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Verdict Counts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "bag_count",
+        "pair_count",
+        "axes_tested",
+        "axes_drifting"
+      ],
+      "title": "DriftSummary",
+      "type": "object"
+    },
+    "DriftThresholds": {
+      "additionalProperties": false,
+      "description": "The decision rule's settings.",
+      "properties": {
+        "chi2_alpha": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Chi2 Alpha",
+          "type": "number"
+        },
+        "rigid_scan_rotation_floor_deg": {
+          "exclusiveMinimum": 0.0,
+          "title": "Rigid Scan Rotation Floor Deg",
+          "type": "number"
+        },
+        "rotation_floor_deg": {
+          "exclusiveMinimum": 0.0,
+          "title": "Rotation Floor Deg",
+          "type": "number"
+        },
+        "sigma_k": {
+          "exclusiveMinimum": 0.0,
+          "title": "Sigma K",
+          "type": "number"
+        },
+        "translation_floor_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Translation Floor M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sigma_k",
+        "rotation_floor_deg",
+        "rigid_scan_rotation_floor_deg",
+        "translation_floor_m",
+        "chi2_alpha"
+      ],
+      "title": "DriftThresholds",
+      "type": "object"
+    },
+    "EstimateOptions": {
+      "additionalProperties": false,
+      "description": "Estimator settings used for the run.",
+      "properties": {
+        "acceleration_unit": {
+          "default": "mps2",
+          "enum": [
+            "mps2",
+            "g"
+          ],
+          "title": "Acceleration Unit",
+          "type": "string"
+        },
+        "camera": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera"
+        },
+        "frame_map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Frame Map",
+          "type": "object"
+        },
+        "gnss_lidar_deskew": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "constant_velocity",
+            "none"
+          ],
+          "title": "Gnss Lidar Deskew",
+          "type": "string"
+        },
+        "gnss_max_duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gnss Max Duration S"
+        },
+        "imu_lidar_deskew": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "gyro",
+            "none"
+          ],
+          "title": "Imu Lidar Deskew",
+          "type": "string"
+        },
+        "imu_lidar_translation": {
+          "default": true,
+          "title": "Imu Lidar Translation",
+          "type": "boolean"
+        },
+        "lidar_lidar_deskew": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "constant_velocity",
+            "none"
+          ],
+          "title": "Lidar Lidar Deskew",
+          "type": "string"
+        },
+        "max_duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Duration S"
+        },
+        "pairs": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pairs"
+        },
+        "topic_kinds": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Topic Kinds",
+          "type": "object"
+        }
+      },
+      "title": "EstimateOptions",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Whether a rig's calibration changed between recordings, with its evidence.",
+  "properties": {
+    "bags": {
+      "items": {
+        "$ref": "#/$defs/DriftBagRef"
+      },
+      "title": "Bags",
+      "type": "array"
+    },
+    "next_steps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Next Steps",
+      "type": "array"
+    },
+    "options": {
+      "$ref": "#/$defs/EstimateOptions"
+    },
+    "overall_verdict": {
+      "enum": [
+        "stable",
+        "inconclusive",
+        "drift"
+      ],
+      "title": "Overall Verdict",
+      "type": "string"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/DriftPairRecord"
+      },
+      "title": "Pairs",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CheckProvenance"
+    },
+    "schema_version": {
+      "const": "slac.calibration_drift/v0.1",
+      "default": "slac.calibration_drift/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/DriftSummary"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/DriftThresholds"
+    },
+    "vehicle_frame": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vehicle Frame"
+    }
+  },
+  "required": [
+    "bags",
+    "overall_verdict",
+    "summary",
+    "thresholds",
+    "options",
+    "provenance"
+  ],
+  "title": "CalibrationDriftArtifact",
+  "type": "object"
+}

@@ -204,6 +204,23 @@ Real-data results, with the splits, exact commands and the failures (Hilti camer
 imu-lidar, KITTI vehicle pairs, RTK-SLAM GNSS pairs):
 [`calibrex estimate` on real data](docs/benchmarks/estimate_real_data.md).
 
+### Did the rig change between recordings? `calibrex drift`
+
+Two or more bags of the **same rig**, in recording order:
+
+```bash
+calibrex drift day1/ day2/ day3/ --pairs imu-lidar --output drift/ --html drift.html
+```
+
+Each bag is estimated (the estimator cache makes a re-run cheap; `drift/<bag>/bag_estimate.json`)
+and every axis the data **observed** in at least two bags is tested for consistency: pairwise
+differences against `max(3 sigma, floor)` (the minimum detectable change of the axis type) and a
+chi-square homogeneity test. Per pair the verdict is `stable`, `drift` (with the deviating bag
+named when three or more bags allow it, and the size of the change) or `inconclusive`; exit
+status 1 on `drift` (`--fail-on`). Result: `drift/calibration_drift.json`,
+`slac.calibration_drift/v0.1`. A `stable` verdict means no change larger than the reported
+minimum detectable change was found. See [the drift page](docs/tutorials/calibrex_drift.md).
+
 ## Pre-registered SOTA audits
 
 Calibrex may call a method state of the art only for a claim that a frozen

@@ -57,6 +57,7 @@ EXPECTED_COMMANDS = [
     "autoware",
     "check",
     "estimate",
+    "drift",
     "inspect",
     "export",
 ]

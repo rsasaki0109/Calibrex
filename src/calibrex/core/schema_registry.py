@@ -48,6 +48,7 @@ from calibrex.core.calibration_check import (
     calibration_check_json_schema,
     check_frames_json_schema,
 )
+from calibrex.core.calibration_drift import CalibrationDriftArtifact, calibration_drift_json_schema
 from calibrex.core.calibration_lifecycle import (
     CalibrationLifecycleArtifact,
     calibration_lifecycle_json_schema,
@@ -845,6 +846,7 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("calibration-check", CalibrationCheckArtifact, calibration_check_json_schema),
     _entry("check-frames", CheckFramesFile, check_frames_json_schema),
     _entry("bag-estimate", BagEstimateArtifact, bag_estimate_json_schema),
+    _entry("calibration-drift", CalibrationDriftArtifact, calibration_drift_json_schema),
     _entry(
         "lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema
     ),

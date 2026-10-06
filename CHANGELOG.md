@@ -35,6 +35,18 @@
   optimistic by 2 to 6.5 times, the extrapolated duration is good to about 3 times with listed
   failures (`docs/concepts/translation_observability.md`,
   `tools/validate_translation_observability.py`).
+- **`calibrex drift`: did the rig's calibration change between recordings?** `calibrex drift
+  <bag1> <bag2> [<bag3> ...] --output DIR [--html FILE]` estimates every bag with the
+  `calibrex estimate` machinery (same flags, estimator cache; per-bag `bag_estimate.json` under
+  `DIR/<bag-name>/`) and tests every axis that the data observed in at least two bags: pairwise
+  differences against `max(sigma_k * combined std, floor)` (rotation 0.5 deg, rigid-scan
+  rotation 1.5 deg, translation 2 cm, as in `check`), a chi-square homogeneity test, and, for
+  three or more bags, the bag(s) whose removal restores consistency. Verdict per pair `stable` /
+  `drift` / `inconclusive`, overall the worst; `--fail-on drift|inconclusive|never`. New schema
+  `slac.calibration_drift/v0.1` (`calibration-drift`, `schemas/calibration_drift.schema.json`).
+  Also `tools/rotate_imu_in_bag.py` / `calibrex.data.rosbag2_imu_rotate`, which writes a copy of
+  a bag with its IMU "remounted" by a known rotation (the known-bad control of the drift
+  evaluation). Results: `docs/benchmarks/drift_real_data.md`. Existing schemas unchanged.
 - **`calibrex estimate` real-data validation** (KITTI vehicle pairs, RTK-SLAM GNSS pairs; see
   `docs/benchmarks/estimate_real_data.md`). Two fixes: the exported `topic_frames` now include
   the export root's topics (an IMU-rooted export lost `/imu -> imu`, so `check --tf frames.yaml`

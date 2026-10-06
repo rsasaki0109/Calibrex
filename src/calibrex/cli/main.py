@@ -3139,6 +3139,94 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     estimate.set_defaults(func=_cmd_estimate)
 
+    drift = subcommands.add_parser(
+        "drift",
+        help="detect whether a rig's calibration changed between recordings of it",
+        description=(
+            "Give two or more bags of the SAME rig, in recording order. Each is estimated "
+            "with calibrex estimate (the estimator cache makes a re-run cheap) and every axis "
+            "that the data observed in at least two bags is tested for consistency: pairwise "
+            "differences against max(K * combined std, floor) and a chi-square homogeneity "
+            "test. Verdict per pair: stable, drift (naming the deviating bag when three or "
+            "more bags allow it) or inconclusive (no axis observed in two bags). Writes "
+            "calibration_drift.json (slac.calibration_drift/v0.1) and each bag's "
+            "bag_estimate.json under OUTPUT/<bag-name>/."
+        ),
+    )
+    drift.add_argument("bags", type=Path, nargs="+", metavar="BAG", help="two or more rosbag2 bags")
+    for action in check._actions:
+        if action.dest in _ESTIMATE_SHARED_DESTS - {"bag"}:
+            drift._add_action(action)
+    drift.add_argument(
+        "--tf",
+        type=Path,
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="rough prior (as for estimate; repeatable): starts lidar-lidar registration",
+    )
+    drift.add_argument(
+        "--pairs",
+        default=None,
+        metavar="PAIR[,PAIR]",
+        help="compare only these pairs, for example imu-lidar (default: every pair with an "
+        "estimator)",
+    )
+    drift.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        metavar="DIR",
+        help="directory for calibration_drift.json and one sub-directory per bag",
+    )
+    drift.add_argument(
+        "--html", type=Path, metavar="FILE", help="write a self-contained HTML report"
+    )
+    drift.add_argument(
+        "--sigma-k",
+        type=float,
+        default=3.0,
+        help="tolerance = max(K * combined std, floor); default 3",
+    )
+    drift.add_argument(
+        "--rotation-floor-deg",
+        type=float,
+        default=0.5,
+        help="smallest rotation change that is flagged (default 0.5)",
+    )
+    drift.add_argument(
+        "--rigid-scan-rotation-floor-deg",
+        type=float,
+        default=1.5,
+        help="rotation floor for imu-lidar axes estimated on rigid scans (default 1.5)",
+    )
+    drift.add_argument(
+        "--translation-floor-m",
+        type=float,
+        default=0.02,
+        help="smallest translation change that is flagged (default 0.02)",
+    )
+    drift.add_argument(
+        "--chi2-alpha",
+        type=float,
+        default=0.01,
+        help="significance of the chi-square homogeneity test (default 0.01)",
+    )
+    drift.add_argument(
+        "--fail-on",
+        choices=["drift", "inconclusive", "never"],
+        default="drift",
+        help="exit with status 1 when the overall verdict is at least this bad (default drift)",
+    )
+    drift.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    drift.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="suppress the progress report on stderr (the result on stdout is unchanged)",
+    )
+    drift.set_defaults(func=_cmd_drift)
+
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
     inspect.add_argument("path", type=Path)
     inspect.add_argument(
@@ -4360,6 +4448,93 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         print(f"artifact: {output_dir / ARTIFACT_FILENAME}")
         if args.html:
             print(f"html report: {args.html}")
+    return 0
+
+
+def _cmd_drift(args: argparse.Namespace) -> int:
+    from calibrex.check.cache import default_cache_dir
+    from calibrex.check.drift import (
+        ARTIFACT_NAME,
+        DRIFT_VERDICT_ORDER,
+        DriftOptions,
+        build_calibration_drift,
+        format_drift_text,
+    )
+    from calibrex.check.estimate import ESTIMATE_PAIRS
+    from calibrex.check.progress import make_progress
+    from calibrex.check.roles import parse_topic_kinds
+    from calibrex.check.runner import CheckRunOptions, parse_frame_map
+
+    if len(args.bags) < 2:
+        raise CalibrexError("calibrex drift needs at least two bags of the same rig")
+    pairs = None
+    if args.pairs is not None:
+        pairs = tuple(item.strip() for item in args.pairs.split(",") if item.strip())
+        unknown = sorted(set(pairs) - ESTIMATE_PAIRS)
+        if unknown or not pairs:
+            raise CalibrexError(
+                f"--pairs: cannot compare {', '.join(unknown) or '(none given)'}; "
+                f"choose from {', '.join(sorted(ESTIMATE_PAIRS))}"
+            )
+    output_dir: Path = args.output
+    run_options = CheckRunOptions(
+        pairs=pairs,
+        max_duration_s=args.max_duration_s,
+        gnss_max_duration_s=args.gnss_max_duration_s,
+        camera=args.camera,
+        imu_lidar_translation=not args.no_imu_lidar_translation,
+        acceleration_unit=args.acceleration_unit,
+        imu_lidar_deskew=args.imu_lidar_deskew,
+        lidar_lidar_deskew=args.lidar_lidar_deskew,
+        gnss_lidar_deskew=args.gnss_lidar_deskew,
+        cache_dir=None
+        if args.no_cache
+        else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
+        scan_memory_mb=max(args.scan_memory_mb, 0),
+    )
+    try:
+        options = DriftOptions(
+            sigma_k=args.sigma_k,
+            rotation_floor_deg=args.rotation_floor_deg,
+            rigid_scan_rotation_floor_deg=args.rigid_scan_rotation_floor_deg,
+            translation_floor_m=args.translation_floor_m,
+            chi2_alpha=args.chi2_alpha,
+        )
+    except ValueError as exc:
+        raise CalibrexError(str(exc)) from exc
+    progress = make_progress(sys.stderr, quiet=args.quiet, plain=args.json)
+    try:
+        artifact = build_calibration_drift(
+            args.bags,
+            output_dir=output_dir,
+            run=run_options,
+            options=options,
+            tf_files=args.tf,
+            vehicle_frame=args.vehicle_frame,
+            frame_overrides=parse_frame_map(args.frame_map),
+            topic_kinds=parse_topic_kinds(args.topic_kind),
+            command=["calibrex", *args.invoked_argv],
+            progress=progress,
+        )
+    finally:
+        progress.run_finished()
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    write_mapping(output_dir / ARTIFACT_NAME, payload)
+    if args.html:
+        from calibrex.visualization.drift_report import write_drift_html
+
+        write_drift_html(artifact, args.html)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(format_drift_text(artifact, output_dir))
+        print(f"artifact: {output_dir / ARTIFACT_NAME}")
+        if args.html:
+            print(f"html report: {args.html}")
+    if args.fail_on != "never" and DRIFT_VERDICT_ORDER.index(
+        artifact.overall_verdict
+    ) >= DRIFT_VERDICT_ORDER.index(args.fail_on):
+        return 1
     return 0
 
 
