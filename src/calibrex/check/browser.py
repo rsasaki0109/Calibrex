@@ -11,6 +11,7 @@ OpenCV or Open3D.
 from __future__ import annotations
 
 import json
+import math
 import shlex
 import tempfile
 import time
@@ -220,7 +221,7 @@ def plan_request_json(request_json: str) -> str:
         return json.dumps({"ok": False, "error": str(error)})
     except Exception as error:  # corrupt files raise sqlite, yaml or pydantic errors
         return json.dumps({"ok": False, "error": f"{type(error).__name__}: {error}"})
-    return json.dumps({"ok": True, "bag": str(bag), **result})
+    return json.dumps(_finite_json({"ok": True, "bag": str(bag), **result}))
 
 
 EventSink = Callable[[str], None]
@@ -441,15 +442,33 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
     except Exception as error:  # corrupt files raise sqlite, yaml or pydantic errors
         return json.dumps({"ok": False, "error": f"{type(error).__name__}: {error}"})
     return json.dumps(
-        {
-            "ok": True,
-            "mode": mode,
-            "bag": str(bag),
-            "command": command,
-            "seconds": time.monotonic() - started,
-            **reply,
-        }
+        _finite_json(
+            {
+                "ok": True,
+                "mode": mode,
+                "bag": str(bag),
+                "command": command,
+                "seconds": time.monotonic() - started,
+                **reply,
+            }
+        )
     )
+
+
+def _finite_json(value: Any) -> Any:
+    """``value`` with every non-finite float replaced by ``None``.
+
+    Python's ``json.dumps`` writes ``Infinity`` / ``NaN`` (the CLI artifact keeps them, for
+    example an unobservable ``rate_ratio_std``), which ``JSON.parse`` in the page rejects.
+    """
+
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _finite_json(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_finite_json(item) for item in value]
+    return value
 
 
 def _with_labels(artifact: Any, label: str, tf_labels: Sequence[str], sources_field: str) -> Any:

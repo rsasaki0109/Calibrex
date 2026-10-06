@@ -439,3 +439,12 @@ def test_topic_kind_and_camera_reach_the_command_and_reject_bad_values() -> None
     reply = json.loads(run_request_json(json.dumps(request)))
     assert reply["ok"], reply
     assert "--camera /sample/camera" in reply["command"]
+
+
+def test_finite_json_replaces_non_finite_floats_with_null() -> None:
+    from calibrex.check.browser import _finite_json
+
+    value = {"a": [float("inf"), 1.5, {"b": float("nan")}], "c": (float("-inf"),), "d": "x"}
+    cleaned = _finite_json(value)
+    assert cleaned == {"a": [None, 1.5, {"b": None}], "c": [None], "d": "x"}
+    json.loads(json.dumps(cleaned), parse_constant=lambda name: pytest.fail(name))
