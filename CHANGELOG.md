@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **`calibrex estimate`: a calibration for a bag that has none.** `calibrex estimate <bag>
+  --output DIR` runs the check machinery (topic roles, planner, native estimators; same
+  `--frame-map`, `--topic-kind`, `--vehicle-frame`, `--pairs`, `--max-duration-s`, cache flags)
+  without a candidate and keeps the estimates. New schema `slac.bag_estimate/v0.1`
+  (`bag-estimate`, `schemas/bag_estimate.schema.json`): per pair the transform, each axis with
+  its std and observability (`observed`, `unobservable`, `control_not_detected`, `no_estimate`,
+  `not_estimated`), the time offset, estimator settings, evidence, bag digest and provenance,
+  plus the exported and omitted frames. Exports in DIR: `frames.yaml` (`slac.check_frames`,
+  loads with `calibrex check --tf`), `static_transforms.sh` and `static_transforms.launch.yaml`
+  (ROS 2 `static_transform_publisher`), `joints.urdf.xml`, and `camchain-imucam.yaml` when `--tf`
+  gave a Kalibr camchain. A frame whose transform has an axis the data did not observe is
+  written only when a `--tf` prior supplies it (the YAML says `NOT MEASURED` per frame),
+  otherwise it is omitted and listed in `next steps`. lidar-lidar needs a `--tf` prior to start
+  from and is skipped with a hint without one; camera-focal (an intrinsics check) is not
+  estimated. `slac.calibration_check/v0.1` and `slac.check_frames/v0.1` are unchanged;
+  `build_calibration_check` now shares `classify_bag_topics` with the new command.
 - **`calibrex check` says what to do next.** The text output ends with a deduplicated
   `next steps:` block (a hint per skip reason code and unmapped topic: `--tf`, `--frame-map`,
   `--vehicle-frame`, `--topic-kind`, expected message types), and

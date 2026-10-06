@@ -3079,6 +3079,58 @@ def _build_parser() -> argparse.ArgumentParser:
     check.set_defaults(func=_cmd_check)
     group_arguments(check, CHECK_ARGUMENT_GROUPS, rest_title=CHECK_ADVANCED_TITLE)
 
+    estimate = subcommands.add_parser(
+        "estimate",
+        help="estimate the calibration of a bag that has none, and export it",
+        description=(
+            "For a bag with no calibration yet: run the native estimators of calibrex check "
+            "(imu-lidar, camera-imu, the GNSS pairs, and with --vehicle-frame the "
+            "ground-vehicle pairs; lidar-lidar needs a rough --tf prior to start from) and "
+            "keep their estimates, each axis with its standard deviation and whether the data "
+            "observed it. Writes bag_estimate.json (slac.bag_estimate/v0.1) and, for the "
+            "frames whose six axes are observed (or filled from a --tf prior and marked), a "
+            "slac.check_frames YAML, ROS 2 static_transform_publisher commands, a launch file "
+            "and URDF joints into --output. Verify the result on a different recording with "
+            "calibrex check <other bag> --tf OUTPUT/frames.yaml."
+        ),
+    )
+    for action in check._actions:
+        if action.dest in _ESTIMATE_SHARED_DESTS:
+            estimate._add_action(action)
+    estimate.add_argument(
+        "--tf",
+        type=Path,
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="rough prior (URDF, slac.check_frames YAML, Kalibr camchain, ...; repeatable): "
+        "starts lidar-lidar registration and supplies the axes the data cannot observe, "
+        "which the exported YAML then marks as NOT MEASURED",
+    )
+    estimate.add_argument(
+        "--pairs",
+        default=None,
+        metavar="PAIR[,PAIR]",
+        help="estimate only these pairs, for example imu-lidar,camera-imu (default: every "
+        "pair with an estimator)",
+    )
+    estimate.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        metavar="DIR",
+        help="directory for bag_estimate.json, frames.yaml, static_transforms.sh, "
+        "static_transforms.launch.yaml, joints.urdf.xml and the evidence artifacts",
+    )
+    estimate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    estimate.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="suppress the progress report on stderr (the result on stdout is unchanged)",
+    )
+    estimate.set_defaults(func=_cmd_estimate)
+
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
     inspect.add_argument("path", type=Path)
     inspect.add_argument(
@@ -4169,6 +4221,93 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif not args.output:
         print(f"trajectory window drift: {artifact.grade} ({artifact.interpretation})")
+    return 0
+
+
+_ESTIMATE_SHARED_DESTS = frozenset(
+    {
+        "bag",
+        "vehicle_frame",
+        "frame_map",
+        "topic_kind",
+        "max_duration_s",
+        "gnss_max_duration_s",
+        "camera",
+        "no_imu_lidar_translation",
+        "imu_lidar_deskew",
+        "lidar_lidar_deskew",
+        "gnss_lidar_deskew",
+        "acceleration_unit",
+        "cache_dir",
+        "no_cache",
+        "scan_memory_mb",
+    }
+)
+
+
+def _cmd_estimate(args: argparse.Namespace) -> int:
+    from calibrex.check.cache import default_cache_dir
+    from calibrex.check.estimate import (
+        ARTIFACT_FILENAME,
+        ESTIMATE_PAIRS,
+        build_bag_estimate,
+        format_estimate_text,
+    )
+    from calibrex.check.roles import parse_topic_kinds
+    from calibrex.check.runner import CheckRunOptions, parse_frame_map
+
+    pairs = None
+    if args.pairs is not None:
+        pairs = tuple(item.strip() for item in args.pairs.split(",") if item.strip())
+        unknown = sorted(set(pairs) - ESTIMATE_PAIRS)
+        if unknown or not pairs:
+            raise CalibrexError(
+                f"--pairs: cannot estimate {', '.join(unknown) or '(none given)'}; "
+                f"choose from {', '.join(sorted(ESTIMATE_PAIRS))}"
+            )
+    output_dir: Path = args.output
+    run_options = CheckRunOptions(
+        pairs=pairs,
+        max_duration_s=args.max_duration_s,
+        gnss_max_duration_s=args.gnss_max_duration_s,
+        camera=args.camera,
+        imu_lidar_translation=not args.no_imu_lidar_translation,
+        acceleration_unit=args.acceleration_unit,
+        imu_lidar_deskew=args.imu_lidar_deskew,
+        lidar_lidar_deskew=args.lidar_lidar_deskew,
+        gnss_lidar_deskew=args.gnss_lidar_deskew,
+        evidence_dir=output_dir / "evidence",
+        base_dir=output_dir,
+        cache_dir=None
+        if args.no_cache
+        else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
+        scan_memory_mb=max(args.scan_memory_mb, 0),
+    )
+
+    from calibrex.check.progress import make_progress
+
+    progress = make_progress(sys.stderr, quiet=args.quiet, plain=args.json)
+    try:
+        artifact = build_bag_estimate(
+            args.bag,
+            output_dir=output_dir,
+            run=run_options,
+            tf_files=args.tf,
+            vehicle_frame=args.vehicle_frame,
+            frame_overrides=parse_frame_map(args.frame_map),
+            topic_kinds=parse_topic_kinds(args.topic_kind),
+            command=["calibrex", *args.invoked_argv],
+            progress=progress,
+        )
+    finally:
+        progress.run_finished()
+    payload = artifact.model_dump(mode="json", exclude_none=True)
+    write_mapping(output_dir / ARTIFACT_FILENAME, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(format_estimate_text(artifact, output_dir))
+        print(f"artifact: {output_dir / ARTIFACT_FILENAME}")
     return 0
 
 

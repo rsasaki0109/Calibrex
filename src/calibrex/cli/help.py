@@ -14,7 +14,10 @@ from collections.abc import Iterable
 from typing import NoReturn
 
 COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("Start here", ("check", "doctor", "demo", "inspect", "init", "calibrate", "render")),
+    (
+        "Start here",
+        ("check", "estimate", "doctor", "demo", "inspect", "init", "calibrate", "render"),
+    ),
     (
         "Per-pair calibration",
         (
