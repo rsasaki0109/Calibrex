@@ -4229,6 +4229,20 @@ def _cmd_check(args: argparse.Namespace) -> int:
     def progress(message: str) -> None:
         print(message, file=sys.stderr, flush=True)
 
+    if args.write_frames_template:
+        from calibrex.check.hints import write_frames_template
+
+        # Plan first (seconds) so the template exists before any estimator runs.
+        plan = build_calibration_check(
+            args.bag,
+            tf_files=args.tf,
+            vehicle_frame=args.vehicle_frame,
+            frame_overrides=parse_frame_map(args.frame_map),
+            topic_kinds=parse_topic_kinds(args.topic_kind),
+        )
+        write_frames_template(args.write_frames_template, plan.topics)
+        print(f"frames template: {args.write_frames_template}", file=sys.stderr, flush=True)
+
     artifact = build_calibration_check(
         args.bag,
         tf_files=args.tf,
@@ -4248,11 +4262,6 @@ def _cmd_check(args: argparse.Namespace) -> int:
         write_check_html(
             artifact, args.html, artifact_dir=args.output.parent if args.output else Path.cwd()
         )
-    if args.write_frames_template:
-        from calibrex.check.hints import write_frames_template
-
-        write_frames_template(args.write_frames_template, artifact.topics)
-        print(f"frames template: {args.write_frames_template}", file=sys.stderr)
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:

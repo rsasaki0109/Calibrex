@@ -223,11 +223,11 @@ def frames_template(topics: Sequence[CheckTopicRecord], *, base_frame: str = "ba
         topic_frames[topic.topic] = frame
     lines = [
         "# calibrex check frames template -- NOT a calibration.",
-        "# 1. Replace every TODO translation/rotation with your measured T_parent_frame",
+        "# 1. Replace every TODO (translation, rotation) with your measured T_parent_frame",
         "#    (maps frame points into the parent frame; quaternion order x, y, z, w),",
         f"#    and set each parent (the placeholder {base_frame} may not be right).",
-        "# 2. Change schema_version below to slac.check_frames/v0.1 (the explicit 'I have",
-        "#    filled this in' step; --tf refuses the template version).",
+        "# 2. Change schema_version below to slac.check_frames/v0.1. --tf refuses the",
+        "#    template version and any file that still contains a TODO value.",
         "# 3. Run: calibrex check <bag> --tf THIS_FILE",
         f"schema_version: {TEMPLATE_SCHEMA_VERSION}",
         "frames:",
@@ -241,8 +241,8 @@ def frames_template(topics: Sequence[CheckTopicRecord], *, base_frame: str = "ba
             [
                 f"  - name: {frame}  # {role_of.get(frame, 'sensor')}",
                 f"    parent: {base_frame}  # TODO: the frame this sensor is measured against",
-                "    translation_m: [0.0, 0.0, 0.0]  # TODO measured x, y, z in metres",
-                "    rotation_quat_xyzw: [0.0, 0.0, 0.0, 1.0]  # TODO measured rotation",
+                "    translation_m: [TODO, TODO, TODO]  # measured x, y, z in metres",
+                "    rotation_quat_xyzw: [TODO, TODO, TODO, TODO]  # measured rotation",
             ]
         )
     if topic_frames:
@@ -258,13 +258,34 @@ def write_frames_template(path: str | Path, topics: Sequence[CheckTopicRecord]) 
     return target
 
 
-def template_refusal(path: Path, payload: Mapping[str, Any]) -> str | None:
-    """The error message for a still-unedited template, else ``None``."""
+def _todo_frames(payload: Mapping[str, Any]) -> list[str]:
+    names: list[str] = []
+    frames = payload.get("frames")
+    for index, entry in enumerate(frames if isinstance(frames, list) else []):
+        if not isinstance(entry, Mapping):
+            continue
+        leaves: list[Any] = []
+        for value in entry.values():
+            leaves.extend(value if isinstance(value, list) else [value])
+        if any(isinstance(leaf, str) and leaf.strip().upper() == "TODO" for leaf in leaves):
+            names.append(str(entry.get("name", f"#{index}")))
+    return names
 
-    if str(payload.get("schema_version", "")).startswith("slac.check_frames_template/"):
+
+def template_refusal(path: Path, payload: Mapping[str, Any]) -> str | None:
+    """The error message for an unedited template (version marker or TODO values)."""
+
+    version = str(payload.get("schema_version", ""))
+    todo = _todo_frames(payload) if version.startswith("slac.check_frames") else []
+    if todo:
+        return (
+            f"{path}: still has TODO placeholder values for frame(s) {', '.join(todo)}; this is "
+            "a calibrex check frames template, not a calibration. Fill in the measured "
+            f"transforms and set schema_version to {CHECK_FRAMES_SCHEMA_VERSION}"
+        )
+    if version.startswith("slac.check_frames_template/"):
         return (
             f"{path}: this is a calibrex check frames template, not a calibration; fill in "
-            "the TODO transforms and change schema_version to "
-            f"{CHECK_FRAMES_SCHEMA_VERSION}"
+            f"the transforms and change schema_version to {CHECK_FRAMES_SCHEMA_VERSION}"
         )
     return None

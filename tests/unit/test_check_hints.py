@@ -80,14 +80,30 @@ def test_template_round_trip_and_refusal(tmp_path: Path) -> None:
     assert "TODO" in text and "NOT a calibration" in text
     assert yaml.safe_load(text)["schema_version"] == "slac.check_frames_template/v0.1"
 
-    with pytest.raises(DatasetError, match="template, not a calibration"):
+    with pytest.raises(DatasetError, match="TODO placeholder values"):
         load_tf_file(template)
 
-    edited = tmp_path / "edited.yaml"
-    edited.write_text(
+    # editing only the version line is not enough: TODO values are refused
+    version_only = tmp_path / "version_only.yaml"
+    version_only.write_text(
         text.replace("slac.check_frames_template/v0.1", "slac.check_frames/v0.1"),
         encoding="utf-8",
     )
+    with pytest.raises(DatasetError, match=r"TODO placeholder values for frame.*imu_link"):
+        load_tf_file(version_only)
+    # and so is a filled-in file that kept the template version marker
+    payload = yaml.safe_load(text)
+    for entry in payload["frames"]:
+        entry["translation_m"] = [0.1, 0.0, 0.2]
+        entry["rotation_quat_xyzw"] = [0.0, 0.0, 0.0, 1.0]
+    marked = tmp_path / "marked.yaml"
+    marked.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    with pytest.raises(DatasetError, match="template, not a calibration"):
+        load_tf_file(marked)
+
+    payload["schema_version"] = "slac.check_frames/v0.1"
+    edited = tmp_path / "edited.yaml"
+    edited.write_text(yaml.safe_dump(payload), encoding="utf-8")
     source = load_tf_file(edited)
     assert source.kind == "frames_yaml"
     assert {edge.child for edge in source.edges} >= {"imu_link", "lidar_front", "camera_optical"}
