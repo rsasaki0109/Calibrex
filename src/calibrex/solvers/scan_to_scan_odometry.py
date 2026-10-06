@@ -166,9 +166,7 @@ class TargetNormals:
         self._done: NDArray[np.bool_] = np.zeros(len(points), dtype=bool)
 
     @classmethod
-    def precomputed(
-        cls, normals: FloatArray, planar: NDArray[np.bool_]
-    ) -> TargetNormals:
+    def precomputed(cls, normals: FloatArray, planar: NDArray[np.bool_]) -> TargetNormals:
         """Wrap normals that were computed for every point."""
 
         holder = cls.__new__(cls)
@@ -185,9 +183,7 @@ class TargetNormals:
             return
         missing = np.unique(missing)
         _, neighbours = self._tree.query(self._points[missing], k=self._k)
-        normals, planar = _normals_from_neighbours(
-            self._points, neighbours, self._k, self._options
-        )
+        normals, planar = _normals_from_neighbours(self._points, neighbours, self._k, self._options)
         self.normals[missing] = normals
         self.planar[missing] = planar
         self._done[missing] = True
@@ -267,9 +263,7 @@ def register_point_to_plane(
             converged = True
             break
     min_eigenvalue = (
-        0.0
-        if last_hessian is None
-        else float(np.linalg.eigvalsh(last_hessian)[0]) / last_count
+        0.0 if last_hessian is None else float(np.linalg.eigvalsh(last_hessian)[0]) / last_count
     )
     return ScanRegistration(
         transform=transform,

@@ -41,6 +41,13 @@
   unobservable `rate_ratio_std`) made the camera-focal reply invalid for `JSON.parse`; they are
   `null` now. `tools/check_browser_check_page.mjs` gains `--topic-kind`, `--camera` and prints
   the run progress. The feasibility table in the tutorial has the numbers. No schema change.
+- **Faster first (uncached) runs, identical results.** LiDAR odometry computes target normals
+  only for the points a registration hits, the gyro tables are built once per IMU series, the
+  IMU CDR decode is one unpack per message, and several small numpy reductions in the voxel
+  filter and the registration loop are replaced by exactly equivalent forms. CPU time on real
+  bags drops by about 20 % (KITTI lidar-vehicle, RTK-SLAM gnss-lidar), 25 % (RTK-SLAM imu-lidar)
+  and 50 % (Koide rigid-scan imu-lidar); every artifact is bit-identical
+  (`tools/compare_check_artifacts.py`). No schema change.
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide

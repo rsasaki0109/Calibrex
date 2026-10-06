@@ -30,7 +30,9 @@ def _room(rng: np.random.Generator, count: int = 4000) -> np.ndarray:
     walls = [
         np.column_stack([rng.uniform(-8, 8, count), rng.uniform(-8, 8, count), np.zeros(count)]),
         np.column_stack([rng.uniform(-8, 8, count), np.full(count, 6.0), rng.uniform(0, 3, count)]),
-        np.column_stack([np.full(count, -7.0), rng.uniform(-8, 8, count), rng.uniform(0, 3, count)]),
+        np.column_stack(
+            [np.full(count, -7.0), rng.uniform(-8, 8, count), rng.uniform(0, 3, count)]
+        ),
         rng.uniform(-8, 8, (count // 4, 3)),
     ]
     return np.vstack(walls) + rng.normal(0.0, 0.01, (3 * count + count // 4, 3))
@@ -82,7 +84,10 @@ def test_registration_is_identical_with_lazy_eager_and_default_normals() -> None
     assert first.converged
     for other in results[1:]:
         assert np.array_equal(first.transform, other.transform)
-        assert (first.iterations, first.correspondences) == (other.iterations, other.correspondences)
+        assert (first.iterations, first.correspondences) == (
+            other.iterations,
+            other.correspondences,
+        )
         assert first.rmse_m == other.rmse_m
         assert first.hessian_min_eigenvalue == other.hessian_min_eigenvalue
 
@@ -107,7 +112,9 @@ def test_nonfinite_filter_matches_isfinite_all() -> None:
     xyz[10, 2] = np.inf
     xyz[11, 1] = -np.inf
     intensity = rng.normal(size=1000)
-    filtered, kept_intensity, _, dropped = filter_nonfinite_pointcloud_rows(np, xyz, intensity, None)
+    filtered, kept_intensity, _, dropped = filter_nonfinite_pointcloud_rows(
+        np, xyz, intensity, None
+    )
     mask = np.isfinite(xyz).all(axis=1)
     assert dropped == 3
     assert np.array_equal(filtered, xyz[mask])
