@@ -19,6 +19,7 @@ unobservable.  Each DoF is classified from its data-only standard deviation.
 
 from __future__ import annotations
 
+import hashlib
 import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -51,6 +52,19 @@ ROTATION_DOFS: tuple[RotationDofName, ...] = (
 MAX_GYRO_GAP_S = 0.05
 
 
+_GYRO_TABLES: dict[str, tuple[FloatArray, FloatArray, FloatArray, FloatArray]] = {}
+_GYRO_TABLES_KEPT = 2
+
+
+def _gyro_tables_key(times_s: FloatArray, gyro_rps: FloatArray) -> str:
+    digest = hashlib.blake2b(digest_size=16)
+    for array in (times_s, gyro_rps):
+        contiguous = np.ascontiguousarray(array, dtype=np.float64)
+        digest.update(str(contiguous.shape).encode("ascii"))
+        digest.update(contiguous.tobytes())
+    return digest.hexdigest()
+
+
 @dataclass(frozen=True)
 class GyroSeries:
     """Gyro samples with a cumulative integral for fast interval means."""
@@ -61,12 +75,27 @@ class GyroSeries:
     def __post_init__(self) -> None:
         if len(self.times_s) < 2 or np.any(np.diff(self.times_s) <= 0.0):
             raise ValueError("gyro samples need strictly increasing timestamps")
+        # Every odometry pass of an estimate builds the same series from the same
+        # IMU samples; the tables are a pure function of the samples, so a repeat
+        # reuses them (the key is a digest of the sample bytes, not object identity).
+        key = _gyro_tables_key(self.times_s, self.gyro_rps)
+        tables = _GYRO_TABLES.get(key)
+        if tables is None:
+            tables = self._build_tables()
+            _GYRO_TABLES[key] = tables
+            while len(_GYRO_TABLES) > _GYRO_TABLES_KEPT:
+                _GYRO_TABLES.pop(next(iter(_GYRO_TABLES)))
+        integral, orientations, rates, bias_sum = tables
+        object.__setattr__(self, "_integral", integral)
+        object.__setattr__(self, "_orientations", orientations)
+        object.__setattr__(self, "_rates", rates)
+        object.__setattr__(self, "_bias_sum", bias_sum)
+
+    def _build_tables(self) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
         steps = np.diff(self.times_s)
         midpoint_rates = 0.5 * (self.gyro_rps[1:] + self.gyro_rps[:-1])
         increments = midpoint_rates * steps[:, None]
-        object.__setattr__(
-            self, "_integral", np.vstack([np.zeros((1, 3)), np.cumsum(increments, axis=0)])
-        )
+        integral = np.vstack([np.zeros((1, 3)), np.cumsum(increments, axis=0)])
         # Cumulative orientation Q_k of the raw gyro (piecewise-constant midpoint
         # rates) and S_k = sum_j Q_{j+1} dt_j for first-order bias Jacobians.
         step_rotations = Rotation.from_rotvec(increments).as_matrix()
@@ -75,13 +104,8 @@ class GyroSeries:
         for index, step_rotation in enumerate(step_rotations):
             orientations[index + 1] = orientations[index] @ step_rotation
         weighted = orientations[1:] * steps[:, None, None]
-        object.__setattr__(self, "_orientations", orientations)
-        object.__setattr__(self, "_rates", midpoint_rates)
-        object.__setattr__(
-            self,
-            "_bias_sum",
-            np.concatenate([np.zeros((1, 3, 3)), np.cumsum(weighted, axis=0)]),
-        )
+        bias_sum = np.concatenate([np.zeros((1, 3, 3)), np.cumsum(weighted, axis=0)])
+        return integral, orientations, midpoint_rates, bias_sum
 
     def orientation_and_bias_sum(self, times_s: FloatArray) -> tuple[FloatArray, FloatArray]:
         """Return ``Q(t)`` and ``S(t)`` at arbitrary times inside the series."""
