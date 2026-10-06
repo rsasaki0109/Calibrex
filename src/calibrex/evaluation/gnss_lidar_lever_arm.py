@@ -28,6 +28,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex import __version__
+from calibrex.core.excitation import AxisExcitation
 from calibrex.core.gnss_lidar_lever_arm import (
     GnssLidarDofRecord,
     GnssLidarKnownBadControl,
@@ -49,6 +50,10 @@ from calibrex.evaluation.odometry_windows import (
     WindowingOptions,
     collect_odometry_windows,
 )
+from calibrex.evaluation.translation_observability import (
+    ExcitationInputs,
+    diagnose_translation_axes,
+)
 from calibrex.solvers.gnss_lever_arm_solver import (
     LEVER_ARM_DOFS,
     GnssLeverArmSolver,
@@ -58,6 +63,7 @@ from calibrex.solvers.gnss_lever_arm_solver import (
     OdometryWindow,
     WindowPairs,
     build_pairs,
+    pair_excitation,
     window_residuals,
 )
 from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
@@ -195,6 +201,7 @@ def evaluate_gnss_lidar_lever_arm(
     rebased = GnssTrackModel(track.times_s - epoch, track.enu_m, track.sigma_m, track.max_gap_s)
     train_pairs = build_pairs(rebased, train, opts.solver, epoch=epoch)
     holdout_pairs = build_pairs(rebased, holdout, opts.solver, epoch=epoch)
+    excitation = _excitation(result, jackknife, train_pairs, holdout_pairs, opts)
     records = tuple(
         _record(
             dof.name,
@@ -204,6 +211,7 @@ def evaluate_gnss_lidar_lever_arm(
             rebased,
             reference_lever_arm,
             opts,
+            excitation.get(dof.name),
         )
         for dof in result.dofs
     )
@@ -434,6 +442,7 @@ def _record(
     track: GnssTrackModel,
     reference: FloatArray | None,
     opts: GnssLidarRunOptions,
+    excitation: AxisExcitation | None = None,
 ) -> GnssLidarDofRecord:
     estimate = result.dof(name)
     reported = max(estimate.std, jackknife or 0.0)
@@ -456,7 +465,45 @@ def _record(
         reference_value=reference_value,
         error_to_reference=None if reference_value is None else estimate.value - reference_value,
         known_bad_control=_control(name, result, holdout, track, opts),
+        excitation=excitation,
     )
+
+
+def _excitation(
+    result: LeverArmResult,
+    jackknife: dict[str, float],
+    train: Sequence[WindowPairs],
+    holdout: Sequence[WindowPairs],
+    opts: GnssLidarRunOptions,
+) -> dict[str, AxisExcitation]:
+    """Per-axis excitation diagnosis (see :mod:`calibrex.evaluation.translation_observability`)."""
+
+    if result.lever_arm_m is None or not train:
+        return {}
+    variance = result.variance_factor or 1.0
+    fitted = pair_excitation(train, result.lever_arm_m, result.time_offset_s, variance, opts.solver)
+    held = pair_excitation(holdout, result.lever_arm_m, result.time_offset_s, variance, opts.solver)
+    analytic = np.array([result.dof(name).std for name in ("x", "y", "z")])
+    scaling = np.maximum(analytic, [jackknife.get(name, 0.0) for name in ("x", "y", "z")])
+    diagnosis = diagnose_translation_axes(
+        ExcitationInputs(
+            kind="gnss_lidar",
+            std_analytic_m=analytic,
+            std_scaling_m=scaling,
+            std_reported_m=scaling,
+            bound_m=opts.solver.observable_translation_std_m,
+            ideal_information=fitted.ideal_information,
+            rotation_moment=fitted.rotation_moment,
+            samples=fitted.pairs,
+            covered_s=fitted.covered_s,
+            recording_s=fitted.covered_s + held.covered_s,
+            interval_s=math.sqrt(3.0 * fitted.squared_span_s2 / fitted.pairs)
+            if fitted.pairs
+            else 0.0,
+            windows=len(train),
+        )
+    )
+    return {item.name: item for item in diagnosis}
 
 
 def _control(

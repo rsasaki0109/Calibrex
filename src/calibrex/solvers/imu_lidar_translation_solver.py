@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -122,6 +122,13 @@ class WindowSystem:
     # bias, then per segment its velocity and (when per segment) its gravity
     target: FloatArray  # (rows,)
     segments: int
+    # Excitation bookkeeping (not used by the fit): sum of theta theta^T of the
+    # lidar rotation from each segment start to its later scans (rad^2, lidar
+    # frame), the time those scans span, and the sum of their squared elapsed times.
+    rotation_moment: FloatArray = field(default_factory=lambda: np.zeros((3, 3)))
+    covered_s: float = 0.0
+    elapsed_sq_sum_s2: float = 0.0
+    window_span_s: float = 0.0
 
     @property
     def scan_rows(self) -> int:
@@ -242,6 +249,9 @@ def _window_system(
     per_segment = 6 if opts.gravity_per_segment else 3
     columns = 6 + per_segment * len(labels)
     designs, nuisances, targets = [], [], []
+    moment = np.zeros((3, 3))
+    covered = 0.0
+    elapsed_sq_sum = 0.0
     for slot, label in enumerate(labels):
         members = np.flatnonzero(segment == label)
         first = members[0]
@@ -270,6 +280,12 @@ def _window_system(
         nuisance[:, :, 3:6] = start @ bias
         nuisance[:, :, base : base + 3] = -elapsed * np.eye(3)
         target = force @ start.T - (poses[later, :3, 3] - poses[first, :3, 3])
+        thetas = Rotation.from_matrix(
+            np.transpose(poses[first, :3, :3]) @ poses[later, :3, :3]
+        ).as_rotvec()
+        moment += thetas.T @ thetas
+        covered += float(times[later[-1]] - times[first])
+        elapsed_sq_sum += float(np.sum((times[later] - times[first]) ** 2))
         designs.append(design.reshape(-1, 3))
         nuisances.append(nuisance.reshape(-1, columns))
         targets.append(target.reshape(-1))
@@ -279,6 +295,10 @@ def _window_system(
         nuisance=np.vstack(nuisances),
         target=np.concatenate(targets),
         segments=len(labels),
+        rotation_moment=moment,
+        covered_s=covered,
+        elapsed_sq_sum_s2=elapsed_sq_sum,
+        window_span_s=float(times[-1] - times[0]),
     )
 
 

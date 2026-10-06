@@ -33,7 +33,7 @@ from calibrex import __version__
 from calibrex.check import estimators
 from calibrex.check.estimators import EstimatorRun, invert_transform, transform_matrix
 from calibrex.check.frame_tree import StaticEdge, StaticFrameTree, normalize_frame_id
-from calibrex.check.hints import pair_hint
+from calibrex.check.hints import excitation_hints, pair_hint
 from calibrex.check.planner import PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.progress import CheckProgress, as_progress
 from calibrex.check.roles import map_topics_to_frames
@@ -222,7 +222,12 @@ def _estimate_axes(
             value = float(rotvec_deg[index]) if unit == "deg" else float(result[index, 3])
             axes.append(
                 EstimateAxis(
-                    name=name, unit=unit, value=value, std=float(item.std), status="observed"
+                    name=name,
+                    unit=unit,
+                    value=value,
+                    std=float(item.std),
+                    status="observed",
+                    excitation=item.excitation,
                 )
             )
             continue
@@ -233,6 +238,7 @@ def _estimate_axes(
                 std=float(item.std) if item.unchecked_code != "no_estimate" else None,
                 status=item.unchecked_code or "no_estimate",
                 reason=item.unchecked_reason,
+                excitation=item.excitation,
             )
         )
     return result, axes, observed
@@ -825,6 +831,9 @@ def next_steps(
         if pair.reason_code in {"method_not_wired", "not_selected"}:
             continue
         add(_step_for(pair, topics))
+    for pair in pairs:
+        for text in excitation_hints(pair.pair, [a for a in pair.axes if a.status != "observed"]):
+            add(text)
     return steps
 
 

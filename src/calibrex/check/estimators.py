@@ -211,6 +211,7 @@ def _estimate(
     record: Any,
 ) -> AxisEstimate:
     observable = record is not None and record.status == "estimated"
+    excitation = getattr(record, "excitation", None)
     control = getattr(record, "known_bad_control", None)
     undetected = observable and control is not None and not control.detected
     if undetected and control is not None:
@@ -231,6 +232,7 @@ def _estimate(
                 "is not trusted as a yardstick"
             ),
             unchecked_code="control_not_detected",
+            excitation=excitation,
         )
     return AxisEstimate(
         name=name,
@@ -252,6 +254,7 @@ def _estimate(
             if record is not None
             else "the estimator reported no value"
         ),
+        excitation=excitation,
     )
 
 

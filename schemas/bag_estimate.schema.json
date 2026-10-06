@@ -1,5 +1,154 @@
 {
   "$defs": {
+    "AxisExcitation": {
+      "additionalProperties": false,
+      "description": "Why one translation axis is (un)observable on this recording and what would change it.\n\n``cause`` is ``observable`` (the reported std is within the bound),\n``insufficient_duration`` (the motion excites the axis, but the recording is\ntoo short: ``needed_duration_s`` of the same motion would reach the bound),\n``no_excitation`` (repeating this motion would take more than an hour, so\ndifferent motion is needed: ``missing_rotation_axes``), ``model_limited``\n(the data-only std is within the bound but the reported std, which also\ncovers modelling error, is not) or ``unsolved``.\n\n``predicted_std_m`` is the data-only (analytic) std, from the information\nmatrix and the residual noise level.  The std scales as 1/sqrt(time) for the\nsame motion, so ``needed_duration_s = recording_s * (std / bound)^2`` with\n``scaling_std_m``, the larger of the analytic and jackknife std.  Rotation is in the\nsensor frame of the lever arm (the LiDAR frame).",
+      "properties": {
+        "bound_std_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Bound Std M",
+          "type": "number"
+        },
+        "cause": {
+          "enum": [
+            "observable",
+            "insufficient_duration",
+            "no_excitation",
+            "model_limited",
+            "unsolved"
+          ],
+          "title": "Cause",
+          "type": "string"
+        },
+        "fit_windows": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "odometry windows the fit used; the duration extrapolation is indicative only below about a dozen",
+          "title": "Fit Windows"
+        },
+        "information_efficiency": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "share of the rotation-implied information that survives the nuisance parameters (gravity, velocity, accelerometer bias; the per-window map alignment)",
+          "title": "Information Efficiency"
+        },
+        "missing_rotation_axes": {
+          "items": {
+            "enum": [
+              "x",
+              "y",
+              "z"
+            ],
+            "type": "string"
+          },
+          "title": "Missing Rotation Axes",
+          "type": "array"
+        },
+        "name": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "needed_duration_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "recording time of the same motion that would reach the bound; absent when the std is not finite",
+          "title": "Needed Duration S"
+        },
+        "perpendicular_rotation_rms_deg": {
+          "description": "RMS rotation about the two axes perpendicular to this one",
+          "minimum": 0.0,
+          "title": "Perpendicular Rotation Rms Deg",
+          "type": "number"
+        },
+        "predicted_std_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Predicted Std M"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "recording_s": {
+          "minimum": 0.0,
+          "title": "Recording S",
+          "type": "number"
+        },
+        "rotation_rms_deg": {
+          "description": "RMS rotation between the paired poses about the sensor x, y, z axes",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rotation Rms Deg",
+          "type": "array"
+        },
+        "scaling_std_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the larger of the analytic and jackknife std: the one that shrinks with more data and that needed_duration_s extrapolates (the analytic std alone is optimistic on real data because the odometry residuals are correlated)",
+          "title": "Scaling Std M"
+        }
+      },
+      "required": [
+        "name",
+        "cause",
+        "bound_std_m",
+        "rotation_rms_deg",
+        "perpendicular_rotation_rms_deg",
+        "recording_s",
+        "recommendation"
+      ],
+      "title": "AxisExcitation",
+      "type": "object"
+    },
     "CheckBagInput": {
       "additionalProperties": false,
       "description": "The bag that was audited.\n\nThe digest follows the repository precedent for tens-of-gigabyte bags:\n``metadata.yaml`` in full, and each storage file by name, size and first\n64 MiB (see ``input_digest_scope``).",
@@ -443,6 +592,18 @@
       "additionalProperties": false,
       "description": "One axis of a pair's estimate.\n\n``value`` is the estimated value (degrees about the parent frame's axes for\na rotation axis, metres for a translation axis); it is absent unless the\nestimator produced one. ``status`` says whether the data observed it:\n``observed``; ``unobservable`` (the data did not constrain it);\n``control_not_detected`` (the estimator's known-bad control on this axis was\nnot detected on held-out data, so the value is not trusted);\n``no_estimate`` (the estimator produced no value); ``not_estimated`` (this\nestimator does not attempt the axis, for example the translation of a\ncamera-IMU rotation estimate).",
       "properties": {
+        "excitation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AxisExcitation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "translation axes of a lever-arm estimate: why the axis is (un)observable on this recording and what motion or duration would make it observable"
+        },
         "name": {
           "enum": [
             "roll",

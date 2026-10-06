@@ -18,6 +18,23 @@
   1 MiB read-ahead (3x faster than slice-per-page). Verified on KITTI `k0015` in headless
   Chrome against the CLI: same verdicts, numbers within 1e-5. Feasibility per pair is in the
   tutorial. No schema change.
+- **Translation observability: why a lever-arm axis is unobservable, and what would fix it.**
+  The accelerometer (imu-lidar) and GNSS antenna (gnss-lidar) lever arms are seen only through
+  the rotation between paired poses, `(R_j - R_i) l`, so an axis is observable only when the
+  platform rotates about the other two. Each estimator now derives, per translation axis, the
+  data-only std from the information matrix, the rotation the recording supplies about each
+  sensor axis, the share of that information that survives the nuisance parameters, the
+  recording needed to reach the bound (`T (std / bound)^2`, same motion) and, when no amount of
+  this motion would, which rotation is missing and how long a 30 deg/s reference motion would
+  take. `calibrex check` and `calibrex estimate` print it in `next steps`, for example
+  `gnss-lidar lever arm z: needs rotation about the sensor x or y axis ... Model estimate: about
+  4 min of it at >= 30 deg/s would reach the 1 cm bound`. Additive schema change only: an
+  optional `excitation` object on `slac.imu_lidar_translation` axes, `slac.gnss_lidar_lever_arm`
+  DoFs, `slac.calibration_check` `unchecked_axes` and `slac.bag_estimate` axes. Predictions are
+  validated against empirical stds on RTK-SLAM and Koide recordings: the analytic std is
+  optimistic by 2 to 6.5 times, the extrapolated duration is good to about 3 times with listed
+  failures (`docs/concepts/translation_observability.md`,
+  `tools/validate_translation_observability.py`).
 - **`calibrex estimate` real-data validation** (KITTI vehicle pairs, RTK-SLAM GNSS pairs; see
   `docs/benchmarks/estimate_real_data.md`). Two fixes: the exported `topic_frames` now include
   the export root's topics (an IMU-rooted export lost `/imu -> imu`, so `check --tf frames.yaml`
