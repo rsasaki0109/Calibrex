@@ -38,6 +38,7 @@ from calibrex.core.calibration_check import (
     CheckTopicRecord,
     CheckTransform,
 )
+from calibrex.core.excitation import AxisExcitation
 from calibrex.core.result import StrictModel
 
 BAG_ESTIMATE_SCHEMA_VERSION: Literal["slac.bag_estimate/v0.1"] = "slac.bag_estimate/v0.1"
@@ -76,6 +77,11 @@ class EstimateAxis(StrictModel):
     std: float | None = Field(default=None, ge=0.0)
     status: EstimateAxisStatus
     reason: str | None = None
+    excitation: AxisExcitation | None = Field(
+        default=None,
+        description="translation axes of a lever-arm estimate: why the axis is (un)observable "
+        "on this recording and what motion or duration would make it observable",
+    )
 
 
 class EstimatePairRecord(StrictModel):

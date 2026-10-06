@@ -14,6 +14,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
+from calibrex.core.excitation import AxisExcitation
 from calibrex.core.imu_lidar_rotation import ImuLidarPolicyStatus
 from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.result import StrictModel
@@ -80,6 +81,10 @@ class ImuLidarTranslationAxisRecord(StrictModel):
     reference_value: float | None = None
     error_to_reference: float | None = None
     known_bad_control: ImuLidarTranslationControl | None = None
+    excitation: AxisExcitation | None = Field(
+        default=None,
+        description="why this axis is (un)observable on this recording and what would change it",
+    )
 
     @model_validator(mode="after")
     def check_reported_std(self) -> ImuLidarTranslationAxisRecord:

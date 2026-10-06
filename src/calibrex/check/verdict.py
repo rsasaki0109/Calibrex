@@ -41,6 +41,7 @@ from calibrex.core.calibration_check import (
     CheckUncheckedFocal,
     FocalName,
 )
+from calibrex.core.excitation import AxisExcitation
 
 ROTATION_AXES: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw")
 VERDICT_ORDER: tuple[str, ...] = ("pass", "inconclusive", "warn", "fail")
@@ -103,6 +104,8 @@ class AxisEstimate:
     unchecked_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
     floor: float | None = None
     """A floor for this axis (in ``unit``) that applies when larger than the option's floor."""
+    excitation: AxisExcitation | None = None
+    """Translation axes: why the axis is (un)observable on this recording."""
 
 
 def judge_axis(estimate: AxisEstimate, options: VerdictOptions) -> CheckAxisJudgement:
@@ -178,6 +181,7 @@ def judge_pair(estimates: Sequence[AxisEstimate], options: VerdictOptions) -> Pa
                     std=estimate.std,
                     reason=estimate.unchecked_reason or "not constrained by the data",
                     reason_code=estimate.unchecked_code or "unobservable",
+                    excitation=estimate.excitation,
                 )
             )
     if not axes:

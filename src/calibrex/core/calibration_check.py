@@ -24,6 +24,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
+from calibrex.core.excitation import AxisExcitation
 from calibrex.core.result import StrictModel
 
 CALIBRATION_CHECK_SCHEMA_VERSION: Literal["slac.calibration_check/v0.1"] = (
@@ -200,6 +201,11 @@ class CheckUncheckedAxis(StrictModel):
     std: float | None = Field(default=None, ge=0.0)
     reason: str
     reason_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+    excitation: AxisExcitation | None = Field(
+        default=None,
+        description="translation axes of a lever-arm estimate: why the axis is (un)observable "
+        "on this recording and what motion or duration would make it observable",
+    )
 
 
 FocalName = Literal["fx", "fy"]

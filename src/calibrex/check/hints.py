@@ -1,7 +1,9 @@
 """Next-step hints for skipped pairs and unmapped topics of ``calibrex check``.
 
 Hints are presentation only: they are rendered in the text output and are not
-part of the ``slac.calibration_check`` artifact, so that schema is unchanged.
+part of the ``slac.calibration_check`` artifact.  The one exception in content
+is the excitation diagnosis of an unobservable translation axis, which the
+artifact carries (``unchecked_axes[].excitation``) and the hint only renders.
 """
 
 from __future__ import annotations
@@ -150,6 +152,23 @@ def topic_hint(topic: CheckTopicRecord, *, tree_frames: Sequence[str] = ()) -> s
     )
 
 
+def excitation_hints(pair: str, axes: Sequence[Any]) -> list[str]:
+    """One next step per unobservable translation axis that carries an excitation diagnosis.
+
+    ``axes`` are records with ``name``, ``status`` (or ``reason_code``) and an
+    ``excitation`` (:class:`~calibrex.core.excitation.AxisExcitation`).  Axes the
+    estimator did not run (cause ``unsolved``) and observable ones give no hint.
+    """
+
+    hints: list[str] = []
+    for axis in axes:
+        excitation = getattr(axis, "excitation", None)
+        if excitation is None or excitation.cause in {"observable", "unsolved"}:
+            continue
+        hints.append(f"{pair} lever arm {excitation.recommendation}")
+    return hints
+
+
 def _example_map(artifact: CalibrationCheckArtifact) -> str:
     for topic in artifact.topics:
         if topic.header_frame_id and topic.role not in {"tf_static", None}:
@@ -191,6 +210,9 @@ def collect_next_steps(artifact: CalibrationCheckArtifact) -> list[str]:
         if hint is None:
             continue
         add(f"{pair.pair}: {hint}" if pair.reason_code == "missing_topic" else hint)
+    for pair in artifact.pairs:
+        for text in excitation_hints(pair.pair, pair.unchecked_axes):
+            add(text)
     return steps
 
 

@@ -32,6 +32,7 @@ from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation
 
 from calibrex import __version__
+from calibrex.core.excitation import AxisExcitation
 from calibrex.core.imu_lidar_rotation import ImuLidarPolicyStatus, ImuLidarRotationArtifact
 from calibrex.core.imu_lidar_translation import (
     ImuLidarRotationInput,
@@ -58,6 +59,10 @@ from calibrex.evaluation.imu_lidar_rotation import (
     collect_livox_windows,
 )
 from calibrex.evaluation.odometry_windows import WindowingOptions
+from calibrex.evaluation.translation_observability import (
+    ExcitationInputs,
+    diagnose_translation_axes,
+)
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.imu_lidar_rotation_solver import GyroSeries, gyro_rotation_model
 from calibrex.solvers.imu_lidar_translation_solver import (
@@ -152,6 +157,7 @@ def evaluate_imu_lidar_translation(
     )
     sensitivity = _sensitivity(translation, segment_fits)
     analytic = translation_std_m(result)
+    excitation = _excitation(train, systems, analytic, jackknife, sensitivity, result, opts)
     records = tuple(
         _record(
             axis,
@@ -162,6 +168,7 @@ def evaluate_imu_lidar_translation(
             None if reference_translation is None else float(reference_translation[axis]),
             _control(axis, holdout, translation, result.sigma_m, opts),
             opts,
+            excitation[axis],
         )
         for axis in range(3)
     )
@@ -443,6 +450,7 @@ def _record(
     reference: float | None,
     control: ImuLidarTranslationControl | None,
     opts: ImuLidarTranslationOptions,
+    excitation: AxisExcitation | None = None,
 ) -> ImuLidarTranslationAxisRecord:
     reported = max(analytic, jackknife or 0.0, sensitivity or 0.0)
     finite = sensitivity is not None and math.isfinite(sensitivity)
@@ -460,6 +468,44 @@ def _record(
         reference_value=reference,
         error_to_reference=None if reference is None else value - reference,
         known_bad_control=control,
+        excitation=excitation,
+    )
+
+
+def _excitation(
+    train: Sequence[WindowSystem],
+    systems: Sequence[WindowSystem],
+    analytic: FloatArray,
+    jackknife: FloatArray | None,
+    sensitivity: FloatArray | None,
+    result: TranslationResult,
+    opts: ImuLidarTranslationOptions,
+) -> list[AxisExcitation]:
+    """Per-axis excitation diagnosis (see :mod:`calibrex.evaluation.translation_observability`)."""
+
+    sigma = result.sigma_m or 1.0
+    ideal = sum((system.design.T @ system.design for system in train), np.zeros((3, 3))) / sigma**2
+    moment = sum((system.rotation_moment for system in train), np.zeros((3, 3)))
+    scans = sum(system.scan_rows for system in train)
+    squared = sum(system.elapsed_sq_sum_s2 for system in train)
+    scaling = np.maximum(analytic, np.zeros(3) if jackknife is None else jackknife)
+    floor = np.zeros(3) if sensitivity is None else sensitivity
+    return diagnose_translation_axes(
+        ExcitationInputs(
+            kind="imu_lidar",
+            std_analytic_m=analytic,
+            std_scaling_m=scaling,
+            std_reported_m=np.maximum(scaling, floor),
+            bound_m=opts.solver.observable_translation_std_m,
+            ideal_information=np.asarray(ideal, dtype=np.float64),
+            rotation_moment=np.asarray(moment, dtype=np.float64),
+            samples=scans,
+            covered_s=sum(system.covered_s for system in train),
+            recording_s=sum(system.window_span_s for system in systems),
+            interval_s=math.sqrt(3.0 * squared / scans) if scans else 0.0,
+            sensitivity_m=floor,
+            windows=len(train),
+        )
     )
 
 

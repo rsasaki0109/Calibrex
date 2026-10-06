@@ -272,10 +272,23 @@ def window_residuals(
         antenna = translations + np.einsum("kij,j->ki", rotations, lever_arm)
         odometry = antenna[window.second] - antenna[window.first]
         gnss = window.gnss_m[window.second] - window.gnss_m[window.first]
-        # The pose-noise term depends on the trial offset through the blend
-        # fractions; without it the fit is biased toward offsets whose
-        # interpolated poses average two noisy poses.
-        sigma = np.sqrt(
+        sigma = _pair_sigma(window, blend, odometry, opts)
+        rotation = weighted_procrustes(odometry, gnss, 1.0 / sigma**2)
+        error = gnss - odometry @ rotation.T
+        blocks.append((error / sigma[:, None] if normalize else error).reshape(-1))
+    return np.concatenate(blocks) if blocks else np.empty(0)
+
+
+def _pair_sigma(
+    window: WindowPairs, blend: FloatArray, odometry: FloatArray, opts: LeverArmOptions
+) -> FloatArray:
+    """Noise sigma (m) of every displacement pair of a window."""
+
+    # The pose-noise term depends on the trial offset through the blend
+    # fractions; without it the fit is biased toward offsets whose
+    # interpolated poses average two noisy poses.
+    return np.asarray(
+        np.sqrt(
             window.gnss_sigma_m[window.first] ** 2
             + window.gnss_sigma_m[window.second] ** 2
             + opts.odometry_pose_sigma_m**2 * (blend[window.first] + blend[window.second])
@@ -284,11 +297,58 @@ def window_residuals(
                 + opts.odometry_sigma_per_m * np.linalg.norm(odometry, axis=1)
             )
             ** 2
-        )
-        rotation = weighted_procrustes(odometry, gnss, 1.0 / sigma**2)
-        error = gnss - odometry @ rotation.T
-        blocks.append((error / sigma[:, None] if normalize else error).reshape(-1))
-    return np.concatenate(blocks) if blocks else np.empty(0)
+        ),
+        dtype=np.float64,
+    )
+
+
+@dataclass(frozen=True)
+class PairExcitation:
+    """Rotation between the paired antenna epochs, summed over a set of windows.
+
+    ``ideal_information`` is ``sum (R_j - R_i)^T (R_j - R_i) / (sigma^2 v)`` (1/m^2,
+    ``v`` the residual variance factor), ``rotation_moment`` the sum of
+    ``theta theta^T`` of the lidar rotation ``Log(R_i^T R_j)`` (rad^2, lidar
+    frame), ``squared_span_s2`` the sum of squared time spans of the pairs and
+    ``covered_s`` the time the windows' epochs span.
+    """
+
+    ideal_information: FloatArray
+    rotation_moment: FloatArray
+    pairs: int
+    squared_span_s2: float
+    covered_s: float
+
+
+def pair_excitation(
+    pairs: Sequence[WindowPairs],
+    lever_arm: FloatArray,
+    time_offset_s: float,
+    variance: float,
+    opts: LeverArmOptions,
+) -> PairExcitation:
+    """The rotation excitation of ``pairs`` for a fitted lever arm and clock offset."""
+
+    ideal = np.zeros((3, 3))
+    moment = np.zeros((3, 3))
+    count = 0
+    squared = 0.0
+    covered = 0.0
+    for window in pairs:
+        rotations, translations, blend = window.lidar_poses(window.epoch_times_s - time_offset_s)
+        antenna = translations + np.einsum("kij,j->ki", rotations, lever_arm)
+        sigma = _pair_sigma(window, blend, antenna[window.second] - antenna[window.first], opts)
+        first, second = rotations[window.first], rotations[window.second]
+        difference = second - first
+        ideal += np.einsum("k,kia,kib->ab", 1.0 / (sigma**2 * variance), difference, difference)
+        relative = np.transpose(first, (0, 2, 1)) @ second
+        thetas = Rotation.from_matrix(relative).as_rotvec()
+        moment += thetas.T @ thetas
+        spans = window.epoch_times_s[window.second] - window.epoch_times_s[window.first]
+        squared += float(np.sum(spans**2))
+        count += len(spans)
+        covered += float(window.epoch_times_s[-1] - window.epoch_times_s[0])
+    return PairExcitation(ideal, moment, count, squared, covered)
 
 
 def weighted_procrustes(source: FloatArray, target: FloatArray, weights: FloatArray) -> FloatArray:

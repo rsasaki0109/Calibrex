@@ -16,6 +16,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
+from calibrex.core.excitation import AxisExcitation
 from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.result import StrictModel
 
@@ -63,6 +64,10 @@ class GnssLidarDofRecord(StrictModel):
     reference_value: float | None = None
     error_to_reference: float | None = None
     known_bad_control: GnssLidarKnownBadControl | None = None
+    excitation: AxisExcitation | None = Field(
+        default=None,
+        description="translation axes only: why it is (un)observable and what would change it",
+    )
 
     @model_validator(mode="after")
     def check_reported_std(self) -> GnssLidarDofRecord:
