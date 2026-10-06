@@ -21,6 +21,7 @@ import yaml
 from pydantic import ValidationError
 
 from calibrex.check.frame_tree import FrameHints, StaticEdge, StaticFrameTree, normalize_frame_id
+from calibrex.check.hints import template_refusal
 from calibrex.core.calibration_check import CandidateSourceKind, CheckFramesFile
 from calibrex.core.exceptions import DatasetError, FrameGraphError
 from calibrex.core.geometry import SE3, quaternion_xyzw_from_rotation_matrix
@@ -151,6 +152,9 @@ def load_tf_file(path: str | Path) -> LoadedSource:
     if not isinstance(payload, dict):
         msg = f"{file_path}: expected a YAML mapping"
         raise DatasetError(msg)
+    refusal = template_refusal(file_path, payload)
+    if refusal is not None:
+        raise DatasetError(refusal)
     if str(payload.get("schema_version", "")).startswith("slac.check_frames/"):
         return _load_frames_yaml(file_path, payload, digest)
     if isinstance(payload.get("sensors"), dict):

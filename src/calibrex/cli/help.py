@@ -157,6 +157,7 @@ CHECK_ARGUMENT_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "--tf",
             "--vehicle-frame",
             "--plan",
+            "--write-frames-template",
             "--pairs",
             "--output",
             "--html",

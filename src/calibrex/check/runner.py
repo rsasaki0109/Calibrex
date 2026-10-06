@@ -32,6 +32,7 @@ from calibrex.check.estimators import (
     transform_matrix,
 )
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
+from calibrex.check.hints import format_next_steps
 from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.roles import (
     classify_topics,
@@ -947,4 +948,5 @@ def format_check_table(artifact: CalibrationCheckArtifact) -> str:
         f"summary: {summary.pair_count} pair record(s), {summary.runnable_count} runnable"
         + (f" ({counts})" if counts else "")
     )
+    lines.extend(format_next_steps(artifact))
     return "\n".join(lines)
