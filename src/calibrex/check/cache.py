@@ -67,6 +67,7 @@ FINGERPRINT_EXCLUDED: tuple[str, ...] = (
     "check/drift.py",  # compares finished per-bag estimates; never produces one
     "core/calibration_drift.py",  # the drift artifact schema
     "data/rosbag2_imu_rotate.py",  # test-bag writer (known-bad control); not read by estimators
+    "data/rosbag2_time_shift.py",  # test-bag writer (clock-offset known-bad control); same
     "init_templates.py",  # ``calibrex init`` template text
 )
 

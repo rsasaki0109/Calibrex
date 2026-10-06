@@ -36,7 +36,7 @@ CALIBRATION_DRIFT_SCHEMA_VERSION: Literal["slac.calibration_drift/v0.1"] = (
 )
 
 DriftVerdict = Literal["stable", "inconclusive", "drift"]
-FloorSource = Literal["rotation", "rigid_scan_rotation", "translation"]
+FloorSource = Literal["rotation", "rigid_scan_rotation", "translation", "time_offset"]
 
 
 class DriftThresholds(StrictModel):
@@ -47,6 +47,11 @@ class DriftThresholds(StrictModel):
     rigid_scan_rotation_floor_deg: float = Field(gt=0.0)
     translation_floor_m: float = Field(gt=0.0)
     chi2_alpha: float = Field(gt=0.0, lt=1.0)
+    time_offset_floors_s: dict[str, float] = Field(
+        default_factory=dict,
+        description="minimum detectable clock-offset change per pair type, in seconds; "
+        "'default' applies to a pair type not listed",
+    )
 
 
 class DriftBagRef(StrictModel):
@@ -69,7 +74,7 @@ class DriftBagRef(StrictModel):
 
 
 class DriftObservation(StrictModel):
-    """One bag's estimate of one axis."""
+    """One bag's estimate of one axis (or of the pair's clock offset, in seconds)."""
 
     bag: str
     value: float | None = None
@@ -132,6 +137,19 @@ class DriftAxisRecord(StrictModel):
     leave_one_out: list[DriftLeaveOneOut] = Field(default_factory=list)
 
 
+class DriftTimeOffsetRecord(DriftAxisRecord):
+    """Consistency of one pair's clock offset (seconds) across bags.
+
+    The same record as an axis (observations, pairwise z with the floor, chi-square, leave-one-out)
+    with ``name`` fixed to ``time_offset``. ``unit`` is ``s``, so it is not a rotation or
+    translation axis.
+    """
+
+    name: Literal["time_offset"] = "time_offset"  # type: ignore[assignment]
+    unit: Literal["s"] = "s"  # type: ignore[assignment]
+    floor_source: FloorSource = "time_offset"
+
+
 class DriftBagChange(StrictModel):
     """How far one bag sits from the others on the pair's rotation, when it deviates."""
 
@@ -146,6 +164,10 @@ class DriftBagChange(StrictModel):
     axes_delta: dict[str, float] = Field(
         default_factory=dict, description="this bag minus the reference, per observed axis"
     )
+    time_offset_delta_s: float | None = Field(
+        default=None,
+        description="this bag's clock offset minus the reference, when it was compared in both",
+    )
 
 
 class DriftPairRecord(StrictModel):
@@ -158,6 +180,14 @@ class DriftPairRecord(StrictModel):
     reason: str | None = None
     bags_compared: list[str] = Field(default_factory=list)
     axes: list[DriftAxisRecord] = Field(default_factory=list)
+    time_offset: DriftTimeOffsetRecord | None = Field(
+        default=None,
+        description="the pair's clock offset compared across bags (same tests as an axis); "
+        "absent when the pair type has no meaningful offset (see time_offset_skipped)",
+    )
+    time_offset_skipped: str | None = Field(
+        default=None, description="why the clock offset of this pair type is not compared"
+    )
     deviating_bags: list[str] = Field(
         default_factory=list,
         description="bags that disagree with the rest on a drifting axis; empty when two bags "
@@ -175,6 +205,8 @@ class DriftSummary(StrictModel):
     verdict_counts: dict[str, int] = Field(default_factory=dict)
     axes_tested: int = Field(ge=0)
     axes_drifting: int = Field(ge=0)
+    time_offsets_tested: int | None = Field(default=None, ge=0)
+    time_offsets_drifting: int | None = Field(default=None, ge=0)
 
 
 class CalibrationDriftArtifact(StrictModel):

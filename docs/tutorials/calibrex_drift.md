@@ -36,17 +36,28 @@ Give the bags in recording order. The flags of `calibrex estimate` apply
     * the axis is `drift` when a pair exceeds its tolerance **and** the
       chi-square test rejects homogeneity, `stable` when not, and
       `inconclusive` when fewer than two bags observed it.
-3. Pair verdict: `drift` if any axis drifts, else `stable` if any axis was
-   tested, else `inconclusive`. Overall verdict: the worst pair
+3. **Clock offset.** The per-pair time offset of each bag's estimate (`time_offset` of the
+   `slac.bag_estimate`) is compared with the same two tests, as the row `dt` in ms. Only a
+   bag whose offset the estimator marks `estimated` (with a finite std) enters; an
+   `unobservable` offset is skipped like an unobserved axis. The floor is per pair type:
+   **1 ms for `camera-imu`, 2 ms for every other pair** (`--time-offset-floor-ms` sets one
+   floor for all). `lidar-wheel_odometry` is never compared: its offset sits on the odometry
+   sample lattice (KITTI's OXTS proxy gives 66 to 70 ms) and is not a clock-offset
+   measurement; the output says so.
+4. Pair verdict: `drift` if any axis **or the clock offset** drifts, else `stable` if any
+   was tested, else `inconclusive`. Overall verdict: the worst pair
    (`stable < inconclusive < drift`). Exit status 1 on `drift` by default;
    `--fail-on inconclusive|never` changes it.
-4. **Which bag moved.** With three or more bags the deviating bags are those
+5. **Which bag moved.** With three or more bags the deviating bags are those
    whose removal restores consistency (fewer than half the bags may be
    removed; if the bags split instead, nobody is blamed). With two bags a
    difference cannot be attributed, and the output says so. For each deviating
    bag the artifact gives its offset from the consensus per axis and, when all
    three rotation axes were observed, the angle of the rotation between the two
-   estimated rotations.
+   estimated rotations, and its clock-offset change. The attribution uses the axes and
+   the clock offset of the pair together. When only the clock offset differs the next steps
+   say so (check the time synchronisation of that recording), because re-calibrating the
+   extrinsic would not help.
 
 ## Reading the output
 
@@ -79,6 +90,23 @@ every bag's observation and the tests, the thresholds, the next steps and the
 provenance. `--html FILE` writes a self-contained report with the per-axis
 estimates and the minimum detectable change drawn as a band.
 
+## Known-bad control: a shifted IMU clock
+
+`tools/shift_stamps_in_bag.py` copies a bag and adds a known offset to the header stamp of
+every message of the chosen topics, which is what a changed clock offset (driver update, PTP
+or hardware-timestamping change) does to a sensor's stamps:
+
+```bash
+python tools/shift_stamps_in_bag.py my_bag/ my_bag_dt/ --topic /alphasense/imu --shift-ms 2 \
+  --max-duration-s 130
+calibrex drift my_bag/ other_bag/ third_bag/ my_bag_dt/ --pairs camera-imu --output drift/
+```
+
+The estimators read the **header stamp** of Imu, Image and PointCloud2 messages (the bag's
+log time only when the header stamp is zero), so that is what is shifted; the log (receive)
+time is left alone unless `--shift-log-time` is given, and per-point time fields of a cloud
+are not touched. Shifting the IMU by `+d` moves the estimated `camera-imu` offset by `+d`.
+
 ## Known-bad control: a remounted IMU
 
 To check that the detector sees a real change, `tools/rotate_imu_in_bag.py`
@@ -104,7 +132,10 @@ the false-alarm behaviour on unmodified recordings, are on
   recordings leave most axes unobservable (a KITTI drive constrains one or two
   of the vehicle pair's axes), and the pair is then `inconclusive` rather than
   `stable`.
-* Time offsets and intrinsics are not compared.
+* Intrinsics are not compared. Time offsets are compared only where the estimator reports
+  one as `estimated`; the floors (1 ms `camera-imu`, 2 ms otherwise) were set from the
+  recording-to-recording scatter of the two datasets on the
+  [evaluation page](../benchmarks/drift_real_data.md#clock-offsets), not from a larger study.
 * A real change smaller than the minimum detectable change is not detected, and
   an underestimated std on a dataset the estimator handles poorly can produce a
   false alarm; the floors exist for the second case, and the evaluation page

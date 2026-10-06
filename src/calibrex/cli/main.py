@@ -3207,6 +3207,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="smallest translation change that is flagged (default 0.02)",
     )
     drift.add_argument(
+        "--time-offset-floor-ms",
+        type=float,
+        default=None,
+        help="smallest clock-offset change that is flagged, for every pair type "
+        "(default: a per-pair-type floor, 2 ms)",
+    )
+    drift.add_argument(
         "--chi2-alpha",
         type=float,
         default=0.01,
@@ -4455,6 +4462,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
     from calibrex.check.cache import default_cache_dir
     from calibrex.check.drift import (
         ARTIFACT_NAME,
+        DEFAULT_TIME_OFFSET_FLOORS_S,
         DRIFT_VERDICT_ORDER,
         DriftOptions,
         build_calibration_drift,
@@ -4499,6 +4507,11 @@ def _cmd_drift(args: argparse.Namespace) -> int:
             rigid_scan_rotation_floor_deg=args.rigid_scan_rotation_floor_deg,
             translation_floor_m=args.translation_floor_m,
             chi2_alpha=args.chi2_alpha,
+            time_offset_floors_s=(
+                {"default": args.time_offset_floor_ms * 1e-3}
+                if args.time_offset_floor_ms is not None
+                else dict(DEFAULT_TIME_OFFSET_FLOORS_S)
+            ),
         )
     except ValueError as exc:
         raise CalibrexError(str(exc)) from exc

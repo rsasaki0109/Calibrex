@@ -255,7 +255,8 @@ chi-square homogeneity test. Per pair the verdict is `stable`, `drift` (with the
 named when three or more bags allow it, and the size of the change) or `inconclusive`; exit
 status 1 on `drift` (`--fail-on`). Result: `drift/calibration_drift.json`,
 `slac.calibration_drift/v0.1`. A `stable` verdict means no change larger than the reported
-minimum detectable change was found. See [the drift page](docs/tutorials/calibrex_drift.md).
+minimum detectable change was found. Per-pair clock offsets are compared too (see
+[the drift page](docs/tutorials/calibrex_drift.md)).
 
 ## Pre-registered SOTA audits
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import html
 from pathlib import Path
 
+from calibrex.check.drift import unit_scale
 from calibrex.core.calibration_drift import (
     CalibrationDriftArtifact,
     DriftAxisRecord,
@@ -43,8 +44,7 @@ def _axis_svg(axis: DriftAxisRecord, bag_names: list[str]) -> str:
     used = [o for o in axis.observations if o.used and o.value is not None and o.std is not None]
     if len(used) < 2:
         return ""
-    scale = 1.0 if axis.unit == "deg" else 100.0
-    unit = "deg" if axis.unit == "deg" else "cm"
+    scale, unit = unit_scale(axis.unit)
     lows = [(o.value or 0.0) * scale - (o.std or 0.0) * scale for o in used]
     highs = [(o.value or 0.0) * scale + (o.std or 0.0) * scale for o in used]
     mean = (axis.weighted_mean or 0.0) * scale
@@ -92,9 +92,8 @@ def _axis_svg(axis: DriftAxisRecord, bag_names: list[str]) -> str:
 def _pair_card(pair: DriftPairRecord, bag_names: list[str]) -> str:
     rows = []
     charts = []
-    for axis in pair.axes:
-        scale = 1.0 if axis.unit == "deg" else 100.0
-        unit = "deg" if axis.unit == "deg" else "cm"
+    for axis in [*pair.axes, *([pair.time_offset] if pair.time_offset is not None else [])]:
+        scale, unit = unit_scale(axis.unit)
         diff = "-" if axis.max_abs_difference is None else f"{axis.max_abs_difference * scale:.3f}"
         floor = (
             "-"
@@ -113,12 +112,17 @@ def _pair_card(pair: DriftPairRecord, bag_names: list[str]) -> str:
         who = ", ".join(pair.deviating_bags) or "cannot be attributed to one bag"
         detail = f"<p>Deviating: {html.escape(who)}</p>"
         for change in pair.changes:
+            clock = (
+                f", time offset {change.time_offset_delta_s * 1e3:+.3f} ms"
+                if change.time_offset_delta_s is not None
+                else ""
+            )
             angle = (
                 f", rotation {change.rotation_delta_deg:.2f} deg"
                 if change.rotation_delta_deg is not None
                 else ""
             )
-            detail += f"<p class='muted'>{html.escape(change.bag)}{angle}</p>"
+            detail += f"<p class='muted'>{html.escape(change.bag)}{angle}{clock}</p>"
     frames = (
         f" <span class='muted'>T_{html.escape(pair.parent_frame or '')}_"
         f"{html.escape(pair.child_frame or '')}</span>"
