@@ -172,7 +172,14 @@ injected here; the numbers are the development drives, not a held-out claim.
 ```bash
 calibrex estimate my_bag/ --output est/                     # add --tf rough.yaml for a prior
 calibrex check other_bag/ --tf est/frames.yaml              # verify on a different recording
+calibrex estimate my_bag/ --output est/ --html est.html     # also a self-contained HTML report
 ```
+
+`--html` (or `calibrex render est/bag_estimate.json --format html` later) writes a single
+offline page: per pair each axis as value, 1 sigma and observability (axes the data did not
+observe are greyed and marked "NOT MEASURED"), the exported and omitted frames, the exported
+files with their digests, and copy buttons for the `calibrex check --tf` and
+`static_transform_publisher` commands.
 
 It runs the same native estimators and keeps the estimates (`est/bag_estimate.json`,
 `slac.bag_estimate/v0.1`): per pair the transform, each axis with its standard deviation,

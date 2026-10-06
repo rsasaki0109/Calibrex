@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **`calibrex estimate --html FILE`** (and `calibrex render DIR/bag_estimate.json --format html`):
+  a self-contained HTML report of a `slac.bag_estimate/v0.1` artifact in the style of the check
+  report (light/dark, phone width): per-pair axes with value, 1 sigma on a log-scale bar and
+  observability status (non-observed axes greyed, "NOT MEASURED"), exported/omitted frame tree,
+  export digests, copyable `calibrex check --tf` and `static_transform_publisher` commands. No
+  schema change.
 - **`calibrex estimate` real-data validation** (KITTI vehicle pairs, RTK-SLAM GNSS pairs; see
   `docs/benchmarks/estimate_real_data.md`). Two fixes: the exported `topic_frames` now include
   the export root's topics (an IMU-rooted export lost `/imu -> imu`, so `check --tf frames.yaml`

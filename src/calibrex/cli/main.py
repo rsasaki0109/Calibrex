@@ -3122,6 +3122,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="directory for bag_estimate.json, frames.yaml, static_transforms.sh, "
         "static_transforms.launch.yaml, joints.urdf.xml and the evidence artifacts",
     )
+    estimate.add_argument(
+        "--html",
+        type=Path,
+        metavar="FILE",
+        help="also write a self-contained HTML report of the estimate "
+        "(file links are relative to it); calibrex render DIR/bag_estimate.json --format html "
+        "renders it again later",
+    )
     estimate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     estimate.add_argument(
         "--quiet",
@@ -3986,8 +3994,46 @@ def _render_check_artifact(args: argparse.Namespace) -> int | None:
     return 0
 
 
+def _render_estimate_artifact(args: argparse.Namespace) -> int | None:
+    """Render a ``slac.bag_estimate`` artifact; ``None`` when ``result`` is another kind."""
+
+    from calibrex.core.bag_estimate import BAG_ESTIMATE_SCHEMA_VERSION, BagEstimateArtifact
+    from calibrex.visualization.estimate_report import write_estimate_html
+
+    try:
+        payload = read_mapping(args.result)
+    except Exception:
+        return None
+    if not isinstance(payload, dict) or payload.get("schema_version") != (
+        BAG_ESTIMATE_SCHEMA_VERSION
+    ):
+        return None
+    if args.format != "html":
+        _die("a bag estimate artifact renders to --format html only")
+    artifact = BagEstimateArtifact.model_validate(payload)
+    target = args.html or args.result.with_suffix(".html")
+    if not target.is_absolute() and target.parent == Path("."):
+        target = (args.output_dir or args.result.parent) / target.name
+    write_estimate_html(artifact, target, artifact_dir=args.result.parent)
+    _emit(
+        {
+            "status": "ok",
+            "command": "render",
+            "render_only": True,
+            "recomputed_metrics": False,
+            "source_result": str(args.result),
+            "output_format": "html",
+            "html_report": str(target),
+        },
+        args.json,
+    )
+    return 0
+
+
 def _cmd_render(args: argparse.Namespace) -> int:
     rendered = _render_check_artifact(args)
+    if rendered is None:
+        rendered = _render_estimate_artifact(args)
     if rendered is not None:
         return rendered
     if args.format == "evidence-card":
@@ -4303,11 +4349,17 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         progress.run_finished()
     payload = artifact.model_dump(mode="json", exclude_none=True)
     write_mapping(output_dir / ARTIFACT_FILENAME, payload)
+    if args.html:
+        from calibrex.visualization.estimate_report import write_estimate_html
+
+        write_estimate_html(artifact, args.html, artifact_dir=output_dir)
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(format_estimate_text(artifact, output_dir))
         print(f"artifact: {output_dir / ARTIFACT_FILENAME}")
+        if args.html:
+            print(f"html report: {args.html}")
     return 0
 
 
