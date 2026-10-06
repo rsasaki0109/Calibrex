@@ -152,9 +152,11 @@ class _Timeline(CheckProgress):
         self.total_pairs = 0
         self.index = 0
         self.label = ""
-        self.pair_started_at = 0.0
+        # A message before the first pair (``estimate`` announces its plan) must not
+        # measure its elapsed time from the clock's origin (system boot).
+        self.pair_started_at = clock()
         self.stage_text = ""
-        self.stage_started_at = 0.0
+        self.stage_started_at = self.pair_started_at
         self.scan_total: int | None = None
         self.done: int | None = None
         self.total: int | None = None

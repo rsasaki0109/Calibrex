@@ -924,7 +924,12 @@ def build_bag_estimate(
 
     frames, edges = build_frame_tree(relations, records, topics, vehicle, prior)
     conflict = _prior_conflict(prior, edges)
+    # The root is not an entry but is a frame of the exported tree: the topics stamped in it
+    # (the IMU of an IMU-rooted export) need their mapping too, or the round trip cannot
+    # find them in the tree.
     exported = {entry.frame for entry in frames.entries}
+    if frames.entries and frames.root is not None:
+        exported.add(frames.root)
     topic_frames = {
         t.topic: t.mapped_frame
         for t in topics

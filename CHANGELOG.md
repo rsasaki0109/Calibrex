@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **`calibrex estimate` real-data validation** (KITTI vehicle pairs, RTK-SLAM GNSS pairs; see
+  `docs/benchmarks/estimate_real_data.md`). Two fixes: the exported `topic_frames` now include
+  the export root's topics (an IMU-rooted export lost `/imu -> imu`, so `check --tf frames.yaml`
+  skipped `imu-lidar` and `gnss-imu` as `frame_not_in_tree`), and the first progress line of
+  `estimate` no longer shows the machine's uptime as elapsed time. No schema change.
 - **`calibrex estimate`: a calibration for a bag that has none.** `calibrex estimate <bag>
   --output DIR` runs the check machinery (topic roles, planner, native estimators; same
   `--frame-map`, `--topic-kind`, `--vehicle-frame`, `--pairs`, `--max-duration-s`, cache flags)
