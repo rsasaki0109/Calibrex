@@ -12,6 +12,14 @@
   `docs/assets/calibrex_workflow/transcript.json`; registered in `readme-data-gifs.json`) and a
   screenshot of the estimate HTML report. Stale statements removed (check "no HTML report",
   browser page "only plans"). Docs and tools only; no schema change.
+- **`calibrex drift` compares clock offsets.** Each pair's estimated time offset (row `dt`, ms) is
+  tested across bags like an axis (pairwise z with a floor + chi-square) and enters the verdict,
+  the attribution, the text and the HTML report; floors 1 ms for `camera-imu`, 2 ms otherwise
+  (`--time-offset-floor-ms`), only offsets marked `estimated`, `lidar-wheel_odometry` never.
+  New `tools/shift_stamps_in_bag.py` shifts the header stamps of a topic by a known offset as a
+  known-bad control. Real data: no false alarm on Hilti camera-IMU (4 bags) or Koide IMU-LiDAR
+  (2 bags); a +1 ms IMU shift is detected and attributed on camera-IMU, +5 ms on IMU-LiDAR.
+  `slac.calibration_drift/v0.1` (unreleased) gains optional fields only.
 - **`calibrex estimate --html FILE`** (and `calibrex render DIR/bag_estimate.json --format html`):
   a self-contained HTML report of a `slac.bag_estimate/v0.1` artifact in the style of the check
   report (light/dark, phone width): per-pair axes with value, 1 sigma on a log-scale bar and

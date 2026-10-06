@@ -81,6 +81,7 @@ TIME_OFFSET = "time_offset"
 #: Minimum detectable clock-offset change per pair type (seconds); see the module docstring.
 DEFAULT_TIME_OFFSET_FLOORS_S: dict[str, float] = {
     "default": 0.002,
+    "camera-imu": 0.001,
 }
 #: Pair types whose estimated clock offset is not a measurement of a sensor clock offset.
 TIME_OFFSET_SKIPPED: dict[str, str] = {

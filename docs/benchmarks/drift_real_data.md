@@ -102,6 +102,85 @@ axes of the pair together (the bag whose removal leaves the smallest total chi-s
 half the bags may be removed), which names the modified bag; the regression test
 `test_attribution_uses_all_axes_of_the_pair_together` uses these numbers.
 
+## Clock offsets
+
+`calibrex drift` also compares each pair's estimated time offset (row `dt`, in ms) with the
+same two tests as an axis: pairwise tolerance `max(3 * combined std, floor)` and a chi-square
+homogeneity test. Floors: **1 ms for `camera-imu`, 2 ms for every other pair**
+(`--time-offset-floor-ms` sets one floor for all). Only offsets the estimator marks `estimated`
+are compared; `lidar-wheel_odometry` is never compared (its offset is quantised to the odometry
+lattice, see [the estimate page](estimate_real_data.md)). Nothing here is a SOTA claim; Hilti
+exp01 and exp02 were spent for earlier claims and are used for tool validation only.
+
+### How the floors were chosen
+
+Reported time-offset stds on these data are 0.12 to 0.28 ms (`camera-imu`, Hilti) and 0.14 to
+0.18 ms (`imu-lidar`, Koide). The recording-to-recording scatter of the unmodified bags is
+smaller than the 3-sigma tolerance in every case:
+
+| Set | Per-bag estimate (ms, ± reported std) | Largest pairwise difference |
+| --- | --- | ---: |
+| Hilti cam0, exp21 / exp07 / exp01 / exp02 | 1.789 ± 0.138 / 2.000 ± 0.151 / 1.619 ± 0.218 / 1.639 ± 0.202 | 0.38 ms |
+| Hilti cam1, the same four | 1.754 ± 0.125 / 1.828 ± 0.282 / 1.752 ± 0.120 / 1.710 ± 0.155 | 0.12 ms |
+| Koide `indoor_easy_01` / `indoor_easy_02` | 0.612 ± 0.178 / 0.842 ± 0.138 | 0.23 ms |
+
+A 1 ms floor for `camera-imu` is about 2.6 times the largest scatter seen (0.38 ms). The 2 ms
+floor of the other pairs rests on one pair of Koide recordings (0.23 ms) plus the Hilti
+camera-IMU data, so it is a conservative default, not a measured minimum; no RTK-SLAM bag was
+run for this (the estimator cache of #119 was invalidated, and four bags took about 90 min).
+
+### Same-rig recordings, nothing modified (expected: `stable`)
+
+| Set | Bags | Result | Largest pairwise \|z\| | Largest difference / floor |
+| --- | ---: | --- | ---: | ---: |
+| Hilti `camera-imu` cam0 (all axes + `dt`), first 120 s | 4 | **stable** (chi-square p 0.38) | 1.4 | 0.38 / 1.0 ms |
+| Hilti `camera-imu` cam1 | 4 | **stable** (p 0.99) | 0.4 | 0.12 / 1.0 ms |
+| Koide `imu-lidar` (rigid scans) | 2 | **stable** | 1.0 | 0.23 / 2.0 ms |
+
+No false alarm on the clock offset in any clean set (zero of three pair-sets, 10 bag-estimates).
+The rotation axes of the same Hilti bags are `stable` too, with one near miss: cam0 roll differs by
+0.563 deg between exp21 and exp02 (|z| 3.0, chi-square p 0.003) and stays under its pairwise
+tolerance of about 0.56 deg (the std-limited tolerance is just above the 0.5 deg floor).
+
+### Known-bad control: the IMU clock shifted
+
+`tools/shift_stamps_in_bag.py` adds a known offset to the **header stamp** of the IMU messages
+(the stamp the estimators read; the bag's log time is unchanged) of a copy of one bag.
+
+**Hilti `camera-imu`**: the four unmodified bags (exp21, exp07, exp01, exp02) plus a copy of
+exp21 with `/alphasense/imu` shifted (five bags, `--max-duration-s 120`, cam0 and cam1).
+
+| Shift (IMU stamps) | Twin: shifted minus original `dt` (cam0 / cam1) | Verdict | Deviating bag | Change vs the others, cam0 / cam1 | Largest difference / floor |
+| --- | --- | --- | --- | --- | --- |
+| +0.5 ms | +0.500 / +0.500 | **stable** (not flagged) | - | - | 0.67 / 1.0 ms (cam0) |
+| +1 ms | +1.000 / +1.000 | **drift** | the shifted bag | +0.986 / +1.005 ms | 1.17 / 1.0 ms |
+| +2 ms | +2.000 / +2.000 | **drift** | the shifted bag | +1.986 / +2.005 ms | 2.17 / 1.0 ms |
+| +5 ms | +5.000 / +5.000 | **drift** | the shifted bag | +4.986 / +5.005 ms | 5.17 / 1.0 ms |
+
+**Koide `imu-lidar`**: `indoor_easy_01`, `indoor_easy_02` plus a copy of `indoor_easy_01` with
+`/imu` shifted (three bags, whole recordings).
+
+| Shift | Twin: shifted minus original `dt` | Verdict | Deviating bag | Change vs the others | Largest difference / floor |
+| --- | --- | --- | --- | --- | --- |
+| +1 ms | +1.000 ms | **stable** (under the 2 ms floor) | - | - | 1.00 / 2.0 ms |
+| +2 ms | +1.969 ms | **stable** (1.97 ms, 0.03 ms under the floor) | - | - | 1.97 / 2.0 ms |
+| +5 ms | +4.973 ms | **drift** | the shifted bag | +4.830 ms | 4.97 / 2.0 ms |
+
+Findings:
+
+* **The injected offset is recovered to within about 0.03 ms** (the twin column is the effect on the
+  same data). The only other change the detector reports is the clock offset: the pair is `drift` on
+  `dt` with every rotation axis `stable`, and the next steps say that only the clock offset differs.
+* **Smallest shift detected with the defaults: 1 ms on `camera-imu`** (the floor; 1.17 and 1.04 ms
+  differences, 0.17 and 0.04 ms above it) and **5 ms on `imu-lidar`** (the 2 ms shift is measured, as
+  1.97 ms, but is 0.03 ms below the 2 ms floor). The 0.5 ms and 1 ms (Koide) shifts are measured
+  correctly and not flagged by policy. With `--time-offset-floor-ms 1` the Koide 2 ms shift would be
+  flagged (not run on the other bags; two clean recordings do not support a lower default).
+* **The deviating bag is named in every detected case** (five bags for Hilti, three for Koide).
+* On Koide the rotation of the shifted copy moves too (roll -0.36 deg at 2 and 5 ms, within the
+  1.5 deg rigid-scan floor): on rigid scans a time-offset error is partly absorbed by the rotation.
+  The 1 ms copy reproduced the original rotation exactly.
+
 ## Runtimes
 
 Estimator runs dominate and are cached (key: bag digest, estimator options, version and a content
@@ -116,6 +195,12 @@ runs are one process at a time.
 | + one modified Koide copy (3 bags) | 177 to 184 s (the new bag) | 13 s |
 | KITTI, 3 bags, four vehicle pairs | 254 s (48 + 42 + 161) | 3 to 4 s |
 
+Clock-offset runs (this section's code; no extra estimator work is needed to compare offsets, they
+are part of every per-bag estimate): Hilti `camera-imu`, cam0 + cam1, first 120 s, four clean bags
+176 + 319 + 211 + 320 s (17 min), each shifted copy 85 to 185 s as the new bag, 1 s per cached bag
+afterwards; Koide, two clean bags 338 + 253 s, each shifted copy 229 to 389 s. Writing a shifted
+130 s Hilti copy took about 2 min, a full Koide copy (4.4 GB) several minutes.
+
 ## Reproducing
 
 ```bash
@@ -128,6 +213,19 @@ calibrex drift $R/stadtgarten_seq1 $R/stadtgarten_seq2 $R/construction_seq1 $R/c
   sg1_z1p0 --pairs imu-lidar --max-duration-s 120 --output drift_rtk_z1p0
 calibrex drift kitti_0009_bag kitti_0015_bag kitti_pool3_bag --vehicle-frame base_link \
   --topic-kind /oxts/twist=wheel --output drift_kitti
+```
+
+```bash
+H=/media/sasaki/aiueo2/datasets/hilti2022
+python tools/shift_stamps_in_bag.py $H/exp21_ros2 exp21_dt2ms --topic /alphasense/imu \
+  --shift-ms 2 --max-duration-s 130
+calibrex drift $H/exp21_ros2 $H/exp07_ros2 $H/exp01_ros2 $H/exp02_ros2 exp21_dt2ms \
+  --pairs camera-imu --max-duration-s 120 \
+  --tf $H/calibration_files/calib_3_cam0-1-camchain-imucam.yaml --output drift_hilti_dt2ms
+K=/media/sasaki/aiueo2/datasets/koide_hard_localization/sequences
+python tools/shift_stamps_in_bag.py $K/indoor_easy_01 koide01_dt5ms --topic /imu --shift-ms 5
+calibrex drift $K/indoor_easy_01 $K/indoor_easy_02 koide01_dt5ms --pairs imu-lidar \
+  --output drift_koide_dt5ms
 ```
 
 (KITTI bags are converted as in [the estimate page](estimate_real_data.md#vehicle-pairs-kitti-raw-development-drives).)
@@ -146,5 +244,11 @@ calibrex drift kitti_0009_bag kitti_0015_bag kitti_pool3_bag --vehicle-frame bas
 * The estimators' stds are not guaranteed calibrated (see the Koide yaw above), so the floors, not
   the stds, set what is flagged on rigid-scan data. Rotation axes are differences of rotation-vector
   components, a small-angle approximation (the angle in the table is computed from the rotations).
+* The clock-offset floors come from two datasets (Hilti camera-IMU, Koide IMU-LiDAR), not from a
+  study across rigs; no RTK-SLAM or Hesai/Livox recordings were compared for it, so the 2 ms floor
+  of `imu-lidar` is a conservative guess. The shift injection moves the IMU header stamps of one
+  real recording, so the twin shares its data with the original; a real driver or PTP change may
+  also change the jitter or drift rate of the stamps, which a constant offset does not emulate.
+  On an unmodified `lidar-wheel_odometry` the offset is not compared at all.
 * Three or more bags are needed to say which one moved, and the recording-to-recording
   scatter limits attribution when only two reference bags exist.

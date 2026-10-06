@@ -390,7 +390,8 @@ def test_unobserved_clock_offsets_are_skipped_and_a_pair_can_be_stable_on_time_a
 
 
 def test_time_offset_floor_options() -> None:
-    assert OPTIONS.time_offset_floor_s("camera-imu") == pytest.approx(0.002)
+    assert OPTIONS.time_offset_floor_s("camera-imu") == pytest.approx(0.001)
+    assert OPTIONS.time_offset_floor_s("imu-lidar") == pytest.approx(0.002)
     custom = DriftOptions(time_offset_floors_s={"default": 0.004, "camera-imu": 0.0005})
     assert custom.time_offset_floor_s("camera-imu") == pytest.approx(0.0005)
     assert custom.time_offset_floor_s("imu-lidar") == pytest.approx(0.004)
