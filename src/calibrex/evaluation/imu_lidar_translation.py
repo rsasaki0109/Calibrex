@@ -42,6 +42,7 @@ from calibrex.core.imu_lidar_translation import (
     ImuLidarTranslationProvenance,
     ImuLidarTranslationWindows,
 )
+from calibrex.core.progress import emit_stage
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import (
     MID360_T_LIDAR_IMU,
@@ -226,6 +227,7 @@ def run_livox_imu_lidar_translation(
     run_options = ImuLidarRunOptions(
         windowing=opts.windowing, coverage_margin_s=opts.coverage_margin_s
     )
+    emit_stage("odometry + gyro deskew pass for the lever arm")
     _, windows = collect_livox_windows(
         bags,
         stream,
@@ -237,6 +239,7 @@ def run_livox_imu_lidar_translation(
         max_seconds=max_seconds,
         scan_store=scan_store,
     )
+    emit_stage("lever-arm estimation")
     imu = ImuPreintegrator(samples.times_s, samples.gyro_rps, samples.accel_mps2, gyro_bias)
     evaluation = evaluate_imu_lidar_translation(
         imu,

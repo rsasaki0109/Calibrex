@@ -9,6 +9,14 @@
   bag's sensor frames. The template carries `schema_version: slac.check_frames_template/v0.1`
   and TODO placeholders; `--tf` refuses it until it is filled in and the version is changed to
   `slac.check_frames/v0.1`. Hints are text-only; the artifact schema is unchanged.
+- **`calibrex check` progress**: a live report on stderr with the pair (`pair i/N`), the stage
+  (reading, odometry + deskew pass k of up to n, estimation), scans processed / total, elapsed
+  time and an ETA when the total is known, and `[cache hit]` for reused estimates. One updating
+  line on a terminal; one line per event when stderr is redirected or with `--json`. `--quiet`
+  silences it. Results are bit-identical with progress on or off (hooks in
+  `calibrex.core.progress` only observe). The verdict column of the final table is coloured
+  (pass green, warn yellow, fail red, inconclusive/skipped dim) only on a TTY with `NO_COLOR`
+  unset.
 - Docs site revamp: custom theme and logo, a landing page that leads with `calibrex check`,
   tabbed navigation (Get started, Benchmarks & SOTA, Concepts, Reference, Internals),
   and a restyled browser calibration page.

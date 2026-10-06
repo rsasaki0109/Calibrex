@@ -431,6 +431,13 @@ never deletes cache entries (remove the directory to clear it).
 
 ### Runtime controls
 
+`calibrex check` reports progress on stderr: the pair (`pair i/N`), the stage, scans
+processed / total with elapsed time and an ETA when the total is known, and
+`[cache hit]` when an estimate was reused. On a terminal it is one updating line; when
+stderr is redirected or with `--json` it is one line per event. `--quiet` turns it off.
+The result on stdout is unchanged; the verdict column is coloured only on a terminal
+with `NO_COLOR` unset.
+
 `--gnss-max-duration-s S` sets the span for `gnss-lidar` (and so the GNSS input
 of `gnss-imu`) separately from `--max-duration-s`: the antenna lever arm needs
 minutes of RTK-fixed windows, `imu-lidar` a couple of minutes (see Phase C2).

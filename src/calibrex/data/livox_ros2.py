@@ -24,6 +24,7 @@ from typing import Literal, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
+from calibrex.core.progress import emit_stage, emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.rosbag2 import iter_messages
 
@@ -102,7 +103,8 @@ def iter_livox_points(
     """
 
     first_s: float | None = None
-    for _, timestamp_ns, payload in iter_messages(bag_dir, topics={profile.point_topic}):
+    messages = iter_messages(bag_dir, topics={profile.point_topic})
+    for scans_read, (_, timestamp_ns, payload) in enumerate(messages, start=1):
         cloud = ros_cdr.decode_ros2_pointcloud2(
             profile.point_topic,
             timestamp_ns,
@@ -122,6 +124,7 @@ def iter_livox_points(
         first_s = header_s if first_s is None else first_s
         if max_seconds is not None and header_s - first_s > max_seconds:
             break
+        emit_tick(scans_read)
         yield header_s, np.asarray(cloud.xyz, dtype=np.float64), offsets
 
 
@@ -167,7 +170,9 @@ class ScanStore:
         held = self._scans.get(key)
         if held is not None:
             self.hits += 1
-            for header_s, xyz, offsets in held:
+            emit_stage("replaying decoded scans from memory")
+            for replayed, (header_s, xyz, offsets) in enumerate(held, start=1):
+                emit_tick(replayed, len(held))
                 yield header_s, np.asarray(xyz, dtype=np.float64), offsets
             return
         self.reads += 1

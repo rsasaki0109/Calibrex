@@ -30,6 +30,7 @@ from typing import Any, Protocol, TypeVar
 import numpy as np
 
 from calibrex import __version__
+from calibrex.core.progress import emit_stage
 
 CACHE_FORMAT = 1
 
@@ -195,6 +196,7 @@ def cached_artifact(
     key = cache.key(bag_sha256, estimator, options)
     hit = cache.load(key, loader)
     if hit is not None:
+        emit_stage(f"reusing cached {estimator} estimate")
         return rebase(hit), True
     artifact = compute()
     cache.store(key, artifact, bag_sha256, estimator, options)

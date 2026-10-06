@@ -46,6 +46,7 @@ from calibrex.core.calibration_check import (
     CheckTimeOffset,
     CheckTopicRecord,
 )
+from calibrex.core.progress import emit_stage
 
 if TYPE_CHECKING:
     from calibrex.data.livox_ros2 import ScanStore
@@ -1833,7 +1834,9 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
             if ctx.controls.scan_store is not None
             else _iter_scans_plain(ctx.bag, profile, max_seconds)
         )
+        emit_stage("gnss-lidar: LiDAR odometry windows against the GNSS track")
         segmenter = collect_windows(model, scans, run_options, prefix=f"{ctx.bag.name}/")
+        emit_stage("gnss-lidar: lever-arm estimation")
         evaluation = evaluate_gnss_lidar_lever_arm(
             model, segmenter.windows, run_options, reference_lever_arm=lever_candidate
         )

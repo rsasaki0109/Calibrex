@@ -3070,6 +3070,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="also write a self-contained HTML report (evidence links are relative to it)",
     )
     check.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    check.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="suppress the progress report on stderr (the result on stdout is unchanged)",
+    )
     check.set_defaults(func=_cmd_check)
     group_arguments(check, CHECK_ARGUMENT_GROUPS, rest_title=CHECK_ADVANCED_TITLE)
 
@@ -4169,6 +4175,7 @@ def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
 def _cmd_check(args: argparse.Namespace) -> int:
     from calibrex.check import build_calibration_check, format_check_table
     from calibrex.check.cache import default_cache_dir
+    from calibrex.check.progress import make_progress, use_color
     from calibrex.check.roles import parse_topic_kinds
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
     from calibrex.check.verdict import (
@@ -4226,8 +4233,9 @@ def _cmd_check(args: argparse.Namespace) -> int:
             scan_memory_mb=max(args.scan_memory_mb, 0),
         )
 
-    def progress(message: str) -> None:
-        print(message, file=sys.stderr, flush=True)
+    # Progress goes to stderr only: an updating line on a terminal, one line per event
+    # when stderr is redirected or --json is given, nothing with --quiet.
+    progress = make_progress(sys.stderr, quiet=args.quiet, plain=args.json)
 
     if args.write_frames_template:
         from calibrex.check.hints import write_frames_template
@@ -4243,16 +4251,19 @@ def _cmd_check(args: argparse.Namespace) -> int:
         write_frames_template(args.write_frames_template, plan.topics)
         print(f"frames template: {args.write_frames_template}", file=sys.stderr, flush=True)
 
-    artifact = build_calibration_check(
-        args.bag,
-        tf_files=args.tf,
-        vehicle_frame=args.vehicle_frame,
-        frame_overrides=parse_frame_map(args.frame_map),
-        topic_kinds=parse_topic_kinds(args.topic_kind),
-        command=["calibrex", *args.invoked_argv],
-        run=run_options,
-        progress=progress,
-    )
+    try:
+        artifact = build_calibration_check(
+            args.bag,
+            tf_files=args.tf,
+            vehicle_frame=args.vehicle_frame,
+            frame_overrides=parse_frame_map(args.frame_map),
+            topic_kinds=parse_topic_kinds(args.topic_kind),
+            command=["calibrex", *args.invoked_argv],
+            run=run_options,
+            progress=progress,
+        )
+    finally:
+        progress.run_finished()
     payload = artifact.model_dump(mode="json", exclude_none=True)
     if args.output:
         write_mapping(args.output, payload)
@@ -4265,7 +4276,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
-        print(format_check_table(artifact))
+        print(format_check_table(artifact, color=use_color(sys.stdout)))
         if args.output:
             print(f"artifact: {args.output}")
         if args.html:
