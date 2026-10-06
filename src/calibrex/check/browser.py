@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from calibrex.check.progress import CheckProgress
+from calibrex.check.roles import parse_topic_kinds
 from calibrex.check.runner import (
     CheckRunOptions,
     build_calibration_check,
@@ -82,6 +83,7 @@ def check_command(
     tf_labels: Sequence[str] = (),
     vehicle_frame: str | None = None,
     frame_map: Sequence[str] = (),
+    topic_kind: Sequence[str] = (),
     plan: bool = False,
     outputs: bool = False,
 ) -> list[str]:
@@ -94,6 +96,8 @@ def check_command(
         argv += ["--vehicle-frame", vehicle_frame]
     for item in frame_map:
         argv += ["--frame-map", item]
+    for item in topic_kind:
+        argv += ["--topic-kind", item]
     if plan:
         argv.append("--plan")
     if outputs:
@@ -107,6 +111,7 @@ def plan_bag_for_browser(
     tf_files: Sequence[str | Path] = (),
     vehicle_frame: str | None = None,
     frame_map: Sequence[str] = (),
+    topic_kind: Sequence[str] = (),
     bag_label: str | None = None,
     tf_labels: Sequence[str] | None = None,
     command_bag: str | None = None,
@@ -128,14 +133,21 @@ def plan_bag_for_browser(
         msg = "tf_labels must have one entry per tf file"
         raise DatasetError(msg)
     frame_overrides = parse_frame_map(frame_map)
+    topic_kinds = parse_topic_kinds(topic_kind)
     vehicle = vehicle_frame.strip() if vehicle_frame and vehicle_frame.strip() else None
     artifact = build_calibration_check(
         bag_path,
         tf_files=tf_files,
         vehicle_frame=vehicle,
         frame_overrides=frame_overrides,
+        topic_kinds=topic_kinds,
         command=check_command(
-            label, tf_labels=labels, vehicle_frame=vehicle, frame_map=frame_map, plan=True
+            label,
+            tf_labels=labels,
+            vehicle_frame=vehicle,
+            frame_map=frame_map,
+            topic_kind=topic_kind,
+            plan=True,
         ),
     )
     remaining = iter(labels)
@@ -163,6 +175,7 @@ def plan_bag_for_browser(
                 tf_labels=labels,
                 vehicle_frame=vehicle,
                 frame_map=frame_map,
+                topic_kind=topic_kind,
                 outputs=True,
             )
         ),
@@ -172,6 +185,7 @@ def plan_bag_for_browser(
                 tf_labels=labels,
                 vehicle_frame=vehicle,
                 frame_map=frame_map,
+                topic_kind=topic_kind,
                 plan=True,
             )
         ),
@@ -198,6 +212,7 @@ def plan_request_json(request_json: str) -> str:
             tf_labels=request.get("tf_labels"),
             vehicle_frame=request.get("vehicle_frame"),
             frame_map=request.get("frame_map", []),
+            topic_kind=request.get("topic_kind", []),
             bag_label=request.get("bag_label"),
             command_bag=request.get("command_bag"),
         )
@@ -284,7 +299,7 @@ def run_options_from_request(request: dict[str, Any], work_dir: Path) -> CheckRu
     return CheckRunOptions(
         pairs=tuple(pairs) if pairs else None,
         max_duration_s=float(max_duration) if max_duration else None,
-        camera=request.get("camera") or None,
+        camera=(request.get("camera") or "").strip() or None,
         evidence_dir=work_dir / "evidence",
         base_dir=work_dir,
         cache_dir=None,
@@ -299,6 +314,8 @@ def run_command(
     tf_labels: Sequence[str] = (),
     vehicle_frame: str | None = None,
     frame_map: Sequence[str] = (),
+    topic_kind: Sequence[str] = (),
+    camera: str | None = None,
     pairs: Sequence[str] = (),
     max_duration_s: float | None = None,
 ) -> str:
@@ -311,6 +328,10 @@ def run_command(
         argv += ["--vehicle-frame", vehicle_frame]
     for item in frame_map:
         argv += ["--frame-map", item]
+    for item in topic_kind:
+        argv += ["--topic-kind", item]
+    if camera:
+        argv += ["--camera", camera]
     if pairs:
         argv += ["--pairs", ",".join(pairs)]
     if max_duration_s:
@@ -350,12 +371,17 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
         vehicle_text = request.get("vehicle_frame")
         vehicle = vehicle_text.strip() if vehicle_text and vehicle_text.strip() else None
         frame_map = request.get("frame_map", [])
+        topic_kind = request.get("topic_kind", [])
+        topic_kinds = parse_topic_kinds(topic_kind)
+        camera = (request.get("camera") or "").strip() or None
         progress: CheckProgress = EventProgress(emit) if emit is not None else CheckProgress()
         max_duration = float(request["max_duration_s"]) if request.get("max_duration_s") else None
         argv_args: dict[str, Any] = {
             "tf_labels": labels,
             "vehicle_frame": vehicle,
             "frame_map": frame_map,
+            "topic_kind": topic_kind,
+            "camera": camera,
             "pairs": request.get("pairs") or (),
             "max_duration_s": max_duration,
         }
@@ -371,6 +397,7 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
                     tf_files=tf_files,
                     vehicle_frame=vehicle,
                     frame_overrides=parse_frame_map(frame_map),
+                    topic_kinds=topic_kinds,
                     command=recorded,
                     run=run,
                     progress=progress,
@@ -395,6 +422,7 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
                     tf_files=tf_files,
                     vehicle_frame=vehicle,
                     frame_overrides=parse_frame_map(frame_map),
+                    topic_kinds=topic_kinds,
                     command=recorded,
                     progress=progress,
                 )

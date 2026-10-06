@@ -77,6 +77,10 @@
           <span class="hint">One <code>TOPIC=FRAME</code> per line (<code>--frame-map</code>): point a topic at the sensor frame it really comes from, when its header names another frame (for example streams already transformed into <code>base_link</code>).</span>
           <textarea id="frame-map" placeholder="/ouster/points=os_sensor&#10;/camera/image_raw=camera_optical" spellcheck="false"></textarea>
         </label>
+        <label class="field">Topic kinds
+          <span class="hint">One <code>TOPIC=wheel</code> or <code>TOPIC=ins</code> per line (<code>--topic-kind</code>): classify an odometry or twist topic when its name does not say (for example <code>/oxts/twist=wheel</code>).</span>
+          <textarea id="topic-kind" placeholder="/oxts/twist=wheel" spellcheck="false"></textarea>
+        </label>
       </div>
     </details>
 
@@ -123,6 +127,10 @@
           <input id="run-cap" type="number" min="0" step="1" value="60">
         </label>
       </div>
+      <label class="field">Camera (optional)
+        <span class="hint">For the camera pairs: the image topic or frame to use (<code>--camera</code>), when the bag has several cameras. Empty uses the first camera of each pair.</span>
+        <input id="run-camera" type="text" placeholder="/cam0/image_raw" autocomplete="off" spellcheck="false">
+      </label>
       <fieldset id="run-pairs" class="pairset"><legend>Pairs to run</legend></fieldset>
       <div class="actions">
         <button id="run-estimators" class="primary" type="button">Run in the browser</button>
@@ -312,7 +320,7 @@ document.addEventListener("click", (event) => {
 });
 $("clear").addEventListener("click", () => {
   bagFiles = []; tfFiles = []; folderName = null; useSample = false;
-  $("vehicle-frame").value = ""; $("frame-map").value = "";
+  $("vehicle-frame").value = ""; $("frame-map").value = ""; $("topic-kind").value = ""; $("run-camera").value = "";
   $("error").hidden = true; $("results").hidden = true; lastPlan = null;
   refresh();
 });
@@ -331,6 +339,7 @@ function request() {
     tf_labels: useSample ? [] : tfFiles.map((file) => file.name),
     vehicle_frame: $("vehicle-frame").value.trim() || null,
     frame_map: $("frame-map").value.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#")),
+    topic_kind: $("topic-kind").value.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#")),
   };
 }
 
@@ -434,7 +443,7 @@ function startRun() {
     type: "run",
     bag: useSample ? { urls: SAMPLE.urls } : { files: bagFiles },
     tf: useSample ? [] : tfFiles,
-    request: { ...request(), mode: runMode, pairs, max_duration_s: cap > 0 ? cap : null },
+    request: { ...request(), mode: runMode, pairs, max_duration_s: cap > 0 ? cap : null, camera: $("run-camera").value.trim() || null },
   });
 }
 $("run-estimators").addEventListener("click", startRun);

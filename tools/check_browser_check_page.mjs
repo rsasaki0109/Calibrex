@@ -9,6 +9,7 @@
 //   node tools/check_browser_check_page.mjs --url http://127.0.0.1:8124/app/check.html \
 //        --out /tmp/checkpage [--chrome /usr/bin/google-chrome] \
 //        [--bag PATH ...] [--tf FILE ...] [--vehicle-frame base_link] \
+//        [--topic-kind TOPIC=wheel ...] [--camera TOPIC] \
 //        [--run [--cap 60] [--pairs lidar-vehicle,imu-vehicle] [--mode check|estimate]]
 //
 // Without --bag it clicks "Try a sample bag" and asserts the plan (8 pairs can be checked, 4
@@ -37,6 +38,8 @@ const vehicle = option("--vehicle-frame");
 const doRun = args.includes("--run");
 const cap = option("--cap", "60");
 const runPairs = option("--pairs");
+const topicKinds = many("--topic-kind");
+const cameraOption = option("--camera");
 const runModeOption = option("--mode", "check");
 const timeoutMs = Number(option("--timeout-ms", "900000"));
 mkdirSync(out, { recursive: true });
@@ -149,8 +152,10 @@ if (bagFiles.length === 0) {
     if (overflow > 1) fail("horizontal page scroll at phone width: " + overflow + "px");
   }
 } else {
-  if (vehicle) await page.click("#vehicle-details > summary");
+  if (vehicle || topicKinds.length) await page.click("#vehicle-details > summary");
   if (vehicle) await page.type("#vehicle-frame", vehicle);
+  if (topicKinds.length) await page.type("#topic-kind", topicKinds.join("\n"));
+  if (cameraOption) await page.type("#run-camera", cameraOption);
   await (await page.$("#bag-files")).uploadFile(...bagFiles);
   if (tfFiles.length) await (await page.$("#tf-files")).uploadFile(...tfFiles);
   const started = Date.now();
@@ -163,6 +168,8 @@ if (bagFiles.length === 0) {
     if (doRun) {
       const run = await runInPage(runModeOption, cap, runPairs ? runPairs.split(",") : null);
       if (run) {
+        const heap = await page.evaluate(() => (performance.memory ? performance.memory.usedJSHeapSize : null));
+        console.log("main-thread JS heap bytes:", heap);
         console.log("run:", run.wallSeconds.toFixed(1), "s wall;", run.payload.seconds.toFixed(1), "s in Python");
         console.log(run.finished.join("\n"));
         console.log(run.text);
