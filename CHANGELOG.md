@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **`calibrex check` says what to do next.** The text output ends with a deduplicated
+  `next steps:` block (a hint per skip reason code and unmapped topic: `--tf`, `--frame-map`,
+  `--vehicle-frame`, `--topic-kind`, expected message types), and
+  `--write-frames-template FILE` writes a starter `slac.check_frames` YAML pre-filled with the
+  bag's sensor frames. The template carries `schema_version: slac.check_frames_template/v0.1`
+  and TODO placeholders; `--tf` refuses it until it is filled in and the version is changed to
+  `slac.check_frames/v0.1`. Hints are text-only; the artifact schema is unchanged.
 - Docs site revamp: custom theme and logo, a landing page that leads with `calibrex check`,
   tabbed navigation (Get started, Benchmarks & SOTA, Concepts, Reference, Internals),
   and a restyled browser calibration page.

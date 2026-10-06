@@ -3055,6 +3055,14 @@ def _build_parser() -> argparse.ArgumentParser:
         default="fail",
         help="exit with status 1 when the overall verdict is at least this bad (default fail)",
     )
+    check.add_argument(
+        "--write-frames-template",
+        type=Path,
+        metavar="FILE",
+        help="write a starter slac.check_frames YAML naming the bag's sensor frames, with "
+        "TODO placeholder transforms; --tf refuses it until you fill it in and change its "
+        "schema_version to slac.check_frames/v0.1",
+    )
     check.add_argument("--output", type=Path, help="write the slac.calibration_check artifact")
     check.add_argument(
         "--html",
@@ -4240,6 +4248,11 @@ def _cmd_check(args: argparse.Namespace) -> int:
         write_check_html(
             artifact, args.html, artifact_dir=args.output.parent if args.output else Path.cwd()
         )
+    if args.write_frames_template:
+        from calibrex.check.hints import write_frames_template
+
+        write_frames_template(args.write_frames_template, artifact.topics)
+        print(f"frames template: {args.write_frames_template}", file=sys.stderr)
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
