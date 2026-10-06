@@ -34,6 +34,7 @@ from calibrex.check.estimators import (
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
 from calibrex.check.hints import format_next_steps
 from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs, slot_of
+from calibrex.check.progress import CheckProgress, as_progress, paint_verdict
 from calibrex.check.roles import (
     classify_topics,
     flag_unreadable_pointclouds,
@@ -74,6 +75,7 @@ from calibrex.core.calibration_check import (
     summarize_pairs,
 )
 from calibrex.core.exceptions import DatasetError
+from calibrex.core.progress import progress_sink
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
@@ -216,7 +218,7 @@ def build_calibration_check(
     command: Sequence[str] | None = None,
     wired_pairs: frozenset[str] = ALL_WIRED_PAIRS,
     run: CheckRunOptions | None = None,
-    progress: Callable[[str], None] = _quiet,
+    progress: Callable[[str], None] | CheckProgress = _quiet,
 ) -> CalibrationCheckArtifact:
     """Read candidate extrinsics, classify topics and plan the pair checks.
 
@@ -280,7 +282,7 @@ def build_calibration_check(
             sources=sources,
             evidence_dir=evidence_dir,
             base_dir=base_dir,
-            progress=progress,
+            progress=as_progress(progress),
             bag_sha256=input_sha256,
         )
         closures = build_closure_report(pairs, _closure_edges(pairs, run_memo), run.verdict)
@@ -402,7 +404,7 @@ def _run_pairs(
     sources: Sequence[LoadedSource],
     evidence_dir: Path,
     base_dir: Path,
-    progress: Callable[[str], None],
+    progress: CheckProgress,
     bag_sha256: str = "",
 ) -> tuple[list[CheckPairRecord], dict[tuple[object, ...], Any]]:
     selected = set(run.pairs) if run.pairs is not None else None
@@ -422,6 +424,9 @@ def _run_pairs(
         scan_store=ScanStore(run.scan_memory_mb << 20) if run.scan_memory_mb > 0 else None,
     )
     results: list[CheckPairRecord] = []
+    to_run = sum(1 for record in plan if _will_run(record, run, topics))
+    progress.run_started(to_run)
+    started_pairs = 0
     for record in plan:
         if record.status == "skipped" and record.reason_code == "method_not_wired":
             if record.pair in estimators.WIRED_CHECK_PAIRS:
@@ -451,6 +456,7 @@ def _run_pairs(
                     )
                 )
                 continue
+        started_pairs += 1
         results.append(
             _run_one(
                 record,
@@ -464,8 +470,10 @@ def _run_pairs(
                 evidence_dir=evidence_dir,
                 base_dir=base_dir,
                 progress=progress,
+                position=(started_pairs, to_run),
             )
         )
+    progress.run_finished()
     return results, controls.memo
 
 
@@ -503,6 +511,40 @@ def _skipped(record: CheckPairRecord, code: str, reason: str) -> CheckPairRecord
     )
 
 
+def _will_run(
+    record: CheckPairRecord, run: CheckRunOptions, topics: Sequence[CheckTopicRecord]
+) -> bool:
+    """Whether :func:`_run_pairs` will start this pair's estimator."""
+
+    if record.status != "planned":
+        return False
+    if run.pairs is not None and record.pair not in run.pairs:
+        return False
+    if run.camera is not None and record.pair in {"camera-imu", "camera-focal"}:
+        camera_topics = _sensor_topics(record, topics).get("camera", ())
+        if run.camera not in camera_topics and run.camera not in record.frames:
+            return False
+    return True
+
+
+def _scan_total(
+    record: CheckPairRecord,
+    run: CheckRunOptions,
+    topics: Sequence[CheckTopicRecord],
+    sensor_topics: Mapping[str, tuple[str, ...]],
+) -> int | None:
+    """Messages one pass reads, for the progress ETA; unknown when a duration cap applies."""
+
+    if run.max_duration_s is not None or run.gnss_max_duration_s is not None:
+        return None
+    for role in ("lidar", "camera"):
+        named = sensor_topics.get(role, ())
+        if named:
+            counts = [item.message_count for item in topics if item.topic == named[0]]
+            return counts[0] if counts and counts[0] else None
+    return None
+
+
 def _label(record: CheckPairRecord) -> str:
     return f"{record.pair} ({' / '.join(record.sensors)})"
 
@@ -519,7 +561,8 @@ def _run_one(
     controls: RunControls,
     evidence_dir: Path,
     base_dir: Path,
-    progress: Callable[[str], None],
+    progress: CheckProgress,
+    position: tuple[int, int] = (1, 1),
 ) -> CheckPairRecord:
     assert record.candidate_transform is not None
     candidate = transform_matrix(
@@ -535,16 +578,18 @@ def _run_one(
         controls=controls,
         topics=topics,
     )
-    progress(f"check: running {_label(record)}")
+    progress.pair_started(position[0], position[1], _label(record))
+    progress.set_scan_total(_scan_total(record, run, topics, sensor_topics))
     started = time.monotonic()
     try:
-        outcome = estimators.ESTIMATORS[record.pair](context)
+        with progress_sink(progress.on_event):
+            outcome = estimators.ESTIMATORS[record.pair](context)
     except CheckSkipError as exc:
-        progress(f"check: {_label(record)} skipped ({exc.code}): {exc.reason}")
+        progress.pair_skipped(_label(record), exc.code, exc.reason)
         return _skipped(record, exc.code, exc.reason)
     except Exception as exc:  # one failing estimator must not lose the other pairs
         runtime = time.monotonic() - started
-        progress(f"check: {_label(record)} failed: {type(exc).__name__}: {exc}")
+        progress.pair_failed(_label(record), f"{type(exc).__name__}: {exc}")
         return CheckPairRecord.model_validate(
             {
                 **record.model_dump(),
@@ -564,7 +609,9 @@ def _run_one(
         update["evidence_artifact"] = evidence[0].path
     if outcome.evidence_from_cache is not None:
         update["evidence_from_cache"] = outcome.evidence_from_cache
-    progress(f"check: {_label(record)} -> {update['status']} ({runtime:.0f} s)")
+    progress.pair_finished(
+        _label(record), str(update["status"]), runtime, outcome.evidence_from_cache
+    )
     return CheckPairRecord.model_validate({**record.model_dump(), **update})
 
 
@@ -705,7 +752,12 @@ def _write_evidence(
     return refs
 
 
-def _table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> list[str]:
+def _table(
+    headers: Sequence[str],
+    rows: Sequence[Sequence[str]],
+    *,
+    paint_column: int | None = None,
+) -> list[str]:
     widths = [
         max(len(headers[i]), *(len(row[i]) for row in rows)) if rows else len(headers[i])
         for i in range(len(headers))
@@ -713,7 +765,11 @@ def _table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> list[str]:
     lines = ["  ".join(headers[i].ljust(widths[i]) for i in range(len(headers))).rstrip()]
     lines.append("  ".join("-" * widths[i] for i in range(len(headers))))
     for row in rows:
-        lines.append("  ".join(row[i].ljust(widths[i]) for i in range(len(headers))).rstrip())
+        cells = [row[i].ljust(widths[i]) for i in range(len(headers))]
+        if paint_column is not None:
+            # colour after padding so the escape codes do not skew the column widths
+            cells[paint_column] = paint_verdict(cells[paint_column], row[paint_column].split()[0])
+        lines.append("  ".join(cells).rstrip())
     return lines
 
 
@@ -784,7 +840,7 @@ def _rigid_summary(pair: str, artifact: CalibrationCheckArtifact) -> str:
     return f"scans treated as rigid (deskew none): {floors}{clock}"
 
 
-def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
+def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> list[str]:
     lines: list[str] = []
     rows: list[list[str]] = []
     quiet: dict[str, list[str]] = {}
@@ -838,6 +894,7 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
                 "detectable",
             ],
             rows,
+            paint_column=2 if color else None,
         )
     )
     for code, names in quiet.items():
@@ -864,7 +921,8 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
                 )
     lines.extend(_closure_lines(artifact))
     lines.append("")
-    lines.append(f"overall verdict: {artifact.overall_verdict}")
+    overall = str(artifact.overall_verdict)
+    lines.append(f"overall verdict: {paint_verdict(overall) if color else overall}")
     if artifact.summary.partial_pairs:
         lines.append(
             f"WARNING: {artifact.summary.partial_pairs} pair(s) have partial coverage: "
@@ -873,8 +931,12 @@ def _verdict_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     return lines
 
 
-def format_check_table(artifact: CalibrationCheckArtifact) -> str:
-    """Render the artifact as a human-readable report."""
+def format_check_table(artifact: CalibrationCheckArtifact, *, color: bool = False) -> str:
+    """Render the artifact as a human-readable report.
+
+    ``color`` paints the verdict column (pass green, warn yellow, fail red, inconclusive and
+    skipped dim) with ANSI codes; the text is otherwise identical.
+    """
 
     lines = [
         f"calibrex check ({'plan' if artifact.plan_only else 'run'})",
@@ -940,7 +1002,7 @@ def format_check_table(artifact: CalibrationCheckArtifact) -> str:
         ]
         lines.extend(_table(["pair", "sensors", "status", "reason", "detail"], pair_rows))
     else:
-        lines.extend(_verdict_lines(artifact))
+        lines.extend(_verdict_lines(artifact, color))
     summary = artifact.summary
     counts = ", ".join(f"{name}={count}" for name, count in summary.status_counts.items())
     lines.append("")

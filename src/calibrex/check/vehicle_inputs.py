@@ -21,6 +21,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation
 
+from calibrex.core.progress import emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.rosbag2 import (
     ODOMETRY_TYPE,
@@ -141,6 +142,7 @@ def read_lidar_odometry(
             odometry = IncrementalScanOdometry(opts)
         odometry.add(cloud.xyz, time_s)
         times.append(time_s)
+        emit_tick(len(times))
     poses += odometry.poses
     registrations += odometry.registrations
     if times:

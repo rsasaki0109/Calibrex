@@ -14,6 +14,7 @@ from typing import Literal, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
+from calibrex.core.progress import emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.livox_ros2 import STANDARD_GRAVITY_MPS2, ImuSamples
 from calibrex.data.rosbag2 import iter_messages
@@ -86,6 +87,7 @@ def iter_gray_images(
         if index % stride:
             continue
         message = ros_cdr.decode_ros2_image(topic, timestamp_ns, payload)
+        emit_tick(index + 1)
         time_s = message.timestamp_ns * 1.0e-9
         first = time_s if first is None else first
         if max_seconds is not None and time_s - first > max_seconds:

@@ -162,6 +162,7 @@ CHECK_ARGUMENT_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "--output",
             "--html",
             "--json",
+            "--quiet",
             "--fail-on",
         ),
     ),

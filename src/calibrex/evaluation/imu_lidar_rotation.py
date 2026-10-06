@@ -31,6 +31,7 @@ from calibrex.core.imu_lidar_rotation import (
     ImuLidarRotationProvenance,
     ImuLidarWindowSummary,
 )
+from calibrex.core.progress import emit_stage
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import (
     MID360_T_LIDAR_IMU,
@@ -239,11 +240,26 @@ def run_livox_imu_lidar_rotation(
     imu = _concatenate(samples)
     gyro = GyroSeries(imu.times_s, imu.gyro_rps)
     margin = opts.coverage_margin_s
+    gyro_passes = 0 if rigid else opts.gyro_deskew_passes
+    max_passes = 1 + gyro_passes + (1 if gyro_passes and opts.feedback_check_deg > 0.0 else 0)
+    passes_started = 0
 
     def covers(time_s: float) -> bool:
         return gyro.covers(time_s - margin, time_s + margin)
 
     def collect(model: RotationModel | None) -> OdometrySegmenter:
+        nonlocal passes_started
+        passes_started += 1
+        emit_stage(
+            f"odometry + deskew pass {passes_started} of up to {max_passes}"
+            + (
+                " (rigid scans)"
+                if rigid
+                else " (LiDAR constant-velocity)"
+                if model is None
+                else " (gyro)"
+            )
+        )
         segmenter: OdometrySegmenter | None = None
         for bag in bags:
             segmenter = collect_odometry_windows(
@@ -262,6 +278,7 @@ def run_livox_imu_lidar_rotation(
     # passes deskew with gyro rotations mapped by the previous estimate, which
     # fixes fast hand-held rotation but feeds the extrinsic into the odometry.
     segmenter = collect(None)
+    emit_stage("rotation estimation")
     evaluation = evaluate_imu_lidar_rotation(
         gyro, segmenter.windows, opts, reference_rotation=reference_rotation
     )

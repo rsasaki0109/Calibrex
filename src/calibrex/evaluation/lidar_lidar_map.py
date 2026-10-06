@@ -35,6 +35,7 @@ from calibrex.core.lidar_lidar_extrinsic import (
     LidarLidarSamples,
     LidarLidarTransform,
 )
+from calibrex.core.progress import emit_stage
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import LivoxStreamProfile, bag_input_digest, iter_livox_points
 from calibrex.solvers.lidar_lidar_map_solver import (
@@ -227,6 +228,7 @@ def collect_map_samples(
             )
         return LivoxStreamProfile("lidar", topic, "", point_time_field, point_time_encoding, "mps2")
 
+    emit_stage(f"reference LiDAR odometry + map ({reference_topic})")
     odometry = IncrementalScanOdometry(opts.odometry)
     scans: list[NDArray[np.float32]] = []
     times: list[float] = []
@@ -251,6 +253,7 @@ def collect_map_samples(
     reference_times = np.asarray(times)
     half = opts.map_half_window_scans
     samples: list[MapSample] = []
+    emit_stage(f"target scans against the reference map ({target_topic})")
     target_scans = iter_livox_points(
         bag, profile(target_topic, target=True), max_seconds=max_seconds
     )
