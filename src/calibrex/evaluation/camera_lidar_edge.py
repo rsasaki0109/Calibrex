@@ -164,7 +164,7 @@ class EdgeAlignmentOptions:
     translation_levels_m: tuple[float, ...] = (0.02, 0.01, 0.005, 0.0025, 0.001)
     jackknife_first_level: int = 1
     max_moves_per_level: int = 12
-    rotation_control_deg: float = 1.5
+    rotation_control_deg: float = 2.0
     translation_control_m: float = 0.05
     min_control_t: float = 2.0
     observable_rotation_std_deg: float = 0.3
