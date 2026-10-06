@@ -214,6 +214,21 @@ class CdrReader:
         self._offset += 8
         return float(value)
 
+    def read_float64_block(self, count: int) -> tuple[float, ...]:
+        """Read ``count`` float64 values that follow each other without padding.
+
+        The caller has aligned the cursor to 8 bytes, which keeps every
+        following float64 aligned.
+        """
+
+        end = self._offset + 8 * count
+        if end > len(self._data):
+            msg = "truncated CDR payload"
+            raise DatasetError(msg)
+        values = struct.unpack_from(f"{self._endian}{count}d", self._data, self._offset)
+        self._offset = end
+        return values
+
     def read_string(self, *, max_length: int | None = None) -> str:
         """Read a length-prefixed UTF-8 string (length includes the NUL terminator)."""
 
@@ -737,6 +752,9 @@ def decode_ros2_livox_custommsg(
     )
 
 
+_IMU_FLOAT64_COUNT = 4 + 9 + 3 + 9 + 3 + 9
+
+
 def decode_ros2_imu(topic: str, timestamp_ns: int, data: bytes) -> ImuMessage:
     """Decode a CDR-encoded ``sensor_msgs/msg/Imu`` message."""
 
@@ -745,21 +763,16 @@ def decode_ros2_imu(topic: str, timestamp_ns: int, data: bytes) -> ImuMessage:
     stamp_nsecs = reader.read_uint32()
     frame_id = reader.read_string()
 
-    ori_x = reader.read_float64()
-    ori_y = reader.read_float64()
-    ori_z = reader.read_float64()
-    ori_w = reader.read_float64()
-    orientation_covariance = reader.read_float64_array(9)
-
-    ang_x = reader.read_float64()
-    ang_y = reader.read_float64()
-    ang_z = reader.read_float64()
-    angular_velocity_covariance = reader.read_float64_array(9)
-
-    acc_x = reader.read_float64()
-    acc_y = reader.read_float64()
-    acc_z = reader.read_float64()
-    linear_acceleration_covariance = reader.read_float64_array(9)
+    # Everything after the frame id is 37 consecutive float64 values: one
+    # alignment, then a single unpack instead of 37 aligned reads.
+    reader.align(8)
+    values = reader.read_float64_block(_IMU_FLOAT64_COUNT)
+    ori_x, ori_y, ori_z, ori_w = values[0:4]
+    orientation_covariance = values[4:13]
+    ang_x, ang_y, ang_z = values[13:16]
+    angular_velocity_covariance = values[16:25]
+    acc_x, acc_y, acc_z = values[25:28]
+    linear_acceleration_covariance = values[28:37]
 
     header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
     return ImuMessage(

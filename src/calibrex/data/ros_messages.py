@@ -853,7 +853,11 @@ def filter_nonfinite_pointcloud_rows(
     The returned count preserves an audit trail for the discarded rows.
     """
 
-    valid = np_mod.isfinite(xyz).all(axis=1)
+    # Per-column tests and ``&`` give the same mask as ``isfinite(xyz).all(axis=1)``
+    # without the slow reduction over the short axis.
+    valid = np_mod.isfinite(xyz[:, 0])
+    for column in range(1, xyz.shape[1]):
+        valid &= np_mod.isfinite(xyz[:, column])
     nonfinite_count = int(np_mod.count_nonzero(~valid))
     filtered_xyz = xyz[valid]
     filtered_intensity = intensity[valid] if intensity is not None else None
