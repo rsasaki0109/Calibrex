@@ -152,6 +152,66 @@ def test_code_fingerprint_names_version() -> None:
     assert cache_module.code_fingerprint().startswith(__version__)
 
 
+def _fake_package(root: Path) -> Path:
+    pkg = root / "pkg"
+    for relative in (
+        "core/solver.py",
+        "check/estimators.py",
+        "check/hints.py",
+        "cli/main.py",
+        "visualization/report.py",
+    ):
+        (pkg / relative).parent.mkdir(parents=True, exist_ok=True)
+        (pkg / relative).write_text("x = 1\n")
+    return pkg
+
+
+def _fingerprint_fresh(pkg: Path) -> str:
+    cache_module._FINGERPRINT_MEMO.clear()
+    return cache_module.code_fingerprint(pkg)
+
+
+def test_code_fingerprint_is_stable_and_memoised(tmp_path: Path) -> None:
+    pkg = _fake_package(tmp_path)
+    first = _fingerprint_fresh(pkg)
+    assert cache_module.code_fingerprint(pkg) == first
+    assert _fingerprint_fresh(pkg) == first
+    assert cache_module.code_fingerprint() == cache_module.code_fingerprint()
+
+
+@pytest.mark.parametrize("relative", ["core/solver.py", "check/estimators.py"])
+def test_code_fingerprint_changes_with_included_source(tmp_path: Path, relative: str) -> None:
+    pkg = _fake_package(tmp_path)
+    before = _fingerprint_fresh(pkg)
+    with (pkg / relative).open("a") as handle:
+        handle.write("# edit\n")
+    assert _fingerprint_fresh(pkg) != before
+
+
+def test_code_fingerprint_changes_with_new_included_file(tmp_path: Path) -> None:
+    pkg = _fake_package(tmp_path)
+    before = _fingerprint_fresh(pkg)
+    (pkg / "core" / "new.py").write_text("y = 2\n")
+    assert _fingerprint_fresh(pkg) != before
+
+
+@pytest.mark.parametrize("relative", ["check/hints.py", "cli/main.py", "visualization/report.py"])
+def test_code_fingerprint_ignores_excluded_source(tmp_path: Path, relative: str) -> None:
+    pkg = _fake_package(tmp_path)
+    before = _fingerprint_fresh(pkg)
+    with (pkg / relative).open("a") as handle:
+        handle.write("# edit\n")
+    (pkg / "cli" / "extra.py").write_text("z = 3\n")
+    assert _fingerprint_fresh(pkg) == before
+
+
+def test_fingerprint_excluded_entries_exist() -> None:
+    package_dir = Path(cache_module.__file__).resolve().parents[1]
+    for entry in cache_module.FINGERPRINT_EXCLUDED:
+        target = package_dir / entry
+        assert target.is_dir() if entry.endswith("/") else target.is_file(), entry
+
+
 # ------------------------------------------------------ candidate independence
 
 
