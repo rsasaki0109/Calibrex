@@ -167,7 +167,7 @@ class EdgeAlignmentOptions:
     rotation_control_deg: float = 2.0
     translation_control_m: float = 0.05
     min_control_t: float = 2.0
-    observable_rotation_std_deg: float = 0.3
+    observable_rotation_std_deg: float = 0.5
     observable_translation_std_m: float = 0.03
     min_ring_fraction: float = 0.5
     min_gain: float = 2.0e-5

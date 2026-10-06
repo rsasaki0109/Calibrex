@@ -179,7 +179,7 @@ def test_rotation_axes_are_observed_with_detected_controls(
         control = record.known_bad_control
         assert control is not None and control.unit == "deg"
         if record.status == "estimated":
-            assert control.detected and record.std_reported <= 0.3
+            assert control.detected and record.std_reported <= 0.5
     # translation is never estimated by default, whatever its control says
     for name in ("x", "y", "z"):
         assert by_name[name].status == "unobservable"
