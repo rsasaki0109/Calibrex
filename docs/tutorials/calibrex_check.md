@@ -299,8 +299,9 @@ difference is exactly 0 on 0005, 0022 and 0015.
 | 0022 (~80 s) | pass, partial: pitch 0.45 | inconclusive | pass, partial: roll 0.14, pitch 0.08 | pass, partial: pitch 0.45 |
 
 The overall verdict is `inconclusive` on every bag at baseline: no pair is
-fully covered, and `imu-lidar` is `skipped` (`unsupported_sensor`, as expected
-for a cloud without per-point time). `imu-vehicle` is `inconclusive` whenever its
+fully covered, and `imu-lidar` was `skipped` (`unsupported_sensor`, as expected
+for a cloud without per-point time; today it is skipped for the 10 Hz OXTS IMU,
+which the estimator's 20 Hz gyro-coverage rule cannot use). `imu-vehicle` is `inconclusive` whenever its
 axes have std above 0.1 deg, which is most single drives. The pooled
 `lidar-vehicle` pitch error (0.50 deg) is the known OXTS-versus-vehicle offset
 of the `base_link = imu_link` definition, sitting on the tolerance; it is not a

@@ -46,6 +46,11 @@ ROTATION_DOFS: tuple[RotationDofName, ...] = (
 )
 
 
+# A LiDAR interval is used only where the gyro has no hole longer than this, so a
+# gyro slower than 1 / MAX_GYRO_GAP_S (20 Hz) covers no interval at all.
+MAX_GYRO_GAP_S = 0.05
+
+
 @dataclass(frozen=True)
 class GyroSeries:
     """Gyro samples with a cumulative integral for fast interval means."""
@@ -124,7 +129,7 @@ class GyroSeries:
             [np.interp(times_s, self.times_s, integral[:, axis]) for axis in range(3)]
         )
 
-    def covers(self, start_s: float, end_s: float, max_gap_s: float = 0.05) -> bool:
+    def covers(self, start_s: float, end_s: float, max_gap_s: float = MAX_GYRO_GAP_S) -> bool:
         """Return whether ``[start_s, end_s]`` has gyro data without gaps."""
 
         if start_s < self.times_s[0] or end_s > self.times_s[-1]:

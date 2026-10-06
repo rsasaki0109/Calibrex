@@ -421,6 +421,29 @@ def test_topic_of_the_root_frame_is_mapped_in_the_export(
     assert imu_pair.reason_code != "frame_not_in_tree"
 
 
+def test_pair_that_solved_but_constrained_nothing_keeps_its_axis_stds(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """KITTI pooled imu-vehicle: failed, but each axis says unobservable with its std."""
+
+    _install(
+        monkeypatch,
+        {
+            "imu-lidar": lambda ctx: _run(
+                invert_transform(ctx.candidate), translation=False, rotation_observed=False
+            )
+        },
+    )
+    artifact = _estimate(bag, tmp_path / "est")
+    pair = next(p for p in artifact.pairs if p.pair == "imu-lidar" and p.status != "skipped")
+    assert (pair.status, pair.reason_code) == ("failed", "no_judgeable_axes")
+    assert pair.reason is not None and "roll unobservable (reported std 0.05 deg)" in pair.reason
+    rotation = [a for a in pair.axes if a.name in {"roll", "pitch", "yaw"}]
+    assert {a.status for a in rotation} == {"unobservable"}
+    assert all(a.std == pytest.approx(0.05) and a.value is None for a in rotation)
+    assert artifact.frames.entries == []
+
+
 def test_vehicle_pair_keeps_the_prior_roll_and_is_marked_not_measured() -> None:
     """KITTI: pitch and yaw observed; roll and the lever arm are the prior's; vehicle root."""
 

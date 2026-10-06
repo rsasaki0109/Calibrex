@@ -237,6 +237,15 @@ def test_rebase_matches_a_fresh_evaluation_with_another_reference() -> None:
     assert rebase_rotation_reference(stale, None).dofs[2].reference_value is None
 
 
+@pytest.fixture
+def fast_imu(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The fake bags of these tests have no IMU topic: report a 200 Hz IMU to the rate gate."""
+
+    times = np.arange(0.0, 1.0, 0.005)
+    samples = livox_ros2.ImuSamples(times, np.zeros((len(times), 3)), np.zeros((len(times), 3)))
+    monkeypatch.setattr(livox_ros2, "load_livox_imu", lambda *a, **k: samples)
+
+
 def _imu_lidar_context(
     candidate_t_imu_lidar: np.ndarray, cache: EstimatorCache | None
 ) -> PairContext:
@@ -264,7 +273,7 @@ def _imu_lidar_context(
 
 
 def test_a_perturbed_candidate_reuses_the_cached_estimate(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    fast_imu: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     calls: list[np.ndarray | None] = []
 
@@ -519,3 +528,41 @@ def test_sqlite_topic_filter_returns_the_same_messages_as_filtering_afterwards(
     for wanted in (set(list(topics)[:1]), set(list(topics)[:2]), {"/missing"}):
         got = list(iter_messages(bag, topics=wanted))
         assert got == [item for item in everything if item[0].topic in wanted]
+
+
+def _imu_at(rate_hz: float) -> livox_ros2.ImuSamples:
+    times = np.arange(0.0, 5.0, 1.0 / rate_hz)
+    return livox_ros2.ImuSamples(times, np.zeros((len(times), 3)), np.zeros((len(times), 3)))
+
+
+@pytest.mark.parametrize("rate_hz", [10.0, 15.0])
+def test_imu_lidar_skips_an_imu_too_slow_for_the_gyro_coverage_rule(
+    monkeypatch: pytest.MonkeyPatch, rate_hz: float
+) -> None:
+    """KITTI's 10 Hz OXTS: no LiDAR interval has gap-free gyro coverage, so say so up front."""
+
+    samples = _imu_at(rate_hz)
+    monkeypatch.setattr(livox_ros2, "load_livox_imu", lambda *a, **k: samples)
+    with pytest.raises(estimators.CheckSkipError) as skipped:
+        estimators.run_imu_lidar(_imu_lidar_context(np.eye(4), None))
+    assert skipped.value.code == "unsupported_sensor"
+    assert f"{rate_hz:.1f} Hz" in skipped.value.reason
+    assert "/imu" in skipped.value.reason and "20 Hz" in skipped.value.reason
+
+
+def test_imu_rate_gate_passes_a_fast_enough_imu(monkeypatch: pytest.MonkeyPatch) -> None:
+    samples = _imu_at(25.0)
+    monkeypatch.setattr(livox_ros2, "load_livox_imu", lambda *a, **k: samples)
+    estimators._require_gyro_rate(_imu_lidar_context(np.eye(4), None), "/imu")
+
+
+def test_the_rate_gate_matches_the_solvers_coverage_rule() -> None:
+    """A series at the gate's rate covers nothing; just above it covers its span."""
+
+    from calibrex.solvers.imu_lidar_rotation_solver import MAX_GYRO_GAP_S, GyroSeries
+
+    for rate_hz, covered in ((10.0, False), (25.0, True)):
+        times = np.arange(0.0, 5.0, 1.0 / rate_hz)
+        gyro = GyroSeries(times, np.zeros((len(times), 3)))
+        assert gyro.covers(1.0, 1.3) is covered
+    assert pytest.approx(20.0) == 1.0 / MAX_GYRO_GAP_S

@@ -15,7 +15,7 @@ split. Every dataset used was already on disk; nothing was downloaded.
 | `camera-imu` | Hilti 2022 exp21 | rotation 0.15-0.33 deg, time offset -0.08 / -0.21 ms from Kalibr | exp07: pass |
 | `imu-lidar` | Koide indoor_easy_01 | rotation 0.08 / 0.66 / 0.07 deg from `/tf_static` | indoor_easy_02: pass |
 | `lidar-vehicle`, `ins-lidar` | KITTI 0005 + 0014 + 0022 | pitch and yaw within 0.1 deg of the 5-drive result; `ins-lidar` roll and pitch within 0.08 deg of `calib_imu_to_velo` | 0009 and 0015: pass on the one axis the short drive constrains, the rest inconclusive |
-| `imu-vehicle` | KITTI 0005 + 0014 + 0022 | failed: no axis constrained | not exported |
+| `imu-vehicle` | KITTI 0005 + 0014 + 0022 | **failed**: no axis constrained (roll 0.57, pitch 0.16, yaw 0.16 deg std against a 0.1 deg bound); a data limit, see below | not exported |
 | `lidar-wheel_odometry` | KITTI 0005 + 0014 + 0022 | pitch and yaw as `lidar-vehicle` (same solver) | pass on yaw (0.003 and 0.095 deg) |
 | `gnss-lidar`, `gnss-imu` | RTK-SLAM stadtgarten_seq2 | y within 0.3 and 0.7 cm of CAD; x and z unobservable | stadtgarten_seq1: `imu-lidar` pass (rotation only), `gnss-lidar` **warn** on a prior-filled x, `gnss-imu` inconclusive |
 
@@ -84,7 +84,7 @@ is `calib_imu_to_velo`):
 | `ins-lidar` pitch | +0.118 | 0.039 | +0.116 | +0.002 | observed |
 | `ins-lidar` yaw, x, y, z | - | 0.21 deg, 0.12 / 0.18 / 0.95 m | -0.044 deg, 0.81 / -0.31 / 0.80 m | - | unobservable; prior kept |
 | `ins-lidar` time offset | +5.07 ± 2.81 ms | | | | estimated |
-| `imu-vehicle` | - | - | - | - | **failed**: no axis constrained |
+| `imu-vehicle` | - | roll 0.57, pitch 0.16, yaw 0.16 deg | - | - | **failed**: no axis constrained (all three `unobservable`, values withheld) |
 
 The three drives are a subset of the five behind the reference, so the two are
 not independent; the table says only that the same solver on fewer turns lands
@@ -92,7 +92,8 @@ near the earlier value (pitch two reported std away). The 0.5 deg pitch offset
 of the OXTS frame from the motion-defined vehicle frame, reported on the
 [KITTI LiDAR-Vehicle page](kitti_lidar_vehicle.md), shows up again (+0.525).
 `imu-vehicle` failing on this pooled bag matches the five-drive result, where
-every axis std is over its bound.
+every axis std is over its bound. It was investigated (next section): a data
+limit, not a bug.
 
 **What was exported.** Roll was never observed and the lever arms are not
 estimated by the vehicle pairs, so both frames are written only because the
@@ -202,6 +203,60 @@ information of its prior for x and z, plus the IMU-LiDAR rotation and a y that
 seq1 is not precise enough to confirm or contradict. The round trip confirms the
 rotation; it does not confirm the lever arm.
 
+## Two unexplained KITTI failures, explained
+
+Both were seen on the pooled bag and left uninvestigated in the first version of
+this page. Bags used: the pooled 0005 + 0014 + 0022 bag and the single drives
+0009 and 0015 (development drives only).
+
+**`imu-lidar` failed with "too few LiDAR rate intervals with gyro coverage".**
+Root cause: the OXTS IMU runs at **10 Hz** (median interval 100 ms, max 110 ms on
+every drive), and the estimator only uses a LiDAR interval when the gyro has no
+hole longer than 50 ms (`GyroSeries.covers`, `max_gap_s=0.05`), i.e. it needs
+a gyro of at least 20 Hz. On KITTI no interval ever qualifies, so the solver gets
+zero intervals. It is not the pooling: the single drives 0015 and 0009 fail
+identically (every one of their IMU gaps, 296 and 446, exceeds 50 ms), the pooled
+bag has no reversed or repeated timestamps (the only large gap is 387 s at a
+drive boundary, which the 10 Hz gaps already dwarf), and the topic mapping was
+right (`/oxts/imu`, `imu_link`). This is a data limitation, so the pair is now
+**skipped up front** with the reason `unsupported_sensor`: "/oxts/imu runs at
+about 10.0 Hz (median interval 100 ms); imu-lidar ... needs gyro samples at least
+every 50 ms (>= 20 Hz)". `calibrex check` on KITTI gives the same skip (the
+[Phase C1 table](../tutorials/calibrex_check.md#phase-c1-results-on-kitti-raw-development-drives-only)
+predates rigid-scan support, which made the pair run and fail instead). Regression
+tests: `test_imu_lidar_skips_an_imu_too_slow_for_the_gyro_coverage_rule` and
+`test_the_rate_gate_matches_the_solvers_coverage_rule`.
+
+**`imu-vehicle` "failed, no axis constrained" on the pooled bag.** Root cause: a
+genuine data limit, plus a reporting defect. The estimator solved on all 1268
+motions, but every axis std is over the 0.1 deg observability bound:
+
+| Bag | roll (deg) | pitch (deg) | yaw (deg) |
+| --- | --- | --- | --- |
+| 0015 (`estimate`) | unobservable, std 54.85 | **+0.409 +- 0.075, observed** | unobservable, std 0.199 |
+| 0009 | +1.81, std 0.62 | +0.233, std 0.14 | -0.258, std 0.38 |
+| pooled 0005 + 0014 + 0022 | +0.98, std 0.57 | +0.437, std 0.16 | -0.323, std 0.16 |
+
+The pooled std is the jackknife over blocks: pitch differs between drives (the
+single-drive pitch of the [`check` table](../tutorials/calibrex_check.md#phase-c1-results-on-kitti-raw-development-drives-only)
+is 0.18 on 0005, 0.47 on 0014 and 0.41 on 0015), so pooling does not shrink it
+below the bound. The `check` pass on 0015 and the `estimate` failure on the pool
+are consistent: the options are the same, and `calibrex estimate` on 0015 alone
+also gives pitch +0.409 +- 0.075 (observed). Pooled drives are not mishandled:
+the motions are split at gaps (`split_at_gaps`) and every drive gets its own
+blocks. The defect: `estimate` replaced every axis of such a failed pair with
+`no_estimate` and the bare reason "no axis was constrained", dropping each axis's
+status and std. It now keeps `unobservable` with the reported std per axis
+(values stay withheld) and lists them in the reason: "no axis was constrained by
+the data: roll unobservable (reported std 0.574 deg); pitch unobservable
+(reported std 0.16 deg); yaw unobservable (reported std 0.164 deg)". Regression
+test: `test_pair_that_solved_but_constrained_nothing_keeps_its_axis_stds`.
+
+The rest of the pooled estimate is unchanged by both fixes (same
+`lidar-vehicle`, `ins-lidar` and `lidar-wheel_odometry` numbers as the table
+above). The same run also shows `gnss-lidar` skipped on `/oxts/fix` (no RTK-grade
+fixes) and `gnss-imu` skipped as `degenerate_frames`.
+
 ## Bugs this validation found
 
 1. **The root frame's topics were not exported** (`calibrex estimate`, fixed
@@ -238,6 +293,7 @@ prior for the rest.
 - `lidar-wheel_odometry` reports its time offset on a 10 Hz lattice (66-70 ms,
   std 0.00 or 5.6 ms, status `estimated` or `unobservable`). That is not
   meaningful for KITTI's OXTS proxy, and it is not exported.
-- On the pooled KITTI bag `imu-lidar` failed ("too few LiDAR rate intervals
-  with gyro coverage"). The pooled bag has no per-point time and the gaps
-  between drives; it was not needed for these pairs and was not investigated.
+- `imu-lidar` cannot run on KITTI: the 10 Hz OXTS gyro is below the 20 Hz the
+  estimator's coverage rule needs, so it is skipped with that reason (see above).
+  The pooled `imu-vehicle` stays `failed`: its axes are not constrained at this
+  span.
