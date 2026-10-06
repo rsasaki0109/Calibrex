@@ -1,8 +1,9 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Check whether the sensor calibration on your robot is still right.</strong><br>
-  One command, honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle.
+  <strong>Estimate it, check it, watch it drift.</strong><br>
+  The sensor calibration of your robot, from ROS 2 bags, with honest per-axis verdicts for
+  LiDAR, IMU, camera, GNSS, and vehicle.
 </p>
 
 <p align="center">
@@ -12,6 +13,50 @@
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
 </p>
+
+<p align="center">
+  <img alt="Terminal recording: calibrex estimate on a bag with no calibration (roll, pitch and yaw observed, the lever arm marked NOT MEASURED), calibrex check of the exported frames.yaml on another recording (pass on the three judged axes, x y z unchecked), and calibrex drift over three recordings flagging the one whose IMU was remounted" src="docs/assets/calibrex-workflow.gif" width="100%">
+</p>
+
+<p align="center">
+  <sub>Real runs on the Koide hard-localization recordings (abridged output): estimate a calibration
+  from one bag, check it on another recording, then ask whether it changed across recordings. The
+  third recording is a copy with its IMU rotated 2° about z.
+  <a href="docs/tutorials/workflow.md">The full walkthrough</a>.</sub>
+</p>
+
+## The workflow
+
+```bash
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+
+calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
+calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
+calibrex drift day1/ day2/ day3/ --output drift/ --html drift.html # 3. did it change over time, and in which bag?
+```
+
+| Step | Command | You get |
+|---|---|---|
+| 1 | `calibrex estimate <bag>` | per pair each axis with its std and whether the data **observed** it; `frames.yaml` (loads with `--tf`), `static_transform_publisher` commands, URDF joints (and a Kalibr camchain); axes the data did not observe are marked **NOT MEASURED**, never written as measured; `--html` report |
+| 2 | `calibrex check <bag2> --tf frames.yaml` | `pass` / `warn` / `fail` / `inconclusive` per axis, the axes it could not judge, the error the data could have detected, next steps, progress while it runs; `--html` report. Without `--tf` it reads the bag's `/tf_static` |
+| 3 | `calibrex drift <bag1> <bag2> ...` | per axis `stable` / `drift` / `inconclusive` across recordings of one rig; the deviating bag and the size of the change |
+
+**In your browser, no install:** the
+[bag check page](https://rsasaki0109.github.io/Calibrex/app/check.html) runs `calibrex check` and
+`calibrex estimate` on your own rosbag2 (plan which pairs can be checked, then run them, with
+progress, verdicts and `frames.yaml` downloads). Multi-GB bags are read lazily; it runs locally under
+Pyodide, so no data is uploaded. The
+[browser calibration page](https://rsasaki0109.github.io/Calibrex/app/) calibrates an IMU against a
+sensor trajectory (TUM): rotation, clock offset, gyro bias, and lever arm, with held-out evidence.
+
+**When an axis is not observable, it says why and what would fix it.** For a lever-arm (translation)
+axis `calibrex check` and `calibrex estimate` name the rotation the recording lacks, or how much more
+of the same motion would reach the bound; see
+[what makes a lever arm observable](docs/concepts/translation_observability.md). `calibrex --help`
+groups the commands: **Start here** (`check`, `estimate`, `drift`, `doctor`, `demo`, ...), per-pair
+calibration, evidence and CI, and the rest.
+
+### Catching a bad calibration
 
 <p align="center">
   <img alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error in the deployed LiDAR transform the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes" src="docs/assets/calibrex-check-story.gif" width="100%">
@@ -55,8 +100,8 @@
 <table>
   <tr>
     <td width="33%" valign="top">
-      <strong>🔍 One command</strong><br>
-      Reads <code>/tf_static</code>, finds the sensors, and checks up to ten pairs (GNSS, IMU, LiDAR, camera, vehicle).
+      <strong>🔍 Three commands</strong><br>
+      <code>estimate</code>, <code>check</code>, <code>drift</code>: reads the bag, finds the sensors, and covers up to ten pairs (GNSS, IMU, LiDAR, camera, vehicle).
     </td>
     <td width="33%" valign="top">
       <strong>⚖️ Honest verdicts</strong><br>
@@ -69,30 +114,16 @@
   </tr>
 </table>
 
-```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
-calibrex check my_bag/ --html check.html
-```
-
-**Try it in your browser:** the
-[bag check page](https://rsasaki0109.github.io/Calibrex/app/check.html) plans
-`calibrex check` on your own rosbag2 (which sensor pairs can be checked, then
-the pair estimators and verdicts on the first part of the bag; multi-GB bags
-are read lazily), and the
-[browser calibration page](https://rsasaki0109.github.io/Calibrex/app/)
-calibrates an IMU against a sensor trajectory (TUM): rotation, clock offset,
-gyro bias, and lever arm, with held-out evidence. Both run locally under
-Pyodide, so no data is uploaded.
-
-When a lever-arm (translation) axis is not observable, `calibrex check` and
-`calibrex estimate` say why (which rotation the recording lacks) and what motion
-or duration would make it observable; see
-[what makes a lever arm observable](docs/concepts/translation_observability.md).
-
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Docs</strong></a>
   ·
+  <a href="#the-workflow"><strong>Workflow</strong></a>
+  ·
+  <a href="#estimate-a-calibration-when-there-is-none"><strong>Estimate</strong></a>
+  ·
   <a href="#check-a-deployed-calibration"><strong>Check</strong></a>
+  ·
+  <a href="#did-the-rig-change-between-recordings-calibrex-drift"><strong>Drift</strong></a>
   ·
   <a href="#pre-registered-sota-audits"><strong>SOTA audits</strong></a>
   ·
@@ -105,6 +136,45 @@ or duration would make it observable; see
   <a href="docs/concepts/calibration_methods.md"><strong>Methods</strong></a>
 </p>
 
+## Estimate a calibration when there is none
+
+`calibrex check` judges a candidate calibration. With a bag but none, every pair is
+`skipped (no_candidate_calibration)`; `calibrex estimate` is the one-command path to one, and
+`check` then verifies it on a different recording:
+
+```bash
+calibrex estimate my_bag/ --output est/                     # add --tf rough.yaml for a prior
+calibrex check other_bag/ --tf est/frames.yaml              # verify on a different recording
+calibrex estimate my_bag/ --output est/ --html est.html     # also a self-contained HTML report
+```
+
+`--html` (or `calibrex render est/bag_estimate.json --format html` later) writes a single
+offline page: per pair each axis as value, 1 sigma and observability (axes the data did not
+observe are greyed and marked "NOT MEASURED"), the exported and omitted frames, the exported
+files with their digests, and copy buttons for the `calibrex check --tf` and
+`static_transform_publisher` commands.
+
+<p align="center">
+  <img alt="The calibrex estimate HTML report for Koide indoor_easy_01: imu-lidar partial, roll pitch and yaw observed with standard deviation bars, x y z greyed as unobservable and from prior, NOT MEASURED, and the exported frame tree" src="docs/assets/calibrex-estimate-report.png" width="640">
+</p>
+
+It runs the same native estimators and keeps the estimates (`est/bag_estimate.json`,
+`slac.bag_estimate/v0.1`): per pair the transform, each axis with its standard deviation,
+and whether the data **observed** it (`observed`, `unobservable`, `control_not_detected`,
+`not_estimated`), with the bag digest and settings as provenance. From the observed
+frames it writes `frames.yaml` (loads directly with `--tf`), ROS 2
+`static_transform_publisher` commands and a launch file, and URDF joints (plus a Kalibr
+`camchain-imucam.yaml` when `--tf` gave a camchain). A frame with an axis the data did not
+observe is **never** written as if measured: it is written only when a rough `--tf` prior
+supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted and listed
+under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a
+rough lever arm from `--tf`; lidar-lidar registration also starts from a `--tf` prior, and
+camera-IMU needs the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
+
+Real-data results, with the splits, exact commands and the failures (Hilti camera-IMU, Koide
+imu-lidar, KITTI vehicle pairs, RTK-SLAM GNSS pairs):
+[`calibrex estimate` on real data](docs/benchmarks/estimate_real_data.md).
+
 ## Check a deployed calibration
 
 ```bash
@@ -112,8 +182,8 @@ calibrex check my_bag/ --output check.json --html check.html     # reads /tf_sta
 ```
 
 `calibrex check` asks whether the extrinsics deployed on a robot agree with what
-a recording says. It reads the candidate transforms from the bag's `/tf_static`
-(or `--tf`: URDF, Kalibr, RTK-SLAM or Hilti calibration files), detects the
+a recording says (step 2 of [the workflow](#the-workflow); no calibration yet? [estimate one first](#estimate-a-calibration-when-there-is-none)). It reads the candidate transforms from the bag's `/tf_static`
+(or `--tf`: the `frames.yaml` of `calibrex estimate`, URDF, Kalibr, RTK-SLAM or Hilti calibration files), detects the
 sensor topics, works out which of the ten sensor pairs the bag can check, runs
 the native estimator of each, and judges the deployed transform per axis against
 the estimate and its uncertainty: `pass`, `warn`, `fail` or `inconclusive`. It
@@ -170,41 +240,7 @@ injected here; the numbers are the development drives, not a held-out claim.
 [HTML report of the +1 deg run](docs/assets/calibrex_check_demo/check_yaw1.html)
 (download and open; GitHub shows HTML as source).
 
-### No calibration yet? Estimate first
-
-`calibrex check` needs a candidate. With a bag but no calibration, every pair is
-`skipped (no_candidate_calibration)`. `calibrex estimate` is the one-command path to one:
-
-```bash
-calibrex estimate my_bag/ --output est/                     # add --tf rough.yaml for a prior
-calibrex check other_bag/ --tf est/frames.yaml              # verify on a different recording
-calibrex estimate my_bag/ --output est/ --html est.html     # also a self-contained HTML report
-```
-
-`--html` (or `calibrex render est/bag_estimate.json --format html` later) writes a single
-offline page: per pair each axis as value, 1 sigma and observability (axes the data did not
-observe are greyed and marked "NOT MEASURED"), the exported and omitted frames, the exported
-files with their digests, and copy buttons for the `calibrex check --tf` and
-`static_transform_publisher` commands.
-
-It runs the same native estimators and keeps the estimates (`est/bag_estimate.json`,
-`slac.bag_estimate/v0.1`): per pair the transform, each axis with its standard deviation,
-and whether the data **observed** it (`observed`, `unobservable`, `control_not_detected`,
-`not_estimated`), with the bag digest and settings as provenance. From the observed
-frames it writes `frames.yaml` (loads directly with `--tf`), ROS 2
-`static_transform_publisher` commands and a launch file, and URDF joints (plus a Kalibr
-`camchain-imucam.yaml` when `--tf` gave a camchain). A frame with an axis the data did not
-observe is **never** written as if measured: it is written only when a rough `--tf` prior
-supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted and listed
-under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a
-rough lever arm from `--tf`; lidar-lidar registration also starts from a `--tf` prior, and
-camera-IMU needs the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
-
-Real-data results, with the splits, exact commands and the failures (Hilti camera-IMU, Koide
-imu-lidar, KITTI vehicle pairs, RTK-SLAM GNSS pairs):
-[`calibrex estimate` on real data](docs/benchmarks/estimate_real_data.md).
-
-### Did the rig change between recordings? `calibrex drift`
+## Did the rig change between recordings? `calibrex drift`
 
 Two or more bags of the **same rig**, in recording order:
 
@@ -722,6 +758,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 ## Documentation
 
 - [Documentation site](https://rsasaki0109.github.io/Calibrex/)
+- [The workflow: estimate, check, drift](docs/tutorials/workflow.md)
 - [SOTA leaderboard](docs/benchmarks/sota_leaderboard.md)
 - Benchmark pages: [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) ·
   [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md) ·

@@ -10,24 +10,42 @@ hide:
 
 <p class="cx-eyebrow">Calibration evidence framework for robotics</p>
 
-# Check whether the sensor calibration on your robot is still right.
+# Estimate it, check it, watch it drift.
 
-<p class="cx-sub">One command, honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle. Calibrex reads the transforms your robot is running, compares them with its own recorded data, and says plainly which axes it could not judge.</p>
+<p class="cx-sub">Three commands for the sensor calibration of a robot, on ROS 2 bags, with honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle. Calibrex says plainly which axes it measured, which it could not judge, and what to record to fix that.</p>
 
 <div class="cx-buttons" markdown="1">
 
-[Get started](getting_started.md){ .md-button .md-button--primary }
-[Check a bag in the browser](app/check.html){ .md-button }
-[Calibrate an IMU in the browser](app/){ .md-button }
+[The workflow](tutorials/workflow.md){ .md-button .md-button--primary }
+[Run it in the browser](app/check.html){ .md-button }
+[Install](getting_started.md){ .md-button }
 [GitHub :fontawesome-brands-github:](https://github.com/rsasaki0109/Calibrex){ .md-button }
 
 </div>
 
-<div class="cx-visual"><img src="assets/calibrex-check-story.gif" alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes"></div>
+<div class="cx-visual"><img src="assets/calibrex-workflow.gif" alt="Terminal recording: calibrex estimate on a bag with no calibration (rotation observed, lever arm marked NOT MEASURED), calibrex check of the exported frames.yaml on another recording (pass on the three judged axes), and calibrex drift over three recordings flagging the one whose IMU was remounted"></div>
 
-<p class="cx-caption">Real <code>calibrex check</code> runs on KITTI development drives: a deployed LiDAR transform
-with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checking
-<b>passes</b> (pitch and yaw judged; roll is not observable from driving).</p>
+<p class="cx-caption">Real runs on the Koide hard-localization recordings (abridged output): estimate a calibration
+from one bag, check it on another, then ask whether it changed across recordings. The
+third recording is a copy with its IMU rotated 2° about z.</p>
+
+</div>
+
+<div class="cx-section" markdown="1">
+
+## The workflow
+
+| | Command | Question | Result |
+|---|---|---|---|
+| 1 | `calibrex estimate <bag>` | The bag has **no calibration yet**: what do the data say? | `frames.yaml`, static transforms, URDF joints, a Kalibr camchain; per-axis std; axes the data did not observe are marked **NOT MEASURED**; `--html` report |
+| 2 | `calibrex check <bag2> --tf frames.yaml` | Is the deployed calibration still right on **another recording**? | `pass` / `warn` / `fail` / `inconclusive` per axis, what could not be judged, next steps, progress; `--html` report |
+| 3 | `calibrex drift <bag1> <bag2> ...` | Did the calibration **change over time**, and in which bag? | `stable` / `drift` / `inconclusive` per axis, the deviating bag and the size of the change |
+
+When a lever-arm axis is not observable, `estimate` and `check` say why (which rotation the
+recording lacks) and how much motion or duration would fix it
+([translation observability](concepts/translation_observability.md)). The same `check` and
+`estimate` run in the [browser page](app/check.html) on your own bag, with no install and no upload.
+Details and real outputs: [the workflow page](tutorials/workflow.md).
 
 </div>
 
@@ -41,8 +59,8 @@ with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checkin
 
     ---
 
-    `calibrex check` reads `/tf_static` from a ROS 2 bag and checks every sensor pair it finds,
-    from LiDAR-vehicle to camera-IMU.
+    `calibrex check` reads `/tf_static` (or the `frames.yaml` that `calibrex estimate` wrote) and
+    checks every sensor pair it finds, from LiDAR-vehicle to camera-IMU.
 
 -   :material-ruler-square: **Honest per-axis verdicts**
 
@@ -51,13 +69,13 @@ with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checkin
     Partial coverage is named, not hidden: a `pass` covers only the judged axes, and
     detection power tells you whether the data could have caught a wrong calibration.
 
--   :material-web: **Plan a check in your browser**
+-   :material-web: **Check or estimate in your browser**
 
     ---
 
-    Drop a ROS 2 bag on the [bag check page](app/check.html) to see which sensor pairs
-    `calibrex check` can check and why others are skipped. Files are read in place
-    and never uploaded.
+    Drop a ROS 2 bag on the [bag check page](app/check.html) to plan, run `calibrex check`
+    or run `calibrex estimate` under Pyodide, with progress and downloads. Files are read
+    in place and never uploaded.
 
 -   :material-flag-checkered: **Pre-registered SOTA claims**
 
@@ -74,6 +92,18 @@ with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checkin
     README GIFs are digest-bound to their sources.
 
 </div>
+
+</div>
+
+<div class="cx-section" markdown="1">
+
+## Catching a bad calibration
+
+<div class="cx-visual"><img src="assets/calibrex-check-story.gif" alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes" loading="lazy"></div>
+
+<p class="cx-caption">Real <code>calibrex check</code> runs on KITTI development drives: a deployed LiDAR transform
+with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checking
+<b>passes</b> (pitch and yaw judged; roll is not observable from driving).</p>
 
 </div>
 
@@ -129,10 +159,12 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 
 ```bash
 python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
-calibrex check my_bag/ --html check.html
+calibrex estimate my_bag/ --output est/ --html est.html     # no calibration yet
+calibrex check other_bag/ --tf est/frames.yaml --html check.html
+calibrex drift day1/ day2/ day3/ --output drift/
 ```
 
-See [Install and first check](getting_started.md), or the
+See [the workflow](tutorials/workflow.md), [Install and first check](getting_started.md), or the
 [check tutorial](tutorials/calibrex_check.md) for the KITTI yaw-injection demo.
 
 ## Hand-eye benchmark

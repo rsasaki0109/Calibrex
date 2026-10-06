@@ -1,5 +1,10 @@
 # Check a deployed calibration (`calibrex check`)
 
+`check` is the second of three chained commands: [`calibrex estimate`](workflow.md#1-estimate-no-calibration-yet)
+produces a calibration when there is none, `check` judges it on another recording, and
+[`calibrex drift`](calibrex_drift.md) compares recordings over time. [The workflow page](workflow.md)
+shows them together; this page is the full `check` reference.
+
 Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, the GNSS pairs gnss-lidar and
 gnss-imu, and the opt-in vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar,
 lidar-wheel_odometry). The command reads the
@@ -1243,5 +1248,4 @@ pair by relative path and SHA-256 (`evidence`; `evidence_artifact` repeats the
 first path). Those files hold the per-DoF estimates, jackknife and known-bad
 controls, and policy status.
 
-No HTML report yet: the existing HTML helpers render calibration results, not
-check artifacts.
+`--html FILE` writes the self-contained verdict report (see [HTML report](#html-report)).
