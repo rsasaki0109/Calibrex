@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calibrex Bag Check</title>
-<meta name="description" content="Plan calibrex check on your own rosbag2 in the browser: which sensor pairs can be checked, with the frame tree it read. Files are read in place and never uploaded.">
+<meta name="description" content="Plan and run calibrex check on your own rosbag2 in the browser: which sensor pairs can be checked, then the pair estimators and verdicts on a short slice of the bag. Files are read in place and never uploaded.">
 <link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +31,7 @@
       <a href="../tutorials/calibrex_check/">What the check does</a>.</p>
     <div class="pills">
       <span class="privacy">Runs locally via <a href="https://pyodide.org">Pyodide</a>: files are read in place and never leave this page.</span>
-      <span class="privacy plan">Plan only: the estimators run on your machine with the CLI.</span>
+      <span class="privacy plan">Plan the check, then run the estimators here on a short slice of the bag, or on the whole bag with the CLI.</span>
     </div>
   </div>
 
@@ -108,18 +108,57 @@
     <div class="table-wrap"><table id="topics"></table></div>
     <p id="topic-note" class="note"></p>
 
-    <h3>Run the full check on your machine</h3>
+    <h3>Run the estimators in your browser</h3>
+    <div id="run-panel">
+      <p class="note" style="margin-top:0">Runs the same pair estimators as the CLI in Pyodide, on the first part of the bag. The bag is still read in place from your disk. A browser is slower than the CLI (about 2 times on the LiDAR-odometry pairs), so keep the slice short; run the whole bag with the CLI below.</p>
+      <div class="grid">
+        <label class="field">Mode
+          <select id="run-mode">
+            <option value="check">Check: judge the candidate calibration (verdicts)</option>
+            <option value="estimate">Estimate: measure the frames from the data (frames.yaml)</option>
+          </select>
+        </label>
+        <label class="field">Analyse the first (seconds)
+          <span class="hint">The duration cap (<code>--max-duration-s</code>). 0 reads the whole bag, which can take very long and a lot of memory in a browser tab.</span>
+          <input id="run-cap" type="number" min="0" step="1" value="60">
+        </label>
+      </div>
+      <fieldset id="run-pairs" class="pairset"><legend>Pairs to run</legend></fieldset>
+      <div class="actions">
+        <button id="run-estimators" class="primary" type="button">Run in the browser</button>
+        <button id="run-cancel" type="button" hidden>Cancel</button>
+      </div>
+      <div id="progress" class="progress" hidden aria-live="polite">
+        <div class="bar"><div id="bar-pairs"></div></div>
+        <p id="prog-line" class="prog-line"></p>
+        <div class="bar thin"><div id="bar-scan"></div></div>
+        <p id="prog-detail" class="note"></p>
+        <ul id="prog-done" class="prog-done"></ul>
+      </div>
+      <div id="run-error" class="error" hidden role="alert"></div>
+      <div id="run-results" hidden>
+        <h3 id="run-title">Result</h3>
+        <div id="run-stats" class="stats"></div>
+        <iframe id="run-report" class="report" title="Calibration check report" sandbox="" hidden></iframe>
+        <details id="run-text-box" open><summary>Text summary</summary><pre id="run-text" class="textout"></pre></details>
+        <div id="run-cli" class="callout" hidden></div>
+        <div id="run-downloads" class="actions"></div>
+        <p class="note">The JSON is the <code>slac.calibration_check/v0.1</code> (or <code>slac.bag_estimate/v0.1</code>) artifact with provenance; validate it with <code>calibrex validate</code>. It is marked as computed in the browser, on the slice named in its notes.</p>
+      </div>
+    </div>
+
+    <h3>Run the whole bag on your machine</h3>
     <div class="callout">
-      <p><b>This page is the plan only.</b> The estimators (LiDAR odometry, IMU, camera, GNSS) are not run in the browser: they need the whole bag and minutes of compute. Run them locally and you get the per-axis pass / warn / fail verdicts and an HTML report:</p>
+      <p>The full run reads the whole bag and can take minutes. With the CLI you also get the cache, every camera, and all the verdict options:</p>
     </div>
     <div class="codebox" style="margin-top:12px"><pre id="cmd"></pre><button id="copy-cmd" type="button">Copy</button></div>
     <p class="note">Replace the bag path with where it lives on your machine. Install once with:</p>
     <div class="codebox"><pre id="install"></pre><button id="copy-install" type="button">Copy</button></div>
     <div class="actions">
-      <button id="download" class="primary">Download plan JSON</button>
+      <button id="download">Download plan JSON</button>
       <button id="copy-plan-cmd" type="button">Copy the <code>--plan</code> command</button>
     </div>
-    <p class="note">The download is the <code>slac.calibration_check/v0.1</code> artifact with provenance (input digest, Calibrex version, and the equivalent command); check it with <code>calibrex validate</code>.</p>
+    <p class="note">The plan download is the <code>slac.calibration_check/v0.1</code> artifact with provenance (input digest, Calibrex version, and the equivalent command); check it with <code>calibrex validate</code>.</p>
   </section>
 </main>
 
@@ -145,7 +184,14 @@ let tfFiles = [];        // File objects of calibration files
 let folderName = null;   // bag directory name, when a folder was chosen or dropped
 let useSample = false;
 let ready = false, busy = false, version = "";
-let lastArtifact = null, lastCommands = null;
+let lastArtifact = null, lastCommands = null, lastRun = null, lastPlan = null;
+// Pairs the estimators can run in the browser (numpy / scipy / the bag only); the camera pairs also
+// load OpenCV (opencv-python of Pyodide, about 50 MB) and are experimental here.
+const BROWSER_PAIRS = ["imu-lidar", "lidar-lidar", "lidar-vehicle", "imu-vehicle", "ins-lidar",
+  "lidar-wheel_odometry", "gnss-lidar", "gnss-imu"];
+const CAMERA_PAIRS = ["camera-imu", "camera-focal"];
+const NOT_ESTIMATED = ["camera-focal"];
+let runMode = "check";
 
 const escapeHtml = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const log = (text) => { $("log").textContent += "\n" + text; $("log").scrollTop = 1e9; };
@@ -158,15 +204,20 @@ function formatSize(bytes) {
 }
 
 // ---------------------------------------------------------------- the worker
-const worker = new Worker("check-worker.js");
-worker.onmessage = (event) => {
-  const message = event.data;
-  if (message.type === "log") log(message.text);
-  else if (message.type === "ready") { ready = true; version = message.version; log("Ready."); refresh(); }
-  else if (message.type === "failed") log(message.text);
-  else if (message.type === "result") finish(message.payload);
-};
-worker.onerror = (event) => log("Worker error: " + (event.message || "unknown"));
+let worker = null;
+function startWorker() {
+  worker = new Worker("check-worker.js");
+  worker.onmessage = (event) => {
+    const message = event.data;
+    if (message.type === "log") log(message.text);
+    else if (message.type === "ready") { ready = true; version = message.version; log("Ready."); refresh(); }
+    else if (message.type === "failed") log(message.text);
+    else if (message.type === "progress") onProgress(message.event);
+    else if (message.type === "result") (message.kind === "run" ? finishRun : finish)(message.payload);
+  };
+  worker.onerror = (event) => log("Worker error: " + (event.message || "unknown"));
+}
+startWorker();
 
 // ---------------------------------------------------------------- inputs
 function refresh() {
@@ -174,6 +225,7 @@ function refresh() {
   $("sample").disabled = !ready || busy;
   $("run").disabled = !ready || busy || !hasInput;
   $("run").textContent = ready ? "Plan the check" : "Loading Python…";
+  $("run-estimators").disabled = !ready || busy || !lastPlan;
   const chip = (file, kind, index) => `<li><code>${escapeHtml(file.name)}</code> <span class="size">${formatSize(file.size)}</span>` +
     `<button class="x" type="button" data-kind="${kind}" data-index="${index}" aria-label="Remove ${escapeHtml(file.name)}">×</button></li>`;
   $("bag-list").innerHTML = useSample
@@ -261,7 +313,7 @@ document.addEventListener("click", (event) => {
 $("clear").addEventListener("click", () => {
   bagFiles = []; tfFiles = []; folderName = null; useSample = false;
   $("vehicle-frame").value = ""; $("frame-map").value = "";
-  $("error").hidden = true; $("results").hidden = true;
+  $("error").hidden = true; $("results").hidden = true; lastPlan = null;
   refresh();
 });
 
@@ -310,8 +362,144 @@ function finish(payload) {
   log("Done in " + payload.seconds.toFixed(1) + " s.");
   lastArtifact = payload.artifact;
   lastCommands = { command: payload.command, plan: payload.plan_command };
+  lastPlan = payload.artifact;
+  $("run-results").hidden = true; $("progress").hidden = true; $("run-error").hidden = true;
   render(payload.artifact, payload.command);
+  renderPairChoices();
+  refresh();
 }
+
+// ---------------------------------------------------------------- run in the browser
+function renderPairChoices() {
+  const names = [...BROWSER_PAIRS, ...CAMERA_PAIRS];
+  const records = (name) => lastPlan.pairs.filter((pair) => pair.pair === name);
+  $("run-pairs").innerHTML = "<legend>Pairs to run</legend>" + names.map((name) => {
+    const planned = records(name).some((pair) => pair.status === "planned");
+    const estimable = runMode === "estimate" ? !NOT_ESTIMATED.includes(name) : planned;
+    const camera = CAMERA_PAIRS.includes(name);
+    const reason = records(name).find((pair) => pair.status !== "planned");
+    const note = camera ? ' <span class="pill action">experimental: loads OpenCV</span>' : "";
+    const why = !estimable ? ` <span class="muted">${runMode === "estimate" && !planned && !reason ? "" : escapeHtml(reason ? reason.reason_code : "not applicable")}</span>` : "";
+    return `<label class="choice"><input type="checkbox" name="pair" value="${name}" ${estimable && !camera ? "checked" : ""} ${estimable ? "" : "disabled"}> <span class="mono">${name}</span>${note}${why}</label>`;
+  }).join("");
+}
+$("run-mode").addEventListener("change", () => { runMode = $("run-mode").value; if (lastPlan) renderPairChoices(); });
+
+const fmtDur = (seconds) => { const total = Math.max(Math.round(seconds), 0); return total < 60 ? total + " s" : Math.floor(total / 60) + " min " + String(total % 60).padStart(2, "0") + " s"; };
+let progressState = null;
+function resetProgress() {
+  progressState = { total: 0, finished: 0, label: "", index: 0 };
+  $("progress").hidden = false;
+  $("bar-pairs").style.width = "0%"; $("bar-scan").style.width = "0%";
+  $("prog-line").textContent = "Starting…"; $("prog-detail").textContent = ""; $("prog-done").innerHTML = "";
+}
+function onProgress(event) {
+  if (!progressState) return;
+  const state = progressState;
+  const done = (text, status) => { $("prog-done").insertAdjacentHTML("beforeend", `<li><span class="pill ${status}">${escapeHtml(status)}</span> ${escapeHtml(text)}</li>`); };
+  if (event.event === "run_started") { state.total = event.total_pairs; $("prog-line").textContent = state.total + " pair(s) to run"; }
+  else if (event.event === "pair_started") {
+    state.label = event.label; state.index = event.index;
+    $("prog-line").textContent = `pair ${event.index}/${event.total}: ${event.label}`;
+    $("bar-scan").style.width = "0%"; $("prog-detail").textContent = "starting";
+  } else if (event.event === "stage") { state.stage = event.text; $("prog-detail").textContent = event.text; }
+  else if (event.event === "tick") {
+    let text = (state.stage || "") + " [";
+    if (event.total) { const pct = Math.min(100, 100 * event.done / event.total); $("bar-scan").style.width = pct + "%";
+      const eta = event.done > 0 && event.total > event.done ? event.elapsed_s * (event.total - event.done) / event.done : null;
+      text += `${event.done}/${event.total} msgs (${pct.toFixed(0)}%), ${fmtDur(event.elapsed_s)}` + (eta !== null ? `, eta ${fmtDur(eta)}` : ""); }
+    else text += `${event.done} msgs, ${fmtDur(event.elapsed_s)}`;
+    $("prog-detail").textContent = text + "]";
+  } else if (event.event === "pair_finished") {
+    state.finished += 1; $("bar-pairs").style.width = (100 * state.finished / Math.max(state.total, 1)) + "%";
+    done(`${event.label} (${event.runtime_s.toFixed(1)} s)`, event.status);
+  } else if (event.event === "pair_skipped") {
+    state.finished += 1; $("bar-pairs").style.width = (100 * state.finished / Math.max(state.total, 1)) + "%";
+    done(`${event.label}: ${event.reason}`, "skipped");
+  } else if (event.event === "pair_failed") {
+    state.finished += 1; $("bar-pairs").style.width = (100 * state.finished / Math.max(state.total, 1)) + "%";
+    done(`${event.label}: ${event.error}`, "failed");
+  } else if (event.event === "run_finished") { $("bar-pairs").style.width = "100%"; $("prog-line").textContent = "Finished"; $("prog-detail").textContent = ""; }
+}
+
+function startRun() {
+  const pairs = [...document.querySelectorAll("#run-pairs input[name=pair]:checked")].map((box) => box.value);
+  if (!pairs.length) { $("run-error").hidden = false; $("run-error").textContent = "Select at least one pair."; return; }
+  const cap = Number($("run-cap").value);
+  busy = true; refresh();
+  $("run-error").hidden = true; $("run-results").hidden = true;
+  $("run-cancel").hidden = false;
+  resetProgress();
+  worker.postMessage({
+    type: "run",
+    bag: useSample ? { urls: SAMPLE.urls } : { files: bagFiles },
+    tf: useSample ? [] : tfFiles,
+    request: { ...request(), mode: runMode, pairs, max_duration_s: cap > 0 ? cap : null },
+  });
+}
+$("run-estimators").addEventListener("click", startRun);
+$("run-cancel").addEventListener("click", () => {
+  worker.terminate(); ready = false; busy = false; startWorker();
+  $("run-cancel").hidden = true; $("progress").hidden = true;
+  $("run-error").hidden = false; $("run-error").textContent = "Cancelled. Python is restarting (cached, a few seconds); the plan above is kept.";
+  refresh();
+});
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function finishRun(payload) {
+  busy = false; $("run-cancel").hidden = true; refresh();
+  if (!payload.ok) { $("run-error").hidden = false; $("run-error").textContent = payload.error; $("progress").hidden = true; log("Run failed: " + payload.error); return; }
+  lastRun = payload;
+  log("Run finished in " + payload.seconds.toFixed(1) + " s.");
+  const artifact = payload.artifact;
+  const isCheck = payload.mode === "check";
+  $("run-results").hidden = false;
+  $("run-title").textContent = isCheck ? "Check result" : "Estimate result";
+  const counts = Object.entries(artifact.summary.status_counts || {});
+  $("run-stats").innerHTML =
+    (isCheck ? `<div class="stat ${artifact.overall_verdict}"><div class="n verdict-${artifact.overall_verdict}">${escapeHtml(artifact.overall_verdict)}</div><div class="l">overall verdict</div></div>` : "") +
+    counts.map(([status, count]) => `<div class="stat"><div class="n">${count}</div><div class="l">${escapeHtml(status)}</div></div>`).join("") +
+    `<div class="stat"><div class="n">${payload.seconds.toFixed(0)} s</div><div class="l">in the browser</div></div>`;
+  const frame = $("run-report");
+  frame.hidden = !payload.html;
+  if (payload.html) frame.srcdoc = payload.html;
+  $("run-text").textContent = payload.text;
+  // Pairs the browser could not run (a missing package or an estimator error) get the CLI command.
+  const failing = isCheck ? artifact.pairs.filter((pair) => ["estimator_error", "missing_dependency"].includes(pair.reason_code)).map((pair) => pair.pair) : [];
+  const cli = $("run-cli");
+  cli.hidden = !failing.length;
+  if (failing.length) {
+    const unique = [...new Set(failing)];
+    cli.innerHTML = `<p><b>Run with the CLI:</b> ${unique.map((name) => `<code>${name}</code>`).join(", ")} did not produce a result in the browser (see the reason above). On your machine:</p>` +
+      `<pre class="codeline">${escapeHtml(payload.command.replace(/ --output .*$/, "") + " --pairs " + unique.join(",") + " --output check.json --html check.html")}</pre>`;
+  }
+  const buttons = [];
+  if (isCheck) {
+    buttons.push(`<button class="primary" data-dl="json">Download check JSON</button>`);
+    buttons.push(`<button data-dl="html">Download HTML report</button>`);
+  } else {
+    buttons.push(`<button class="primary" data-dl="json">Download estimate JSON</button>`);
+    for (const name of Object.keys(payload.files)) buttons.push(`<button data-dl="file" data-name="${escapeHtml(name)}">Download ${escapeHtml(name)}</button>`);
+  }
+  buttons.push(`<button data-dl="cmd">Copy the equivalent CLI command</button>`);
+  $("run-downloads").innerHTML = buttons.join("");
+  $("run-results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("run-downloads").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-dl]");
+  if (!button || !lastRun) return;
+  const kind = button.dataset.dl;
+  if (kind === "json") download(lastRun.mode === "check" ? "check.json" : "estimate.json", JSON.stringify(lastRun.artifact, null, 2) + "\n", "application/json");
+  else if (kind === "html") download("check.html", lastRun.html, "text/html");
+  else if (kind === "file") download(button.dataset.name, lastRun.files[button.dataset.name], "text/plain");
+  else if (kind === "cmd") copy(lastRun.command, button);
+});
 
 // ---------------------------------------------------------------- results
 const fmtXyz = (t) => "(" + t.map((v) => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(3)).join(", ") + ") m";
@@ -422,10 +610,7 @@ $("copy-install").addEventListener("click", (event) => copy($("install").textCon
 $("copy-plan-cmd").addEventListener("click", (event) => lastCommands && copy(lastCommands.plan, event.currentTarget));
 $("download").addEventListener("click", () => {
   if (!lastArtifact) return;
-  const url = URL.createObjectURL(new Blob([JSON.stringify(lastArtifact, null, 2) + "\n"], { type: "application/json" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: "check_plan.json" });
-  document.body.appendChild(link); link.click(); link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  download("check_plan.json", JSON.stringify(lastArtifact, null, 2) + "\n", "application/json");
 });
 
 refresh();

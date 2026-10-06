@@ -1132,39 +1132,90 @@ per-point time" above.
   one); no bag here exercised Livox `CustomMsg`.
 - Sensor-class is not inferred beyond the message type (sonar counts as LiDAR).
 
-## Plan a bag in the browser
+## Plan and run a bag in the browser
 
-**[Open the bag check page](../app/check.html)** to run `calibrex check --plan` on your own
-bag without installing anything. It is the same planner as the command line
-(`calibrex.check.browser` calls `build_calibration_check`), running under
-[Pyodide](https://pyodide.org) in a Web Worker. It shows the candidate sources and the
-frame tree it read, each sensor topic with its role, frame and frame source (and why a
-topic was ignored), and every sensor pair as *can be checked* or skipped with its reason
-code. It ends with a download of the `slac.calibration_check/v0.1` plan and the command
-that runs the full check locally:
+**[Open the bag check page](../app/check.html)** to run `calibrex check` on your own bag
+without installing anything. It is the same code as the command line
+(`calibrex.check.browser` calls `build_calibration_check` and `build_bag_estimate`), running
+under [Pyodide](https://pyodide.org) in a Web Worker. In two steps:
+
+1. **Plan.** The candidate sources and the frame tree it read, each sensor topic with its role,
+   frame and frame source (and why a topic was ignored), and every sensor pair as *can be
+   checked* or skipped with its reason code (`calibrex check --plan`).
+2. **Run in the browser.** Pick the pairs, a duration cap (default 60 s of the bag) and a mode,
+   and the pair estimators run in the worker, with a progress bar per pair and per scan
+   (the `CheckProgress` events of the run, posted from the worker).
+   *Check* judges the candidate (from `/tf_static` or the `--tf` file you dropped) and shows
+   the per-axis verdicts as the same HTML report as `--html`, with downloads of the
+   `slac.calibration_check/v0.1` JSON and the report. *Estimate* measures the frames from the
+   data (`calibrex estimate`) and offers `frames.yaml` and the other exports for download.
+   Every result lists the equivalent CLI command; the artifact notes that it was computed in
+   the browser on the first N seconds.
 
 ```bash
-calibrex check my_bag --tf rig.urdf --vehicle-frame base_link --output check.json --html check.html
+calibrex check my_bag --tf rig.urdf --vehicle-frame base_link --max-duration-s 60 --output check.json --html check.html
 ```
 
-- **Plan only.** The estimators are not run in the browser; they need the whole bag and
-  minutes of compute, so use the printed command for the pass / warn / fail verdicts.
+### What runs in the browser
+
+The estimators import numpy, scipy and the bag readers only (OpenCV is imported lazily, by
+the camera pairs). Pyodide 0.27.2 ships numpy, scipy, pydantic, PyYAML, sqlite3, zstandard
+and `opencv-python` 4.10, so every pair can run; the table lists the practical limits.
+
+| Pair | Needs | In the browser |
+|---|---|---|
+| `lidar-vehicle`, `ins-lidar` | scan-to-scan LiDAR odometry (numpy, scipy `cKDTree`) | Runs. The slow ones: about 2x the native time. |
+| `imu-vehicle`, `lidar-wheel_odometry` | INS / wheel twist only (numpy, scipy) | Runs in seconds; `imu-vehicle` matches the CLI on KITTI; `lidar-wheel_odometry` was not exercised (no wheel topic in the test bags). |
+| `imu-lidar`, `lidar-lidar` | native registration, gyro / map evidence (numpy, scipy) | Runs on the sample bag; not compared with the CLI on real data. Keep the cap small. |
+| `gnss-lidar`, `gnss-imu` | LiDAR odometry plus the GNSS track | `gnss-lidar` matches the CLI on KITTI; `gnss-imu` ran on the sample only. |
+| `camera-imu`, `camera-focal` | OpenCV (`opencv-python`, 50 MB, loaded on demand) | Experimental: the code path runs (checked on the sample bag), but it was not compared with the CLI on real camera data. |
+
+Limits that apply to all of them:
+
+- **Memory.** WebAssembly is 32-bit, so a tab has 4 GB at most. The browser run reuses decoded
+  scans up to 512 MB (`ScanStore`; the CLI default is 2 GB), and the bag is never loaded
+  whole: sqlite and the MCAP reader pull it through WORKERFS, 1 MiB at a time.
+- **Streaming.** Every estimator reads the bag as a stream and stops at the duration cap; with
+  a cap of 0 the whole bag is read, which can take very long.
+- **Speed.** Wasm runs the numeric code about 2x slower than native. Run the whole bag with
+  the CLI.
+- **No cache, no threads.** The estimator cache is off in the browser and nothing runs in
+  parallel.
+- **Not available.** `lz4`-compressed MCAP chunks, `--topic-kind`, the verdict options and
+  `--camera`; if a pair gives no result in the browser the page shows the exact
+  `calibrex check ... --pairs NAME` command to run it locally.
+
+Verified on a KITTI drive (`k0015`, 545 MB `.db3` picked through the file input, vehicle frame
+`base_link`, first 15 s): the browser and `calibrex check --max-duration-s 15` give the same
+verdicts (`warn`; `lidar-vehicle`, `imu-vehicle` warn, `ins-lidar` pass, `gnss-lidar`
+inconclusive) with the same numbers to better than 1e-5 relative (`lidar-vehicle` and
+`imu-vehicle` to better than 1e-6). The browser took 88 s and the CLI 46 s.
+
+### The rest of the page
+
 - **Data stays in the page.** Dropped files are never uploaded.
 - **Large bags.** The files are mounted with Emscripten WORKERFS, which serves reads from
-  your file on demand, so `sqlite3` (or the MCAP reader) touches only the pages it needs
-  and a multi-gigabyte `.db3` is never copied into memory. A 4 GB `.db3` plans in a few
-  seconds. For an `.mcap`, also add its `metadata.yaml`; without it the whole file is
-  scanned for its channels. `zstd`-compressed MCAP chunks work; `lz4` chunks need the
-  command line.
+  your file on demand (with a 1 MiB read-ahead), so a multi-gigabyte `.db3` is never copied
+  into memory. A 4 GB `.db3` plans in a few seconds. For an `.mcap`, also add its
+  `metadata.yaml`; without it the whole file is scanned for its channels. `zstd`-compressed
+  MCAP chunks work; `lz4` chunks need the command line.
 - **Inputs.** The bag's `metadata.yaml` and storage file(s) (or a whole folder, or a bare
   `.mcap`), optional `--tf` calibration files of the formats above, an opt-in vehicle frame
   ([why](#vehicle-pairs-are-opt-in)) and `--frame-map TOPIC=FRAME` lines. The sample button
   plans a 266 KB synthetic bag (`tools/build_check_sample_bag.py`).
-- **Not in the browser.** `--topic-kind`, `--pairs` and the verdict options are CLI-only,
-  as is anything that runs an estimator.
+- **Cancel.** Python cannot be interrupted mid-run, so Cancel restarts the worker (a few
+  seconds); the plan is kept.
 
-`tools/check_browser_check_page.mjs` drives the page in headless Chrome (sample or your own
-files) and `tools/check_browser_page.mjs` runs its Python call under Pyodide in Node.
+`tools/check_browser_check_page.mjs` drives the page in headless Chrome (the sample, in plan,
+check and estimate modes, or your own files with `--run`) and `tools/check_browser_page.mjs`
+runs its Python calls under Pyodide in Node. Manual verification on a real bag:
+
+```bash
+python tools/build_browser_wheel.py && python -m http.server 8124 --directory docs &
+node tools/check_browser_check_page.mjs --bag my_bag/metadata.yaml --bag my_bag/my_bag_0.db3 \
+    --vehicle-frame base_link --run --cap 15 --out /tmp/checkpage
+calibrex check my_bag --vehicle-frame base_link --max-duration-s 15 --no-cache --output native.json
+```
 
 ## Artifact
 

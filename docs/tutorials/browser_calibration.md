@@ -18,7 +18,7 @@ have, instead of Calibrex's own LiDAR odometry.
 
 Looking for `calibrex check` instead? The [bag check page](../app/check.html) plans it on
 your own rosbag2 in the browser; see
-[Plan a bag in the browser](calibrex_check.md#plan-a-bag-in-the-browser).
+[Plan a bag in the browser](calibrex_check.md#plan-and-run-a-bag-in-the-browser).
 
 ## Inputs
 
