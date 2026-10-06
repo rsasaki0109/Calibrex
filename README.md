@@ -41,6 +41,8 @@ calibrex drift day1/ day2/ day3/ --output drift/ --html drift.html # 3. did it c
 | 2 | `calibrex check <bag2> --tf frames.yaml` | `pass` / `warn` / `fail` / `inconclusive` per axis, the axes it could not judge, the error the data could have detected, next steps, progress while it runs; `--html` report. Without `--tf` it reads the bag's `/tf_static` |
 | 3 | `calibrex drift <bag1> <bag2> ...` | per axis `stable` / `drift` / `inconclusive` across recordings of one rig; the deviating bag and the size of the change |
 
+`check`, `estimate` and `drift` read rosbag2 (sqlite3 `.db3`), ROS 2 MCAP (zstd/lz4 chunks) and ROS 1 `.bag` (bz2/lz4 chunks) directly, detected from the file.
+
 **In your browser, no install:** the
 [bag check page](https://rsasaki0109.github.io/Calibrex/app/check.html) runs `calibrex check` and
 `calibrex estimate` on your own rosbag2 (plan which pairs can be checked, then run them, with

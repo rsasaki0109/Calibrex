@@ -32,6 +32,8 @@ ROS or the vendor driver, preserving ``timebase`` and ``offset_time``.
 
 from __future__ import annotations
 
+import heapq
+import io
 import math
 import sqlite3
 import struct
@@ -45,6 +47,12 @@ from urllib.parse import quote
 import yaml
 
 from calibrex.core.exceptions import DatasetError
+from calibrex.data.bag_formats import (
+    ROSBAG1_STORAGE_ID,
+    iter_ros1_messages,
+    list_ros1_connections,
+    sniff_bag_file,
+)
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_cdr import (
     decode_ros2_camera_info,
@@ -436,6 +444,9 @@ def iter_messages(
     """Yield ``(connection, timestamp_ns, cdr_payload)`` in timestamp order."""
 
     storage_path, storage_id, decompress_message = _resolve_storage(path)
+    if storage_id == ROSBAG1_STORAGE_ID:
+        yield from iter_ros1_messages(storage_path, topics=topics)
+        return
     if storage_id == "sqlite3":
         yield from _iter_sqlite_messages(
             storage_path,
@@ -466,6 +477,8 @@ def list_rosbag2_connections(
     """
 
     storage_path, storage_id = resolve_storage(path)
+    if storage_id == ROSBAG1_STORAGE_ID:
+        return list_ros1_connections(storage_path)
     counts: dict[str, int] = {}
     bag_path = Path(path)
     metadata_path = bag_path / "metadata.yaml" if bag_path.is_dir() else None
@@ -530,7 +543,7 @@ def _sqlite_connections(db_path: Path) -> list[Rosbag2Connection]:
 def _mcap_connections(mcap_path: Path) -> list[Rosbag2Connection]:
     channels: dict[int, Rosbag2Connection] = {}
     schemas: dict[int, str] = {}
-    with mcap_path.open("rb") as source:
+    with _open_mcap(mcap_path) as source:
         if source.read(len(MCAP_MAGIC)) != MCAP_MAGIC:
             msg = "not an MCAP file (bad magic header)"
             raise DatasetError(msg)
@@ -621,6 +634,11 @@ def resolve_storage(path: str | Path) -> tuple[Path, str]:
             return bag_path, "sqlite3"
         if suffix == ".mcap":
             return bag_path, "mcap"
+        if suffix == ".bag":
+            return bag_path, ROSBAG1_STORAGE_ID
+        sniffed = sniff_bag_file(bag_path)
+        if sniffed is not None:
+            return bag_path, sniffed
         msg = f"unsupported rosbag2 storage file extension: {suffix!r}"
         raise DatasetError(msg)
 
@@ -637,6 +655,13 @@ def resolve_storage(path: str | Path) -> tuple[Path, str]:
         return storage_file, "mcap"
 
     storage_file = _pick_storage_file(bag_path, relative_paths, ".db3")
+    if storage_file.suffix.lower() == ".zstd":
+        msg = (
+            f"{storage_file.name} is a file-compressed sqlite3 rosbag2; decompress it first "
+            "(zstd -d) or convert it with `ros2 bag convert`. File-compressed MCAP "
+            "(.mcap.zstd) is read directly."
+        )
+        raise DatasetError(msg)
     return storage_file, storage_id or "sqlite3"
 
 
@@ -694,6 +719,10 @@ def _message_decompressor_from_path(path: str | Path) -> Callable[[bytes], bytes
     if not metadata_path.is_file():
         return None
     metadata = _load_metadata(metadata_path)
+    if metadata["compression_mode"] == "file" and metadata["compression_format"] == "zstd":
+        storage_file, storage_id = resolve_storage(bag_path)
+        if storage_id == "mcap" and storage_file.suffix.lower() == ".zstd":
+            return None  # a .mcap.zstd is streamed decompressed by _open_mcap
     return _message_decompressor(
         compression_format=metadata["compression_format"],
         compression_mode=metadata["compression_mode"],
@@ -808,7 +837,9 @@ def _iter_mcap_messages(
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     channels: dict[int, Rosbag2Connection] = {}
     schemas: dict[int, str] = {}
-    with mcap_path.open("rb") as source:
+    ordered: list[tuple[int, int, Rosbag2Connection, int, bytes]] = []
+    sequence = 0
+    with _open_mcap(mcap_path) as source:
         magic = source.read(len(MCAP_MAGIC))
         if magic != MCAP_MAGIC:
             msg = "not an MCAP file (bad magic header)"
@@ -821,6 +852,11 @@ def _iter_mcap_messages(
                 channel = _parse_mcap_channel(content, schemas)
                 channels[channel.topic_id] = channel
             elif opcode == OP_CHUNK:
+                # Chunks may overlap in time: hold messages in a heap and release those
+                # older than the next chunk's start so the output stays time-ordered.
+                (chunk_start,) = struct.unpack_from("<Q", content, 0)
+                while ordered and ordered[0][0] < chunk_start:
+                    yield heapq.heappop(ordered)[2:]
                 _compression, records = _parse_mcap_chunk(content)
                 for inner_opcode, inner_content in _iter_mcap_record_bytes(records):
                     if inner_opcode == OP_SCHEMA:
@@ -830,13 +866,17 @@ def _iter_mcap_messages(
                         channel = _parse_mcap_channel(inner_content, schemas)
                         channels[channel.topic_id] = channel
                     elif inner_opcode == OP_MESSAGE:
-                        yield from _yield_mcap_message(
+                        for item in _yield_mcap_message(
                             inner_content,
                             channels=channels,
                             topics=topics,
                             decompress_message=decompress_message,
-                        )
+                        ):
+                            sequence += 1
+                            heapq.heappush(ordered, (item[1], sequence, *item))
             elif opcode == OP_MESSAGE:
+                while ordered:
+                    yield heapq.heappop(ordered)[2:]
                 yield from _yield_mcap_message(
                     content,
                     channels=channels,
@@ -845,6 +885,8 @@ def _iter_mcap_messages(
                 )
             elif opcode in {OP_FOOTER, OP_DATA_END}:
                 break
+    while ordered:
+        yield heapq.heappop(ordered)[2:]
 
 
 def _yield_mcap_message(
@@ -862,6 +904,22 @@ def _yield_mcap_message(
         return
     payload = _maybe_decompress_message(payload, decompress_message)
     yield connection, log_time, payload
+
+
+def _open_mcap(path: Path) -> Any:
+    """Open an MCAP file; a rosbag2 file-compressed ``.mcap.zstd`` is streamed decompressed."""
+
+    if path.suffix.lower() != ".zstd":
+        return path.open("rb")
+    try:
+        import zstandard
+    except ImportError as exc:  # pragma: no cover - exercised via error path test
+        msg = (
+            "file-compressed rosbag2 (.mcap.zstd) requires the optional dependency "
+            "calibrex[rosbag2-compression]"
+        )
+        raise DatasetError(msg) from exc
+    return io.BufferedReader(zstandard.ZstdDecompressor().stream_reader(path.open("rb")))
 
 
 def _iter_mcap_records(source: Any) -> Iterator[tuple[int, bytes]]:
@@ -960,16 +1018,25 @@ def _decompress_mcap_chunk(compression: str, data: bytes, uncompressed_size: int
     raise DatasetError(msg)
 
 
+_LZ4_FRAME_MAGIC = b"\x04\x22\x4d\x18"
+
+
 def _lz4_decompress(data: bytes, size: int) -> bytes:
+    """Decompress an MCAP ``lz4`` chunk: LZ4 frame format (spec), or a raw block."""
+
     try:
         import lz4.block
+        import lz4.frame
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
             "lz4-compressed MCAP chunks require the optional dependency "
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decompressed: bytes = lz4.block.decompress(data, uncompressed_size=size)
+    if data.startswith(_LZ4_FRAME_MAGIC):
+        decompressed: bytes = lz4.frame.decompress(data)
+    else:
+        decompressed = lz4.block.decompress(data, uncompressed_size=size)
     if size and len(decompressed) != size:
         msg = "lz4 chunk decompressed to an unexpected size"
         raise DatasetError(msg)
@@ -985,7 +1052,11 @@ def _zstd_decompress(data: bytes, size: int) -> bytes:
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decompressed: bytes = zstandard.ZstdDecompressor().decompress(data)
+    decompressor = zstandard.ZstdDecompressor()
+    try:
+        decompressed: bytes = decompressor.decompress(data, max_output_size=size or 0)
+    except zstandard.ZstdError:  # a frame without a content size, or a streamed frame
+        decompressed = decompressor.decompressobj().decompress(data)
     if size and len(decompressed) != size:
         msg = "zstd chunk decompressed to an unexpected size"
         raise DatasetError(msg)

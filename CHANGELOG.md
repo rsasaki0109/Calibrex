@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **`calibrex check` / `estimate` / `drift` read ROS 1 `.bag` files and every MCAP chunk
+  compression directly.** New `calibrex.data.bag_formats` (format detection, ROS 1 index reader:
+  topics/types/counts without a scan, chunks without the requested topics skipped, unindexed bags
+  scanned) and `calibrex.data.ros1_cdr` (a generic ROS 1 wire format to CDR transcoder driven by
+  the connection's `message_definition`; numpy-vectorised for record arrays such as Livox points).
+  The existing reader functions in `calibrex.data.rosbag2` dispatch on the detected format, so no
+  estimator changed. Real data: byte-identical payloads against rosbag2/MCAP conversions of the
+  same bags (NTU VIRAL, an Autoware-style recording in ROS 1 none/lz4/bz2 versus db3, MCAP,
+  message-zstd and file-zstd, Aqua beach pond bag versus MCAP). Fixes: MCAP `lz4` chunks are LZ4
+  *frames* in real files (the reader only accepted raw blocks), `zstd` chunks without a content
+  size, and a rosbag2 file-compressed `.mcap.zstd` is now streamed (`.db3.zstd` gets a clear
+  error instead of "file is not a database"). No schema change.
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide
