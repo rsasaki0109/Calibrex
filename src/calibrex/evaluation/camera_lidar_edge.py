@@ -48,7 +48,7 @@ from calibrex.core.camera_lidar_edge import (
     CameraLidarEdgeSamples,
     CameraLidarEdgeTransform,
 )
-from calibrex.core.progress import emit_stage
+from calibrex.core.progress import emit_stage, emit_tick
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import bag_input_digest
 from calibrex.data.ros2_camera_lidar import (
@@ -345,10 +345,11 @@ def prepare_frames(
 
     prepared: list[PreparedFrame] = []
     dropped: list[str] = []
+    emit_stage(f"camera-lidar: preparing {len(frames)} frame(s)")
     rotation = candidate[:3, :3]
     translation = candidate[:3, 3]
     for index, frame in enumerate(frames):
-        emit_stage(f"camera-lidar: preparing frame {index + 1}/{len(frames)}")
+        emit_tick(index + 1, len(frames))
         response = image_edge_response(
             frame.image,
             max_width=options.image_max_width,
@@ -607,13 +608,13 @@ def estimate_from_frames(
     )
     start_record = _transform_record(candidate, parent_frame, child_frame)
     if len(prepared) < opts.min_frames:
-        reasons = [
+        unsolved_reasons = [
             f"only {len(prepared)} usable frame(s) of {len(frames)} synchronized; "
             f"at least {opts.min_frames} are needed",
             *dropped[:5],
         ]
         zero = Rotation.from_matrix(candidate[:3, :3]).as_rotvec()
-        dofs = [
+        unsolved_dofs = [
             CameraLidarEdgeDofRecord(
                 name=name,
                 unit="deg" if index < 3 else "m",
@@ -630,10 +631,10 @@ def estimate_from_frames(
         return CameraLidarEdgeArtifact(
             solver_status="insufficient_samples",
             policy_status="inconclusive",
-            policy_reasons=reasons,
+            policy_reasons=unsolved_reasons,
             calibrated_dofs=[],
             start_transform=start_record,
-            dofs=dofs,
+            dofs=unsolved_dofs,
             samples=samples,
             jackknife_fits=0,
             camera=camera.as_dict(),
@@ -745,12 +746,12 @@ def estimate_from_frames(
     for record in dofs:
         if record.status == "estimated":
             continue
-        control = record.known_bad_control
+        held_out = record.known_bad_control
         if record.name in {"x", "y", "z"} and not opts.estimate_translation:
             why = "translation is not estimated (parallax resolves it too weakly; see limitations)"
         elif record.at_search_bound:
             why = "reached the search bound"
-        elif control is not None and control.detected:
+        elif held_out is not None and held_out.detected:
             why = f"jackknife std {record.std_reported:.3g} {record.unit} exceeds its bound"
         else:
             why = "its known-bad control was not detected on held-out frames"

@@ -380,3 +380,47 @@ def test_drift_flags_a_remounted_camera_and_ignores_translation(
     assert axes["pitch"].status == "drift"
     assert not any(name in axes and axes[name].status == "drift" for name in ("x", "y", "z"))
     assert axes["pitch"].max_abs_difference == pytest.approx(2.5, abs=0.7)
+
+
+def _pair_with_rotation(rotvec_deg: tuple[float, float, float]) -> object:
+    from calibrex.core.bag_estimate import EstimatePairRecord
+    from calibrex.core.calibration_check import CheckTransform
+
+    quat = Rotation.from_rotvec(np.radians(rotvec_deg)).as_quat()
+    return EstimatePairRecord(
+        pair="camera-lidar",
+        frames=["cam", "lidar"],
+        status="partial",
+        transform=CheckTransform(
+            parent_frame="cam",
+            child_frame="lidar",
+            translation_m=[0.0, 0.0, 0.0],
+            rotation_quat_xyzw=[float(v) for v in quat],
+        ),
+        axes=[],
+    )
+
+
+def test_drift_unwraps_rotation_vectors_across_a_half_turn() -> None:
+    from calibrex.check.drift import _unwrapped_rotvecs
+
+    # a rotation of 179.9 deg and one of 180.1 deg about the same axis differ by 0.2 deg, but
+    # the second is written as 179.9 deg about the opposite axis: every component flips sign
+    axis = np.array([0.0, -1.0, 1.0]) / np.sqrt(2.0)
+    before = Rotation.from_rotvec(np.radians(179.9) * axis)
+    nearby = Rotation.from_rotvec(np.radians(179.7) * axis)
+    across = Rotation.from_rotvec(np.radians(180.1) * axis)
+    assert np.dot(before.as_rotvec(), across.as_rotvec()) < 0.0  # the cut
+
+    def pair(rotation: Rotation) -> object:
+        return _pair_with_rotation(tuple(np.degrees(rotation.as_rotvec())))
+
+    result = _unwrapped_rotvecs({"a": pair(before), "b": pair(nearby), "c": pair(across)})  # type: ignore[dict-item]
+    assert set(result) == {"c"}  # only the bag across the cut is re-expressed
+    gap = np.asarray(result["c"]) - np.degrees(before.as_rotvec())
+    assert np.linalg.norm(gap) < 0.5
+    small = {
+        "a": pair(Rotation.from_rotvec([0.01, 0.02, 0.03])),
+        "b": pair(Rotation.from_rotvec([0.02, 0.02, 0.03])),
+    }
+    assert _unwrapped_rotvecs(small) == {}  # type: ignore[arg-type]

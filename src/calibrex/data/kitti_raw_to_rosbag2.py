@@ -56,6 +56,7 @@ report that offset against this ``base_link``.
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -487,7 +488,7 @@ def _gray_rows(path: Path) -> tuple[int, int, bytes]:
     """``(height, width, mono8 bytes)`` of a PNG: OpenCV when installed, else the stdlib decoder."""
 
     try:
-        import cv2
+        cv2: Any = importlib.import_module("cv2")
     except ImportError:
         cv2 = None
     if cv2 is not None:

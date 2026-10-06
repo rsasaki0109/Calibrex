@@ -542,6 +542,36 @@ def _group_key(record: EstimatePairRecord) -> tuple[str, tuple[str, ...]]:
 _AXIS_ORDER = {n: i for i, n in enumerate(("roll", "pitch", "yaw", "x", "y", "z"))}
 
 
+def _unwrapped_rotvecs(
+    per_bag: Mapping[str, EstimatePairRecord],
+) -> dict[str, tuple[float, float, float]]:
+    """Per bag, the rotation vector (deg) of its estimate in the chart nearest the first bag's.
+
+    A rotation vector near a half turn has two equivalent forms (``r`` and
+    ``r (1 - 360 / |r|)``) that differ in every component, and an estimate on either side of
+    the cut would read as a huge change. An optical frame to a LiDAR frame is such a
+    rotation. Only bags whose other form is nearer to the first bag's are returned.
+    """
+
+    vectors: dict[str, np.ndarray[Any, Any]] = {}
+    for name, record in per_bag.items():
+        if record.transform is not None:
+            quat = record.transform.rotation_quat_xyzw
+            vectors[name] = np.degrees(Rotation.from_quat(quat).as_rotvec())
+    if len(vectors) < 2:
+        return {}
+    reference = next(iter(vectors.values()))
+    result: dict[str, tuple[float, float, float]] = {}
+    for name, vector in vectors.items():
+        norm = float(np.linalg.norm(vector))
+        if norm < 90.0:
+            continue
+        other = vector * (1.0 - 360.0 / norm)
+        if np.linalg.norm(other - reference) < np.linalg.norm(vector - reference) - 1e-9:
+            result[name] = (float(other[0]), float(other[1]), float(other[2]))
+    return result
+
+
 def compare_estimates(
     estimates: Sequence[tuple[str, BagEstimateArtifact]], options: DriftOptions
 ) -> list[DriftPairRecord]:
@@ -564,6 +594,7 @@ def compare_estimates(
                 if axis.status != "not_estimated" and (axis.name, axis.unit) not in axis_names:
                     axis_names.append((axis.name, axis.unit))
         axis_names.sort(key=lambda item: _AXIS_ORDER.get(item[0], 99))
+        unwrapped = _unwrapped_rotvecs(per_bag)
         axes: list[tuple[CheckAxisName, Literal["deg", "m"], list[Observation]]] = []
         for axis_name, unit in axis_names:
             observations: list[Observation] = []
@@ -575,7 +606,10 @@ def compare_estimates(
                 if found is None:
                     observations.append(Observation(name, None, None, "pair_not_estimated"))
                 else:
-                    observations.append(Observation(name, found.value, found.std, found.status))
+                    value = found.value
+                    if value is not None and axis_name in ROTATION_AXES and name in unwrapped:
+                        value = unwrapped[name][ROTATION_AXES.index(axis_name)]
+                    observations.append(Observation(name, value, found.std, found.status))
             axes.append((axis_name, unit, observations))
         rigid = any(r.deskew == "none" for r in per_bag.values())
         skipped = TIME_OFFSET_SKIPPED.get(pair)

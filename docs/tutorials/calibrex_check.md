@@ -5,7 +5,7 @@ produces a calibration when there is none, `check` judges it on another recordin
 [`calibrex drift`](calibrex_drift.md) compares recordings over time. [The workflow page](workflow.md)
 shows them together; this page is the full `check` reference.
 
-Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, the GNSS pairs gnss-lidar and
+Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, camera-lidar, the GNSS pairs gnss-lidar and
 gnss-imu, and the opt-in vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar,
 lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
@@ -13,7 +13,9 @@ and, without `--plan`, runs the existing native estimator of each wired pair and
 judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
 `inconclusive` per pair, with the per-axis numbers behind it. Every pair is
 wired; `camera-focal` judges the deployed focal lengths rather than an
-extrinsic (see [camera-focal](#camera-focal-the-deployed-focal-length)).
+extrinsic (see [camera-focal](#camera-focal-the-deployed-focal-length)), and
+`camera-lidar` judges the camera-LiDAR **rotation** only
+(see [camera-lidar](#camera-lidar-targetless-edge-alignment)).
 
 ```bash
 calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
@@ -89,7 +91,7 @@ sensor.
 
 ## Pairs
 
-Candidates: `imu-lidar`, `lidar-lidar`, `camera-imu`, `camera-focal`,
+Candidates: `imu-lidar`, `lidar-lidar`, `camera-imu`, `camera-focal`, `camera-lidar`,
 `gnss-lidar`, `gnss-imu`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar`,
 `lidar-wheel_odometry`. A pair is `planned` when both frames are in the tree and
 connected and the topics exist. Otherwise it is `skipped` with a reason code:
@@ -105,7 +107,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
 | `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field only when `--lidar-lidar-deskew`, `--gnss-lidar-deskew` or `--imu-lidar-deskew` is forced to `constant_velocity`/`gyro` (by default such clouds run as rigid scans), a compressed camera image |
-| `missing_intrinsics` | `camera-imu` needs intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
+| `missing_intrinsics` | `camera-imu` and `camera-lidar` need intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
 | `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results; `camera-focal` needs this check's own `camera-imu` result for the same camera (selected, solved, not failed, rotation std at most 0.5 deg about every axis) |
 
 A run can also leave a pair `inconclusive` with one of `estimator_error` (the
@@ -113,6 +115,56 @@ estimator raised; the message is recorded and the other pairs still run),
 `estimator_failed` (no solution, or the estimator failed its own held-out check,
 so its estimate is not a reliable yardstick) or `no_judgeable_axes` (every axis
 was unobservable).
+
+## camera-lidar: targetless edge alignment
+
+`camera-lidar` audits the **rotation** of `T_camera_lidar` (the camera optical frame, `z`
+forward, to the LiDAR frame) from the data alone: no board, no extra motion. It needs an
+image topic (`sensor_msgs/Image`), a `PointCloud2` of a spinning multi-beam LiDAR, and
+intrinsics from a `CameraInfo` topic next to the image or from a Kalibr camchain (`--tf`), the
+same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not needed.
+
+* **Objective.** The LiDAR points on the near side of a depth discontinuity along a beam should
+  project onto image edges (the objective of Levinson and Thrun, RSS 2013, implemented
+  independently). The image edge response is the gradient magnitude spilled outward with an
+  inverse-distance falloff; beams are recovered from point elevation, so clouds without a
+  `ring` field work.
+* **Estimate.** Up to 48 synchronized frames (one scan per second, spread over `--max-duration-s`
+  when given) are pooled and a deterministic coordinate search maximises the objective from the
+  **candidate**. A scan is paired with the nearest image to the time its visible points were
+  measured when the cloud has a per-point time field, else to its header stamp.
+* **Std and observability.** The std of each rotation axis is a leave-one-block-out jackknife
+  over six contiguous blocks of frames. Each axis has a known-bad control: the fit of the other
+  blocks must score higher than the same fit turned by 2 deg on that axis, in both directions,
+  on the held-out block (one-sided t over blocks at least 2). An axis whose control is missed, or
+  whose std exceeds 0.5 deg, is `unobservable` and not judged. Then the usual rule applies
+  (`max(3 std, 0.5 deg)`, fail beyond twice that).
+* **Translation is never judged.** The objective sees translation only as parallax, which
+  scales with 1/depth; on the Hilti and KITTI recordings of the
+  [camera-lidar benchmark](../benchmarks/camera_lidar_check.md) its estimate differed from the
+  reference by up to 11 cm with a reported std of 1-2 cm. `x`, `y`, `z` are therefore listed in
+  `unchecked_axes` (reason `unobservable`) on every run, and a translation error of 5 cm is not
+  detected. `--tf` translation is kept as is by `calibrex estimate`.
+* **Starts at the candidate.** Like `lidar-lidar` the estimate depends on the candidate: it is
+  cached under a key that includes it (a different candidate on the same bag recomputes), and
+  `calibrex estimate` runs it only when a `--tf` prior connects the two frames (rotation within a
+  few degrees; the camera frame must be the optical frame). `calibrex drift` needs nothing extra.
+* **What it cannot see.** Scans are rigid snapshots (no motion or rolling-sweep compensation);
+  intrinsics are taken as correct (an intrinsics error reads as an extrinsic error); a scene
+  without depth discontinuities and image edges (a plain corridor, a distant skyline) leaves every
+  axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams and is not
+  supported (its controls fail).
+* **Evidence.** `slac.camera_lidar_edge/v0.1` (`edge_alignment` in the evidence directory): the
+  start and estimated transform, per DoF the value, jackknife std, status and control, the
+  objective at both, the frames and edge counts, the camera, the options and the provenance.
+
+Real-data results (Hilti 2022 `cam0` with the Hesai PandarXT-32 and KITTI development drives
+against their reference calibrations) are in the [camera-lidar benchmark](../benchmarks/camera_lidar_check.md):
+the reference was never failed (8 of 8 runs), and 23 of 27 rotation errors of 1, 3 and 5 deg
+were flagged `warn` or `fail`; the rest were `inconclusive` or passed with the axis listed as
+unchecked or too coarse. Runtime on a first run: 20-100 s, most of it reading the bag; a repeat
+with the same candidate is a cache hit. A gross error on one axis (about 5 deg) can leave
+that axis unchecked, so read `unchecked_axes` next to a `pass`.
 
 ## camera-focal: the deployed focal length
 
@@ -276,6 +328,17 @@ minutes between them as stream gaps. Topics and frames:
 | `/oxts/twist` | `TwistStamped` | `base_link` | the same body-frame velocity and rate, as a wheel-odometry **proxy** (KITTI has no wheel odometry). By name it reads as an INS topic, so declare it with `--topic-kind /oxts/twist=wheel` |
 | `/tf_static` (transient local) | `TFMessage` | | `base_link` to `imu_link` (identity); `imu_link` to `velo_link` = inverse of `calib_imu_to_velo.txt` |
 
+`--camera image_02` (any `image_NN`) also writes that camera, so `camera-lidar` can be
+checked against the vendor calibration:
+
+| Topic | Type | Frame | Content |
+| --- | --- | --- | --- |
+| `/camera/image_raw` | `Image` | `cam2_optical` | the rectified image as `mono8` luminance, stamped with `image_02/timestamps.txt` |
+| `/camera/camera_info` | `CameraInfo` | `cam2_optical` | pinhole `K` from `P_rect_02`, no distortion (the images are rectified); one per image |
+| `/tf_static` | | | adds `imu_link` to `cam2_optical` = `T_imu_velo * inv(T_cam2_velo)`, with `T_cam2_velo = [I \| K^-1 P[:,3]] R_rect_00 [R \| T]` of `calib_velo_to_cam.txt` and `calib_cam_to_cam.txt` |
+
+OpenCV decodes the PNGs when installed; otherwise the standard-library decoder is used (slow).
+
 KITTI's `vf, vl, vu` and `wf, wl, wu` are level-frame quantities
 (level = `Ry(pitch) Rx(roll)` body); the converter rotates them back with each
 packet's roll and pitch (`oxts_body_frame_motion`, the same function the KITTI
@@ -369,6 +432,7 @@ LiDAR pairs; the KITTI text CLIs repeat it per command
 | `imu-lidar` | `imu-lidar` rotation (gyro against LiDAR odometry) and, unless `--no-imu-lidar-translation`, lever arm (accelerometer) | `T_lidar_imu` (the planner's `T_imu_lidar` inverted) | roll, pitch, yaw, x, y, z |
 | `lidar-lidar` | map registration, started at the candidate | `T_first_second` | roll, pitch, yaw, x, y, z |
 | `camera-imu` | targetless camera rotation against the gyro | `T_cam_imu` | roll, pitch, yaw |
+| `camera-lidar` | targetless edge alignment of image and LiDAR depth edges, started at the candidate | `T_camera_lidar` | roll, pitch, yaw (those whose held-out control is detected; x, y, z are never judged) |
 | vehicle pairs | see [Phase C1](#phase-c1-vehicle-pairs) | | |
 
 Per axis `i` the estimator reports an estimate, a standard deviation `std_i`
@@ -1310,6 +1374,7 @@ and `opencv-python` 4.10, so every pair can run; the table lists the practical l
 | `gnss-lidar` | LiDAR odometry plus the GNSS track | Matches the CLI on KITTI and on RTK-SLAM. |
 | `gnss-imu` | composes `gnss-lidar` with `imu-lidar` (needs both to solve a lever arm) | Gives the CLI's `missing_dependency` skip on a 30 s RTK-SLAM slice; a solved composition needs the full imu-lidar run (about 90 min natively) and was not run in the browser. |
 | `camera-imu`, `camera-focal` | OpenCV (`opencv-python` 4.10, 50 MB, loaded on demand) | Same verdicts as the CLI on Hilti exp21 (estimates differ by up to 0.18 deg, see below; OpenCV 4.10 against the CLI's 4.14). Use the Camera field for a multi-camera bag. |
+| `camera-lidar` | numpy, scipy (no OpenCV) | Runs the same code as the CLI; it was not compared with the CLI on real data in the page. |
 
 Limits that apply to all of them:
 

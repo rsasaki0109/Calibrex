@@ -918,7 +918,7 @@ def build_bag_estimate(
             record = _skipped(
                 record,
                 "no_candidate_calibration",
-                f"{record.pair} map registration needs a rough initial extrinsic and no --tf "
+                f"{record.pair} starts from a rough initial extrinsic and no --tf "
                 "prior connects its frames",
             )
         gated.append(record)

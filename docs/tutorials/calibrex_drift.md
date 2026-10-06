@@ -132,6 +132,10 @@ the false-alarm behaviour on unmodified recordings, are on
   recordings leave most axes unobservable (a KITTI drive constrains one or two
   of the vehicle pair's axes), and the pair is then `inconclusive` rather than
   `stable`.
+* Rotation axes are compared as rotation-vector components. A rotation near a half turn (an optical
+  frame to a LiDAR frame, `camera-lidar`) has two forms that differ in every component, so `drift`
+  re-expresses each bag's vector in the form nearest the first bag's before comparing. Axis values
+  of large rotations remain approximate: an error about one parent axis spreads over the components.
 * Intrinsics are not compared. Time offsets are compared only where the estimator reports
   one as `estimated`; the floors (1 ms `camera-imu`, 2 ms otherwise) were set from the
   recording-to-recording scatter of the two datasets on the
