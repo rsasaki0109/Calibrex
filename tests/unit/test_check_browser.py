@@ -405,3 +405,46 @@ def test_event_progress_throttles_ticks() -> None:
         "status": "pass",
         "runtime_s": 3.0,
     }
+
+
+def test_topic_kind_and_camera_reach_the_command_and_reject_bad_values() -> None:
+    from calibrex.check.browser import run_command
+
+    command = run_command(
+        "check",
+        "kitti",
+        vehicle_frame="base_link",
+        topic_kind=["/oxts/twist=wheel"],
+        camera="/cam0/image_raw",
+        pairs=["lidar-wheel_odometry"],
+    )
+    assert "--topic-kind /oxts/twist=wheel" in command
+    assert "--camera /cam0/image_raw" in command
+    plan = plan_request_json(
+        json.dumps({"bag_dir": str(COMMITTED_SAMPLE), "topic_kind": ["/x=nonsense"]})
+    )
+    assert json.loads(plan)["ok"] is False
+    request = {
+        "bag_dir": str(COMMITTED_SAMPLE),
+        "vehicle_frame": "base_link",
+        "topic_kind": ["/sample/odom=wheel"],
+        "camera": " /sample/camera ",
+        "pairs": ["imu-vehicle"],
+        "max_duration_s": 2,
+    }
+    # The sample bag has no odometry topic: the override reaches the planner, which says so.
+    reply = json.loads(run_request_json(json.dumps(request)))
+    assert reply["ok"] is False and "/sample/odom" in reply["error"]
+    del request["topic_kind"]
+    reply = json.loads(run_request_json(json.dumps(request)))
+    assert reply["ok"], reply
+    assert "--camera /sample/camera" in reply["command"]
+
+
+def test_finite_json_replaces_non_finite_floats_with_null() -> None:
+    from calibrex.check.browser import _finite_json
+
+    value = {"a": [float("inf"), 1.5, {"b": float("nan")}], "c": (float("-inf"),), "d": "x"}
+    cleaned = _finite_json(value)
+    assert cleaned == {"a": [None, 1.5, {"b": None}], "c": [None], "d": "x"}
+    json.loads(json.dumps(cleaned), parse_constant=lambda name: pytest.fail(name))

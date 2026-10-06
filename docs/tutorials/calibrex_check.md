@@ -1302,11 +1302,14 @@ and `opencv-python` 4.10, so every pair can run; the table lists the practical l
 
 | Pair | Needs | In the browser |
 |---|---|---|
-| `lidar-vehicle`, `ins-lidar` | scan-to-scan LiDAR odometry (numpy, scipy `cKDTree`) | Runs. The slow ones: about 2x the native time. |
-| `imu-vehicle`, `lidar-wheel_odometry` | INS / wheel twist only (numpy, scipy) | Runs in seconds; `imu-vehicle` matches the CLI on KITTI; `lidar-wheel_odometry` was not exercised (no wheel topic in the test bags). |
-| `imu-lidar`, `lidar-lidar` | native registration, gyro / map evidence (numpy, scipy) | Runs on the sample bag; not compared with the CLI on real data. Keep the cap small. |
-| `gnss-lidar`, `gnss-imu` | LiDAR odometry plus the GNSS track | `gnss-lidar` matches the CLI on KITTI; `gnss-imu` ran on the sample only. |
-| `camera-imu`, `camera-focal` | OpenCV (`opencv-python`, 50 MB, loaded on demand) | Experimental: the code path runs (checked on the sample bag), but it was not compared with the CLI on real camera data. |
+| `lidar-vehicle`, `ins-lidar` | scan-to-scan LiDAR odometry (numpy, scipy `cKDTree`) | Runs, matches the CLI on KITTI (below). The slow ones: about 2x the native time. |
+| `imu-vehicle` | INS twist only (numpy, scipy) | Runs in seconds; matches the CLI on KITTI to better than 1e-6. |
+| `lidar-wheel_odometry` | wheel twist plus LiDAR odometry | Matches the CLI on KITTI `k0015` with `--topic-kind /oxts/twist=wheel` (1e-8). |
+| `imu-lidar` | native registration, gyro / map evidence (numpy, scipy) | Matches the CLI on Koide `indoor_easy_01` (4.4 GB bag, 1e-8) and on RTK-SLAM `construction_seq1` (13 GB bag, 5e-7). Slow: keep the cap small. |
+| `lidar-lidar` | map registration (numpy, scipy) | Matches the CLI exactly on NTU VIRAL `tnp_01` (a 22 GB bag read through WORKERFS). |
+| `gnss-lidar` | LiDAR odometry plus the GNSS track | Matches the CLI on KITTI and on RTK-SLAM. |
+| `gnss-imu` | composes `gnss-lidar` with `imu-lidar` (needs both to solve a lever arm) | Gives the CLI's `missing_dependency` skip on a 30 s RTK-SLAM slice; a solved composition needs the full imu-lidar run (about 90 min natively) and was not run in the browser. |
+| `camera-imu`, `camera-focal` | OpenCV (`opencv-python` 4.10, 50 MB, loaded on demand) | Same verdicts as the CLI on Hilti exp21 (estimates differ by up to 0.18 deg, see below; OpenCV 4.10 against the CLI's 4.14). Use the Camera field for a multi-camera bag. |
 
 Limits that apply to all of them:
 
@@ -1319,8 +1322,9 @@ Limits that apply to all of them:
   the CLI.
 - **No cache, no threads.** The estimator cache is off in the browser and nothing runs in
   parallel.
-- **Not available.** ROS 1 `.bag` files, `lz4`-compressed MCAP chunks, `--topic-kind`, the verdict options and
-  `--camera`; if a pair gives no result in the browser the page shows the exact
+- **Not available.** ROS 1 `.bag` files, `lz4`-compressed MCAP chunks and the verdict options
+  (`--k`, floors); `--topic-kind` is the Topic kinds box and `--camera` the Camera field. If a
+  pair gives no result in the browser the page shows the exact
   `calibrex check ... --pairs NAME` command to run it locally.
 
 Verified on a KITTI drive (`k0015`, 545 MB `.db3` picked through the file input, vehicle frame
@@ -1328,6 +1332,38 @@ Verified on a KITTI drive (`k0015`, 545 MB `.db3` picked through the file input,
 verdicts (`warn`; `lidar-vehicle`, `imu-vehicle` warn, `ins-lidar` pass, `gnss-lidar`
 inconclusive) with the same numbers to better than 1e-5 relative (`lidar-vehicle` and
 `imu-vehicle` to better than 1e-6). The browser took 88 s and the CLI 46 s.
+
+Verified on real bags, with the same duration cap in the page (headless Chrome, files picked
+through the file input) and in `calibrex check --no-cache` (OpenCV 4.14 and numpy 2.5 natively,
+Pyodide 0.27.2 in the page). The machine was shared and heavily loaded during these runs
+(load average 20 to 40), so the runtimes are only indicative. "Max rel. diff" is over every
+numeric field of the two `slac.calibration_check/v0.1` artifacts (runtimes and paths excluded).
+
+| Bag, pair(s), cap | Verdict browser / CLI | Max rel. diff | Browser / CLI runtime | Browser peak memory |
+|---|---|---|---|---|
+| KITTI `k0015`, `lidar-wheel_odometry` (`--topic-kind /oxts/twist=wheel`), 15 s | warn / warn | 1e-8 | 49 s / 45 s | not measured |
+| Koide `indoor_easy_01` (4.4 GB `.db3`), `imu-lidar`, 70 s | inconclusive / inconclusive | 2e-8 | 592 s / 381 s | 1.3 GB (CLI 2.2 GB) |
+| NTU VIRAL `tnp_01` (22 GB `.db3`, `--tf` design `T_Body2Lidar`), `lidar-lidar`, 30 s | fail / fail | 0 (identical) | 199 s / 127 s | 1.1 GB |
+| RTK-SLAM `construction_seq1` (13 GB `.db3`, `--tf calib.yaml`), `imu-lidar`, `gnss-lidar`, `gnss-imu`, 30 s | inconclusive, inconclusive, skipped / same | 5e-7 | 2057 s / 905 s | 2.4 GB |
+| Hilti exp21 (16 GB `.db3`, `--tf` camchain, Camera `/alphasense/cam0/image_raw`), `camera-imu`, `camera-focal`, 30 s | inconclusive (`camera-imu` pass, partial: pitch, yaw; `camera-focal` inconclusive) / same | 1.0 (estimates, see below) | 863 s / 62 s | not measured |
+
+Notes on the rows:
+
+- The RTK-SLAM and Koide slices are too short for a verdict (`no_judgeable_axes`): the
+  comparison is of the estimates, standard deviations and excitation figures, which agree.
+  A longer cap gives a verdict but takes hours natively.
+- Hilti `camera-imu`: the same verdict, but the estimated errors differ (pitch 0.370 against
+  0.435 deg, yaw 0.175 against 0.005 deg, clock offset 2.31 against 2.03 ms, each within one
+  to two standard deviations): the feature tracker of OpenCV 4.10 (Pyodide) is not bit-equal
+  to 4.14. The CLI is deterministic (two runs gave the same numbers). Expect small differences
+  on the camera pairs; they are not bit-reproducible across OpenCV builds.
+- The RTK-SLAM bag also holds a Livox `CustomMsg` topic, but both runs used the
+  `PointCloud2` `/livox/points`, so the browser decoding of `CustomMsg` is not exercised on
+  real data.
+- Peak memory is the largest Chrome renderer process sampled every 5 s (the tab's worker
+  plus the page); it stays well under the 4 GB WebAssembly limit with the 512 MB scan budget.
+- Non-finite numbers (an unobservable `rate_ratio_std` of `inf`) are `null` in the browser
+  JSON, because `JSON.parse` rejects `Infinity`; the CLI artifact keeps `Infinity`.
 
 ### The rest of the page
 
