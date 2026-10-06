@@ -2882,7 +2882,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "lidar-wheel_odometry run too. Other pairs are reported as skipped."
         ),
     )
-    check.add_argument("bag", type=Path, help="rosbag2 directory or storage file")
+    check.add_argument(
+        "bag", type=Path, help="rosbag2 directory, .db3 / .mcap file, or ROS 1 .bag"
+    )
     check.add_argument(
         "--tf",
         type=Path,
@@ -3153,7 +3155,13 @@ def _build_parser() -> argparse.ArgumentParser:
             "bag_estimate.json under OUTPUT/<bag-name>/."
         ),
     )
-    drift.add_argument("bags", type=Path, nargs="+", metavar="BAG", help="two or more rosbag2 bags")
+    drift.add_argument(
+        "bags",
+        type=Path,
+        nargs="+",
+        metavar="BAG",
+        help="two or more bags (rosbag2, MCAP or ROS 1 .bag)",
+    )
     for action in check._actions:
         if action.dest in _ESTIMATE_SHARED_DESTS - {"bag"}:
             drift._add_action(action)

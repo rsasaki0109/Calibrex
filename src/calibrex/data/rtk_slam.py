@@ -178,10 +178,15 @@ def rtk_slam_input_digest(
     """
 
     digest = hashlib.sha256()
-    for path in (Path(rtk_path), Path(calib_path), Path(bag_dir) / "metadata.yaml"):
+    bag = Path(bag_dir)
+    inputs = [Path(rtk_path), Path(calib_path)]
+    databases = [bag]  # a bare .db3 / .mcap / ROS 1 .bag has no metadata.yaml
+    if bag.is_dir():
+        inputs.append(bag / "metadata.yaml")
+        databases = sorted(bag.glob("*.db3")) + sorted(bag.glob("*.mcap"))
+    for path in inputs:
         digest.update(path.name.encode("utf-8"))
         digest.update(path.read_bytes())
-    databases = sorted(Path(bag_dir).glob("*.db3")) + sorted(Path(bag_dir).glob("*.mcap"))
     for database in databases:
         digest.update(database.name.encode("utf-8"))
         digest.update(str(database.stat().st_size).encode("ascii"))

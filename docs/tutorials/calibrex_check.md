@@ -25,6 +25,28 @@ calibrex check my_bag/ --tf rig_v2.urdf --output check_v2.json   # same bag, oth
 calibrex check my_bag/ --tf rig.urdf --no-cache --output check.json  # recompute everything
 ```
 
+## Supported input formats
+
+`check`, `estimate` and `drift` take the bag as a path and detect the format from the file (magic
+bytes, then extension; a directory is read through its `metadata.yaml`):
+
+| Input | Chunk / file compression | Needs |
+| --- | --- | --- |
+| rosbag2 directory or bare `.db3` (sqlite3) | none; per-message `zstd` / `lz4` | `calibrex[rosbag2-compression]` for compressed messages |
+| rosbag2 directory or bare `.mcap` (ROS 2, CDR) | chunks `none`, `zstd`, `lz4` (frame format, as `mcap` and `ros2 bag` write it); a file-compressed `.mcap.zstd` is streamed | `calibrex[rosbag2-compression]` for `zstd` / `lz4` |
+| ROS 1 `.bag` (v2.0) | chunks `none`, `bz2`, `lz4` | nothing for `none` / `bz2`; `calibrex[rosbag1-lz4]` for `lz4` |
+
+A ROS 1 bag is read from its index (topics, types and per-topic counts without a scan; chunks
+that hold none of the requested topics are never decompressed; a bag whose recording was cut off
+and has no index is scanned instead). Its messages are rewritten from the ROS 1 wire format into
+the ROS 2 CDR layout the estimators already read, driven by the `message_definition` stored in
+each connection record, so any message type is readable and the decoded data is byte-identical
+to a rosbag2 conversion of the same bag. A latched ROS 1 `/tf_static` is read like a ROS 2 one.
+The estimators use the same message types as before (`sensor_msgs/Imu`, `PointCloud2`, `Image`,
+`CompressedImage`, `CameraInfo`, `NavSatFix`, `nav_msgs/Odometry`, `geometry_msgs/TwistStamped`,
+`tf2_msgs/TFMessage`, Livox `CustomMsg`). A file-compressed sqlite3 bag (`.db3.zstd`) is not read
+directly: decompress it first (`zstd -d`).
+
 `--plan` is unchanged and runs no estimator. Without `--output` the estimator
 artifacts go to `./calibrex_check_evidence/`.
 
@@ -1191,7 +1213,7 @@ Limits that apply to all of them:
   the CLI.
 - **No cache, no threads.** The estimator cache is off in the browser and nothing runs in
   parallel.
-- **Not available.** `lz4`-compressed MCAP chunks, `--topic-kind`, the verdict options and
+- **Not available.** ROS 1 `.bag` files, `lz4`-compressed MCAP chunks, `--topic-kind`, the verdict options and
   `--camera`; if a pair gives no result in the browser the page shows the exact
   `calibrex check ... --pairs NAME` command to run it locally.
 

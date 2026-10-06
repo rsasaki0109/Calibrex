@@ -247,8 +247,12 @@ def bag_input_digest(bag_dirs: Sequence[str | Path]) -> tuple[str, str]:
     for bag_dir in bag_dirs:
         root = Path(bag_dir)
         digest.update(root.name.encode("utf-8"))
-        digest.update((root / "metadata.yaml").read_bytes())
-        for database in sorted(root.glob("*.db3")) + sorted(root.glob("*.mcap")):
+        if root.is_dir():
+            digest.update((root / "metadata.yaml").read_bytes())
+            databases = sorted(root.glob("*.db3")) + sorted(root.glob("*.mcap"))
+        else:  # a bare .db3 / .mcap / ROS 1 .bag has no metadata.yaml
+            databases = [root]
+        for database in databases:
             digest.update(database.name.encode("utf-8"))
             digest.update(str(database.stat().st_size).encode("ascii"))
             with database.open("rb") as stream:

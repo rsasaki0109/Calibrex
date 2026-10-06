@@ -111,6 +111,7 @@ class Rosbag1Connection:
     topic: str
     message_type: str
     md5sum: str | None = None
+    message_definition: str | None = None
 
 
 @dataclass(frozen=True)
@@ -547,11 +548,15 @@ def _parse_connection(header: dict[str, bytes], data: bytes) -> Rosbag1Connectio
     if not topic:
         topic = data_header.get("topic", b"").decode("utf-8")
     md5 = data_header.get("md5sum")
+    definition = data_header.get("message_definition")
     return Rosbag1Connection(
         conn_id=conn_id,
         topic=topic,
         message_type=message_type,
         md5sum=md5.decode("ascii") if md5 is not None else None,
+        message_definition=definition.decode("utf-8", errors="replace")
+        if definition is not None
+        else None,
     )
 
 
