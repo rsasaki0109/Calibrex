@@ -1105,6 +1105,102 @@ extrinsics are not checkable from this bag at all. The IMU "frame" of
 `camera-imu` is `base_link`, i.e. the check compares the camera with the
 already-rotated IMU stream.
 
+#### Update: raw Velodyne packets give per-sensor clouds and a LiDAR-LiDAR verdict
+
+The same bag holds the raw packets of the three Velodynes
+(`/sensing/lidar/{front,left,right}/velodyne_packets`, `velodyne_msgs/msg/VelodyneScan`,
+10 Hz, 364 scans each; front is a VLP-16, left and right are VLP-32C) next to the
+concatenated cloud. The packets are stamped in the sensors' own frames
+(`velodyne_front`, ...) and carry the per-firing time, which removes two of the blockers
+above: the cloud is no longer "already in `base_link`" and it has per-point time.
+`calibrex check` plans a `VelodyneScan` topic as an ignored `lidar` with a conversion
+hint; `tools/velodyne_scan_to_pointcloud2.py` (decoder `calibrex.data.velodyne_packets`,
+ROS-independent, from the VLP-16 and VLP-32C manuals) writes a derived bag whose clouds
+are in the sensor frames:
+
+```bash
+python tools/velodyne_scan_to_pointcloud2.py all-sensors-bag1 aw_points \
+    --drop /sensing/lidar/concatenated/pointcloud
+calibrex check aw_points --vehicle-frame base_link --plan
+```
+
+The plan then lists `imu-lidar` (`base_link` / `velodyne_{front,left,right}`, the IMU is
+stamped in `base_link`, so the extrinsic is the physical sensor-kit-to-Velodyne mount),
+`lidar-lidar` x3 and `lidar-vehicle` x3 as `planned`.
+
+**Decoder verification** (`tools/validate_velodyne_decode.py`). One scan per sensor is
+decoded, transformed with the bag's `/tf_static` and compared with the concatenated
+`base_link` cloud 0.04 s away (nearest neighbour, points with a reference within 0.5 m,
+95 to 96 % of them; the cloud is cropped, and 2.7 m/s over 0.04 s is 11 cm if the scans
+were not the same):
+
+| Sensor | Median | 90th percentile | within 2 / 5 / 10 cm | median per ring |
+| --- | ---: | ---: | --- | ---: |
+| front, VLP-16 | 0.03 cm | 2.1 cm | 0.90 / 0.92 / 0.95 | 0 to 0.21 cm |
+| left, VLP-32C | 1.8 cm | 11.8 cm | 0.53 / 0.78 / 0.88 | 0.4 to 2.4 cm |
+| right, VLP-32C | 3.1 cm | 13.5 cm | 0.32 / 0.68 / 0.85 | 0.4 to 4.2 cm |
+
+The VLP-16 reproduces the cloud to sub-millimetre (the concatenated cloud is the same
+scan). Fitting each VLP-32C laser's azimuth offset and elevation to the concatenated cloud
+returns the manual's constants within 0.06 deg for all 32 lasers (elevation to 0.01 deg),
+with a common azimuth bias of -0.06 deg on the left and +0.06 deg on the right: opposite
+signs, so it is a difference between the `/tf_static` yaw and the one used to build the
+cloud, not a decoder constant (1 mrad at 25 m is 2.5 cm, the residual above). The sensor
+frame axes are Autoware's (x forward, y left), not the manual's (x right, y forward):
+decoding with the manual's axes gives a median of 1 to 1.5 m against the cloud, so the
+decoder emits Autoware's axes by default. Not verified: dual-return packets and any
+Velodyne model other than VLP-16 and VLP-32C (experimental).
+
+`VelocityReport` (header and three float32) was verified on the 873 real messages of
+`migrated/autoware_data/sample-rosbag` (`autoware_vehicle_msgs`; 30 s, 0 to 13.1 m/s). That
+bag has no `/tf_static`, so `calibrex check` cannot run on it without a `--tf` file.
+
+Result of running it (36.5 s, current main, converted bag with Autoware axes):
+
+| Pair | Result |
+| --- | --- |
+| `lidar-lidar` front / left (rigid scans, 193 s) | **`pass` (partial: roll, pitch, yaw, x, z)**: roll / pitch / yaw 0.10 / 0.014 / 0.022 deg of 0.5, x 0.022 of 0.028 m, z 0.014 of 0.02 m; `y` unchecked (its 5 cm control was not detected) |
+| `lidar-lidar` front / right | **`pass` (partial: roll, pitch, yaw, y, z)**: 0.13 / 0.034 / 0.035 deg, y 0.002 m, z 0.016 m; `x` unchecked |
+| `imu-lidar` front (rotation only) | `inconclusive`, `no_judgeable_axes`: roll / pitch / yaw std 7.3 / 3.8 / 6.1 deg, plus the motion reason below |
+| `imu-lidar` left, right; `lidar-lidar` left / right; `lidar-vehicle` x3; `gnss-lidar` | not run (about 4 to 25 min per pair on rigid scans); the first two are expected to be inconclusive for the motion reason below |
+
+The LiDAR-LiDAR verdicts need no rotation about every axis because the two LiDARs are
+rigid on the same vehicle: the relative pose of two sensors is observable from straight
+driving over structure. The IMU and GNSS pairs need the vehicle's own rotation, which this
+drive does not have. From the bag itself: the IMU runs at 100 Hz, the integrated gyro
+rotation over the 36.5 s is at most 1.5 deg about z (peak 0.9 deg/s) and a few degrees
+about x and y (vibration), and the NavSatFix path is a straight 97 m diagonal at about
+2.7 m/s. `calibrex check` now says so: for `imu-lidar` and `camera-imu` ending
+`no_judgeable_axes` the reason ends with "recording too short or too static: 37 s with
+integrated IMU rotation x ... y ... z ...; need about 60 s or more and turns or tilts
+about the IMU ... axis (at least ~10 deg)" (a heuristic computed from the recording's own
+gyro).
+
+**Known-bad control (real data).** A `--tf` file perturbing the left or right Velodyne
+(`tools/make_check_frames_perturbation.py`, about the parent z axis; `lidar-lidar`
+estimates served from the cache) turns the verdict from `pass` to `fail`:
+
+| Candidate | `lidar-lidar` verdict | Judged axis |
+| --- | --- | --- |
+| deployed `/tf_static`, front / left | `pass` | yaw 0.022 of 0.5 deg |
+| left +1 deg yaw | `fail` | yaw 1.02 of 0.5 deg |
+| left +3 deg yaw | `fail` | yaw 3.02 of 0.5 deg |
+| left +5 cm x (parent frame) | `fail` | x 0.072 of 0.028 m |
+| deployed `/tf_static`, front / right | `pass` | yaw 0.035 of 0.5 deg |
+| right +3 deg yaw | `fail` | yaw 3.03 of 0.5 deg |
+
+The deployed sensor-kit extrinsics are therefore consistent with the data to a few hundredths
+of a degree for these two LiDAR pairs on this recording.
+
+What to do: record at least 60 s that includes a left and a right turn (a slalom or
+figure-eight) with the cameras seeing texture; then the same command applies unchanged.
+
+Other items that block Autoware vehicle pairs on this bag: `/vehicle/status/velocity_status`
+is an `autoware_auto_vehicle_msgs/VelocityReport` topic with 0 messages (the check now
+decodes `VelocityReport` as wheel speed and yaw rate, additively, but has no data here);
+the applanix `ins_solution_49` topic is a custom message, not `nav_msgs/Odometry`, so
+`ins-lidar` has no INS topic.
+
 ### Koide hard-localization `indoor_easy_01` and `indoor_easy_02`
 
 - **Origin.** `koide_hard_localization/sequences/indoor_easy_0{1,2}` (Koide's hard
@@ -1126,6 +1222,12 @@ already-rotated IMU stream.
 | `imu-vehicle` | skipped `degenerate_frames` | - |
 | others | skipped `missing_topic` | - |
 
+Re-checked on current main (rigid scans, `indoor_easy_01`): `imu-lidar` is `pass (partial:
+roll, pitch, yaw only)` (0.08 / 0.66 / 0.06 deg of 1.5), and a `--tf` file turning `imu_link`
+by +3 deg about z (`tools/make_check_frames_perturbation.py`) gives `warn` (yaw 2.94 / 1.5
+deg), the known-bad control worsening the verdict on real data. This is the only bag in this
+section with a verdict.
+
 Both sequences give the same plan (2.4-2.6 s). Limitation: the "LiDAR" is a depth
 camera cloud without per-point time, so the IMU-LiDAR estimator, which deskews
 each scan, cannot run in its normal mode; the rigid-scan result is in "Clouds without
@@ -1142,7 +1244,7 @@ per-point time" above.
   `rbr_ctd`, `gantry`, ...). The MCAP + `/tf_static` path works end to end: all
   sensor topics map by header (`/norbit/detections` to `norbit`, both IMU topics
   to `ustrain_imu`, `/nav/sensors/navsat/ubx_pos/fix` to `gps_stbd`).
-- **Plan.** `imu-lidar` (`ustrain_imu` / `norbit`), `gnss-lidar` (`gps_stbd` /
+- **Plan** (unchanged on current main). `imu-lidar` (`ustrain_imu` / `norbit`), `gnss-lidar` (`gps_stbd` /
   `norbit`) and `gnss-imu` are `planned`; `ins-lidar` and `lidar-wheel_odometry`
   are skipped `missing_topic` and name `/nav/processed/odometry` as an odometry
   topic of unknown kind (`--topic-kind`); the rest are skipped. Plan time 2.9 s on
@@ -1153,6 +1255,10 @@ per-point time" above.
 
 ### Remaining gaps
 
+- The Autoware bag's raw Velodyne packets (see "raw Velodyne packets" above) give real
+  `lidar-lidar` verdicts (front / left and front / right `pass`, a perturbed tf `fail`);
+  the IMU and GNSS pairs stay `inconclusive` because the 36 s drive is straight and a
+  recording with turns is needed.
 - Per-point time is optional: `imu-lidar`, `lidar-lidar` and `gnss-lidar` run clouds
   without it as rigid scans (see "Clouds without per-point time"). The Autoware
   concatenated cloud has none: `imu-lidar` is skipped `degenerate_frames` there,

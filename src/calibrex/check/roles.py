@@ -10,6 +10,7 @@ from calibrex.check.frame_tree import FrameHints, StaticFrameTree, normalize_fra
 from calibrex.core.calibration_check import CheckTopicRecord, OdometryKind, SensorRole
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros_cdr import (
+    AUTOWARE_VELOCITY_REPORT_TYPES,
     decode_ros2_header_frame_id,
     decode_ros2_odometry,
     ros2_pointcloud2_payload_problem,
@@ -25,10 +26,20 @@ from calibrex.data.rosbag2 import (
     Rosbag2Connection,
     iter_topic_messages,
 )
+from calibrex.data.velodyne_packets import VELODYNE_SCAN_TYPE
 
+VELODYNE_PACKETS_REASON = (
+    "raw Velodyne packets (velodyne_msgs/msg/VelodyneScan), not read by the check; "
+    "convert them to per-sensor point clouds with tools/velodyne_scan_to_pointcloud2.py "
+    "and check the converted bag"
+)
 COMPRESSED_IMAGE_TYPE = "sensor_msgs/msg/CompressedImage"
 TWIST_TYPES = frozenset(
-    {"geometry_msgs/msg/TwistStamped", "geometry_msgs/msg/TwistWithCovarianceStamped"}
+    {
+        "geometry_msgs/msg/TwistStamped",
+        "geometry_msgs/msg/TwistWithCovarianceStamped",
+        *AUTOWARE_VELOCITY_REPORT_TYPES,
+    }
 )
 _WHEEL_TOKENS = frozenset({"wheel", "wheels", "encoder", "encoders", "wheelodom"})
 _INS_TOKENS = frozenset({"ins", "gnss", "gps", "navsat", "oxts", "novatel", "applanix"})
@@ -37,7 +48,7 @@ _INS_TOKENS = frozenset({"ins", "gnss", "gps", "navsat", "oxts", "novatel", "app
 def classify_message_type(message_type: str, topic: str) -> SensorRole | None:
     """Return the sensor role of a topic from its message type, or ``None``."""
 
-    if message_type in LIDAR_MESSAGE_TYPES:
+    if message_type in LIDAR_MESSAGE_TYPES or message_type == VELODYNE_SCAN_TYPE:
         return "lidar"
     if message_type == IMU_TYPE:
         return "imu"
@@ -89,6 +100,9 @@ def classify_topics(
                 notes.append(f"kind '{kind}' set by --topic-kind")
             else:
                 kind = classify_odometry_kind(connection.topic)
+                if kind == "unknown" and connection.message_type in AUTOWARE_VELOCITY_REPORT_TYPES:
+                    kind = "wheel"
+                    notes.append("Autoware VelocityReport is the vehicle's own speed report")
         records.append(
             CheckTopicRecord(
                 topic=connection.topic,
@@ -157,6 +171,16 @@ def flag_unreadable_pointclouds(
 
     flagged: list[CheckTopicRecord] = []
     for record in records:
+        if record.role == "lidar" and record.message_type == VELODYNE_SCAN_TYPE:
+            flagged.append(
+                record.model_copy(
+                    update={
+                        "ignored_reason": VELODYNE_PACKETS_REASON,
+                        "notes": [*record.notes, VELODYNE_PACKETS_REASON],
+                    }
+                )
+            )
+            continue
         if record.role != "lidar" or record.message_type != POINTCLOUD2_TYPE:
             flagged.append(record)
             continue

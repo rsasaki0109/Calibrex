@@ -33,6 +33,7 @@ from calibrex.check.estimators import (
 )
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
 from calibrex.check.hints import format_next_steps
+from calibrex.check.motion_summary import recording_motion_note
 from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.progress import CheckProgress, as_progress, paint_verdict
 from calibrex.check.roles import (
@@ -559,6 +560,9 @@ def _label(record: CheckPairRecord) -> str:
     return f"{record.pair} ({' / '.join(record.sensors)})"
 
 
+_MOTION_NOTE_PAIRS = frozenset({"imu-lidar", "camera-imu"})
+
+
 def _run_one(
     record: CheckPairRecord,
     run: CheckRunOptions,
@@ -613,6 +617,15 @@ def _run_one(
     runtime = time.monotonic() - started
     controls.memo[(estimators.PAIR_RUN_KEY, record.pair, tuple(record.frames))] = outcome
     judged = _judge(record, outcome, run.verdict, runtime)
+    if judged.get("reason_code") == "no_judgeable_axes" and record.pair in _MOTION_NOTE_PAIRS:
+        imu_topics = sensor_topics.get("imu", ())
+        note = (
+            recording_motion_note(bag, imu_topics[0], max_duration_s=controls.max_duration_s)
+            if imu_topics
+            else None
+        )
+        if note:
+            judged["reason"] = f"{judged['reason']}; {note}"
     evidence = _write_evidence(record, outcome, evidence_dir, base_dir)
     update = {**judged, "evidence": [item.model_dump() for item in evidence]}
     if evidence:
