@@ -1,0 +1,68 @@
+{
+ "schema": "calibrex.workflow_gif_transcript/v0",
+ "output": "docs/assets/calibrex-workflow.gif",
+ "generator": "tools/workflow_gif.py",
+ "calibrex_version": "0.5.1",
+ "commit": "5448d13ba9727b5d75c671fd1cbbc5a5ce1af416",
+ "description": "Abridged real outputs (lines verbatim apart from shortened paths and spacing; '...' marks omitted lines) of the commands below, run with calibrex 0.5.1.",
+ "dataset": "Koide hard_localization indoor_easy_01 and indoor_easy_02 (on disk, not downloaded; first 130 s). 'remounted' is indoor_easy_01 with its IMU rotated 2 deg about z by tools/rotate_imu_in_bag.py.",
+ "acts": [
+  {
+   "step": "estimate",
+   "caption": "No calibration yet: measure it, and say which axes the data could not.",
+   "command": "calibrex estimate indoor_easy_01/ --max-duration-s 130 --output est/ --html est.html",
+   "lines": [
+    "imu-lidar (imu_link / depth_camera_link): partial  T_depth_camera_link_imu_link",
+    "  roll   -64.8441 deg +- 0.251  observed",
+    "  pitch  +65.3548 deg +- 0.294  observed",
+    "  yaw    +72.3625 deg +- 0.247  observed",
+    "  x      -                      unobservable (not constrained, std 0.02803 m)",
+    "  y      -                      unobservable (not constrained, std 0.03273 m)",
+    "  z      -                      unobservable (not constrained, std 0.02292 m)",
+    "  time offset +0.62 +- 0.18 ms (estimated)",
+    "...",
+    "exported frames (root depth_camera_link):",
+    "  depth_camera_link -> imu_link  [imu-lidar] NOT MEASURED x, y, z (from --tf prior)",
+    "next steps:",
+    "  - verify on a different recording: calibrex check <other bag> --tf est/frames.yaml",
+    "  - deploy: est/static_transforms.sh (ROS 2 static_transform_publisher) ...",
+    "  - imu-lidar lever arm z: the motion excites it (9 deg RMS rotation about the other axes) ..."
+   ],
+   "full_output_sha256": "3ed19027b2813eda41a2b3522c71021c0f86928f566ec3117e4374d7d99f58b2"
+  },
+  {
+   "step": "check",
+   "caption": "Deploy est/frames.yaml, then audit it on a different recording.",
+   "command": "calibrex check indoor_easy_02/ --tf est/frames.yaml --max-duration-s 130",
+   "lines": [
+    "  frames_yaml: est/frames.yaml (1 frames)",
+    "imu-lidar (imu_link / depth_camera_link): pass (partial: roll, pitch, yaw only)",
+    "  |delta|/tolerance  roll 0.255/1.5 deg; pitch 0.982/1.5 deg; yaw 0.484/1.5 deg",
+    "  unchecked  x, y, z",
+    "  detectable  roll 1.75 deg; pitch 2.48 deg; yaw 1.98 deg",
+    "overall verdict: pass",
+    "WARNING: 1 pair(s) have partial coverage: unchecked axes were not judged",
+    "...",
+    "  - imu-lidar lever arm z: the motion excites it (12 deg RMS rotation about the other axes) ..."
+   ],
+   "full_output_sha256": "c5a1ae615f7dc6a561966264ab8155220b31490e0a9e974c81cbae6e14fb3b18"
+  },
+  {
+   "step": "drift",
+   "caption": "Did it change between recordings, and which bag moved?",
+   "command": "calibrex drift indoor_easy_01/ indoor_easy_02/ remounted/ --max-duration-s 130 --pairs imu-lidar",
+   "lines": [
+    "overall: drift  (a change beyond max(3 sigma, floor) and chi-square p < 0.01)",
+    "imu-lidar: drift  T_depth_camera_link_imu_link",
+    "  axis    indoor_easy_01    indoor_easy_02         remounted   max|diff|  min detectable  status",
+    "  roll  -64.844 +- 0.251  -64.821 +- 0.210  -65.717 +- 0.251      0.896           1.500  stable",
+    "  pitch +65.355 +- 0.294  +64.647 +- 0.258  +63.962 +- 0.294      1.392           1.500  stable",
+    "  yaw   +72.363 +- 0.247  +71.421 +- 0.199  +70.824 +- 0.247      1.539           1.500  drift",
+    "  remounted vs the others: roll -0.886 deg, pitch -0.992 deg, yaw -0.968 deg; rotation 1.42 deg",
+    "  deviating bag(s): remounted",
+    "  - imu-lidar: remounted disagrees with the other recording(s); recalibrate it (calibrex estimate ..."
+   ],
+   "full_output_sha256": "6f421f715d3ba80185655ac4dbde3c7a5e3e5501edff16c581ebd279c0d48558"
+  }
+ ]
+}

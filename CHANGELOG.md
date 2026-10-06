@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Docs: one workflow, estimate -> check -> drift.** New tutorial
+  `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
+  `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide
+  `indoor_easy_01`/`02` (plus a KITTI development-drive set for a ground vehicle), the browser
+  page, the translation-observability hints and the `calibrex --help` grouping. The README and
+  the landing page now open with the workflow. New `docs/assets/calibrex-workflow.gif`
+  (`tools/workflow_gif.py`, from the digest-bound transcript
+  `docs/assets/calibrex_workflow/transcript.json`; registered in `readme-data-gifs.json`) and a
+  screenshot of the estimate HTML report. Stale statements removed (check "no HTML report",
+  browser page "only plans"). Docs and tools only; no schema change.
 - **`calibrex estimate --html FILE`** (and `calibrex render DIR/bag_estimate.json --format html`):
   a self-contained HTML report of a `slac.bag_estimate/v0.1` artifact in the style of the check
   report (light/dark, phone width): per-pair axes with value, 1 sigma on a log-scale bar and
