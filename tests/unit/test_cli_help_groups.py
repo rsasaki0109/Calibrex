@@ -56,6 +56,7 @@ EXPECTED_COMMANDS = [
     "capture",
     "autoware",
     "check",
+    "estimate",
     "inspect",
     "export",
 ]

@@ -35,6 +35,7 @@ from calibrex.check.estimators import EstimatorRun, invert_transform, transform_
 from calibrex.check.frame_tree import StaticEdge, StaticFrameTree, normalize_frame_id
 from calibrex.check.hints import pair_hint
 from calibrex.check.planner import PAIR_SLOTS, plan_pairs, slot_of
+from calibrex.check.progress import CheckProgress, as_progress
 from calibrex.check.roles import map_topics_to_frames
 from calibrex.check.runner import (
     INVERTED_CONVENTION_PAIRS,
@@ -105,10 +106,6 @@ LIDAR_LIDAR_PRIOR_HINT = (
     "(a slac.check_frames YAML or URDF that connects the two LiDAR frames to within a few "
     "degrees and decimetres); only that start is used, the estimate comes from the bag"
 )
-
-
-def _quiet(_message: str) -> None:
-    return None
 
 
 # ----------------------------------------------------------------------- relations
@@ -834,9 +831,11 @@ def build_bag_estimate(
     frame_overrides: Mapping[str, str] | None = None,
     topic_kinds: Mapping[str, OdometryKind] | None = None,
     command: Sequence[str] | None = None,
-    progress: Callable[[str], None] = _quiet,
+    progress: Callable[[str], None] | CheckProgress | None = None,
 ) -> BagEstimateArtifact:
     """Estimate every supported pair of ``bag`` and export the observed frames to ``output_dir``."""
+
+    progress = as_progress(progress)
 
     bag_path = Path(bag)
     output_dir.mkdir(parents=True, exist_ok=True)

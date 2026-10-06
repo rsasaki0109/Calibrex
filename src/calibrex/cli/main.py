@@ -3123,6 +3123,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "static_transforms.launch.yaml, joints.urdf.xml and the evidence artifacts",
     )
     estimate.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    estimate.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="suppress the progress report on stderr (the result on stdout is unchanged)",
+    )
     estimate.set_defaults(func=_cmd_estimate)
 
     inspect = subcommands.add_parser("inspect", help="inspect a dataset")
@@ -4278,20 +4284,23 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         scan_memory_mb=max(args.scan_memory_mb, 0),
     )
 
-    def progress(message: str) -> None:
-        print(message, file=sys.stderr, flush=True)
+    from calibrex.check.progress import make_progress
 
-    artifact = build_bag_estimate(
-        args.bag,
-        output_dir=output_dir,
-        run=run_options,
-        tf_files=args.tf,
-        vehicle_frame=args.vehicle_frame,
-        frame_overrides=parse_frame_map(args.frame_map),
-        topic_kinds=parse_topic_kinds(args.topic_kind),
-        command=["calibrex", *args.invoked_argv],
-        progress=progress,
-    )
+    progress = make_progress(sys.stderr, quiet=args.quiet, plain=args.json)
+    try:
+        artifact = build_bag_estimate(
+            args.bag,
+            output_dir=output_dir,
+            run=run_options,
+            tf_files=args.tf,
+            vehicle_frame=args.vehicle_frame,
+            frame_overrides=parse_frame_map(args.frame_map),
+            topic_kinds=parse_topic_kinds(args.topic_kind),
+            command=["calibrex", *args.invoked_argv],
+            progress=progress,
+        )
+    finally:
+        progress.run_finished()
     payload = artifact.model_dump(mode="json", exclude_none=True)
     write_mapping(output_dir / ARTIFACT_FILENAME, payload)
     if args.json:
