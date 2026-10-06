@@ -95,6 +95,7 @@ ValidationKind = Literal[
     "camera-focal-scale",
     "calibration-check",
     "bag-estimate",
+    "calibration-drift",
     "check-frames",
     "sota-audit-protocol",
     "sota-audit-result",

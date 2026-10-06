@@ -64,6 +64,9 @@ FINGERPRINT_EXCLUDED: tuple[str, ...] = (
     "check/progress.py",  # terminal progress display (observes events)
     "core/progress.py",  # progress hooks only observe; results are bit-identical on/off
     "check/estimate.py",  # builds exports from cached artifacts; never produces them
+    "check/drift.py",  # compares finished per-bag estimates; never produces one
+    "core/calibration_drift.py",  # the drift artifact schema
+    "data/rosbag2_imu_rotate.py",  # test-bag writer (known-bad control); not read by estimators
     "init_templates.py",  # ``calibrex init`` template text
 )
 
