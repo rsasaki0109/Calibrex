@@ -6,7 +6,7 @@ the estimator options only. The candidate enters afterwards, as the reference
 the artifact is compared with (``reference_value`` / ``error_to_reference``)
 and, in the check, as the point the estimate is judged against. So the
 artifact is cached under a key of the bag digest, the estimator name, every
-estimator option and the calibrex version and source revision, and the
+estimator option and the calibrex version and a content hash of the estimation source, and the
 candidate-dependent reference fields are rewritten for the current candidate on
 every hit. Re-checking the same bag with another candidate (or other verdict
 thresholds) then costs seconds instead of the estimator's full run.
@@ -20,7 +20,6 @@ import dataclasses
 import hashlib
 import json
 import os
-import subprocess
 import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -32,7 +31,7 @@ import numpy as np
 from calibrex import __version__
 from calibrex.core.progress import emit_stage
 
-CACHE_FORMAT = 1
+CACHE_FORMAT = 2  # 2: content-hash code fingerprint (1 keyed on repository state)
 
 
 class CacheableArtifact(Protocol):
@@ -52,36 +51,57 @@ def default_cache_dir() -> Path:
     return base / "calibrex" / "check"
 
 
-def code_fingerprint() -> str:
-    """The calibrex version plus the source revision when it runs from a git checkout.
+#: Source files (relative to the package) whose bytes are *not* part of the code
+#: fingerprint. A prefix ending in ``/`` excludes a directory. Each entry was
+#: checked to be unreachable from the code that produces a cached estimator
+#: artifact (``check/estimators.py`` and what it calls) or to only present
+#: results. When in doubt a module stays out of this list: a spurious miss costs
+#: a recompute, a spurious hit returns a stale estimate.
+FINGERPRINT_EXCLUDED: tuple[str, ...] = (
+    "cli/",  # argument parsing and printing; calls the library, never imported by it
+    "visualization/",  # HTML/SVG reports rendered from finished artifacts
+    "check/hints.py",  # next-step and refusal text only
+    "check/progress.py",  # terminal progress display (observes events)
+    "core/progress.py",  # progress hooks only observe; results are bit-identical on/off
+    "check/estimate.py",  # builds exports from cached artifacts; never produces them
+    "init_templates.py",  # ``calibrex init`` template text
+)
 
-    A modified working tree adds a digest of its diff, so editing the estimator
-    invalidates the cache while developing.
+_FINGERPRINT_MEMO: dict[Path, str] = {}
+
+
+def _is_excluded(relative: str) -> bool:
+    return any(
+        relative.startswith(entry) if entry.endswith("/") else relative == entry
+        for entry in FINGERPRINT_EXCLUDED
+    )
+
+
+def code_fingerprint(root: Path | None = None) -> str:
+    """The calibrex version plus a content hash of the estimation source.
+
+    The hash covers the relative path and bytes of every ``*.py`` under
+    ``root`` (the installed ``calibrex`` package by default) except
+    :data:`FINGERPRINT_EXCLUDED`. It does not depend on version control, so
+    commits and edits that leave the estimation code alone keep cached
+    estimates valid, and an installed wheel fingerprints the same way as a
+    checkout. Memoised per process and root.
     """
 
-    package_dir = Path(__file__).resolve().parents[1]  # the whole calibrex package
-
-    def git(*args: str) -> str | None:
-        try:
-            completed = subprocess.run(
-                ["git", "-C", str(package_dir), *args],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=20,
-            )
-        except (OSError, subprocess.SubprocessError):
-            return None
-        return completed.stdout
-
-    commit = git("rev-parse", "--short", "HEAD")
-    if commit is None or not commit.strip():
-        return __version__
-    text = f"{__version__}+{commit.strip()}"
-    diff = git("diff", "HEAD", "--", ".")
-    if diff and diff.strip():
-        text += "-dirty-" + hashlib.sha256(diff.encode("utf-8", "replace")).hexdigest()[:12]
-    return text
+    package_dir = (root if root is not None else Path(__file__).resolve().parents[1]).resolve()
+    memo = _FINGERPRINT_MEMO.get(package_dir)
+    if memo is not None:
+        return memo
+    digest = hashlib.sha256()
+    for path in sorted(package_dir.rglob("*.py")):
+        relative = path.relative_to(package_dir).as_posix()
+        if _is_excluded(relative) or "__pycache__" in path.parts:
+            continue
+        digest.update(relative.encode("utf-8") + b"\0")
+        digest.update(path.read_bytes() + b"\0")
+    result = f"{__version__}+src-{digest.hexdigest()[:16]}"
+    _FINGERPRINT_MEMO[package_dir] = result
+    return result
 
 
 def _json_default(value: object) -> Any:
