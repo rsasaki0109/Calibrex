@@ -166,8 +166,13 @@ def assess_axis(
     options: DriftOptions,
     *,
     rigid_scan: bool = False,
+    deviating: Sequence[str] | None = None,
 ) -> DriftAxisRecord:
-    """Test one axis for consistency across the bags that observed it."""
+    """Test one axis for consistency across the bags that observed it.
+
+    ``deviating`` names the bags to treat as the odd ones out (the pair-level attribution of
+    :func:`compare_pair`); by default they are found on this axis alone.
+    """
 
     source: FloorSource
     if unit == "m":
@@ -229,7 +234,9 @@ def assess_axis(
     # bags are removed. If that does not restore consistency the bags split and nobody is blamed.
     leave_one_out: list[DriftLeaveOneOut] = []
     removed: list[int] = []
-    if len(used) >= 3 and _inconsistent(values, stds, options, floor):
+    if deviating is not None:
+        removed = [i for i, o in enumerate(used) if o.bag in deviating]
+    elif len(used) >= 3 and _inconsistent(values, stds, options, floor):
         keep = list(range(len(used)))
         while len(removed) < (len(used) - 1) // 2 and _inconsistent(
             [values[j] for j in keep], [stds[j] for j in keep], options, floor
@@ -345,6 +352,46 @@ def _changes(
     return result
 
 
+def _pair_deviating(records: Sequence[DriftAxisRecord], options: DriftOptions) -> list[str]:
+    """The bags whose removal makes every tested axis of the pair consistent, or ``[]``.
+
+    Greedy: remove the bag whose removal leaves the smallest total chi-square over the axes,
+    while some axis is still inconsistent and fewer than half the bags are removed. If the
+    rest is still inconsistent the bags split and nobody is blamed.
+    """
+
+    tested = [a for a in records if a.status != "inconclusive"]
+    bags = list(dict.fromkeys(o.bag for a in tested for o in a.observations if o.used))
+
+    def series(axis: DriftAxisRecord, keep: Sequence[str]) -> tuple[list[float], list[float]]:
+        used = [o for o in axis.observations if o.used and o.bag in keep]
+        return (
+            [float(o.value or 0.0) for o in used],
+            [max(float(o.std or 0.0), _MIN_STD) for o in used],
+        )
+
+    def inconsistent(keep: Sequence[str]) -> bool:
+        return any(_inconsistent(*series(a, keep), options, a.floor) for a in tested)
+
+    def score(keep: Sequence[str]) -> float:
+        total = 0.0
+        for axis in tested:
+            values, stds = series(axis, keep)
+            if len(values) >= 2:
+                total += _chi_square(values, stds)
+        return total
+
+    if len(bags) < 3 or not inconsistent(bags):
+        return []
+    keep = list(bags)
+    removed: list[str] = []
+    while len(removed) < (len(bags) - 1) // 2 and inconsistent(keep):
+        best = min(keep, key=lambda b: score([x for x in keep if x != b]))
+        keep.remove(best)
+        removed.append(best)
+    return [] if inconsistent(keep) else removed
+
+
 def compare_pair(
     pair: str,
     parent_frame: str | None,
@@ -365,10 +412,15 @@ def compare_pair(
     tested = [a for a in records if a.status != "inconclusive"]
     verdict: DriftVerdict = "drift" if drifting else "stable" if tested else "inconclusive"
     deviating: list[str] = []
-    for axis in drifting:
-        for entry in axis.leave_one_out:
-            if entry.deviates and entry.bag not in deviating:
-                deviating.append(entry.bag)
+    if drifting:
+        # attribute on all the pair's axes together: one bag moved, not one axis' worth of bags
+        deviating = _pair_deviating(records, options)
+        records = [
+            assess_axis(
+                name, unit, observations, options, rigid_scan=rigid_scan, deviating=deviating
+            )
+            for name, unit, observations in axes
+        ]
     changes: list[DriftBagChange] = []
     attribution: Literal["bag", "ambiguous"] | None = None
     if verdict == "drift":
@@ -409,13 +461,10 @@ def worst_drift_verdict(verdicts: Sequence[str]) -> DriftVerdict:
 # ------------------------------------------------------------------- pair grouping
 
 
-def _group_key(record: EstimatePairRecord) -> tuple[str, str | None, str | None]:
-    transform = record.transform
-    return (
-        record.pair,
-        transform.parent_frame if transform else None,
-        transform.child_frame if transform else None,
-    )
+def _group_key(record: EstimatePairRecord) -> tuple[str, tuple[str, ...]]:
+    """A pair is the same pair across bags when its name and its two frames agree."""
+
+    return (record.pair, tuple(record.frames))
 
 
 _AXIS_ORDER = {n: i for i, n in enumerate(("roll", "pitch", "yaw", "x", "y", "z"))}
@@ -427,13 +476,16 @@ def compare_estimates(
     """Compare the pairs of per-bag estimates (``(bag name, estimate)``, in recording order)."""
 
     names = [name for name, _ in estimates]
-    groups: dict[tuple[str, str | None, str | None], dict[str, EstimatePairRecord]] = {}
+    groups: dict[tuple[str, tuple[str, ...]], dict[str, EstimatePairRecord]] = {}
     for name, estimate in estimates:
         for record in estimate.pairs:
             if record.axes:
                 groups.setdefault(_group_key(record), {}).setdefault(name, record)
     pairs: list[DriftPairRecord] = []
-    for (pair, parent, child), per_bag in sorted(groups.items(), key=lambda item: item[0][0]):
+    for (pair, _frames), per_bag in sorted(groups.items(), key=lambda item: item[0]):
+        transforms = [r.transform for r in per_bag.values() if r.transform is not None]
+        parent = transforms[0].parent_frame if transforms else None
+        child = transforms[0].child_frame if transforms else None
         axis_names: list[tuple[CheckAxisName, Literal["deg", "m"]]] = []
         for record in per_bag.values():
             for axis in record.axes:

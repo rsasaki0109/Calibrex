@@ -296,3 +296,29 @@ def test_next_steps_for_an_ambiguous_two_bag_drift(tmp_path: Path, bags: list[Pa
     artifact = _run(bags[:2], tmp_path / "d")
     assert artifact.pairs[0].attribution == "ambiguous"
     assert any("third recording" in step for step in artifact.next_steps)
+
+
+def test_attribution_uses_all_axes_of_the_pair_together() -> None:
+    """Koide indoor_easy_01 / 02 and 01 with its IMU remounted by 2 deg about z.
+
+    On yaw alone the middle bag is closer to the remounted bag than to the original, so a
+    per-axis attribution blames the original; over the three rotation axes together the
+    remounted bag is the odd one out.
+    """
+
+    data = {
+        "roll": (-64.837, -64.822, -65.710),
+        "pitch": (65.334, 64.654, 63.942),
+        "yaw": (72.325, 71.416, 70.786),
+    }
+    stds = (0.25, 0.21, 0.25)
+    axes: list[tuple[Any, Any, list[Observation]]] = [
+        (name, "deg", [_obs(b, v, s) for b, v, s in zip("abc", values, stds, strict=True)])
+        for name, values in data.items()
+    ]
+    yaw_alone = assess_axis("yaw", "deg", axes[2][2], OPTIONS, rigid_scan=True)
+    assert [e.bag for e in yaw_alone.leave_one_out if e.deviates] == ["a"]
+    pair = compare_pair("imu-lidar", None, None, axes, ["a", "b", "c"], OPTIONS, rigid_scan=True)
+    assert pair.verdict == "drift"
+    assert pair.deviating_bags == ["c"]
+    assert [e.bag for a in pair.axes for e in a.leave_one_out if e.deviates] == ["c"] * 3
