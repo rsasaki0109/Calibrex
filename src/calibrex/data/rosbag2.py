@@ -32,6 +32,7 @@ ROS or the vendor driver, preserving ``timebase`` and ``offset_time``.
 
 from __future__ import annotations
 
+import heapq
 import io
 import math
 import sqlite3
@@ -836,6 +837,8 @@ def _iter_mcap_messages(
 ) -> Iterator[tuple[Rosbag2Connection, int, bytes]]:
     channels: dict[int, Rosbag2Connection] = {}
     schemas: dict[int, str] = {}
+    ordered: list[tuple[int, int, Rosbag2Connection, int, bytes]] = []
+    sequence = 0
     with _open_mcap(mcap_path) as source:
         magic = source.read(len(MCAP_MAGIC))
         if magic != MCAP_MAGIC:
@@ -849,6 +852,11 @@ def _iter_mcap_messages(
                 channel = _parse_mcap_channel(content, schemas)
                 channels[channel.topic_id] = channel
             elif opcode == OP_CHUNK:
+                # Chunks may overlap in time: hold messages in a heap and release those
+                # older than the next chunk's start so the output stays time-ordered.
+                (chunk_start,) = struct.unpack_from("<Q", content, 0)
+                while ordered and ordered[0][0] < chunk_start:
+                    yield heapq.heappop(ordered)[2:]
                 _compression, records = _parse_mcap_chunk(content)
                 for inner_opcode, inner_content in _iter_mcap_record_bytes(records):
                     if inner_opcode == OP_SCHEMA:
@@ -858,13 +866,17 @@ def _iter_mcap_messages(
                         channel = _parse_mcap_channel(inner_content, schemas)
                         channels[channel.topic_id] = channel
                     elif inner_opcode == OP_MESSAGE:
-                        yield from _yield_mcap_message(
+                        for item in _yield_mcap_message(
                             inner_content,
                             channels=channels,
                             topics=topics,
                             decompress_message=decompress_message,
-                        )
+                        ):
+                            sequence += 1
+                            heapq.heappush(ordered, (item[1], sequence, *item))
             elif opcode == OP_MESSAGE:
+                while ordered:
+                    yield heapq.heappop(ordered)[2:]
                 yield from _yield_mcap_message(
                     content,
                     channels=channels,
@@ -873,6 +885,8 @@ def _iter_mcap_messages(
                 )
             elif opcode in {OP_FOOTER, OP_DATA_END}:
                 break
+    while ordered:
+        yield heapq.heappop(ordered)[2:]
 
 
 def _yield_mcap_message(

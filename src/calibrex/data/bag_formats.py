@@ -22,6 +22,7 @@ The module never imports ROS.
 
 from __future__ import annotations
 
+import heapq
 import struct
 from collections.abc import Iterator
 from pathlib import Path
@@ -213,32 +214,41 @@ def iter_ros1_messages(
         for conn_id, connection in index.connections.items()
         if topics is None or connection.topic in topics
     }
+    pending = sorted(
+        (chunk for chunk in index.chunks if chunk[2] & wanted), key=lambda item: item[1]
+    )
+    # K-way merge across chunks: a chunk is read only when the merge frontier reaches its
+    # start time, so memory is bounded by the chunks whose time ranges overlap.
+    heap: list[tuple[int, int, int, bytes]] = []
+    sequence = 0
+    next_chunk = 0
     with bag.open("rb") as source:
-        for chunk_pos, _start_ns, present in sorted(index.chunks, key=lambda item: item[1]):
-            if not present & wanted:
+        while next_chunk < len(pending) or heap:
+            if next_chunk < len(pending) and (not heap or pending[next_chunk][1] <= heap[0][0]):
+                chunk_pos = pending[next_chunk][0]
+                next_chunk += 1
+                source.seek(chunk_pos)
+                header_len = struct.unpack("<I", rosbag1._read_exact(source, 4))[0]
+                header = rosbag1._read_header_fields(rosbag1._read_exact(source, header_len))
+                data_len = struct.unpack("<I", rosbag1._read_exact(source, 4))[0]
+                chunk_data = rosbag1._read_exact(source, data_len)
+                compression = header.get("compression", b"none").decode("ascii")
+                size = rosbag1._uint32(header.get("size")) or 0
+                buffer = rosbag1._decompress_chunk(compression, size, chunk_data)
+                for fields, data in rosbag1._iter_inner_records(buffer):
+                    if rosbag1._record_op(fields) != rosbag1.OP_MSG_DATA:
+                        continue
+                    record_conn = rosbag1._uint32(fields.get("conn"))
+                    record_time = rosbag1._time_field_to_ns(fields.get("time"))
+                    if record_conn is None or record_time is None:
+                        msg = "ROS bag message record missing 'conn' or 'time'"
+                        raise DatasetError(msg)
+                    if record_conn in wanted:
+                        sequence += 1
+                        heapq.heappush(heap, (record_time, sequence, record_conn, data))
                 continue
-            source.seek(chunk_pos)
-            header_len = struct.unpack("<I", rosbag1._read_exact(source, 4))[0]
-            header = rosbag1._read_header_fields(rosbag1._read_exact(source, header_len))
-            data_len = struct.unpack("<I", rosbag1._read_exact(source, 4))[0]
-            chunk_data = rosbag1._read_exact(source, data_len)
-            compression = header.get("compression", b"none").decode("ascii")
-            size = rosbag1._uint32(header.get("size")) or 0
-            buffer = rosbag1._decompress_chunk(compression, size, chunk_data)
-            messages: list[tuple[int, int, bytes]] = []
-            for fields, data in rosbag1._iter_inner_records(buffer):
-                if rosbag1._record_op(fields) != rosbag1.OP_MSG_DATA:
-                    continue
-                record_conn = rosbag1._uint32(fields.get("conn"))
-                record_time = rosbag1._time_field_to_ns(fields.get("time"))
-                if record_conn is None or record_time is None:
-                    msg = "ROS bag message record missing 'conn' or 'time'"
-                    raise DatasetError(msg)
-                if record_conn in wanted:
-                    messages.append((record_time, record_conn, data))
-            messages.sort(key=lambda item: item[0])
-            for timestamp_ns, conn_id, data in messages:
-                connection = index.connections[conn_id]
-                payload = transcode(connection, data)
-                if payload is not None:
-                    yield converted[conn_id], timestamp_ns, payload
+            timestamp_ns, _order, conn_id, data = heapq.heappop(heap)
+            connection = index.connections[conn_id]
+            payload = transcode(connection, data)
+            if payload is not None:
+                yield converted[conn_id], timestamp_ns, payload

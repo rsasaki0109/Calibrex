@@ -574,3 +574,50 @@ def test_estimator_input_digests_accept_a_bare_bag_file(tmp_path: Path) -> None:
     assert len(rtk_digest) == 64
     bag.write_bytes(bag.read_bytes()[:-1])  # a different file digests differently
     assert bag_input_digest([bag])[0] != digest
+
+
+# -- global time order across overlapping chunks ---------------------------------------------
+
+
+def test_ros1_chunks_with_overlapping_time_ranges_merge_in_global_order(tmp_path: Path) -> None:
+    bag = tmp_path / "overlap.bag"
+    stamps = [1, 5, 9, 3, 7, 11, 4, 8, 12, 2, 6, 10]
+    with Ros1BagWriter(bag, chunk_messages=3) as writer:
+        writer.add_connection("/imu", "sensor_msgs/Imu")
+        for stamp in stamps:
+            writer.write("/imu", stamp * 1000, _imu("i", stamp * 1000, float(stamp)))
+    got = [s for _c, s, _p in iter_messages(bag)]
+    assert got == sorted(s * 1000 for s in stamps)
+    only = [s for _c, s, _p in iter_messages(bag, topics={"/imu"})]
+    assert only == got
+
+
+def test_mcap_chunks_with_overlapping_time_ranges_merge_in_global_order(tmp_path: Path) -> None:
+    import struct
+
+    from tests.unit.test_rosbag2 import (
+        MCAP_MAGIC,
+        _mcap_channel,
+        _mcap_chunk,
+        _mcap_message,
+        _mcap_record,
+        _mcap_schema,
+        _mcap_string,
+    )
+
+    preamble = _mcap_schema(1, "sensor_msgs/msg/Imu") + _mcap_channel(1, 1, "/imu")
+    groups = [[1, 5, 9], [2, 6, 10], [3, 7, 11], [4, 8, 12]]  # chunk starts rise, ranges overlap
+    body = b""
+    for number, group in enumerate(groups):
+        records = (preamble if number == 0 else b"") + b"".join(
+            _mcap_message(1, stamp * 1000, b"\x00\x01\x00\x00") for stamp in group
+        )
+        body += _mcap_chunk(records, start_time=group[0] * 1000, end_time=group[-1] * 1000)
+    header = _mcap_record(0x01, _mcap_string("rosbag2") + _mcap_string("slac-test"))
+    footer = _mcap_record(0x02, struct.pack("<QQI", 0, 0, 0))
+    path = tmp_path / "overlap.mcap"
+    path.write_bytes(
+        MCAP_MAGIC + header + body + _mcap_record(0x0F, struct.pack("<I", 0)) + footer + MCAP_MAGIC
+    )
+    got = [s for _c, s, _p in iter_messages(path)]
+    assert got == [stamp * 1000 for stamp in range(1, 13)]
