@@ -31,6 +31,16 @@
   x-forward axes by default; dual return and other models unverified); `VelocityReport` is
   verified on the 873 messages of the Autoware `sample-rosbag`. No schema change (reason text
   only).
+- **Browser check page verified on real bags; `--topic-kind` and `--camera` in the page.** The
+  Pyodide run was compared with `calibrex check` on real data with the same cap: Koide
+  IMU-LiDAR (4.4 GB bag), NTU VIRAL `tnp_01` LiDAR-LiDAR (22 GB bag, identical), RTK-SLAM
+  IMU-LiDAR / GNSS-LiDAR / GNSS-IMU, Hilti exp21 camera-IMU / camera-focal and KITTI
+  LiDAR-wheel odometry: same verdicts, numbers equal to 1e-6 or better except the camera pairs
+  (OpenCV 4.10 against 4.14, estimates within one to two sigma). New Topic kinds box and Camera
+  field on the page (`topic_kind`, `camera` in the request). Fix: non-finite floats (an
+  unobservable `rate_ratio_std`) made the camera-focal reply invalid for `JSON.parse`; they are
+  `null` now. `tools/check_browser_check_page.mjs` gains `--topic-kind`, `--camera` and prints
+  the run progress. The feasibility table in the tutorial has the numbers. No schema change.
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide
