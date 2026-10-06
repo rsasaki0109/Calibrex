@@ -442,6 +442,11 @@ with `NO_COLOR` unset.
 `--gnss-max-duration-s S` sets the span for `gnss-lidar` (and so the GNSS input
 of `gnss-imu`) separately from `--max-duration-s`: the antenna lever arm needs
 minutes of RTK-fixed windows, `imu-lidar` a couple of minutes (see Phase C2).
+When a lever-arm axis (the translation of `imu-lidar` or `gnss-lidar`) is
+unobservable, `next steps` says which rotation the recording lacked and how
+much more of the same motion would reach the bound (the same text is stored as
+`unchecked_axes[].excitation`); see
+[what makes a lever arm observable](../concepts/translation_observability.md).
 `--pairs a,b` restricts pairs; `--camera TOPIC` restricts `camera-imu` to one
 image topic (or camera frame); `--max-duration-s S` analyses the first `S`
 seconds of each sensor stream (images, scans, IMU samples within that window;

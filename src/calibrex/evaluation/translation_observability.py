@@ -130,7 +130,7 @@ def format_duration(seconds: float) -> str:
 
 
 def _cm(value: float) -> str:
-    return f"{100.0 * value:.2g} cm" if math.isfinite(value) else "inf"
+    return f"{100.0 * value:.3g} cm" if math.isfinite(value) else "inf"
 
 
 def diagnose_translation_axes(inputs: ExcitationInputs) -> list[AxisExcitation]:
@@ -233,10 +233,14 @@ def _added_duration_s(
     if inputs.covered_s <= 0.0 or weight <= 0.0 or inputs.interval_s <= 0.0:
         return None
     rate = math.radians(REFERENCE_RATE_DPS)
+    analytic = float(inputs.std_analytic_m[index])
+    # Correlated odometry residuals make the real std larger than the white-noise one the
+    # ideal information assumes; the same factor applies to the added motion.
+    inflation = max(1.0, std / analytic) if analytic > 0.0 and math.isfinite(std) else 1.0
     # A ramp of rate w over the pairing interval t has mean theta^2 = (w t)^2 / 3.
     per_second = (
         efficiency * weight * (inputs.samples / inputs.covered_s) * (rate * inputs.interval_s) ** 2
-    ) / 3.0
+    ) / (3.0 * inflation**2)
     return missing / per_second if per_second > 0.0 else None
 
 
@@ -297,18 +301,17 @@ def _recommendation(
     axes = " or ".join(missing)
     spread = "/".join(f"{value:.0f}" for value in rms_deg)
     have = f"The recording rotates only {spread} deg RMS about x/y/z."
-    hint = (
-        "a level sensor turns for z and tilts for x or y"
+    level = (
+        "for a level sensor, tilting for x or y and turning for z"
         if inputs.kind == "imu_lidar"
-        else "for a level rig: turns (figure-eights, S-curves) for z, tilting for x or y"
+        else "for a level rig, tilting for x or y and turning for z"
     )
-    motion = f"rotation about the sensor {axes} axis ({hint})"
-    need = f"{name}: needs rotation about the sensor {axes} axis."
+    need = f"{name}: needs rotation about the sensor {axes} axis ({level})."
     reach = (
-        f" About {format_duration(added_s)} of {motion} at >= {REFERENCE_RATE_DPS:.0f} deg/s "
-        f"would reach the {bound} bound."
+        f" Model estimate: about {format_duration(added_s)} of it at >= "
+        f"{REFERENCE_RATE_DPS:.0f} deg/s would reach the {bound} bound."
         if added_s is not None and added_s <= MAX_NEEDED_S
-        else f" Record {motion}."
+        else ""
     )
     text = f"{need} {have}{reach}{thin}{caution}"
     if planar:

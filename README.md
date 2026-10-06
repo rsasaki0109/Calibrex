@@ -84,6 +84,11 @@ calibrates an IMU against a sensor trajectory (TUM): rotation, clock offset,
 gyro bias, and lever arm, with held-out evidence. Both run locally under
 Pyodide, so no data is uploaded.
 
+When a lever-arm (translation) axis is not observable, `calibrex check` and
+`calibrex estimate` say why (which rotation the recording lacks) and what motion
+or duration would make it observable; see
+[what makes a lever arm observable](docs/concepts/translation_observability.md).
+
 <p align="center">
   <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Docs</strong></a>
   ·
