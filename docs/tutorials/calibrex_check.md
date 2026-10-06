@@ -1105,6 +1105,64 @@ extrinsics are not checkable from this bag at all. The IMU "frame" of
 `camera-imu` is `base_link`, i.e. the check compares the camera with the
 already-rotated IMU stream.
 
+#### Update: raw Velodyne packets give per-sensor clouds (still no verdict)
+
+The same bag holds the raw packets of the three Velodynes
+(`/sensing/lidar/{front,left,right}/velodyne_packets`, `velodyne_msgs/msg/VelodyneScan`,
+10 Hz, 364 scans each; front is a VLP-16, left and right are VLP-32C) next to the
+concatenated cloud. The packets are stamped in the sensors' own frames
+(`velodyne_front`, ...) and carry the per-firing time, which removes two of the blockers
+above: the cloud is no longer "already in `base_link`" and it has per-point time.
+`calibrex check` plans a `VelodyneScan` topic as an ignored `lidar` with a conversion
+hint; `tools/velodyne_scan_to_pointcloud2.py` (decoder `calibrex.data.velodyne_packets`,
+ROS-independent, from the VLP-16 and VLP-32C manuals) writes a derived bag whose clouds
+are in the sensor frames:
+
+```bash
+python tools/velodyne_scan_to_pointcloud2.py all-sensors-bag1 aw_points \
+    --drop /sensing/lidar/concatenated/pointcloud
+calibrex check aw_points --vehicle-frame base_link --plan
+```
+
+The plan then lists `imu-lidar` (`base_link` / `velodyne_{front,left,right}`, the IMU is
+stamped in `base_link`, so the extrinsic is the physical sensor-kit-to-Velodyne mount),
+`lidar-lidar` x3 and `lidar-vehicle` x3 as `planned`. The decoder was checked by
+geometry (ground plane normal within 3 deg of vertical in `base_link`), not against the
+manufacturer's calibration file; the per-laser azimuth offsets of the VLP-32C are the
+manual's constants.
+
+Result of running it (36.5 s, current main):
+
+| Pair | Result |
+| --- | --- |
+| `imu-lidar` front (VLP-16 + IMU) | `inconclusive`, `no_judgeable_axes`: roll / pitch / yaw std 2.4 / 6.7 / 5.7 deg; lever arm fails its held-out check (44 mm vs 14 mm) |
+| `lidar-lidar` front / left (rigid scans, 259 s) | `inconclusive`, `no_judgeable_axes`: rotation std 0.6 to 0.7 deg, translation std 0.14 to 0.41 m; the estimator's own 1 deg roll known-bad control is not detected, so the estimate is not trusted as a yardstick |
+| `imu-lidar` left, right; `lidar-vehicle` x3; `gnss-lidar` | not run to completion (about 11 to 25 min per pair on rigid VLP-32C scans); the same motion argument applies |
+
+The reason is the motion, not the data path. From the bag itself: the IMU runs at 100 Hz,
+the integrated gyro rotation over the 36.5 s is at most 1.5 deg about z (peak 0.9 deg/s)
+and a few degrees about x and y (vibration), and the NavSatFix path is a straight 97 m
+diagonal at about 2.7 m/s. A rotation (hand-eye) calibration needs rotation about all three
+axes; this drive has none, so no rotation axis is constrained. `calibrex check` now says
+so: for `imu-lidar` and `camera-imu` ending `no_judgeable_axes` the reason ends with
+"recording too short or too static: 37 s with integrated IMU rotation x ... y ... z ...;
+need about 60 s or more and turns or tilts about the IMU ... axis (at least ~10 deg)" (a
+heuristic computed from the recording's own gyro).
+
+Known-bad control: with every pair `inconclusive` there is no verdict that a perturbed
+`--tf` (+1 deg, +3 deg, +5 cm) could worsen, and the check refuses to judge instead of
+passing. The control was therefore not run on this bag; it is exercised on Koide
+`indoor_easy_01` (see its section) where the pair does yield a verdict.
+
+What to do: record at least 60 s that includes a left and a right turn (a slalom or
+figure-eight) with the cameras seeing texture; then the same command applies unchanged.
+
+Other items that block Autoware vehicle pairs on this bag: `/vehicle/status/velocity_status`
+is an `autoware_auto_vehicle_msgs/VelocityReport` topic with 0 messages (the check now
+decodes `VelocityReport` as wheel speed and yaw rate, additively, but has no data here);
+the applanix `ins_solution_49` topic is a custom message, not `nav_msgs/Odometry`, so
+`ins-lidar` has no INS topic.
+
 ### Koide hard-localization `indoor_easy_01` and `indoor_easy_02`
 
 - **Origin.** `koide_hard_localization/sequences/indoor_easy_0{1,2}` (Koide's hard
@@ -1126,6 +1184,12 @@ already-rotated IMU stream.
 | `imu-vehicle` | skipped `degenerate_frames` | - |
 | others | skipped `missing_topic` | - |
 
+Re-checked on current main (rigid scans, `indoor_easy_01`): `imu-lidar` is `pass (partial:
+roll, pitch, yaw only)` (0.08 / 0.66 / 0.06 deg of 1.5), and a `--tf` file turning `imu_link`
+by +3 deg about z (`tools/make_check_frames_perturbation.py`) gives `warn` (yaw 2.94 / 1.5
+deg), the known-bad control worsening the verdict on real data. This is the only bag in this
+section with a verdict.
+
 Both sequences give the same plan (2.4-2.6 s). Limitation: the "LiDAR" is a depth
 camera cloud without per-point time, so the IMU-LiDAR estimator, which deskews
 each scan, cannot run in its normal mode; the rigid-scan result is in "Clouds without
@@ -1142,7 +1206,7 @@ per-point time" above.
   `rbr_ctd`, `gantry`, ...). The MCAP + `/tf_static` path works end to end: all
   sensor topics map by header (`/norbit/detections` to `norbit`, both IMU topics
   to `ustrain_imu`, `/nav/sensors/navsat/ubx_pos/fix` to `gps_stbd`).
-- **Plan.** `imu-lidar` (`ustrain_imu` / `norbit`), `gnss-lidar` (`gps_stbd` /
+- **Plan** (unchanged on current main). `imu-lidar` (`ustrain_imu` / `norbit`), `gnss-lidar` (`gps_stbd` /
   `norbit`) and `gnss-imu` are `planned`; `ins-lidar` and `lidar-wheel_odometry`
   are skipped `missing_topic` and name `/nav/processed/odometry` as an odometry
   topic of unknown kind (`--topic-kind`); the rest are skipped. Plan time 2.9 s on
@@ -1153,6 +1217,9 @@ per-point time" above.
 
 ### Remaining gaps
 
+- The Autoware bag's raw Velodyne packets (see "raw Velodyne packets" above) make every
+  LiDAR pair plannable in the sensor frames, but the 36 s straight drive has no rotation
+  excitation, so none yields a verdict; a recording with turns is needed.
 - Per-point time is optional: `imu-lidar`, `lidar-lidar` and `gnss-lidar` run clouds
   without it as rigid scans (see "Clouds without per-point time"). The Autoware
   concatenated cloud has none: `imu-lidar` is skipped `degenerate_frames` there,

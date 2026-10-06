@@ -47,6 +47,7 @@ from calibrex.core.calibration_check import (
     CheckTopicRecord,
 )
 from calibrex.core.progress import emit_stage
+from calibrex.data.ros_cdr import AUTOWARE_VELOCITY_REPORT_TYPES
 
 if TYPE_CHECKING:
     from calibrex.data.livox_ros2 import ScanStore
@@ -1182,7 +1183,11 @@ def focal_record_of(artifact: Any, intrinsics_source: str | None = None) -> Foca
 
 ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
 TWIST_TYPES = frozenset(
-    {"geometry_msgs/msg/TwistStamped", "geometry_msgs/msg/TwistWithCovarianceStamped"}
+    {
+        "geometry_msgs/msg/TwistStamped",
+        "geometry_msgs/msg/TwistWithCovarianceStamped",
+        *AUTOWARE_VELOCITY_REPORT_TYPES,
+    }
 )
 VEHICLE_PROVENANCE_GENERATOR = "calibrex.check.estimators"
 _RIGID_SWEEP_NOTE = (

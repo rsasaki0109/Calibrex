@@ -14,6 +14,18 @@
   *frames* in real files (the reader only accepted raw blocks), `zstd` chunks without a content
   size, and a rosbag2 file-compressed `.mcap.zstd` is now streamed (`.db3.zstd` gets a clear
   error instead of "file is not a database"). No schema change.
+- **`calibrex check` on the Autoware sample bag: raw Velodyne packets, VelocityReport, motion
+  explanation.** New ROS-independent decoder `calibrex.data.velodyne_packets` for
+  `velodyne_msgs/msg/VelodyneScan` (VLP-16 and VLP-32C, single/dual return, per-point firing
+  time) and `tools/velodyne_scan_to_pointcloud2.py` (`calibrex.data.rosbag2_velodyne`), which
+  writes a derived bag with per-sensor clouds in the sensor frames; `VelodyneScan` topics are
+  planned as an ignored `lidar` with that hint. Autoware `VelocityReport`
+  (`autoware_auto_vehicle_msgs`, `autoware_vehicle_msgs`) is decoded and classified as a wheel
+  twist topic. A `no_judgeable_axes` `imu-lidar`/`camera-imu` reason now ends with "recording too
+  short or too static: N s with integrated IMU rotation ...; need ..." computed from the
+  recording's gyro. Real data: all-sensors-bag1 (36.5 s, straight 97 m drive, 1.5 deg total yaw)
+  stays `inconclusive` for every pair, with the exact reason; docs table updated. No schema
+  change (reason text only).
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide

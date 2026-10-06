@@ -196,6 +196,10 @@ def read_twist_track(
             )
             stamp, frame = twist.timestamp_ns, twist.frame_id
             lin, ang = twist.linear_velocity, twist.angular_velocity
+        elif message_type in ros_cdr.AUTOWARE_VELOCITY_REPORT_TYPES:
+            report = ros_cdr.decode_ros2_velocity_report(topic, timestamp_ns, payload)
+            stamp, frame = report.timestamp_ns, report.frame_id
+            lin, ang = report.linear_velocity, report.angular_velocity
         else:
             raise ValueError(f"{topic}: {message_type} carries no twist")
         time_s = stamp * 1.0e-9
