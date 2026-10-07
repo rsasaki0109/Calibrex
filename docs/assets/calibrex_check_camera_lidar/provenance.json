@@ -1,0 +1,126 @@
+{
+ "bag": "calibrex convert kitti-raw DRIVE --camera image_02",
+ "bag_input_sha256": "96d3d6ea24dc4d263937ee1e8f0bc23b706161d18ef2af772f7ae11b50d2eff6",
+ "calibrex_version": "0.5.1",
+ "check_runs": {
+  "perturbed": {
+   "axes": {
+    "pitch": {
+     "candidate_error_deg": 3.0,
+     "estimate_std_deg": 0.0833,
+     "ratio": 6.0,
+     "status": "fail",
+     "tolerance_deg": 0.5
+    },
+    "roll": {
+     "candidate_error_deg": -0.0,
+     "estimate_std_deg": 0.294,
+     "ratio": 0.0,
+     "status": "pass",
+     "tolerance_deg": 0.8821
+    }
+   },
+   "command": [
+    "calibrex",
+    "check",
+    ".../x",
+    "--pairs",
+    "camera-lidar",
+    "--cache-dir",
+    ".../x",
+    "--tf",
+    ".../x",
+    "--output",
+    ".../x",
+    "--fail-on",
+    "never"
+   ],
+   "status": "fail",
+   "unchecked": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ]
+  },
+  "reference": {
+   "axes": {
+    "pitch": {
+     "candidate_error_deg": 0.1,
+     "estimate_std_deg": 0.0645,
+     "ratio": 0.2,
+     "status": "pass",
+     "tolerance_deg": 0.5
+    },
+    "roll": {
+     "candidate_error_deg": 0.0,
+     "estimate_std_deg": 0.2555,
+     "ratio": 0.0,
+     "status": "pass",
+     "tolerance_deg": 0.7665
+    }
+   },
+   "command": [
+    "calibrex",
+    "check",
+    ".../x",
+    "--pairs",
+    "camera-lidar",
+    "--cache-dir",
+    ".../x",
+    "--tf",
+    ".../x",
+    "--output",
+    ".../x",
+    "--fail-on",
+    "never"
+   ],
+   "status": "pass",
+   "unchecked": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ]
+  }
+ },
+ "dataset_license": "KITTI raw data, CC BY-NC-SA 3.0: non-commercial use only; the GIF contains a KITTI camera image and must stay non-commercial",
+ "drive": "2011_09_26_drive_0005_sync (development drive; no drive 0027-0059)",
+ "generator": "tools/camera_lidar_check_gif.py",
+ "gif": {
+  "height": 540,
+  "sha256": "0a9cd5cb34854388afbbd8510a443d5222de24110888d07dbd1d966f38e9d772",
+  "size_bytes": 614733,
+  "width": 960
+ },
+ "gif_commands": [
+  "calibrex convert kitti-raw <KITTI drive 0005> --camera image_02 --output <bag>",
+  "python tools/camera_lidar_check_gif.py run --bag <bag> --work-dir <dir>",
+  "python tools/camera_lidar_check_gif.py render --drive-dir <KITTI drive 0005>"
+ ],
+ "git_commit": "0a7908c0511d6d2a2f6f43378b57dcdf756f2fcc",
+ "output": "docs/assets/calibrex-check-camera-lidar.gif",
+ "overlay": {
+  "crop_px": [
+   150,
+   40,
+   1100,
+   330
+  ],
+  "image_index": 60,
+  "kitti_input_sha256": {
+   "0000000060.bin": "0b11899261209e678a4599335ae6b8446c4e5c7c3101ae474b90b808ba779ad0",
+   "0000000060.png": "66f9fc93c8b759461c529a729f5f12e4ebc66a21e3af10d86cd22ad6f4dfe7ad",
+   "calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+   "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+   "calib_velo_to_cam.txt": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266"
+  },
+  "projection": "pixel = P_rect_02 R(delta) R_rect_00 T_cam<-velo p; frames between the two check runs only slide R(delta)"
+ },
+ "perturbation": "T_cam<-lidar' = R_y(3.0 deg) T_cam<-lidar (camera optical axes)",
+ "run_summary_sha256": {
+  "perturbed.json": "3155be3df947782367b330c8c753d5c702ecd930956a33c6ba46ed0deba0e919",
+  "reference.json": "58fd3adf335f226c5a50583436b9afe2c3d1fdbf9570c4ff829d101922a103da"
+ },
+ "schema": "calibrex.check_camera_lidar_gif/v0"
+}

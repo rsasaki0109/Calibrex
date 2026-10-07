@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Estimate it, check it, watch it drift.</strong><br>
-  The sensor calibration of your robot, from ROS 2 bags, with honest per-axis verdicts for
+  The sensor calibration of your robot, from ROS 2 and ROS 1 bags, with honest per-axis verdicts for
   LiDAR, IMU, camera, GNSS, and vehicle.
 </p>
 
@@ -41,13 +41,58 @@ calibrex drift day1/ day2/ day3/ --output drift/ --html drift.html # 3. did it c
 | 2 | `calibrex check <bag2> --tf frames.yaml` | `pass` / `warn` / `fail` / `inconclusive` per axis, the axes it could not judge, the error the data could have detected, next steps, progress while it runs; `--html` report. Without `--tf` it reads the bag's `/tf_static` |
 | 3 | `calibrex drift <bag1> <bag2> ...` | per axis `stable` / `drift` / `inconclusive` across recordings of one rig; the deviating bag and the size of the change |
 
-`check`, `estimate` and `drift` read rosbag2 (sqlite3 `.db3`), ROS 2 MCAP (zstd/lz4 chunks) and ROS 1 `.bag` (bz2/lz4 chunks) directly, detected from the file.
+### What it covers
+
+| Pair | `check` judges | `estimate` / `drift` |
+|---|---|---|
+| IMU ↔ LiDAR | rotation, clock offset, lever arm when observed | yes |
+| camera ↔ IMU | rotation, clock offset (needs intrinsics) | yes |
+| **camera ↔ LiDAR** | **rotation only**, targetless edge alignment; translation is never judged | needs a rough `--tf` prior; rotation only |
+| LiDAR ↔ LiDAR | rotation and translation | needs a rough `--tf` prior |
+| GNSS ↔ LiDAR, GNSS ↔ IMU | antenna lever arm | yes |
+| LiDAR / IMU / INS / wheels ↔ vehicle | the rotation axes the motion excites (roll is unobservable on planar driving); opt-in with `--vehicle-frame` | yes |
+| camera focal length | deployed focal lengths | `check` only |
+
+Every row reports per axis whether the data could judge it. camera-LiDAR is development evidence,
+not a claim: on KITTI and Hilti recordings the unmodified reference never warned or failed and 23 of
+27 perturbed candidates were flagged ([results](docs/benchmarks/camera_lidar_check.md)).
+
+### Your bag format
+
+`check`, `estimate` and `drift` read the bag as it is, with no conversion and no ROS installation;
+the format is detected from the file:
+
+| Your bag | Notes |
+|---|---|
+| rosbag2 directory or `.db3` (sqlite3) | per-message `zstd` / `lz4` needs `calibrex[rosbag2-compression]` |
+| ROS 2 MCAP (`.mcap`) | chunks `none`, `zstd` or `lz4` |
+| ROS 1 `.bag` | chunks `none`, `bz2` or `lz4` (`calibrex[rosbag1-lz4]` for `lz4`) |
+
+`calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the
+others are skipped, without running an estimator. Vehicle pairs are opt-in with
+`--vehicle-frame base_link`. Details: [supported input formats](docs/tutorials/calibrex_check.md#supported-input-formats).
+
+> The ROS 1 and MCAP-lz4 readers, camera-LiDAR, the Autoware Velodyne decoder and the faster first
+> runs are on `main` and arrive with the release after v0.5.1. To use them now, install from the
+> repository: `python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
+
+**Autoware bags.** Autoware's all-sensors sample records raw `velodyne_msgs/VelodyneScan` packets
+and, as a point cloud, only one concatenated cloud in `base_link`. Calibrex decodes the packets
+(VLP-16 and VLP-32C, single return) with `tools/velodyne_scan_to_pointcloud2.py` (in the repository), which writes a
+derived bag with one `PointCloud2` per sensor, and reads `autoware_auto_vehicle_msgs/VelocityReport`
+as wheel speed. On that bag (36.5 s, a straight drive) `lidar-lidar` gives a real `pass` for the
+deployed `/tf_static` and `fail` for +1 / +3 deg and +5 cm perturbations; the IMU and GNSS pairs
+stay `inconclusive` because a straight drive excites no rotation, and the output says how much
+recording and turning would. See [the Autoware section](docs/tutorials/calibrex_check.md#autoware-all-sensors-bag1).
 
 **In your browser, no install:** the
 [bag check page](https://rsasaki0109.github.io/Calibrex/app/check.html) runs `calibrex check` and
 `calibrex estimate` on your own rosbag2 (plan which pairs can be checked, then run them, with
 progress, verdicts and `frames.yaml` downloads). Multi-GB bags are read lazily; it runs locally under
-Pyodide, so no data is uploaded. The
+Pyodide, so no data is uploaded. It was compared with the command line on real bags (KITTI, Koide,
+NTU VIRAL, RTK-SLAM, Hilti; 30-70 s slices, bags up to 22 GB): same verdicts, numbers equal to 1e-6
+or better, except the camera pairs, whose estimates differ within one to two sigma because Pyodide
+ships an older OpenCV. The page also takes `--topic-kind` and `--camera`. The
 [browser calibration page](https://rsasaki0109.github.io/Calibrex/app/) calibrates an IMU against a
 sensor trajectory (TUM): rotation, clock offset, gyro bias, and lever arm, with held-out evidence.
 
@@ -96,6 +141,18 @@ calibration, evidence and CI, and the rest.
     <code>calibrex check</code> verdict at each step.</sub></td>
   </tr>
 </table>
+
+<p align="center">
+  <img alt="calibrex check --pairs camera-lidar on KITTI drive 0005: the LiDAR points projected through the vendor camera-LiDAR calibration land on the cyclist and the bollards and the pair passes; turning the camera tf 3 degrees about its y axis shifts them off the objects and the pair fails on pitch (3.00 degrees against a 0.50 degree tolerance); x y z are never judged" src="docs/assets/calibrex-check-camera-lidar.gif" width="100%">
+</p>
+
+<p align="center">
+  <sub><b>Camera ↔ LiDAR, rotation only</b> (KITTI development drive 0005). Two real
+  <code>calibrex check --pairs camera-lidar</code> runs: the vendor calibration <b>passes</b>
+  (roll and pitch judged), the same calibration turned +3° about the camera y axis <b>fails</b>
+  (pitch 3.00° against 0.50°). The frames in between only slide the overlay; they are not check
+  results.</sub>
+</p>
 
 <p align="center"><sub>Every frame is rendered from a real recording by Calibrex's own code; generators, input digests and licenses are in <a href="docs/assets/readme-data-gifs.json"><code>readme-data-gifs.json</code></a>.</sub></p>
 
@@ -170,8 +227,8 @@ frames it writes `frames.yaml` (loads directly with `--tf`), ROS 2
 observe is **never** written as if measured: it is written only when a rough `--tf` prior
 supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted and listed
 under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a
-rough lever arm from `--tf`; lidar-lidar registration also starts from a `--tf` prior, and
-camera-IMU needs the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
+rough lever arm from `--tf`; lidar-lidar registration and camera-lidar edge alignment (rotation only) also start from a `--tf` prior, and
+camera-IMU and camera-LiDAR need the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
 
 Real-data results, with the splits, exact commands and the failures (Hilti camera-IMU, Koide
 imu-lidar, KITTI vehicle pairs, RTK-SLAM GNSS pairs):
