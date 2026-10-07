@@ -15,6 +15,59 @@
 </p>
 
 <p align="center">
+  <img alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error in the deployed LiDAR transform the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes" src="docs/assets/calibrex-check-story.gif" width="100%">
+</p>
+
+<p align="center">
+  <sub>Real <code>calibrex check</code> runs on KITTI development drives: a deployed
+  LiDAR transform with a 3° yaw error <b>fails</b>; restoring the calibration file and
+  re-checking <b>passes</b> (pitch and yaw judged; roll is not observable from driving).</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img alt="Two Ouster LiDARs on NTU VIRAL: the second LiDAR's scans move from a perturbed extrinsic to the calibrex estimate and snap onto the first LiDAR's map; the median point-to-plane residual drops from 19.1 cm to 4.4 cm" src="docs/assets/lidar-lidar-snap.gif" width="100%"></td>
+    <td width="50%"><img alt="A hand-held Livox MID360 sweep at 180 deg/s: the raw 0.1 s sweep is bent by the rotation, and gyro deskewing with the calibrex IMU-LiDAR estimate straightens the ground and the poles" src="docs/assets/mid360-deskew.gif" width="100%"></td>
+  </tr>
+  <tr>
+    <td><sub><b>LiDAR ↔ LiDAR snaps into focus</b> (NTU VIRAL tnp_01). From a
+    labelled perturbed start to the <code>calibrex lidar-lidar</code> estimate;
+    median point-to-plane residual 19.1 → 4.4 cm (the design value gives 4.6 cm).</sub></td>
+    <td><sub><b>Gyro deskew</b> (RTK-SLAM, hand-held MID360). The fastest sweep of
+    the run, 180 deg/s: raw vs deskewed with Calibrex's own IMU-LiDAR estimate;
+    local surface thickness 3.42 → 2.19 cm.</sub></td>
+  </tr>
+  <tr>
+    <td><img alt="Hilti 2022 exp21: gyro rates rotated into the camera frame and camera rates from tracked features start misaligned and lock together as rotation, time offset and gyro bias move to the calibrex estimate; the final frame compares with Kalibr" src="docs/assets/camera-imu-lock.gif" width="100%"></td>
+    <td><img alt="The KITTI rig frame tree from /tf_static: the velo_link axes rotate with the injected yaw (drawn eight times larger) and turn red as calibrex check fails lidar-vehicle" src="docs/assets/calibrex-check-rig.gif" width="100%"></td>
+  </tr>
+  <tr>
+    <td><sub><b>Camera ↔ IMU curves lock together</b> (Hilti 2022 exp21, development
+    data). Rate RMSE 15.8 → 6.2 deg/s (the floor is camera-rate noise); the
+    estimate is 0.45° and −0.21 ms from Kalibr's target-based calibration.</sub></td>
+    <td><sub><b>The rig under an injected yaw error</b> (KITTI <code>/tf_static</code>).
+    Rotation drawn ×8 for visibility; colours follow the real
+    <code>calibrex check</code> verdict at each step.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img alt="calibrex check --pairs camera-lidar on KITTI drive 0005: the LiDAR points projected through the vendor camera-LiDAR calibration land on the cyclist and the bollards and the pair passes; turning the camera tf 3 degrees about its y axis shifts them off the objects and the pair fails on pitch (3.00 degrees against a 0.50 degree tolerance); x y z are never judged" src="docs/assets/calibrex-check-camera-lidar.gif" width="100%">
+</p>
+
+<p align="center">
+  <sub><b>Camera ↔ LiDAR, rotation only</b> (KITTI development drive 0005). Two real
+  <code>calibrex check --pairs camera-lidar</code> runs: the vendor calibration <b>passes</b>
+  (roll and pitch judged), the same calibration turned +3° about the camera y axis <b>fails</b>
+  (pitch 3.00° against 0.50°). The frames in between only slide the overlay; they are not check
+  results.</sub>
+</p>
+
+<p align="center"><sub>Every frame is rendered from a real recording by Calibrex's own code; generators, input digests and licenses are in <a href="docs/assets/readme-data-gifs.json"><code>readme-data-gifs.json</code></a>.</sub></p>
+
+## The workflow
+
+<p align="center">
   <img alt="Terminal recording: calibrex estimate on a bag with no calibration (roll, pitch and yaw observed, the lever arm marked NOT MEASURED), calibrex check of the exported frames.yaml on another recording (pass on the three judged axes, x y z unchecked), and calibrex drift over three recordings flagging the one whose IMU was remounted" src="docs/assets/calibrex-workflow.gif" width="100%">
 </p>
 
@@ -24,8 +77,6 @@
   third recording is a copy with its IMU rotated 2° about z.
   <a href="docs/tutorials/workflow.md">The full walkthrough</a>.</sub>
 </p>
-
-## The workflow
 
 ```bash
 python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
@@ -102,59 +153,6 @@ of the same motion would reach the bound; see
 [what makes a lever arm observable](docs/concepts/translation_observability.md). `calibrex --help`
 groups the commands: **Start here** (`check`, `estimate`, `drift`, `doctor`, `demo`, ...), per-pair
 calibration, evidence and CI, and the rest.
-
-### Catching a bad calibration
-
-<p align="center">
-  <img alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error in the deployed LiDAR transform the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes" src="docs/assets/calibrex-check-story.gif" width="100%">
-</p>
-
-<p align="center">
-  <sub>Real <code>calibrex check</code> runs on KITTI development drives: a deployed
-  LiDAR transform with a 3° yaw error <b>fails</b>; restoring the calibration file and
-  re-checking <b>passes</b> (pitch and yaw judged; roll is not observable from driving).</sub>
-</p>
-
-<table>
-  <tr>
-    <td width="50%"><img alt="Two Ouster LiDARs on NTU VIRAL: the second LiDAR's scans move from a perturbed extrinsic to the calibrex estimate and snap onto the first LiDAR's map; the median point-to-plane residual drops from 19.1 cm to 4.4 cm" src="docs/assets/lidar-lidar-snap.gif" width="100%"></td>
-    <td width="50%"><img alt="A hand-held Livox MID360 sweep at 180 deg/s: the raw 0.1 s sweep is bent by the rotation, and gyro deskewing with the calibrex IMU-LiDAR estimate straightens the ground and the poles" src="docs/assets/mid360-deskew.gif" width="100%"></td>
-  </tr>
-  <tr>
-    <td><sub><b>LiDAR ↔ LiDAR snaps into focus</b> (NTU VIRAL tnp_01). From a
-    labelled perturbed start to the <code>calibrex lidar-lidar</code> estimate;
-    median point-to-plane residual 19.1 → 4.4 cm (the design value gives 4.6 cm).</sub></td>
-    <td><sub><b>Gyro deskew</b> (RTK-SLAM, hand-held MID360). The fastest sweep of
-    the run, 180 deg/s: raw vs deskewed with Calibrex's own IMU-LiDAR estimate;
-    local surface thickness 3.42 → 2.19 cm.</sub></td>
-  </tr>
-  <tr>
-    <td><img alt="Hilti 2022 exp21: gyro rates rotated into the camera frame and camera rates from tracked features start misaligned and lock together as rotation, time offset and gyro bias move to the calibrex estimate; the final frame compares with Kalibr" src="docs/assets/camera-imu-lock.gif" width="100%"></td>
-    <td><img alt="The KITTI rig frame tree from /tf_static: the velo_link axes rotate with the injected yaw (drawn eight times larger) and turn red as calibrex check fails lidar-vehicle" src="docs/assets/calibrex-check-rig.gif" width="100%"></td>
-  </tr>
-  <tr>
-    <td><sub><b>Camera ↔ IMU curves lock together</b> (Hilti 2022 exp21, development
-    data). Rate RMSE 15.8 → 6.2 deg/s (the floor is camera-rate noise); the
-    estimate is 0.45° and −0.21 ms from Kalibr's target-based calibration.</sub></td>
-    <td><sub><b>The rig under an injected yaw error</b> (KITTI <code>/tf_static</code>).
-    Rotation drawn ×8 for visibility; colours follow the real
-    <code>calibrex check</code> verdict at each step.</sub></td>
-  </tr>
-</table>
-
-<p align="center">
-  <img alt="calibrex check --pairs camera-lidar on KITTI drive 0005: the LiDAR points projected through the vendor camera-LiDAR calibration land on the cyclist and the bollards and the pair passes; turning the camera tf 3 degrees about its y axis shifts them off the objects and the pair fails on pitch (3.00 degrees against a 0.50 degree tolerance); x y z are never judged" src="docs/assets/calibrex-check-camera-lidar.gif" width="100%">
-</p>
-
-<p align="center">
-  <sub><b>Camera ↔ LiDAR, rotation only</b> (KITTI development drive 0005). Two real
-  <code>calibrex check --pairs camera-lidar</code> runs: the vendor calibration <b>passes</b>
-  (roll and pitch judged), the same calibration turned +3° about the camera y axis <b>fails</b>
-  (pitch 3.00° against 0.50°). The frames in between only slide the overlay; they are not check
-  results.</sub>
-</p>
-
-<p align="center"><sub>Every frame is rendered from a real recording by Calibrex's own code; generators, input digests and licenses are in <a href="docs/assets/readme-data-gifs.json"><code>readme-data-gifs.json</code></a>.</sub></p>
 
 <table>
   <tr>
@@ -253,7 +251,6 @@ vehicle frame) are opt-in with `--vehicle-frame base_link`.
 <p align="center">
   <img alt="calibrex check on pooled KITTI development drives: the vendor tf is inconclusive, a +1 degree yaw error injected into velo_link makes lidar-vehicle and lidar-wheel_odometry fail (yaw 1.31 deg against a 0.5 deg tolerance)" src="docs/assets/readme-check-hero.svg" width="900">
 </p>
-
 
 <p align="center">
   <img alt="A yaw error swept from -3 to +3 degrees into the deployed velo_link transform with the real calibrex check verdict at each step" src="docs/assets/calibrex-check-yaw-sweep.gif" width="100%">
