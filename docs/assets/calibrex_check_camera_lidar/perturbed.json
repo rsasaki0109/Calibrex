@@ -1,0 +1,54 @@
+{
+ "axes": {
+  "pitch": {
+   "candidate_error_deg": 3.0,
+   "estimate_std_deg": 0.0833,
+   "ratio": 6.0,
+   "status": "fail",
+   "tolerance_deg": 0.5
+  },
+  "roll": {
+   "candidate_error_deg": -0.0,
+   "estimate_std_deg": 0.294,
+   "ratio": 0.0,
+   "status": "pass",
+   "tolerance_deg": 0.8821
+  }
+ },
+ "bag_input_sha256": "96d3d6ea24dc4d263937ee1e8f0bc23b706161d18ef2af772f7ae11b50d2eff6",
+ "command": [
+  "calibrex",
+  "check",
+  ".../x",
+  "--pairs",
+  "camera-lidar",
+  "--cache-dir",
+  ".../x",
+  "--tf",
+  ".../x",
+  "--output",
+  ".../x",
+  "--fail-on",
+  "never"
+ ],
+ "coverage": "partial",
+ "created_at": "2026-10-07T03:02:53.737210+00:00",
+ "generator_version": "0.5.1",
+ "git_commit": "0a7908c",
+ "notes": [
+  "intrinsics: CameraInfo /camera/camera_info",
+  "16 frame(s), 15343 LiDAR edge points; the camera frame must be the optical frame (z forward)",
+  "edge-alignment objective 0.5754 at the candidate, 0.5992 at the estimate"
+ ],
+ "overall_verdict": "fail",
+ "perturbation_axis": "camera optical y",
+ "perturbation_deg": 3.0,
+ "schema": "calibrex.check_camera_lidar_run/v0",
+ "status": "fail",
+ "unchecked": [
+  "yaw",
+  "x",
+  "y",
+  "z"
+ ]
+}

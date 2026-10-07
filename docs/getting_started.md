@@ -16,8 +16,8 @@ python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download
 
 ## Check a recording
 
-Point `calibrex check` at a ROS 2 bag that records `/tf_static` and the sensor
-topics. It reads the deployed transforms, checks every sensor pair it can find,
+Point `calibrex check` at a bag that records `/tf_static` and the sensor
+topics (see [your bag format](#your-bag-format)). It reads the deployed transforms, checks every sensor pair it can find,
 and writes a self-contained HTML report.
 
 ```bash
@@ -27,6 +27,20 @@ calibrex check my_bag/ --html check.html
 Each pair gets a per-axis verdict. A `pass` covers only the axes the data can
 judge: pairs with partial coverage name the axes they could not check, and a
 pair the data cannot judge reads `inconclusive` rather than `pass`.
+
+## Your bag format
+
+The bag is read as it is, with no conversion and no ROS installation; the format is detected from
+the file: rosbag2 (`.db3`), ROS 2 MCAP (chunks `none`, `zstd`, `lz4`) and ROS 1 `.bag` (chunks
+`none`, `bz2`, `lz4`). `calibrex check my_bag/ --plan` shows which sensor pairs the bag can be
+checked for without running an estimator ([details](tutorials/calibrex_check.md#supported-input-formats)).
+The ROS 1 and MCAP-lz4 readers, camera-LiDAR (rotation only) and the Autoware Velodyne decoder are on
+`main` and ship with the release after v0.5.1; to use them now, install from the repository:
+`python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
+
+**Autoware bags** record raw Velodyne packets; `tools/velodyne_scan_to_pointcloud2.py` (in the repository) writes a
+derived bag with one point cloud per sensor, after which `lidar-lidar` gives real verdicts
+([the Autoware section](tutorials/calibrex_check.md#autoware-all-sensors-bag1)).
 
 ## No calibration yet?
 

@@ -1,8 +1,8 @@
 # The workflow: estimate, check, drift
 
 Calibrex answers three questions about the sensor calibration of a robot, one command
-each. They chain, and every step reads ROS 2 bags (rosbag2: `.db3` or `.mcap`) with no ROS
-installation.
+each. They chain, and every step reads your bag as it is (rosbag2 `.db3`, ROS 2 `.mcap`, ROS 1
+`.bag`; see [your bag format](#your-bag-format)) with no ROS installation.
 
 | You have | Ask | Command | You get |
 |---|---|---|---|
@@ -239,6 +239,46 @@ browser](calibrex_check.md#plan-and-run-a-bag-in-the-browser). The [browser cali
 page](browser_calibration.md) is the separate, smaller tool that calibrates an IMU against a
 trajectory you already have.
 
+## Your bag format
+
+The three commands detect the format from the file and read it directly, with no conversion:
+
+| Your bag | Notes |
+|---|---|
+| rosbag2 directory or `.db3` (sqlite3) | per-message `zstd` / `lz4` needs `calibrex[rosbag2-compression]` |
+| ROS 2 MCAP (`.mcap`) | chunks `none`, `zstd` or `lz4` |
+| ROS 1 `.bag` | chunks `none`, `bz2` or `lz4` (`calibrex[rosbag1-lz4]` for `lz4`) |
+
+`calibrex check my_bag/ --plan` lists which sensor pairs the bag can be checked for and why the
+others are skipped, without running an estimator. The details are in [supported input
+formats](calibrex_check.md#supported-input-formats). The ROS 1 and MCAP-lz4 readers are on `main`
+and ship with the release after v0.5.1; the `0.5.1` wheel used above reads rosbag2 `.db3` and `.mcap`
+(`lz4` MCAP chunks and ROS 1 bags need `main`).
+
+**Which pairs.** Besides the IMU-LiDAR run above, the same commands cover camera-IMU, LiDAR-LiDAR,
+the GNSS pairs, the ground-vehicle pairs and, newly, **camera-LiDAR**. camera-LiDAR is
+targetless edge alignment and judges **rotation only**: translation is never judged (its estimate
+was up to 11 cm off with a 1-2 cm std). `estimate` and `drift` take it with a rough `--tf` prior;
+the evidence is in the [camera-LiDAR results](../benchmarks/camera_lidar_check.md).
+
+<p align="center">
+  <img alt="calibrex check --pairs camera-lidar on KITTI drive 0005: the vendor calibration passes (roll and pitch judged); the same calibration turned 3 degrees about the camera y axis fails on pitch (3.00 degrees against 0.50)" src="../assets/calibrex-check-camera-lidar.gif" width="100%">
+</p>
+
+## Autoware bags
+
+Autoware's all-sensors sample bag stores raw `velodyne_msgs/VelodyneScan` packets and one
+concatenated cloud in `base_link`, so there is no per-sensor cloud to register. Calibrex decodes
+the packets (VLP-16 and VLP-32C, single return) and
+`tools/velodyne_scan_to_pointcloud2.py` (in the repository) writes a derived bag with one `PointCloud2` per sensor;
+`autoware_auto_vehicle_msgs/VelocityReport` is read as wheel speed and yaw rate. On that bag (36.5 s,
+a straight drive) `lidar-lidar` passes for the deployed `/tf_static` and fails for +1 deg, +3 deg
+and +5 cm perturbations. The IMU and GNSS pairs stay `inconclusive`: a straight drive excites no
+rotation, and the output states the recording length and turning that would. The decoder is checked
+against the bag's own concatenated cloud (median 0.03 cm on the VLP-16, 1.8 to 3.1 cm on the
+VLP-32C); dual-return mode and other models are untested. See
+[the Autoware section](calibrex_check.md#autoware-all-sensors-bag1).
+
 ## Where to go next
 
 | Question | Page |
@@ -257,4 +297,6 @@ bag took 5 min 19 s, `check` of the second bag 5 min 2 s (it estimates that bag,
 `drift` over three bags 4 min 46 s (the first two came from the cache; only `remounted` was new).
 `--cache-dir` is shared by all three commands, so a re-run, or a `check` of a bag that `drift`
 already estimated, costs seconds. The KITTI estimate over the 1268-sweep pooled bag took 5 min 27 s
-and the `check` of drive 0009 1 min 52 s.
+and the `check` of drive 0009 1 min 52 s. These times were measured before the odometry speed-up
+on `main`, which makes uncached first runs 1.25 to 2 times faster with bit-identical results
+(compared artifact by artifact on KITTI, RTK-SLAM and Koide); the cached re-run is unchanged.

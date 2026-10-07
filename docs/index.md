@@ -12,7 +12,7 @@ hide:
 
 # Estimate it, check it, watch it drift.
 
-<p class="cx-sub">Three commands for the sensor calibration of a robot, on ROS 2 bags, with honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle. Calibrex says plainly which axes it measured, which it could not judge, and what to record to fix that.</p>
+<p class="cx-sub">Three commands for the sensor calibration of a robot, on ROS 2 and ROS 1 bags, with honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle. Calibrex says plainly which axes it measured, which it could not judge, and what to record to fix that.</p>
 
 <div class="cx-buttons" markdown="1">
 
@@ -60,7 +60,16 @@ Details and real outputs: [the workflow page](tutorials/workflow.md).
     ---
 
     `calibrex check` reads `/tf_static` (or the `frames.yaml` that `calibrex estimate` wrote) and
-    checks every sensor pair it finds, from LiDAR-vehicle to camera-IMU.
+    checks every sensor pair it finds, from LiDAR-vehicle to camera-IMU. camera-LiDAR is judged
+    on rotation only; translation is never judged.
+
+-   :material-file-multiple-outline: **Reads your bag as it is**
+
+    ---
+
+    rosbag2 (`.db3`), ROS 2 MCAP (zstd/lz4) and ROS 1 `.bag` (bz2/lz4) are detected from the file:
+    no conversion, no ROS install. Autoware's raw Velodyne packets are decoded too
+    ([Autoware note](tutorials/calibrex_check.md#autoware-all-sensors-bag1)).
 
 -   :material-ruler-square: **Honest per-axis verdicts**
 
@@ -75,7 +84,8 @@ Details and real outputs: [the workflow page](tutorials/workflow.md).
 
     Drop a ROS 2 bag on the [bag check page](app/check.html) to plan, run `calibrex check`
     or run `calibrex estimate` under Pyodide, with progress and downloads. Files are read
-    in place and never uploaded.
+    in place and never uploaded. Compared with the command line on real bags of every pair:
+    same verdicts (camera pairs agree within one to two sigma).
 
 -   :material-flag-checkered: **Pre-registered SOTA claims**
 
@@ -104,6 +114,19 @@ Details and real outputs: [the workflow page](tutorials/workflow.md).
 <p class="cx-caption">Real <code>calibrex check</code> runs on KITTI development drives: a deployed LiDAR transform
 with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checking
 <b>passes</b> (pitch and yaw judged; roll is not observable from driving).</p>
+
+</div>
+
+<div class="cx-section" markdown="1">
+
+## Camera ↔ LiDAR, rotation only
+
+<div class="cx-visual"><img src="assets/calibrex-check-camera-lidar.gif" alt="calibrex check --pairs camera-lidar on KITTI drive 0005: LiDAR points projected through the vendor calibration land on the cyclist and bollards and the pair passes; turned 3 degrees about the camera y axis they miss and the pair fails on pitch" loading="lazy"></div>
+
+<p class="cx-caption">Two real <code>calibrex check --pairs camera-lidar</code> runs on KITTI development drive 0005:
+the vendor calibration <b>passes</b> (roll and pitch judged); the same calibration turned +3° about the
+camera y axis <b>fails</b> (pitch 3.00° against 0.50°). The frames in between only slide the overlay.
+Translation is not judged; <a href="benchmarks/camera_lidar_check.md">results and limits</a>.</p>
 
 </div>
 
@@ -156,6 +179,10 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 <div class="cx-section" markdown="1">
 
 ## Quickstart
+
+The ROS 1 and MCAP-lz4 readers, camera-LiDAR and the Autoware decoder are on `main` and ship with
+the release after v0.5.1. To use them now, install from the repository:
+`python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
 
 ```bash
 python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"

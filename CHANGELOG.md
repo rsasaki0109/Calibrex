@@ -183,6 +183,13 @@
     read-only file system); a bag that opens today is opened exactly as before.
   - The bag input digest is hashed in 8 MiB chunks (same digest, bounded memory).
   - `encode_image` and `encode_camera_info` in `calibrex.data.ros_cdr_writer`.
+- **Docs refresh.** README, landing page, workflow page and Install page now cover ROS 1 `.bag` and
+  MCAP input ("Your bag format"), camera-LiDAR (rotation only), the Autoware Velodyne note, the
+  browser verification status and the faster first runs, and say that these are on `main` and not
+  in the v0.5.1 wheel. New README GIF `docs/assets/calibrex-check-camera-lidar.gif` (two real
+  `calibrex check --pairs camera-lidar` runs on KITTI development drive 0005: the vendor
+  calibration passes, the same calibration turned +3 deg about the camera y axis fails), rendered
+  by `tools/camera_lidar_check_gif.py` and registered in `docs/assets/readme-data-gifs.json`.
 
 ## 0.5.1 - 2026-10-02
 
