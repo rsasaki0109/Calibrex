@@ -23,6 +23,7 @@ from calibrex.solvers.borer_depth_to_depth_solver import (
     _empty_projection,
     _rotation_matrix,
 )
+from calibrex.solvers.depth_to_depth_runtime import DEFAULT_CUDA_CACHE_BYTES
 
 CUDA_DEPTH_PAIR_PROJECTOR_VERSION: Final = "calibrex.cuda_depth_pair_projector/v0.2"
 _THREADS: Final = 256
@@ -181,7 +182,7 @@ class CudaDepthPairProjector:
         self,
         observations: Sequence[DepthToDepthObservation] = (),
         *,
-        cache_bytes: int = 256 * 1024 * 1024,
+        cache_bytes: int = DEFAULT_CUDA_CACHE_BYTES,
     ) -> None:
         if cache_bytes < 0:
             raise ValueError("cache_bytes must be non-negative")
@@ -203,25 +204,60 @@ class CudaDepthPairProjector:
                 f"cuda projection requires a working CuPy/CUDA runtime and CUDA toolkit: {exc}"
             ) from exc
         self._prepared: dict[int, tuple[DepthToDepthObservation, _DeviceObservation]] = {}
+        self.cache_budget_bytes = cache_bytes
         self.cached_input_bytes: int = 0
-        for observation in observations:
-            if id(observation) in self._prepared:
-                continue
-            size = (
-                observation.lidar_points.nbytes
-                + observation.depth_map.nbytes
-                + observation.lidar_range_m.nbytes
-            )
-            if self.cached_input_bytes + size <= cache_bytes:
-                self._prepared[id(observation)] = (observation, self._upload(observation))
-                self.cached_input_bytes += size
+        self._input_upload_calls = 0
+        self._input_upload_bytes = 0
+        try:
+            for observation in observations:
+                if id(observation) in self._prepared:
+                    continue
+                size = (
+                    observation.lidar_points.nbytes
+                    + observation.depth_map.nbytes
+                    + observation.lidar_range_m.nbytes
+                )
+                if self.cached_input_bytes + size <= cache_bytes:
+                    self._prepared[id(observation)] = (observation, self._upload(observation))
+                    self.cached_input_bytes += size
+        except cp.cuda.memory.OutOfMemoryError as exc:
+            raise ValueError(
+                "CUDA input cache allocation failed; lower --cuda-cache-mib "
+                "(0 disables caching) and leave room for projection scratch buffers"
+            ) from exc
+        self._preparation_upload_calls = self._input_upload_calls
+        self._preparation_upload_bytes = self._input_upload_bytes
 
     def _upload(self, observation: DepthToDepthObservation) -> _DeviceObservation:
-        return _DeviceObservation(
+        inputs = _DeviceObservation(
             cp.asarray(np.ascontiguousarray(observation.lidar_points, dtype=np.float64)),
             cp.asarray(np.ascontiguousarray(observation.depth_map, dtype=np.float64)),
             cp.asarray(np.ascontiguousarray(observation.lidar_range_m, dtype=np.float64)),
         )
+        self._input_upload_calls += 1
+        self._input_upload_bytes += int(
+            inputs.points.nbytes + inputs.depth.nbytes + inputs.lidar_range.nbytes
+        )
+        return inputs
+
+    def transfer_statistics(self) -> dict[str, int]:
+        """Snapshot successful uploads of coordinates, depth maps and LiDAR ranges.
+
+        Counters exclude the small pose, histogram edges and returned histogram.
+        They add no device synchronizations to the normal evaluation path.
+        """
+
+        return {
+            "cache_budget_bytes": self.cache_budget_bytes,
+            "cached_input_bytes": self.cached_input_bytes,
+            "prepared_observation_count": len(self._prepared),
+            "preparation_input_upload_calls": self._preparation_upload_calls,
+            "preparation_input_upload_bytes": self._preparation_upload_bytes,
+            "evaluation_input_upload_calls": self._input_upload_calls
+            - self._preparation_upload_calls,
+            "evaluation_input_upload_bytes": self._input_upload_bytes
+            - self._preparation_upload_bytes,
+        }
 
     def identity(self) -> str:
         """Return dependency, device and numerical-policy provenance."""
@@ -230,7 +266,7 @@ class CudaDepthPairProjector:
             properties = cp.cuda.runtime.getDeviceProperties(self._device.id)
             name = properties["name"].decode("utf-8")
             nvrtc_major, nvrtc_minor = cp.cuda.nvrtc.getVersion()
-            return (
+            identity = (
                 f"{CUDA_DEPTH_PAIR_PROJECTOR_VERSION};cupy={cp.__version__}"
                 f";numpy={np.__version__};cuda_runtime={cp.cuda.runtime.runtimeGetVersion()}"
                 f";cuda_driver={cp.cuda.runtime.driverGetVersion()};device={name}"
@@ -238,6 +274,11 @@ class CudaDepthPairProjector:
                 f";nvrtc={nvrtc_major}.{nvrtc_minor}"
                 f";kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};fp64;fmad=false"
             )
+            # Keep existing default-budget traces resumable; explicit changes in
+            # performance configuration must have a distinct runtime identity.
+            if self.cache_budget_bytes != DEFAULT_CUDA_CACHE_BYTES:
+                identity += f";cache_bytes={self.cache_budget_bytes}"
+            return identity
 
     def __call__(
         self,

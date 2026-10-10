@@ -27,6 +27,7 @@ from calibrex.evaluation.borer_six_dof_benchmark import (
     _trace_solver_identity,
     _validated_trace,
 )
+from calibrex.solvers.depth_to_depth_runtime import validate_cuda_cache_bytes
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -46,6 +47,7 @@ def _parser() -> argparse.ArgumentParser:
         choices=("numpy", "numba_cpu", "cuda"),
         default="numpy",
     )
+    parser.add_argument("--cuda-cache-mib", type=int)
     return parser
 
 
@@ -57,9 +59,11 @@ def run_chunk(
     start: int,
     stop: int,
     projection_backend: ProjectionBackend = "numpy",
+    cuda_cache_bytes: int | None = None,
 ) -> None:
     """Execute ``[start, stop)`` from the full frozen protocol."""
 
+    validate_cuda_cache_bytes(projection_backend, cuda_cache_bytes)
     loaded = load_borer_problem(problem_path)
     protocol = load_camera_lidar_benchmark_protocol(protocol_path)
     protocol_digest = _required_digest(protocol_path)
@@ -79,6 +83,7 @@ def run_chunk(
         protocol,
         projection_backend=projection_backend,
         observations=loaded.observations,
+        cuda_cache_bytes=cuda_cache_bytes,
     )
     expected_solver = _trace_solver_identity(options.projection_backend)
     command = " ".join([sys.executable, *sys.argv])
@@ -132,6 +137,9 @@ def main() -> None:
         start=args.start,
         stop=args.stop,
         projection_backend=cast(ProjectionBackend, args.projection_backend),
+        cuda_cache_bytes=(
+            args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
+        ),
     )
 
 

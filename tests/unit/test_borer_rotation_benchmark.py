@@ -690,6 +690,10 @@ def test_cuda_cli_benchmark_records_backend_and_rejects_mixed_resume(tmp_path: P
         "--projection-backend", "cuda", "--resume", "--json",
     ]
     assert main(args) == 0
+    # Cache capacity is performance provenance; changed budgets cannot reuse
+    # the earlier timing records, while an explicit default remains compatible.
+    assert main([*args, "--cuda-cache-mib", "256"]) == 0
+    assert main([*args, "--cuda-cache-mib", "0"]) == 2
     trace = load_calibration_candidate_trace(next(trace_dir.glob("*.trace.yaml")))
     assert ";projection_backend=calibrex.cuda_depth_pair_projector/v0.2;cupy=" in trace.solver
     assert ";device=" in trace.solver
@@ -701,6 +705,51 @@ def test_cuda_cli_benchmark_records_backend_and_rejects_mixed_resume(tmp_path: P
             problem_path, protocol_path, trace_directory=trace_dir, command="fixture",
             projection_backend="numpy", resume=True, bootstrap_samples=10,
         )
+
+
+@pytest.mark.parametrize("extra", [
+    ["--cuda-cache-mib", "0"],
+    ["--projection-backend", "cuda", "--cuda-cache-mib", "-1"],
+])
+def test_single_estimate_rejects_cache_flags_before_loading_inputs(
+    tmp_path: Path, extra: list[str], capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "rejected.yaml"
+    assert main([*_estimate_args(tmp_path / "missing.yaml", output), *extra]) == 2
+    assert not output.exists()
+    error = capsys.readouterr().err
+    assert "CUDA cache settings" in error or "non-negative" in error
+
+
+def test_single_estimate_cuda_budget_is_applied_and_recorded(tmp_path: Path) -> None:
+    from calibrex.core.result import load_result
+
+    cp = pytest.importorskip("cupy")
+    try:
+        if cp.cuda.runtime.getDeviceCount() < 1:
+            pytest.skip("requires a CUDA device")
+    except cp.cuda.runtime.CUDARuntimeError:
+        pytest.skip("requires a CUDA device")
+    path = _write_problem(tmp_path)
+    results = []
+    for budget_mib in (0, 1):
+        output = tmp_path / f"cache-{budget_mib}.yaml"
+        assert main([
+            *_estimate_args(path, output), "--projection-backend", "cuda",
+            "--cuda-cache-mib", str(budget_mib),
+        ]) == 0
+        result = load_result(output)
+        assert validate_file(output, kind="result").valid
+        statistics = result.run.provenance["projection_transfer_statistics"]
+        assert statistics["cache_budget_bytes"] == budget_mib * 1024 * 1024
+        assert statistics["prepared_observation_count"] == budget_mib
+        assert statistics["evaluation_input_upload_calls"] == (0 if budget_mib else 13)
+        identity = result.run.provenance["projection_backend"]
+        assert f";cache_bytes={budget_mib * 1024 * 1024}" in identity
+        trace = dict(result.run.provenance["solver_result"])
+        trace.pop("projection_backend")
+        results.append((result.transforms, result.metrics, trace))
+    assert results[0] == results[1]
 
 
 def test_borer_rotation_benchmark_retains_trials_and_traces(

@@ -124,14 +124,37 @@ rightmost edge. Only the histogram and two denominators return to the CPU;
 entropy, MI arithmetic and optimization use the original NumPy definitions.
 The projector's direct call still returns full feature arrays for inspection.
 
-Coordinates, depth maps and original LiDAR ranges are prepared once for the
-benchmark, with at most 256 MiB of cached input arrays. Larger inputs are
-transferred per call. Scratch arrays and
+Coordinates, depth maps and original LiDAR ranges are prepared once, with a
+default 256 MiB input-cache capacity. Frames that do not fit are transferred per
+call. `--cuda-cache-mib N` changes this capacity for `estimate-six-dof`,
+`benchmark-six-dof`, the chunk runner and the timing tool; `0` disables caching.
+The setting requires the CUDA backend. For larger inputs that fit your GPU,
+for example:
+
+```bash
+calibrex camera-lidar estimate-six-dof problem-integrated.yaml \
+  --projection-backend cuda --cuda-cache-mib 2048 \
+  --output outputs/d2d-large-result.yaml
+```
+
+Capacity is an upper bound on retained inputs, not a reservation of that amount
+of VRAM. Scratch arrays and
 CuPy's reusable allocation pool are additional memory. Prepared arrays are
 snapshots and must remain unchanged during a run. Direct Python callers can
 construct `CudaDepthPairProjector(observations, cache_bytes=0)` to disable input
 caching, and pass it through `BorerSixDofOptions(projector=..., projection_backend=...)`.
 Use `projector.identity()` for the backend identity.
+
+Non-default capacities are part of the backend identity. A frozen benchmark
+cannot resume traces produced with a different capacity; an explicitly supplied
+`256` retains the existing default identity. An input-cache allocation failure
+reports an error suggesting a smaller capacity.
+`run.provenance.projection_transfer_statistics` in a single-estimation result
+records cache capacity, retained input bytes, prepared frame count and separate
+preparation/evaluation upload counts and bytes. These counters cover point
+coordinates, depth maps and original LiDAR ranges; they exclude the small
+pose/bin-edge uploads and returned histogram. Counters add no GPU
+synchronization to normal evaluation.
 
 GPU/CPU floating-point implementations can differ at extremely close rounding or
 range boundaries. The parity tests cover projection counts, feature arrays,
@@ -172,6 +195,63 @@ Small clouds can run faster on the CPU because CUDA launch and transfer costs
 dominate. Fish-eye models do more FP64 arithmetic, so their improvement depends
 on the GPU's double-precision throughput. Compare with `numba_cpu` as well as
 NumPy when selecting a backend.
+
+### Compare input cache capacities
+
+For a large verified problem, compare the default capacity with a capacity that
+can retain the full input:
+
+```bash
+python tools/benchmark_d2d_projection.py \
+  --problem problem-integrated.yaml --backends numpy cuda \
+  --cuda-cache-mib 256 --compare-cuda-cache-mib 2048 \
+  --repeats 3 --solve-evaluations 13 --solver-repeats 3 \
+  --output-dir outputs/d2d-cache-comparison
+```
+
+The tool rotates NumPy and both CUDA implementations through the same timing
+order, checking every measured feature array, MI record and complete solver
+result/trace against NumPy. Both projectors retain their cached inputs in the
+same process. Reported cached bytes and upload counters belong to each
+projector; allocation-pool/device snapshots include all resident projectors.
+These snapshots are not an isolated per-method VRAM peak. Input transfers and
+synchronization are included in latency; input verification/loading and cache
+preparation are outside the warm timing. Short timing runs with 13 evaluations
+can stop at the evaluation limit and do not establish convergence or accuracy.
+
+Choose capacity with room for scratch allocations and other GPU users. The
+cache comparison itself needs room for both resident input snapshots; use
+separate `--cuda-cache-mib` timing invocations if they do not fit together.
+
+### Large integrated-cloud measurement
+
+On the same GTX 1660 Ti, the existing KITTI raw 0018 problem with scan-integration
+radius 5 contains 33,173,268 points across 25 frames, using frozen FeatDepth
+depth maps and 1226×370 pinhole grids. Its complete prepared inputs occupy
+1,152,268,576 bytes (1098.89 MiB). The paired command above measured three
+repetitions of each 13-evaluation search:
+
+| CUDA input-cache capacity | Retained frames | Retained input bytes | Search median | Range across three repetitions |
+| --- | ---: | ---: | ---: | ---: |
+| 256 MiB (default) | 6 / 25 | 268,045,632 | 2.384 s | 2.184–2.390 s |
+| 2048 MiB | 25 / 25 | 1,152,268,576 | 0.404 s | 0.397–0.451 s |
+
+The larger cache reduced the search median by 5.9× in this measurement. The
+default cache uploaded 884,222,944 input bytes per full candidate evaluation;
+the larger cache uploaded all inputs during preparation and uploaded zero
+large input bytes during evaluation. Small pose/bin-edge uploads and returned
+histograms remain. All measured feature arrays, MI records and complete solver
+results/traces were exactly equal to NumPy, with unchanged FP64 kernels and
+optimizer settings. This short search reaches its evaluation limit and is a
+latency/equivalence check, not a convergence or accuracy result.
+
+The [paired search report](../assets/gpu_acceleration/kitti_raw_cache_six_dof.benchmark.json)
+and [projection/evaluation report](../assets/gpu_acceleration/kitti_raw_cache_projection.benchmark.json)
+retain every timing, preparation/first-call costs, per-projector input-upload
+counters and original input/code digests. NumPy search times varied substantially
+(38.847, 51.829 and 188.774 s), so the cache comparison above uses the two CUDA
+measurements from the same process. Input loading and cache preparation are
+excluded from these search timings; full CLI latency also includes those phases.
 
 ## Measured development workload
 

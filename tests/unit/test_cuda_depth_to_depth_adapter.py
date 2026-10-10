@@ -27,6 +27,7 @@ from calibrex.solvers.cuda_depth_to_depth_adapter import (
     CUDA_DEPTH_PAIR_PROJECTOR_VERSION,
     CudaDepthPairProjector,
 )
+from calibrex.solvers.depth_to_depth_runtime import DEFAULT_CUDA_CACHE_BYTES
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -248,3 +249,97 @@ def test_cuda_six_dof_recovery_trace_matches_numpy() -> None:
     assert ";cupy=" in gpu_result.projection_backend
     assert ";device=" in gpu_result.projection_backend
     assert ";fp64;fmad=false" in gpu_result.projection_backend
+
+
+@pytest.mark.parametrize("cache_frames", [0, 1, 2])
+def test_cuda_cache_budget_counts_actual_input_transfers_and_preserves_results(
+    cache_frames: int, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    camera = DepthToDepthCameraModel(48, 36, 30.0, 30.0, 23.5, 17.5)
+    rng = np.random.default_rng(991)
+    observations = tuple(
+        DepthToDepthObservation(
+            str(index), rng.uniform(1.0, 20.0, (36, 48)),
+            rng.uniform((-4.0, -3.0, 2.0), (4.0, 3.0, 15.0), (1000, 3)), camera,
+        ) for index in range(2)
+    )
+    input_ids = {
+        id(array) for observation in observations
+        for array in (observation.lidar_points, observation.depth_map, observation.lidar_range_m)
+    }
+    copied_sizes = []
+    original_asarray = cp.asarray
+
+    def observe_copies(value: object, *args: object, **kwargs: object) -> object:
+        if id(value) in input_ids and isinstance(value, np.ndarray):
+            copied_sizes.append(value.nbytes)
+        return original_asarray(value, *args, **kwargs)
+
+    monkeypatch.setattr(cp, "asarray", observe_copies)
+    frame_bytes = sum(array.nbytes for array in (
+        observations[0].lidar_points, observations[0].depth_map, observations[0].lidar_range_m,
+    ))
+    cuda = CudaDepthPairProjector(observations, cache_bytes=cache_frames * frame_bytes)
+    before = cuda.transfer_statistics()
+    assert before["prepared_observation_count"] == cache_frames
+    assert before["preparation_input_upload_bytes"] == sum(copied_sizes)
+    assert sum(copied_sizes) == cache_frames * frame_bytes
+    for _ in range(2):
+        assert evaluate_depth_to_depth_mi(observations, SE3.identity(), projector=cuda) == (
+            evaluate_depth_to_depth_mi(observations, SE3.identity())
+        )
+    after = cuda.transfer_statistics()
+    assert after["evaluation_input_upload_calls"] == 2 * (2 - cache_frames)
+    assert after["evaluation_input_upload_bytes"] == 2 * (2 - cache_frames) * frame_bytes
+    assert sum(copied_sizes) == (
+        after["preparation_input_upload_bytes"] + after["evaluation_input_upload_bytes"]
+    )
+    assert len(copied_sizes) == 3 * (
+        after["preparation_input_upload_calls"] + after["evaluation_input_upload_calls"]
+    )
+    expected = BorerSixDofSolver().solve(
+        observations, SE3.identity(), BorerSixDofOptions(max_evaluations=20),
+    )
+    actual = BorerSixDofSolver().solve(
+        observations, SE3.identity(),
+        BorerSixDofOptions(max_evaluations=20, projector=cuda, projection_backend=cuda.identity()),
+    )
+    assert replace(actual, projection_backend=expected.projection_backend) == expected
+
+
+def test_cuda_cache_skips_large_frame_and_retains_later_fitting_frame() -> None:
+    camera = DepthToDepthCameraModel(16, 12, 8.0, 8.0, 7.5, 5.5)
+    small = DepthToDepthObservation("small", np.ones((12, 16)), np.ones((10, 3)), camera)
+    large = DepthToDepthObservation("large", np.ones((12, 16)), np.ones((500, 3)), camera)
+    later = DepthToDepthObservation("later", np.ones((12, 16)), np.ones((10, 3)), camera)
+    size = small.depth_map.nbytes + small.lidar_points.nbytes + small.lidar_range_m.nbytes
+    cuda = CudaDepthPairProjector([small, large, later, small], cache_bytes=2 * size)
+    for observation in (small, later):
+        cuda(observation, SE3.identity())
+    assert cuda.transfer_statistics()["evaluation_input_upload_calls"] == 0
+    cuda(large, SE3.identity())
+    assert cuda.transfer_statistics()["evaluation_input_upload_calls"] == 1
+    assert cuda.transfer_statistics()["prepared_observation_count"] == 2
+
+
+def test_cuda_cache_identity_preserves_default_and_distinguishes_changed_budget() -> None:
+    default = CudaDepthPairProjector()
+    explicit_default = CudaDepthPairProjector(cache_bytes=DEFAULT_CUDA_CACHE_BYTES)
+    no_cache = CudaDepthPairProjector(cache_bytes=0)
+    assert default.identity() == explicit_default.identity()
+    assert ";cache_bytes=" not in default.identity()
+    assert no_cache.identity() == default.identity() + ";cache_bytes=0"
+
+
+def test_cuda_cache_allocation_failure_has_actionable_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    camera = DepthToDepthCameraModel(16, 12, 8.0, 8.0, 7.5, 5.5)
+    observation = DepthToDepthObservation("oom", np.ones((12, 16)), np.ones((10, 3)), camera)
+
+    def fail_upload(*args: object, **kwargs: object) -> object:
+        raise cp.cuda.memory.OutOfMemoryError(4096, 0, 1024)
+
+    monkeypatch.setattr(CudaDepthPairProjector, "_upload", fail_upload)
+    with pytest.raises(ValueError, match="lower --cuda-cache-mib"):
+        CudaDepthPairProjector([observation])

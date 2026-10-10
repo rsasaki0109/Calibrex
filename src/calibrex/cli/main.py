@@ -1824,6 +1824,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="use the matching output transform from a previous standard result as the prior",
     )
     estimate_six_dof.add_argument(
+        "--cuda-cache-mib", type=int,
+        help="CUDA input cache capacity in MiB (default 256; 0 disables caching)",
+    )
+    estimate_six_dof.add_argument(
         "--holdout-frame-id", action="append", default=[],
         help="exclude this problem frame from optimization; repeat for multiple frames",
     )
@@ -1886,6 +1890,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="D2D projection implementation (cuda requires calibrex[cuda] and --workers 1)",
     )
     benchmark_six_dof.add_argument("--resume", action="store_true")
+    benchmark_six_dof.add_argument(
+        "--cuda-cache-mib", type=int,
+        help="CUDA input cache capacity in MiB (default 256; 0 disables caching)",
+    )
     benchmark_six_dof.add_argument("--required-hit-rate", type=float)
     benchmark_six_dof.add_argument("--json", action="store_true")
     benchmark_six_dof.set_defaults(func=_cmd_camera_lidar_benchmark_six_dof)
@@ -6006,6 +6014,9 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
             args.problem,
             options=options,
             projection_backend=cast(ProjectionBackend, args.projection_backend),
+            cuda_cache_bytes=(
+                args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
+            ),
             initial_result_path=args.initial_result,
             holdout_frame_ids=args.holdout_frame_id,
             command=["calibrex", *args.invoked_argv],
@@ -6021,6 +6032,9 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
             "quality_grade": result.quality.grade,
             "result": str(args.output),
             "projection_backend": result.run.provenance["projection_backend"],
+            "projection_transfer_statistics": (
+                result.run.provenance["projection_transfer_statistics"]
+            ),
             "evaluation_count": solver["evaluation_count"],
             "stopping_reason": solver["stopping_reason"],
             "final_mutual_information": result.metrics["final_d2d_mutual_information"].train,
@@ -6042,6 +6056,8 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
         f"--projection-backend {args.projection_backend} "
         f"--bootstrap-samples {args.bootstrap_samples}"
     )
+    if args.cuda_cache_mib is not None:
+        command += f" --cuda-cache-mib {args.cuda_cache_mib}"
     if args.required_hit_rate is not None:
         command += f" --required-hit-rate {args.required_hit_rate}"
     if args.resume:
@@ -6058,6 +6074,9 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
             projection_backend=cast(
                 ProjectionBackend,
                 args.projection_backend,
+            ),
+            cuda_cache_bytes=(
+                args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
             ),
         )
     except (OSError, ValueError) as exc:

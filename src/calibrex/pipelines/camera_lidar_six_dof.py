@@ -36,6 +36,8 @@ from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, BorerSixDo
 from calibrex.solvers.depth_to_depth_runtime import (
     ProjectionBackend,
     create_depth_pair_projector,
+    depth_pair_transfer_statistics,
+    validate_cuda_cache_bytes,
 )
 
 SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.1"
@@ -46,6 +48,7 @@ def run_camera_lidar_six_dof_estimate(
     *,
     options: BorerSixDofOptions | None = None,
     projection_backend: ProjectionBackend = "numpy",
+    cuda_cache_bytes: int | None = None,
     initial_result_path: str | Path | None = None,
     holdout_frame_ids: Sequence[str] = (),
     command: Sequence[str],
@@ -59,6 +62,7 @@ def run_camera_lidar_six_dof_estimate(
     """
 
     started = time.perf_counter()
+    validate_cuda_cache_bytes(projection_backend, cuda_cache_bytes)
     settings = options or BorerSixDofOptions()
     settings_payload = _settings_payload(settings)
     # Reject non-finite Python API inputs before loading data or starting CUDA.
@@ -116,7 +120,11 @@ def run_camera_lidar_six_dof_estimate(
         raise ValueError("at least one training frame is required")
     settings = replace(settings, d2d=resolve_depth_to_depth_options(train, settings.d2d))
     inputs_verified_at = time.perf_counter()
-    projector, identity = create_depth_pair_projector(projection_backend, loaded.observations)
+    projector, identity = create_depth_pair_projector(
+        projection_backend,
+        loaded.observations,
+        cuda_cache_bytes=cuda_cache_bytes,
+    )
     settings = replace(settings, projector=projector, projection_backend=identity)
     prepared_at = time.perf_counter()
     solved = BorerSixDofSolver().solve(train, prior.as_se3(), settings)
@@ -210,6 +218,7 @@ def run_camera_lidar_six_dof_estimate(
             ),
             "configuration": config_payload,
             "projection_backend": identity,
+            "projection_transfer_statistics": depth_pair_transfer_statistics(projector),
             "solver_result": solved.as_dict(),
             "initial_holdout_evaluation": (
                 initial_holdout.as_dict() if initial_holdout is not None else None
