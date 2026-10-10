@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **Fix: `calibrex init --template` works from the installed wheel.** The sensor templates lived
+  only in `examples/sensor_templates`, so outside a repository checkout the quickstart's second
+  step failed with "sensor templates are unavailable". The wheel now ships a copy under
+  `calibrex/resources/sensor_templates` (a unit test keeps it byte-identical to the examples), and
+  `tools/local_release_smoke.py` runs `init --template` from the clean wheel. The quickstart in
+  `docs/tutorials/your_own_data.md` and the Hilti camera-IMU page installed `calibrex` from PyPI,
+  where it is not published; they now use the GitHub Release wheel. No schema change.
+- **Optional CUDA backend for the Borer depth-to-depth six-DoF search.**
+  `calibrex camera-lidar benchmark-six-dof --projection-backend cuda` (and
+  `tools/run_borer_six_dof_chunk.py`) moves LiDAR projection, nearest-range visibility and
+  histogram counting to the GPU through CuPy (new extra `calibrex[cuda]`, `cupy-cuda12x`); entropy,
+  MI and the optimizer stay on the original NumPy definitions. Pinhole, double-sphere and MEI
+  cameras; FP64 kernels with fused multiply-add disabled; `--resume` checks the full backend
+  identity; one worker per GPU. The default stays `numpy`, and `check` / `estimate` / `drift` do
+  not expose the backend. Real data: on KITTI raw 0018 the converged frozen-protocol trial is
+  exactly equal between NumPy and CUDA (325 evaluations, every candidate record), and the six-DoF
+  search is 15.2x faster on KITTI raw 0018 and 11.3x on KITTI-360 0002 (GTX 1660 Ti; schema-valid
+  timing reports under `docs/assets/gpu_acceleration/`,
+  [tutorial](docs/tutorials/gpu_acceleration.md)). No schema change.
 - **`calibrex check` / `estimate` / `drift` read ROS 1 `.bag` files and every MCAP chunk
   compression directly.** New `calibrex.data.bag_formats` (format detection, ROS 1 index reader:
   topics/types/counts without a scan, chunks without the requested topics skipped, unindexed bags

@@ -64,3 +64,18 @@ def test_init_template_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -
     assert exit_code == 0
     assert payload["status"] == "ok"
     assert output.is_file()
+
+
+def test_packaged_sensor_templates_match_examples() -> None:
+    """The wheel ships ``resources/sensor_templates``; keep it equal to the examples."""
+
+    repo_root = Path(__file__).resolve().parents[2]
+    examples = repo_root / "examples" / "sensor_templates"
+    packaged = repo_root / "src" / "calibrex" / "resources" / "sensor_templates"
+    example_configs = sorted(path.relative_to(examples) for path in examples.glob("*/config.yaml"))
+    packaged_configs = sorted(path.relative_to(packaged) for path in packaged.glob("*/config.yaml"))
+
+    assert example_configs
+    assert packaged_configs == example_configs
+    for relative in example_configs:
+        assert (packaged / relative).read_bytes() == (examples / relative).read_bytes(), relative

@@ -6,7 +6,7 @@ by aligning camera rotations from tracked image features with the gyro. No
 calibration target is needed.
 
 ```bash
-pip install "calibrex[opencv]"
+python -m pip install "calibrex[opencv] @ https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
 calibrex camera-imu rotation exp21_ros2 \
   --camchain calibration_files/calib_3_cam0-1-camchain-imucam.yaml --camera cam0 \
   --imu-topic /alphasense/imu \

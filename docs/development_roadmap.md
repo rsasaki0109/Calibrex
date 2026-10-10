@@ -1,10 +1,10 @@
 # Development Roadmap
 
 This document is the current development decision for Calibrex as of
-2026-09-27. Earlier revisions were dated 2026-08-19 and 2026-08-20. It
-reconciles the implemented code, the older ADR direction, public-data evidence,
-and relevant research/OSS. It is a planning inventory, not a claim that every
-listed method is production-ready.
+2026-10-10. Earlier revisions were dated 2026-08-19, 2026-08-20 and
+2026-09-27. It reconciles the implemented code, the older ADR direction,
+public-data evidence, and relevant research/OSS. It is a planning inventory,
+not a claim that every listed method is production-ready.
 [ADR 0010](adr/0010-v0-5-reconcile-v0-4-and-operational-trust.md) records why
 the v0.4 pillars close and what v0.5 carries forward.
 
@@ -58,6 +58,27 @@ The portfolio below, rather than the older ADR context section, is the current
 source for deciding what to build next. ADRs remain useful records of why work
 was started and are not silently rewritten as if they had predicted later
 implementation.
+
+## Bag-level user path: `check`, `estimate`, `drift`
+
+Since 2026-09-27 the primary user path is three commands that read a bag as it
+is (rosbag2 `.db3`, ROS 2 MCAP, ROS 1 `.bag`), with no ROS installation:
+`calibrex estimate` measures a calibration where there is none, `calibrex
+check` judges a deployed one per axis (`pass` / `warn` / `fail` /
+`inconclusive`), and `calibrex drift` compares recordings of one rig. They
+reuse the per-pair estimators below and add per-axis observability, a held-out
+known-bad control per judged axis, and next-step hints. The
+[workflow tutorial](tutorials/workflow.md) shows real runs.
+
+| Pair in `check` | Judged | Real-data evidence | Maturity |
+| --- | --- | --- | --- |
+| IMU ↔ LiDAR | rotation, clock offset, lever arm when observed | Koide, RTK-SLAM, Autoware sample (inconclusive: straight drive) | Alpha |
+| camera ↔ IMU | rotation, clock offset | Hilti 2022 | Alpha |
+| camera ↔ LiDAR | rotation only; translation always unchecked | KITTI 0005/0009 and Hilti: reference never warned or failed, 23 of 27 perturbations flagged ([results](benchmarks/camera_lidar_check.md)) | Experimental |
+| LiDAR ↔ LiDAR | rotation and translation | NTU VIRAL, Autoware sample (pass; +1/+3 deg, +5 cm fail) | Alpha |
+| GNSS ↔ LiDAR, GNSS ↔ IMU | antenna lever arm | RTK-SLAM | Alpha |
+| LiDAR / IMU / INS / wheels ↔ vehicle | rotation axes the motion excites | KITTI raw | Alpha |
+| camera focal length | focal lengths | Hilti 2022 | Experimental |
 
 ## Current calibration portfolio
 
@@ -128,6 +149,18 @@ accuracy.
    Windows `core.autocrlf` checkouts, digest-bound JSON fixtures were rewritten
    to CRLF, which broke their declared SHA-256. `.gitattributes` now pins
    `*.json` to `eol=lf`.
+8. **Camera-LiDAR check reach:** the bag-level check judges rotation only.
+   A start more than about 3 deg away can leave an axis in a spurious optimum
+   (then `pass (partial)` or `inconclusive`, never a confident `pass`), and
+   solid-state LiDAR, a non-optical camera frame and motion during a sweep are
+   not handled.
+9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
+   for VLP-16 and VLP-32C single return only. Dual return, HDL-32/64 and other
+   vendors' packet formats are unverified or unsupported, so such bags need
+   their own `PointCloud2` topics.
+10. **Unreleased backlog:** the bag-level path, ROS 1/MCAP readers,
+    camera-LiDAR check, Autoware decoding, browser check page and CUDA backend
+    are on `main` only; the latest release wheel is v0.5.1.
 
 ## Research and OSS map
 
@@ -215,6 +248,29 @@ synthetic replay artifact `slac.calibration_lifecycle/v0.1`, CLI
 registry v0.2 added physical sensor identity, input digests, operator
 provenance, and a hash-chained event log.
 
+## Completed since the 2026-09-27 revision
+
+- **Bag-level estimate, check and drift** — `calibrex estimate` (a
+  calibration for a bag that has none; `frames.yaml`, static transforms, URDF,
+  Kalibr camchain; unobserved axes marked NOT MEASURED; `--html`),
+  `calibrex check` progress, next-step hints and translation-observability
+  reasons, and `calibrex drift` (per-axis `stable` / `drift` /
+  `inconclusive`, including per-pair clock offsets). See the
+  [workflow tutorial](tutorials/workflow.md).
+- **camera-LiDAR in check, estimate and drift** — targetless edge alignment,
+  rotation only, with a jackknife std and held-out known-bad controls
+  (`slac.camera_lidar_edge/v0.1`;
+  [benchmark](benchmarks/camera_lidar_check.md)).
+- **Bag formats** — ROS 1 `.bag` (none, bz2, lz4) and every MCAP chunk
+  compression through one reader; Autoware `VelodyneScan` decoding (VLP-16,
+  VLP-32C single return) and `VelocityReport` as wheel speed.
+- **Browser check page** — `check` and `estimate` under Pyodide, compared with
+  the CLI on real bags (same verdicts; numbers equal to 1e-6 except camera
+  pairs within one to two sigma).
+- **Performance** — first runs use about 20-50 % less CPU with bit-identical
+  artifacts; an optional CUDA backend for the Borer D2D six-DoF search
+  ([GPU acceleration](tutorials/gpu_acceleration.md)).
+
 ## Completed since the 2026-08-20 revision
 
 - **Operational trust platform** (2026-08-24) — capture manifest intake
@@ -245,7 +301,7 @@ provenance, and a hash-chained event log.
 
 ## Next implementation issues
 
-Revised 2026-09-27 and ordered by the practical-tool criterion. Each issue
+Revised 2026-10-10 and ordered by the practical-tool criterion. Each issue
 names the portfolio gap it closes. Large public datasets stay outside the
 repository and are read from environment-variable paths by opt-in tests.
 
@@ -263,7 +319,12 @@ decided not to cut a release for now.
   `core.autocrlf` checkout. **Done** on 2026-09-27 (portfolio gap 7).
 - The clean-wheel install smoke, the schema-drift test
   (`test_static_schema_files_match_generated_schemas`), and the quickstart in
-  `docs/tutorials/your_own_data.md` pass from the built wheel.
+  `docs/tutorials/your_own_data.md` pass from the built wheel. **Re-verified**
+  on 2026-10-10 at `main` 7b3b1cd, which found that `calibrex init --template`
+  failed outside a checkout; the wheel now ships the templates and the smoke
+  covers that step.
+- `tools/check_schema_compat.py` against v0.5.1 reports only additive
+  changes. **Done** on 2026-10-10.
 - When a release is decided, the CHANGELOG `Unreleased` section is
   consolidated under the new version and ADR 0010 is accepted.
 
@@ -285,7 +346,40 @@ schema-valid artifact.
   honestly (PASS, WARN, FAIL, or INCONCLUSIVE) without retuned gates. It needs
   no new download.
 
-### 3. Lifecycle registry events from Calibration CI
+### 3. Camera-LiDAR check: wider start basin and solid-state LiDAR
+
+**Gap:** portfolio gap 8.
+
+**Outcome:** `calibrex check --pairs camera-lidar` judges an axis whose
+deployed rotation is up to 5 deg off, and accepts a solid-state (Livox)
+LiDAR, without loosening the verdict rule.
+
+**Acceptance conditions:**
+
+- On the existing KITTI 0005/0009 and Hilti development recordings, the
+  unmodified reference still never warns or fails, and the +5 deg cases that
+  the [benchmark](benchmarks/camera_lidar_check.md) left unchecked (KITTI
+  0005 pitch and yaw, KITTI 0009 pitch) are judged and flagged. The 2 deg
+  control, 0.5 deg std bound and t >= 2 are not retuned.
+- A solid-state run reports per-axis coverage on one public Livox recording,
+  whatever its verdict. Translation stays `unchecked`.
+
+### 4. LiDAR packet decoder coverage
+
+**Gap:** portfolio gap 9.
+
+**Outcome:** `calibrex.data.velodyne_packets` decodes dual return and at
+least one more model, and the planner names the unsupported packet formats it
+skips.
+
+**Acceptance conditions:**
+
+- Each new mode or model is verified against a recorded reference cloud with
+  `tools/validate_velodyne_decode.py`, reporting the median point distance.
+- No ROS dependency enters `src/calibrex`; unverified models stay rejected
+  with a clear reason.
+
+### 5. Lifecycle registry events from Calibration CI
 
 **Gap:** portfolio gap 6.
 
@@ -299,7 +393,7 @@ rollback event to a lifecycle registry, bound to the CI artifact digests.
 - There is no in-place overwrite, and registry verification stays green after
   every path.
 
-### 4. Absolute capture-time acceptance (ADR 0008 Pillar 3)
+### 6. Absolute capture-time acceptance (ADR 0008 Pillar 3)
 
 **Gap:** portfolio gap 5.
 
@@ -313,7 +407,7 @@ converge under the declared `capture_time_reference`.
 - The TIERS real-data result is re-reported under the declared convention,
   whatever its status.
 
-### 5. Kalibr lever-arm evidence and a public Kalibr run
+### 7. Kalibr lever-arm evidence and a public Kalibr run
 
 **Gap:** portfolio gap 2.
 
@@ -328,7 +422,7 @@ recording.
 - The public run is opt-in, reports honestly, and records the dataset license
   boundary. Its data live outside the repository.
 
-### 6. Planar-board line+plane CLI wiring
+### 8. Planar-board line+plane CLI wiring
 
 **Gap:** the Research row "Planar-board line+plane".
 

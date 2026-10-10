@@ -18,7 +18,12 @@ _TEMPLATE_ALIASES: dict[str, str] = {
 
 
 def sensor_templates_root() -> Path:
-    """Return the directory that contains named sensor template folders."""
+    """Return the directory that contains named sensor template folders.
+
+    A repository checkout uses ``examples/sensor_templates``; an installed wheel
+    uses the packaged copy under ``calibrex/resources/sensor_templates``, which
+    a unit test keeps byte-identical to the examples.
+    """
 
     module_dir = Path(__file__).resolve().parent
     candidates = (
@@ -30,7 +35,8 @@ def sensor_templates_root() -> Path:
             return candidate
     msg = (
         "sensor templates are unavailable; expected examples/sensor_templates "
-        "in the Calibrex repository checkout"
+        "in a repository checkout or calibrex/resources/sensor_templates in the "
+        "installed package"
     )
     raise CalibrexError(msg)
 
