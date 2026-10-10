@@ -1,0 +1,1940 @@
+{
+  "benchmark_id": "d2d-projection-kitti360_2013_05_28_drive_0002",
+  "bootstrap_samples": 1000,
+  "bootstrap_seed": 42,
+  "limitations": [
+    "All timed projections and MI records exactly match the NumPy reference.",
+    "Timing repetitions are not held-out calibration accuracy trials.",
+    "Transfers and synchronization are included; compilation/preparation are separate.",
+    "Startup times: {\"cuda\": {\"first_evaluation_seconds\": 0.06306119996588677, \"setup_seconds\": 0.6776034000213258}, \"numba_cpu\": {\"first_evaluation_seconds\": 1.237907400005497, \"setup_seconds\": 0.44609759998274967}, \"numpy\": {\"first_evaluation_seconds\": 0.9285521000274457, \"setup_seconds\": 4.799978341907263e-06}}",
+    "Environment: Python 3.12.10; NumPy 2.3.4; Windows-11-10.0.26300-SP0; CPU Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
+    "Workload: 25 frames; 3021947 total points; camera grids: [(1400, 1400, 'mei')]",
+    "Digest-verified real inputs measure backend equivalence and latency; this timing experiment is not a calibration accuracy benchmark.",
+    "CUDA allocation snapshots (bytes): {\"after_first_evaluation\": {\"cached_input_bytes\": 254357376, \"device_total_bytes\": 6442123264, \"device_used_bytes\": 1415249920, \"pool_reserved_bytes\": 318975488, \"pool_used_bytes\": 254363136}, \"after_projection_timings\": {\"cached_input_bytes\": 254357376, \"device_total_bytes\": 6442123264, \"device_used_bytes\": 1415249920, \"pool_reserved_bytes\": 318975488, \"pool_used_bytes\": 254363136}}",
+    "CUDA pool reservation includes reusable scratch allocations; device usage includes context/other applications. Snapshots are not process peak VRAM.",
+    "Publication metadata normalizes local interpreter/dataset paths and host names; numerical records and original input/config/code digests are unchanged. The original local report SHA-256 is recorded in source_artifacts."
+  ],
+  "method_summaries": {
+    "cuda": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": {
+          "distribution": {
+            "count": 25,
+            "maximum": 0.23088529997039586,
+            "mean": 0.12219030800275504,
+            "mean_ci95_high": 0.146151543499087,
+            "mean_ci95_low": 0.10121037980302935,
+            "median": 0.12969069997780025,
+            "minimum": 0.058989199984353036,
+            "p90": 0.20966650001937526,
+            "p95": 0.2202393799903802,
+            "standard_deviation": 0.058446291708897175
+          },
+          "metric": "evaluation_seconds",
+          "rank": 1
+        },
+        "projection_seconds": {
+          "distribution": {
+            "count": 25,
+            "maximum": 0.5122227999963798,
+            "mean": 0.44621746000368145,
+            "mean_ci95_high": 0.4651582648987533,
+            "mean_ci95_low": 0.42416064329672376,
+            "median": 0.4624793999828398,
+            "minimum": 0.2912709999945946,
+            "p90": 0.48949060001177713,
+            "p95": 0.4979154800181277,
+            "standard_deviation": 0.051298724933692974
+          },
+          "metric": "projection_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 25,
+        "maximum": 0.23088529997039586,
+        "mean": 0.12219030800275504,
+        "mean_ci95_high": 0.146151543499087,
+        "mean_ci95_low": 0.10121037980302935,
+        "median": 0.12969069997780025,
+        "minimum": 0.058989199984353036,
+        "p90": 0.20966650001937526,
+        "p95": 0.2202393799903802,
+        "standard_deviation": 0.058446291708897175
+      },
+      "success_count": 25,
+      "trial_count": 25
+    },
+    "numba_cpu": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": {
+          "distribution": {
+            "count": 25,
+            "maximum": 0.6141011000145227,
+            "mean": 0.5190382360038348,
+            "mean_ci95_high": 0.5323401515005971,
+            "mean_ci95_low": 0.5070646374028293,
+            "median": 0.5136676999973133,
+            "minimum": 0.4769613000098616,
+            "p90": 0.5611900799907744,
+            "p95": 0.5710943199694156,
+            "standard_deviation": 0.03324667229535429
+          },
+          "metric": "evaluation_seconds",
+          "rank": 2
+        },
+        "projection_seconds": {
+          "distribution": {
+            "count": 25,
+            "maximum": 0.5275681000202894,
+            "mean": 0.4737125320034102,
+            "mean_ci95_high": 0.48301968780660537,
+            "mean_ci95_low": 0.46534417719126214,
+            "median": 0.4759440000052564,
+            "minimum": 0.4432760000345297,
+            "p90": 0.5012198199750856,
+            "p95": 0.5135880199959502,
+            "standard_deviation": 0.02296210957659769
+          },
+          "metric": "projection_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 25,
+        "maximum": 0.6141011000145227,
+        "mean": 0.5190382360038348,
+        "mean_ci95_high": 0.5323401515005971,
+        "mean_ci95_low": 0.5070646374028293,
+        "median": 0.5136676999973133,
+        "minimum": 0.4769613000098616,
+        "p90": 0.5611900799907744,
+        "p95": 0.5710943199694156,
+        "standard_deviation": 0.03324667229535429
+      },
+      "success_count": 25,
+      "trial_count": 25
+    },
+    "numpy": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": {
+          "distribution": {
+            "count": 25,
+            "maximum": 0.8379858999978751,
+            "mean": 0.7071013639983721,
+            "mean_ci95_high": 0.7256622747004148,
+            "mean_ci95_low": 0.689332811293716,
+            "median": 0.7157906999927945,
+            "minimum": 0.6275995000032708,
+            "p90": 0.7510358199942857,
+            "p95": 0.760693379980512,
+            "standard_deviation": 0.04661590932285034
+          },
+          "metric": "evaluation_seconds",
+          "rank": 3
+        },
+        "projection_seconds": {
+          "distribution": {
+            "count": 25,
+            "maximum": 0.9319381000241265,
+            "mean": 0.6602785999979823,
+            "mean_ci95_high": 0.6897315749981208,
+            "mean_ci95_low": 0.6368197389966226,
+            "median": 0.6439592000097036,
+            "minimum": 0.5830148999812081,
+            "p90": 0.7184733799775131,
+            "p95": 0.7391637400141916,
+            "standard_deviation": 0.06816599611821479
+          },
+          "metric": "projection_seconds",
+          "rank": 3
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 25,
+        "maximum": 0.8379858999978751,
+        "mean": 0.7071013639983721,
+        "mean_ci95_high": 0.7256622747004148,
+        "mean_ci95_low": 0.689332811293716,
+        "median": 0.7157906999927945,
+        "minimum": 0.6275995000032708,
+        "p90": 0.7510358199942857,
+        "p95": 0.760693379980512,
+        "standard_deviation": 0.04661590932285034
+      },
+      "success_count": 25,
+      "trial_count": 25
+    }
+  },
+  "methods": [
+    {
+      "implementation": "adapter",
+      "label": "numpy",
+      "license_spdx": "Apache-2.0 AND MIT AND BSD-2-Clause",
+      "method_id": "numpy",
+      "tool_name": "numpy",
+      "tool_version": "calibrex.numpy_depth_pair_projector/v0.2;numpy=2.3.4"
+    },
+    {
+      "implementation": "adapter",
+      "label": "numba_cpu",
+      "license_spdx": "Apache-2.0 AND MIT AND BSD-2-Clause",
+      "method_id": "numba_cpu",
+      "tool_name": "numba_cpu",
+      "tool_version": "calibrex.numba_depth_pair_projector/v0.1;numba=0.65.1"
+    },
+    {
+      "implementation": "adapter",
+      "label": "cuda",
+      "license_spdx": "Apache-2.0 AND MIT AND BSD-2-Clause",
+      "method_id": "cuda",
+      "tool_name": "cuda",
+      "tool_version": "calibrex.cuda_depth_pair_projector/v0.2;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1000.0,
+      "display_unit": "ms",
+      "interpretation": "synchronized warm host-to-host latency",
+      "label": "projection_seconds",
+      "name": "projection_seconds",
+      "primary": true,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1000.0,
+      "display_unit": "ms",
+      "interpretation": "synchronized warm host-to-host latency",
+      "label": "evaluation_seconds",
+      "name": "evaluation_seconds",
+      "primary": true,
+      "unit": "s"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 0.21654220120160605,
+      "improvement_ci95_low": 0.16203296918584964,
+      "improvement_mean": 0.18656606799457223,
+      "metric": "projection_seconds",
+      "paired_count": 25,
+      "raw_delta_mean": -0.18656606799457223,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 0.20474077158572618,
+      "improvement_ci95_low": 0.17198624669894344,
+      "improvement_mean": 0.18806312799453737,
+      "metric": "evaluation_seconds",
+      "paired_count": 25,
+      "raw_delta_mean": -0.18806312799453737,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 0.25929510279576057,
+      "improvement_ci95_low": 0.17897706169000596,
+      "improvement_mean": 0.2140611399943009,
+      "metric": "projection_seconds",
+      "paired_count": 25,
+      "raw_delta_mean": -0.2140611399943009,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 0.6152181755998172,
+      "improvement_ci95_low": 0.5539103108984419,
+      "improvement_mean": 0.5849110559956171,
+      "metric": "evaluation_seconds",
+      "paired_count": 25,
+      "raw_delta_mean": -0.5849110559956171,
+      "reference_method_id": "numpy"
+    }
+  ],
+  "protocol": {
+    "data_license": "synthetic Apache-2.0 or input dataset-specific",
+    "dataset_id": "kitti360_2013_05_28_drive_0002",
+    "dataset_source_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+    "failure_policy": "abort and report any projection, MI or solver-trace mismatch",
+    "initial_estimate_policy": "prespecified pose perturbations shared across backends",
+    "protocol_id": "d2d-backend-latency/v0.1",
+    "split_policy": "paired timing repetitions; reference projection is the equivalence anchor, not accuracy holdout",
+    "splits": [
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 0,
+        "split_id": "0"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 1,
+        "split_id": "1"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 2,
+        "split_id": "2"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 3,
+        "split_id": "3"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 4,
+        "split_id": "4"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 5,
+        "split_id": "5"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 6,
+        "split_id": "6"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 7,
+        "split_id": "7"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 8,
+        "split_id": "8"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 9,
+        "split_id": "9"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 10,
+        "split_id": "10"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 11,
+        "split_id": "11"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 12,
+        "split_id": "12"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 13,
+        "split_id": "13"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 14,
+        "split_id": "14"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 15,
+        "split_id": "15"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 16,
+        "split_id": "16"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 17,
+        "split_id": "17"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 18,
+        "split_id": "18"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 19,
+        "split_id": "19"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 20,
+        "split_id": "20"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 21,
+        "split_id": "21"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 22,
+        "split_id": "22"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 23,
+        "split_id": "23"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "seed": 24,
+        "split_id": "24"
+      }
+    ],
+    "tuning_policy": "FP64 and original histogram settings; no solver or metric retuning"
+  },
+  "provenance": {
+    "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+    "data_verified": true,
+    "generated_at": "2026-10-10T15:43:57.416100+00:00",
+    "generator": "tools.benchmark_d2d_projection",
+    "generator_version": "v0.2",
+    "git_commit": "75cc46f",
+    "source_artifacts": {
+      "config": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+      "input": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+      "local_report_before_publication": "9fa92b78f5bc397f111e0c880d1ef15e39a1ac18bdfb47edb428a41b9f383a8a",
+      "src\\calibrex\\solvers\\borer_depth_to_depth_solver.py": "ef1ea2fe9e03d6e9d67855a58bde705355ef1332e5b10f5806c8c86e6fb5b70f",
+      "src\\calibrex\\solvers\\borer_six_dof_solver.py": "94ffd07c6977a83bf2e7ac5d5c19e0a3e2725ef7510dfa1e7d3c82ba08a89baa",
+      "src\\calibrex\\solvers\\cuda_depth_to_depth_adapter.py": "52c26bba733386782cba7fb1e534ca1e3f7cebfc42f4dd5cceb2bf9ff6267e20",
+      "tools\\benchmark_d2d_projection.py": "a7c8a6e011e9c1375c7937ad25056a7e99c863e2829b14e4e0fb4b36243e421a"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "D2D projection backend latency: kitti360_2013_05_28_drive_0002",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.8379858999978751,
+        "projection_seconds": 0.9319381000241265
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.8379858999978751,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7503016000264324,
+        "projection_seconds": 0.7099579999921843
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7503016000264324,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.676785200019367,
+        "projection_seconds": 0.6439592000097036
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.676785200019367,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7392041999846697,
+        "projection_seconds": 0.652448299981188
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7392041999846697,
+      "split_id": "3",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6545567999710329,
+        "projection_seconds": 0.641394299978856
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6545567999710329,
+      "split_id": "4",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7258957999874838,
+        "projection_seconds": 0.6486667999997735
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7258957999874838,
+      "split_id": "5",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7629853999824263,
+        "projection_seconds": 0.7241502999677323
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7629853999824263,
+      "split_id": "6",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6599990999675356,
+        "projection_seconds": 0.6246735000167973
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6599990999675356,
+      "split_id": "7",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7471012999885716,
+        "projection_seconds": 0.7429171000258066
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7471012999885716,
+      "split_id": "8",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7157906999927945,
+        "projection_seconds": 0.6433035000227392
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7157906999927945,
+      "split_id": "9",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6922671000356786,
+        "projection_seconds": 0.6710065999650396
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6922671000356786,
+      "split_id": "10",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7267589999828488,
+        "projection_seconds": 0.6731762000126764
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7267589999828488,
+      "split_id": "11",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.708326899970416,
+        "projection_seconds": 0.5830148999812081
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.708326899970416,
+      "split_id": "12",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6275995000032708,
+        "projection_seconds": 0.6092466000118293
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6275995000032708,
+      "split_id": "13",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7198539000237361,
+        "projection_seconds": 0.6191649999818765
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7198539000237361,
+      "split_id": "14",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6463171999785118,
+        "projection_seconds": 0.5965484000043944
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6463171999785118,
+      "split_id": "15",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6545868999673985,
+        "projection_seconds": 0.6298509000334889
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6545868999673985,
+      "split_id": "16",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7515252999728546,
+        "projection_seconds": 0.6861811999697238
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7515252999728546,
+      "split_id": "17",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7173041999922134,
+        "projection_seconds": 0.606551299977582
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7173041999922134,
+      "split_id": "18",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.656369500036817,
+        "projection_seconds": 0.6369275000179186
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.656369500036817,
+      "split_id": "19",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.7190101000014693,
+        "projection_seconds": 0.6313394000171684
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.7190101000014693,
+      "split_id": "20",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.714961800025776,
+        "projection_seconds": 0.6488468999741599
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.714961800025776,
+      "split_id": "21",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6492160999914631,
+        "projection_seconds": 0.6557479000184685
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6492160999914631,
+      "split_id": "22",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.738448700052686,
+        "projection_seconds": 0.701301799970679
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.738448700052686,
+      "split_id": "23",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "evaluation_seconds": 0.6843819000059739,
+        "projection_seconds": 0.5946512999944389
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6843819000059739,
+      "split_id": "24",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5153673999593593,
+        "projection_seconds": 0.4468133999616839
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5153673999593593,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5659831999801099,
+        "projection_seconds": 0.5002150000073016
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5659831999801099,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.506989799963776,
+        "projection_seconds": 0.4870084000285715
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.506989799963776,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5536407000035979,
+        "projection_seconds": 0.5165126000065356
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5536407000035979,
+      "split_id": "3",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5043415000545792,
+        "projection_seconds": 0.47222419996978715
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5043415000545792,
+      "split_id": "4",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.6141011000145227,
+        "projection_seconds": 0.5275681000202894
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.6141011000145227,
+      "split_id": "5",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5159918999997899,
+        "projection_seconds": 0.4490565999876708
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5159918999997899,
+      "split_id": "6",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.49197240005014464,
+        "projection_seconds": 0.44868670002324507
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.49197240005014464,
+      "split_id": "7",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5723720999667421,
+        "projection_seconds": 0.4761312000337057
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5723720999667421,
+      "split_id": "8",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.542161000019405,
+        "projection_seconds": 0.5018896999536082
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.542161000019405,
+      "split_id": "9",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.533564799989108,
+        "projection_seconds": 0.4622969999909401
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.533564799989108,
+      "split_id": "10",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5136676999973133,
+        "projection_seconds": 0.47820599999977276
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5136676999973133,
+      "split_id": "11",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5433951999875717,
+        "projection_seconds": 0.47716510004829615
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5433951999875717,
+      "split_id": "12",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.48713970003882423,
+        "projection_seconds": 0.45100810000440106
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.48713970003882423,
+      "split_id": "13",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.49185340001713485,
+        "projection_seconds": 0.4890072999987751
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.49185340001713485,
+      "split_id": "14",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5156633000005968,
+        "projection_seconds": 0.448030200030189
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5156633000005968,
+      "split_id": "15",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5261749000055715,
+        "projection_seconds": 0.4869681000127457
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5261749000055715,
+      "split_id": "16",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.49701470002764836,
+        "projection_seconds": 0.4965297000017017
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.49701470002764836,
+      "split_id": "17",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.504330400028266,
+        "projection_seconds": 0.45606180001050234
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.504330400028266,
+      "split_id": "18",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.4794971999945119,
+        "projection_seconds": 0.48139279999304563
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.4794971999945119,
+      "split_id": "19",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.4900328000076115,
+        "projection_seconds": 0.4432760000345297
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.4900328000076115,
+      "split_id": "20",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5009868000051938,
+        "projection_seconds": 0.45055629999842495
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5009868000051938,
+      "split_id": "21",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.47875219996785745,
+        "projection_seconds": 0.447179899958428
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.47875219996785745,
+      "split_id": "22",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.5540004000067711,
+        "projection_seconds": 0.47308510000584647
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.5540004000067711,
+      "split_id": "23",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_seconds": 0.4769613000098616,
+        "projection_seconds": 0.4759440000052564
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.4769613000098616,
+      "split_id": "24",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.061802699987310916,
+        "projection_seconds": 0.2912709999945946
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.061802699987310916,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.13040909997653216,
+        "projection_seconds": 0.46288309997180477
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.13040909997653216,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.18374949996359646,
+        "projection_seconds": 0.48280420002993196
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.18374949996359646,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.13425560004543513,
+        "projection_seconds": 0.4897194000077434
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.13425560004543513,
+      "split_id": "3",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.05962409998755902,
+        "projection_seconds": 0.454393699998036
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.05962409998755902,
+      "split_id": "4",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.059946299996227026,
+        "projection_seconds": 0.45073059998685494
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.059946299996227026,
+      "split_id": "5",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.062284499988891184,
+        "projection_seconds": 0.47102160000940785
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.062284499988891184,
+      "split_id": "6",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.1289101000293158,
+        "projection_seconds": 0.4374072000500746
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.1289101000293158,
+      "split_id": "7",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.1323309000581503,
+        "projection_seconds": 0.48914740001782775
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.1323309000581503,
+      "split_id": "8",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.20563510002102703,
+        "projection_seconds": 0.48320469999453053
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.20563510002102703,
+      "split_id": "9",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.2222106999834068,
+        "projection_seconds": 0.34919839998474345
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.2222106999834068,
+      "split_id": "10",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.06233220000285655,
+        "projection_seconds": 0.4481465000426397
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.06233220000285655,
+      "split_id": "11",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.23088529997039586,
+        "projection_seconds": 0.4999645000207238
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.23088529997039586,
+      "split_id": "12",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.058989199984353036,
+        "projection_seconds": 0.42683960002614185
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.058989199984353036,
+      "split_id": "13",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.11799890000838786,
+        "projection_seconds": 0.4672489000367932
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.11799890000838786,
+      "split_id": "14",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.15473830001428723,
+        "projection_seconds": 0.47668860002886504
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.15473830001428723,
+      "split_id": "15",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.059918500017374754,
+        "projection_seconds": 0.39941069995984435
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.059918500017374754,
+      "split_id": "16",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.12969069997780025,
+        "projection_seconds": 0.4815752999857068
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.12969069997780025,
+      "split_id": "17",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.0606017000391148,
+        "projection_seconds": 0.465044200012926
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.0606017000391148,
+      "split_id": "18",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.21235410001827404,
+        "projection_seconds": 0.33841909997863695
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.21235410001827404,
+      "split_id": "19",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.15009519999148324,
+        "projection_seconds": 0.4409503000206314
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.15009519999148324,
+      "split_id": "20",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.05983009998453781,
+        "projection_seconds": 0.43913039995823056
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.05983009998453781,
+      "split_id": "21",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.0591736999922432,
+        "projection_seconds": 0.43553489999612793
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.0591736999922432,
+      "split_id": "22",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.12971260002814233,
+        "projection_seconds": 0.4624793999828398
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.12971260002814233,
+      "split_id": "23",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "evaluation_seconds": 0.18727860000217333,
+        "projection_seconds": 0.5122227999963798
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --problem ${DATASET_ROOT}/calibrex_camera_lidar_v07_dev/runs/kitti360_0002/problem.yaml --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-real/kitti360",
+        "config_sha256": "8979bb1a91ce10aff7cbae5e5fea4ea049ee68913d529357d751adcadeef4531",
+        "execution_host": "${HOST}",
+        "input_sha256": "cda1fb2c67a75f5bd7de14a7481151f3b09484311020fa9de1579b08900d6555",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.18727860000217333,
+      "split_id": "24",
+      "status": "success"
+    }
+  ]
+}

@@ -863,6 +863,9 @@ identity, preventing a numerically mixed run from entering the evidence pack.
 The optional `numba_cpu` backend must be selected explicitly; omitting the
 flag retains the dependency-free NumPy implementation. Backend identity and
 dependency version are pinned in each trace and cannot be mixed by `--resume`.
+The optional `cuda` backend accelerates projection and visibility on an NVIDIA
+GPU; use `--workers 1`. See [GPU acceleration](../tutorials/gpu_acceleration.md)
+for installation, numerical checks and synchronized timing comparisons.
 - Each refinement result records the problem's digest-pinned reference
   transform plus initial/final Euclidean translation and
   quaternion-geodesic rotation errors. The paired ablation aggregates these

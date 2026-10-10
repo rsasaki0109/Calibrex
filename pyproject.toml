@@ -71,6 +71,9 @@ opencv = [
 numba = [
   "numba>=0.59",
 ]
+cuda = [
+  "cupy-cuda12x>=13.6,<15",
+]
 autonomous = [
   "mcap>=1.1",
 ]
@@ -143,6 +146,12 @@ ignore_missing_imports = true
 # numba is an optional accelerator without type metadata; it may be absent.
 [[tool.mypy.overrides]]
 module = ["numba", "numba.*"]
+ignore_missing_imports = true
+
+# CuPy is loaded only by the optional CUDA projection adapter.
+[[tool.mypy.overrides]]
+module = ["cupy", "cupy.*"]
+follow_imports = "skip"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

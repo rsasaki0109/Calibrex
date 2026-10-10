@@ -1840,9 +1840,9 @@ def _build_parser() -> argparse.ArgumentParser:
     benchmark_six_dof.add_argument("--workers", type=_positive_int, default=1)
     benchmark_six_dof.add_argument(
         "--projection-backend",
-        choices=("numpy", "numba_cpu"),
+        choices=("numpy", "numba_cpu", "cuda"),
         default="numpy",
-        help="exact D2D projection implementation (default: numpy)",
+        help="D2D projection implementation (cuda requires calibrex[cuda] and --workers 1)",
     )
     benchmark_six_dof.add_argument("--resume", action="store_true")
     benchmark_six_dof.add_argument("--required-hit-rate", type=float)

@@ -371,6 +371,71 @@ def test_six_dof_benchmark_retains_schema_valid_traces(tmp_path: Path) -> None:
     assert "--bootstrap-samples 100" in definition_text
 
 
+def test_cuda_benchmark_requires_one_worker_before_loading_inputs(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="cuda projection requires --workers 1"):
+        run_borer_six_dof_benchmark(
+            tmp_path / "missing-problem.yaml", tmp_path / "missing-protocol.yaml",
+            trace_directory=tmp_path / "traces", command="fixture",
+            projection_backend="cuda", workers=2,
+        )
+
+
+def test_cuda_dependency_is_optional(monkeypatch: pytest.MonkeyPatch) -> None:
+    import builtins
+
+    from calibrex.evaluation.borer_six_dof_benchmark import _projection_runtime
+
+    original_import = builtins.__import__
+
+    def without_cuda(name: str, *args: object, **kwargs: object) -> object:
+        if name == "calibrex.solvers.cuda_depth_to_depth_adapter":
+            raise ImportError("optional dependency absent")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_cuda)
+    # Default execution still works without importing CuPy.
+    projector, identity = _projection_runtime("numpy")
+    assert callable(projector)
+    assert "numpy_depth_pair_projector" in identity
+    with pytest.raises(ValueError, match=r"calibrex\[cuda\]"):
+        _projection_runtime("cuda")
+
+
+def test_cuda_cli_benchmark_records_backend_and_rejects_mixed_resume(tmp_path: Path) -> None:
+    cp = pytest.importorskip("cupy")
+    try:
+        if cp.cuda.runtime.getDeviceCount() < 1:
+            pytest.skip("requires a CUDA device")
+    except cp.cuda.runtime.CUDARuntimeError:
+        pytest.skip("requires a CUDA device")
+    problem_path = _write_problem(tmp_path)
+    protocol = build_borer_six_dof_protocol(
+        problem_path, perturbation_count=1, rotation_magnitude_deg=0.2,
+        translation_magnitude_m=0.05, min_visible_points=100, max_evaluations=20,
+    )
+    protocol_path = tmp_path / "cuda-protocol.yaml"
+    protocol.save(protocol_path)
+    trace_dir = tmp_path / "cuda-traces"
+    args = [
+        "camera-lidar", "benchmark-six-dof", str(problem_path), str(protocol_path),
+        "--trace-dir", str(trace_dir), "--definition-output", str(tmp_path / "definition.yaml"),
+        "--output", str(tmp_path / "benchmark.yaml"), "--bootstrap-samples", "10",
+        "--projection-backend", "cuda", "--resume", "--json",
+    ]
+    assert main(args) == 0
+    trace = load_calibration_candidate_trace(next(trace_dir.glob("*.trace.yaml")))
+    assert ";projection_backend=calibrex.cuda_depth_pair_projector/v0.2;cupy=" in trace.solver
+    assert ";device=" in trace.solver
+    assert validate_file(tmp_path / "definition.yaml", kind="benchmark-definition").valid
+    assert validate_file(tmp_path / "benchmark.yaml", kind="benchmark").valid
+    assert main(args) == 0
+    with pytest.raises(ValueError, match="identity mismatch"):
+        run_borer_six_dof_benchmark(
+            problem_path, protocol_path, trace_directory=trace_dir, command="fixture",
+            projection_backend="numpy", resume=True, bootstrap_samples=10,
+        )
+
+
 def test_borer_rotation_benchmark_retains_trials_and_traces(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

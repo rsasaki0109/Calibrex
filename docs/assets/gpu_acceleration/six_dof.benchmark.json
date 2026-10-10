@@ -1,0 +1,418 @@
+{
+  "benchmark_id": "d2d-solver-synthetic-pinhole-200000-1280x720",
+  "bootstrap_samples": 1000,
+  "bootstrap_seed": 42,
+  "limitations": [
+    "All timed projections and MI records exactly match the NumPy reference.",
+    "Timing repetitions are not held-out calibration accuracy trials.",
+    "Transfers and synchronization are included; compilation/preparation are separate.",
+    "Startup times: {\"cuda\": {\"first_evaluation_seconds\": 0.005215299956034869, \"setup_seconds\": 0.6231334999902174}, \"numba_cpu\": {\"first_evaluation_seconds\": 0.6326924000168219, \"setup_seconds\": 0.4106791999656707}, \"numpy\": {\"first_evaluation_seconds\": 0.04299070005072281, \"setup_seconds\": 3.400025889277458e-06}}",
+    "Environment: Python 3.12.10; NumPy 2.3.4; Windows-11-10.0.26300-SP0; CPU Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
+    "Synthetic random depth/points measure throughput, not recovery accuracy.",
+    "Publication metadata normalizes local interpreter/dataset paths and host names; numerical records and original input/config/code digests are unchanged. The original local report SHA-256 is recorded in source_artifacts."
+  ],
+  "method_summaries": {
+    "cuda": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda",
+      "metrics": {
+        "solver_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.3904490999993868,
+            "mean": 0.3634421999837893,
+            "mean_ci95_high": 0.3904490999993868,
+            "mean_ci95_low": 0.3475504999514669,
+            "median": 0.3523270000005141,
+            "minimum": 0.3475504999514669,
+            "p90": 0.3828246799996123,
+            "p95": 0.3866368899994996,
+            "standard_deviation": 0.019196062521934003
+          },
+          "metric": "solver_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 0.3904490999993868,
+        "mean": 0.3634421999837893,
+        "mean_ci95_high": 0.3904490999993868,
+        "mean_ci95_low": 0.3475504999514669,
+        "median": 0.3523270000005141,
+        "minimum": 0.3475504999514669,
+        "p90": 0.3828246799996123,
+        "p95": 0.3866368899994996,
+        "standard_deviation": 0.019196062521934003
+      },
+      "success_count": 3,
+      "trial_count": 3
+    },
+    "numba_cpu": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numba_cpu",
+      "metrics": {
+        "solver_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 2.079061900032684,
+            "mean": 2.065363066697804,
+            "mean_ci95_high": 2.079061900032684,
+            "mean_ci95_low": 2.0497286000172608,
+            "median": 2.067298700043466,
+            "minimum": 2.0497286000172608,
+            "p90": 2.0767092600348405,
+            "p95": 2.0778855800337626,
+            "standard_deviation": 0.01205323275544339
+          },
+          "metric": "solver_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 2.079061900032684,
+        "mean": 2.065363066697804,
+        "mean_ci95_high": 2.079061900032684,
+        "mean_ci95_low": 2.0497286000172608,
+        "median": 2.067298700043466,
+        "minimum": 2.0497286000172608,
+        "p90": 2.0767092600348405,
+        "p95": 2.0778855800337626,
+        "standard_deviation": 0.01205323275544339
+      },
+      "success_count": 3,
+      "trial_count": 3
+    },
+    "numpy": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numpy",
+      "metrics": {
+        "solver_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 3.4818435000488535,
+            "mean": 3.2966908667003736,
+            "mean_ci95_high": 3.4818435000488535,
+            "mean_ci95_low": 3.183054200024344,
+            "median": 3.2251749000279233,
+            "minimum": 3.183054200024344,
+            "p90": 3.4305097800446673,
+            "p95": 3.45617664004676,
+            "standard_deviation": 0.13204711676545697
+          },
+          "metric": "solver_seconds",
+          "rank": 3
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 3.4818435000488535,
+        "mean": 3.2966908667003736,
+        "mean_ci95_high": 3.4818435000488535,
+        "mean_ci95_low": 3.183054200024344,
+        "median": 3.2251749000279233,
+        "minimum": 3.183054200024344,
+        "p90": 3.4305097800446673,
+        "p95": 3.45617664004676,
+        "standard_deviation": 0.13204711676545697
+      },
+      "success_count": 3,
+      "trial_count": 3
+    }
+  },
+  "methods": [
+    {
+      "implementation": "adapter",
+      "label": "numpy",
+      "license_spdx": "Apache-2.0 (Calibrex); MIT (CuPy); BSD-2-Clause (Numba)",
+      "method_id": "numpy",
+      "tool_name": "numpy",
+      "tool_version": "calibrex.numpy_depth_pair_projector/v0.2;numpy=2.3.4"
+    },
+    {
+      "implementation": "adapter",
+      "label": "numba_cpu",
+      "license_spdx": "Apache-2.0 (Calibrex); MIT (CuPy); BSD-2-Clause (Numba)",
+      "method_id": "numba_cpu",
+      "tool_name": "numba_cpu",
+      "tool_version": "calibrex.numba_depth_pair_projector/v0.1;numba=0.65.1"
+    },
+    {
+      "implementation": "adapter",
+      "label": "cuda",
+      "license_spdx": "Apache-2.0 (Calibrex); MIT (CuPy); BSD-2-Clause (Numba)",
+      "method_id": "cuda",
+      "tool_name": "cuda",
+      "tool_version": "calibrex.cuda_depth_pair_projector/v0.2;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1000.0,
+      "display_unit": "ms",
+      "interpretation": "synchronized warm host-to-host latency",
+      "label": "solver_seconds",
+      "name": "solver_seconds",
+      "primary": true,
+      "unit": "s"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 1.4027816000161693,
+      "improvement_ci95_low": 1.115755499980878,
+      "improvement_mean": 1.23132780000257,
+      "metric": "solver_seconds",
+      "paired_count": 3,
+      "raw_delta_mean": -1.23132780000257,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 3.0913944000494666,
+      "improvement_ci95_low": 2.83072720002383,
+      "improvement_mean": 2.9332486667165845,
+      "metric": "solver_seconds",
+      "paired_count": 3,
+      "raw_delta_mean": -2.9332486667165845,
+      "reference_method_id": "numpy"
+    }
+  ],
+  "protocol": {
+    "data_license": "synthetic Apache-2.0 or input dataset-specific",
+    "dataset_id": "synthetic-pinhole-200000-1280x720",
+    "dataset_source_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+    "failure_policy": "abort and report any projection, MI or solver-trace mismatch",
+    "initial_estimate_policy": "prespecified pose perturbations shared across backends",
+    "protocol_id": "d2d-backend-latency/v0.1",
+    "split_policy": "paired timing repetitions; reference projection is the equivalence anchor, not accuracy holdout",
+    "splits": [
+      {
+        "fit_count": 1,
+        "fit_ids_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "seed": 0,
+        "split_id": "0"
+      },
+      {
+        "fit_count": 1,
+        "fit_ids_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "seed": 1,
+        "split_id": "1"
+      },
+      {
+        "fit_count": 1,
+        "fit_ids_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "seed": 2,
+        "split_id": "2"
+      }
+    ],
+    "tuning_policy": "FP64 and original histogram settings; no solver or metric retuning"
+  },
+  "provenance": {
+    "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+    "data_verified": true,
+    "generated_at": "2026-10-10T14:53:01.292736+00:00",
+    "generator": "tools.benchmark_d2d_projection",
+    "generator_version": "v0.1",
+    "git_commit": "75cc46f",
+    "source_artifacts": {
+      "config": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+      "input": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+      "local_report_before_publication": "097579b9def1afbc93d815a555bee41e2057b674be3cf201d9e3d06c179fd22e",
+      "src\\calibrex\\solvers\\borer_depth_to_depth_solver.py": "ef1ea2fe9e03d6e9d67855a58bde705355ef1332e5b10f5806c8c86e6fb5b70f",
+      "src\\calibrex\\solvers\\borer_six_dof_solver.py": "94ffd07c6977a83bf2e7ac5d5c19e0a3e2725ef7510dfa1e7d3c82ba08a89baa",
+      "src\\calibrex\\solvers\\cuda_depth_to_depth_adapter.py": "52c26bba733386782cba7fb1e534ca1e3f7cebfc42f4dd5cceb2bf9ff6267e20",
+      "tools\\benchmark_d2d_projection.py": "ef18bf172a240db0707e4b19897820af65b1e66fd9ccfd603bebd3f948a87cb3"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "D2D solver backend latency: synthetic-pinhole-200000-1280x720",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "solver_seconds": 3.4818435000488535
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 3.4818435000488535,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "solver_seconds": 3.2251749000279233
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 3.2251749000279233,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "solver_seconds": 3.183054200024344
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 3.183054200024344,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "solver_seconds": 2.079061900032684
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 2.079061900032684,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "solver_seconds": 2.0497286000172608
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 2.0497286000172608,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "solver_seconds": 2.067298700043466
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 2.067298700043466,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "solver_seconds": 0.3904490999993868
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.3904490999993868,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "solver_seconds": 0.3475504999514669
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.3475504999514669,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "solver_seconds": 0.3523270000005141
+      },
+      "provenance": {
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
+        "execution_host": "${HOST}",
+        "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
+        "notes": [
+          "All timed projections and MI records exactly match the NumPy reference."
+        ]
+      },
+      "runtime_seconds": 0.3523270000005141,
+      "split_id": "2",
+      "status": "success"
+    }
+  ]
+}

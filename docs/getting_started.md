@@ -66,6 +66,8 @@ Axes the data did not observe are marked `NOT MEASURED`, never written as measur
 - [Browser calibration](tutorials/browser_calibration.md): calibrate an IMU against
   a trajectory without installing anything; data stays in the page.
 - [Calibration CI](tutorials/calibration_ci.md): gate a pipeline on calibration evidence.
+- [GPU acceleration](tutorials/gpu_acceleration.md): accelerate repeated Camera–LiDAR
+  six-DoF projection and compare with the CPU backends.
 - [SOTA leaderboard](benchmarks/sota_leaderboard.md): what is, and is not, claimed.
 - [Calibrate your own data](tutorials/your_own_data.md) and
   [public datasets](tutorials/public_datasets.md).
