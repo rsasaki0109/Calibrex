@@ -174,6 +174,270 @@ def test_borer_problem_loader_verifies_and_loads_arrays(tmp_path: Path) -> None:
     assert loaded.observations[0].lidar_points.shape[1] == 3
 
 
+def _estimate_args(problem: Path, output: Path) -> list[str]:
+    return [
+        "camera-lidar", "estimate-six-dof", str(problem), "--output", str(output),
+        "--minimum-rotation-step-deg", "0.25", "--minimum-translation-step-m", "0.1", "--json",
+    ]
+
+
+def test_single_six_dof_estimate_saves_standard_result_and_exact_argv(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    from calibrex.core.result import load_result
+    from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, BorerSixDofSolver
+
+    folder = tmp_path / "path with spaces"
+    folder.mkdir()
+    problem = _write_problem(folder)
+    output = folder / "result.json"
+    args = _estimate_args(problem, output)
+    assert main(args) == 0
+    result = load_result(output)
+    assert validate_file(output, kind="result").valid
+    assert result.production_valid
+    assert result.run.status == "success"
+    assert result.quality.grade == "warn"
+    assert result.observability.rank is None
+    assert result.run.provenance["command"] == ["calibrex", *args]
+    assert result.run.provenance["data_verified"] is True
+    assert result.run.provenance["reference_used_for_optimization"] is False
+    key = "T_camera_2_lidar"
+    assert result.candidate_extrinsics[key].provenance.role_in_comparison == "candidate"
+    assert result.reference_extrinsics[key].provenance.role_in_comparison == "selected_reference"
+    assert result.transforms[key].provenance.evidence_level == "algorithmically_refined"
+    assert result.transforms[key].quality.std_rotation_deg == []
+    assert result.transforms[key].covariance is None
+    assert result.metrics["final_d2d_mutual_information"].holdout is None
+    assert result.metrics["final_d2d_mutual_information"].grade == "warn"
+    loaded = load_borer_problem(problem)
+    expected = BorerSixDofSolver().solve(
+        loaded.observations, loaded.problem.initial_transform_camera_lidar.as_se3(),
+        BorerSixDofOptions(minimum_rotation_step_deg=0.25, minimum_translation_step_m=0.1),
+    ).as_dict()
+    actual = dict(result.run.provenance["solver_result"])
+    expected.pop("projection_backend")
+    actual.pop("projection_backend")
+    assert actual == expected
+    assert '"status": "converged"' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("extra, status, output_pose", [
+    (["--max-evaluations", "13", "--minimum-rotation-step-deg", "0.01"],
+     "max_evaluations", True),
+    (["--min-visible-points", "2000"], "insufficient_observations", False),
+])
+def test_single_estimate_nonconvergence_preserves_evidence_without_success(
+    tmp_path: Path, extra: list[str], status: str, output_pose: bool,
+) -> None:
+    from calibrex.core.result import load_result
+
+    problem = _write_problem(tmp_path)
+    output = tmp_path / "result.yaml"
+    assert main([*_estimate_args(problem, output), *extra]) == 2
+    result = load_result(output)
+    assert validate_file(output, kind="result").valid
+    assert result.run.status == ("warning" if output_pose else "failed")
+    assert result.run.provenance["solver_result"]["status"] == status
+    assert bool(result.transforms) is output_pose
+    assert bool(result.candidate_extrinsics)
+    if not output_pose:
+        assert result.quality.grade == "fail"
+        assert result.metrics["final_d2d_mutual_information"].train is None
+        assert result.quality.blocking_failures
+
+
+def test_single_estimate_uses_prior_and_ignores_reference_values(tmp_path: Path) -> None:
+    from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+    from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
+    from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, apply_local_se3_delta
+
+    path = _write_problem(tmp_path)
+    problem = load_camera_lidar_problem(path)
+    prior = apply_local_se3_delta(
+        problem.initial_transform_camera_lidar.as_se3(), [0.5, -0.25, 0.0], [0.1, 0.0, 0.0],
+    )
+    problem.initial_transform_camera_lidar.translation_m = list(prior.translation_m)
+    problem.initial_transform_camera_lidar.rotation_quat_xyzw = list(prior.rotation_quat_xyzw)
+    problem.save(path)
+    options = BorerSixDofOptions(max_evaluations=13)
+    first = run_camera_lidar_six_dof_estimate(path, options=options, command=["fixture"])
+    problem.reference_transform_camera_lidar.translation_m = [1000.0, -200.0, 50.0]
+    problem.reference_transform_camera_lidar.rotation_quat_xyzw = [0.5, 0.5, 0.5, 0.5]
+    problem.save(path)
+    second = run_camera_lidar_six_dof_estimate(path, options=options, command=["fixture"])
+    assert first.run.provenance["solver_result"] == second.run.provenance["solver_result"]
+    assert first.transforms == second.transforms
+    initial_pose = second.run.provenance["solver_result"]["initial_transform_camera_lidar"]
+    assert initial_pose == prior.as_dict()
+    assert first.run.config_sha256 == second.run.config_sha256
+    assert first.run.dataset_sha256 != second.run.dataset_sha256
+    assert first.reference_extrinsics != second.reference_extrinsics
+
+
+def test_single_estimate_holdout_is_excluded_from_search_and_ranges(tmp_path: Path) -> None:
+    from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+    from calibrex.data.depth import load_depth_provider
+    from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
+    from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
+
+    path = _write_problem(tmp_path)
+    problem = load_camera_lidar_problem(path)
+    options = BorerSixDofOptions(max_evaluations=13)
+    baseline = run_camera_lidar_six_dof_estimate(path, options=options, command=["fixture"])
+    provider_path = Path(problem.depth_provider_path)
+    provider = load_depth_provider(provider_path)
+    extreme_depth = tmp_path / "held-out.depth.npy"
+    np.save(extreme_depth, np.load(tmp_path / "000000.depth.npy") * 1000.0 + 500.0)
+    provider.observations.append(provider.observations[0].model_copy(update={
+        "frame_id": "held-out",
+        "depth": depth_file_reference(extreme_depth, encoding="npy_float32"),
+    }))
+    provider.save(provider_path)
+    problem.depth_provider_sha256 = sha256_path(provider_path) or ""
+    problem.observations.append(problem.observations[0].model_copy(update={
+        "frame_id": "held-out", "depth_observation_frame_id": "held-out",
+    }))
+    problem.save(path)
+    result = run_camera_lidar_six_dof_estimate(
+        path, options=options,
+        holdout_frame_ids=["held-out"], command=["fixture"],
+    )
+    config = result.run.provenance["configuration"]
+    assert config["train_frame_ids"] == ["000000"]
+    assert config["holdout_frame_ids"] == ["held-out"]
+    trace = result.run.provenance["solver_result"]
+    assert trace == baseline.run.provenance["solver_result"]
+    assert config["options"] == baseline.run.provenance["configuration"]["options"]
+    assert all(item["evaluated_frame_count"] == 1 for item in trace["trace"])
+    final = result.run.provenance["final_holdout_evaluation"]
+    assert [item["frame_id"] for item in final["frames"]] == ["held-out"]
+    metric = result.metrics["final_d2d_mutual_information"]
+    assert metric.train is not None and metric.train > 0.0
+    assert metric.holdout == 0.0
+    invalid_splits = [
+        (["unknown"], "unknown holdout"), (["000000", "held-out"], "training frame"),
+    ]
+    for ids, message in invalid_splits:
+        with pytest.raises(ValueError, match=message):
+            run_camera_lidar_six_dof_estimate(path, holdout_frame_ids=ids, command=["fixture"])
+
+
+def test_single_estimate_can_reuse_only_a_matching_output_pose(tmp_path: Path) -> None:
+    from calibrex.core.result import load_result
+
+    path = _write_problem(tmp_path)
+    initial_path = tmp_path / "first.yaml"
+    output = tmp_path / "second.yaml"
+    assert main(_estimate_args(path, initial_path)) == 0
+    initial = load_result(initial_path)
+    assert main([*_estimate_args(path, output), "--initial-result", str(initial_path)]) == 0
+    result = load_result(output)
+    key = "T_camera_2_lidar"
+    assert result.candidate_extrinsics[key].as_se3() == initial.transforms[key].as_se3()
+    recorded_digest = result.run.provenance["input_digests"]["initial_result_sha256"]
+    assert recorded_digest == sha256_path(initial_path)
+    assert result.run.provenance["initial_source"] == str(initial_path)
+    # A reference alone is not an output pose usable as an implicit prior.
+    initial.transforms = {}
+    initial.save(initial_path)
+    rejected = tmp_path / "rejected.yaml"
+    assert main([*_estimate_args(path, rejected), "--initial-result", str(initial_path)]) == 2
+    assert not rejected.exists()
+
+
+@pytest.mark.parametrize("fault, message", [
+    ("lidar_digest", "digest mismatch"),
+    ("translation_bound", "exceeds the problem"),
+    ("frame_mismatch", "same camera and LiDAR frames"),
+    ("nonfinite_pose", "coordinates must be finite"),
+    ("nonfinite_options", "Out of range float"),
+])
+def test_single_estimate_rejects_bad_input_before_saving(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str, message: str,
+) -> None:
+    from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+
+    path = _write_problem(tmp_path)
+    problem = load_camera_lidar_problem(path)
+    extra = []
+    if fault == "lidar_digest":
+        lidar = Path(problem.observations[0].lidar.path)
+        lidar.write_bytes(lidar.read_bytes() + b"tampered")
+    elif fault == "translation_bound":
+        problem.translation_bound_m = 0.25
+    elif fault == "frame_mismatch":
+        problem.reference_transform_camera_lidar.child = "other-lidar"
+    elif fault == "nonfinite_pose":
+        problem.initial_transform_camera_lidar.translation_m = [float("nan"), 0.0, 0.0]
+    else:
+        extra = ["--improvement-tolerance", "nan"]
+    problem.save(path)
+    output = tmp_path / "rejected.yaml"
+    assert main([*_estimate_args(path, output), *extra]) == 2
+    assert not output.exists()
+    assert message in capsys.readouterr().err
+
+
+def test_single_estimate_missing_cuda_is_actionable_and_cpu_still_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    import builtins
+
+    original_import = builtins.__import__
+
+    def without_cuda(name: str, *args: object, **kwargs: object) -> object:
+        if name == "calibrex.solvers.cuda_depth_to_depth_adapter":
+            raise ImportError("optional dependency absent")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_cuda)
+    path = _write_problem(tmp_path)
+    output = tmp_path / "cuda.yaml"
+    assert main([*_estimate_args(path, output), "--projection-backend", "cuda"]) == 2
+    assert not output.exists()
+    assert "calibrex[cuda]" in capsys.readouterr().err
+    assert main(_estimate_args(path, tmp_path / "numpy.yaml")) == 0
+
+
+def test_single_estimate_cuda_matches_cpu_result_trace_and_holdout(tmp_path: Path) -> None:
+    from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+    from calibrex.core.result import load_result
+
+    cp = pytest.importorskip("cupy")
+    try:
+        if cp.cuda.runtime.getDeviceCount() < 1:
+            pytest.skip("requires a CUDA device")
+    except cp.cuda.runtime.CUDARuntimeError:
+        pytest.skip("requires a CUDA device")
+    path = _write_problem(tmp_path)
+    problem = load_camera_lidar_problem(path)
+    problem.observations.append(problem.observations[0].model_copy(update={"frame_id": "held-out"}))
+    problem.save(path)
+    results = []
+    for backend in ("numpy", "cuda"):
+        output = tmp_path / f"{backend}.yaml"
+        assert main([
+            *_estimate_args(path, output), "--projection-backend", backend,
+            "--holdout-frame-id", "held-out",
+        ]) == 0
+        assert validate_file(output, kind="result").valid
+        results.append(load_result(output))
+    cpu, gpu = results
+    assert gpu.transforms == cpu.transforms
+    assert gpu.metrics == cpu.metrics
+    cpu_holdout = cpu.run.provenance["final_holdout_evaluation"]
+    assert gpu.run.provenance["final_holdout_evaluation"] == cpu_holdout
+    cpu_trace = dict(cpu.run.provenance["solver_result"])
+    gpu_trace = dict(gpu.run.provenance["solver_result"])
+    cpu_trace.pop("projection_backend")
+    gpu_trace.pop("projection_backend")
+    assert cpu_trace == gpu_trace
+    identity = gpu.run.provenance["projection_backend"]
+    assert "calibrex.cuda_depth_pair_projector/v0.2;cupy=" in identity
+    assert ";device=" in identity
+
+
 def test_six_dof_protocol_freezes_paired_fibonacci_perturbations(
     tmp_path: Path,
 ) -> None:

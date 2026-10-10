@@ -10,9 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Literal
-
-import numpy as np
 
 from calibrex.core.benchmark import (
     BenchmarkArtifact,
@@ -50,10 +47,8 @@ from calibrex.evaluation.borer_rotation_benchmark import (
     load_borer_problem,
 )
 from calibrex.solvers.borer_depth_to_depth_solver import (
-    DepthPairProjector,
     DepthToDepthObservation,
     DepthToDepthOptions,
-    project_depth_pairs,
 )
 from calibrex.solvers.borer_six_dof_solver import (
     BorerSixDofOptions,
@@ -61,9 +56,12 @@ from calibrex.solvers.borer_six_dof_solver import (
     BorerSixDofSolver,
     apply_local_se3_delta,
 )
+from calibrex.solvers.depth_to_depth_runtime import ProjectionBackend as ProjectionBackend
+from calibrex.solvers.depth_to_depth_runtime import (
+    create_depth_pair_projector as _projection_runtime,
+)
 
 BORER_SIX_DOF_BENCHMARK_VERSION = "calibrex.borer_six_dof_benchmark/v0.3"
-ProjectionBackend = Literal["numpy", "numba_cpu", "cuda"]
 
 
 @dataclass(frozen=True)
@@ -446,39 +444,6 @@ def _solver_options(
         projector=projector,
         projection_backend=backend_identity,
     )
-
-
-def _projection_runtime(
-    backend: ProjectionBackend,
-    observations: tuple[DepthToDepthObservation, ...] = (),
-) -> tuple[DepthPairProjector, str]:
-    if backend == "numpy":
-        return (
-            project_depth_pairs,
-            "calibrex.numpy_depth_pair_projector/v0.2"
-            f";numpy={np.__version__}",
-        )
-    if backend == "numba_cpu":
-        try:
-            from calibrex.solvers.numba_depth_to_depth_adapter import (
-                numba_depth_pair_projector_identity,
-                project_depth_pairs_numba,
-            )
-        except ImportError as exc:
-            raise ValueError(
-                "numba_cpu projection requires the optional calibrex[numba] dependency"
-            ) from exc
-        return project_depth_pairs_numba, numba_depth_pair_projector_identity()
-    if backend == "cuda":
-        try:
-            from calibrex.solvers.cuda_depth_to_depth_adapter import CudaDepthPairProjector
-        except ImportError as exc:
-            raise ValueError(
-                "cuda projection requires the optional calibrex[cuda] dependency"
-            ) from exc
-        projector = CudaDepthPairProjector(observations)
-        return projector, projector.identity()
-    raise ValueError(f"unsupported D2D projection backend: {backend}")
 
 
 def _trace_solver_identity(projection_backend: str) -> str:
