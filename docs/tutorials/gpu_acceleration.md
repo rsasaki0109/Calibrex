@@ -31,6 +31,61 @@ for CUDA component wheels, conda installations and platform requirements. With
 an existing CUDA 13 toolkit, install `cupy-cuda13x>=14,<15` instead of the CUDA 12
 extra; both provide the same `cupy` adapter interface.
 
+## Estimate one calibration
+
+The single-run command refines the prior declared in
+`problem.initial_transform_camera_lidar` and saves a standard
+`slac.result/v0.1` calibration result:
+
+```bash
+calibrex camera-lidar estimate-six-dof problem.yaml \
+  --projection-backend cuda --output outputs/d2d-result.yaml
+calibrex validate outputs/d2d-result.yaml --kind result
+```
+
+The problem binds synchronized LiDAR scans to previously generated camera depth
+maps, with camera models and file/checkpoint digests. Use the existing
+`build-kitti-problem`, `build-kitti360-problem` or `build-a2d2-problem` commands
+after preparing a depth-provider artifact; this command verifies the bound
+files and does not generate learned depth. Declare your measured rough prior in
+the problem. Some dataset builders initialize the prior from the dataset
+reference, which is useful for evaluation but is not an independently measured
+prior. The estimator uses the declared initial pose directly and does not seed
+from `reference_transform_camera_lidar` or synthesize benchmark perturbations.
+
+To reserve frames for validation, repeat `--holdout-frame-id` with IDs from the
+problem. Remaining frames are used for optimization and histogram range
+selection; the frozen ranges then apply to the holdout frames:
+
+```bash
+calibrex camera-lidar estimate-six-dof problem.yaml \
+  --projection-backend cuda --holdout-frame-id 0000002761 \
+  --output outputs/d2d-with-holdout.yaml
+```
+
+`--initial-result previous.yaml` uses the matching pose from that standard
+result's `transforms` as the prior and records the source digest. It requires the
+same camera/LiDAR frames and never substitutes a reference-only pose.
+`--rotation-bound-deg`, `--translation-bound-m`, initial/minimum step options,
+`--histogram-bins`, `--min-visible-points`, `--max-evaluations` and `--objective`
+control the search. Bounds cannot exceed those declared in the problem.
+
+The default backend is `numpy`; use `numba_cpu` for the optional CPU accelerator.
+CPU execution requires neither CuPy nor a GPU. CUDA failure is reported without
+silently switching implementations. The output records full backend identity,
+verified input and effective configuration digests, exact command arguments,
+separate input-loading/backend-preparation/solve timings and the complete solver
+trace in `run.provenance`. Initial, output and dataset-reference poses remain
+separate. Training and optional holdout MI values are evidence of the objective,
+not calibration accuracy or an acceptance gate.
+
+Exit code `0` means the optimizer converged. Exit code `2` also writes a result
+when the evaluation limit is reached (a partial candidate with `warning` status)
+or observations are insufficient (`failed`, without an output transform).
+Invalid inputs or unavailable requested backends return `2` without a new
+result. Result quality stays `warn` after convergence because observability,
+covariance and independent accuracy acceptance have not been established.
+
 ## Run a frozen protocol
 
 Use your digest-verified problem and six-DoF protocol artifacts:
@@ -51,7 +106,8 @@ kernel source hash and FP64 policy. Use separate trace directories for CPU and
 GPU runs.
 
 The default remains `numpy`; `numba_cpu` is also available. Select CUDA explicitly
-for this six-DoF benchmark. The bag-level `estimate`, `check` and `drift` commands
+for `estimate-six-dof` or this six-DoF benchmark. The bag-level `estimate`,
+`check` and `drift` commands
 do not currently expose this backend. Missing GPU dependencies or an unusable
 runtime produce an error when CUDA is requested.
 
@@ -207,3 +263,22 @@ The public timing reports contain metadata only. Local interpreter/dataset
 paths and host names are normalized before publication; the SHA-256 of each
 original report is recorded alongside the original input/configuration/code
 digests. Raw sensor data, depth maps and model checkpoints remain external.
+
+## Single-estimation CLI validation
+
+The standard CLI was also checked end to end on KITTI raw 0018 with 20 training
+frames and five reserved holdout frames. Both backends converged after 157
+evaluations. Output transforms, every solver-trace record and initial/final
+train and holdout MI values matched exactly. The standard
+[NumPy result](../assets/gpu_acceleration/kitti_raw_estimate_numpy.result.json) and
+[CUDA result](../assets/gpu_acceleration/kitti_raw_estimate_cuda.result.json)
+passed result-schema validation; the CUDA result also rendered through
+`calibrex render` and exported through `calibrex export --format ros-tf`.
+
+The solve phase took 29.591 s on NumPy and 1.847 s on CUDA. Input verification
+and loading took about 2.35 s on each; CUDA preparation took another 0.618 s.
+This is one CLI invocation per backend, not a repeated latency benchmark.
+The problem's declared initial pose came from the dataset reference; this
+check demonstrates execution equivalence, not independent calibration accuracy.
+See the [evidence notes](../assets/gpu_acceleration/README.md#single-estimation-cli-with-holdout)
+for commands, selected frame IDs, original result hashes and timing scope.

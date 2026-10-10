@@ -39,3 +39,45 @@ python tools/run_borer_six_dof_chunk.py problem.yaml six-dof-protocol.yaml \
 python tools/run_borer_six_dof_chunk.py problem.yaml six-dof-protocol.yaml \
   --trace-dir outputs/parity-cuda --start 0 --stop 1 --projection-backend cuda
 ```
+
+## Single-estimation CLI with holdout
+
+The two `kitti_raw_estimate_*.result.json` files are standard
+`slac.result/v0.1` results from `camera-lidar estimate-six-dof`, using the same
+KITTI raw 0018 problem digest as above. The last five of its 25 frame IDs were
+reserved before execution for holdout; histogram ranges and optimization use
+only the other 20 frames. These files retain all 157 evaluations, separate
+initial/output/reference transforms, train/holdout objectives and full backend
+identity. Both backends converged, with exact equality of all numerical solver
+records, output transforms and initial/final holdout evaluations.
+
+| Single invocation | Input verification/loading | Backend preparation | Solve | Holdout evaluation |
+| --- | ---: | ---: | ---: | ---: |
+| NumPy | 2.352 s | <0.001 s | 29.591 s | 0.105 s |
+| CUDA | 2.350 s | 0.618 s | 1.847 s | 0.006 s |
+
+This is an end-to-end smoke check on the same GTX 1660 Ti, not a repeated timing
+benchmark. The declared problem prior is the dataset reference; this run does
+not demonstrate recovery from an independently measured prior or establish
+calibration accuracy. Quality remains `warn`, with no estimated covariance or
+observability rank. No acceptance threshold was selected from holdout data.
+The output also passed standard result validation, HTML rendering and ROS TF
+export.
+
+Paths are normalized; numerical values and original input/configuration digests
+are unchanged. `run.provenance.source_artifacts.local_result_before_publication`
+records each original YAML result digest:
+
+- NumPy: `abc103cca3618d48bff3ac144ebf772a9e22fcfe3f7d114b85305ceedfb02dd4`
+- CUDA: `2ab5b71d38c192807e1be41bbc9a7dce02f12e65f3e43ef0d061430ba4912f0d`
+
+Reproduce each invocation with the existing problem, changing `BACKEND` to
+`numpy` or `cuda`:
+
+```bash
+calibrex camera-lidar estimate-six-dof problem.yaml \
+  --projection-backend BACKEND \
+  --holdout-frame-id 0000002301 --holdout-frame-id 0000002416 \
+  --holdout-frame-id 0000002531 --holdout-frame-id 0000002646 \
+  --holdout-frame-id 0000002761 --output outputs/estimate-BACKEND.yaml --json
+```
