@@ -89,6 +89,24 @@
   recordings (judged axes only), 23 of 27 rotation errors of 1, 3 and 5 deg are flagged, the rest
   `inconclusive` or `pass` with the axis unchecked; first-run time 20-100 s. Development evidence,
   no leaderboard claim.
+- **Joint continuous-time LiDAR-IMU recovery (synthetic), with the IMU mounting rotation.** The
+  sparse knot-path solver gains `R_body_imu` (`estimate_imu_rotation`, right-perturbation analytic
+  Jacobians for gyro pre-integration and specific force, checked against finite differences) and
+  reports the marginal covariance of the calibration blocks with the knots marginalized
+  (`calibration_covariance`, `calibration_correlation`). New
+  `calibrex trajectory recover-lidar-imu-joint` estimates the knot path from LiDAR point-to-plane
+  returns (no truth pose gauges) together with the IMU rotation, gyro bias, lever arm, clock offset,
+  accelerometer bias and gravity in one fit, holds out every third gyro window and accelerometer
+  sample, runs 32 signed per-axis known-bad controls (whitened holdout chi-square, Delta chi2 >= 9)
+  and reports the correlation of every block pair (`slac.continuous_time_lidar_imu_joint/v0.1`).
+  On seeds 20261010, 1 and 2 the fit starts 4.05 deg from the true mounting rotation and recovers
+  it to 0.05-0.10 deg; every block is within 4 sigma of truth and within the budget of its
+  single-parameter `recover-imu-*` runner, and every control is detected. The
+  strongest couplings are accelerometer bias with gravity (correlation 0.89, just under the 0.9
+  entanglement flag) and lever arm with accelerometer bias (0.77). Synthetic only:
+  the screw-linear knot path has piecewise-constant velocity, so its acceleration sits at the knots
+  and the clock offset is observed only by gyro windows that straddle a knot; a real capture needs
+  a smoother trajectory model first. The existing `recover-*` artifacts are numerically unchanged.
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide

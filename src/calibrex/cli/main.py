@@ -2545,6 +2545,18 @@ def _build_parser() -> argparse.ArgumentParser:
     trajectory_intrinsics.add_argument("--recovery-id", default="ct-imu-intrinsics-synthetic")
     trajectory_intrinsics.add_argument("--json", action="store_true")
     trajectory_intrinsics.set_defaults(func=_cmd_trajectory_recover_imu_intrinsics)
+    trajectory_joint = trajectory_subcommands.add_parser(
+        "recover-lidar-imu-joint",
+        help=(
+            "synthetic joint LiDAR-IMU recovery: IMU rotation, gyro bias, lever arm, "
+            "clock offset, accel bias and gravity with controls and separability"
+        ),
+    )
+    trajectory_joint.add_argument("--output", type=Path, required=True)
+    trajectory_joint.add_argument("--seed", type=int, default=20261010)
+    trajectory_joint.add_argument("--recovery-id", default="ct-lidar-imu-joint-synthetic")
+    trajectory_joint.add_argument("--json", action="store_true")
+    trajectory_joint.set_defaults(func=_cmd_trajectory_recover_lidar_imu_joint)
     trajectory_window = trajectory_subcommands.add_parser(
         "recover-sliding-window",
         help="synthetic sliding-window marginalization recovery",
@@ -7941,6 +7953,52 @@ def _cmd_trajectory_recover_imu_accel_bias(args: argparse.Namespace) -> int:
             "gravity_error_m_s2": artifact.gravity_error_m_s2,
             "holdout_lever_arm_rmse_m_s2": artifact.holdout_lever_arm_rmse_m_s2,
             "known_bad_rmse_delta_m_s2": artifact.known_bad_rmse_delta_m_s2,
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
+def _cmd_trajectory_recover_lidar_imu_joint(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_lidar_imu_joint import (
+        run_synthetic_lidar_imu_joint_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-lidar-imu-joint",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+    ]
+    try:
+        artifact = run_synthetic_lidar_imu_joint_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "policy_reason": artifact.policy_reason,
+            "fit_status": artifact.fit_status,
+            "parameter_errors": {
+                record.name: record.error_norm for record in artifact.parameters
+            },
+            "controls_detected": sum(record.detected for record in artifact.controls),
+            "controls": len(artifact.controls),
+            "entangled_blocks": [
+                f"{record.block_a}/{record.block_b}"
+                for record in artifact.separability
+                if record.entangled
+            ],
         },
         args.json,
     )

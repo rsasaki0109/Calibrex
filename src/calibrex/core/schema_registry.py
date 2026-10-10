@@ -173,6 +173,10 @@ from calibrex.core.continuous_time_lidar_artifacts import (
     ContinuousTimeLidarPairArtifact,
     continuous_time_lidar_pair_json_schema,
 )
+from calibrex.core.continuous_time_lidar_imu_joint import (
+    ContinuousTimeLidarImuJointArtifact,
+    continuous_time_lidar_imu_joint_json_schema,
+)
 from calibrex.core.continuous_time_lidar_point_to_plane import (
     ContinuousTimeLidarPointToPlaneArtifact,
     continuous_time_lidar_point_to_plane_json_schema,
@@ -615,6 +619,11 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         "continuous-time-imu-intrinsics",
         ContinuousTimeImuIntrinsicsArtifact,
         continuous_time_imu_intrinsics_json_schema,
+    ),
+    _entry(
+        "continuous-time-lidar-imu-joint",
+        ContinuousTimeLidarImuJointArtifact,
+        continuous_time_lidar_imu_joint_json_schema,
     ),
     _entry(
         "calibration-lifecycle", CalibrationLifecycleArtifact, calibration_lifecycle_json_schema
