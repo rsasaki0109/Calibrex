@@ -90,31 +90,41 @@ class LidarImuJointSeparabilityRecord(StrictModel):
 
 
 class ContinuousTimeLidarImuJointArtifact(StrictModel):
-    """Joint LiDAR-IMU recovery with holdout, signed controls and separability."""
+    """Joint LiDAR-IMU recovery with holdout, signed controls and separability.
+
+    ``interpolation`` names the trajectory model: ``screw_linear`` knots with
+    gyro pre-integration windows (``gyro_residual`` in rad), or a C2
+    ``cubic_bspline`` with per-sample angular-rate residuals (rad/s).  The
+    trajectory errors are taken at the knots (screw-linear) or on a dense time
+    grid against the continuous truth (B-spline).
+    """
 
     schema_version: Literal[
         "slac.continuous_time_lidar_imu_joint/v0.1"
     ] = CONTINUOUS_TIME_LIDAR_IMU_JOINT_SCHEMA_VERSION
     recovery_id: str
     data_source: Literal["synthetic"]
-    interpolation: Literal["screw_linear"]
+    interpolation: Literal["screw_linear", "cubic_bspline"]
     seed: int
     knot_count: int = Field(ge=2)
+    knot_spacing_sec: float = Field(gt=0.0)
+    gyro_residual: Literal["preintegrated_window_rad", "angular_rate_rad_s"]
+    holdout_scheme: str
     lidar_measurement_count: int = Field(ge=1)
-    train_gyro_window_count: int = Field(ge=1)
-    holdout_gyro_window_count: int = Field(ge=1)
+    train_gyro_count: int = Field(ge=1)
+    holdout_gyro_count: int = Field(ge=1)
     train_accel_count: int = Field(ge=1)
     holdout_accel_count: int = Field(ge=1)
     fit_status: Literal["converged", "max_iterations", "singular_system"]
     iterations: int = Field(ge=1)
-    max_knot_translation_error_m: float = Field(ge=0.0)
-    max_knot_rotation_error_deg: float = Field(ge=0.0)
+    max_trajectory_translation_error_m: float = Field(ge=0.0)
+    max_trajectory_rotation_error_deg: float = Field(ge=0.0)
     parameters: list[LidarImuJointParameterRecord]
-    train_gyro_rmse_rad: float = Field(ge=0.0)
-    holdout_gyro_rmse_rad: float = Field(ge=0.0)
+    train_gyro_rmse: float = Field(ge=0.0)
+    holdout_gyro_rmse: float = Field(ge=0.0)
     train_accel_rmse_m_s2: float = Field(ge=0.0)
     holdout_accel_rmse_m_s2: float = Field(ge=0.0)
-    oracle_holdout_gyro_rmse_rad: float = Field(ge=0.0)
+    oracle_holdout_gyro_rmse: float = Field(ge=0.0)
     oracle_holdout_accel_rmse_m_s2: float = Field(ge=0.0)
     holdout_to_oracle_ratio_limit: float = Field(gt=0.0)
     control_delta_chi2_threshold: float = Field(gt=0.0)

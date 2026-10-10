@@ -77,9 +77,9 @@ def test_holdout_stays_near_the_truth_calibration(
     artifact: ContinuousTimeLidarImuJointArtifact,
 ) -> None:
     limit = artifact.holdout_to_oracle_ratio_limit
-    assert artifact.holdout_gyro_rmse_rad <= limit * artifact.oracle_holdout_gyro_rmse_rad
+    assert artifact.holdout_gyro_rmse <= limit * artifact.oracle_holdout_gyro_rmse
     assert artifact.holdout_accel_rmse_m_s2 <= limit * artifact.oracle_holdout_accel_rmse_m_s2
-    assert artifact.holdout_gyro_window_count >= 1
+    assert artifact.holdout_gyro_count >= 1
     assert artifact.holdout_accel_count >= 1
 
 

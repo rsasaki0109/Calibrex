@@ -274,7 +274,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Joint LiDAR-IMU recovery with holdout, signed controls and separability.",
+  "description": "Joint LiDAR-IMU recovery with holdout, signed controls and separability.\n\n``interpolation`` names the trajectory model: ``screw_linear`` knots with\ngyro pre-integration windows (``gyro_residual`` in rad), or a C2\n``cubic_bspline`` with per-sample angular-rate residuals (rad/s).  The\ntrajectory errors are taken at the knots (screw-linear) or on a dense time\ngrid against the continuous truth (B-spline).",
   "properties": {
     "control_delta_chi2_threshold": {
       "exclusiveMinimum": 0.0,
@@ -308,6 +308,14 @@
       "title": "Fit Status",
       "type": "string"
     },
+    "gyro_residual": {
+      "enum": [
+        "preintegrated_window_rad",
+        "angular_rate_rad_s"
+      ],
+      "title": "Gyro Residual",
+      "type": "string"
+    },
     "holdout_accel_count": {
       "minimum": 1,
       "title": "Holdout Accel Count",
@@ -318,15 +326,19 @@
       "title": "Holdout Accel Rmse M S2",
       "type": "number"
     },
-    "holdout_gyro_rmse_rad": {
+    "holdout_gyro_count": {
+      "minimum": 1,
+      "title": "Holdout Gyro Count",
+      "type": "integer"
+    },
+    "holdout_gyro_rmse": {
       "minimum": 0.0,
-      "title": "Holdout Gyro Rmse Rad",
+      "title": "Holdout Gyro Rmse",
       "type": "number"
     },
-    "holdout_gyro_window_count": {
-      "minimum": 1,
-      "title": "Holdout Gyro Window Count",
-      "type": "integer"
+    "holdout_scheme": {
+      "title": "Holdout Scheme",
+      "type": "string"
     },
     "holdout_to_oracle_ratio_limit": {
       "exclusiveMinimum": 0.0,
@@ -334,7 +346,10 @@
       "type": "number"
     },
     "interpolation": {
-      "const": "screw_linear",
+      "enum": [
+        "screw_linear",
+        "cubic_bspline"
+      ],
       "title": "Interpolation",
       "type": "string"
     },
@@ -348,19 +363,24 @@
       "title": "Knot Count",
       "type": "integer"
     },
+    "knot_spacing_sec": {
+      "exclusiveMinimum": 0.0,
+      "title": "Knot Spacing Sec",
+      "type": "number"
+    },
     "lidar_measurement_count": {
       "minimum": 1,
       "title": "Lidar Measurement Count",
       "type": "integer"
     },
-    "max_knot_rotation_error_deg": {
+    "max_trajectory_rotation_error_deg": {
       "minimum": 0.0,
-      "title": "Max Knot Rotation Error Deg",
+      "title": "Max Trajectory Rotation Error Deg",
       "type": "number"
     },
-    "max_knot_translation_error_m": {
+    "max_trajectory_translation_error_m": {
       "minimum": 0.0,
-      "title": "Max Knot Translation Error M",
+      "title": "Max Trajectory Translation Error M",
       "type": "number"
     },
     "oracle_holdout_accel_rmse_m_s2": {
@@ -368,9 +388,9 @@
       "title": "Oracle Holdout Accel Rmse M S2",
       "type": "number"
     },
-    "oracle_holdout_gyro_rmse_rad": {
+    "oracle_holdout_gyro_rmse": {
       "minimum": 0.0,
-      "title": "Oracle Holdout Gyro Rmse Rad",
+      "title": "Oracle Holdout Gyro Rmse",
       "type": "number"
     },
     "parameters": {
@@ -426,15 +446,15 @@
       "title": "Train Accel Rmse M S2",
       "type": "number"
     },
-    "train_gyro_rmse_rad": {
-      "minimum": 0.0,
-      "title": "Train Gyro Rmse Rad",
-      "type": "number"
-    },
-    "train_gyro_window_count": {
+    "train_gyro_count": {
       "minimum": 1,
-      "title": "Train Gyro Window Count",
+      "title": "Train Gyro Count",
       "type": "integer"
+    },
+    "train_gyro_rmse": {
+      "minimum": 0.0,
+      "title": "Train Gyro Rmse",
+      "type": "number"
     }
   },
   "required": [
@@ -443,21 +463,24 @@
     "interpolation",
     "seed",
     "knot_count",
+    "knot_spacing_sec",
+    "gyro_residual",
+    "holdout_scheme",
     "lidar_measurement_count",
-    "train_gyro_window_count",
-    "holdout_gyro_window_count",
+    "train_gyro_count",
+    "holdout_gyro_count",
     "train_accel_count",
     "holdout_accel_count",
     "fit_status",
     "iterations",
-    "max_knot_translation_error_m",
-    "max_knot_rotation_error_deg",
+    "max_trajectory_translation_error_m",
+    "max_trajectory_rotation_error_deg",
     "parameters",
-    "train_gyro_rmse_rad",
-    "holdout_gyro_rmse_rad",
+    "train_gyro_rmse",
+    "holdout_gyro_rmse",
     "train_accel_rmse_m_s2",
     "holdout_accel_rmse_m_s2",
-    "oracle_holdout_gyro_rmse_rad",
+    "oracle_holdout_gyro_rmse",
     "oracle_holdout_accel_rmse_m_s2",
     "holdout_to_oracle_ratio_limit",
     "control_delta_chi2_threshold",

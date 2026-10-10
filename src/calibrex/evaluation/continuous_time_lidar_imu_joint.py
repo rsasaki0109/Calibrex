@@ -20,6 +20,7 @@ these factors apply.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from typing import Literal, TypeVar
 
 import numpy as np
@@ -167,15 +168,27 @@ def run_synthetic_lidar_imu_joint_recovery(
     oracle = _truth_estimates()
     oracle_gyro = _gyro_rmse(gyro_holdout, timestamps, result, oracle)
     oracle_accel = _accel_rmse(accel_holdout, timestamps, result, oracle)
-    parameters = _parameter_records(result, estimates)
-    controls = _controls(
-        gyro_holdout,
-        accel_holdout,
-        timestamps,
-        result,
+    if result.calibration_covariance is None:
+        raise ValueError("joint LiDAR-IMU recovery produced no covariance")
+    parameters = _parameter_records(
+        result.calibration_parameter_names,
+        np.asarray(result.calibration_covariance, dtype=float),
         estimates,
-        baseline_gyro=holdout_gyro,
-        baseline_accel=holdout_accel,
+    )
+
+    def holdout_score(family: LidarImuJointFamily, values: _Estimates) -> float:
+        if family == "gyro":
+            return _gyro_rmse(gyro_holdout, timestamps, result, values)
+        return _accel_rmse(accel_holdout, timestamps, result, values)
+
+    controls = _controls(
+        holdout_score,
+        estimates,
+        baselines={"gyro": holdout_gyro, "accel": holdout_accel},
+        chi2_scales={
+            "gyro": gyro_holdout[0].weight ** 2 * 3 * len(gyro_holdout),
+            "accel": accel_holdout[0].weight ** 2 * 3 * len(accel_holdout),
+        },
     )
     separability = [
         LidarImuJointSeparabilityRecord(
@@ -210,21 +223,24 @@ def run_synthetic_lidar_imu_joint_recovery(
         interpolation="screw_linear",
         seed=seed,
         knot_count=len(timestamps),
+        knot_spacing_sec=_KNOT_SPACING_SEC,
+        gyro_residual="preintegrated_window_rad",
+        holdout_scheme="interleaved: every third gyro window and accelerometer sample",
         lidar_measurement_count=len(lidar),
-        train_gyro_window_count=len(gyro_train),
-        holdout_gyro_window_count=len(gyro_holdout),
+        train_gyro_count=len(gyro_train),
+        holdout_gyro_count=len(gyro_holdout),
         train_accel_count=len(accel_train),
         holdout_accel_count=len(accel_holdout),
         fit_status=result.status,
         iterations=result.iterations,
-        max_knot_translation_error_m=knot_translation,
-        max_knot_rotation_error_deg=knot_rotation,
+        max_trajectory_translation_error_m=knot_translation,
+        max_trajectory_rotation_error_deg=knot_rotation,
         parameters=parameters,
-        train_gyro_rmse_rad=train_gyro,
-        holdout_gyro_rmse_rad=holdout_gyro,
+        train_gyro_rmse=train_gyro,
+        holdout_gyro_rmse=holdout_gyro,
         train_accel_rmse_m_s2=train_accel,
         holdout_accel_rmse_m_s2=holdout_accel,
-        oracle_holdout_gyro_rmse_rad=oracle_gyro,
+        oracle_holdout_gyro_rmse=oracle_gyro,
         oracle_holdout_accel_rmse_m_s2=oracle_accel,
         holdout_to_oracle_ratio_limit=_HOLDOUT_TO_ORACLE_RATIO,
         control_delta_chi2_threshold=_CONTROL_DELTA_CHI2,
@@ -459,14 +475,12 @@ def _accel_rmse(
 
 
 def _parameter_records(
-    result: ContinuousTimeTrajectoryFitResult,
+    names: tuple[str, ...],
+    covariance: np.ndarray,
     estimates: _Estimates,
 ) -> list[LidarImuJointParameterRecord]:
-    if result.calibration_covariance is None:
-        raise ValueError("joint LiDAR-IMU recovery produced no covariance")
-    covariance = np.asarray(result.calibration_covariance, dtype=float)
     stds: dict[str, list[float]] = {}
-    for index, label in enumerate(result.calibration_parameter_names):
+    for index, label in enumerate(names):
         stds.setdefault(label.split("[", 1)[0], []).append(
             math.sqrt(max(float(covariance[index, index]), 0.0))
         )
@@ -513,36 +527,27 @@ def _parameter_records(
 
 
 def _controls(
-    gyro_holdout: tuple[TrajectoryImuPreintegrationMeasurement, ...],
-    accel_holdout: tuple[TrajectoryImuLeverArmMeasurement, ...],
-    timestamps: tuple[float, ...],
-    result: ContinuousTimeTrajectoryFitResult,
+    score: Callable[[LidarImuJointFamily, _Estimates], float],
     estimates: _Estimates,
     *,
-    baseline_gyro: float,
-    baseline_accel: float,
+    baselines: dict[LidarImuJointFamily, float],
+    chi2_scales: dict[LidarImuJointFamily, float],
 ) -> list[LidarImuJointControlRecord]:
+    """Signed per-axis controls scored by holdout RMSE of the affected family.
+
+    Every holdout residual in a family shares one weight ``w``, so the whitened
+    chi-square is ``w^2 * n * rmse^2`` and ``chi2_scales`` holds ``w^2 * n``.
+    """
+
     records: list[LidarImuJointControlRecord] = []
     for name, magnitude, unit, family in _CONTROLS:
         axes: tuple[int | None, ...] = (None,) if name == "imu_clock_offset" else (0, 1, 2)
         for axis in axes:
             for sign in (-1, 1):
                 perturbed = _perturb(estimates, name, axis, sign * magnitude)
-                if family == "gyro":
-                    score = _gyro_rmse(gyro_holdout, timestamps, result, perturbed)
-                    baseline = baseline_gyro
-                    weight = gyro_holdout[0].weight
-                    residual_count = 3 * len(gyro_holdout)
-                else:
-                    score = _accel_rmse(accel_holdout, timestamps, result, perturbed)
-                    baseline = baseline_accel
-                    weight = accel_holdout[0].weight
-                    residual_count = 3 * len(accel_holdout)
-                # Every holdout item in a family shares one weight, so the
-                # whitened chi-square is w^2 * n * rmse^2.
-                delta_chi2 = (
-                    weight * weight * residual_count * (score * score - baseline * baseline)
-                )
+                value = score(family, perturbed)
+                baseline = baselines[family]
+                delta_chi2 = chi2_scales[family] * (value * value - baseline * baseline)
                 records.append(
                     LidarImuJointControlRecord(
                         parameter=name,
@@ -552,7 +557,7 @@ def _controls(
                         unit=unit,
                         family=family,
                         baseline_holdout_rmse=baseline,
-                        perturbed_holdout_rmse=score,
+                        perturbed_holdout_rmse=value,
                         delta_chi2=delta_chi2,
                         detected=delta_chi2 >= _CONTROL_DELTA_CHI2,
                     )
