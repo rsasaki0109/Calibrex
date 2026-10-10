@@ -331,9 +331,12 @@ def test_single_estimate_can_reuse_only_a_matching_output_pose(tmp_path: Path) -
     output = tmp_path / "second.yaml"
     assert main(_estimate_args(path, initial_path)) == 0
     initial = load_result(initial_path)
+    key = "T_camera_2_lidar"
+    # Use a distinct prior so this catches ignoring --initial-result.
+    initial.transforms[key].translation_m = [0.25, -0.125, 0.05]
+    initial.save(initial_path)
     assert main([*_estimate_args(path, output), "--initial-result", str(initial_path)]) == 0
     result = load_result(output)
-    key = "T_camera_2_lidar"
     assert result.candidate_extrinsics[key].as_se3() == initial.transforms[key].as_se3()
     recorded_digest = result.run.provenance["input_digests"]["initial_result_sha256"]
     assert recorded_digest == sha256_path(initial_path)
