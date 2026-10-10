@@ -276,11 +276,26 @@ arm, clock offset, and accelerometer bias/gravity jointly on the knot path from
 a real capture, and reports per-parameter holdout and signed controls in one
 schema-valid artifact.
 
+**Progress (2026-10-10):** the synthetic half is done. The solver estimates
+the IMU mounting rotation `R_body_imu` with the other blocks in one fit and
+reports their marginal covariance;
+`calibrex trajectory recover-lidar-imu-joint`
+(`slac.continuous_time_lidar_imu_joint/v0.1`) recovers all six blocks from
+LiDAR point-to-plane knots with interleaved holdout, 32 signed per-axis
+controls and block separability (the strongest coupling, accelerometer bias
+with gravity, reaches a correlation of 0.89). Two model limits block the real-data half: the
+screw-linear knot path has piecewise-constant velocity, so specific force sees
+acceleration only at the knots, and the clock offset is observed only by gyro
+windows that straddle a knot. A C2 trajectory (for example a cumulative
+B-spline) is the next step, followed by the rosbag front end and the TIERS
+run below.
+
 **Acceptance conditions:**
 
 - Synthetic joint recovery meets the budgets of the individual `recover-*`
   commands, each parameter keeps its signed control, and parameter
-  separability is reported.
+  separability is reported. **Done** on 2026-10-10
+  (`calibrex trajectory recover-lidar-imu-joint`; seeds 20261010, 1 and 2).
 - An opt-in real-data run on the existing TIERS Indoor02 capture reports
   honestly (PASS, WARN, FAIL, or INCONCLUSIVE) without retuned gates. It needs
   no new download.

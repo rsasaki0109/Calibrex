@@ -1,0 +1,473 @@
+{
+  "$defs": {
+    "ContinuousTimeLidarImuJointProvenance": {
+      "additionalProperties": false,
+      "description": "Seeded synthetic recovery lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "title": "ContinuousTimeLidarImuJointProvenance",
+      "type": "object"
+    },
+    "LidarImuJointControlRecord": {
+      "additionalProperties": false,
+      "description": "A signed known-bad perturbation of one fitted parameter on holdout data.\n\n``delta_chi2`` is the change of the whitened holdout chi-square of the\nfamily the parameter enters (gyro pre-integration or specific force).",
+      "properties": {
+        "axis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axis"
+        },
+        "baseline_holdout_rmse": {
+          "minimum": 0.0,
+          "title": "Baseline Holdout Rmse",
+          "type": "number"
+        },
+        "delta_chi2": {
+          "title": "Delta Chi2",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "family": {
+          "enum": [
+            "gyro",
+            "accel"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "magnitude": {
+          "exclusiveMinimum": 0.0,
+          "title": "Magnitude",
+          "type": "number"
+        },
+        "parameter": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Parameter",
+          "type": "string"
+        },
+        "perturbed_holdout_rmse": {
+          "minimum": 0.0,
+          "title": "Perturbed Holdout Rmse",
+          "type": "number"
+        },
+        "sign": {
+          "enum": [
+            -1,
+            1
+          ],
+          "title": "Sign",
+          "type": "integer"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameter",
+        "sign",
+        "magnitude",
+        "unit",
+        "family",
+        "baseline_holdout_rmse",
+        "perturbed_holdout_rmse",
+        "delta_chi2",
+        "detected"
+      ],
+      "title": "LidarImuJointControlRecord",
+      "type": "object"
+    },
+    "LidarImuJointParameterRecord": {
+      "additionalProperties": false,
+      "description": "One jointly estimated calibration block against the injected truth.\n\n``error`` is ``estimate - truth`` per axis; for ``imu_rotation`` it is the\nrotation vector of ``R_truth^T R_estimate`` (right perturbation, rad).\n``std`` is the marginal standard deviation from the fit with the knots\nmarginalized, and ``max_normalized_error`` is ``max |error / std|``.",
+      "properties": {
+        "error": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Error",
+          "type": "array"
+        },
+        "error_budget": {
+          "exclusiveMinimum": 0.0,
+          "title": "Error Budget",
+          "type": "number"
+        },
+        "error_norm": {
+          "minimum": 0.0,
+          "title": "Error Norm",
+          "type": "number"
+        },
+        "estimate": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Estimate",
+          "type": "array"
+        },
+        "initial": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Initial",
+          "type": "array"
+        },
+        "max_normalized_error": {
+          "minimum": 0.0,
+          "title": "Max Normalized Error",
+          "type": "number"
+        },
+        "name": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "std": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std",
+          "type": "array"
+        },
+        "truth": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Truth",
+          "type": "array"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "within_budget": {
+          "title": "Within Budget",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "truth",
+        "initial",
+        "estimate",
+        "error",
+        "std",
+        "error_norm",
+        "error_budget",
+        "max_normalized_error",
+        "within_budget"
+      ],
+      "title": "LidarImuJointParameterRecord",
+      "type": "object"
+    },
+    "LidarImuJointSeparabilityRecord": {
+      "additionalProperties": false,
+      "description": "Largest absolute correlation between two estimated blocks.",
+      "properties": {
+        "block_a": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Block A",
+          "type": "string"
+        },
+        "block_b": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Block B",
+          "type": "string"
+        },
+        "entangled": {
+          "title": "Entangled",
+          "type": "boolean"
+        },
+        "max_abs_correlation": {
+          "minimum": 0.0,
+          "title": "Max Abs Correlation",
+          "type": "number"
+        }
+      },
+      "required": [
+        "block_a",
+        "block_b",
+        "max_abs_correlation",
+        "entangled"
+      ],
+      "title": "LidarImuJointSeparabilityRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Joint LiDAR-IMU recovery with holdout, signed controls and separability.",
+  "properties": {
+    "control_delta_chi2_threshold": {
+      "exclusiveMinimum": 0.0,
+      "title": "Control Delta Chi2 Threshold",
+      "type": "number"
+    },
+    "controls": {
+      "items": {
+        "$ref": "#/$defs/LidarImuJointControlRecord"
+      },
+      "title": "Controls",
+      "type": "array"
+    },
+    "data_source": {
+      "const": "synthetic",
+      "title": "Data Source",
+      "type": "string"
+    },
+    "entangled_correlation_threshold": {
+      "exclusiveMinimum": 0.0,
+      "maximum": 1.0,
+      "title": "Entangled Correlation Threshold",
+      "type": "number"
+    },
+    "fit_status": {
+      "enum": [
+        "converged",
+        "max_iterations",
+        "singular_system"
+      ],
+      "title": "Fit Status",
+      "type": "string"
+    },
+    "holdout_accel_count": {
+      "minimum": 1,
+      "title": "Holdout Accel Count",
+      "type": "integer"
+    },
+    "holdout_accel_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Holdout Accel Rmse M S2",
+      "type": "number"
+    },
+    "holdout_gyro_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Holdout Gyro Rmse Rad",
+      "type": "number"
+    },
+    "holdout_gyro_window_count": {
+      "minimum": 1,
+      "title": "Holdout Gyro Window Count",
+      "type": "integer"
+    },
+    "holdout_to_oracle_ratio_limit": {
+      "exclusiveMinimum": 0.0,
+      "title": "Holdout To Oracle Ratio Limit",
+      "type": "number"
+    },
+    "interpolation": {
+      "const": "screw_linear",
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "iterations": {
+      "minimum": 1,
+      "title": "Iterations",
+      "type": "integer"
+    },
+    "knot_count": {
+      "minimum": 2,
+      "title": "Knot Count",
+      "type": "integer"
+    },
+    "lidar_measurement_count": {
+      "minimum": 1,
+      "title": "Lidar Measurement Count",
+      "type": "integer"
+    },
+    "max_knot_rotation_error_deg": {
+      "minimum": 0.0,
+      "title": "Max Knot Rotation Error Deg",
+      "type": "number"
+    },
+    "max_knot_translation_error_m": {
+      "minimum": 0.0,
+      "title": "Max Knot Translation Error M",
+      "type": "number"
+    },
+    "oracle_holdout_accel_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Oracle Holdout Accel Rmse M S2",
+      "type": "number"
+    },
+    "oracle_holdout_gyro_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Oracle Holdout Gyro Rmse Rad",
+      "type": "number"
+    },
+    "parameters": {
+      "items": {
+        "$ref": "#/$defs/LidarImuJointParameterRecord"
+      },
+      "title": "Parameters",
+      "type": "array"
+    },
+    "policy_reason": {
+      "title": "Policy Reason",
+      "type": "string"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ContinuousTimeLidarImuJointProvenance"
+    },
+    "recovery_id": {
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.continuous_time_lidar_imu_joint/v0.1",
+      "default": "slac.continuous_time_lidar_imu_joint/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "separability": {
+      "items": {
+        "$ref": "#/$defs/LidarImuJointSeparabilityRecord"
+      },
+      "title": "Separability",
+      "type": "array"
+    },
+    "train_accel_count": {
+      "minimum": 1,
+      "title": "Train Accel Count",
+      "type": "integer"
+    },
+    "train_accel_rmse_m_s2": {
+      "minimum": 0.0,
+      "title": "Train Accel Rmse M S2",
+      "type": "number"
+    },
+    "train_gyro_rmse_rad": {
+      "minimum": 0.0,
+      "title": "Train Gyro Rmse Rad",
+      "type": "number"
+    },
+    "train_gyro_window_count": {
+      "minimum": 1,
+      "title": "Train Gyro Window Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "data_source",
+    "interpolation",
+    "seed",
+    "knot_count",
+    "lidar_measurement_count",
+    "train_gyro_window_count",
+    "holdout_gyro_window_count",
+    "train_accel_count",
+    "holdout_accel_count",
+    "fit_status",
+    "iterations",
+    "max_knot_translation_error_m",
+    "max_knot_rotation_error_deg",
+    "parameters",
+    "train_gyro_rmse_rad",
+    "holdout_gyro_rmse_rad",
+    "train_accel_rmse_m_s2",
+    "holdout_accel_rmse_m_s2",
+    "oracle_holdout_gyro_rmse_rad",
+    "oracle_holdout_accel_rmse_m_s2",
+    "holdout_to_oracle_ratio_limit",
+    "control_delta_chi2_threshold",
+    "controls",
+    "entangled_correlation_threshold",
+    "separability",
+    "policy_status",
+    "policy_reason",
+    "provenance"
+  ],
+  "title": "ContinuousTimeLidarImuJointArtifact",
+  "type": "object"
+}

@@ -126,6 +126,7 @@ ValidationKind = Literal[
     "continuous-time-imu-clock-offset",
     "continuous-time-imu-accel-bias",
     "continuous-time-imu-intrinsics",
+    "continuous-time-lidar-imu-joint",
     "continuous-time-sliding-window",
     "continuous-time-lidar-train-diagnostics",
     "continuous-time-lidar-ablation",

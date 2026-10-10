@@ -91,6 +91,9 @@ from calibrex.core.continuous_time_lidar_ablation import (
 from calibrex.core.continuous_time_lidar_artifacts import (
     continuous_time_lidar_pair_json_schema,
 )
+from calibrex.core.continuous_time_lidar_imu_joint import (
+    continuous_time_lidar_imu_joint_json_schema,
+)
 from calibrex.core.continuous_time_lidar_point_to_plane import (
     continuous_time_lidar_point_to_plane_json_schema,
 )
@@ -330,6 +333,9 @@ def test_static_schema_files_match_generated_schemas() -> None:
         ),
         "continuous_time_imu_intrinsics.schema.json": (
             continuous_time_imu_intrinsics_json_schema
+        ),
+        "continuous_time_lidar_imu_joint.schema.json": (
+            continuous_time_lidar_imu_joint_json_schema
         ),
         "continuous_time_sliding_window.schema.json": (
             continuous_time_sliding_window_json_schema
