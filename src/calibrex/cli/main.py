@@ -300,6 +300,7 @@ from calibrex.init_templates import (
     write_sensor_template,
 )
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
 from calibrex.pipelines.online import (
     OnlineCalibrationRunOptions,
     evaluate_continuous_time_lidar_pair,
@@ -307,6 +308,8 @@ from calibrex.pipelines.online import (
     evaluate_rosbag2_trajectory_window_drift,
     run_online_calibration,
 )
+from calibrex.solvers.borer_depth_to_depth_solver import DepthToDepthOptions
+from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
 from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
 from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
     OpenCvProbabilisticPnpAdapter,
@@ -1806,6 +1809,44 @@ def _build_parser() -> argparse.ArgumentParser:
     freeze_six_dof.add_argument("--max-evaluations", type=_positive_int, default=800)
     freeze_six_dof.add_argument("--json", action="store_true")
     freeze_six_dof.set_defaults(func=_cmd_camera_lidar_freeze_six_dof_protocol)
+    estimate_six_dof = camera_lidar_subcommands.add_parser(
+        "estimate-six-dof",
+        help="refine one D2D camera-LiDAR prior and save a standard calibration result",
+    )
+    estimate_six_dof.add_argument("problem", type=Path)
+    estimate_six_dof.add_argument("--output", type=Path, required=True)
+    estimate_six_dof.add_argument(
+        "--projection-backend", choices=("numpy", "numba_cpu", "cuda"), default="numpy",
+        help="D2D projection implementation (cuda requires calibrex[cuda])",
+    )
+    estimate_six_dof.add_argument(
+        "--initial-result", type=Path,
+        help="use the matching output transform from a previous standard result as the prior",
+    )
+    estimate_six_dof.add_argument(
+        "--holdout-frame-id", action="append", default=[],
+        help="exclude this problem frame from optimization; repeat for multiple frames",
+    )
+    estimate_six_dof.add_argument("--histogram-bins", type=_positive_int, default=32)
+    estimate_six_dof.add_argument("--min-visible-points", type=_positive_int, default=64)
+    estimate_six_dof.add_argument("--rotation-bound-deg", type=_positive_float, default=2.0)
+    estimate_six_dof.add_argument("--translation-bound-m", type=_positive_float, default=1.0)
+    estimate_six_dof.add_argument("--initial-rotation-step-deg", type=_positive_float, default=0.25)
+    estimate_six_dof.add_argument(
+        "--initial-translation-step-m", type=_positive_float, default=0.10,
+    )
+    estimate_six_dof.add_argument("--minimum-rotation-step-deg", type=_positive_float, default=0.01)
+    estimate_six_dof.add_argument(
+        "--minimum-translation-step-m", type=_positive_float, default=0.005,
+    )
+    estimate_six_dof.add_argument("--max-evaluations", type=_positive_int, default=800)
+    estimate_six_dof.add_argument("--improvement-tolerance", type=float, default=1.0e-9)
+    estimate_six_dof.add_argument(
+        "--objective", choices=("mutual_information", "normalized_mutual_information"),
+        default="mutual_information",
+    )
+    estimate_six_dof.add_argument("--json", action="store_true")
+    estimate_six_dof.set_defaults(func=_cmd_camera_lidar_estimate_six_dof)
     benchmark_rotation = camera_lidar_subcommands.add_parser(
         "benchmark-rotation",
         help="execute a frozen native D2D rotation recovery protocol",
@@ -5943,6 +5984,52 @@ def _cmd_camera_lidar_benchmark_rotation(args: argparse.Namespace) -> int:
     if args.required_hit_rate is not None and not gate_passed:
         return 2
     return 0
+
+
+def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
+    try:
+        options = BorerSixDofOptions(
+            rotation_bound_deg=args.rotation_bound_deg,
+            translation_bound_m=args.translation_bound_m,
+            initial_rotation_step_deg=args.initial_rotation_step_deg,
+            initial_translation_step_m=args.initial_translation_step_m,
+            minimum_rotation_step_deg=args.minimum_rotation_step_deg,
+            minimum_translation_step_m=args.minimum_translation_step_m,
+            max_evaluations=args.max_evaluations,
+            improvement_tolerance=args.improvement_tolerance,
+            objective=args.objective,
+            d2d=DepthToDepthOptions(
+                histogram_bins=args.histogram_bins, min_visible_points=args.min_visible_points,
+            ),
+        )
+        result = run_camera_lidar_six_dof_estimate(
+            args.problem,
+            options=options,
+            projection_backend=cast(ProjectionBackend, args.projection_backend),
+            initial_result_path=args.initial_result,
+            holdout_frame_ids=args.holdout_frame_id,
+            command=["calibrex", *args.invoked_argv],
+        )
+        result.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    solver = result.run.provenance["solver_result"]
+    _emit(
+        {
+            "status": solver["status"],
+            "run_status": result.run.status,
+            "quality_grade": result.quality.grade,
+            "result": str(args.output),
+            "projection_backend": result.run.provenance["projection_backend"],
+            "evaluation_count": solver["evaluation_count"],
+            "stopping_reason": solver["stopping_reason"],
+            "final_mutual_information": result.metrics["final_d2d_mutual_information"].train,
+            "holdout_mutual_information": result.metrics["final_d2d_mutual_information"].holdout,
+            "timing_seconds": result.run.provenance["timing_seconds"],
+        },
+        args.json,
+    )
+    return 0 if solver["status"] == "converged" else 2
 
 
 def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:

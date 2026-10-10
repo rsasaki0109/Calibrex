@@ -67,7 +67,7 @@ Axes the data did not observe are marked `NOT MEASURED`, never written as measur
   a trajectory without installing anything; data stays in the page.
 - [Calibration CI](tutorials/calibration_ci.md): gate a pipeline on calibration evidence.
 - [GPU acceleration](tutorials/gpu_acceleration.md): accelerate repeated Camera–LiDAR
-  six-DoF projection and compare with the CPU backends.
+  six-DoF estimation, save a standard result and compare with the CPU backends.
 - [SOTA leaderboard](benchmarks/sota_leaderboard.md): what is, and is not, claimed.
 - [Calibrate your own data](tutorials/your_own_data.md) and
   [public datasets](tutorials/public_datasets.md).
