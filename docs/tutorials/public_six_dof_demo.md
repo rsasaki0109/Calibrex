@@ -71,6 +71,38 @@ Open `outputs/kitti-six-dof-demo/report.html` locally. Images and links are
 relative, so move the entire directory together. Use a new or empty output
 directory for every run; existing evidence is preserved.
 
+For a comparison with timing variation, request repeated invocations:
+
+```bash
+calibrex demo kitti-six-dof \
+  /path/to/2011_09_30_drive_0018_sync /path/to/featdepth-provider.json \
+  --repetitions 3 --output-dir outputs/kitti-six-dof-repeat3 --json
+```
+
+`--repetitions` defaults to 1 and must be a positive integer. Every invocation
+uses the same verified problem bytes, declared initial pose, and prespecified
+20/5 split. CPU runs first on odd-numbered repetitions and the candidate runs
+first on even ones. Each run verifies and loads inputs and prepares a fresh
+projector. The first run is included; there is no separate warm-up, and later
+invocations share process-wide kernel caches. These times describe this process,
+rather than guaranteeing fully cold or warmed-up latency.
+
+The HTML shows all attempts and successful-run median/minimum/maximum solve
+and pipeline times, with success/attempt counts. Failed or partial trials remain
+visible and are excluded from the timing summary. The ratio of method medians
+appears only if all runs converge with exact numerical parity. Pipeline total
+sums load/verification, preparation, solve, and holdout phases; shared demo
+setup and report rendering are excluded. Repeated timings on these same frames
+are not independent calibration recovery trials or confidence intervals.
+
+Each repetition saves its own standard result. The first pair keeps
+`numpy.result.json` and the candidate's usual name; later files use
+`numpy.repeat-02.result.json`, `cuda.repeat-02.result.json`, and so on.
+All result hashes are bound by the benchmark, and result provenance records
+the repetition number, count, order, and shared problem hash. The report's
+overlays always show repetition 1, without replacing a missing first result.
+The JSON command output includes `timing_summaries` and every individual trial.
+
 ## Read the evidence
 
 - Exactly 25 endpoint-inclusive uniform positions are selected from numeric-
@@ -85,12 +117,13 @@ directory for every run; existing evidence is preserved.
   Convergence describes optimizer termination. Standard-result quality remains
   `warn`: covariance and observability are unknown.
 - Exact numerical parity checks the full search trace, final poses, metrics,
-  status, and initial/final holdout evaluations. Backend identities and timing
-  remain in individual results. A mismatch is a failed comparison.
+  status, and initial/final holdout evaluations, across both backends and every
+  repetition. Backend identities and timing remain in individual results.
+  Even equal CPU/candidate pairs fail parity if they drift between repetitions.
 - Load/verification, preparation, solve, and holdout times are separate. CUDA
   solve time includes lazy compilation. One invocation per backend is
-  descriptive, not a repeated latency benchmark or confidence claim. The ratio
-  appears only for a converged matching pair.
+  descriptive. Use repeated invocations to expose variation, without treating
+  those repetitions as independent recovery evidence or statistical confidence.
 - Three prespecified holdout frames show initial and output pose overlays using
   NumPy visibility semantics. At most 1,200 finite depth pairs are sampled for
   display; optimization uses full scans. Colours use a fixed 0–80 m LiDAR range.
@@ -105,7 +138,7 @@ preview images, and generator sources by SHA256. Standard results retain
 effective settings, train/holdout IDs, backend identity, transfer counters,
 input hashes, and the full trace. HTML links to all available artifacts.
 
-Exit code `0` requires two converged runs, evaluable holdout, and exact parity.
+Exit code `0` requires every requested run to converge, evaluable holdout, and exact parity.
 Code `2` retains partial/failed comparisons and reasons in HTML and JSON. Bad
 inputs are rejected before the comparison starts.
 
@@ -119,7 +152,15 @@ from 1.0857 to 1.2935 nat. The final GTX 1660 Ti invocation took 54.824 s CPU /
 The earlier invocation's solve-time ratio was 4.58x versus 8.14x for the final
 invocation, illustrating timing variation.
 
+With `--repetitions 3` on the same GTX 1660 Ti, all six runs converged with the
+same 229-evaluation numerical trace. CPU solve median was 74.306 s (range
+51.270–75.150 s); CUDA median was 3.611 s (3.302–8.685 s), a ratio of medians of
+20.58x. Measured pipeline medians were 76.865 / 7.652 s (10.04x), excluding shared
+setup and report rendering. All invocations are included, with alternating
+execution order and no separate warm-up. The variation across these and earlier
+observations remains part of the evidence.
+
 [Published schema-valid evidence and limitations](../assets/public_six_dof_demo/README.md)
-retain both observations and full numerical traces from the final run. This is
+retain individual timings, repeated summaries, and earlier full numerical traces. This is
 one development drive and perturbation, rather than a multi-dataset recovery
 evaluation or a portable speed guarantee.

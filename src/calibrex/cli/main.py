@@ -1118,6 +1118,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     six_dof_demo.add_argument("--cuda-cache-mib", type=int)
     six_dof_demo.add_argument("--max-evaluations", type=int, default=800)
+    six_dof_demo.add_argument(
+        "--repetitions", type=int, default=1,
+        help="invocations per backend; starts from the shared prior and alternates execution order",
+    )
     six_dof_demo.add_argument("--rotation-offset-deg", type=float, nargs=3, default=(0.5, 0.0, 0.0))
     six_dof_demo.add_argument(
         "--translation-offset-m", type=float, nargs=3, default=(0.5, 0.0, 0.0)
@@ -6024,6 +6028,7 @@ def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
         demo = run_public_camera_lidar_six_dof_demo(
             args.sequence, args.depth_provider, output_directory=args.output_dir,
             candidate_backend=cast(ProjectionBackend, args.candidate_backend),
+            repetitions=args.repetitions,
             cuda_cache_bytes=(
                 args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
             ),
@@ -6042,6 +6047,12 @@ def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
         "trials": [
             trial.model_dump(mode="json", exclude_none=True) for trial in demo.benchmark.trials
         ],
+        "timing_summaries": {
+            method_id: {
+                name: summary.metrics[name].distribution.model_dump(mode="json")
+                for name in ("solve_seconds", "pipeline_seconds")
+            } for method_id, summary in demo.benchmark.method_summaries.items()
+        },
     }, args.json)
     return 0 if demo.successful else 2
 

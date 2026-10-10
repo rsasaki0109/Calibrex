@@ -1,0 +1,791 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-public-six-dof-demo",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One sequence, one perturbation, 3 invocation(s) per backend. Repetitions measure timing on the same frames, not independent recovery trials. Bootstrap intervals do not establish statistical confidence for this demo.",
+    "All invocations, including the first, contribute to timing. There is no separate warm-up or cold-process guarantee; lazy compilation and process-wide caches affect latency.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27"
+  ],
+  "method_summaries": {
+    "cuda": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2934945423757032,
+            "mean": 1.2934945423757032,
+            "mean_ci95_high": 1.2934945423757032,
+            "mean_ci95_low": 1.2934945423757032,
+            "median": 1.2934945423757032,
+            "minimum": 1.2934945423757032,
+            "p90": 1.2934945423757032,
+            "p95": 1.2934945423757032,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi",
+          "rank": 1
+        },
+        "initial_rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.4999999999999031,
+            "mean": 0.499999999999903,
+            "mean_ci95_high": 0.499999999999903,
+            "mean_ci95_low": 0.499999999999903,
+            "median": 0.4999999999999031,
+            "minimum": 0.4999999999999031,
+            "p90": 0.4999999999999031,
+            "p95": 0.4999999999999031,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_rotation_difference_deg",
+          "rank": 1
+        },
+        "initial_translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.5,
+            "mean": 0.5,
+            "mean_ci95_high": 0.5,
+            "mean_ci95_low": 0.5,
+            "median": 0.5,
+            "minimum": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_translation_difference_m",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "pipeline_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 17.73940149997361,
+            "mean": 10.580301099980716,
+            "mean_ci95_high": 14.377071566646919,
+            "mean_ci95_low": 14.377071566646919,
+            "median": 7.652411699993536,
+            "minimum": 6.349090099975001,
+            "p90": 15.722003539977596,
+            "p95": 16.7307025199756,
+            "standard_deviation": 5.090134294309109
+          },
+          "metric": "pipeline_seconds",
+          "rank": 1
+        },
+        "rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.3909230132921424,
+            "mean": 0.3909230132921424,
+            "mean_ci95_high": 0.3909230132921424,
+            "mean_ci95_low": 0.3909230132921424,
+            "median": 0.3909230132921424,
+            "minimum": 0.3909230132921424,
+            "p90": 0.3909230132921424,
+            "p95": 0.3909230132921424,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_difference_deg",
+          "rank": 1
+        },
+        "solve_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 8.684827199962456,
+            "mean": 5.199452099991807,
+            "mean_ci95_high": 6.993643466635452,
+            "mean_ci95_low": 6.993643466635452,
+            "median": 3.6112759999814443,
+            "minimum": 3.302253100031521,
+            "p90": 7.670116959966253,
+            "p95": 8.177472079964355,
+            "standard_deviation": 2.4677592371481354
+          },
+          "metric": "solve_seconds",
+          "rank": 1
+        },
+        "train_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2342895217787462,
+            "mean": 1.2342895217787462,
+            "mean_ci95_high": 1.2342895217787462,
+            "mean_ci95_low": 1.2342895217787462,
+            "median": 1.2342895217787462,
+            "minimum": 1.2342895217787462,
+            "p90": 1.2342895217787462,
+            "p95": 1.2342895217787462,
+            "standard_deviation": 0.0
+          },
+          "metric": "train_mi",
+          "rank": 1
+        },
+        "translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.16007810593582122,
+            "mean": 0.16007810593582122,
+            "mean_ci95_high": 0.16007810593582122,
+            "mean_ci95_low": 0.16007810593582122,
+            "median": 0.16007810593582122,
+            "minimum": 0.16007810593582122,
+            "p90": 0.16007810593582122,
+            "p95": 0.16007810593582122,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_difference_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 17.73940149997361,
+        "mean": 10.580301099980716,
+        "mean_ci95_high": 14.377071566646919,
+        "mean_ci95_low": 14.377071566646919,
+        "median": 7.652411699993536,
+        "minimum": 6.349090099975001,
+        "p90": 15.722003539977596,
+        "p95": 16.7307025199756,
+        "standard_deviation": 5.090134294309109
+      },
+      "success_count": 3,
+      "trial_count": 3
+    },
+    "numpy": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2934945423757032,
+            "mean": 1.2934945423757032,
+            "mean_ci95_high": 1.2934945423757032,
+            "mean_ci95_low": 1.2934945423757032,
+            "median": 1.2934945423757032,
+            "minimum": 1.2934945423757032,
+            "p90": 1.2934945423757032,
+            "p95": 1.2934945423757032,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi",
+          "rank": 1
+        },
+        "initial_rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.4999999999999031,
+            "mean": 0.499999999999903,
+            "mean_ci95_high": 0.499999999999903,
+            "mean_ci95_low": 0.499999999999903,
+            "median": 0.4999999999999031,
+            "minimum": 0.4999999999999031,
+            "p90": 0.4999999999999031,
+            "p95": 0.4999999999999031,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_rotation_difference_deg",
+          "rank": 1
+        },
+        "initial_translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.5,
+            "mean": 0.5,
+            "mean_ci95_high": 0.5,
+            "mean_ci95_low": 0.5,
+            "median": 0.5,
+            "minimum": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_translation_difference_m",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "pipeline_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 77.95751370000653,
+            "mean": 69.64422063333525,
+            "mean_ci95_high": 62.059179099975154,
+            "mean_ci95_low": 62.059179099975154,
+            "median": 76.86513640003977,
+            "minimum": 54.110011799959466,
+            "p90": 77.73903824001317,
+            "p95": 77.84827597000985,
+            "standard_deviation": 10.993393625281458
+          },
+          "metric": "pipeline_seconds",
+          "rank": 2
+        },
+        "rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.3909230132921424,
+            "mean": 0.3909230132921424,
+            "mean_ci95_high": 0.3909230132921424,
+            "mean_ci95_low": 0.3909230132921424,
+            "median": 0.3909230132921424,
+            "minimum": 0.3909230132921424,
+            "p90": 0.3909230132921424,
+            "p95": 0.3909230132921424,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_difference_deg",
+          "rank": 1
+        },
+        "solve_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 75.14958760002628,
+            "mean": 66.90877163332577,
+            "mean_ci95_high": 59.23010806665601,
+            "mean_ci95_low": 59.23010806665601,
+            "median": 74.30635899998015,
+            "minimum": 51.27036829997087,
+            "p90": 74.98094188001706,
+            "p95": 75.06526474002168,
+            "standard_deviation": 11.063378107687788
+          },
+          "metric": "solve_seconds",
+          "rank": 2
+        },
+        "train_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2342895217787462,
+            "mean": 1.2342895217787462,
+            "mean_ci95_high": 1.2342895217787462,
+            "mean_ci95_low": 1.2342895217787462,
+            "median": 1.2342895217787462,
+            "minimum": 1.2342895217787462,
+            "p90": 1.2342895217787462,
+            "p95": 1.2342895217787462,
+            "standard_deviation": 0.0
+          },
+          "metric": "train_mi",
+          "rank": 1
+        },
+        "translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.16007810593582122,
+            "mean": 0.16007810593582122,
+            "mean_ci95_high": 0.16007810593582122,
+            "mean_ci95_low": 0.16007810593582122,
+            "median": 0.16007810593582122,
+            "minimum": 0.16007810593582122,
+            "p90": 0.16007810593582122,
+            "p95": 0.16007810593582122,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_difference_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 77.95751370000653,
+        "mean": 69.64422063333525,
+        "mean_ci95_high": 62.059179099975154,
+        "mean_ci95_low": 62.059179099975154,
+        "median": 76.86513640003977,
+        "minimum": 54.110011799959466,
+        "p90": 77.73903824001317,
+        "p95": 77.84827597000985,
+        "standard_deviation": 10.993393625281458
+      },
+      "success_count": 3,
+      "trial_count": 3
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "NumPy CPU reference",
+      "method_id": "numpy",
+      "source_commit": "c0e74cb",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda candidate",
+      "method_id": "cuda",
+      "source_commit": "c0e74cb",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "One invocation; includes lazy JIT.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Load, prepare, solve, holdout.",
+      "label": "Pipeline time",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial rotation difference",
+      "name": "initial_rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial translation difference",
+      "name": "initial_translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Rotation difference",
+      "name": "rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Translation difference",
+      "name": "translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Fit-only frozen histogram ranges.",
+      "label": "Training mutual information",
+      "name": "train_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Prespecified five frames excluded from fit and histogram range selection.",
+      "label": "Holdout mutual information",
+      "name": "holdout_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full trace, output poses, metrics, and holdout evaluations match exactly.",
+      "label": "Exact numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 52.236464600020554,
+      "improvement_ci95_low": 52.236464600020554,
+      "improvement_mean": 61.70931953333396,
+      "metric": "solve_seconds",
+      "paired_count": 3,
+      "raw_delta_mean": -61.70931953333396,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 47.682107533328235,
+      "improvement_ci95_low": 47.682107533328235,
+      "improvement_mean": 59.06391953335454,
+      "metric": "pipeline_seconds",
+      "paired_count": 3,
+      "raw_delta_mean": -59.06391953335454,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "initial_rotation_difference_deg",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "initial_translation_difference_m",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "rotation_difference_deg",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "translation_difference_m",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "train_mi",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "holdout_mi",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "calibrex.public_six_dof_demo/v0.2",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-03"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+    "data_verified": true,
+    "generated_at": "2026-10-10T23:39:55.105141+00:00",
+    "generator": "calibrex.pipelines.public_camera_lidar_demo",
+    "generator_version": "calibrex.public_six_dof_demo/v0.2",
+    "git_commit": "c0e74cb",
+    "source_artifacts": {
+      "assets/frame-0000000460.png": "0f1f1e7601d72c4c2eb42b065c0fc11a60c225ad2bee835b6c6ac5efc1d09c43",
+      "assets/frame-0000001611.png": "34345b5e6e568c0e641128edebb847ed668ac903daa5a85d7bd0ab46dcd31eab",
+      "assets/frame-0000002761.png": "7b2b9b6c7232fcf1f0feefd519ad831c299e385c4a9135ca5599081e21d4e2d7",
+      "demo.problem.json": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "local_benchmark_before_publication": "f81a16c70218fe870ead161f1c92e27f688f92637c78e5a4393c11af1ff28ead",
+      "local_definition_before_publication": "45e4b12b376d54d0ff25f03df9a344bac2212a7503c82e1f4b594df74eb68da9",
+      "public_camera_lidar_demo.py": "4512c588231644b15e4d16d6c71bd6957eb06ed936b6870165b21bb784ae8bae",
+      "public_six_dof_demo.py": "b8601f077a63471c23784e128b922edbab57b528347d4e3a950e987c8a00660c",
+      "source.problem.json": "bde8fd6b1336e29027702568adcc2d8d95e69d18886f3d9bdbae79ec4e9123b1"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "KITTI raw six-DoF public-data demo",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 76.86513640003977,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 74.30635899998015,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+        "config_sha256": "7bd45855d6d402b757af291dff942d0eb9da97f83be87ef106f4facf242aeea2",
+        "input_sha256": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output hash refers to original external local result bytes."
+        ],
+        "output_sha256": "fd56065790d27c3ae552e507f4d58d9dd7edbda63e691012157ee4f972835513"
+      },
+      "runtime_seconds": 76.86513640003977,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.349090099975001,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 3.302253100031521,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+        "config_sha256": "7bd45855d6d402b757af291dff942d0eb9da97f83be87ef106f4facf242aeea2",
+        "input_sha256": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output hash refers to original external local result bytes."
+        ],
+        "output_sha256": "5fd5036bd4155f6be16b7f1463b19fd396fe52811c296caa73282a61f52f7fcc"
+      },
+      "runtime_seconds": 6.349090099975001,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 7.652411699993536,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 3.6112759999814443,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+        "config_sha256": "7bd45855d6d402b757af291dff942d0eb9da97f83be87ef106f4facf242aeea2",
+        "input_sha256": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.repeat-02.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output hash refers to original external local result bytes."
+        ],
+        "output_sha256": "a724e2753068412b224f1fe1e7a6c9acdf23b110cf4d4faeea0e8bc9de6e0baa"
+      },
+      "runtime_seconds": 7.652411699993536,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 77.95751370000653,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 75.14958760002628,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+        "config_sha256": "7bd45855d6d402b757af291dff942d0eb9da97f83be87ef106f4facf242aeea2",
+        "input_sha256": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.repeat-02.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output hash refers to original external local result bytes."
+        ],
+        "output_sha256": "2edfe59a821ce4108490a3f4b0bab3ae800cb82defd9ed039361b63afc998470"
+      },
+      "runtime_seconds": 77.95751370000653,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 54.110011799959466,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 51.27036829997087,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+        "config_sha256": "7bd45855d6d402b757af291dff942d0eb9da97f83be87ef106f4facf242aeea2",
+        "input_sha256": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.repeat-03.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output hash refers to original external local result bytes."
+        ],
+        "output_sha256": "b91d4eb583f9e4fa6834b1ab6e2a67cc41abac7cfffe82d1ed1705bd15f2347f"
+      },
+      "runtime_seconds": 54.110011799959466,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 17.73940149997361,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 8.684827199962456,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --repetitions 3 --output-dir outputs/public-kitti-six-dof-repeat3-gtx1660ti-v1 --json",
+        "config_sha256": "7bd45855d6d402b757af291dff942d0eb9da97f83be87ef106f4facf242aeea2",
+        "input_sha256": "dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.repeat-03.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output hash refers to original external local result bytes."
+        ],
+        "output_sha256": "867782017f51ea87e75b3985d1b9cf94eb05f55dac590befd439d8510d0a8e5c"
+      },
+      "runtime_seconds": 17.73940149997361,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    }
+  ]
+}

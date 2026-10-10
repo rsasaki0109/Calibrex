@@ -38,7 +38,7 @@ from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, apply_loca
 from calibrex.solvers.depth_to_depth_runtime import ProjectionBackend, validate_cuda_cache_bytes
 from calibrex.visualization.public_six_dof_demo import write_public_six_dof_report
 
-PUBLIC_SIX_DOF_DEMO_VERSION = "calibrex.public_six_dof_demo/v0.1"
+PUBLIC_SIX_DOF_DEMO_VERSION = "calibrex.public_six_dof_demo/v0.2"
 _SPLIT_ID = "uniform-25-fit20-holdout5"
 
 
@@ -50,6 +50,7 @@ class PublicSixDofDemoResult:
     results: dict[str, CalibrationResult]
     numerical_parity: bool
     report_path: Path
+    trial_results: dict[tuple[str, str], CalibrationResult]
 
     @property
     def successful(self) -> bool:
@@ -66,6 +67,7 @@ def run_public_camera_lidar_six_dof_demo(
     *,
     output_directory: str | Path,
     candidate_backend: ProjectionBackend = "cuda",
+    repetitions: int = 1,
     cuda_cache_bytes: int | None = None,
     options: BorerSixDofOptions | None = None,
     rotation_offset_deg: tuple[float, float, float] = (0.5, 0.0, 0.0),
@@ -82,6 +84,8 @@ def run_public_camera_lidar_six_dof_demo(
     """
 
     validate_cuda_cache_bytes(candidate_backend, cuda_cache_bytes)
+    if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
+        raise ValueError("repetitions must be a positive integer")
     if not command or not all(item.strip() for item in command):
         raise ValueError("demo provenance requires a non-empty command argv")
     if candidate_backend not in ("numpy", "numba_cpu", "cuda"):
@@ -135,6 +139,8 @@ def run_public_camera_lidar_six_dof_demo(
         "holdout_frame_ids": holdout_ids,
         "candidate_backend": candidate_backend,
         "cuda_cache_bytes": cuda_cache_bytes,
+        "repetitions": repetitions,
+        "execution_order": "CPU first on odd-numbered repetitions; candidate first on even ones",
     }
     config_digest = _digest(configuration)
     output.mkdir(parents=True, exist_ok=True)
@@ -190,32 +196,82 @@ def run_public_camera_lidar_six_dof_demo(
         ("numpy", "numpy"),
         (candidate_id, candidate_backend),
     ]
-    results: dict[str, CalibrationResult] = {}
-    failures: dict[str, str] = {}
+    split_ids = [
+        _SPLIT_ID if repetitions == 1 else f"{_SPLIT_ID}-repeat-{index + 1:02d}"
+        for index in range(repetitions)
+    ]
+    trial_results: dict[tuple[str, str], CalibrationResult] = {}
+    failures: dict[tuple[str, str], str] = {}
+    execution_keys: list[tuple[str, str]] = []
+    result_files: dict[tuple[str, str], str] = {}
     result: CalibrationResult | None
-    for method_id, backend in methods:
-        try:
-            result = run_camera_lidar_six_dof_estimate(
-                problem_path,
-                options=settings,
-                projection_backend=backend,
-                cuda_cache_bytes=cuda_cache_bytes if backend == "cuda" else None,
-                holdout_frame_ids=holdout_ids,
-                command=command,
+    for index, split_id in enumerate(split_ids):
+        ordered_methods = methods if index % 2 == 0 else list(reversed(methods))
+        for method_id, backend in ordered_methods:
+            key = (method_id, split_id)
+            execution_keys.append(key)
+            filename = (
+                f"{method_id}.result.json"
+                if index == 0
+                else f"{method_id}.repeat-{index + 1:02d}.result.json"
             )
-            result.save(output / f"{method_id}.result.json")
-            results[method_id] = result
-            if result.run.provenance["solver_result"]["status"] != "converged":
-                failures[method_id] = result.run.provenance["solver_result"]["stopping_reason"]
-            elif result.metrics["final_d2d_mutual_information"].holdout is None:
-                failures[method_id] = "holdout has insufficient visible depth pairs"
-        except (OSError, ValueError, RuntimeError, MemoryError) as exc:
-            failures[method_id] = f"{type(exc).__name__}: {exc}"
-    parity = len(results) == 2 and (
-        _numerical_payload(results["numpy"]) == _numerical_payload(results[candidate_id])
+            result_files[key] = filename
+            try:
+                # Each invocation starts from the shared problem's declared
+                # initial pose. No output is reused as a later initialization.
+                result = run_camera_lidar_six_dof_estimate(
+                    problem_path,
+                    options=settings,
+                    projection_backend=backend,
+                    cuda_cache_bytes=cuda_cache_bytes if backend == "cuda" else None,
+                    holdout_frame_ids=holdout_ids,
+                    command=command,
+                )
+                result.run.provenance["public_demo_repetition"] = {
+                    "number": index + 1,
+                    "count": repetitions,
+                    "execution_order": [item[0] for item in ordered_methods],
+                    "shared_problem_sha256": loaded.problem_sha256,
+                }
+                result.save(output / filename)
+                trial_results[key] = result
+                if result.run.provenance["solver_result"]["status"] != "converged":
+                    failures[key] = result.run.provenance["solver_result"]["stopping_reason"]
+                elif result.metrics["final_d2d_mutual_information"].holdout is None:
+                    failures[key] = "holdout has insufficient visible depth pairs"
+            except (OSError, ValueError, RuntimeError, MemoryError) as exc:
+                failures[key] = f"{type(exc).__name__}: {exc}"
+    baseline = next(
+        (
+            _numerical_payload(result)
+            for (method_id, _split_id), result in trial_results.items()
+            if method_id == "numpy"
+        ),
+        None,
     )
-    if len(results) == 2 and not parity:
-        failures[candidate_id] = "CPU/candidate numerical mismatch in trace, poses, or metrics"
+    for key, result in trial_results.items():
+        if baseline is not None and _numerical_payload(result) != baseline:
+            failures[key] = (
+                "CPU/candidate numerical mismatch in trace, poses, or metrics, "
+                "including repetitions"
+            )
+    pair_parity = {
+        split_id: baseline is not None
+        and all(
+            (method_id, split_id) in trial_results
+            and _numerical_payload(trial_results[method_id, split_id]) == baseline
+            for method_id, _backend in methods
+        )
+        for split_id in split_ids
+    }
+    parity = all(pair_parity.values())
+    # Keep the original API's first-pair lookup and file names; all repetitions
+    # are available by (method_id, split_id) in trial_results.
+    results = {
+        method_id: trial_results[method_id, split_ids[0]]
+        for method_id, _backend in methods
+        if (method_id, split_ids[0]) in trial_results
+    }
     metric_definitions = [
         BenchmarkMetricDefinition(
             name=name,
@@ -279,13 +335,14 @@ def run_public_camera_lidar_six_dof_demo(
         )
     ]
     trials = []
-    for method_id, _backend in methods:
-        result = results.get(method_id)
+    for key in execution_keys:
+        method_id, split_id = key
+        result = trial_results.get(key)
         metrics: dict[str, float] = {}
         if result is not None:
             timing = result.run.provenance["timing_seconds"]
             metrics.update(solve_seconds=timing["solve"], pipeline_seconds=sum(timing.values()))
-            metrics["numerical_parity"] = float(parity)
+            metrics["numerical_parity"] = float(pair_parity[split_id])
             initial_rotation, initial_translation = _reference_difference(
                 initial.as_se3(),
                 loaded.reference_transform_camera_lidar,
@@ -310,24 +367,36 @@ def run_public_camera_lidar_six_dof_demo(
         trials.append(
             BenchmarkTrial(
                 method_id=method_id,
-                split_id=_SPLIT_ID,
-                status="failed" if method_id in failures else "success",
-                failure_reason=failures.get(method_id),
+                split_id=split_id,
+                status="failed" if key in failures else "success",
+                failure_reason=failures.get(key),
                 metrics=metrics,
                 runtime_seconds=metrics.get("pipeline_seconds"),
                 provenance=BenchmarkTrialProvenance(
                     command=shlex.join(command),
                     config_sha256=config_digest,
                     input_sha256=loaded.problem_sha256,
-                    output_sha256=sha256_path(output / f"{method_id}.result.json"),
-                    notes=["Same controlled initial pose and 20/5 split for both executions."],
+                    output_sha256=sha256_path(output / result_files[key]),
+                    notes=[
+                        "Same controlled initial pose, problem bytes, and 20/5 split "
+                        "for every run.",
+                        f"Result file: {result_files[key]}",
+                        "CPU first on odd-numbered repetitions; candidate first on even ones. "
+                        "Each invocation verifies/loads inputs and prepares a fresh projector. "
+                        "The first invocation is included; kernel caches persist "
+                        "in this process.",
+                    ],
                 ),
             )
         )
     training = provider.provider.training
     limitations = [
-        "One sequence, one perturbation, one invocation per backend; timing is descriptive. "
-        "Single-pair bootstrap intervals do not establish statistical confidence.",
+        f"One sequence, one perturbation, {repetitions} invocation(s) per backend. "
+        "Repetitions measure timing on the same frames, not independent recovery trials. "
+        "Bootstrap intervals do not establish statistical confidence for this demo.",
+        "All invocations, including the first, contribute to timing. There is no separate "
+        "warm-up or cold-process guarantee; lazy compilation and process-wide caches "
+        "affect latency.",
         "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. "
         "Dataset reference is not independent metrology; covariance/observability remain unknown.",
         "Only the supplied frozen provider frames are eligible; uniform selection is by "
@@ -362,13 +431,14 @@ def run_public_camera_lidar_six_dof_demo(
             "frame is holdout (20 fit / 5 holdout), fixed before optimization.",
             splits=[
                 BenchmarkSplit(
-                    split_id=_SPLIT_ID,
+                    split_id=split_id,
                     seed=0,
                     fit_count=20,
                     holdout_count=5,
                     fit_ids_sha256=_digest(fit_ids),
                     holdout_ids_sha256=_digest(holdout_ids),
                 )
+                for split_id in split_ids
             ],
             initial_estimate_policy=initial.provenance.notes[0],
             tuning_policy="Same solver settings for both backends; no holdout tuning.",
@@ -410,11 +480,12 @@ def run_public_camera_lidar_six_dof_demo(
         loaded=loaded,
         provider_base=provider_path.parent,
         benchmark=benchmark,
-        results=results,
+        results=trial_results,
+        result_files=result_files,
         numerical_parity=parity,
         preview_ids=preview_ids,
     )
-    return PublicSixDofDemoResult(benchmark, results, parity, report)
+    return PublicSixDofDemoResult(benchmark, results, parity, report, trial_results)
 
 
 def _validate_image_grids(

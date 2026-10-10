@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add `--repetitions` to the public KITTI six-DoF demo. Reuse one frozen
+  problem and initial pose, alternate CPU/candidate order, retain every attempt,
+  and report successful-run timing medians/ranges. Exact parity is checked across
+  repetitions as well as backends; image overlays keep the first pair.
+
 - Add `calibrex demo kitti-six-dof` to compare NumPy and an explicitly selected
   CUDA/CPU backend on public KITTI raw data with a frozen depth provider. The
   command fixes a 20-fit/5-holdout split and controlled initial perturbation,

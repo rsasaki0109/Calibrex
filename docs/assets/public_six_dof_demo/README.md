@@ -1,6 +1,6 @@
 # Public KITTI raw six-DoF demonstration evidence
 
-These five schema-valid JSON artifacts retain numerical evidence from
+These seven schema-valid JSON artifacts retain numerical evidence from
 `calibrex demo kitti-six-dof` on public KITTI raw
 `2011_09_30_drive_0018_sync/image_02`, original Velodyne scans, and the frozen
 FeatDepth provider SHA256
@@ -11,8 +11,8 @@ initial pose adds local x rotation 0.5° and camera-frame x translation 0.5 m
 to the dataset reference. Default search bounds, steps, and 800-evaluation
 budget were fixed before executing either backend.
 
-`comparison.definition.json` / `comparison.benchmark.json` describe the final
-implementation run. `numpy.result.json` / `cuda.result.json` retain all 229
+`comparison.definition.json` / `comparison.benchmark.json` describe the previous
+single-invocation comparison. `numpy.result.json` / `cuda.result.json` retain all 229
 evaluations, effective settings, frame IDs, initial/output/reference poses,
 holdout records, timing phases, and backend identities. Both runs converged.
 All solver records (apart from backend identity), metrics, final poses, and
@@ -48,6 +48,51 @@ dataset-provided evidence. Numerical outputs and all 229 evaluations match the
 final invocation. Its CPU/CUDA solve times were 49.445 / 10.794 s (4.58x), and
 pipeline times 51.941 / 16.859 s (3.08x). Preserve both observations; this
 variation does not support a portable speed guarantee or confidence interval.
+
+## Three repetitions per backend
+
+`repeat3.definition.json` / `repeat3.benchmark.json` record a subsequent
+`--repetitions 3` comparison on the same hardware, public frames, frozen provider,
+initial perturbation, and solver settings. All six invocations converged in 229
+evaluations. Their complete numerical traces, final poses, metrics, and holdout
+records match each other and the earlier published standard results exactly.
+The generated shared problem SHA256 is
+`dc29f3ea7d307ba4809cd28584e627140f1f4c86c659292e75fdfa99ae9ce16f`.
+
+| Execution order | Repetition | Backend | Solve | Pipeline total |
+| ---: | ---: | --- | ---: | ---: |
+| 1 | 1 | NumPy | 74.306 s | 76.865 s |
+| 2 | 1 | CUDA | 3.302 s | 6.349 s |
+| 3 | 2 | CUDA | 3.611 s | 7.652 s |
+| 4 | 2 | NumPy | 75.150 s | 77.958 s |
+| 5 | 3 | NumPy | 51.270 s | 54.110 s |
+| 6 | 3 | CUDA | 8.685 s | 17.739 s |
+
+| Backend | Successful / attempted | Median solve | Solve range | Median pipeline | Pipeline range |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| NumPy | 3 / 3 | 74.306 s | 51.270–75.150 s | 76.865 s | 54.110–77.958 s |
+| CUDA | 3 / 3 | 3.611 s | 3.302–8.685 s | 7.652 s | 6.349–17.739 s |
+
+The ratio of solve medians is 20.58x; the ratio of measured pipeline medians is
+10.04x. Every invocation starts from the shared declared prior with fresh input
+verification/loading and projector preparation. All invocations, including the
+first, are included; there is no separate warm-up. Process-wide kernel caches
+persist between invocations. Pipeline total sums load/verification, preparation,
+solve, and holdout; shared demo setup and report rendering are excluded.
+These observed ranges expose substantial timing variation. Repeated timings on
+the same frames do not establish independent recovery accuracy, confidence
+intervals, or a portable speed guarantee. Bootstrap fields inherited from the
+benchmark format are not statistical confidence for this demonstration.
+
+All six original standard results remain local, with each output hash bound in
+the repeated benchmark. Published repeated artifacts normalize paths and retain
+original local definition/benchmark hashes; their output hashes refer to the
+original external result bytes, as noted in each trial. They do not refer to the
+two earlier normalized standard results. Measurements used the development
+worktree based on `c0e74cb`; generator-source SHA256 values identify the modified
+code rather than implying it was already present in that base commit.
+The repeated HTML was also rendered at
+1440 px and 390 px: all nine images and SVGs rendered without page overflow.
 
 Paths in these published artifacts are normalized to `${DATASET_ROOT}` and
 `${WORKSPACE_ROOT}`. Numerical values, original input/configuration hashes,

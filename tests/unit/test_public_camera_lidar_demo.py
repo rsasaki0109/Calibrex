@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import statistics
 import struct
 import zlib
 from pathlib import Path
@@ -14,6 +15,7 @@ import pytest
 from calibrex.cli.main import main
 from calibrex.core.benchmark import BenchmarkArtifact, BenchmarkDefinition
 from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+from calibrex.core.provenance import sha256_path
 from calibrex.core.result import load_result
 from calibrex.data.depth import (
     DepthCameraIntrinsics,
@@ -307,6 +309,8 @@ def test_cli_explicit_cpu_replay_and_early_cache_validation(tmp_path: Path, caps
                 "numpy",
                 "--max-evaluations",
                 "13",
+                "--repetitions",
+                "2",
                 "--output-dir",
                 str(tmp_path / "out"),
                 "--json",
@@ -316,6 +320,8 @@ def test_cli_explicit_cpu_replay_and_early_cache_validation(tmp_path: Path, caps
     )
     payload = json.loads(capsys.readouterr().out)
     assert payload["numerical_parity"] is True and payload["status"] == "incomplete"
+    assert len(payload["trials"]) == 4
+    assert payload["timing_summaries"]["numpy"]["solve_seconds"]["count"] == 0
     assert (
         main(
             [
@@ -347,10 +353,12 @@ def test_real_cuda_matches_full_trace_and_holdout(tmp_path: Path) -> None:
         output_directory=tmp_path / "out",
         options=BorerSixDofOptions(max_evaluations=13),
         cuda_cache_bytes=0,
+        repetitions=2,
         command=["fixture"],
     )
     assert demo.numerical_parity
     assert set(demo.results) == {"numpy", "cuda"}
+    assert len(demo.trial_results) == 4
     assert (
         demo.results["cuda"].run.provenance["projection_transfer_statistics"][
             "prepared_observation_count"
@@ -389,3 +397,156 @@ def test_uniform_selection_uses_provider_positions_in_numeric_order(tmp_path: Pa
     ids = [int(item.frame_id) for item in problem.observations]
     assert ids == list(range(12)) + list(range(13, 26))
     assert demo.benchmark.protocol.splits[0].fit_count == 20
+
+
+def test_repetitions_share_problem_rotate_order_and_bind_every_result(tmp_path: Path) -> None:
+    sequence, provider = _fixture(tmp_path)
+    output = tmp_path / "out"
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=output,
+        candidate_backend="numpy",
+        repetitions=3,
+        rotation_offset_deg=(0, 0, 0),
+        translation_offset_m=(0, 0, 0),
+        options=BorerSixDofOptions(
+            max_evaluations=100,
+            minimum_rotation_step_deg=0.25,
+            minimum_translation_step_m=0.1,
+        ),
+        command=["fixture"],
+    )
+    assert demo.successful
+    trials = demo.benchmark.trials
+    assert [trial.method_id for trial in trials] == [
+        "numpy",
+        "numpy_repeat",
+        "numpy_repeat",
+        "numpy",
+        "numpy",
+        "numpy_repeat",
+    ]
+    assert len({trial.provenance.input_sha256 for trial in trials}) == 1
+    assert len(list(output.glob("*.result.json"))) == 6
+    assert len(demo.trial_results) == 6
+    for trial in trials:
+        key = (trial.method_id, trial.split_id)
+        result = demo.trial_results[key]
+        repetition = result.run.provenance["public_demo_repetition"]["number"]
+        suffix = "" if repetition == 1 else f".repeat-{repetition:02d}"
+        assert trial.provenance.output_sha256 == sha256_path(
+            output / f"{trial.method_id}{suffix}.result.json"
+        )
+        config = result.run.provenance["configuration"]
+        assert len(config["train_frame_ids"]) == 20 and len(config["holdout_frame_ids"]) == 5
+        assert (
+            config["initial_transform"]
+            == next(iter(demo.results.values())).run.provenance["configuration"][
+                "initial_transform"
+            ]
+        )
+    for method in ("numpy", "numpy_repeat"):
+        summary = demo.benchmark.method_summaries[method]
+        times = [trial.metrics["solve_seconds"] for trial in trials if trial.method_id == method]
+        assert summary.success_count == 3 and summary.failure_count == 0
+        assert summary.metrics["solve_seconds"].distribution.median == statistics.median(times)
+        assert summary.metrics["solve_seconds"].distribution.minimum == min(times)
+        assert summary.metrics["solve_seconds"].distribution.maximum == max(times)
+    assert len({split.fit_ids_sha256 for split in demo.benchmark.protocol.splits}) == 1
+    assert len({split.holdout_ids_sha256 for split in demo.benchmark.protocol.splits}) == 1
+    report = demo.report_path.read_text(encoding="utf-8")
+    assert "Median solve" in report and "3 / 3" in report
+    assert "repetition 1" in report and "repeat-03.result.json" in report
+    assert report.count("<svg ") == 9
+
+
+def test_a_failed_repetition_is_retained_without_contaminating_medians(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sequence, provider = _fixture(tmp_path)
+    original = demo_module.run_camera_lidar_six_dof_estimate
+    calls = 0
+
+    def run(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise RuntimeError("candidate failed on repetition 2")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(demo_module, "run_camera_lidar_six_dof_estimate", run)
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=tmp_path / "out",
+        candidate_backend="numpy",
+        repetitions=3,
+        rotation_offset_deg=(0, 0, 0),
+        translation_offset_m=(0, 0, 0),
+        options=BorerSixDofOptions(
+            max_evaluations=100,
+            minimum_rotation_step_deg=0.25,
+            minimum_translation_step_m=0.1,
+        ),
+        command=["fixture"],
+    )
+    assert not demo.successful and not demo.numerical_parity
+    assert len(demo.benchmark.trials) == 6 and len(demo.trial_results) == 5
+    candidate = demo.benchmark.method_summaries["numpy_repeat"]
+    assert candidate.success_count == 2 and candidate.failure_count == 1
+    assert candidate.metrics["solve_seconds"].distribution.count == 2
+    report = demo.report_path.read_text(encoding="utf-8")
+    assert "candidate failed on repetition 2" in report and "2 / 3" in report
+    assert "Solve-time ratio" not in report
+    assert "numpy_repeat.repeat-02.result.json</a>" not in report
+
+
+def test_equal_pairs_with_drift_across_repetitions_fail_parity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sequence, provider = _fixture(tmp_path)
+    original = demo_module.run_camera_lidar_six_dof_estimate
+    calls = 0
+
+    def run(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        result = original(*args, **kwargs)
+        if calls > 2:
+            result.run.provenance["solver_result"]["trace"][0]["objective"] += 0.01
+        return result
+
+    monkeypatch.setattr(demo_module, "run_camera_lidar_six_dof_estimate", run)
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=tmp_path / "out",
+        candidate_backend="numpy",
+        repetitions=2,
+        options=BorerSixDofOptions(max_evaluations=13),
+        command=["fixture"],
+    )
+    assert not demo.numerical_parity
+    assert all(
+        "numerical mismatch" in str(trial.failure_reason) for trial in demo.benchmark.trials[2:]
+    )
+    assert [trial.metrics["numerical_parity"] for trial in demo.benchmark.trials] == [1, 1, 0, 0]
+
+
+@pytest.mark.parametrize("repetitions", [0, -1, True, 1.5])
+def test_invalid_repetition_count_fails_before_inputs(
+    tmp_path: Path,
+    repetitions: Any,
+) -> None:
+    with pytest.raises(ValueError, match="positive integer"):
+        run_public_camera_lidar_six_dof_demo(
+            "missing",
+            "missing",
+            output_directory=tmp_path / "out",
+            command=["fixture"],
+            repetitions=repetitions,
+        )
+    assert not (tmp_path / "out").exists()

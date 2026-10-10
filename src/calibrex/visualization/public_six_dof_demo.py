@@ -24,7 +24,8 @@ def write_public_six_dof_report(
     loaded: LoadedCameraLidarProblem,
     provider_base: Path,
     benchmark: BenchmarkArtifact,
-    results: dict[str, CalibrationResult],
+    results: dict[tuple[str, str], CalibrationResult],
+    result_files: dict[tuple[str, str], str],
     numerical_parity: bool,
     preview_ids: list[str],
 ) -> Path:
@@ -36,9 +37,14 @@ def write_public_six_dof_report(
     """
 
     labels = {method.method_id: method.label for method in benchmark.methods}
+    split_numbers = {
+        split.split_id: index + 1 for index, split in enumerate(benchmark.protocol.splits)
+    }
+    repetitions = len(split_numbers)
+    first_split_id = benchmark.protocol.splits[0].split_id
     rows = []
     for trial in benchmark.trials:
-        result = results.get(trial.method_id)
+        result = results.get((trial.method_id, trial.split_id))
         solver = result.run.provenance["solver_result"] if result else {}
         final_mi = result.metrics["final_d2d_mutual_information"] if result else None
         initial_mi = result.metrics["initial_d2d_mutual_information"] if result else None
@@ -46,7 +52,8 @@ def write_public_six_dof_report(
             "quality: " + result.quality.grade if result else "no result"
         )
         rows.append(
-            f"<tr><th>{html.escape(labels[trial.method_id])}</th>"
+            f"<tr><th>{html.escape(labels[trial.method_id])}"
+            f"<br><small>Repetition {split_numbers[trial.split_id]}</small></th>"
             f"<td>{html.escape(str(solver.get('status', 'failed')))}"
             f"<br><small>{html.escape(status_note)}</small></td>"
             f"<td>{solver.get('evaluation_count', '—')}</td>"
@@ -60,11 +67,12 @@ def write_public_six_dof_report(
             f"{_number(final_mi.holdout if final_mi else None)}</td></tr>"
         )
     timing_rows = []
-    for method_id, label in labels.items():
-        result = results.get(method_id)
+    for trial in benchmark.trials:
+        result = results.get((trial.method_id, trial.split_id))
         timing = result.run.provenance["timing_seconds"] if result else {}
         timing_rows.append(
-            f"<tr><th>{html.escape(label)}</th>"
+            f"<tr><th>{html.escape(labels[trial.method_id])}"
+            f"<br><small>Repetition {split_numbers[trial.split_id]}</small></th>"
             + "".join(
                 f"<td>{_number(timing.get(name))}</td>"
                 for name in (
@@ -77,12 +85,27 @@ def write_public_six_dof_report(
             + f"<td>{_number(sum(timing.values()) if timing else None)}</td></tr>"
         )
     successful = numerical_parity and all(trial.status == "success" for trial in benchmark.trials)
+    summary_rows = []
+    for method_id, label in labels.items():
+        summary = benchmark.method_summaries[method_id]
+        solve = summary.metrics["solve_seconds"].distribution
+        pipeline = summary.metrics["pipeline_seconds"].distribution
+        summary_rows.append(
+            f"<tr><th>{html.escape(label)}</th>"
+            f"<td>{summary.success_count} / {summary.trial_count}</td>"
+            f"<td>{_number(solve.median)}</td>"
+            f"<td>{_number(solve.minimum)} - {_number(solve.maximum)}</td>"
+            f"<td>{_number(pipeline.median)}</td>"
+            f"<td>{_number(pipeline.minimum)} - {_number(pipeline.maximum)}</td></tr>"
+        )
     ratio = ""
     if successful:
-        cpu, candidate = benchmark.trials
-        if candidate.metrics["solve_seconds"] > 0:
-            solve_ratio = cpu.metrics["solve_seconds"] / candidate.metrics["solve_seconds"]
-            ratio = f"Solve-time ratio (CPU / candidate): {solve_ratio:.2f}x. "
+        cpu, candidate = [benchmark.method_summaries[method_id] for method_id in labels]
+        cpu_median = cpu.metrics["solve_seconds"].distribution.median
+        candidate_median = candidate.metrics["solve_seconds"].distribution.median
+        if cpu_median is not None and candidate_median is not None and candidate_median > 0:
+            solve_ratio = cpu_median / candidate_median
+            ratio = f"Solve-time ratio (CPU / candidate medians): {solve_ratio:.2f}x. "
     assets = output / "assets"
     assets.mkdir(exist_ok=True)
     depth_by_id = {item.frame_id: item for item in loaded.depth_provider.observations}
@@ -98,7 +121,7 @@ def write_public_six_dof_report(
         (output / image_name).write_bytes(image_bytes)
         panels = [_panel("Declared initial pose", image_name, observations[frame_id], initial)]
         for method_id, label in labels.items():
-            result = results.get(method_id)
+            result = results.get((method_id, first_split_id))
             pose = (
                 next(iter(result.transforms.values())).as_se3()
                 if result and result.transforms
@@ -114,7 +137,7 @@ def write_public_six_dof_report(
         "demo.problem.json",
         "comparison.definition.json",
         "comparison.benchmark.json",
-        *(f"{method_id}.result.json" for method_id in results),
+        *(result_files[key] for key in results),
     ]
     limitations = "".join(f"<li>{html.escape(note)}</li>" for note in benchmark.limitations)
     artifact_links = "".join(
@@ -162,12 +185,22 @@ Convergence does not prove accuracy; quality remains a warning.</p></div>
 <h2>Timing per invocation (seconds)</h2><div class="table-wrap"><table><thead><tr>
 <th>Method</th><th>Load / verify</th><th>Prepare</th><th>Solve</th><th>Holdout</th><th>Total</th>
 </tr></thead><tbody>{"".join(timing_rows)}</tbody></table></div>
-<p>{ratio}These are single invocations; CUDA solve time includes lazy compilation.
-This is not a repeated latency benchmark.</p>
+<h2>Timing summary (seconds)</h2><div class="table-wrap"><table><thead><tr>
+<th>Method</th><th>Successful / attempted</th><th>Median solve</th><th>Solve range</th>
+<th>Median total</th><th>Total range</th></tr></thead><tbody>{"".join(summary_rows)}</tbody>
+</table></div>
+<p>{ratio}{repetitions} invocation(s) per backend on the same fixed frames and initial pose.
+Summary includes successful trials only; every attempt is shown above.
+CPU runs first on odd repetitions; candidate runs first on even repetitions.
+The first invocation is included. There is no separate warm-up; CUDA solve time
+includes lazy compilation and later invocations share process-wide kernel caches.
+Total sums the four pipeline phases; shared demo setup and HTML rendering are excluded.
+Repetitions describe latency on these inputs, not independent calibration recovery trials.</p>
 <h2>Held-out image overlays</h2>
 <p>Points are finite, visible camera/LiDAR depth pairs after z-buffering.
 Display samples at most 1,200 pairs; optimization uses full scans.
-Colour is fixed LiDAR range: blue (0 m) → red (80 m).</p>
+Colour is fixed LiDAR range: blue (0 m) → red (80 m).
+Overlays show repetition 1 for both methods; missing first-run poses are not substituted.</p>
 {"".join(previews)}
 <details><summary>Limitations and provenance</summary><ul>{limitations}</ul>
 <p>Provider SHA256: <code>{loaded.depth_provider_sha256}</code></p>
