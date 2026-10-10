@@ -2514,6 +2514,12 @@ def _build_parser() -> argparse.ArgumentParser:
     trajectory_joint.add_argument("--output", type=Path, required=True)
     trajectory_joint.add_argument("--seed", type=int, default=20261010)
     trajectory_joint.add_argument("--recovery-id", default="ct-lidar-imu-joint-synthetic")
+    trajectory_joint.add_argument(
+        "--trajectory",
+        choices=("screw_linear", "cubic_bspline"),
+        default="screw_linear",
+        help="trajectory model: screw-linear knots or a C2 cubic B-spline",
+    )
     trajectory_joint.add_argument("--json", action="store_true")
     trajectory_joint.set_defaults(func=_cmd_trajectory_recover_lidar_imu_joint)
     trajectory_window = trajectory_subcommands.add_parser(
@@ -7885,12 +7891,15 @@ def _cmd_trajectory_recover_lidar_imu_joint(args: argparse.Namespace) -> int:
         str(args.output),
         "--seed",
         str(args.seed),
+        "--trajectory",
+        args.trajectory,
     ]
     try:
         artifact = run_synthetic_lidar_imu_joint_recovery(
             seed=args.seed,
             command=command,
             recovery_id=args.recovery_id,
+            trajectory=args.trajectory,
         )
         artifact.save(args.output)
     except (OSError, ValueError) as exc:
@@ -7901,6 +7910,7 @@ def _cmd_trajectory_recover_lidar_imu_joint(args: argparse.Namespace) -> int:
             "recovery": str(args.output),
             "policy_status": artifact.policy_status,
             "policy_reason": artifact.policy_reason,
+            "interpolation": artifact.interpolation,
             "fit_status": artifact.fit_status,
             "parameter_errors": {
                 record.name: record.error_norm for record in artifact.parameters

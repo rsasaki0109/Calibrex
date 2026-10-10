@@ -290,6 +290,21 @@ windows that straddle a knot. A C2 trajectory (for example a cumulative
 B-spline) is the next step, followed by the rosbag front end and the TIERS
 run below.
 
+**Progress (2026-10-11):** the C2 trajectory exists. A uniform cumulative
+cubic B-spline on SO(3) x R^3 (`calibrex.core.continuous_time_bspline`) gives
+analytic body angular velocity, angular acceleration and world linear
+acceleration, and `calibrex.core.continuous_time_bspline_fit` fits its
+control points jointly with the six calibration blocks from per-return
+LiDAR timestamps and direct 100 Hz gyro and accelerometer factors.
+`recover-lidar-imu-joint --trajectory cubic_bspline` generates the truth from
+a smooth continuous trajectory the spline can only approximate: on seeds
+20261010, 1 and 2 the trajectory error stays under 1 cm and 0.3 deg, the
+holdout RMSE sits at the noise level and matches the truth calibration, every
+block is within 2.6 sigma, and all 32 controls are detected. Left for the
+real-data half: a rosbag front end (LiDAR returns against a local plane map
+instead of known planes, an initial spline from LiDAR odometry and the
+angular-rate rotation estimate) and the TIERS run.
+
 **Acceptance conditions:**
 
 - Synthetic joint recovery meets the budgets of the individual `recover-*`

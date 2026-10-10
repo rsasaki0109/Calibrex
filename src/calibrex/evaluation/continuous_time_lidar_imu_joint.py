@@ -9,12 +9,15 @@ sample is held out (interleaved, so the holdout spans the whole excitation);
 each parameter gets signed known-bad controls on that holdout, and the fit's
 marginal covariance reports which blocks the data separate.
 
-The screw-linear knot path has piecewise-constant velocity, so its
-acceleration is concentrated at the knots.  Accelerometer samples are kept
-away from the knots by more than any clock offset the fit explores, and the
-clock offset is observed only by gyro windows that straddle a knot, so half
-of the windows do.  Real captures need a smoother trajectory model before
-these factors apply.
+Two trajectory models are available.  ``screw_linear`` uses the sparse knot
+solver: the truth is generated from the knots themselves, the path has
+piecewise-constant velocity, so accelerometer samples are kept away from the
+knots and the clock offset is observed only by gyro windows that straddle a
+knot.  ``cubic_bspline`` uses the C2 spline of
+:mod:`calibrex.core.continuous_time_bspline_fit`: the truth is a smooth
+continuous trajectory the spline can only approximate, LiDAR returns carry
+their own timestamps, gyro and accelerometer samples are direct 100 Hz
+factors, and every third IMU sample is held out.
 """
 
 from __future__ import annotations
@@ -25,6 +28,16 @@ from typing import Literal, TypeVar
 
 import numpy as np
 
+from calibrex.core.continuous_time_bspline import CubicBSplineTrajectory, so3_log_batch
+from calibrex.core.continuous_time_bspline_fit import (
+    BSplineImuSamples,
+    BSplineLidarImuFitOptions,
+    BSplineLidarImuProblem,
+    BSplinePlaneReturns,
+    LidarImuCalibration,
+    fit_bspline_lidar_imu,
+    lidar_imu_residuals,
+)
 from calibrex.core.continuous_time_lidar_imu_joint import (
     ContinuousTimeLidarImuJointArtifact,
     ContinuousTimeLidarImuJointProvenance,
@@ -56,7 +69,10 @@ from calibrex.core.se3_manifold import (
     rotation_vector_to_matrix,
     se3_exp,
     se3_log,
+    so3_left_jacobian,
 )
+
+TrajectoryModel = Literal["screw_linear", "cubic_bspline"]
 
 _SYNTHETIC_SEED = 20261010
 _DURATION_SEC = 6.0
@@ -122,9 +138,12 @@ def run_synthetic_lidar_imu_joint_recovery(
     seed: int = _SYNTHETIC_SEED,
     command: list[str] | None = None,
     recovery_id: str = "ct-lidar-imu-joint-synthetic",
+    trajectory: TrajectoryModel = "screw_linear",
 ) -> ContinuousTimeLidarImuJointArtifact:
     """Jointly recover LiDAR-IMU calibration with holdout, controls and separability."""
 
+    if trajectory == "cubic_bspline":
+        return _run_cubic_bspline(seed=seed, command=command, recovery_id=recovery_id)
     rng = np.random.default_rng(seed)
     timestamps = tuple(
         float(value)
@@ -190,15 +209,7 @@ def run_synthetic_lidar_imu_joint_recovery(
             "accel": accel_holdout[0].weight ** 2 * 3 * len(accel_holdout),
         },
     )
-    separability = [
-        LidarImuJointSeparabilityRecord(
-            block_a=_block_name(left),
-            block_b=_block_name(right),
-            max_abs_correlation=value,
-            entangled=value >= _ENTANGLED_CORRELATION,
-        )
-        for (left, right), value in calibration_correlation(result).items()
-    ]
+    separability = _separability(calibration_correlation(result))
     knot_translation = max(
         float(np.linalg.norm(se3_log(estimate, knot)[:3]))
         for estimate, knot in zip(result.knot_poses, truth, strict=True)
@@ -668,3 +679,320 @@ def _policy(
         f"{len(controls)} signed controls "
         "are detected" + note,
     )
+
+
+_BSPLINE_KNOT_SPACING_SEC = 0.1
+_BSPLINE_IMU_RATE_HZ = 100.0
+_BSPLINE_LIDAR_RATE_HZ = 1000.0
+_BSPLINE_IMU_MARGIN_SEC = 0.1
+_BSPLINE_ERROR_GRID_SEC = 0.05
+
+
+def _run_cubic_bspline(
+    *,
+    seed: int,
+    command: list[str] | None,
+    recovery_id: str,
+) -> ContinuousTimeLidarImuJointArtifact:
+    rng = np.random.default_rng(seed)
+    planes = _bspline_plane_returns(rng)
+    body_times = np.arange(
+        _BSPLINE_IMU_MARGIN_SEC,
+        _DURATION_SEC - _BSPLINE_IMU_MARGIN_SEC,
+        1.0 / _BSPLINE_IMU_RATE_HZ,
+    )
+    gyro_values, accel_values = _bspline_imu_values(body_times, rng)
+    imu_times = body_times + _TRUE_CLOCK_OFFSET_SEC
+    # Every third IMU sample: a 0.1 s spline cannot follow single samples, so a
+    # held-out sample tests the calibration on the spline its neighbours shaped.
+    # Holding out whole blocks instead leaves the spline there to LiDAR alone,
+    # whose doubly differentiated position swamps the accelerometer controls.
+    held = (np.arange(body_times.size) % _HOLDOUT_EVERY) == 1
+    gyro_train = BSplineImuSamples(imu_times[~held], gyro_values[~held], _GYRO_NOISE_RAD_S)
+    accel_train = BSplineImuSamples(imu_times[~held], accel_values[~held], _ACCEL_NOISE_M_S2)
+    gyro_holdout = BSplineImuSamples(imu_times[held], gyro_values[held], _GYRO_NOISE_RAD_S)
+    accel_holdout = BSplineImuSamples(imu_times[held], accel_values[held], _ACCEL_NOISE_M_S2)
+    count = round(_DURATION_SEC / _BSPLINE_KNOT_SPACING_SEC) + 3
+    control_times = (np.arange(count) - 1) * _BSPLINE_KNOT_SPACING_SEC
+    initial = CubicBSplineTrajectory(
+        start_time_sec=0.0,
+        knot_spacing_sec=_BSPLINE_KNOT_SPACING_SEC,
+        rotations=np.asarray(
+            [
+                _smooth_rotation(float(time)) @ rotation_vector_to_matrix(rng.normal(0.0, 0.008, 3))
+                for time in control_times
+            ]
+        ),
+        positions=np.asarray(
+            [_smooth_position(float(time)) + rng.normal(0.0, 0.01, 3) for time in control_times]
+        ),
+    )
+    zero = np.zeros(3, dtype=float)
+    result = fit_bspline_lidar_imu(
+        BSplineLidarImuProblem(
+            initial_trajectory=initial,
+            planes=planes,
+            gyro=gyro_train,
+            accel=accel_train,
+            initial_calibration=LidarImuCalibration(
+                imu_rotation_vector_rad=zero,
+                gyro_bias_rad_s=zero,
+                lever_arm_body_m=zero,
+                imu_clock_offset_sec=0.0,
+                accel_bias_m_s2=zero,
+                gravity_world_m_s2=np.asarray(_INITIAL_GRAVITY_WORLD_M_S2, dtype=float),
+            ),
+        ),
+        BSplineLidarImuFitOptions(max_iterations=60),
+    )
+    estimates = _estimates_from_calibration(result.calibration)
+
+    def score(samples: tuple[BSplineImuSamples, BSplineImuSamples]) -> Callable[
+        [LidarImuJointFamily, _Estimates], float
+    ]:
+        gyro_samples, accel_samples = samples
+
+        def rmse(family: LidarImuJointFamily, values: _Estimates) -> float:
+            residuals = lidar_imu_residuals(
+                result.trajectory,
+                _calibration_from_estimates(values),
+                planes,
+                gyro_samples,
+                accel_samples,
+            )
+            sigma = gyro_samples.sigma if family == "gyro" else accel_samples.sigma
+            return sigma * float(np.sqrt(np.mean(residuals[family] ** 2)))
+
+        return rmse
+
+    holdout_score = score((gyro_holdout, accel_holdout))
+    train_score = score((gyro_train, accel_train))
+    oracle = _truth_estimates()
+    holdout_gyro = holdout_score("gyro", estimates)
+    holdout_accel = holdout_score("accel", estimates)
+    oracle_gyro = holdout_score("gyro", oracle)
+    oracle_accel = holdout_score("accel", oracle)
+    parameters = _parameter_records(
+        result.calibration_parameter_names, result.calibration_covariance, estimates
+    )
+    controls = _controls(
+        holdout_score,
+        estimates,
+        baselines={"gyro": holdout_gyro, "accel": holdout_accel},
+        chi2_scales={
+            "gyro": 3 * len(gyro_holdout.times_sec) / gyro_holdout.sigma**2,
+            "accel": 3 * len(accel_holdout.times_sec) / accel_holdout.sigma**2,
+        },
+    )
+    separability = _separability(result.block_correlations())
+    grid = np.arange(0.0, result.trajectory.end_time_sec, _BSPLINE_ERROR_GRID_SEC)
+    states = result.trajectory.evaluate(grid)
+    truth_rotations = np.asarray([_smooth_rotation(float(time)) for time in grid])
+    truth_positions = np.asarray([_smooth_position(float(time)) for time in grid])
+    rotation_errors = so3_log_batch(
+        np.einsum("tji,tjk->tik", truth_rotations, states.rotation_world_body)
+    )
+    translation_error = float(
+        np.max(np.linalg.norm(states.position_world_m - truth_positions, axis=1))
+    )
+    rotation_error = math.degrees(float(np.max(np.linalg.norm(rotation_errors, axis=1))))
+    policy_status, policy_reason = _policy(
+        fit_status=result.status,
+        parameters=parameters,
+        holdout_gyro=holdout_gyro,
+        oracle_gyro=oracle_gyro,
+        holdout_accel=holdout_accel,
+        oracle_accel=oracle_accel,
+        controls=controls,
+        separability=separability,
+    )
+    return ContinuousTimeLidarImuJointArtifact(
+        recovery_id=recovery_id,
+        data_source="synthetic",
+        interpolation="cubic_bspline",
+        seed=seed,
+        knot_count=result.trajectory.control_point_count,
+        knot_spacing_sec=_BSPLINE_KNOT_SPACING_SEC,
+        gyro_residual="angular_rate_rad_s",
+        holdout_scheme="interleaved: every third gyro and accelerometer sample",
+        lidar_measurement_count=len(planes.times_sec),
+        train_gyro_count=len(gyro_train.times_sec),
+        holdout_gyro_count=len(gyro_holdout.times_sec),
+        train_accel_count=len(accel_train.times_sec),
+        holdout_accel_count=len(accel_holdout.times_sec),
+        fit_status=result.status,
+        iterations=result.iterations,
+        max_trajectory_translation_error_m=translation_error,
+        max_trajectory_rotation_error_deg=rotation_error,
+        parameters=parameters,
+        train_gyro_rmse=train_score("gyro", estimates),
+        holdout_gyro_rmse=holdout_gyro,
+        train_accel_rmse_m_s2=train_score("accel", estimates),
+        holdout_accel_rmse_m_s2=holdout_accel,
+        oracle_holdout_gyro_rmse=oracle_gyro,
+        oracle_holdout_accel_rmse_m_s2=oracle_accel,
+        holdout_to_oracle_ratio_limit=_HOLDOUT_TO_ORACLE_RATIO,
+        control_delta_chi2_threshold=_CONTROL_DELTA_CHI2,
+        controls=controls,
+        entangled_correlation_threshold=_ENTANGLED_CORRELATION,
+        separability=separability,
+        policy_status=policy_status,
+        policy_reason=policy_reason,
+        provenance=ContinuousTimeLidarImuJointProvenance(
+            generator=__name__,
+            generator_version="0.2",
+            git_commit=git_commit(),
+            command=command or [],
+            seed=seed,
+        ),
+    )
+
+
+def _smooth_rotation_vector(time: float) -> np.ndarray:
+    return np.array(
+        [
+            0.9 * math.sin(1.3 * time),
+            0.8 * math.sin(1.1 * time + 0.4),
+            1.2 * math.sin(0.6 * time),
+        ]
+    )
+
+
+def _smooth_rotation(time: float) -> np.ndarray:
+    return rotation_vector_to_matrix(_smooth_rotation_vector(time))
+
+
+def _smooth_position(time: float) -> np.ndarray:
+    return np.array(
+        [
+            0.6 * math.sin(0.5 * time) + 0.1 * time,
+            0.5 * math.sin(0.35 * time + 0.2),
+            0.15 * math.sin(0.8 * time),
+        ]
+    )
+
+
+def _smooth_acceleration(time: float) -> np.ndarray:
+    return np.array(
+        [
+            -0.6 * 0.25 * math.sin(0.5 * time),
+            -0.5 * 0.35**2 * math.sin(0.35 * time + 0.2),
+            -0.15 * 0.64 * math.sin(0.8 * time),
+        ]
+    )
+
+
+def _smooth_body_rate(time: float) -> np.ndarray:
+    rate = np.array(
+        [
+            0.9 * 1.3 * math.cos(1.3 * time),
+            0.8 * 1.1 * math.cos(1.1 * time + 0.4),
+            1.2 * 0.6 * math.cos(0.6 * time),
+        ]
+    )
+    # ``so3_left_jacobian`` satisfies Exp(w + d) ~= Exp(w) Exp(V d), so the body
+    # rate of R = Exp(phi(t)) is V(phi) phi'.
+    return np.asarray(so3_left_jacobian(_smooth_rotation_vector(time)) @ rate, dtype=float)
+
+
+def _bspline_imu_values(
+    body_times: np.ndarray, rng: np.random.Generator
+) -> tuple[np.ndarray, np.ndarray]:
+    imu_rotation = rotation_vector_to_matrix(np.asarray(_TRUE_IMU_ROTATION_RAD))
+    lever = np.asarray(_TRUE_LEVER_ARM_BODY_M, dtype=float)
+    gravity = np.asarray(_TRUE_GRAVITY_WORLD_M_S2, dtype=float)
+    step = 1.0e-5
+    gyro: list[np.ndarray] = []
+    accel: list[np.ndarray] = []
+    for time in body_times:
+        omega = _smooth_body_rate(float(time))
+        alpha = (
+            _smooth_body_rate(float(time) + step) - _smooth_body_rate(float(time) - step)
+        ) / (2.0 * step)
+        kinematic = (
+            _smooth_rotation(float(time)).T @ (_smooth_acceleration(float(time)) - gravity)
+            + np.cross(alpha, lever)
+            + np.cross(omega, np.cross(omega, lever))
+        )
+        gyro.append(
+            imu_rotation.T @ omega
+            + np.asarray(_TRUE_GYRO_BIAS_RAD_S)
+            + rng.normal(0.0, _GYRO_NOISE_RAD_S, 3)
+        )
+        accel.append(
+            imu_rotation.T @ kinematic
+            + np.asarray(_TRUE_ACCEL_BIAS_M_S2)
+            + rng.normal(0.0, _ACCEL_NOISE_M_S2, 3)
+        )
+    return np.asarray(gyro), np.asarray(accel)
+
+
+def _bspline_plane_returns(rng: np.random.Generator) -> BSplinePlaneReturns:
+    planes = [
+        (np.asarray(point, dtype=float), np.asarray(normal, dtype=float))
+        for point, normal in _PLANES
+    ]
+    planes = [(point, normal / float(np.linalg.norm(normal))) for point, normal in planes]
+    times = np.sort(rng.uniform(0.0, _DURATION_SEC, int(_BSPLINE_LIDAR_RATE_HZ * _DURATION_SEC)))
+    points: list[np.ndarray] = []
+    anchors: list[np.ndarray] = []
+    normals: list[np.ndarray] = []
+    for time in times:
+        plane_point, normal = planes[int(rng.integers(len(planes)))]
+        tangent = np.cross(normal, np.array([0.3, 0.5, 0.8]))
+        tangent /= float(np.linalg.norm(tangent))
+        bitangent = np.cross(normal, tangent)
+        world = (
+            plane_point
+            + rng.uniform(-3.0, 3.0) * tangent
+            + rng.uniform(-3.0, 3.0) * bitangent
+            + rng.normal(0.0, _PLANE_NOISE_M) * normal
+        )
+        points.append(
+            _smooth_rotation(float(time)).T @ (world - _smooth_position(float(time)))
+        )
+        anchors.append(plane_point)
+        normals.append(normal)
+    return BSplinePlaneReturns(
+        times_sec=times,
+        points_body_m=np.asarray(points),
+        plane_points_world_m=np.asarray(anchors),
+        plane_normals_world=np.asarray(normals),
+        sigma_m=_PLANE_NOISE_M,
+    )
+
+
+def _estimates_from_calibration(calibration: LidarImuCalibration) -> _Estimates:
+    return {
+        "imu_rotation": np.asarray(calibration.imu_rotation_vector_rad, dtype=float),
+        "gyro_bias": np.asarray(calibration.gyro_bias_rad_s, dtype=float),
+        "lever_arm": np.asarray(calibration.lever_arm_body_m, dtype=float),
+        "imu_clock_offset": np.asarray([calibration.imu_clock_offset_sec], dtype=float),
+        "accel_bias": np.asarray(calibration.accel_bias_m_s2, dtype=float),
+        "gravity": np.asarray(calibration.gravity_world_m_s2, dtype=float),
+    }
+
+
+def _calibration_from_estimates(estimates: _Estimates) -> LidarImuCalibration:
+    return LidarImuCalibration(
+        imu_rotation_vector_rad=estimates["imu_rotation"],
+        gyro_bias_rad_s=estimates["gyro_bias"],
+        lever_arm_body_m=estimates["lever_arm"],
+        imu_clock_offset_sec=float(estimates["imu_clock_offset"][0]),
+        accel_bias_m_s2=estimates["accel_bias"],
+        gravity_world_m_s2=estimates["gravity"],
+    )
+
+
+def _separability(
+    correlations: dict[tuple[str, str], float],
+) -> list[LidarImuJointSeparabilityRecord]:
+    return [
+        LidarImuJointSeparabilityRecord(
+            block_a=_block_name(left),
+            block_b=_block_name(right),
+            max_abs_correlation=value,
+            entangled=value >= _ENTANGLED_CORRELATION,
+        )
+        for (left, right), value in correlations.items()
+    ]
