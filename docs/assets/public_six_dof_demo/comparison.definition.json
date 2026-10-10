@@ -1,0 +1,214 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-public-six-dof-demo",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One sequence, one perturbation, one invocation per backend; timing is descriptive. Single-pair bootstrap intervals do not establish statistical confidence.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27"
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "NumPy CPU reference",
+      "method_id": "numpy",
+      "source_commit": "76b3a1b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda candidate",
+      "method_id": "cuda",
+      "source_commit": "76b3a1b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "One invocation; includes lazy JIT.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Load, prepare, solve, holdout.",
+      "label": "Pipeline time",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial rotation difference",
+      "name": "initial_rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial translation difference",
+      "name": "initial_translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Rotation difference",
+      "name": "rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Translation difference",
+      "name": "translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Fit-only frozen histogram ranges.",
+      "label": "Training mutual information",
+      "name": "train_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Prespecified five frames excluded from fit and histogram range selection.",
+      "label": "Holdout mutual information",
+      "name": "holdout_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full trace, output poses, metrics, and holdout evaluations match exactly.",
+      "label": "Exact numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "calibrex.public_six_dof_demo/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+    "data_verified": true,
+    "generated_at": "2026-10-10T22:41:55.228338+00:00",
+    "generator": "calibrex.pipelines.public_camera_lidar_demo",
+    "generator_version": "calibrex.public_six_dof_demo/v0.1",
+    "git_commit": "76b3a1b",
+    "source_artifacts": {
+      "assets/frame-0000000460.png": "0f1f1e7601d72c4c2eb42b065c0fc11a60c225ad2bee835b6c6ac5efc1d09c43",
+      "assets/frame-0000001611.png": "34345b5e6e568c0e641128edebb847ed668ac903daa5a85d7bd0ab46dcd31eab",
+      "assets/frame-0000002761.png": "7b2b9b6c7232fcf1f0feefd519ad831c299e385c4a9135ca5599081e21d4e2d7",
+      "demo.problem.json": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "local_benchmark_before_publication": "90fb2271c14a3f423462f0604d08e5b880d245d00417a3eca293e0bf3980ae5a",
+      "public_camera_lidar_demo.py": "8402e8ccf18c57572e17c1046384c376dd397cb0ecb3b35e54ebe620ad62ea8f",
+      "public_six_dof_demo.py": "ed1797d658d0210b7d6c038646d810f89f79a9c56bee8d2d351c5ad810823435",
+      "source.problem.json": "9cc8d0997ea2dc0fe5f7aab33fa6bcbc26559ca608cc6e6acfc3357e17308b47"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "KITTI raw six-DoF public-data demo",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 60.75143270002445,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 54.82382989994949,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+        "config_sha256": "3b4b768d9308acaced10a70de2f8a3cb0f79e03e47267cda18f6c7cc83ef6592",
+        "input_sha256": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
+        "notes": [
+          "Same controlled initial pose and 20/5 split for both executions.",
+          "Original local result SHA256: 4b65d618dc02d2d48b641802a47f7f56bb936269e2dc56b9feb49eced7e0a7f5"
+        ],
+        "output_sha256": "26151145757aa2f443a26106169e3dad284e63e448b6de1ae6ee1469d9a70f14"
+      },
+      "runtime_seconds": 60.75143270002445,
+      "split_id": "uniform-25-fit20-holdout5",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 15.398265499970876,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 6.734188000031281,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+        "config_sha256": "3b4b768d9308acaced10a70de2f8a3cb0f79e03e47267cda18f6c7cc83ef6592",
+        "input_sha256": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
+        "notes": [
+          "Same controlled initial pose and 20/5 split for both executions.",
+          "Original local result SHA256: 7cf20add603c2ff76d0954a3c4ad3ac004b343de144816ab089a62746ea831f5"
+        ],
+        "output_sha256": "05137658958173eff47555ed0fd79f4dbe2aa14ba67fe367fe26a2476ce052e3"
+      },
+      "runtime_seconds": 15.398265499970876,
+      "split_id": "uniform-25-fit20-holdout5",
+      "status": "success"
+    }
+  ]
+}

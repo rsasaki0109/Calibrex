@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add `calibrex demo kitti-six-dof` to compare NumPy and an explicitly selected
+  CUDA/CPU backend on public KITTI raw data with a frozen depth provider. The
+  command fixes a 20-fit/5-holdout split and controlled initial perturbation,
+  saves standard results and a benchmark, and produces offline image-overlay
+  HTML. Partial runs and backend/parity failures remain in the evidence. No
+  rosbag or schema change is required.
+
 - **`calibrex check` / `estimate` / `drift` read ROS 1 `.bag` files and every MCAP chunk
   compression directly.** New `calibrex.data.bag_formats` (format detection, ROS 1 index reader:
   topics/types/counts without a scan, chunks without the requested topics skipped, unindexed bags

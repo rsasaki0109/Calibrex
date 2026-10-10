@@ -1,0 +1,391 @@
+"""Public-data demo preserves split, numerical evidence, and failure semantics."""
+
+from __future__ import annotations
+
+import json
+import struct
+import zlib
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pytest
+
+from calibrex.cli.main import main
+from calibrex.core.benchmark import BenchmarkArtifact, BenchmarkDefinition
+from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+from calibrex.core.result import load_result
+from calibrex.data.depth import (
+    DepthCameraIntrinsics,
+    DepthImageTransform,
+    DepthMapObservation,
+    DepthProviderArtifact,
+    DepthProviderEnvironment,
+    DepthProviderIdentity,
+    DepthProviderProvenance,
+    depth_file_reference,
+    load_depth_provider,
+)
+from calibrex.pipelines import public_camera_lidar_demo as demo_module
+from calibrex.pipelines.public_camera_lidar_demo import run_public_camera_lidar_six_dof_demo
+from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
+
+
+def _png(width: int, height: int) -> bytes:
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        )
+
+    pixels = b"".join(
+        b"\0" + bytes((u * 5 + v * 3) % 256 for u in range(width)) for v in range(height)
+    )
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(pixels))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _fixture(root: Path, count: int = 25) -> tuple[Path, Path]:
+    sequence = root / "2011_09_30" / "2011_09_30_drive_0018_sync"
+    image_dir = sequence / "image_02/data"
+    lidar_dir = sequence / "velodyne_points/data"
+    image_dir.mkdir(parents=True)
+    lidar_dir.mkdir(parents=True)
+    (sequence.parent / "calib_velo_to_cam.txt").write_text(
+        "R: 1 0 0 0 1 0 0 0 1\nT: 0 0 0\n", encoding="utf-8"
+    )
+    (sequence.parent / "calib_cam_to_cam.txt").write_text(
+        "R_rect_00: 1 0 0 0 1 0 0 0 1\nP_rect_02: 38 0 23.5 0 0 38 17.5 0 0 0 1 0\n",
+        encoding="utf-8",
+    )
+    (sequence / "velodyne_points/timestamps.txt").write_text(
+        "".join(
+            f"2011-09-30 12:00:{index // 10:02d}.{index % 10}00000000\n" for index in range(count)
+        ),
+        encoding="utf-8",
+    )
+    observations = []
+    depth_dir = root / "depth"
+    depth_dir.mkdir()
+    depth_map = np.full((36, 48), np.nan, dtype=np.float32)
+    points = []
+    for v in range(4, 32):
+        for u in range(5, 43):
+            distance = 8 + 0.05 * u + 1.2 * np.sin(0.41 * u) + 0.7 * np.cos(0.33 * v)
+            ray = np.array([(u - 23.5) / 38, (v - 17.5) / 38, 1.0])
+            points.append([*(ray / np.linalg.norm(ray) * distance), 0.5])
+            depth_map[v, u] = distance
+    for index in range(count):
+        frame_id = f"{index:010d}"
+        image = image_dir / f"{frame_id}.png"
+        depth = depth_dir / f"{frame_id}.npy"
+        image.write_bytes(_png(48, 36))
+        np.save(depth, depth_map)
+        np.asarray(points, dtype=np.float32).tofile(lidar_dir / f"{frame_id}.bin")
+        observations.append(
+            DepthMapObservation(
+                frame_id=frame_id,
+                capture_time_ns=index * 100_000_000,
+                source_frame="camera_2",
+                image=depth_file_reference(image, encoding="png"),
+                depth=depth_file_reference(depth, encoding="npy_float32"),
+                intrinsics=DepthCameraIntrinsics(
+                    width=48, height=36, fx=38, fy=38, cx=23.5, cy=17.5
+                ),
+                image_transform=DepthImageTransform(
+                    source_width=48,
+                    source_height=36,
+                    output_width=48,
+                    output_height=36,
+                    scale_x=1,
+                    scale_y=1,
+                    interpolation="none",
+                ),
+                scale_convention="metric_range",
+                scale_to_m=1,
+                valid_fraction=1064 / (48 * 36),
+            )
+        )
+    provider = DepthProviderArtifact(
+        artifact_id="synthetic-kitti-shaped-fixture",
+        provider=DepthProviderIdentity(
+            provider="fixture",
+            model="synthetic",
+            version="1",
+            source_repository="https://github.com/rsasaki0109/Calibrex",
+            source_commit="fixture",
+            license_spdx="MIT",
+            checkpoint_redistribution="no checkpoint",
+        ),
+        environment=DepthProviderEnvironment(execution_mode="imported"),
+        scale_convention="metric_range",
+        observations=observations,
+        provenance=DepthProviderProvenance(
+            generator="test",
+            generator_version="1",
+            input_manifest_sha256="a" * 64,
+            output_manifest_sha256="b" * 64,
+        ),
+    )
+    path = root / "provider.json"
+    provider.save(path)
+    return sequence, path
+
+
+def test_cpu_replay_preserves_inputs_and_partial_evidence(tmp_path: Path) -> None:
+    sequence, provider = _fixture(tmp_path)
+    before = {path: path.read_bytes() for path in tmp_path.rglob("*") if path.is_file()}
+    output = tmp_path / "output"
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=output,
+        candidate_backend="numpy",
+        options=BorerSixDofOptions(max_evaluations=13),
+        command=["calibrex", "demo", "fixture"],
+    )
+    assert demo.numerical_parity
+    assert not demo.successful
+    assert all(trial.status == "failed" for trial in demo.benchmark.trials)
+    source = load_camera_lidar_problem(output / "source.problem.json")
+    problem = load_camera_lidar_problem(output / "demo.problem.json")
+    assert source.reference_transform_camera_lidar.translation_m == [0, 0, 0]
+    assert problem.initial_transform_camera_lidar.translation_m == [0.5, 0, 0]
+    assert problem.reference_transform_camera_lidar.translation_m == [0, 0, 0]
+    assert "Controlled demo" in problem.initial_transform_camera_lidar.provenance.notes[0]
+    assert problem.initial_transform_camera_lidar.provenance.evidence_level == "unknown"
+    cpu = load_result(output / "numpy.result.json")
+    config = cpu.run.provenance["configuration"]
+    assert len(config["train_frame_ids"]) == 20
+    assert config["holdout_frame_ids"] == [f"{index:010d}" for index in (4, 9, 14, 19, 24)]
+    assert set(config["train_frame_ids"]).isdisjoint(config["holdout_frame_ids"])
+    assert cpu.run.provenance["reference_used_for_optimization"] is False
+    assert cpu.metrics["final_d2d_mutual_information"].holdout is not None
+    assert BenchmarkDefinition.model_validate_json(
+        (output / "comparison.definition.json").read_text()
+    )
+    assert BenchmarkArtifact.model_validate_json((output / "comparison.benchmark.json").read_text())
+    report = demo.report_path.read_text(encoding="utf-8")
+    assert report.count("<svg ") == 9
+    assert "Incomplete comparison" in report
+    assert "Solve-time ratio" not in report
+    assert "NumPy CPU replay" in report and "cuda candidate" not in report
+    assert "viewBox='0 0 48 36'" in report
+    assert len(list((output / "assets").glob("*.png"))) == 3
+    assert all(path.read_bytes() == contents for path, contents in before.items())
+
+
+def test_converged_replay_and_output_preservation(tmp_path: Path) -> None:
+    sequence, provider = _fixture(tmp_path)
+    output = tmp_path / "output"
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=output,
+        candidate_backend="numpy",
+        rotation_offset_deg=(0, 0, 0),
+        translation_offset_m=(0, 0, 0),
+        options=BorerSixDofOptions(
+            max_evaluations=100,
+            minimum_rotation_step_deg=0.25,
+            minimum_translation_step_m=0.1,
+        ),
+        command=["fixture"],
+    )
+    assert demo.successful
+    assert all(trial.metrics["rotation_difference_deg"] == 0 for trial in demo.benchmark.trials)
+    assert "Solve-time ratio" in demo.report_path.read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match="new or empty"):
+        run_public_camera_lidar_six_dof_demo(
+            sequence,
+            provider,
+            output_directory=output,
+            candidate_backend="numpy",
+            command=["fixture"],
+        )
+    assert demo.report_path.exists()
+
+
+def test_unavailable_cuda_retains_cpu_and_escapes_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sequence, provider = _fixture(tmp_path)
+    original = demo_module.run_camera_lidar_six_dof_estimate
+
+    def run(*args: Any, **kwargs: Any) -> Any:
+        if kwargs["projection_backend"] == "cuda":
+            raise ValueError("GPU unavailable <script>alert(1)</script>")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(demo_module, "run_camera_lidar_six_dof_estimate", run)
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=tmp_path / "out",
+        options=BorerSixDofOptions(max_evaluations=13),
+        command=["fixture"],
+    )
+    assert set(demo.results) == {"numpy"}
+    assert not demo.successful and not demo.numerical_parity
+    assert "GPU unavailable" in str(demo.benchmark.trials[1].failure_reason)
+    report = demo.report_path.read_text(encoding="utf-8")
+    assert "&lt;script&gt;" in report and "<script>" not in report
+    assert report.count("No output pose available.") == 3
+    assert not (tmp_path / "out/cuda.result.json").exists()
+
+
+def test_numerical_mismatch_is_retained_as_failed_trial(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sequence, provider = _fixture(tmp_path)
+    original = demo_module.run_camera_lidar_six_dof_estimate
+    calls = 0
+
+    def run(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        result = original(*args, **kwargs)
+        calls += 1
+        if calls == 2:
+            result.run.provenance["solver_result"]["trace"][0]["objective"] += 0.01
+        return result
+
+    monkeypatch.setattr(demo_module, "run_camera_lidar_six_dof_estimate", run)
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=tmp_path / "out",
+        candidate_backend="numpy",
+        options=BorerSixDofOptions(max_evaluations=13),
+        command=["fixture"],
+    )
+    assert not demo.numerical_parity
+    assert "numerical mismatch" in str(demo.benchmark.trials[1].failure_reason)
+    assert (tmp_path / "out/numpy_repeat.result.json").is_file()
+
+
+@pytest.mark.parametrize("issue", ["too_few", "digest", "grid", "dimensions"])
+def test_invalid_public_inputs_are_rejected_before_solving(tmp_path: Path, issue: str) -> None:
+    sequence, provider_path = _fixture(tmp_path, 24 if issue == "too_few" else 25)
+    provider = load_depth_provider(provider_path)
+    if issue == "digest":
+        Path(provider.observations[0].depth.path).write_bytes(b"changed")
+    elif issue == "grid":
+        provider.observations[0].image_transform.scale_x = 0.5
+        provider.save(provider_path)
+    elif issue == "dimensions":
+        image = Path(provider.observations[0].image.path)
+        image.write_bytes(_png(24, 18))
+        provider.observations[0].image = depth_file_reference(image, encoding="png")
+        provider.save(provider_path)
+    output = tmp_path / "output"
+    with pytest.raises(ValueError):
+        run_public_camera_lidar_six_dof_demo(
+            sequence,
+            provider_path,
+            output_directory=output,
+            candidate_backend="numpy",
+            command=["fixture"],
+        )
+    assert not output.exists()
+
+
+def test_cli_explicit_cpu_replay_and_early_cache_validation(tmp_path: Path, capsys: Any) -> None:
+    sequence, provider = _fixture(tmp_path)
+    assert (
+        main(
+            [
+                "demo",
+                "kitti-six-dof",
+                str(sequence),
+                str(provider),
+                "--candidate-backend",
+                "numpy",
+                "--max-evaluations",
+                "13",
+                "--output-dir",
+                str(tmp_path / "out"),
+                "--json",
+            ]
+        )
+        == 2
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["numerical_parity"] is True and payload["status"] == "incomplete"
+    assert (
+        main(
+            [
+                "demo",
+                "kitti-six-dof",
+                "missing",
+                "missing",
+                "--cuda-cache-mib",
+                "-1",
+                "--json",
+            ]
+        )
+        == 2
+    )
+    assert "non-negative" in capsys.readouterr().err
+
+
+def test_real_cuda_matches_full_trace_and_holdout(tmp_path: Path) -> None:
+    cupy = pytest.importorskip("cupy")
+    try:
+        if cupy.cuda.runtime.getDeviceCount() == 0:
+            pytest.skip("no CUDA device")
+    except cupy.cuda.runtime.CUDARuntimeError:
+        pytest.skip("CUDA driver unavailable")
+    sequence, provider = _fixture(tmp_path)
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider,
+        output_directory=tmp_path / "out",
+        options=BorerSixDofOptions(max_evaluations=13),
+        cuda_cache_bytes=0,
+        command=["fixture"],
+    )
+    assert demo.numerical_parity
+    assert set(demo.results) == {"numpy", "cuda"}
+    assert (
+        demo.results["cuda"].run.provenance["projection_transfer_statistics"][
+            "prepared_observation_count"
+        ]
+        == 0
+    )
+
+
+@pytest.mark.parametrize("offset", [(float("nan"), 0, 0), (3, 0, 0)])
+def test_bad_initial_offsets_fail_before_loading(tmp_path: Path, offset: tuple[float, ...]) -> None:
+    with pytest.raises(ValueError, match="rotation offset"):
+        run_public_camera_lidar_six_dof_demo(
+            "missing",
+            "missing",
+            output_directory=tmp_path / "output",
+            command=["fixture"],
+            rotation_offset_deg=offset,  # type: ignore[arg-type]
+        )
+    assert not (tmp_path / "output").exists()
+
+
+def test_uniform_selection_uses_provider_positions_in_numeric_order(tmp_path: Path) -> None:
+    sequence, provider_path = _fixture(tmp_path, 26)
+    provider = load_depth_provider(provider_path)
+    provider.observations.reverse()
+    provider.save(provider_path)
+    demo = run_public_camera_lidar_six_dof_demo(
+        sequence,
+        provider_path,
+        output_directory=tmp_path / "out",
+        candidate_backend="numpy",
+        options=BorerSixDofOptions(max_evaluations=13),
+        command=["fixture"],
+    )
+    problem = load_camera_lidar_problem(demo.report_path.parent / "demo.problem.json")
+    ids = [int(item.frame_id) for item in problem.observations]
+    assert ids == list(range(12)) + list(range(13, 26))
+    assert demo.benchmark.protocol.splits[0].fit_count == 20

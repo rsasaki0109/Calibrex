@@ -33,6 +33,11 @@ extra; both provide the same `cupy` adapter interface.
 
 ## Estimate one calibration
 
+For a public-data comparison without your own rosbag, use the
+[KITTI raw CPU/GPU demo](public_six_dof_demo.md). It builds verified inputs from
+a raw drive and frozen provider, applies a declared initial perturbation, and
+writes a 20-fit/5-holdout comparison report with image overlays.
+
 The single-run command refines the prior declared in
 `problem.initial_transform_camera_lidar` and saves a standard
 `slac.result/v0.1` calibration result:
