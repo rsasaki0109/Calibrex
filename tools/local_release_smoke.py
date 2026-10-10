@@ -72,6 +72,22 @@ def main() -> int:
             "--json",
         ]
     )
+    # The quickstart's `calibrex init --template` must work from the wheel,
+    # outside a repository checkout.
+    template_config = args.report_dir / "init-template" / "config.yaml"
+    _run(
+        [
+            str(smoke_calibrex),
+            "init",
+            "--template",
+            "velodyne_vlp16_pair_rosbag2",
+            "--output",
+            str(template_config),
+            "--json",
+        ]
+    )
+    if not template_config.is_file():
+        raise SystemExit(f"calibrex init --template did not write {template_config}")
     camera_lidar_demo_dir = args.report_dir / "kitti-lidar-camera-evidence"
     _run(
         [

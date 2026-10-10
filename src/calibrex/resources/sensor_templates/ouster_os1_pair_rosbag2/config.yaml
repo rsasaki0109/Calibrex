@@ -1,0 +1,96 @@
+# Ouster OS1 (or OS0/OS2) pair calibration from a ROS 2 bag.
+#
+# Ouster drivers publish sensor_msgs/PointCloud2 by default — this config
+# handles that directly.  For time-stamped per-point data, set
+# point_time_field to the field name used by your driver (common: "t").
+#
+# Quick start:
+#   1. Record a bag. Ouster works well with textured indoor environments.
+#      At least 30 s with ~10 distinct planar surfaces visible simultaneously.
+#   2. Edit the three fields marked EDIT below.
+#   3. calibrex calibrate examples/sensor_templates/ouster_os1_pair_rosbag2/config.yaml
+
+schema_version: slac.config/v0.1
+
+project:
+  name: ouster_os1_pair_rosbag2
+  description: Ouster OS1 pair extrinsic calibration from a ROS 2 bag
+  output_dir: outputs/ouster_os1_pair_rosbag2
+  domain: robotics
+
+dataset:
+  type: rosbag2                              # EDIT: keep rosbag2 for .db3 / .mcap
+  path: /path/to/your_recording              # EDIT: path to bag folder or .mcap file
+  time_base: ros_time
+
+sensors:
+  lidar_front:
+    type: lidar
+    model: ouster_os1
+    topic: /ouster_front/points             # EDIT: change to your actual topic name
+    frame_id: os_sensor_front
+    fields: [x, y, z, intensity]
+    # Uncomment if your driver publishes per-point timestamps:
+    # point_time_field: t
+  lidar_rear:
+    type: lidar
+    model: ouster_os1
+    topic: /ouster_rear/points              # EDIT: change to your actual topic name
+    frame_id: os_sensor_rear
+    fields: [x, y, z, intensity]
+    # point_time_field: t
+
+frames:
+  lidar_front:
+    root: true
+  lidar_rear:
+    parent: lidar_front
+    transform:
+      estimate: true
+      initial:
+        translation: [1.0, 0.0, 0.0]        # rough guess in metres (front→rear)
+        rotation_quat_xyzw: [0.0, 0.0, 1.0, 0.0]  # ~180° yaw if rear-facing
+      prior_sigma:
+        translation_m: 0.5
+        rotation_deg: 30.0
+
+pipeline:
+  type: multi_lidar_evidence
+  frontends:
+    - lidar_pair_voxel_evidence
+  factors:
+    fixed_lidar_mount_prior:
+      enabled: true
+    lidar_rig_point_to_plane:
+      enabled: true
+      options:
+        voxel_size_m: 0.5
+        correspondence_gate_m: 1.5
+        max_source_points: 10000
+        max_source_messages: 12
+        max_target_points: 2000
+        max_target_messages: 36
+        max_replay_duration_s: 60.0
+        use_point_time_offsets: false
+
+solver:
+  backend: native_lidar_point_to_plane
+  max_iterations: 40
+  robust_loss: huber
+  convergence_tolerance: 1.0e-6
+
+evaluation:
+  holdout_ratio: 0.2
+  solid_state:
+    enabled: false
+  metrics:
+    - lidar_pair_source_voxel_recall_in_target
+    - lidar_pair_shared_voxel_centroid_rmse_m
+    - lidar_rig_point_to_plane_rmse_m
+    - lidar_pair_holdout_point_to_plane_rmse_m
+    - lidar_pair_known_bad_detectable_fraction
+
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts
