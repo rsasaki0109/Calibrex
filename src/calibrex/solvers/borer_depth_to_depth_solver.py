@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass, field, replace
-from typing import Literal, Protocol, TypeAlias
+from typing import Literal, Protocol, TypeAlias, runtime_checkable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -125,6 +125,33 @@ class DepthPairProjector(Protocol):
 
 
 @dataclass(frozen=True)
+class DepthPairHistogram:
+    """Histogram counts and denominators from a projection accelerator."""
+
+    histogram: FloatArray
+    visible_point_count: int
+    projected_count_before_visibility: int
+
+
+@runtime_checkable
+class DepthPairHistogramProjector(DepthPairProjector, Protocol):
+    """Optional fused histogram path returning the native histogram2d counts."""
+
+    def histogram_depth_pairs(
+        self,
+        observation: DepthToDepthObservation,
+        transform_camera_lidar: SE3,
+        *,
+        use_z_buffer: bool,
+        bins: int,
+        camera_range: tuple[float, float],
+        lidar_range: tuple[float, float],
+    ) -> DepthPairHistogram:
+        """Project, gate, and bin features with the native edge conventions."""
+        ...
+
+
+@dataclass(frozen=True)
 class LidarImageCorrespondenceProjection:
     """One LiDAR point projected into the image with sub-pixel coordinates."""
 
@@ -174,9 +201,7 @@ class DepthToDepthEvaluation:
                     "mutual_information": frame.mutual_information,
                     "normalized_mutual_information": frame.normalized_mutual_information,
                     "visible_point_count": frame.visible_point_count,
-                    "projected_count_before_visibility": (
-                        frame.projected_count_before_visibility
-                    ),
+                    "projected_count_before_visibility": (frame.projected_count_before_visibility),
                 }
                 for frame in self.frames
             ],
@@ -193,9 +218,7 @@ def project_depth_pairs(
 
     points_lidar = observation.lidar_points
     rotation = _rotation_matrix(transform_camera_lidar.rotation_quat_xyzw)
-    translation: FloatArray = np.asarray(
-        transform_camera_lidar.translation_m, dtype=float
-    )
+    translation: FloatArray = np.asarray(transform_camera_lidar.translation_m, dtype=float)
     points_camera = points_lidar @ rotation.T + translation
     projected = _project(points_camera, observation.camera)
     valid_indices = np.flatnonzero(projected[2])
@@ -262,9 +285,7 @@ def project_lidar_image_correspondences(
 
     points_lidar = observation.lidar_points
     rotation = _rotation_matrix(transform_camera_lidar.rotation_quat_xyzw)
-    translation: FloatArray = np.asarray(
-        transform_camera_lidar.translation_m, dtype=float
-    )
+    translation: FloatArray = np.asarray(transform_camera_lidar.translation_m, dtype=float)
     points_camera = points_lidar @ rotation.T + translation
     projected = _project(points_camera, observation.camera)
     valid_indices = np.flatnonzero(projected[2])
@@ -332,6 +353,8 @@ def project_lidar_image_correspondences(
         selected = sorted(rng.sample(range(len(projections)), max_points))
         projections = [projections[index] for index in selected]
     return tuple(projections)
+
+
 def _z_buffer_nearest_indices(
     pixel_linear: IntArray,
     camera_range: FloatArray,
@@ -342,18 +365,12 @@ def _z_buffer_nearest_indices(
 
     if pixel_linear.size == 0:
         return np.empty(0, dtype=np.int64)
-    minimum_range: FloatArray = np.full(
-        pixel_count, np.inf, dtype=np.float64
-    )
+    minimum_range: FloatArray = np.full(pixel_count, np.inf, dtype=np.float64)
     np.minimum.at(minimum_range, pixel_linear, camera_range)
-    nearest_candidates = np.flatnonzero(
-        camera_range == minimum_range[pixel_linear]
-    )
+    nearest_candidates = np.flatnonzero(camera_range == minimum_range[pixel_linear])
     del minimum_range
     sentinel = pixel_linear.size
-    selected_by_pixel: IntArray = np.full(
-        pixel_count, sentinel, dtype=np.int64
-    )
+    selected_by_pixel: IntArray = np.full(pixel_count, sentinel, dtype=np.int64)
     np.minimum.at(
         selected_by_pixel,
         pixel_linear[nearest_candidates],
@@ -374,8 +391,7 @@ def evaluate_depth_to_depth_mi(
     settings = options or DepthToDepthOptions()
     project = projector or project_depth_pairs
     if not observations or not any(
-        np.any(np.isfinite(item.depth_map) & (item.depth_map > 0.0))
-        and item.lidar_points.size
+        np.any(np.isfinite(item.depth_map) & (item.depth_map > 0.0)) and item.lidar_points.size
         for item in observations
     ):
         return DepthToDepthEvaluation(
@@ -390,43 +406,56 @@ def evaluate_depth_to_depth_mi(
     lidar_range = settings.lidar_range_m or _lidar_range(observations)
     frames = []
     skipped = []
+    histogram_projector = project if isinstance(project, DepthPairHistogramProjector) else None
     for observation in observations:
-        pairs = project(
-            observation,
-            transform_camera_lidar,
-            use_z_buffer=settings.use_z_buffer,
-        )
-        if pairs.camera_depth.size < settings.min_visible_points:
-            skipped.append(observation.frame_id)
-            continue
-        mi, normalized = _mutual_information(
-            pairs.camera_depth,
-            pairs.lidar_range_m,
-            bins=settings.histogram_bins,
-            camera_range=camera_range,
-            lidar_range=lidar_range,
-        )
+        if histogram_projector is not None:
+            histogram = histogram_projector.histogram_depth_pairs(
+                observation,
+                transform_camera_lidar,
+                use_z_buffer=settings.use_z_buffer,
+                bins=settings.histogram_bins,
+                camera_range=camera_range,
+                lidar_range=lidar_range,
+            )
+            visible_count = histogram.visible_point_count
+            projected_count = histogram.projected_count_before_visibility
+            if visible_count < settings.min_visible_points:
+                skipped.append(observation.frame_id)
+                continue
+            mi, normalized = _histogram_mutual_information(histogram.histogram)
+        else:
+            pairs = project(
+                observation,
+                transform_camera_lidar,
+                use_z_buffer=settings.use_z_buffer,
+            )
+            visible_count = int(pairs.camera_depth.size)
+            projected_count = pairs.projected_count_before_visibility
+            if visible_count < settings.min_visible_points:
+                skipped.append(observation.frame_id)
+                continue
+            mi, normalized = _mutual_information(
+                pairs.camera_depth,
+                pairs.lidar_range_m,
+                bins=settings.histogram_bins,
+                camera_range=camera_range,
+                lidar_range=lidar_range,
+            )
         frames.append(
             DepthToDepthFrameEvaluation(
                 frame_id=observation.frame_id,
                 mutual_information=mi,
                 normalized_mutual_information=normalized,
-                visible_point_count=int(pairs.camera_depth.size),
-                projected_count_before_visibility=(
-                    pairs.projected_count_before_visibility
-                ),
+                visible_point_count=visible_count,
+                projected_count_before_visibility=projected_count,
             )
         )
     return DepthToDepthEvaluation(
         mutual_information=(
-            float(np.mean([frame.mutual_information for frame in frames]))
-            if frames
-            else 0.0
+            float(np.mean([frame.mutual_information for frame in frames])) if frames else 0.0
         ),
         normalized_mutual_information=(
-            float(
-                np.mean([frame.normalized_mutual_information for frame in frames])
-            )
+            float(np.mean([frame.normalized_mutual_information for frame in frames]))
             if frames
             else 0.0
         ),
@@ -438,8 +467,7 @@ def evaluate_depth_to_depth_mi(
 
 
 def resolve_depth_to_depth_options(
-    observations: tuple[DepthToDepthObservation, ...]
-    | list[DepthToDepthObservation],
+    observations: tuple[DepthToDepthObservation, ...] | list[DepthToDepthObservation],
     options: DepthToDepthOptions | None = None,
 ) -> DepthToDepthOptions:
     """Resolve invariant histogram ranges once for repeated pose evaluations."""
@@ -447,9 +475,7 @@ def resolve_depth_to_depth_options(
     settings = options or DepthToDepthOptions()
     return replace(
         settings,
-        camera_depth_range=(
-            settings.camera_depth_range or _camera_depth_range(observations)
-        ),
+        camera_depth_range=(settings.camera_depth_range or _camera_depth_range(observations)),
         lidar_range_m=settings.lidar_range_m or _lidar_range(observations),
     )
 
@@ -474,14 +500,8 @@ def _project(
             if camera.alpha <= 0.5
             else (1.0 - camera.alpha) / camera.alpha
         )
-        w2 = (w1 + camera.xi) / math.sqrt(
-            2.0 * w1 * camera.xi + camera.xi * camera.xi + 1.0
-        )
-        valid = (
-            (d1 > 1.0e-9)
-            & (denominator > 1.0e-9)
-            & (z > -w2 * d1)
-        )
+        w2 = (w1 + camera.xi) / math.sqrt(2.0 * w1 * camera.xi + camera.xi * camera.xi + 1.0)
+        valid = (d1 > 1.0e-9) & (denominator > 1.0e-9) & (z > -w2 * d1)
         denominator = np.where(valid, denominator, 1.0)
         u = camera.fx * x / denominator + camera.cx
         v = camera.fy * y / denominator + camera.cy
@@ -535,6 +555,12 @@ def _mutual_information(
         bins=bins,
         range=(camera_range, lidar_range),
     )
+    return _histogram_mutual_information(histogram)
+
+
+def _histogram_mutual_information(histogram: FloatArray) -> tuple[float, float]:
+    """Compute native MI from identical integer-count histogram grids."""
+
     total = float(histogram.sum())
     if total <= 0.0:
         return 0.0, 0.0

@@ -43,7 +43,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--stop", type=int, required=True)
     parser.add_argument(
         "--projection-backend",
-        choices=("numpy", "numba_cpu"),
+        choices=("numpy", "numba_cpu", "cuda"),
         default="numpy",
     )
     return parser
@@ -78,6 +78,7 @@ def run_chunk(
     options = _solver_options(
         protocol,
         projection_backend=projection_backend,
+        observations=loaded.observations,
     )
     expected_solver = _trace_solver_identity(options.projection_backend)
     command = " ".join([sys.executable, *sys.argv])
