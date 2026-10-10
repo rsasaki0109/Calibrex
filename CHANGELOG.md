@@ -15,8 +15,10 @@
   histogram counting to the GPU through CuPy (new extra `calibrex[cuda]`, `cupy-cuda12x`); entropy,
   MI and the optimizer stay on the original NumPy definitions. Pinhole, double-sphere and MEI
   cameras; FP64 kernels with fused multiply-add disabled; `--resume` checks the full backend
-  identity; one worker per GPU. The default stays `numpy`, and `check` / `estimate` / `drift` do
-  not expose the backend. Real data: on KITTI raw 0018 the converged frozen-protocol trial is
+  identity; one worker per GPU. `calibrex camera-lidar estimate-six-dof` (#130) runs one
+  estimation from the problem's declared prior on any backend, with optional `--holdout-frame-id`
+  frames, and saves a standard `slac.result/v0.1` result. The default stays `numpy`, and `check` /
+  `estimate` / `drift` do not expose the backend. Real data: on KITTI raw 0018 the converged frozen-protocol trial is
   exactly equal between NumPy and CUDA (325 evaluations, every candidate record), and the six-DoF
   search is 15.2x faster on KITTI raw 0018 and 11.3x on KITTI-360 0002 (GTX 1660 Ti; schema-valid
   timing reports under `docs/assets/gpu_acceleration/`,
