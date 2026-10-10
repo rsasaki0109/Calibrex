@@ -17,9 +17,11 @@ from calibrex.evaluation.continuous_time_lidar_imu_joint import (
 )
 
 
-@pytest.fixture(scope="module")
-def artifact() -> ContinuousTimeLidarImuJointArtifact:
-    return run_synthetic_lidar_imu_joint_recovery(seed=20261010)
+@pytest.fixture(scope="module", params=["screw_linear", "cubic_bspline"])
+def artifact(request: pytest.FixtureRequest) -> ContinuousTimeLidarImuJointArtifact:
+    result = run_synthetic_lidar_imu_joint_recovery(seed=20261010, trajectory=request.param)
+    assert result.interpolation == request.param
+    return result
 
 
 def test_joint_recovery_passes_with_provenance_and_valid_schema(
@@ -115,6 +117,8 @@ def test_cli_recover_lidar_imu_joint(
             str(output),
             "--seed",
             "20261010",
+            "--trajectory",
+            "cubic_bspline",
             "--json",
         ]
     )
@@ -122,6 +126,7 @@ def test_cli_recover_lidar_imu_joint(
 
     assert exit_code == 0
     assert payload["policy_status"] == "pass"
+    assert payload["interpolation"] == "cubic_bspline"
     assert payload["controls_detected"] == payload["controls"]
     assert validate_file(output).valid
     saved = json.loads(output.read_text(encoding="utf-8"))

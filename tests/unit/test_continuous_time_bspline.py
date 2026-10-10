@@ -1,0 +1,121 @@
+"""Tests for the cumulative cubic B-spline trajectory."""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from calibrex.core.continuous_time_bspline import (
+    CubicBSplineTrajectory,
+    so3_exp_batch,
+    so3_log_batch,
+)
+from calibrex.core.se3_manifold import (
+    rotation_matrix_to_rotation_vector,
+    rotation_vector_to_matrix,
+)
+
+
+def _random_spline(seed: int = 3, count: int = 9) -> CubicBSplineTrajectory:
+    rng = np.random.default_rng(seed)
+    rotations = []
+    current = np.eye(3)
+    for _ in range(count):
+        current = current @ rotation_vector_to_matrix(rng.normal(0.0, 0.3, 3))
+        rotations.append(current)
+    positions = np.cumsum(rng.normal(0.0, 0.4, (count, 3)), axis=0)
+    return CubicBSplineTrajectory(
+        start_time_sec=1.5,
+        knot_spacing_sec=0.2,
+        rotations=np.asarray(rotations),
+        positions=positions,
+    )
+
+
+def test_batch_exp_and_log_match_the_scalar_maps() -> None:
+    rng = np.random.default_rng(7)
+    vectors = np.vstack([rng.normal(0.0, 0.8, (20, 3)), np.zeros((1, 3)), [[1.0e-10, 0.0, 0.0]]])
+    matrices = so3_exp_batch(vectors)
+    for vector, matrix in zip(vectors, matrices, strict=True):
+        assert np.allclose(matrix, rotation_vector_to_matrix(vector), atol=1.0e-12)
+    logs = so3_log_batch(matrices)
+    for log, matrix in zip(logs, matrices, strict=True):
+        assert np.allclose(log, rotation_matrix_to_rotation_vector(matrix), atol=1.0e-9)
+
+
+def test_analytic_derivatives_match_finite_differences() -> None:
+    spline = _random_spline()
+    # Away from knots: the jerk jumps there, so central differences of the
+    # acceleration pick up a first-order error exactly at a knot.
+    times = spline.start_time_sec + spline.knot_spacing_sec * (
+        np.arange(spline.control_point_count - 3) + 0.37
+    )
+    h = 1.0e-5
+    states = spline.evaluate(times)
+    plus = spline.evaluate(times + h)
+    minus = spline.evaluate(times - h)
+    # Body angular velocity: R^T R(t + h) = Exp(w h) to first order.
+    relative_plus = np.einsum("tji,tjk->tik", states.rotation_world_body, plus.rotation_world_body)
+    relative_minus = np.einsum(
+        "tji,tjk->tik", states.rotation_world_body, minus.rotation_world_body
+    )
+    numeric_omega = (so3_log_batch(relative_plus) - so3_log_batch(relative_minus)) / (2.0 * h)
+    assert np.allclose(states.angular_velocity_body_rad_s, numeric_omega, atol=1.0e-6)
+    numeric_alpha = (
+        plus.angular_velocity_body_rad_s - minus.angular_velocity_body_rad_s
+    ) / (2.0 * h)
+    assert np.allclose(states.angular_acceleration_body_rad_s2, numeric_alpha, atol=1.0e-4)
+    numeric_velocity = (plus.position_world_m - minus.position_world_m) / (2.0 * h)
+    assert np.allclose(states.linear_velocity_world_m_s, numeric_velocity, atol=1.0e-6)
+    numeric_acceleration = (
+        plus.linear_velocity_world_m_s - minus.linear_velocity_world_m_s
+    ) / (2.0 * h)
+    assert np.allclose(states.linear_acceleration_world_m_s2, numeric_acceleration, atol=1.0e-4)
+
+
+def test_curve_is_c2_across_knots() -> None:
+    spline = _random_spline()
+    knots = spline.start_time_sec + spline.knot_spacing_sec * np.arange(1, 6)
+    epsilon = 1.0e-9
+    before = spline.evaluate(knots - epsilon)
+    after = spline.evaluate(knots + epsilon)
+    for name in (
+        "rotation_world_body",
+        "position_world_m",
+        "angular_velocity_body_rad_s",
+        "angular_acceleration_body_rad_s2",
+        "linear_velocity_world_m_s",
+        "linear_acceleration_world_m_s2",
+    ):
+        assert np.allclose(getattr(before, name), getattr(after, name), atol=1.0e-6), name
+
+
+def test_linear_control_points_reproduce_constant_velocity() -> None:
+    count = 7
+    positions = np.outer(np.arange(count), [0.3, -0.1, 0.05])
+    axis = np.array([0.0, 0.0, 0.2])
+    rotations = np.asarray([rotation_vector_to_matrix(axis * index) for index in range(count)])
+    spline = CubicBSplineTrajectory(
+        start_time_sec=0.0, knot_spacing_sec=0.5, rotations=rotations, positions=positions
+    )
+    times = np.linspace(0.0, spline.end_time_sec, 9)
+    states = spline.evaluate(times)
+    assert np.allclose(states.linear_velocity_world_m_s, [0.6, -0.2, 0.1], atol=1.0e-12)
+    assert np.allclose(states.linear_acceleration_world_m_s2, 0.0, atol=1.0e-12)
+    assert np.allclose(states.angular_velocity_body_rad_s, [0.0, 0.0, 0.4], atol=1.0e-9)
+    assert np.allclose(states.angular_acceleration_body_rad_s2, 0.0, atol=1.0e-9)
+    # Control point k sits on the curve at start + (k - 1) * spacing here.
+    assert np.allclose(states.position_world_m[0], positions[1], atol=1.0e-12)
+
+
+def test_times_outside_the_domain_are_rejected() -> None:
+    spline = _random_spline()
+    with pytest.raises(ValueError, match="outside"):
+        spline.evaluate(np.array([spline.end_time_sec + 0.1]))
+    with pytest.raises(ValueError, match="four control points"):
+        CubicBSplineTrajectory(
+            start_time_sec=0.0,
+            knot_spacing_sec=0.1,
+            rotations=np.stack([np.eye(3)] * 3),
+            positions=np.zeros((3, 3)),
+        )

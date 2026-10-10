@@ -89,6 +89,21 @@
   recordings (judged axes only), 23 of 27 rotation errors of 1, 3 and 5 deg are flagged, the rest
   `inconclusive` or `pass` with the axis unchecked; first-run time 20-100 s. Development evidence,
   no leaderboard claim.
+- **C2 cubic B-spline trajectory and a joint LiDAR-IMU fit on it.** New
+  `calibrex.core.continuous_time_bspline`: a uniform cumulative cubic B-spline on SO(3) x R^3 with
+  vectorized evaluation of pose, body angular velocity and acceleration (Sommer et al. recursion)
+  and world linear velocity and acceleration; derivatives are checked against finite differences
+  and continuity across knots. New `calibrex.core.continuous_time_bspline_fit` fits the control
+  points together with the IMU rotation, gyro bias, lever arm, clock offset, accelerometer bias and
+  gravity from per-return LiDAR point-to-plane residuals and direct gyro and accelerometer factors
+  (whitened, Levenberg--Marquardt, control-point Jacobians by vectorized central differences,
+  marginal covariance by Schur complement). `calibrex trajectory recover-lidar-imu-joint
+  --trajectory cubic_bspline` runs the joint recovery against a smooth continuous truth that the
+  spline can only approximate, with 1000 LiDAR returns/s and 100 Hz IMU, every third IMU sample held
+  out: on seeds 20261010, 1 and 2 it passes with trajectory error under 1 cm and 0.3 deg, rotation
+  error 0.01-0.03 deg, clock offset within 0.25 ms, lever arm within 6 mm, holdout RMSE at the noise
+  level, every block within 2.6 sigma and every control detected (Delta chi2 >= 448). The
+  screw-linear runner is unchanged. No real-data front end yet.
 - **Joint continuous-time LiDAR-IMU recovery (synthetic), with the IMU mounting rotation.** The
   sparse knot-path solver gains `R_body_imu` (`estimate_imu_rotation`, right-perturbation analytic
   Jacobians for gyro pre-integration and specific force, checked against finite differences) and

@@ -1,0 +1,147 @@
+"""Tests for the joint LiDAR-IMU fit on a cubic B-spline trajectory."""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from calibrex.core.continuous_time_bspline import CubicBSplineTrajectory
+from calibrex.core.continuous_time_bspline_fit import (
+    BSplineImuSamples,
+    BSplineLidarImuProblem,
+    BSplinePlaneReturns,
+    LidarImuCalibration,
+    fit_bspline_lidar_imu,
+    lidar_imu_residuals,
+)
+from calibrex.core.se3_manifold import (
+    rotation_matrix_to_rotation_vector,
+    rotation_vector_to_matrix,
+)
+
+TRUTH = LidarImuCalibration(
+    imu_rotation_vector_rad=np.array([0.04, -0.03, 0.05]),
+    gyro_bias_rad_s=np.array([0.008, -0.006, 0.01]),
+    lever_arm_body_m=np.array([0.10, -0.06, 0.15]),
+    imu_clock_offset_sec=0.004,
+    accel_bias_m_s2=np.array([0.06, -0.05, 0.04]),
+    gravity_world_m_s2=np.array([0.0, 0.0, -9.81]),
+)
+
+
+def _truth_spline() -> CubicBSplineTrajectory:
+    rng = np.random.default_rng(11)
+    count = 23
+    rotations = [np.eye(3)]
+    for _ in range(count - 1):
+        rotations.append(rotations[-1] @ rotation_vector_to_matrix(rng.normal(0.0, 0.12, 3)))
+    positions = np.cumsum(rng.normal(0.0, 0.05, (count, 3)), axis=0)
+    return CubicBSplineTrajectory(
+        start_time_sec=0.0,
+        knot_spacing_sec=0.1,
+        rotations=np.asarray(rotations),
+        positions=positions,
+    )
+
+
+def _measurements(
+    spline: CubicBSplineTrajectory, rng: np.random.Generator
+) -> tuple[BSplinePlaneReturns, BSplineImuSamples, BSplineImuSamples]:
+    normals = np.array(
+        [[0, 0, 1], [1, 0, 0], [0, 1, 0], [0.7, 0.7, 0], [-0.6, 0.6, 0.5], [0, -0.8, 0.6]],
+        dtype=float,
+    )
+    normals /= np.linalg.norm(normals, axis=1)[:, None]
+    offsets = np.array([1.5, 4.0, 5.0, 3.0, 2.5, 3.5])
+    times = np.sort(rng.uniform(0.0, spline.end_time_sec, 3000))
+    choice = rng.integers(len(normals), size=times.size)
+    states = spline.evaluate(times)
+    # A point on plane n.x = -d near the trajectory, expressed in the body frame.
+    tangent = rng.normal(0.0, 2.0, (times.size, 3))
+    tangent -= np.sum(tangent * normals[choice], axis=1)[:, None] * normals[choice]
+    anchors = -offsets[choice, None] * normals[choice]
+    world = anchors + tangent
+    body = np.einsum("tji,tj->ti", states.rotation_world_body, world - states.position_world_m)
+    planes = BSplinePlaneReturns(times, body, anchors, normals[choice], sigma_m=0.01)
+    body_times = np.arange(0.05, spline.end_time_sec - 0.05, 0.01)
+    imu = spline.evaluate(body_times)
+    rotation = rotation_vector_to_matrix(TRUTH.imu_rotation_vector_rad)
+    omega = imu.angular_velocity_body_rad_s
+    lever = np.broadcast_to(TRUTH.lever_arm_body_m, omega.shape)
+    kinematic = (
+        np.einsum(
+            "tji,tj->ti",
+            imu.rotation_world_body,
+            imu.linear_acceleration_world_m_s2 - TRUTH.gravity_world_m_s2,
+        )
+        + np.cross(imu.angular_acceleration_body_rad_s2, lever)
+        + np.cross(omega, np.cross(omega, lever))
+    )
+    stamps = body_times + TRUTH.imu_clock_offset_sec
+    gyro = BSplineImuSamples(stamps, omega @ rotation + TRUTH.gyro_bias_rad_s, 0.003)
+    accel = BSplineImuSamples(stamps, kinematic @ rotation + TRUTH.accel_bias_m_s2, 0.03)
+    return planes, gyro, accel
+
+
+def test_residuals_vanish_on_noise_free_spline_data() -> None:
+    spline = _truth_spline()
+    planes, gyro, accel = _measurements(spline, np.random.default_rng(5))
+    residuals = lidar_imu_residuals(spline, TRUTH, planes, gyro, accel)
+    for family, values in residuals.items():
+        assert np.max(np.abs(values)) < 1.0e-8, family
+
+
+def test_fit_recovers_calibration_and_reports_marginal_std() -> None:
+    spline = _truth_spline()
+    rng = np.random.default_rng(6)
+    planes, gyro, accel = _measurements(spline, rng)
+    initial = CubicBSplineTrajectory(
+        start_time_sec=spline.start_time_sec,
+        knot_spacing_sec=spline.knot_spacing_sec,
+        rotations=np.asarray(
+            [
+                rotation @ rotation_vector_to_matrix(rng.normal(0.0, 0.01, 3))
+                for rotation in spline.rotations
+            ]
+        ),
+        positions=spline.positions + rng.normal(0.0, 0.01, spline.positions.shape),
+    )
+    zero = np.zeros(3)
+    result = fit_bspline_lidar_imu(
+        BSplineLidarImuProblem(
+            initial_trajectory=initial,
+            planes=planes,
+            gyro=gyro,
+            accel=accel,
+            initial_calibration=LidarImuCalibration(
+                imu_rotation_vector_rad=zero,
+                gyro_bias_rad_s=zero,
+                lever_arm_body_m=zero,
+                imu_clock_offset_sec=0.0,
+                accel_bias_m_s2=zero,
+                gravity_world_m_s2=np.array([0.0, 0.0, -9.7]),
+            ),
+        )
+    )
+
+    assert result.status == "converged"
+    assert result.final_cost < 1.0e-6 * result.initial_cost
+    calibration = result.calibration
+    rotation_error = rotation_matrix_to_rotation_vector(
+        rotation_vector_to_matrix(TRUTH.imu_rotation_vector_rad).T
+        @ rotation_vector_to_matrix(calibration.imu_rotation_vector_rad)
+    )
+    assert np.linalg.norm(rotation_error) < 1.0e-6
+    assert calibration.imu_clock_offset_sec == pytest.approx(TRUTH.imu_clock_offset_sec, abs=1.0e-7)
+    for name in ("gyro_bias_rad_s", "lever_arm_body_m", "accel_bias_m_s2", "gravity_world_m_s2"):
+        assert np.allclose(getattr(calibration, name), getattr(TRUTH, name), atol=1.0e-5), name
+    assert set(result.calibration_parameter_names) >= {"imu_rotation[0]", "imu_clock_offset[0]"}
+    assert np.all(result.block_std("lever_arm") > 0.0)
+    assert ("accel_bias", "gravity") in result.block_correlations()
+
+
+def test_measurement_containers_validate_shapes() -> None:
+    with pytest.raises(ValueError, match="shape"):
+        BSplineImuSamples(np.zeros(3), np.zeros((2, 3)), 0.1)
+    with pytest.raises(ValueError, match="sigma"):
+        BSplineImuSamples(np.zeros(2), np.zeros((2, 3)), 0.0)
