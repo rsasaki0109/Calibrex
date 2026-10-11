@@ -103,6 +103,48 @@ the repetition number, count, order, and shared problem hash. The report's
 overlays always show repetition 1, without replacing a missing first result.
 The JSON command output includes `timing_summaries` and every individual trial.
 
+For repeated estimates on unchanged inputs, add `--reuse-verified-inputs` to
+either `kitti-six-dof` or `kitti-six-dof-sweep`. This opt-in verifies the
+checkpoint, provider and referenced files once, and captures immutable depth,
+LiDAR and range arrays. Each invocation checks the problem artifact's SHA-256
+and starts a fresh backend and solver from the same prior. Sweeps prepare a
+separate snapshot inside each case/worker; snapshots are not shared between
+processes or different problem artifacts.
+
+With reuse, `pipeline_seconds` includes the complete one-time verification,
+loading and capture cost, divided equally across all planned attempts. The
+`snapshot_preparation_share_seconds` metric exposes that share. Standard result
+phase timings cover each invocation; `input_verification.preparation_seconds`
+records the shared cost separately. Sum the benchmark pipeline times to charge
+that cost once, rather than adding it again for every result. Failed attempts
+remain visible; their initial preparation shares are stated in trial notes.
+Problem building, serialization, image copying and HTML rendering remain outside
+these pipeline timings.
+
+The snapshot deliberately retains its original verified values if external
+files later change or disappear. It does not claim to verify their current disk
+contents. Create a new snapshot to capture new inputs; fresh invocations retain
+full verification by default. Array buffers have immutable byte owners, and no
+global cache or size/mtime shortcut is used. Memory remains owned by this demo
+until it returns; accelerator caches and scratch allocations are additional.
+
+The same explicit reuse is available to Python callers:
+
+```python
+from calibrex.pipelines.camera_lidar_input_snapshot import CameraLidarSixDofInputSnapshot
+from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
+
+snapshot = CameraLidarSixDofInputSnapshot("demo.problem.json")
+for _ in range(10):
+    result = run_camera_lidar_six_dof_estimate(
+        "demo.problem.json", input_snapshot=snapshot, projection_backend="cuda",
+        holdout_frame_ids=["0000000460", "0000001035", "0000001611",
+                           "0000002186", "0000002761"],
+        command=["python", "repeat_estimate.py"],
+    )
+# Include snapshot.preparation_seconds once when measuring the complete session.
+```
+
 ## Read the evidence
 
 - Exactly 25 endpoint-inclusive uniform positions are selected from numeric-

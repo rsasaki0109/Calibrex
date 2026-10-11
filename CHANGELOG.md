@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add caller-owned immutable, verified Camera–LiDAR input snapshots for repeated
+  six-DoF estimates. Public demos and sweeps opt in with
+  `--reuse-verified-inputs`; pipeline summaries include initial capture once.
+  Check the problem SHA-256 on every estimate, bind loaded arrays to verified
+  bytes, and record snapshot scope/cost. Default runs still verify fresh files.
+
 - Batch ordered CUDA D2D histograms in groups of at most 32 frames. Share pose
   and histogram-edge uploads, reuse invocation-local projection scratch, and
   download each group's counts together. Preserve native frame reduction,

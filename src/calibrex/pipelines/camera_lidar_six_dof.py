@@ -29,6 +29,7 @@ from calibrex.core.result import (
     load_result,
 )
 from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
+from calibrex.pipelines.camera_lidar_input_snapshot import CameraLidarSixDofInputSnapshot
 from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthToDepthEvaluation,
     evaluate_depth_to_depth_mi,
@@ -43,7 +44,7 @@ from calibrex.solvers.depth_to_depth_runtime import (
     validate_frame_workers,
 )
 
-SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.2"
+SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.3"
 
 
 def run_camera_lidar_six_dof_estimate(
@@ -55,11 +56,15 @@ def run_camera_lidar_six_dof_estimate(
     cuda_cache_bytes: int | None = None,
     initial_result_path: str | Path | None = None,
     holdout_frame_ids: Sequence[str] = (),
+    input_snapshot: CameraLidarSixDofInputSnapshot | None = None,
     command: Sequence[str],
 ) -> CalibrationResult:
     """Refine the declared prior once; reference values never enter optimization.
 
-    All problem/provider file digests are verified before solving. Histogram
+    By default all problem/provider file digests are verified before solving.
+    An explicit input_snapshot reuses its verified immutable arrays; its
+    preparation cost is recorded separately from this invocation's timing.
+    The problem artifact is still checked on every call. Histogram
     ranges are resolved from training frames only and then frozen for holdout
     evaluation. Convergence records optimizer termination, not calibration
     accuracy. Insufficient inputs produce a failed result with no output pose.
@@ -75,7 +80,10 @@ def run_camera_lidar_six_dof_estimate(
     if settings.objective not in ("mutual_information", "normalized_mutual_information"):
         raise ValueError("unsupported six-DoF objective")
     path = Path(problem_path)
-    loaded = load_borer_problem(path)
+    loaded = (
+        load_borer_problem(path)
+        if input_snapshot is None else input_snapshot._loaded_for_estimate(path)
+    )
     problem = loaded.problem
     if settings.rotation_bound_deg > problem.rotation_bound_deg:
         raise ValueError("six-DoF rotation bound exceeds the problem rotation bound")
@@ -160,6 +168,7 @@ def run_camera_lidar_six_dof_estimate(
         "projection_backend": identity,
         "frame_workers": frame_workers,
         "effective_frame_workers": effective_workers,
+        "input_mode": "fresh_files" if input_snapshot is None else "verified_snapshot",
         "initial_transform": prior.as_se3().as_dict(),
         "train_frame_ids": [item.frame_id for item in train],
         "holdout_frame_ids": [item.frame_id for item in holdout],
@@ -220,6 +229,11 @@ def run_camera_lidar_six_dof_estimate(
             "pipeline": SIX_DOF_ESTIMATE_VERSION,
             "problem_path": str(path),
             "input_digests": input_digests,
+            "input_verification": (
+                {"mode": "fresh_files", "external_files_reverified": True,
+                 "problem_artifact_reverified": True, "preparation_in_run_timing": True}
+                if input_snapshot is None else input_snapshot.provenance()
+            ),
             "dataset_id": problem.dataset_id,
             "dataset_family": problem.dataset_family,
             "sequence_id": problem.sequence_id,

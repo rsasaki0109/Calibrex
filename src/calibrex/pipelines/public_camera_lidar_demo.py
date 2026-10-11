@@ -33,6 +33,7 @@ from calibrex.core.result import CalibrationResult, TransformEstimateProvenance,
 from calibrex.data.depth import DepthProviderArtifact, load_depth_provider
 from calibrex.data.kitti_camera_lidar_problem import build_kitti_raw_camera_lidar_problem
 from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
+from calibrex.pipelines.camera_lidar_input_snapshot import CameraLidarSixDofInputSnapshot
 from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
 from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, apply_local_se3_delta
 from calibrex.solvers.depth_to_depth_runtime import (
@@ -42,7 +43,7 @@ from calibrex.solvers.depth_to_depth_runtime import (
 )
 from calibrex.visualization.public_six_dof_demo import write_public_six_dof_report
 
-PUBLIC_SIX_DOF_DEMO_VERSION = "calibrex.public_six_dof_demo/v0.3"
+PUBLIC_SIX_DOF_DEMO_VERSION = "calibrex.public_six_dof_demo/v0.4"
 _SPLIT_ID = "uniform-25-fit20-holdout5"
 
 
@@ -73,6 +74,7 @@ def run_public_camera_lidar_six_dof_demo(
     candidate_backend: ProjectionBackend = "cuda",
     candidate_frame_workers: int = 1,
     repetitions: int = 1,
+    reuse_verified_inputs: bool = False,
     cuda_cache_bytes: int | None = None,
     options: BorerSixDofOptions | None = None,
     rotation_offset_deg: tuple[float, float, float] = (0.5, 0.0, 0.0),
@@ -86,10 +88,14 @@ def run_public_camera_lidar_six_dof_demo(
     the same initial estimate, never the reference as their search target.
     Images must use the source-aligned rectified pinhole depth grid. No raw
     inputs are changed, no provider is trained, and no backend falls back.
+    Explicit reuse verifies/captures inputs once for this demo and charges that
+    preparation equally across all planned attempts in pipeline_seconds.
     """
 
     validate_cuda_cache_bytes(candidate_backend, cuda_cache_bytes)
     validate_frame_workers(candidate_backend, candidate_frame_workers)
+    if not isinstance(reuse_verified_inputs, bool):
+        raise ValueError("reuse_verified_inputs must be a boolean")
     if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
         raise ValueError("repetitions must be a positive integer")
     if not command or not all(item.strip() for item in command):
@@ -147,6 +153,7 @@ def run_public_camera_lidar_six_dof_demo(
         "candidate_frame_workers": candidate_frame_workers,
         "cuda_cache_bytes": cuda_cache_bytes,
         "repetitions": repetitions,
+        "reuse_verified_inputs": reuse_verified_inputs,
         "execution_order": "CPU first on odd-numbered repetitions; candidate first on even ones",
     }
     config_digest = _digest(configuration)
@@ -197,7 +204,13 @@ def run_public_camera_lidar_six_dof_demo(
     )
     problem_path = output / "demo.problem.json"
     problem.save(problem_path)
-    loaded = load_borer_problem(problem_path)
+    snapshot = CameraLidarSixDofInputSnapshot(problem_path) if reuse_verified_inputs else None
+    loaded = (
+        load_borer_problem(problem_path)
+        if snapshot is None else snapshot._loaded_for_estimate(problem_path)
+    )
+    shared_preparation = snapshot.preparation_seconds if snapshot is not None else 0.0
+    preparation_share = shared_preparation / (2 * repetitions)
     candidate_id = candidate_backend if candidate_backend != "numpy" else "numpy_repeat"
     methods: list[tuple[str, ProjectionBackend]] = [
         ("numpy", "numpy"),
@@ -233,6 +246,7 @@ def run_public_camera_lidar_six_dof_demo(
                     frame_workers=candidate_frame_workers if method_id == candidate_id else 1,
                     cuda_cache_bytes=cuda_cache_bytes if backend == "cuda" else None,
                     holdout_frame_ids=holdout_ids,
+                    input_snapshot=snapshot,
                     command=command,
                 )
                 result.run.provenance["public_demo_repetition"] = {
@@ -240,6 +254,7 @@ def run_public_camera_lidar_six_dof_demo(
                     "count": repetitions,
                     "execution_order": [item[0] for item in ordered_methods],
                     "shared_problem_sha256": loaded.problem_sha256,
+                    "input_snapshot_preparation_share_seconds": preparation_share,
                 }
                 result.save(output / filename)
                 trial_results[key] = result
@@ -290,7 +305,10 @@ def run_public_camera_lidar_six_dof_demo(
         )
         for name, label, unit, direction, interpretation in (
             ("solve_seconds", "Solve time", "s", "lower", "One invocation; includes lazy JIT."),
-            ("pipeline_seconds", "Pipeline time", "s", "lower", "Load, prepare, solve, holdout."),
+            ("pipeline_seconds", "Pipeline time", "s", "lower",
+             "Invocation phases plus an equal share of initial snapshot preparation when reused."),
+            ("snapshot_preparation_share_seconds", "Snapshot preparation share", "s", "lower",
+             "Verification/loading/capture divided by all planned attempts; zero without reuse."),
             (
                 "initial_rotation_difference_deg",
                 "Initial rotation difference",
@@ -349,7 +367,11 @@ def run_public_camera_lidar_six_dof_demo(
         metrics: dict[str, float] = {}
         if result is not None:
             timing = result.run.provenance["timing_seconds"]
-            metrics.update(solve_seconds=timing["solve"], pipeline_seconds=sum(timing.values()))
+            metrics.update(
+                solve_seconds=timing["solve"],
+                pipeline_seconds=sum(timing.values()) + preparation_share,
+                snapshot_preparation_share_seconds=preparation_share,
+            )
             metrics["numerical_parity"] = float(pair_parity[split_id])
             initial_rotation, initial_translation = _reference_difference(
                 initial.as_se3(),
@@ -393,7 +415,16 @@ def run_public_camera_lidar_six_dof_demo(
                         "for every run.",
                         f"Result file: {result_files[key]}",
                         "CPU first on odd-numbered repetitions; candidate first on even ones. "
-                        "Each invocation verifies/loads inputs and prepares a fresh projector. "
+                        + (
+                            "Inputs are verified/captured once for this demo; each invocation "
+                            "checks the problem digest and prepares a fresh projector. "
+                            f"Initial snapshot cost {shared_preparation:.9f}s is divided equally "
+                            f"across {2 * repetitions} planned attempts "
+                            f"({preparation_share:.9f}s each). "
+                            "External changes after capture are not re-read. "
+                            if snapshot is not None else
+                            "Each invocation verifies/loads inputs and prepares a fresh projector. "
+                        ) +
                         "The first invocation is included; kernel caches persist "
                         "in this process.",
                     ],
@@ -402,6 +433,14 @@ def run_public_camera_lidar_six_dof_demo(
         )
     training = provider.provider.training
     limitations = [
+        "Input verification mode: " + (
+            f"shared immutable snapshot; initial preparation {shared_preparation:.9f}s is "
+            "included once via equal pipeline-time shares across all planned attempts. "
+            "Reuse is limited to this demo/case; solver state and backends are freshly prepared. "
+            "External files are not reverified after capture; "
+            "the problem SHA-256 is checked each time."
+            if snapshot is not None else "fresh verification/loading for each invocation."
+        ),
         f"One sequence, one perturbation, {repetitions} invocation(s) per backend. "
         "Repetitions measure timing on the same frames, not independent recovery trials. "
         "Bootstrap intervals do not establish statistical confidence for this demo.",

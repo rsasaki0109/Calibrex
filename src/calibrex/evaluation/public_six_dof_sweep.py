@@ -40,7 +40,7 @@ from calibrex.solvers.depth_to_depth_runtime import (
 )
 from calibrex.visualization.public_six_dof_sweep import write_public_six_dof_sweep_report
 
-PUBLIC_SIX_DOF_SWEEP_VERSION = "calibrex.public_six_dof_sweep/v0.2"
+PUBLIC_SIX_DOF_SWEEP_VERSION = "calibrex.public_six_dof_sweep/v0.3"
 
 
 @dataclass(frozen=True)
@@ -100,6 +100,7 @@ def run_public_six_dof_sweep(
     candidate_frame_workers: int = 1,
     workers: int = 1,
     repetitions: int = 1,
+    reuse_verified_inputs: bool = False,
     rotation_deg: float = 0.5,
     translation_m: float = 0.5,
     cuda_cache_bytes: int | None = None,
@@ -115,6 +116,8 @@ def run_public_six_dof_sweep(
     started = time.perf_counter()
     validate_cuda_cache_bytes(candidate_backend, cuda_cache_bytes)
     validate_frame_workers(candidate_backend, candidate_frame_workers)
+    if not isinstance(reuse_verified_inputs, bool):
+        raise ValueError("reuse_verified_inputs must be a boolean")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers < 1:
         raise ValueError("workers must be a positive integer")
     if candidate_backend == "cuda" and workers != 1:
@@ -158,6 +161,7 @@ def run_public_six_dof_sweep(
         "candidate_frame_workers": candidate_frame_workers,
         "workers": workers,
         "repetitions": repetitions,
+        "reuse_verified_inputs": reuse_verified_inputs,
         "cuda_cache_bytes": cuda_cache_bytes,
     })
     output.mkdir(parents=True, exist_ok=True)
@@ -231,7 +235,8 @@ def run_public_six_dof_sweep(
     tasks = [
         (str(Path(sequence_path).resolve()), str(Path(depth_provider_path).resolve()),
          str(output / case.case_id), tuple(command), candidate_backend, repetitions,
-         cuda_cache_bytes, settings, case, candidate_frame_workers) for case in cases
+         cuda_cache_bytes, settings, case, candidate_frame_workers, reuse_verified_inputs)
+        for case in cases
     ]
     if workers == 1:
         demos = dict(_run_sweep_case(task) for task in tasks)
@@ -301,14 +306,16 @@ def run_public_six_dof_sweep(
 def _run_sweep_case(
     task: tuple[
         str, str, str, tuple[str, ...], ProjectionBackend, int, int | None,
-        BorerSixDofOptions, PublicSixDofSweepCase, int,
+        BorerSixDofOptions, PublicSixDofSweepCase, int, bool,
     ],
 ) -> tuple[str, PublicSixDofDemoResult]:
-    sequence, provider, output, command, backend, repetitions, cache, settings, case, frames = task
+    (sequence, provider, output, command, backend, repetitions,
+     cache, settings, case, frames, reuse) = task
     demo = run_public_camera_lidar_six_dof_demo(
         sequence, provider, output_directory=output, command=command,
         candidate_backend=backend, repetitions=repetitions, cuda_cache_bytes=cache,
         candidate_frame_workers=frames,
+        reuse_verified_inputs=reuse,
         options=settings, rotation_offset_deg=case.rotation_deg_xyz,
         translation_offset_m=case.translation_m_xyz,
     )

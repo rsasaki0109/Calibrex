@@ -1123,6 +1123,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     six_dof_demo.add_argument("--max-evaluations", type=int, default=800)
     six_dof_demo.add_argument(
+        "--reuse-verified-inputs", action="store_true",
+        help="capture immutable inputs once; include initial verification cost in pipeline timing",
+    )
+    six_dof_demo.add_argument(
         "--repetitions", type=int, default=1,
         help="invocations per backend; starts from the shared prior and alternates execution order",
     )
@@ -1148,6 +1152,10 @@ def _build_parser() -> argparse.ArgumentParser:
     six_dof_sweep.add_argument("--workers", type=int, default=1)
     six_dof_sweep.add_argument("--candidate-frame-workers", type=int, default=1)
     six_dof_sweep.add_argument("--repetitions", type=int, default=1)
+    six_dof_sweep.add_argument(
+        "--reuse-verified-inputs", action="store_true",
+        help="verify/capture once inside each case; worker processes own separate snapshots",
+    )
     six_dof_sweep.add_argument("--rotation-deg", type=float, default=0.5)
     six_dof_sweep.add_argument("--translation-m", type=float, default=0.5)
     six_dof_sweep.add_argument("--cuda-cache-mib", type=int)
@@ -6060,6 +6068,7 @@ def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
             candidate_backend=cast(ProjectionBackend, args.candidate_backend),
             candidate_frame_workers=args.candidate_frame_workers,
             repetitions=args.repetitions,
+            reuse_verified_inputs=args.reuse_verified_inputs,
             cuda_cache_bytes=(
                 args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
             ),
@@ -6097,6 +6106,7 @@ def _cmd_demo_kitti_six_dof_sweep(args: argparse.Namespace) -> int:
             candidate_backend=cast(ProjectionBackend, args.candidate_backend),
             candidate_frame_workers=args.candidate_frame_workers,
             workers=args.workers, repetitions=args.repetitions,
+            reuse_verified_inputs=args.reuse_verified_inputs,
             rotation_deg=args.rotation_deg, translation_m=args.translation_m,
             cuda_cache_bytes=(
                 args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
