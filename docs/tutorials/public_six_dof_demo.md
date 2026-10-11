@@ -312,3 +312,16 @@ phase, and use the same frozen problem, split, prior, and evaluation settings.
 
 The implementation uses [Numba's GIL release](https://numba.readthedocs.io/en/stable/user/jit.html#nogil)
 and preserves [NumPy histogram edge conventions](https://numpy.org/doc/stable/reference/generated/numpy.histogram.html#notes).
+
+On public drive 0018, three runs per method all retained the exact complete
+229-evaluation numerical payload. Solve medians were 67.078 s for serial NumPy
+and 3.624 s for the fused backend with two frame threads (**18.51x**); pipeline
+phase medians were 70.886 / 6.500 s (**10.91x**). The first candidate included
+compilation from an absent Numba cache and took 5.139 s versus its paired
+53.928 s serial solve (**10.49x**). The six previously frozen signed-axis
+problems also retained their full CPU numerical payloads (229–313 evaluations).
+[Published fused CPU evidence](../assets/fused_cpu_histogram/README.md) retains
+all timed invocations, original hashes, full representative traces, six-axis
+validation, cold-cache conditions, and timing/accuracy limitations. These are
+observations on one i7-9750H workload with other running work; numerical equality
+preserves the existing outcome and does not establish calibration accuracy.
