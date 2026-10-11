@@ -11,6 +11,7 @@ from test_public_camera_lidar_demo import _fixture
 from calibrex.cli.main import main
 from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
 from calibrex.core.validation import validate_file
+from calibrex.data.kitti_camera_lidar_problem import build_kitti_raw_camera_lidar_problem
 from calibrex.evaluation import borer_rotation_benchmark as loader
 from calibrex.pipelines.camera_lidar_input_snapshot import CameraLidarSixDofInputSnapshot
 from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
@@ -18,6 +19,7 @@ from calibrex.pipelines.public_camera_lidar_demo import (
     _numerical_payload,
     run_public_camera_lidar_six_dof_demo,
 )
+from calibrex.solvers.borer_depth_to_depth_solver import DepthToDepthOptions
 from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
 
 
@@ -133,6 +135,35 @@ def test_caller_owned_snapshot_supports_concurrent_cpu_estimates(tmp_path: Path)
     assert all(_numerical_payload(result) == baseline for result in results)
 
 
+def test_snapshot_allows_new_initial_result_holdout_and_histogram_settings(tmp_path: Path) -> None:
+    sequence, provider = _fixture(tmp_path)
+    problem = build_kitti_raw_camera_lidar_problem(
+        sequence, provider, rotation_bound_deg=2, translation_bound_m=1, command=("fixture",),
+    )
+    path = tmp_path / "problem.json"
+    problem.save(path)
+    snapshot = CameraLidarSixDofInputSnapshot(path)
+    initial = _estimate(path)
+    next(iter(initial.transforms.values())).translation_m[0] += 0.1
+    initial_path = tmp_path / "initial.result.json"
+    initial.save(initial_path)
+    settings = BorerSixDofOptions(
+        max_evaluations=13,
+        d2d=DepthToDepthOptions(histogram_bins=8, min_visible_points=16,
+                              camera_depth_range=(0, 30), lidar_range_m=(0, 30)),
+    )
+    kwargs = {
+        "options": settings, "initial_result_path": initial_path, "frame_workers": 2,
+        "holdout_frame_ids": [item.frame_id for item in problem.observations[::3]],
+        "command": ["fixture"],
+    }
+    fresh = run_camera_lidar_six_dof_estimate(path, **kwargs)
+    reused = run_camera_lidar_six_dof_estimate(path, input_snapshot=snapshot, **kwargs)
+    assert _numerical_payload(reused) == _numerical_payload(fresh)
+    assert reused.run.provenance["configuration"]["effective_frame_workers"] == 2
+    assert reused.run.provenance["configuration"]["options"]["d2d"]["histogram_bins"] == 8
+
+
 def test_public_demo_reuse_verifies_once_and_charges_all_preparation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -166,6 +197,15 @@ def test_public_demo_reuse_verifies_once_and_charges_all_preparation(
     assert validate_file(definition_path).valid
     definition = BenchmarkDefinition.model_validate_json(definition_path.read_bytes())
     assert aggregate_benchmark_definition(definition) == demo.benchmark
+    report = demo.report_path.read_text(encoding="utf-8")
+    timing_table = report.split("<h2>Timing per invocation")[1].split("<h2>Timing summary")[0]
+    assert "<th>Shared preparation</th>" in timing_table
+    assert "shared immutable snapshot" in timing_table
+    for trial in demo.benchmark.trials:
+        assert (
+            f"<td>{cost / 4:.5f}</td><td>{trial.metrics['pipeline_seconds']:.5f}</td>"
+            in timing_table
+        )
 
 
 @pytest.mark.parametrize("subcommand", ["kitti-six-dof", "kitti-six-dof-sweep"])

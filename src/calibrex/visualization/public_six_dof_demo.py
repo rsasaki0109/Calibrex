@@ -66,6 +66,22 @@ def write_public_six_dof_report(
             f"<td>{_number(initial_mi.holdout if initial_mi else None)} → "
             f"{_number(final_mi.holdout if final_mi else None)}</td></tr>"
         )
+    input_note = next(
+        (note for note in benchmark.limitations if note.startswith("Input verification mode:")),
+        "",
+    )
+    has_shared_preparation = any(
+        trial.metrics.get("snapshot_preparation_share_seconds", 0.0) > 0
+        for trial in benchmark.trials
+    )
+    preparation_header = "<th>Shared preparation</th>" if has_shared_preparation else ""
+    timing_scope = (
+        "Total includes the four invocation phases plus an equal share of initial input "
+        "verification/loading/capture; that initial cost is charged once across all planned "
+        "attempts. Other demo setup and HTML rendering are excluded."
+        if has_shared_preparation else
+        "Total sums the four pipeline phases; shared demo setup and HTML rendering are excluded."
+    )
     timing_rows = []
     for trial in benchmark.trials:
         result = results.get((trial.method_id, trial.split_id))
@@ -82,7 +98,11 @@ def write_public_six_dof_report(
                     "holdout_evaluation",
                 )
             )
-            + f"<td>{_number(sum(timing.values()) if timing else None)}</td></tr>"
+            + (
+                f"<td>{_number(trial.metrics.get('snapshot_preparation_share_seconds'))}</td>"
+                if has_shared_preparation else ""
+            )
+            + f"<td>{_number(trial.metrics.get('pipeline_seconds'))}</td></tr>"
         )
     successful = numerical_parity and all(trial.status == "success" for trial in benchmark.trials)
     summary_rows = []
@@ -183,8 +203,10 @@ Convergence does not prove accuracy; quality remains a warning.</p></div>
 <th>Method</th><th>Status</th><th>Evaluations</th><th>Rotation difference (initial → final)</th>
 <th>Translation difference (initial → final)</th><th>Fit MI (nat)</th><th>Holdout MI (nat)</th>
 </tr></thead><tbody>{"".join(rows)}</tbody></table></div>
-<h2>Timing per invocation (seconds)</h2><div class="table-wrap"><table><thead><tr>
-<th>Method</th><th>Load / verify</th><th>Prepare</th><th>Solve</th><th>Holdout</th><th>Total</th>
+<h2>Timing per invocation (seconds)</h2><p>{html.escape(input_note)}</p>
+<div class="table-wrap"><table><thead><tr>
+<th>Method</th><th>Load / verify</th><th>Prepare</th><th>Solve</th><th>Holdout</th>
+{preparation_header}<th>Total</th>
 </tr></thead><tbody>{"".join(timing_rows)}</tbody></table></div>
 <h2>Timing summary (seconds)</h2><div class="table-wrap"><table><thead><tr>
 <th>Method</th><th>Successful / attempted</th><th>Median solve</th><th>Solve range</th>
@@ -195,7 +217,7 @@ Summary includes successful trials only; every attempt is shown above.
 CPU runs first on odd repetitions; candidate runs first on even repetitions.
 The first invocation is included. There is no separate warm-up; CUDA solve time
 includes lazy compilation and later invocations share process-wide kernel caches.
-Total sums the four pipeline phases; shared demo setup and HTML rendering are excluded.
+{timing_scope}
 Repetitions describe latency on these inputs, not independent calibration recovery trials.</p>
 <h2>Held-out image overlays</h2>
 <p>Points are finite, visible camera/LiDAR depth pairs after z-buffering.

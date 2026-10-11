@@ -1,0 +1,858 @@
+{
+  "benchmark_id": "public_kitti_verified_input_snapshot",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Ten invocations per method; same controlled prior/25 public frames/20 fit +5 holdout. Alternating method order.",
+    "Single shared host i7-9750H/GTX1660Ti6GiB; unrelated user CPU work remains active. No latency guarantee or statistical confidence.",
+    "Absent CuPy disk cache chosen before process startup; first fresh-file invocation includes CUDA/NVRTC initialization. No separate warmup.",
+    "Full snapshot verification/loading/capture 2.796825199970s included exactly once across ten trials.",
+    "External files deliberately are not reverified in snapshot estimates; problem digest is checked every invocation; all backends are newly prepared.",
+    "Repeated timings are not independent recovery trials. Convergence/parity do not establish accuracy; covariance/observability unknown."
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda_fresh_files",
+      "method_id": "cuda_fresh_files",
+      "source_commit": "9cdba24",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda_verified_snapshot",
+      "method_id": "cuda_verified_snapshot",
+      "source_commit": "9cdba24",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Per-invocation search including lazy initialization.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Invocation phases plus one tenth of snapshot preparation cost.",
+      "label": "Pipeline time including initial capture",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fresh verification/loading or snapshot problem check and training-range resolution.",
+      "label": "Input phase",
+      "name": "input_phase_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Full verification/loading/capture charged once across ten snapshot invocations.",
+      "label": "Initial capture share",
+      "name": "snapshot_preparation_share_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Measured API call duration plus initial capture share; excludes result serialization.",
+      "label": "Invocation wall plus capture share",
+      "name": "invocation_wall_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "1 means whole trace/metrics/poses/holdout equal to bound historical CPU oracle.",
+      "label": "Exact complete payload parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Equivalent fixed workload; not calibration accuracy.",
+      "label": "Evaluations",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "public_kitti_verified_input_snapshot/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-04"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-05"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-06"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-07"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-08"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-09"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "repeat-10"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+    "data_verified": true,
+    "generated_at": "2026-10-11T02:42:04.289954+00:00",
+    "generator": "manual.public_kitti_verified_input_snapshot",
+    "generator_version": "v0.1",
+    "git_commit": "9cdba24",
+    "source_artifacts": {
+      "committed:src/calibrex/evaluation/borer_rotation_benchmark.py": "891a04bbe88ad4a3a1d8fceacbda6b87362ac46cb7f7d3c6f3abf471f4df63a6",
+      "committed:src/calibrex/pipelines/camera_lidar_input_snapshot.py": "83dd218d1769e733e201be93bea3f1773712b40a16f8546fe137cb2a2c8627a8",
+      "committed:src/calibrex/pipelines/camera_lidar_six_dof.py": "493cebb67b842999262d989301e02c0e5a2efc7a00efe25cdd62fd3a5963cd0b",
+      "evidence_publisher": "3a89cc268e69f6ca1eed962bca8f5f3c05ac254c800e23120d0c3fa9a334e8bb",
+      "fresh.result.json": "12251c9874d5170178357bfc7fbabf85360b10e2aabf255a3d633f4135b40fe3",
+      "historical_numpy_numerical_oracle": "28e60a2110d078a846b6ed9b0970de8acd979d069dafbcbce6dec851afd99259",
+      "measurement_launcher": "2385dcea0541d49bb9d24f103cde15833be5f66d72a6c8a14073a57c84fcf18e",
+      "original_local_benchmark": "0e7f39c1d684874c0004079f69519593b17871ca8226439a47e298745c99a01f",
+      "original_local_definition": "62121e095868babad2f75c5238c4952b2880d1a4a72c5bc64e75b1e17121a115",
+      "original_measurement_summary": "305abfd442cf78790c1b00ca1a766db5c594d16a05df77a80d15086564e481ce",
+      "problem": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+      "snapshot.result.json": "061583e49671028b83ebc3c72e5ffdf0f4e2f4d0e36cdcef112b9224d80cb60c",
+      "src/calibrex/evaluation/borer_rotation_benchmark.py": "7c1f01687e70dfbeda7a7b78435eca9c6c3118431a3da0dc8048387180ecb922",
+      "src/calibrex/pipelines/camera_lidar_input_snapshot.py": "83dd218d1769e733e201be93bea3f1773712b40a16f8546fe137cb2a2c8627a8",
+      "src/calibrex/pipelines/camera_lidar_six_dof.py": "eb6db5f0769bc6415149df8888bf9f3ca4325c53a289afa8a7d84df0d3e402d5"
+    }
+  },
+  "reference_method_id": "cuda_fresh_files",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Fresh input verification versus explicit immutable snapshot",
+  "trials": [
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 2.6481869000126608,
+        "invocation_wall_seconds": 4.91044609999517,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.85533019999275,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.2048444999963976
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-01.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "2a220215f34d2af2d43306928d43ff2c5b6bf07c3208b22b322f18e9cd4d5c73"
+      },
+      "runtime_seconds": 4.85533019999275,
+      "split_id": "repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.11566440004389733,
+        "invocation_wall_seconds": 1.7069118200219235,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6675078200409188,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.2353715000208467
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-01.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "6a1a757a3b66b09179edda6e677c0c0ddf83cc558a632dc2791aadae7bded41a"
+      },
+      "runtime_seconds": 1.6675078200409188,
+      "split_id": "repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.07688500004587695,
+        "invocation_wall_seconds": 1.6315677200094796,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.5844510200317017,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.1962037999765016
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-02.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "b4c9515cb36f6c7fa53551e9abfa9f8b1c86d5d3a6c8b9f0083c9997a8016de0"
+      },
+      "runtime_seconds": 1.5844510200317017,
+      "split_id": "repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 2.545329899992794,
+        "invocation_wall_seconds": 4.0772829000488855,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.96449499996379,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.3912457999540493
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-02.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "cef490d76f48078987f64f9e67c342bf9b2953498beb9a0af62e0549fa7ab0c1"
+      },
+      "runtime_seconds": 3.96449499996379,
+      "split_id": "repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 5.723374399996828,
+        "invocation_wall_seconds": 9.59413320000749,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 9.224800200026948,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 3.4506676999735646
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-03.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "b106985a98eae1f1e4bd3181cc37588f0d16f1096298d677535f3a5878769119"
+      },
+      "runtime_seconds": 9.224800200026948,
+      "split_id": "repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.16047150001395494,
+        "invocation_wall_seconds": 2.599327520036604,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 2.5490185200236737,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 2.072680199984461
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-03.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "3cfa3f91a3261fc89099023b03fae9ca7d3fb73180765fa8258b43ee7802ad39"
+      },
+      "runtime_seconds": 2.5490185200236737,
+      "split_id": "repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.09381829999620095,
+        "invocation_wall_seconds": 3.176319120021071,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 2.9241458200034685,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 2.5092308000312187
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-04.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "17139b5979aa9dadc1bd0b113cb74f142c253c78ad601349641e16c21151a51e"
+      },
+      "runtime_seconds": 2.9241458200034685,
+      "split_id": "repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 7.951312999997754,
+        "invocation_wall_seconds": 10.87281410000287,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 10.566499000007752,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 2.560643800010439
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-04.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "c9f8b4b1cf07d0e52d8bd28da3ba49a1d58f5031ae95519e2a6369d67c19c8e9"
+      },
+      "runtime_seconds": 10.566499000007752,
+      "split_id": "repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 8.3356943000108,
+        "invocation_wall_seconds": 10.625982400029898,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 10.566350999986753,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 2.1698852999834344
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-05.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "2105bdd6ea01abf481475e99fb13f9d0a17d6c5e996375101a32053a44d07394"
+      },
+      "runtime_seconds": 10.566350999986753,
+      "split_id": "repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.09330050001153722,
+        "invocation_wall_seconds": 1.730514019995462,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6843097199802286,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.2787773999734782
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-05.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "110504a3a7fe0f7944a9de15fed0c8a4c00ee0d132a09cec637aa6990cd0d58c"
+      },
+      "runtime_seconds": 1.6843097199802286,
+      "split_id": "repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.08567420003237203,
+        "invocation_wall_seconds": 1.831178320024628,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.7772276200470514,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.3499927999801002
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-06.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "2133a2b00506c56c2c86092b91e01d70500f0c48fae654ef0c981d343c66f348"
+      },
+      "runtime_seconds": 1.7772276200470514,
+      "split_id": "repeat-06",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 2.857231700036209,
+        "invocation_wall_seconds": 4.457594399980735,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.389072599995416,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.493642799963709
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-06.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "539c62599a2b7562bf8be8365f0a1b6195cc6362bbbadfd474c61d1ed00904b5"
+      },
+      "runtime_seconds": 4.389072599995416,
+      "split_id": "repeat-06",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 2.7966885999776423,
+        "invocation_wall_seconds": 4.304364000039641,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.245243799989112,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.416751100041438
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-07.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "efb2f9bb4e05c732b7b6381a13e66301989a11e72b0d028b46484bd4bad93b25"
+      },
+      "runtime_seconds": 4.245243799989112,
+      "split_id": "repeat-07",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.0905656999675557,
+        "invocation_wall_seconds": 1.6566168199991806,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6111393199884332,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.2079438000218943
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-07.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "d8f164d375effc64b0cd127fa100d7f1175ec0876687647b8865fd8447017eb7"
+      },
+      "runtime_seconds": 1.6111393199884332,
+      "split_id": "repeat-07",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.08162340003764257,
+        "invocation_wall_seconds": 1.6589596200268715,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6162001199903897,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.2209187999833375
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-08.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "4863b0811452df93ec07bb1d341e4eaa1d38f3f1a4cd79fc6dec2aa0e3deac78"
+      },
+      "runtime_seconds": 1.6162001199903897,
+      "split_id": "repeat-08",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 2.6349116999772377,
+        "invocation_wall_seconds": 4.2663718000403605,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.19282190001104,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.5228145000291988
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-08.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "2b2f21dceee9682b5832bb6634a62ac31a5e10b050680d69bf4adf6242e0b5d1"
+      },
+      "runtime_seconds": 4.19282190001104,
+      "split_id": "repeat-08",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 3.010954199999105,
+        "invocation_wall_seconds": 4.4828713000169955,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.420476100000087,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.3733012999873608
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-09.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "0b213cdd54c9b324d4db23474938ffb571024f00667c8fa407fe22d7c2462251"
+      },
+      "runtime_seconds": 4.420476100000087,
+      "split_id": "repeat-09",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.0771493999636732,
+        "invocation_wall_seconds": 1.6420188200194388,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6030521199922076,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.2160010999650694
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-09.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_fresh_files', 'cuda_verified_snapshot']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "0b4d672d0c3a9853a0cdc3a4f8b78ca40fb2dd1fcac54dc41e2261b032aed795"
+      },
+      "runtime_seconds": 1.6030521199922076,
+      "split_id": "repeat-09",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_verified_snapshot",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 0.07860180002171546,
+        "invocation_wall_seconds": 1.6845387199777178,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6457757199881597,
+        "snapshot_preparation_share_seconds": 0.27968251999700444,
+        "solve_seconds": 1.2520630999933928
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_verified_snapshot.repeat-10.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.279682519997s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: snapshot.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "215e0abde9bb42199edbf548765db4e78f0cca3720b0d79c1986ab20b264db53"
+      },
+      "runtime_seconds": 1.6457757199881597,
+      "split_id": "repeat-10",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_fresh_files",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "input_phase_seconds": 2.6308897000271827,
+        "invocation_wall_seconds": 4.163699999975506,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.098708000034094,
+        "snapshot_preparation_share_seconds": 0.0,
+        "solve_seconds": 1.4377501999842934
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-input-snapshot.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_fresh_files.repeat-10.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Execution order: ['cuda_verified_snapshot', 'cuda_fresh_files']",
+          "Snapshot preparation charge: 0.000000000000s per planned invocation.",
+          "CUDA backend and solver freshly prepared per invocation. Initial compilation included; process caches persist.",
+          "Pipeline phases exclude result construction/serialization; invocation_wall includes result construction but excludes serialization.",
+          "Representative normalized result: fresh.result.json.",
+          "Output SHA256 binds original external result bytes; representative hashes are separate.",
+          "Measured source hashes bind actual Windows worktree bytes; committed:* hashes bind canonical Git LF bytes."
+        ],
+        "output_sha256": "789c7d6d60a27b4bb586f1d4c760ad1c402ebc28381a6c7ea7147763b937879c"
+      },
+      "runtime_seconds": 4.098708000034094,
+      "split_id": "repeat-10",
+      "status": "success"
+    }
+  ]
+}

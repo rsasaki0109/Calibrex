@@ -410,3 +410,23 @@ frozen signed-axis problems also retain full historical CPU numerical equality.
 [Published CUDA batch evidence](../assets/cuda_frame_batching/README.md) retains
 all timings, original hashes, representative full traces, six-axis validation,
 cold-cache conditions, and timing/accuracy limitations.
+
+## Reusing verified inputs across estimates
+
+After GPU batching, checkpoint/file verification dominates repeated public-data
+estimates. Python callers can explicitly own a
+`CameraLidarSixDofInputSnapshot`; public demos/sweeps expose the same behavior
+with `--reuse-verified-inputs`. Inputs are fully verified and captured once in
+immutable host arrays, and every estimate checks the problem SHA-256 again.
+External files are not reverified after capture, as recorded in provenance;
+creating a new snapshot performs fresh verification. Each call still prepares
+its own accelerator and solver.
+
+Ten alternating public KITTI invocations per method measured pipeline medians
+of **4.405 / 1.657 s (2.66x)** and phase totals of **60.524 / 18.663 s**.
+The snapshot's full initial **2.797 s** verification/loading/capture cost is
+included once across its ten calls. The shared host showed substantial variation;
+all raw timings and ranges are retained. All twenty complete timed payloads and
+twelve signed-axis snapshot payloads match their bound CPU oracles exactly.
+See the [snapshot evidence](../assets/verified_input_snapshot/README.md) and
+[usage/timing contract](public_six_dof_demo.md) before comparing repeated runs.
