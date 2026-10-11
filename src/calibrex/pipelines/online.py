@@ -931,6 +931,18 @@ def run_online_calibration(
             "inject_time_offset_s requires dataset.odometry_topic for motion-compensated replay"
         )
 
+    declared_references = sorted(
+        name
+        for name, sensor in config.sensors.items()
+        if sensor.capture_time_reference is not None
+    )
+    if declared_references and config.dataset.type not in {"rosbag1", "rosbag2"}:
+        raise ConfigError(
+            "capture_time_reference applies to rosbag1/rosbag2 PointCloud2 replay; "
+            f"dataset type '{config.dataset.type}' would ignore it for "
+            f"{', '.join(declared_references)}"
+        )
+
     source_sensor, target_sensor = _resolve_online_lidar_pair(config, frame_graph, lidars)
     source_node = frame_graph.nodes.get(source_sensor)
     target_node = frame_graph.nodes.get(target_sensor)
@@ -1765,6 +1777,50 @@ def _capture_timestamp_ns(message_timestamp_ns: int, offset_s: float) -> int:
     return message_timestamp_ns + round(offset_s * 1_000_000_000)
 
 
+def _capture_reference_shift_ns(config: CalibrationConfig, sensor_name: str) -> int:
+    """Shift from a message stamp to its mid-sweep capture time under the declared convention."""
+
+    sensor = config.sensors.get(sensor_name)
+    if sensor is None or sensor.capture_time_reference in (None, "scan_midpoint"):
+        return 0
+    assert sensor.scan_period_s is not None
+    half_ns = round(0.5 * sensor.scan_period_s * 1_000_000_000)
+    return half_ns if sensor.capture_time_reference == "scan_start" else -half_ns
+
+
+def _capture_time_reference_provenance(
+    config: CalibrationConfig,
+    sensors: dict[str, bool],
+) -> dict[str, Any]:
+    """Record each sensor's declared stamp convention and the shift the replay applied.
+
+    ``sensors`` maps a sensor name to whether it was deskewed per point, in
+    which case its per-point offsets carry the convention and no shift applies.
+    """
+
+    declared: dict[str, Any] = {}
+    for name, deskewed in sensors.items():
+        sensor = config.sensors.get(name)
+        if sensor is None or sensor.capture_time_reference is None:
+            continue
+        shift_ns = 0 if deskewed else _capture_reference_shift_ns(config, name)
+        declared[name] = {
+            "capture_time_reference": sensor.capture_time_reference,
+            "scan_period_s": sensor.scan_period_s,
+            "applied_shift_s": shift_ns * 1.0e-9,
+            "basis": "per_point_offsets" if deskewed else "declared_scan_period",
+        }
+    if not declared:
+        return {}
+    return {
+        "capture_time_reference": declared,
+        "capture_time_reference_convention": (
+            "motion-compensated replay places a message that is not deskewed per point "
+            "at stamp + applied_shift_s (its mid-sweep capture time)"
+        ),
+    }
+
+
 def _target_capture_ns(capture_ns: int, *, inject_time_offset_s: float) -> int:
     if abs(inject_time_offset_s) < 1.0e-12:
         return capture_ns
@@ -1936,6 +1992,12 @@ def _load_rosbag1_online_pair(
         and target_time_field is not None
     )
     deskew_applied = source_deskew or target_deskew
+    source_reference_shift_ns = (
+        0 if source_deskew else _capture_reference_shift_ns(config, source_sensor)
+    )
+    target_reference_shift_ns = (
+        0 if target_deskew else _capture_reference_shift_ns(config, target_sensor)
+    )
     deskew_span_min: float | None = None
     deskew_span_max: float | None = None
     point_time_observed_by_sensor = {source_sensor: False, target_sensor: False}
@@ -2073,7 +2135,7 @@ def _load_rosbag1_online_pair(
                 )
             elif motion_compensated and odometry_track is not None:
                 t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
-                    timestamp_ns
+                    timestamp_ns + source_reference_shift_ns
                 )
                 if (
                     extrapolation_tolerance_s is not None
@@ -2204,7 +2266,7 @@ def _load_rosbag1_online_pair(
         elif motion_compensated and odometry_track is not None:
             points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
             capture_ns = _target_capture_ns(
-                timestamp_ns,
+                timestamp_ns + target_reference_shift_ns,
                 inject_time_offset_s=inputs.inject_time_offset_s,
             )
             t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(capture_ns)
@@ -2227,7 +2289,7 @@ def _load_rosbag1_online_pair(
         else:
             points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
             capture_ns = _target_capture_ns(
-                timestamp_ns,
+                timestamp_ns + target_reference_shift_ns,
                 inject_time_offset_s=inputs.inject_time_offset_s,
             )
             target_stream.extend(
@@ -2374,6 +2436,12 @@ def _load_rosbag1_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
+    if motion_compensated:
+        provenance.update(
+            _capture_time_reference_provenance(
+                config, {source_sensor: source_deskew, target_sensor: target_deskew}
+            )
+        )
     if abs(inputs.inject_time_offset_s) > 1.0e-12:
         provenance["time_offset_injected_s"] = inputs.inject_time_offset_s
         provenance["time_offset_injection_warning"] = (
@@ -2736,6 +2804,12 @@ def _load_rosbag2_online_pair(
         and target_time_field is not None
     )
     deskew_applied = source_deskew or target_deskew
+    source_reference_shift_ns = (
+        0 if source_deskew else _capture_reference_shift_ns(config, source_sensor)
+    )
+    target_reference_shift_ns = (
+        0 if target_deskew else _capture_reference_shift_ns(config, target_sensor)
+    )
     deskew_span_min: float | None = None
     deskew_span_max: float | None = None
     point_time_observed_by_sensor = {source_sensor: False, target_sensor: False}
@@ -2881,6 +2955,7 @@ def _load_rosbag2_online_pair(
             elif motion_compensated and odometry_track is not None:
                 t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
                     _rosbag2_message_timestamp_ns(message, timestamp_ns)
+                    + source_reference_shift_ns
                 )
                 if (
                     extrapolation_tolerance_s is not None
@@ -3027,7 +3102,7 @@ def _load_rosbag2_online_pair(
         elif motion_compensated and odometry_track is not None:
             points = _pointcloud_xyz_to_vectors(message.xyz, inputs.max_target_points)
             capture_ns = _target_capture_ns(
-                _rosbag2_message_timestamp_ns(message, timestamp_ns),
+                _rosbag2_message_timestamp_ns(message, timestamp_ns) + target_reference_shift_ns,
                 inject_time_offset_s=inputs.inject_time_offset_s,
             )
             target_extrapolation_s = 0.0
@@ -3191,6 +3266,12 @@ def _load_rosbag2_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
+    if motion_compensated:
+        provenance.update(
+            _capture_time_reference_provenance(
+                config, {source_sensor: source_deskew, target_sensor: target_deskew}
+            )
+        )
     if abs(inputs.inject_time_offset_s) > 1.0e-12:
         provenance["time_offset_injected_s"] = inputs.inject_time_offset_s
         provenance["time_offset_injection_warning"] = (
