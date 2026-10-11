@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Batch native fixed-rig point-to-plane residuals in bounded observation chunks,
+  preserving Hamilton products, normalization counts, finite differences and
+  complete solver history. Retain scalar handling for small/nonfinite inputs and
+  refresh observation arrays on replacement. Publish incremental full-process
+  and optimizer timings on the existing public Livox configuration, with exact
+  result parity and unchanged observability/quality judgments.
+
 - Pack exact Livox voxel neighborhoods within the existing 8 MiB lookup budget
   and share read-only transformed coordinates between voxel and plane evidence.
   Preserve ordered voxel sums, first-seen keys, nearest ties and all control cases.

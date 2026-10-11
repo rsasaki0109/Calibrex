@@ -641,6 +641,36 @@ timing, source binding, artifact hash and an earlier ten-worker comparison.
 This CPU change adds no dependency or GPU backend. The single-pair measurements
 do not establish calibration accuracy or portable speed guarantees.
 
+## Batching the native point-to-plane optimizer
+
+The native fixed-rig factor now computes residuals in chunks of up to 4,096
+observations. It retains the original Hamilton products, quaternion normalization
+counts, weighted dot-product order and numerical finite differences. Small and
+nonfinite inputs use the scalar path; observation arrays belong to the factor
+and refresh when its observation tuple is replaced. Optimizer rules, robust
+weights and normal-equation accumulation remain unchanged.
+
+On the existing public Livox `online_accumulation_config.yaml`, normal offline
+PCD calibration with 2,732 correspondences measures **12.384 -> 5.724 s (2.16x)**
+for the complete fresh process. The optimizer subset is **6.369 -> 0.524 s
+(12.15x)**, and the API subset is **10.011 -> 3.421 s (2.93x)**. These are five-pair
+medians against the preceding accelerated version, with reversed order on
+alternate repeats and no discarded timings.
+
+All ten complete results match, including the nine-iteration convergence history,
+diagnostics and all 24 candidate controls. Quality remains `warn` and rank remains
+3/6. Despite the config filename, these measurements are offline PCD runs; they
+use a different workload from the ICP/GICP/NDT comparison above. Their speedups
+must not be combined with those earlier ratios. The
+[full factor evidence](../assets/point_to_plane_factor/README.md) retains every
+timing, complete canonical payload, artifact hash and exact source archive.
+
+```bash
+python tools/benchmark_livox_evaluation.py --workflow fixed-rig \
+  --baseline-commit d017dfa03c6275924c8da44f55b2d3707ca58311 \
+  --repetitions 5 --omp-threads 1 --output-dir outputs/livox-fixed-rig-rerun
+```
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
