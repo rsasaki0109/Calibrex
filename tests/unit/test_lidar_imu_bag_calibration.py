@@ -141,3 +141,54 @@ def test_synthetic_bag_vibration_reaches_the_gyro_at_its_frequency(tmp_path: Pat
     spectrum = np.abs(np.fft.rfft(vibration[:, 0]))
     frequencies = np.fft.rfftfreq(vibration.shape[0], 1.0 / calm.imu_rate_hz)
     assert frequencies[np.argmax(spectrum)] == pytest.approx(18.0, abs=0.5)
+
+
+def test_imu_lowpass_recovers_the_calibration_through_rig_vibration(tmp_path: Path) -> None:
+    # An 18 Hz roll/pitch vibration of 0.25 rad/s, as on a wheeled platform,
+    # buries the gyro and accelerometer; low-passing the IMU at 10 Hz (knots
+    # widened to 0.3 s) leaves the band the calibration lives in.
+    spec = replace(SPEC, vibration_hz=18.0, vibration_rate_rad_s=0.25)
+    bag = write_synthetic_lidar_imu_bag(tmp_path / "bag", spec)
+    output = tmp_path / "calibration.json"
+    exit_code = main(
+        [
+            "imu-lidar",
+            "joint",
+            str(bag.path),
+            "--lidar-topic",
+            bag.lidar_topic,
+            "--imu-topic",
+            bag.imu_topic,
+            "--dataset-family",
+            "synthetic",
+            "--dataset-license",
+            "synthetic",
+            "--max-rounds",
+            "4",
+            "--imu-lowpass-hz",
+            "10",
+            "--output",
+            str(output),
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    assert validate_file(output, kind="lidar-imu-bag-calibration").valid
+    artifact = json.loads(output.read_text(encoding="utf-8"))
+    assert artifact["knot_spacing_s"] == pytest.approx(0.3)
+    assert artifact["options"]["imu_lowpass_hz"] == 10.0
+    truth = spec.truth
+    rotation = Rotation.from_quat(artifact["t_lidar_imu_rotation_quat_xyzw"])
+    error = rotation * Rotation.from_rotvec(truth.imu_rotation_vector_rad).inv()
+    # Four rounds on 8 s leave about 0.27 deg here (a 12 s bag with eight rounds
+    # reaches about 0.06 deg); unfiltered, a 12 s vibrating bag reads INCONCLUSIVE.
+    assert math.degrees(error.magnitude()) < 0.4
+    assert (
+        np.linalg.norm(np.asarray(artifact["t_lidar_imu_translation_m"]) - truth.lever_arm_m) < 0.03
+    )
+    assert artifact["imu_clock_offset_s"] == pytest.approx(truth.clock_offset_s, abs=1.5e-3)
+    # The held-out IMU samples are predicted at the noise level, and every
+    # signed control is detected.
+    assert max(artifact["holdout_whitened_rms"].values()) < 1.5
+    assert all(control["detected"] for control in artifact["controls"])

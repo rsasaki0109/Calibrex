@@ -87,6 +87,10 @@ from calibrex.solvers.scan_to_scan_odometry import (
 
 FloatArray: TypeAlias = NDArray[np.float64]
 
+# With the IMU low-passed at f and resampled at 2 f, knots at least 3 / f apart
+# keep six IMU samples per knot interval.
+LOWPASS_KNOT_CYCLES = 3.0
+
 # Per-block bounds on the formal std for a block to count as estimated, and the
 # signed control magnitude per axis (rotation in rad).
 _STD_BOUNDS: dict[CalibrationBlock, float] = {
@@ -151,6 +155,9 @@ class LidarImuBagOptions:
     # independent. Vibration far above the spline bandwidth (a wheeled
     # platform's chassis mode) is structured noise the spline cannot follow;
     # removing it leaves the band the calibration lives in. None fits raw samples.
+    # The resampled IMU has few samples per knot, so the knot spacing is widened
+    # to at least ``LOWPASS_KNOT_CYCLES / imu_lowpass_hz`` (six samples per knot);
+    # closer knots let the spline follow the filtered noise between samples.
     imu_lowpass_hz: float | None = None
     holdout_every: int = 3
     fit_iterations: int = 30
@@ -237,7 +244,8 @@ def calibrate_lidar_imu_bag(
     window = max(windows, key=lambda item: item.times_s[-1] - item.times_s[0])
     reference = float(window.times_s[0])
     window_times = np.asarray(window.times_s, dtype=float) - reference
-    trajectory = _initial_spline(window_times, np.asarray(window.poses), opts.knot_spacing_s)
+    knot_spacing = _knot_spacing(opts)
+    trajectory = _initial_spline(window_times, np.asarray(window.poses), knot_spacing)
     end = trajectory.end_time_sec
     scans = _segment_scans(
         store.scans(bag_path, profile, max_seconds=max_seconds), reference, end, opts, rng
@@ -388,7 +396,7 @@ def calibrate_lidar_imu_bag(
         rotation_difference_from_initial_deg=difference,
         segment_start_s=reference,
         segment_duration_s=float(end),
-        knot_spacing_s=opts.knot_spacing_s,
+        knot_spacing_s=knot_spacing,
         control_points=trajectory.control_point_count,
         scans=len(scans),
         train_imu_samples=int(train_index.size),
@@ -403,7 +411,7 @@ def calibrate_lidar_imu_bag(
         entangled_correlation_threshold=opts.entangled_correlation,
         separability=separability,
         options={
-            "knot_spacing_s": opts.knot_spacing_s,
+            "knot_spacing_s": knot_spacing,
             "max_segment_s": opts.max_segment_s,
             "max_rounds": opts.max_rounds,
             "warmup_rounds": opts.warmup_rounds,
@@ -537,6 +545,12 @@ def _associate(
         sigma,
     )
     return returns, len(anchors)
+
+
+def _knot_spacing(opts: LidarImuBagOptions) -> float:
+    if opts.imu_lowpass_hz is None:
+        return opts.knot_spacing_s
+    return max(opts.knot_spacing_s, LOWPASS_KNOT_CYCLES / opts.imu_lowpass_hz)
 
 
 def _band_limit(imu: ImuSamples, cutoff_hz: float) -> ImuSamples:
