@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **`calibrex imu-lidar joint` on TIERS Indoor02: INCONCLUSIVE; gravity-magnitude prior and
+  opt-in IMU low-pass.** The real-data run (Ouster OS1 points and its 100 Hz IMU, 30 s odometry
+  segment) reads INCONCLUSIVE without retuned gates. An 18 Hz roll/pitch chassis vibration
+  dominates the IMU (gyro 0.19 rad/s RMS on x/y) while the motion below 2 Hz is almost pure yaw, so
+  no rotation, gyro-bias or lever-arm control is detected, and without tilt gravity and the vertical
+  accelerometer bias collapsed (gravity -2.0, bias 7.8 m/s^2, std 15.9). The B-spline fit now takes
+  an optional prior on the gravity magnitude (`BSplineLidarImuProblem.gravity_magnitude_m_s2`),
+  which the bag front end sets to 9.80665 m/s^2 with sigma 0.03; on Indoor02 gravity reads
+  -9.805 m/s^2. New opt-in `--imu-lowpass-hz` (`LidarImuBagOptions.imu_lowpass_hz`) low-passes the
+  IMU with a zero-phase Butterworth filter and resamples it at twice the cutoff before the fit,
+  widening the knots to at least 3 / cutoff (closer knots fit the filtered noise: held-out RMS
+  near 3). `SyntheticLidarImuBagSpec` can inject a roll/pitch vibration of the rig: a 12 s bag
+  with 18 Hz, 0.25 rad/s vibration reads INCONCLUSIVE unfiltered (lever-arm error 15 cm) and, at
+  10 Hz, detects all 32 controls with rotation error 0.055 deg (WARN, rounds not converged). On
+  Indoor02 the filter cuts the IMU noise from 0.154 to 0.038 rad/s, but the roll/pitch of the
+  mounting stays at 0.52 deg formal std, the yaw is unobservable (5.5 deg) and the run stays
+  INCONCLUSIVE. Artifacts: `docs/assets/tiers_lidar_imu_joint/`. Options are recorded in the
+  artifact's `options`; no schema change.
 - **Fix: per-point time offsets under a since-boot header clock.** `classify_point_time` called
   point times "absolute" when their median lay within 1000 s (or 1e12 ns) of the header stamp,
   so an Ouster OS1 whose headers run on its since-boot clock (about 750 s after boot in TIERS
@@ -29,7 +47,7 @@
   holds the plane map fixed and understates the error (about 3 sigma on the 12 s bag). The B-spline
   fitter now takes the position-control-point Jacobian analytically (positions enter linearly)
   and skips calibration blocks a residual family does not depend on, about 2x faster with the
-  same results. No real-data run yet.
+  same results. The TIERS Indoor02 run is recorded in the entry above.
 - **Fix: `calibrex init --template` works from the installed wheel.** The sensor templates lived
   only in `examples/sensor_templates`, so outside a repository checkout the quickstart's second
   step failed with "sensor templates are unavailable". The wheel now ships a copy under
