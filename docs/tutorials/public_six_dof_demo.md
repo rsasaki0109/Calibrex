@@ -272,3 +272,11 @@ each candidate uses up to two frame threads; each reference is serial within
 its process. Increase these settings deliberately: the active candidates can
 use up to process count times frame-thread count, in addition to numerical
 library threads. Timing depends on frame size, hardware, and other running work.
+
+On public drive 0018, three runs per method all converged with the same complete
+229-evaluation numerical payload. Solve medians were 70.178 s serial and
+54.549 s with two frame threads (one observed ratio of 1.29x); ranges were
+64.058–72.149 / 42.317–60.098 s. Pipeline phase medians were 73.584 / 57.475 s.
+[Published CPU frame evidence](../assets/cpu_frame_parallelism/README.md)
+retains every invocation, original hashes, representative full traces, and
+timing/accuracy limitations. These repetitions measure one workload's latency.

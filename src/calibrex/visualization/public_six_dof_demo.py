@@ -167,6 +167,7 @@ figure{{margin:0}}h4{{margin:0 0 8px}}
 .image{{position:relative;background:#101a27;line-height:0}}.image img{{width:100%;height:auto}}
 .image svg{{position:absolute;inset:0;width:100%;height:100%}}
 .empty{{padding:35px;background:#e9eef4;line-height:1.6}}a{{color:#12678f}}code{{overflow-wrap:anywhere}}
+li{{overflow-wrap:anywhere}}
 @media(max-width:800px){{.panels{{grid-template-columns:1fr}}
 main{{padding:20px 14px}}h1{{font-size:25px}}}}
 </style></head><body><main>
