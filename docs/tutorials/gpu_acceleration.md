@@ -527,6 +527,27 @@ ten repetitions of 20 evaluations per mode, numerical parity, source hashes,
 stage timings and an uncached smoke run. It is profiling evidence, not a new
 solver acceleration or an accuracy benchmark.
 
+## Exact CPU neighbors for native ICP
+
+Native robust point-to-point ICP and Chen–Medioni point-to-plane ICP now use
+spatial indexes for neighbor matching, target normals and diagnostics. Candidate
+distances are recomputed with the original float64 NumPy operations; boundary
+ties retain the original point-index order. Mutual checking, stable trimming,
+all iterations, holdout, rematching, multi-start trials and pose probes keep
+their existing definitions. Both solver APIs and the native registration
+comparison select this path automatically, using the existing SciPy dependency.
+
+On a public KITTI scan pair with fixed 500/1,500/3,000-point caps, three-repeat
+complete solver-call medians improve **3.53–32.87x** against the pinned previous
+implementations. All 36 final full numerical payloads match exactly. For
+3,000-point point-to-point ICP, the median changes from 123.731 s to 4.058 s;
+point-to-plane changes from 18.512 s to 0.563 s. These calls include preparation
+of indexes/normals and every diagnostic, but exclude input capture/downsampling
+and full CLI overhead. The [ICP neighbor evidence](../assets/icp_neighbors/README.md)
+retains every timing, full payload and pilot, including unchanged iteration-limit
+statuses. These measurements describe one shared-host workload and preserve
+existing calibration behavior; they do not establish independent accuracy.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
