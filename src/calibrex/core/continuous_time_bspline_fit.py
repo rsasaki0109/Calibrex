@@ -34,6 +34,7 @@ from scipy.sparse.linalg import spsolve
 from calibrex.core.continuous_time_bspline import (
     BSplineStates,
     CubicBSplineTrajectory,
+    cumulative_basis,
     evaluate_local_spline,
     so3_exp_batch,
 )
@@ -330,11 +331,18 @@ class _Gathered:
         return evaluate_local_spline(self.rotations, self.positions, self.fraction, self.spacing)
 
 
+_Sensitivity = tuple[FloatArray | None, FloatArray | None]
+
+
 @dataclass(frozen=True)
 class _Family:
     times: FloatArray
     on_imu_clock: bool
     residual: Callable[[_Gathered, LidarImuCalibration], FloatArray]
+    # Residual derivatives by world position and world acceleration, each
+    # ``(M, width, 3)`` or None; the position control points enter only there.
+    position_sensitivity: Callable[[_Gathered, LidarImuCalibration], _Sensitivity]
+    depends_on: frozenset[CalibrationBlock]
 
     def body_times(self, calibration: LidarImuCalibration) -> FloatArray:
         if self.on_imu_clock:
@@ -382,10 +390,45 @@ def _families(
         predicted = kinematic @ rotation + calibration.accel_bias_m_s2
         return np.asarray((predicted - accel.values) / accel.sigma, dtype=float)
 
+    def plane_sensitivity(
+        _gathered: _Gathered, _calibration: LidarImuCalibration
+    ) -> _Sensitivity:
+        return (planes.plane_normals_world[:, None, :] / planes.sigma_m, None)
+
+    def gyro_sensitivity(_gathered: _Gathered, _calibration: LidarImuCalibration) -> _Sensitivity:
+        return (None, None)
+
+    def accel_sensitivity(gathered: _Gathered, calibration: LidarImuCalibration) -> _Sensitivity:
+        states = gathered.states()
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        # predicted = R_bi^T R^T a_world + ..., so d/da = R_bi^T R^T.
+        world_to_imu = np.einsum("ji,tkj->tik", rotation, states.rotation_world_body)
+        return (None, np.asarray(world_to_imu / accel.sigma, dtype=float))
+
     return {
-        "plane": _Family(np.asarray(planes.times_sec, dtype=float), False, plane_residual),
-        "gyro": _Family(np.asarray(gyro.times_sec, dtype=float), True, gyro_residual),
-        "accel": _Family(np.asarray(accel.times_sec, dtype=float), True, accel_residual),
+        "plane": _Family(
+            np.asarray(planes.times_sec, dtype=float),
+            False,
+            plane_residual,
+            plane_sensitivity,
+            frozenset(),
+        ),
+        "gyro": _Family(
+            np.asarray(gyro.times_sec, dtype=float),
+            True,
+            gyro_residual,
+            gyro_sensitivity,
+            frozenset({"imu_rotation", "gyro_bias", "imu_clock_offset"}),
+        ),
+        "accel": _Family(
+            np.asarray(accel.times_sec, dtype=float),
+            True,
+            accel_residual,
+            accel_sensitivity,
+            frozenset(
+                {"imu_rotation", "lever_arm", "imu_clock_offset", "accel_bias", "gravity"}
+            ),
+        ),
     }
 
 
@@ -438,18 +481,27 @@ def _linearize(
         count, width = base.shape
         residual_parts.append(base.reshape(-1))
         row_index = row_offset + np.arange(count * width).reshape(count, width)
+        # Positions enter linearly: p = sum_k w_k c_k with w_k = l_k - l_{k+1}
+        # (l_0 = 1, l_4 = 0), and the acceleration likewise with l''.
+        basis, _d_basis, dd_basis = cumulative_basis(gathered.fraction, gathered.spacing)
+        position_weights = basis - np.concatenate([basis[:, 1:], np.zeros((count, 1))], axis=1)
+        dd_padded = np.concatenate([np.zeros((count, 1)), dd_basis[:, 1:]], axis=1)
+        acceleration_weights = dd_padded - np.concatenate(
+            [dd_padded[:, 1:], np.zeros((count, 1))], axis=1
+        )
+        by_position, by_acceleration = family.position_sensitivity(gathered, calibration)
         for slot in range(4):
             control = gathered.segment + slot
             for axis in range(3):
-                plus_positions = np.array(gathered.positions, copy=True)
-                minus_positions = np.array(gathered.positions, copy=True)
-                plus_positions[:, slot, axis] += _EPSILON
-                minus_positions[:, slot, axis] -= _EPSILON
-                derivative = (
-                    family.residual(replace(gathered, positions=plus_positions), calibration)
-                    - family.residual(replace(gathered, positions=minus_positions), calibration)
-                ) / (2.0 * _EPSILON)
-                _append(rows, columns, values, row_index, 6 * control + axis, derivative)
+                if by_position is not None or by_acceleration is not None:
+                    derivative = np.zeros((count, width), dtype=float)
+                    if by_position is not None:
+                        derivative += by_position[:, :, axis] * position_weights[:, slot, None]
+                    if by_acceleration is not None:
+                        derivative += (
+                            by_acceleration[:, :, axis] * acceleration_weights[:, slot, None]
+                        )
+                    _append(rows, columns, values, row_index, 6 * control + axis, derivative)
                 plus_rotations = np.array(gathered.rotations, copy=True)
                 minus_rotations = np.array(gathered.rotations, copy=True)
                 plus_rotations[:, slot] = gathered.rotations[:, slot] @ tangent_steps[axis]
@@ -461,6 +513,9 @@ def _linearize(
                 _append(rows, columns, values, row_index, 6 * control + 3 + axis, derivative)
         column = control_columns
         for block in estimate:
+            if block not in family.depends_on:
+                column += _BLOCK_WIDTH[block]
+                continue
             for axis in range(_BLOCK_WIDTH[block]):
                 step = np.zeros(_BLOCK_WIDTH[block], dtype=float)
                 step[axis] = _EPSILON

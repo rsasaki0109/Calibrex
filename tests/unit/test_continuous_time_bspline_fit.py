@@ -145,3 +145,49 @@ def test_measurement_containers_validate_shapes() -> None:
         BSplineImuSamples(np.zeros(3), np.zeros((2, 3)), 0.1)
     with pytest.raises(ValueError, match="sigma"):
         BSplineImuSamples(np.zeros(2), np.zeros((2, 3)), 0.0)
+
+
+def test_linearized_jacobian_matches_finite_differences_of_every_parameter() -> None:
+    from dataclasses import replace
+
+    from calibrex.core.continuous_time_bspline_fit import (
+        CALIBRATION_BLOCKS,
+        _families,
+        _linearize,
+    )
+
+    spline = _truth_spline()
+    rng = np.random.default_rng(9)
+    planes, gyro, accel = _measurements(spline, rng)
+    calibration = replace(TRUTH, lever_arm_body_m=np.array([0.2, 0.1, -0.1]))
+    families = _families(planes, gyro, accel)
+    jacobian, base = _linearize(spline, calibration, families, CALIBRATION_BLOCKS)
+    dense = jacobian.toarray()
+
+    def stacked(trajectory: CubicBSplineTrajectory, values: LidarImuCalibration) -> np.ndarray:
+        residuals = lidar_imu_residuals(trajectory, values, planes, gyro, accel)
+        return np.concatenate([residuals[name].reshape(-1) for name in ("plane", "gyro", "accel")])
+
+    assert np.allclose(stacked(spline, calibration), base)
+    epsilon = 1.0e-6
+    for control in (3, 10):
+        for axis in range(3):
+            step = np.zeros_like(spline.positions)
+            step[control, axis] = epsilon
+            numeric = (
+                stacked(replace(spline, positions=spline.positions + step), calibration)
+                - stacked(replace(spline, positions=spline.positions - step), calibration)
+            ) / (2.0 * epsilon)
+            assert np.allclose(dense[:, 6 * control + axis], numeric, atol=1.0e-4, rtol=1.0e-5)
+    column = 6 * spline.control_point_count
+    for block in CALIBRATION_BLOCKS:
+        width = 1 if block == "imu_clock_offset" else 3
+        for axis in range(width):
+            step = np.zeros(width)
+            step[axis] = epsilon
+            numeric = (
+                stacked(spline, calibration.stepped(block, step))
+                - stacked(spline, calibration.stepped(block, -step))
+            ) / (2.0 * epsilon)
+            assert np.allclose(dense[:, column], numeric, atol=1.0e-4, rtol=1.0e-5), block
+            column += 1

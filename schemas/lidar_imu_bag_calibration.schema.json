@@ -1,0 +1,597 @@
+{
+  "$defs": {
+    "LidarImuBagBlockRecord": {
+      "additionalProperties": false,
+      "description": "One estimated calibration block.\n\n``formal_std`` comes from the fit's covariance with the plane map held\nfixed, so it understates the uncertainty that the map itself carries;\n``last_round_change`` is how far the block moved in the final map round.",
+      "properties": {
+        "controls": {
+          "minimum": 0,
+          "title": "Controls",
+          "type": "integer"
+        },
+        "controls_detected": {
+          "minimum": 0,
+          "title": "Controls Detected",
+          "type": "integer"
+        },
+        "estimate": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Estimate",
+          "type": "array"
+        },
+        "formal_std": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Formal Std",
+          "type": "array"
+        },
+        "last_round_change": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Last Round Change",
+          "type": "array"
+        },
+        "name": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "estimated",
+            "weak"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "estimate",
+        "formal_std",
+        "last_round_change",
+        "controls_detected",
+        "controls",
+        "verdict",
+        "reason"
+      ],
+      "title": "LidarImuBagBlockRecord",
+      "type": "object"
+    },
+    "LidarImuBagControlRecord": {
+      "additionalProperties": false,
+      "description": "A signed known-bad perturbation of one block, scored on held-out IMU samples.",
+      "properties": {
+        "axis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axis"
+        },
+        "delta_chi2": {
+          "title": "Delta Chi2",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "family": {
+          "enum": [
+            "gyro",
+            "accel"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "magnitude": {
+          "exclusiveMinimum": 0.0,
+          "title": "Magnitude",
+          "type": "number"
+        },
+        "parameter": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Parameter",
+          "type": "string"
+        },
+        "sign": {
+          "enum": [
+            -1,
+            1
+          ],
+          "title": "Sign",
+          "type": "integer"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameter",
+        "sign",
+        "magnitude",
+        "unit",
+        "family",
+        "delta_chi2",
+        "detected"
+      ],
+      "title": "LidarImuBagControlRecord",
+      "type": "object"
+    },
+    "LidarImuBagInitialEstimate": {
+      "additionalProperties": false,
+      "description": "The angular-rate estimate that seeds the joint fit (an independent method).",
+      "properties": {
+        "clock_offset_s": {
+          "title": "Clock Offset S",
+          "type": "number"
+        },
+        "gyro_bias_rad_s": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Gyro Bias Rad S",
+          "type": "array"
+        },
+        "method": {
+          "const": "angular_rate_alignment/v0.1",
+          "default": "angular_rate_alignment/v0.1",
+          "title": "Method",
+          "type": "string"
+        },
+        "policy_status": {
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "rotation_vector_rad": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rotation Vector Rad",
+          "type": "array"
+        }
+      },
+      "required": [
+        "policy_status",
+        "rotation_vector_rad",
+        "clock_offset_s",
+        "gyro_bias_rad_s"
+      ],
+      "title": "LidarImuBagInitialEstimate",
+      "type": "object"
+    },
+    "LidarImuBagProvenance": {
+      "additionalProperties": false,
+      "description": "Where the calibration came from.",
+      "properties": {
+        "bag": {
+          "title": "Bag",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "imu_topic": {
+          "title": "Imu Topic",
+          "type": "string"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "lidar_topic": {
+          "title": "Lidar Topic",
+          "type": "string"
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Field"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "dataset_license",
+        "bag",
+        "lidar_topic",
+        "imu_topic",
+        "input_sha256",
+        "input_digest_scope"
+      ],
+      "title": "LidarImuBagProvenance",
+      "type": "object"
+    },
+    "LidarImuBagRound": {
+      "additionalProperties": false,
+      "description": "One map round: re-associate LiDAR returns to the plane map, then refit.",
+      "properties": {
+        "fit_status": {
+          "enum": [
+            "converged",
+            "max_iterations",
+            "singular_system"
+          ],
+          "title": "Fit Status",
+          "type": "string"
+        },
+        "iterations": {
+          "minimum": 1,
+          "title": "Iterations",
+          "type": "integer"
+        },
+        "map_planes": {
+          "minimum": 0,
+          "title": "Map Planes",
+          "type": "integer"
+        },
+        "plane_returns": {
+          "minimum": 0,
+          "title": "Plane Returns",
+          "type": "integer"
+        },
+        "rotation_change_deg": {
+          "minimum": 0.0,
+          "title": "Rotation Change Deg",
+          "type": "number"
+        },
+        "round": {
+          "minimum": 0,
+          "title": "Round",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "round",
+        "map_planes",
+        "plane_returns",
+        "fit_status",
+        "iterations",
+        "rotation_change_deg"
+      ],
+      "title": "LidarImuBagRound",
+      "type": "object"
+    },
+    "LidarImuBagSeparabilityRecord": {
+      "additionalProperties": false,
+      "description": "Largest absolute correlation between two estimated blocks.",
+      "properties": {
+        "block_a": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Block A",
+          "type": "string"
+        },
+        "block_b": {
+          "enum": [
+            "imu_rotation",
+            "gyro_bias",
+            "lever_arm",
+            "imu_clock_offset",
+            "accel_bias",
+            "gravity"
+          ],
+          "title": "Block B",
+          "type": "string"
+        },
+        "entangled": {
+          "title": "Entangled",
+          "type": "boolean"
+        },
+        "max_abs_correlation": {
+          "minimum": 0.0,
+          "title": "Max Abs Correlation",
+          "type": "number"
+        }
+      },
+      "required": [
+        "block_a",
+        "block_b",
+        "max_abs_correlation",
+        "entangled"
+      ],
+      "title": "LidarImuBagSeparabilityRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Joint B-spline LiDAR-IMU calibration of one bag segment, with its evidence.\n\nThe transform is ``T_lidar_imu`` (IMU frame in the LiDAR frame) and the\nclock offset follows ``t_imu = t_lidar + imu_clock_offset_s``.",
+  "properties": {
+    "blocks": {
+      "items": {
+        "$ref": "#/$defs/LidarImuBagBlockRecord"
+      },
+      "title": "Blocks",
+      "type": "array"
+    },
+    "control_delta_chi2_threshold": {
+      "exclusiveMinimum": 0.0,
+      "title": "Control Delta Chi2 Threshold",
+      "type": "number"
+    },
+    "control_points": {
+      "minimum": 4,
+      "title": "Control Points",
+      "type": "integer"
+    },
+    "controls": {
+      "items": {
+        "$ref": "#/$defs/LidarImuBagControlRecord"
+      },
+      "title": "Controls",
+      "type": "array"
+    },
+    "converged": {
+      "title": "Converged",
+      "type": "boolean"
+    },
+    "entangled_correlation_threshold": {
+      "exclusiveMinimum": 0.0,
+      "maximum": 1.0,
+      "title": "Entangled Correlation Threshold",
+      "type": "number"
+    },
+    "holdout_imu_samples": {
+      "minimum": 1,
+      "title": "Holdout Imu Samples",
+      "type": "integer"
+    },
+    "holdout_whitened_rms": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Holdout Whitened Rms",
+      "type": "object"
+    },
+    "imu_clock_offset_s": {
+      "title": "Imu Clock Offset S",
+      "type": "number"
+    },
+    "initial": {
+      "$ref": "#/$defs/LidarImuBagInitialEstimate"
+    },
+    "knot_spacing_s": {
+      "exclusiveMinimum": 0.0,
+      "title": "Knot Spacing S",
+      "type": "number"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "cubic_bspline_joint/v0.1",
+      "default": "cubic_bspline_joint/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "noise_sigmas": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Noise Sigmas",
+      "type": "object"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LidarImuBagProvenance"
+    },
+    "rotation_difference_from_initial_deg": {
+      "minimum": 0.0,
+      "title": "Rotation Difference From Initial Deg",
+      "type": "number"
+    },
+    "rounds": {
+      "items": {
+        "$ref": "#/$defs/LidarImuBagRound"
+      },
+      "minItems": 1,
+      "title": "Rounds",
+      "type": "array"
+    },
+    "scans": {
+      "minimum": 1,
+      "title": "Scans",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "slac.lidar_imu_bag_calibration/v0.1",
+      "default": "slac.lidar_imu_bag_calibration/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segment_duration_s": {
+      "exclusiveMinimum": 0.0,
+      "title": "Segment Duration S",
+      "type": "number"
+    },
+    "segment_start_s": {
+      "title": "Segment Start S",
+      "type": "number"
+    },
+    "separability": {
+      "items": {
+        "$ref": "#/$defs/LidarImuBagSeparabilityRecord"
+      },
+      "title": "Separability",
+      "type": "array"
+    },
+    "t_lidar_imu_rotation_quat_xyzw": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "T Lidar Imu Rotation Quat Xyzw",
+      "type": "array"
+    },
+    "t_lidar_imu_translation_m": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "T Lidar Imu Translation M",
+      "type": "array"
+    },
+    "train_imu_samples": {
+      "minimum": 1,
+      "title": "Train Imu Samples",
+      "type": "integer"
+    },
+    "train_whitened_rms": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Train Whitened Rms",
+      "type": "object"
+    }
+  },
+  "required": [
+    "policy_status",
+    "policy_reasons",
+    "t_lidar_imu_translation_m",
+    "t_lidar_imu_rotation_quat_xyzw",
+    "imu_clock_offset_s",
+    "blocks",
+    "initial",
+    "rotation_difference_from_initial_deg",
+    "segment_start_s",
+    "segment_duration_s",
+    "knot_spacing_s",
+    "control_points",
+    "scans",
+    "train_imu_samples",
+    "holdout_imu_samples",
+    "noise_sigmas",
+    "rounds",
+    "converged",
+    "train_whitened_rms",
+    "holdout_whitened_rms",
+    "control_delta_chi2_threshold",
+    "controls",
+    "entangled_correlation_threshold",
+    "separability",
+    "options",
+    "provenance"
+  ],
+  "title": "LidarImuBagCalibrationArtifact",
+  "type": "object"
+}

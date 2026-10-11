@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **`calibrex imu-lidar joint`: joint LiDAR-IMU calibration of a recorded bag.** Runs the cubic
+  B-spline fit of `calibrex.core.continuous_time_bspline_fit` on a bag
+  (`calibrex.evaluation.lidar_imu_bag_calibration`): the angular-rate estimate seeds the rotation,
+  clock offset and gyro bias; gyro-deskewed odometry over the longest reliable segment seeds the
+  spline; map rounds build a plane map from the placed scans (voxel centroids, planar kNN
+  normals), associate per-point-timed returns and refit the IMU rotation, gyro bias, lever arm,
+  clock offset, accelerometer bias and gravity, re-estimating the gyro, accelerometer and plane
+  noise from the residuals; the first round holds the rotation and clock offset at the angular-rate
+  estimate. Every third IMU sample is held out and scores 32 signed controls (Delta chi2 >= 9).
+  New artifact `slac.lidar_imu_bag_calibration/v0.1`: `T_lidar_imu`, clock offset, per-block
+  estimate, formal std, last round change and verdict, the angular-rate estimate and the
+  difference from it, round trace, noise, holdout, controls, separability, PASS / WARN / FAIL /
+  INCONCLUSIVE and provenance with the bag digest. New `calibrex.data.synthetic_lidar_imu_bag`
+  writes a rosbag2 of a 16-beam spinning LiDAR (per-point `offset_time`) and a 200 Hz IMU in a
+  room with a known calibration. Synthetic results: a 12 s bag passes with rotation error
+  0.025 deg, lever arm within about 3 mm, clock offset within 0.05 ms and the injected noise recovered;
+  an 8 s bag stops after four rounds at 0.13 deg and reads WARN (not converged). The formal std
+  holds the plane map fixed and understates the error (about 3 sigma on the 12 s bag). The B-spline
+  fitter now takes the position-control-point Jacobian analytically (positions enter linearly)
+  and skips calibration blocks a residual family does not depend on, about 2x faster with the
+  same results. No real-data run yet.
 - **Fix: `calibrex init --template` works from the installed wheel.** The sensor templates lived
   only in `examples/sensor_templates`, so outside a repository checkout the quickstart's second
   step failed with "sensor templates are unavailable". The wheel now ships a copy under
