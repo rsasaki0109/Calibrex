@@ -717,40 +717,43 @@ def estimate_from_frames(
     start_score = objective.score(zero_theta)
     emit_stage("camera-lidar: maximising the edge-alignment objective")
     theta, score = fit_extrinsic(objective, zero_theta, opts)
-    scan_start = _profile_start(objective, opts)
-    if scan_start is not None and np.any(scan_start != 0.0):
-        emit_stage("camera-lidar: searching from the per-axis profile maxima")
-        widened, widened_score = fit_extrinsic(objective, scan_start, opts)
-        if widened_score > score + opts.min_gain:
-            theta, score = widened, widened_score
-    estimate = _transform(candidate, theta)
-
     blocks = _block_slices(len(prepared), opts.blocks)
     block_objectives = [
         EdgeObjective([prepared[i] for i in block], camera, candidate) for block in blocks
     ]
-    fits: list[FloatArray] = []
-    for index, block in enumerate(blocks):
-        emit_stage(f"camera-lidar: jackknife fit {index + 1}/{len(blocks)}")
-        kept = [prepared[i] for i in range(len(prepared)) if i not in set(block)]
-        fold = EdgeObjective(kept, camera, candidate)
-        fold_theta, _ = fit_extrinsic(fold, theta, opts, first_level=opts.jackknife_first_level)
-        fits.append(fold_theta)
-    fit_array = np.asarray(fits)
-    # Jackknife of the estimate's own components: rotation about the camera axes (the
-    # left correction) and the translation of the composed transform.
-    components = np.empty_like(fit_array)
-    for row, fit in enumerate(fit_array):
-        components[row, :3] = fit[:3]
-        components[row, 3:] = _transform(candidate, fit)[:3, 3]
-    count = len(blocks)
-    jackknife = np.sqrt(
-        (count - 1) / count * np.sum((components - components.mean(axis=0)) ** 2, axis=0)
-    )
-    controls = _controls(block_objectives, fit_array, opts)
     std_floor = 0.5 * np.array(
         [opts.rotation_levels_deg[-1]] * 3 + [opts.translation_levels_m[-1]] * 3
     )
+    fit_array, jackknife, controls = _evidence(
+        prepared, camera, candidate, theta, blocks, block_objectives, opts
+    )
+    start_reason: str | None = None
+    scan_start = _profile_start(objective, opts)
+    if scan_start is not None and np.any(scan_start != 0.0):
+        emit_stage("camera-lidar: searching from the per-axis profile maxima")
+        widened, widened_score = fit_extrinsic(objective, scan_start, opts)
+        if np.any(np.abs(widened[:3] - theta[:3]) > opts.rotation_levels_deg[-1]):
+            widened_evidence = _evidence(
+                prepared, camera, candidate, widened, blocks, block_objectives, opts
+            )
+            # A far optimum can be a ridge of the scene rather than the calibration (a
+            # corridor): keep it only when more rotation DoFs pass their held-out controls
+            # and std bound there, or as many with a higher objective.
+            observed = _observed_rotations(theta, jackknife, controls, std_floor, opts)
+            widened_observed = _observed_rotations(
+                widened, widened_evidence[1], widened_evidence[2], std_floor, opts
+            )
+            if widened_observed > observed or (
+                widened_observed == observed and widened_score > score + opts.min_gain
+            ):
+                start_reason = (
+                    "the estimate comes from the search started at the per-axis profile maxima "
+                    f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg): it observes "
+                    f"{widened_observed} rotation DoF(s) against {observed} from the candidate"
+                )
+                theta, score = widened, widened_score
+                fit_array, jackknife, controls = widened_evidence
+    estimate = _transform(candidate, theta)
 
     reference_vector = Rotation.from_matrix(estimate[:3, :3]).as_rotvec()
     dofs: list[CameraLidarEdgeDofRecord] = []
@@ -839,6 +842,8 @@ def estimate_from_frames(
     else:
         policy = "inconclusive"
         reasons.insert(0, "no rotation DoF is observed with a detected held-out control")
+    if start_reason is not None:
+        reasons.append(start_reason)
     if dropped:
         reasons.append(f"{len(dropped)} frame(s) dropped: {dropped[0]}")
     return CameraLidarEdgeArtifact(
@@ -853,12 +858,66 @@ def estimate_from_frames(
             start=float(start_score), estimate=float(score), gain=float(score - start_score)
         ),
         samples=samples,
-        jackknife_fits=len(fits),
+        jackknife_fits=len(fit_array),
         camera=camera.as_dict(),
         options=opts.as_dict(),
         reference=reference_label,
         limitations=limitations,
         provenance=provenance,
+    )
+
+
+def _evidence(
+    prepared: Sequence[PreparedFrame],
+    camera: EdgeCamera,
+    candidate: FloatArray,
+    theta: FloatArray,
+    blocks: Sequence[range],
+    block_objectives: Sequence[EdgeObjective],
+    options: EdgeAlignmentOptions,
+) -> tuple[FloatArray, FloatArray, list[CameraLidarEdgeControl]]:
+    """Leave-one-block-out fits around ``theta``, their jackknife std and the controls."""
+
+    fits: list[FloatArray] = []
+    for index, block in enumerate(blocks):
+        emit_stage(f"camera-lidar: jackknife fit {index + 1}/{len(blocks)}")
+        held = set(block)
+        kept = [prepared[i] for i in range(len(prepared)) if i not in held]
+        fold = EdgeObjective(kept, camera, candidate)
+        fold_theta, _ = fit_extrinsic(
+            fold, theta, options, first_level=options.jackknife_first_level
+        )
+        fits.append(fold_theta)
+    fit_array = np.asarray(fits)
+    # Jackknife of the estimate's own components: rotation about the camera axes (the
+    # left correction) and the translation of the composed transform.
+    components = np.empty_like(fit_array)
+    for row, fit in enumerate(fit_array):
+        components[row, :3] = fit[:3]
+        components[row, 3:] = _transform(candidate, fit)[:3, 3]
+    count = len(blocks)
+    jackknife = np.sqrt(
+        (count - 1) / count * np.sum((components - components.mean(axis=0)) ** 2, axis=0)
+    )
+    return fit_array, jackknife, _controls(block_objectives, fit_array, options)
+
+
+def _observed_rotations(
+    theta: FloatArray,
+    jackknife: FloatArray,
+    controls: Sequence[CameraLidarEdgeControl],
+    std_floor: FloatArray,
+    options: EdgeAlignmentOptions,
+) -> int:
+    """Rotation DoFs that would be reported as estimated (the rule of the DoF records)."""
+
+    return sum(
+        1
+        for axis in range(3)
+        if controls[axis].detected
+        and max(float(jackknife[axis]), float(std_floor[axis]))
+        <= options.observable_rotation_std_deg
+        and abs(float(theta[axis])) < options.rotation_bound_deg - 1e-9
     )
 
 

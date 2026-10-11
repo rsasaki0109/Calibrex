@@ -311,3 +311,29 @@ def test_profile_start_takes_each_axis_maximum() -> None:
     assert _profile_start(_TwoPeaks(), off) is None  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="start scan"):
         EdgeAlignmentOptions(start_scan_deg=20.0)
+
+
+def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
+    from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
+    from calibrex.evaluation.camera_lidar_edge import _observed_rotations
+
+    def control(detected: bool) -> CameraLidarEdgeControl:
+        return CameraLidarEdgeControl(
+            amount=2.0,
+            unit="deg",
+            held_out_blocks=6,
+            detected_blocks=6 if detected else 2,
+            mean_objective_drop=0.01,
+            min_t_statistic=3.0 if detected else 0.5,
+            detected=detected,
+        )
+
+    options = EdgeAlignmentOptions()
+    floor = np.full(6, 0.025)
+    controls = [control(True), control(False), control(True)] + [control(False)] * 3
+    jackknife = np.array([0.1, 0.1, 0.8, 0.01, 0.01, 0.01])
+    theta = np.zeros(6)
+    # roll: observed; pitch: control missed; yaw: std above the 0.5 deg bound.
+    assert _observed_rotations(theta, jackknife, controls, floor, options) == 1
+    theta[0] = options.rotation_bound_deg
+    assert _observed_rotations(theta, jackknife, controls, floor, options) == 0
