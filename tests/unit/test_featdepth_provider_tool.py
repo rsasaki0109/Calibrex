@@ -47,6 +47,23 @@ def test_image_digest_binds_decoded_bytes(tmp_path: Path, monkeypatch: pytest.Mo
     np.testing.assert_array_equal(actual.rgb[0, 0], [10, 20, 30])
 
 
+def test_checkpoint_digest_binds_loaded_bytes(tmp_path: Path) -> None:
+    path = tmp_path / "weights.pth"
+    original = b"checkpoint before replacement"
+    path.write_bytes(original)
+
+    def load(stream, **kwargs):
+        path.write_bytes(b"replacement while loading")
+        assert stream.read() == original
+        assert kwargs == {"map_location": "cpu", "weights_only": False}
+        return {"state_dict": {"loaded": True}}
+
+    payload, reference = runner._load_checkpoint(path, SimpleNamespace(load=load))
+    assert payload == {"state_dict": {"loaded": True}}
+    assert reference.sha256 == hashlib.sha256(original).hexdigest()
+    assert reference.size_bytes == len(original)
+
+
 def test_prefetch_is_bounded_ordered_and_can_close(monkeypatch: pytest.MonkeyPatch) -> None:
     submitted = []
     closed = []
@@ -78,7 +95,13 @@ def test_prefetch_is_bounded_ordered_and_can_close(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.parametrize(
-    "option,value", [("--batch-size", "0"), ("--preprocess-workers", "-1"), ("--cpu-threads", "0")]
+    "option,value",
+    [
+        ("--batch-size", "0"),
+        ("--preprocess-workers", "-1"),
+        ("--cpu-threads", "0"),
+        ("--timing-output", "unused.json"),
+    ],
 )
 def test_new_argument_validation_before_loading(option: str, value: str) -> None:
     with pytest.raises(ValueError, match="must be"):
@@ -196,7 +219,6 @@ def test_batched_export_retains_variable_grids_order_and_short_batch(
 @pytest.mark.parametrize(
     "extra,message",
     [
-        (["--device", "cpu", "--precision", "float16"], "float16 requires"),
         (["--device", "cuda"], "CUDA-enabled PyTorch"),
         (["--device", "cuda", "--cpu-threads", "2"], "applies only"),
     ],

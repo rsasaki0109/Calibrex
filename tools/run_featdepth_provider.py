@@ -76,6 +76,25 @@ def _read_image(image_directory: Path, frame_id: str) -> _PreparedImage:
     return _PreparedImage(frame_id, rgb, reference)
 
 
+def _load_checkpoint(checkpoint: Path, torch: Any) -> tuple[dict[str, Any], DepthFileReference]:
+    # Bind the digest to the bytes actually decoded. Reuse this reference in
+    # both manifests rather than hashing a large checkpoint three times.
+    digest = hashlib.sha256()
+    with checkpoint.open("rb") as source, io.BytesIO() as data:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+            data.write(chunk)
+        reference = DepthFileReference(
+            path=str(checkpoint),
+            sha256=digest.hexdigest(),
+            size_bytes=data.tell(),
+            encoding="pytorch_checkpoint",
+        )
+        data.seek(0)
+        payload = torch.load(data, map_location="cpu", weights_only=False)
+    return payload, reference
+
+
 def _prepared_images(
     directory: Path,
     frame_ids: list[str],
@@ -110,8 +129,6 @@ def _predict_batch(
     torch: Any,
     functional: Any,
     device: Any,
-    *,
-    precision: str,
 ) -> list[Any]:
     tensors = []
     for image in images:
@@ -125,10 +142,7 @@ def _predict_batch(
             )
         )
     tensor = tensors[0] if len(tensors) == 1 else torch.cat(tensors, dim=0)
-    with torch.autocast(
-        device_type=device.type, dtype=torch.float16, enabled=precision == "float16"
-    ):
-        disparities = decoder(encoder(tensor))[("disp", 0, 0)]
+    disparities = decoder(encoder(tensor))[("disp", 0, 0)]
     disparities = disparities.float()
     arrays = []
     for index, image in enumerate(images):
@@ -157,7 +171,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--preprocess-workers", type=int, default=0)
-    parser.add_argument("--precision", choices=("float32", "float16"), default="float32")
     parser.add_argument("--cpu-threads", type=int)
     parser.add_argument("--timing-output", type=Path)
     return parser
@@ -180,12 +193,12 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint = args.checkpoint.resolve()
     output_directory = args.output_directory.resolve()
     artifact_output = args.artifact_output.resolve()
+    if args.timing_output is not None and args.timing_output.resolve() == artifact_output:
+        raise ValueError("--timing-output must be different from --artifact-output")
     import torch
     import torch.nn.functional as functional
 
     device = torch.device(args.device)
-    if args.precision == "float16" and device.type != "cuda":
-        raise ValueError("--precision float16 requires --device cuda")
     if args.cpu_threads is not None:
         if device.type != "cpu":
             raise ValueError("--cpu-threads applies only to --device cpu")
@@ -195,18 +208,13 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("--device cuda requires a CUDA-enabled PyTorch and NVIDIA GPU")
         torch.cuda.reset_peak_memory_stats(device)
     _verify_repository(repository)
-    checkpoint_digest = _required_digest(checkpoint)
     sys.path.insert(0, str(repository))
     from mono.model.mono_fm.depth_decoder import DepthDecoder
     from mono.model.mono_fm.depth_encoder import DepthEncoder
 
     encoder = DepthEncoder(50, None)
     decoder = DepthDecoder(encoder.num_ch_enc)
-    payload: dict[str, Any] = torch.load(
-        checkpoint,
-        map_location="cpu",
-        weights_only=False,
-    )
+    payload, checkpoint_reference = _load_checkpoint(checkpoint, torch)
     state = payload["state_dict"]
     encoder.load_state_dict(
         {
@@ -239,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     output_directory.mkdir(parents=True, exist_ok=True)
 
     observations = []
-    input_references = [depth_file_reference(checkpoint, encoding="pytorch_checkpoint")]
+    input_references = [checkpoint_reference]
     output_references = []
     prepared_at = time.perf_counter()
     prediction_seconds = 0.0
@@ -264,11 +272,12 @@ def main(argv: list[str] | None = None) -> int:
                 torch,
                 functional,
                 device,
-                precision=args.precision,
             )
             prediction_seconds += time.perf_counter() - prediction_started
             batch_count += 1
             for image, depth_array in zip(batch, predictions, strict=True):
+                if not np.isfinite(depth_array).all():
+                    raise ValueError(f"non-finite FeatDepth prediction for frame {image.frame_id}")
                 position += 1
                 frame_id = image.frame_id
                 frame_index = int(frame_id)
@@ -322,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
         "batch_size": args.batch_size,
         "batch_count": batch_count,
         "preprocess_workers": args.preprocess_workers,
-        "precision": args.precision,
+        "precision": "float32",
         "torch_cpu_threads": torch.get_num_threads(),
         "image_queue_limit": args.batch_size + 2 * args.preprocess_workers
         if args.preprocess_workers
@@ -357,10 +366,7 @@ def main(argv: list[str] | None = None) -> int:
             source_repository=FEATDEPTH_REPOSITORY,
             source_commit=FEATDEPTH_COMMIT,
             license_spdx="MIT",
-            checkpoint=depth_file_reference(
-                checkpoint,
-                encoding="pytorch_checkpoint",
-            ),
+            checkpoint=checkpoint_reference,
             checkpoint_redistribution=(
                 f"not redistributed; official Google Drive file {FEATDEPTH_CHECKPOINT_FILE_ID}"
             ),
@@ -416,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
             "training/evaluation drive overlap cannot be excluded",
             "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
             "metric depth conversion parameters are recorded but not applied",
-            f"checkpoint sha256={checkpoint_digest}",
+            f"checkpoint sha256={checkpoint_reference.sha256}",
         ],
         provenance=DepthProviderProvenance(
             generator="tools.run_featdepth_provider",
