@@ -1380,6 +1380,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=8,
         help="map rounds (re-associate LiDAR returns, refit) before giving up on convergence",
     )
+    imu_lidar_joint.add_argument(
+        "--imu-lowpass-hz",
+        type=_positive_float,
+        help="zero-phase low-pass the IMU at this cutoff and resample at twice it before the "
+        "fit (for platform vibration far above the spline bandwidth)",
+    )
     imu_lidar_joint.add_argument("--output", type=Path, required=True)
     imu_lidar_joint.add_argument("--json", action="store_true")
     imu_lidar_joint.set_defaults(func=_cmd_imu_lidar_joint)
@@ -7109,7 +7115,10 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     command += ["--dataset-family", args.dataset_family, "--dataset-license", args.dataset_license]
     if args.max_seconds is not None:
         command += ["--max-seconds", str(args.max_seconds)]
-    command += ["--max-rounds", str(args.max_rounds), "--output", str(args.output)]
+    command += ["--max-rounds", str(args.max_rounds)]
+    if args.imu_lowpass_hz is not None:
+        command += ["--imu-lowpass-hz", str(args.imu_lowpass_hz)]
+    command += ["--output", str(args.output)]
     try:
         point_time = detect_point_time(args.bag, args.lidar_topic)
         profile = LivoxStreamProfile(
@@ -7123,7 +7132,7 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
         artifact = calibrate_lidar_imu_bag(
             args.bag,
             profile,
-            LidarImuBagOptions(max_rounds=args.max_rounds),
+            LidarImuBagOptions(max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz),
             dataset_family=args.dataset_family,
             dataset_license=args.dataset_license,
             max_seconds=args.max_seconds,

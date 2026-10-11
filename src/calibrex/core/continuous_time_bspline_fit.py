@@ -12,7 +12,10 @@ calibration blocks:
 ``R_bi`` is the IMU mounting rotation (body from IMU, right perturbation),
 ``tau`` the IMU clock offset (``t_body = t_imu - tau``) and ``g`` gravity in the
 world frame.  Residuals are whitened by their noise sigma, so the normal matrix
-is ``J^T J`` and the cost is a chi-square.  Each residual touches the four
+is ``J^T J`` and the cost is a chi-square.  An optional prior on the gravity
+magnitude, ``(|g| - g0) / sigma``, separates gravity from the accelerometer
+bias when the attitude barely varies (a level platform that only turns about
+the vertical sees ``g_z`` and ``b_a,z`` only through their sum).  Each residual touches the four
 control points of its segment; their Jacobian is taken by central differences
 of the vectorized spline, perturbing one local slot for every residual at once.
 The marginal covariance of the calibration blocks marginalizes the control
@@ -28,7 +31,7 @@ from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
-from scipy.sparse import coo_matrix, csc_matrix, diags
+from scipy.sparse import coo_matrix, csc_matrix, diags, vstack
 from scipy.sparse.linalg import spsolve
 
 from calibrex.core.continuous_time_bspline import (
@@ -162,6 +165,15 @@ class BSplineLidarImuProblem:
     accel: BSplineImuSamples
     initial_calibration: LidarImuCalibration
     estimate: tuple[CalibrationBlock, ...] = CALIBRATION_BLOCKS
+    # Known gravity magnitude and its sigma (m/s^2); None leaves |g| free.
+    gravity_magnitude_m_s2: float | None = None
+    gravity_magnitude_sigma_m_s2: float = 0.03
+
+    def __post_init__(self) -> None:
+        if self.gravity_magnitude_m_s2 is not None and (
+            self.gravity_magnitude_m_s2 <= 0.0 or self.gravity_magnitude_sigma_m_s2 <= 0.0
+        ):
+            raise ValueError("gravity magnitude and its sigma must be positive")
 
 
 @dataclass(frozen=True)
@@ -253,7 +265,45 @@ def fit_bspline_lidar_imu(
     calibration_columns = sum(_BLOCK_WIDTH[block] for block in estimate)
     parameter_count = control_columns + calibration_columns
 
-    cost = _cost(trajectory, calibration, families)
+    prior_magnitude = problem.gravity_magnitude_m_s2 if "gravity" in estimate else None
+    gravity_column = control_columns
+    for block in estimate:
+        if block == "gravity":
+            break
+        gravity_column += _BLOCK_WIDTH[block]
+
+    def prior_residual(values: LidarImuCalibration) -> float:
+        assert prior_magnitude is not None
+        magnitude = float(np.linalg.norm(values.gravity_world_m_s2))
+        return (magnitude - prior_magnitude) / problem.gravity_magnitude_sigma_m_s2
+
+    def total_cost(path: CubicBSplineTrajectory, values: LidarImuCalibration) -> float:
+        cost = _cost(path, values, families)
+        if prior_magnitude is None:
+            return cost
+        return cost + prior_residual(values) ** 2
+
+    def linearize(
+        path: CubicBSplineTrajectory, values: LidarImuCalibration
+    ) -> tuple[csc_matrix, FloatArray]:
+        jacobian, residuals = _linearize(path, values, families, estimate)
+        if prior_magnitude is None:
+            return jacobian, residuals
+        gravity = np.asarray(values.gravity_world_m_s2, dtype=float)
+        derivative = gravity / max(float(np.linalg.norm(gravity)), 1.0e-12)
+        row = coo_matrix(
+            (
+                derivative / problem.gravity_magnitude_sigma_m_s2,
+                (np.zeros(3, dtype=np.int64), gravity_column + np.arange(3)),
+            ),
+            shape=(1, parameter_count),
+        )
+        return (
+            vstack([jacobian, row]).tocsc(),
+            np.concatenate([residuals, [prior_residual(values)]]),
+        )
+
+    cost = total_cost(trajectory, calibration)
     if not math.isfinite(cost):
         raise ValueError("initial residuals are not finite; check the time domain")
     initial_cost = cost
@@ -262,7 +312,7 @@ def fit_bspline_lidar_imu(
     iterations = 0
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
-        jacobian, residuals = _linearize(trajectory, calibration, families, estimate)
+        jacobian, residuals = linearize(trajectory, calibration)
         normal = (jacobian.T @ jacobian).tocsc()
         gradient = jacobian.T @ residuals
         scale = np.maximum(normal.diagonal(), 1.0e-12)
@@ -281,7 +331,7 @@ def fit_bspline_lidar_imu(
             candidate_trajectory, candidate_calibration = _apply_step(
                 trajectory, calibration, step, estimate
             )
-            candidate_cost = _cost(candidate_trajectory, candidate_calibration, families)
+            candidate_cost = total_cost(candidate_trajectory, candidate_calibration)
             if candidate_cost < cost:
                 accepted = True
                 break
@@ -299,7 +349,7 @@ def fit_bspline_lidar_imu(
             status = "converged"
             break
 
-    jacobian, residuals = _linearize(trajectory, calibration, families, estimate)
+    jacobian, residuals = linearize(trajectory, calibration)
     names = tuple(
         f"{block}[{axis}]" for block in estimate for axis in range(_BLOCK_WIDTH[block])
     )

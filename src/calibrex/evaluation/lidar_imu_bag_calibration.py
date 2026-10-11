@@ -35,6 +35,7 @@ from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.signal import butter, filtfilt
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation, Slerp
 
@@ -67,6 +68,7 @@ from calibrex.core.progress import emit_stage
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import rotation_matrix_to_rotation_vector, rotation_vector_to_matrix
 from calibrex.data.livox_ros2 import (
+    ImuSamples,
     LivoxStreamProfile,
     ScanStore,
     bag_input_digest,
@@ -117,8 +119,9 @@ LIMITATIONS = (
     "rotation_difference_from_initial_deg.",
     "One segment (the longest reliable odometry window) is calibrated; other parts of the "
     "bag are not used.",
-    "Accelerometer bias and gravity trade off unless the attitude varies widely; see the "
-    "separability records.",
+    "Gravity carries a prior on its magnitude (gravity_magnitude_m_s2 with "
+    "gravity_magnitude_sigma_m_s2): without tilt only g_z + b_a,z is observed, so the "
+    "vertical accelerometer bias rests on that prior; see the separability records.",
 )
 
 
@@ -143,12 +146,21 @@ class LidarImuBagOptions:
     association_gate_m: float = 0.3
     plane_gate_m: float = 0.1
     imu_margin_s: float = 0.05
+    # Zero-phase low-pass (Hz) applied to the IMU before the joint fit, which is
+    # then resampled at twice the cutoff so that the kept samples stay nearly
+    # independent. Vibration far above the spline bandwidth (a wheeled
+    # platform's chassis mode) is structured noise the spline cannot follow;
+    # removing it leaves the band the calibration lives in. None fits raw samples.
+    imu_lowpass_hz: float | None = None
     holdout_every: int = 3
     fit_iterations: int = 30
     control_delta_chi2: float = 9.0
     entangled_correlation: float = 0.9
     holdout_fail_whitened_rms: float = 2.0
     method_disagreement_deg: float = 1.0
+    # Prior on |g| (standard gravity; local gravity differs by up to about 0.03).
+    gravity_magnitude_m_s2: float | None = 9.80665
+    gravity_magnitude_sigma_m_s2: float = 0.03
     initial_sigmas: dict[str, float] = field(
         default_factory=lambda: {"plane": 0.02, "gyro": 0.01, "accel": 0.1}
     )
@@ -233,7 +245,8 @@ def calibrate_lidar_imu_bag(
     if len(scans) < 10:
         raise ValueError(f"only {len(scans)} scans fall inside the odometry segment")
 
-    imu_times = imu.times_s - reference
+    fit_imu = imu if opts.imu_lowpass_hz is None else _band_limit(imu, opts.imu_lowpass_hz)
+    imu_times = fit_imu.times_s - reference
     body = imu_times - initial.time_offset_s
     inside = (body > opts.imu_margin_s) & (body < end - opts.imu_margin_s)
     index = np.flatnonzero(inside)
@@ -253,14 +266,14 @@ def calibrate_lidar_imu_bag(
         accel_bias_m_s2=np.zeros(3),
         gravity_world_m_s2=_initial_gravity(
             trajectory, imu_times[train_index] - initial.time_offset_s,
-            imu.accel_mps2[train_index], initial_rotation,
+            fit_imu.accel_mps2[train_index], initial_rotation,
         ),
     )
 
     def imu_samples(rows: NDArray[np.intp]) -> tuple[BSplineImuSamples, BSplineImuSamples]:
         return (
-            BSplineImuSamples(imu_times[rows], imu.gyro_rps[rows], sigmas["gyro"]),
-            BSplineImuSamples(imu_times[rows], imu.accel_mps2[rows], sigmas["accel"]),
+            BSplineImuSamples(imu_times[rows], fit_imu.gyro_rps[rows], sigmas["gyro"]),
+            BSplineImuSamples(imu_times[rows], fit_imu.accel_mps2[rows], sigmas["accel"]),
         )
 
     rounds: list[LidarImuBagRound] = []
@@ -283,7 +296,16 @@ def calibrate_lidar_imu_bag(
             else CALIBRATION_BLOCKS
         )
         result = fit_bspline_lidar_imu(
-            BSplineLidarImuProblem(trajectory, planes, gyro, accel, calibration, estimate),
+            BSplineLidarImuProblem(
+                trajectory,
+                planes,
+                gyro,
+                accel,
+                calibration,
+                estimate,
+                gravity_magnitude_m_s2=opts.gravity_magnitude_m_s2,
+                gravity_magnitude_sigma_m_s2=opts.gravity_magnitude_sigma_m_s2,
+            ),
             BSplineLidarImuFitOptions(max_iterations=opts.fit_iterations),
         )
         trajectory, calibration = result.trajectory, result.calibration
@@ -392,9 +414,12 @@ def calibrate_lidar_imu_bag(
             "map_max_planarity": opts.map_max_planarity,
             "association_gate_m": opts.association_gate_m,
             "plane_gate_m": opts.plane_gate_m,
+            "imu_lowpass_hz": opts.imu_lowpass_hz,
             "holdout_every": opts.holdout_every,
             "holdout_fail_whitened_rms": opts.holdout_fail_whitened_rms,
             "method_disagreement_deg": opts.method_disagreement_deg,
+            "gravity_magnitude_m_s2": opts.gravity_magnitude_m_s2,
+            "gravity_magnitude_sigma_m_s2": opts.gravity_magnitude_sigma_m_s2,
             "seed": opts.seed,
             "max_seconds": max_seconds,
         },
@@ -512,6 +537,35 @@ def _associate(
         sigma,
     )
     return returns, len(anchors)
+
+
+def _band_limit(imu: ImuSamples, cutoff_hz: float) -> ImuSamples:
+    """Zero-phase low-pass the IMU on a uniform grid and resample at twice the cutoff."""
+
+    times = imu.times_s
+    period = float(np.median(np.diff(times)))
+    nyquist = 0.5 / period
+    if not 0.0 < cutoff_hz < nyquist:
+        raise ValueError(
+            f"imu_lowpass_hz must lie between 0 and the IMU Nyquist rate {nyquist:.1f} Hz"
+        )
+    # Resample onto a uniform grid first: a dropped sample would otherwise shift
+    # the filter's notion of time.
+    grid = times[0] + period * np.arange(math.floor((times[-1] - times[0]) / period) + 1)
+    numerator, denominator = butter(4, cutoff_hz / nyquist)
+
+    def smooth(values: FloatArray) -> FloatArray:
+        uniform = np.stack(
+            [np.interp(grid, times, values[:, axis]) for axis in range(3)], axis=1
+        )
+        return np.asarray(filtfilt(numerator, denominator, uniform, axis=0), dtype=float)
+
+    step = max(1, math.floor(1.0 / (2.0 * cutoff_hz * period)))
+    return ImuSamples(
+        times_s=grid[::step],
+        gyro_rps=smooth(imu.gyro_rps)[::step],
+        accel_mps2=smooth(imu.accel_mps2)[::step],
+    )
 
 
 def _initial_gravity(
