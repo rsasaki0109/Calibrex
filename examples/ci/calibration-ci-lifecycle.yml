@@ -1,0 +1,94 @@
+# Copy to .github/workflows/calibration-lifecycle.yml and edit paths.
+#
+# Records Calibration CI decisions in an append-only lifecycle registry kept in
+# the repository, bound to the CI artifacts by digest:
+#
+#   push to main  -> evaluate the merged candidate; promote it when the decision
+#                    is PASS and promotion/smoke evidence admits it (ADOPT);
+#                    INCONCLUSIVE/WARN is held and FAIL is rejected, and neither
+#                    changes the incumbent.
+#   weekly        -> re-check the same file under the fleet policy; a FAIL about
+#                    the promoted incumbent rolls the edge back to the incumbent
+#                    before that promotion.
+#
+# Requires (created once with `calibrex lifecycle init/register-sensor/register-edge`):
+#   calibration/registry/          — the lifecycle registry (events.jsonl, head.json, ...)
+#   calibration/candidate.yaml     — the calibration result under review
+#   calibration/policy.json        — the fleet falsification policy
+#   calibration/capture.yaml       — READY capture manifest for the candidate
+#   calibration/promotion.json     — promotion evidence (status PASS, decision ADOPT)
+#   calibration/smoke.json         — smoke evidence (status PASS, admissible)
+#
+# See examples/ci/README.md, docs/tutorials/calibration_ci.md and
+# docs/reference/lifecycle_registry.md.
+
+name: Calibration lifecycle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "calibration/candidate.yaml"
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One writer at a time: the registry is append-only and compare-and-swap guarded.
+concurrency:
+  group: calibration-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Calibration CI decision
+        id: calibrex
+        uses: rsasaki0109/Calibrex@v0.5.1
+        with:
+          candidate: calibration/candidate.yaml
+          policy: calibration/policy.json
+          output_dir: calibrex-ci
+          # The decision is recorded whatever it is; the registry, not this step,
+          # decides whether anything is adopted.
+          enforce: "false"
+
+      - name: Record the decision in the lifecycle registry
+        run: |
+          mode="--promote"
+          if [ "${{ github.event_name }}" = "schedule" ]; then mode="--rollback-on-fail"; fi
+          calibrex lifecycle record-ci calibrex-ci/calibration-ci.json \
+            --registry-root calibration/registry \
+            --edge-id lidar-front-camera \
+            --capture-manifest calibration/capture.yaml \
+            --promotion calibration/promotion.json \
+            --smoke calibration/smoke.json \
+            $mode \
+            --operator "github-actions:${{ github.run_id }}" \
+            --output calibrex-ci/lifecycle-record.json \
+            --json
+
+      - name: Verify the registry
+        run: calibrex lifecycle verify --registry-root calibration/registry --json
+
+      - name: Commit the appended events
+        run: |
+          git config user.name "calibration-lifecycle[bot]"
+          git config user.email "calibration-lifecycle@users.noreply.github.com"
+          git add calibration/registry
+          git commit -m "Record calibration CI decision ${{ github.run_id }}" || exit 0
+          git push
+
+      - name: Upload calibration CI and lifecycle artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-lifecycle
+          path: calibrex-ci/
+          if-no-files-found: ignore

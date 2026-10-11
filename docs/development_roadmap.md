@@ -144,9 +144,10 @@ accuracy.
    `capture_time_reference`, and the synthetic shared-clock acceptance passes.
    No public capture yet tests it: the TIERS selftest cannot see a stamp
    convention and its anchored estimate resolves only about +-20 ms.
-6. **Lifecycle in CI:** the append-only lifecycle registry and the Calibration
-   CI gate exist separately. Candidate/baseline comparisons from pull requests
-   are not yet recorded as registry events with rollback records.
+6. **Lifecycle in CI:** closed on 2026-10-11. `calibrex lifecycle record-ci`
+   records a Calibration CI decision as registry events (evaluate/hold/reject,
+   promote, or rollback) bound to the CI artifacts by digest, with an example
+   workflow.
 7. **Default suite health:** fixed on 2026-09-27. Three legacy result
    fixtures lacked `run.provenance` and now use `build_result_provenance`. On
    Windows `core.autocrlf` checkouts, digest-bound JSON fixtures were rewritten
@@ -477,9 +478,29 @@ rollback event to a lifecycle registry, bound to the CI artifact digests.
 **Acceptance conditions:**
 
 - An example workflow and an integration test cover adopt, hold, and rollback
-  paths, and a weakly observable candidate never mutates the head.
+  paths, and a weakly observable candidate never mutates the head. **Done** on
+  2026-10-11.
 - There is no in-place overwrite, and registry verification stays green after
-  every path.
+  every path. **Done** on 2026-10-11.
+
+**Progress (2026-10-11):** `calibrex lifecycle record-ci <calibration-ci.json>`
+(`calibrex.calibration_ci_lifecycle`, new artifact
+`slac.calibration_ci_lifecycle/v0.1`) copies the CI decision, candidate
+result, CI assessment and CI policy into a content-addressed
+`ci/<sha256>/` snapshot inside the registry (written once; a differing file
+is refused), then evaluates the candidate with the CI decision as evidence and
+the CI assessment as assessment. PASS with PASS promotion and smoke evidence is
+ADOPT and is promoted with `--promote`; INCONCLUSIVE/WARN is HOLD and FAIL is
+DO_NOT_ADOPT, and neither changes the incumbent. With `--rollback-on-fail`, a
+FAIL decision about the edge's promoted incumbent appends a rollback event
+that carries the CI decision as its evidence (`rollback_lifecycle` gained an
+optional `evidence` reference). A candidate changed after the CI decision is
+refused, the same decision cannot be recorded twice, and the registry is
+verified after every path. The integration test uses real candidates: the
+bundled KITTI raw camera-LiDAR evidence demo (CI PASS), the precomputed
+example result (INCONCLUSIVE) and the KITTI candidate under a policy that
+requires 90 % known-bad detection (FAIL). Example workflow:
+`examples/ci/calibration-ci-lifecycle.yml`.
 
 ### 6. Absolute capture-time acceptance (ADR 0008 Pillar 3)
 

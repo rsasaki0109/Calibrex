@@ -42,6 +42,16 @@ It does **not** treat optimizer convergence as acceptance.
 | `evidence_card` | Provenance-bound SVG |
 | `comparison` | `comparison.json` when a baseline was supplied |
 
+## Lifecycle registry workflow
+
+[`calibration-ci-lifecycle.yml`](calibration-ci-lifecycle.yml) records each
+decision in an append-only lifecycle registry kept in the repository: on a push
+to `main` it evaluates the merged candidate and promotes it when the decision
+is PASS and the promotion and smoke evidence admit it; a weekly run re-checks
+the same file and rolls the edge back when the decision fails the promoted
+incumbent. INCONCLUSIVE decisions are held and never change the incumbent. See
+[`docs/reference/lifecycle_registry.md`](../../docs/reference/lifecycle_registry.md).
+
 ## Adoption tip
 
 Set `enforce: "false"` on the first PR while you tune paths and baseline

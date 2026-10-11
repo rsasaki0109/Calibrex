@@ -31,6 +31,10 @@ from calibrex.calibration_ci import (
     CalibrationCIArtifact,
     calibration_ci_json_schema,
 )
+from calibrex.calibration_ci_lifecycle import (
+    CalibrationCILifecycleArtifact,
+    calibration_ci_lifecycle_json_schema,
+)
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assessment_json_schema,
@@ -719,6 +723,11 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         "environment-readiness", EnvironmentReadinessArtifact, environment_readiness_json_schema
     ),
     _entry("calibration-ci", CalibrationCIArtifact, calibration_ci_json_schema),
+    _entry(
+        "calibration-ci-lifecycle",
+        CalibrationCILifecycleArtifact,
+        calibration_ci_lifecycle_json_schema,
+    ),
     _entry("external-run", ExternalCalibrationRunArtifact, external_run_json_schema),
     _entry(
         "camera-imu-motion-recording",

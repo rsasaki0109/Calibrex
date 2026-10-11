@@ -87,6 +87,18 @@ The default inputs enforce both a `PASS` assessment and compatible
 candidate/baseline evidence protocols. Set `enforce: "false"` to collect an
 informational result while initially adopting the workflow.
 
+## Recording decisions in a lifecycle registry
+
+A CI decision can also be appended to an append-only calibration lifecycle
+registry, so that adoption and rollback are recorded against the exact CI
+artifacts. `calibrex lifecycle record-ci calibrex-ci/calibration-ci.json
+--registry-root ... --edge-id ...` holds weak (INCONCLUSIVE) candidates, rejects
+failing ones, promotes a passing one with `--promote`, and with
+`--rollback-on-fail` rolls back an incumbent that a later decision fails. See
+the [lifecycle registry reference](../reference/lifecycle_registry.md#from-calibration-ci)
+and the example workflow
+[`examples/ci/calibration-ci-lifecycle.yml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/ci/calibration-ci-lifecycle.yml).
+
 ## Custom policy
 
 Pass a schema-valid `slac.policy/v0.1` artifact:

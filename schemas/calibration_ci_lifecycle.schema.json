@@ -1,0 +1,304 @@
+{
+  "$defs": {
+    "CalibrationCILifecycleEventRef": {
+      "additionalProperties": false,
+      "description": "One registry event appended for the CI decision.",
+      "properties": {
+        "event_sha256": {
+          "title": "Event Sha256",
+          "type": "string"
+        },
+        "event_type": {
+          "title": "Event Type",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence",
+        "event_type",
+        "status",
+        "event_sha256"
+      ],
+      "title": "CalibrationCILifecycleEventRef",
+      "type": "object"
+    },
+    "CalibrationCILifecycleProvenance": {
+      "additionalProperties": false,
+      "description": "Who recorded the decision, with which Calibrex.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "default": "calibrex.calibration_ci_lifecycle",
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "default": "0.5.1",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "github_repository": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Repository"
+        },
+        "github_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Run Id"
+        },
+        "github_sha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github Sha"
+        }
+      },
+      "title": "CalibrationCILifecycleProvenance",
+      "type": "object"
+    },
+    "LifecycleArtifactRef": {
+      "additionalProperties": false,
+      "description": "Exact filesystem reference retained in the event log.",
+      "properties": {
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "LifecycleArtifactRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What a Calibration CI decision did to one lifecycle registry edge.",
+  "properties": {
+    "action": {
+      "enum": [
+        "promote",
+        "adoptable",
+        "hold",
+        "reject",
+        "blocked",
+        "rollback"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "admission": {
+      "anyOf": [
+        {
+          "enum": [
+            "ADOPT",
+            "DO_NOT_ADOPT",
+            "HOLD",
+            "BLOCKED",
+            "ROLLBACK",
+            "NOT_APPLICABLE"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Admission"
+    },
+    "candidate_result": {
+      "$ref": "#/$defs/LifecycleArtifactRef"
+    },
+    "ci_decision": {
+      "$ref": "#/$defs/LifecycleArtifactRef"
+    },
+    "ci_status": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Ci Status",
+      "type": "string"
+    },
+    "edge_id": {
+      "title": "Edge Id",
+      "type": "string"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/CalibrationCILifecycleEventRef"
+      },
+      "minItems": 1,
+      "title": "Events",
+      "type": "array"
+    },
+    "incumbent_after_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Incumbent After Sha256"
+    },
+    "incumbent_before_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Incumbent Before Sha256"
+    },
+    "incumbent_changed": {
+      "title": "Incumbent Changed",
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CalibrationCILifecycleProvenance"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "registry_head_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Registry Head Sha256"
+    },
+    "registry_id": {
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "registry_valid": {
+      "title": "Registry Valid",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "slac.calibration_ci_lifecycle/v0.1",
+      "default": "slac.calibration_ci_lifecycle/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "action",
+    "reason",
+    "registry_id",
+    "edge_id",
+    "ci_status",
+    "ci_decision",
+    "candidate_result",
+    "events",
+    "incumbent_changed",
+    "registry_valid",
+    "provenance"
+  ],
+  "title": "CalibrationCILifecycleArtifact",
+  "type": "object"
+}
