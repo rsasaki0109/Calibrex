@@ -33,6 +33,7 @@ from calibrex.pipelines.public_camera_lidar_demo import _digest, _numerical_payl
 REFERENCE_COMMIT = "9180b4c610f8a32e2b3ba328458cf530594e136f"
 CASES = ("x-positive", "x-negative", "y-positive", "y-negative", "z-positive", "z-negative")
 SOURCES = (
+    "src/calibrex/core/provenance.py",
     "src/calibrex/data/depth.py",
     "src/calibrex/evaluation/borer_rotation_benchmark.py",
     "src/calibrex/pipelines/camera_lidar_six_dof.py",
@@ -53,7 +54,9 @@ def _reference(commit: str, output: Path) -> ModuleType:
         sys.modules[name] = module
         loader.exec_module(module)
         modules.append(module)
-    depth, problem_loader, pipeline = modules
+    provenance, depth, problem_loader, pipeline = modules
+    depth.sha256_path = provenance.sha256_path
+    problem_loader.sha256_path = provenance.sha256_path
     problem_loader.verify_depth_provider_files = depth.verify_depth_provider_files
     problem_loader.DepthProviderArtifact = depth.DepthProviderArtifact
     pipeline.load_borer_problem = problem_loader.load_borer_problem
@@ -102,6 +105,7 @@ def main() -> None:
     )
     methods = {
         "sequential": reference.run_camera_lidar_six_dof_estimate,
+        "buffered_sequential": run_camera_lidar_six_dof_estimate,
         "checkpoint_overlap": run_camera_lidar_six_dof_estimate,
     }
     for case_index, case in enumerate(cases):
@@ -120,15 +124,19 @@ def main() -> None:
                 )
             )
             order = list(methods)
-            if (case_index + repetition) % 2 == 0:
-                order.reverse()
+            position = (case_index + repetition - 1) % len(order)
+            order = order[position:] + order[:position]
             for method in order:
                 started = time.perf_counter()
+                kwargs = (
+                    {"overlap_input_verification": False} if method == "buffered_sequential" else {}
+                )
                 result = methods[method](
                     problem,
                     projection_backend="cuda",
                     command=sys.argv,
                     holdout_frame_ids=oracle.run.provenance["configuration"]["holdout_frame_ids"],
+                    **kwargs,
                 )
                 wall = time.perf_counter() - started
                 parity = _numerical_payload(result) == expected
@@ -205,6 +213,7 @@ def main() -> None:
             )
             for method, source_commit in (
                 ("sequential", commit),
+                ("buffered_sequential", git_commit()),
                 ("checkpoint_overlap", git_commit()),
             )
         ],
