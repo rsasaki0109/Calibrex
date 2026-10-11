@@ -344,6 +344,10 @@ def detect_point_time(bag: Path, topic: str) -> tuple[str, PointTimeEncoding] | 
     return None
 
 
+ABSOLUTE_POINT_TIME_WINDOW_S = 5.0
+"""Largest distance from the header stamp at which point times count as absolute."""
+
+
 def classify_point_time(values: Any, header_ns: int) -> PointTimeEncoding | None:
     """Classify decoded per-point time values against the header stamp (ns)."""
 
@@ -355,9 +359,13 @@ def classify_point_time(values: Any, header_ns: int) -> PointTimeEncoding | None
         return None
     median = float(np.median(array))
     header_s = header_ns * 1.0e-9
-    if header_s > 1.0 and abs(median - header_s) < 1.0e3:
+    # An absolute point time lies within a sweep (and some latency) of its
+    # header.  A wider window misreads offsets as absolute times when the
+    # header runs on a sensor's since-boot clock (an Ouster OS1 ~750 s after
+    # boot stamps headers near 750 s while its offsets stay below 0.1 s).
+    if header_s > 1.0 and abs(median - header_s) < ABSOLUTE_POINT_TIME_WINDOW_S:
         return "absolute_s"
-    if header_ns > 0 and abs(median - header_ns) < 1.0e12:
+    if header_ns > 0 and abs(median - header_ns) < ABSOLUTE_POINT_TIME_WINDOW_S * 1.0e9:
         return "absolute_ns"
     if float(np.max(np.abs(array))) < 10.0:
         return "offset_s"

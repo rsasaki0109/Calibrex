@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TypeAlias
@@ -68,9 +68,8 @@ from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import rotation_matrix_to_rotation_vector, rotation_vector_to_matrix
 from calibrex.data.livox_ros2 import (
     LivoxStreamProfile,
+    ScanStore,
     bag_input_digest,
-    iter_livox_points,
-    load_livox_imu,
 )
 from calibrex.evaluation.imu_lidar_rotation import (
     ImuLidarRunOptions,
@@ -181,6 +180,9 @@ def calibrate_lidar_imu_bag(
         raise ValueError("max_rounds must exceed warmup_rounds so that every block is fitted")
     bag_path = Path(bag)
     rng = np.random.default_rng(opts.seed)
+    # Decode the bag once: the angular-rate passes, the odometry segment and
+    # the map rounds all replay the same scans.
+    store = ScanStore()
 
     emit_stage("angular-rate initial estimate")
     initial = run_livox_imu_lidar_rotation(
@@ -191,6 +193,7 @@ def calibrate_lidar_imu_bag(
         dataset_license=dataset_license,
         reference_rotation=None,
         max_seconds=max_seconds,
+        scan_store=store,
     )
     if initial.rotation_quat_xyzw is None:
         raise ValueError(
@@ -201,7 +204,7 @@ def calibrate_lidar_imu_bag(
     initial_bias = np.asarray(initial.gyro_bias_rps, dtype=float)
 
     emit_stage("gyro-deskewed odometry segment")
-    imu = load_livox_imu(bag_path, profile)
+    imu = store.imu(bag_path, profile)
     gyro_series = GyroSeries(imu.times_s, imu.gyro_rps)
     segment_options = replace(
         opts.rotation,
@@ -215,6 +218,7 @@ def calibrate_lidar_imu_bag(
             gyro_series, initial_rotation, initial_bias, initial.time_offset_s
         ),
         max_seconds=max_seconds,
+        scan_store=store,
     )
     if not windows:
         raise ValueError("no reliable LiDAR odometry segment in the bag")
@@ -223,7 +227,9 @@ def calibrate_lidar_imu_bag(
     window_times = np.asarray(window.times_s, dtype=float) - reference
     trajectory = _initial_spline(window_times, np.asarray(window.poses), opts.knot_spacing_s)
     end = trajectory.end_time_sec
-    scans = _segment_scans(bag_path, profile, reference, end, opts, rng, max_seconds)
+    scans = _segment_scans(
+        store.scans(bag_path, profile, max_seconds=max_seconds), reference, end, opts, rng
+    )
     if len(scans) < 10:
         raise ValueError(f"only {len(scans)} scans fall inside the odometry segment")
 
@@ -425,17 +431,15 @@ def _initial_spline(
 
 
 def _segment_scans(
-    bag: Path,
-    profile: LivoxStreamProfile,
+    source: Iterator[tuple[float, FloatArray, FloatArray | None]],
     reference: float,
     end: float,
     opts: LidarImuBagOptions,
     rng: np.random.Generator,
-    max_seconds: float | None,
 ) -> list[_Scan]:
     keep = opts.map_points_per_scan + opts.returns_per_scan
     scans: list[_Scan] = []
-    for header, points, offsets in iter_livox_points(bag, profile, max_seconds=max_seconds):
+    for header, points, offsets in source:
         start = header - reference
         times = np.zeros(len(points)) if offsets is None else np.asarray(offsets, dtype=float)
         if start < 0.0 or start + float(np.max(times, initial=0.0)) > end:

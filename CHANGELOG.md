@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Fix: per-point time offsets under a since-boot header clock.** `classify_point_time` called
+  point times "absolute" when their median lay within 1000 s (or 1e12 ns) of the header stamp,
+  so an Ouster OS1 whose headers run on its since-boot clock (about 750 s after boot in TIERS
+  Indoor02) had its 0-0.1 s offsets read as times 750 s before the header, breaking deskew and
+  per-point timing. Absolute times must now lie within 5 s of the header. `calibrex imu-lidar
+  joint` also decodes the bag once (one `ScanStore` for the angular-rate passes, the odometry
+  segment and the map rounds). No schema change.
 - **`calibrex imu-lidar joint`: joint LiDAR-IMU calibration of a recorded bag.** Runs the cubic
   B-spline fit of `calibrex.core.continuous_time_bspline_fit` on a bag
   (`calibrex.evaluation.lidar_imu_bag_calibration`): the angular-rate estimate seeds the rotation,
