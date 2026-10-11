@@ -238,6 +238,104 @@ def test_standalone_residual_evaluation_observes_mutated_plane_map():
     assert livox._point_to_plane_residuals(points, **options) == ([0.9] * 64, 0)
 
 
+@pytest.mark.parametrize("count", [0, 17, 255, 256, 4096])
+@pytest.mark.parametrize("voxel", [0.01, 1.0, -0.5])
+def test_array_voxels_preserve_scalar_sums_first_seen_order_and_centroid_bits(count, voxel):
+    rng = np.random.default_rng(109)
+    points = [(*row, float("nan")) for row in rng.uniform(-3, 3, (count, 3)).tolist()]
+    expected = {}
+    for point in points:
+        key = livox._voxel_key(point, voxel)
+        if key not in expected:
+            expected[key] = livox._VoxelCentroid()
+        expected[key].add(point)
+    actual = livox._voxel_centroids(points, voxel)
+    assert list(actual) == list(expected)
+    for key in expected:
+        a, b = actual[key], expected[key]
+        assert a.count == b.count
+        assert np.asarray([a.x_sum, a.y_sum, a.z_sum, *a.centroid]).tobytes() == np.asarray(
+            [b.x_sum, b.y_sum, b.z_sum, *b.centroid],
+        ).tobytes()
+
+
+def test_unbuffered_voxel_accumulation_preserves_nonassociative_sums_and_zero_signs():
+    points = [(1.0e16, -0.0, 0.0, 0.0), (1.0, 0.0, -0.0, 0.0)]
+    points += [(1.0, -0.0, 0.0, 0.0)] * 298
+    for voxel in (1.0e20, -1.0e20):
+        expected = {}
+        for point in points:
+            key = livox._voxel_key(point, voxel)
+            expected.setdefault(key, livox._VoxelCentroid()).add(point)
+        actual = livox._voxel_centroids(points, voxel)
+        assert list(actual) == list(expected)
+        assert np.sum([p[0] for p in points]) != next(iter(expected.values())).x_sum
+        for key in expected:
+            assert np.asarray(actual[key].centroid).tobytes() == np.asarray(
+                expected[key].centroid,
+            ).tobytes()
+
+
+@pytest.mark.parametrize("value", [1.0e30, -1.0e30, 1.0e12])
+def test_large_voxel_keys_and_extent_products_retain_arbitrary_precision(value):
+    points = [(value, -value, value, 0.0), (-value, value, -value, 0.0)] * 130
+    result = livox._voxel_centroids(points, 0.25)
+    assert list(result) == [livox._voxel_key(points[0], 0.25),
+                            livox._voxel_key(points[1], 0.25)]
+    assert all(v.count == 130 for v in result.values())
+
+
+@pytest.mark.parametrize("voxel,error", [(0.0, ZeroDivisionError),
+                                         (float("nan"), ValueError),
+                                         (1.0e-300, OverflowError)])
+def test_array_voxel_guards_preserve_scalar_invalid_input_exceptions(voxel, error):
+    with pytest.raises(error):
+        livox._voxel_centroids([(1.0e100, 0.0, 0.0, 0.0)] * 256, voxel)
+
+
+@pytest.mark.parametrize("budget", [0, 8, 448, 496, 4096, 8 * 1024 * 1024])
+def test_packed_neighborhoods_share_lookup_budget_and_keep_offset_order(budget, monkeypatch):
+    monkeypatch.setattr(livox, "_DENSE_PLANE_INDEX_MAX_BYTES", budget)
+    plane_map = _map()
+    index = livox._prepare_plane_index(plane_map)
+    assert index is not None
+    size = index.dense_positions.nbytes if index.dense_positions is not None else 0
+    packed = index.neighborhoods
+    if packed is not None:
+        size += sum(a.nbytes for a in (
+            packed.lower, packed.upper, packed.offsets, packed.positions,
+        ))
+        assert not packed.offsets.flags.writeable
+        assert not packed.positions.flags.writeable
+        for key in plane_map:
+            encoded = (
+                ((key[0] - int(packed.lower[0])) * packed.widths[1]
+                 + key[1] - int(packed.lower[1])) * packed.widths[2]
+                + key[2] - int(packed.lower[2])
+            )
+            expected = [k for k in livox._neighbor_keys(key) if k in plane_map]
+            positions = packed.positions[packed.offsets[encoded]:packed.offsets[encoded + 1]]
+            assert [tuple(index.keys[p]) for p in positions] == expected
+    assert size <= budget
+
+
+def test_context_reuses_only_latest_transform_array_and_preserves_signed_zero(tmp_path):
+    _write_pcd(tmp_path / "a.pcd")
+    context = livox.LivoxPCDEvaluationContext(tmp_path)
+    path = context._files[0]
+    first_pose = SE3.identity()
+    first = context._query_coordinates(path, first_pose)
+    assert context._query_coordinates(path, first_pose) is first
+    assert not first.flags.writeable
+    other_pose = SE3((-0.0, 0.0, 0.0), (0.0, -0.0, 0.0, 1.0))
+    other = context._query_coordinates(path, other_pose)
+    assert other is not first
+    assert len(context._queries) == 1
+    expected = livox._transform_query_points(context.read_points(path), other_pose)
+    assert other.tobytes() == np.asarray(expected).tobytes()
+    assert context._queries[path][0] is other_pose
+
+
 def test_dense_neighborhoods_keep_exact_residuals_and_prepared_arrays_are_readonly():
     plane_map = {
         (x, y, z): livox._VoxelPlane(
