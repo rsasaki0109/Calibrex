@@ -430,3 +430,26 @@ all raw timings and ranges are retained. All twenty complete timed payloads and
 twelve signed-axis snapshot payloads match their bound CPU oracles exactly.
 See the [snapshot evidence](../assets/verified_input_snapshot/README.md) and
 [usage/timing contract](public_six_dof_demo.md) before comparing repeated runs.
+
+## Profiling the remaining CUDA work
+
+`python tools/profile_d2d_cuda.py --problem problem.json --output-dir profile`
+measures ordinary evaluation latency alongside an instrumented run. Use
+`--exclude-frame-id ID` repeatedly to retain the same training frame selection,
+and set `--repeats`, `--poses-per-repeat`, `--warmup-poses`, or `--cuda-cache-mib`
+explicitly when comparing diagnostic runs. Compilation, input verification and
+preparation are excluded from samples and recorded separately.
+
+The tool checks every complete evaluation against NumPy, brackets initialization,
+projection, visibility selection and histogram launches with CUDA events, and
+restores original kernel handles even after an exception. It retains one pose's
+events at a time. The two schema-valid reports alternate ordinary/instrumented
+order and show observer overhead; stage spans and call counts are retained in
+instrumented trial provenance. CUDA events can include scheduling and host
+enqueue gaps, so these spans are not pure kernel execution times and must not be
+subtracted from ordinary wall time.
+
+The [public KITTI diagnostic](../assets/cuda_stage_profile/README.md) retains
+ten repetitions of 20 evaluations per mode, numerical parity, source hashes,
+stage timings and an uncached smoke run. It is profiling evidence, not a new
+solver acceleration or an accuracy benchmark.

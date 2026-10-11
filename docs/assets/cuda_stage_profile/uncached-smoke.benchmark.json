@@ -1,0 +1,268 @@
+{
+  "benchmark_id": "d2d-cuda-stage-profile",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Instrumented stream spans are not pure kernel execution times. Do not subtract them from wall time or infer a speedup ceiling.",
+    "Event recording changes scheduling/latency; ordinary and instrumented walls expose observer overhead.",
+    "Single pose, shared host, warmed runtime. No accuracy, portability or confidence claim.",
+    "Loading/verification 3.4992688999627717s and CUDA preparation 0.23448320000898093s are excluded from samples.",
+    "Frames: 20; points: 2503637; samples per repeat: 1",
+    "Environment: Python 3.12.10; Windows-11-10.0.26300-SP0; Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
+    "Transfer statistics: {\"cache_budget_bytes\": 0, \"cached_input_bytes\": 0, \"evaluation_input_upload_bytes\": 305391168, \"evaluation_input_upload_calls\": 40, \"histogram_download_bytes\": 328320, \"histogram_download_calls\": 2, \"preparation_input_upload_bytes\": 0, \"preparation_input_upload_calls\": 0, \"prepared_observation_count\": 0}"
+  ],
+  "method_summaries": {
+    "instrumented": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.038403899990953505,
+            "mean": 0.038403899990953505,
+            "mean_ci95_high": 0.038403899990953505,
+            "mean_ci95_low": 0.038403899990953505,
+            "median": 0.038403899990953505,
+            "minimum": 0.038403899990953505,
+            "p90": 0.038403899990953505,
+            "p95": 0.038403899990953505,
+            "standard_deviation": 0.0
+          },
+          "metric": "wall_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 1,
+        "maximum": 0.038403899990953505,
+        "mean": 0.038403899990953505,
+        "mean_ci95_high": 0.038403899990953505,
+        "mean_ci95_low": 0.038403899990953505,
+        "median": 0.038403899990953505,
+        "minimum": 0.038403899990953505,
+        "p90": 0.038403899990953505,
+        "p95": 0.038403899990953505,
+        "standard_deviation": 0.0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "ordinary": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.03943410003557801,
+            "mean": 0.03943410003557801,
+            "mean_ci95_high": 0.03943410003557801,
+            "mean_ci95_low": 0.03943410003557801,
+            "median": 0.03943410003557801,
+            "minimum": 0.03943410003557801,
+            "p90": 0.03943410003557801,
+            "p95": 0.03943410003557801,
+            "standard_deviation": 0.0
+          },
+          "metric": "wall_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 1,
+        "maximum": 0.03943410003557801,
+        "mean": 0.03943410003557801,
+        "mean_ci95_high": 0.03943410003557801,
+        "mean_ci95_low": 0.03943410003557801,
+        "median": 0.03943410003557801,
+        "minimum": 0.03943410003557801,
+        "p90": 0.03943410003557801,
+        "p95": 0.03943410003557801,
+        "standard_deviation": 0.0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "ordinary: calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32;cache_bytes=0",
+      "method_id": "ordinary",
+      "source_commit": "36dedc3",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "instrumented: calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32;cache_bytes=0",
+      "method_id": "instrumented",
+      "source_commit": "36dedc3",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Host evaluation wall time including histogram transfer and MI",
+      "label": "wall_seconds",
+      "name": "wall_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Exact full evaluation equality with NumPy",
+      "label": "numerical_parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "instrumented",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0010302000446245074,
+      "improvement_ci95_low": 0.0010302000446245074,
+      "improvement_mean": 0.0010302000446245074,
+      "metric": "wall_seconds",
+      "paired_count": 1,
+      "raw_delta_mean": -0.0010302000446245074,
+      "reference_method_id": "ordinary"
+    },
+    {
+      "candidate_method_id": "instrumented",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "ordinary"
+    }
+  ],
+  "protocol": {
+    "data_license": "input dataset-specific",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+    "failure_policy": "Abort on CUDA or evaluation mismatch; no partial success report",
+    "initial_estimate_policy": "Problem's declared initial pose; unchanged across all samples",
+    "protocol_id": "d2d-cuda-stage-profile/v0.1",
+    "split_policy": "Repeated timing at the declared prior; no accuracy split. The holdout anchor is NumPy evaluation of the same pose.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "6d36e37ce49986dec86f71ccc1150815c3b4695345ce58e046bd2416fc91a3d9",
+        "seed": 0,
+        "split_id": "0"
+      }
+    ],
+    "tuning_policy": "Native histogram settings; ordinary/instrumented order alternates"
+  },
+  "provenance": {
+    "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-uncached-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 1 --poses-per-repeat 1 --warmup-poses 0 --cuda-cache-mib 0",
+    "data_verified": true,
+    "generated_at": "2026-10-11T03:29:15.095364+00:00",
+    "generator": "tools.profile_d2d_cuda",
+    "generator_version": "v0.1",
+    "git_commit": "36dedc3",
+    "source_artifacts": {
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "problem": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+      "src/calibrex/solvers/borer_depth_to_depth_solver.py": "d326fed2fe34901f335a943580f6542614e1088aed1e95733753e45a9539c358",
+      "src/calibrex/solvers/cuda_depth_to_depth_adapter.py": "de09fa91d39872bf101597fbf829ba106422deed3f0531aeb5935969a616e734",
+      "tools/profile_d2d_cuda.py": "124b65193c5ca7027700954092efb2c5d17c74cdd6fbb51ac3f23a37e1e52a95"
+    }
+  },
+  "reference_method_id": "ordinary",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "CUDA D2D stream spans and observer overhead",
+  "trials": [
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.03943410003557801
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-uncached-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 1 --poses-per-repeat 1 --warmup-poses 0 --cuda-cache-mib 0",
+        "config_sha256": "6d36e37ce49986dec86f71ccc1150815c3b4695345ce58e046bd2416fc91a3d9",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']"
+        ]
+      },
+      "runtime_seconds": 0.03943410003557801,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.038403899990953505
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-uncached-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 1 --poses-per-repeat 1 --warmup-poses 0 --cuda-cache-mib 0",
+        "config_sha256": "6d36e37ce49986dec86f71ccc1150815c3b4695345ce58e046bd2416fc91a3d9",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']",
+          "Kernel calls: {\"histogram_stream_seconds\": 20, \"initialize_stream_seconds\": 20, \"project_stream_seconds\": 20, \"select_stream_seconds\": 20}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0017181120105087756, \"initialize_stream_seconds\": 0.0019377599880099296, \"project_stream_seconds\": 0.002073824018239975, \"select_stream_seconds\": 0.00040195199847221376}"
+        ]
+      },
+      "runtime_seconds": 0.038403899990953505,
+      "split_id": "0",
+      "status": "success"
+    }
+  ]
+}
