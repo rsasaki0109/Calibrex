@@ -1355,6 +1355,34 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_trajectory.add_argument("--output-translation", type=Path)
     imu_lidar_trajectory.add_argument("--json", action="store_true")
     imu_lidar_trajectory.set_defaults(func=_cmd_imu_lidar_trajectory)
+    imu_lidar_joint = imu_lidar_subcommands.add_parser(
+        "joint",
+        help="jointly calibrate IMU rotation, lever arm, clock offset, biases and gravity "
+        "against LiDAR on a B-spline trajectory from one bag",
+    )
+    imu_lidar_joint.add_argument("bag", type=Path, help="rosbag2 directory, .db3, .mcap or .bag")
+    imu_lidar_joint.add_argument("--lidar-topic", required=True, help="PointCloud2 topic")
+    imu_lidar_joint.add_argument("--imu-topic", required=True, help="sensor_msgs/Imu topic")
+    imu_lidar_joint.add_argument(
+        "--acceleration-unit",
+        choices=("mps2", "g"),
+        default="mps2",
+        help="unit of the IMU linear acceleration (Livox reports g)",
+    )
+    imu_lidar_joint.add_argument("--dataset-family", required=True)
+    imu_lidar_joint.add_argument("--dataset-license", required=True)
+    imu_lidar_joint.add_argument(
+        "--max-seconds", type=_positive_float, help="read only this many seconds of the bag"
+    )
+    imu_lidar_joint.add_argument(
+        "--max-rounds",
+        type=_positive_int,
+        default=8,
+        help="map rounds (re-associate LiDAR returns, refit) before giving up on convergence",
+    )
+    imu_lidar_joint.add_argument("--output", type=Path, required=True)
+    imu_lidar_joint.add_argument("--json", action="store_true")
+    imu_lidar_joint.set_defaults(func=_cmd_imu_lidar_joint)
 
     camera_imu = subcommands.add_parser(
         "camera-imu",
@@ -7060,6 +7088,58 @@ def _cmd_imu_lidar_livox(args: argparse.Namespace) -> int:
             "status": artifact.policy_status,
             "artifact": str(args.output),
             "calibrated_dofs": artifact.calibrated_dofs,
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
+def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
+    from calibrex.check.estimators import detect_point_time
+    from calibrex.data.livox_ros2 import LivoxStreamProfile
+    from calibrex.evaluation.lidar_imu_bag_calibration import (
+        LidarImuBagOptions,
+        calibrate_lidar_imu_bag,
+    )
+
+    command = ["calibrex", "imu-lidar", "joint", str(args.bag)]
+    command += ["--lidar-topic", args.lidar_topic, "--imu-topic", args.imu_topic]
+    command += ["--acceleration-unit", args.acceleration_unit]
+    command += ["--dataset-family", args.dataset_family, "--dataset-license", args.dataset_license]
+    if args.max_seconds is not None:
+        command += ["--max-seconds", str(args.max_seconds)]
+    command += ["--max-rounds", str(args.max_rounds), "--output", str(args.output)]
+    try:
+        point_time = detect_point_time(args.bag, args.lidar_topic)
+        profile = LivoxStreamProfile(
+            name="joint",
+            point_topic=args.lidar_topic,
+            imu_topic=args.imu_topic,
+            point_time_field=None if point_time is None else point_time[0],
+            point_time_encoding="offset_s" if point_time is None else point_time[1],
+            acceleration_unit=args.acceleration_unit,
+        )
+        artifact = calibrate_lidar_imu_bag(
+            args.bag,
+            profile,
+            LidarImuBagOptions(max_rounds=args.max_rounds),
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            max_seconds=args.max_seconds,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "t_lidar_imu_translation_m": artifact.t_lidar_imu_translation_m,
+            "t_lidar_imu_rotation_quat_xyzw": artifact.t_lidar_imu_rotation_quat_xyzw,
+            "imu_clock_offset_s": artifact.imu_clock_offset_s,
+            "blocks": {record.name: record.verdict for record in artifact.blocks},
             "reasons": artifact.policy_reasons,
         },
         args.json,

@@ -160,6 +160,26 @@ class CubicBSplineTrajectory:
         )
 
 
+def cumulative_basis(
+    fraction: FloatArray, knot_spacing_sec: float
+) -> tuple[FloatArray, FloatArray, FloatArray]:
+    """Return the cumulative basis ``l_j(u)`` and its first and second time derivatives.
+
+    Each array has shape ``(T, 4)``; column 0 is the constant ``l_0 = 1``.
+    """
+
+    u = np.asarray(fraction, dtype=float).reshape(-1)
+    count = u.size
+    powers = np.stack([np.ones(count), u, u * u, u * u * u], axis=1)
+    d_powers = np.stack([np.zeros(count), np.ones(count), 2.0 * u, 3.0 * u * u], axis=1)
+    dd_powers = np.stack([np.zeros(count), np.zeros(count), 2.0 * np.ones(count), 6.0 * u], axis=1)
+    return (
+        powers @ _CUMULATIVE_BASIS.T,
+        d_powers @ _CUMULATIVE_BASIS.T / knot_spacing_sec,
+        dd_powers @ _CUMULATIVE_BASIS.T / (knot_spacing_sec * knot_spacing_sec),
+    )
+
+
 def evaluate_local_spline(
     rotations: FloatArray,
     positions: FloatArray,
@@ -173,14 +193,8 @@ def evaluate_local_spline(
     for every timestamp at once.
     """
 
-    u = np.asarray(fraction, dtype=float).reshape(-1)
-    count = u.size
-    powers = np.stack([np.ones(count), u, u * u, u * u * u], axis=1)
-    d_powers = np.stack([np.zeros(count), np.ones(count), 2.0 * u, 3.0 * u * u], axis=1)
-    dd_powers = np.stack([np.zeros(count), np.zeros(count), 2.0 * np.ones(count), 6.0 * u], axis=1)
-    basis = powers @ _CUMULATIVE_BASIS.T
-    d_basis = d_powers @ _CUMULATIVE_BASIS.T / knot_spacing_sec
-    dd_basis = dd_powers @ _CUMULATIVE_BASIS.T / (knot_spacing_sec * knot_spacing_sec)
+    basis, d_basis, dd_basis = cumulative_basis(fraction, knot_spacing_sec)
+    count = basis.shape[0]
 
     rotation = np.array(rotations[:, 0], dtype=float, copy=True)
     omega = np.zeros((count, 3), dtype=float)

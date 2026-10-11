@@ -120,6 +120,7 @@ from calibrex.core.external_run import external_run_json_schema
 from calibrex.core.koide_handoff import koide_execution_lock_json_schema
 from calibrex.core.koide_readiness import koide_readiness_json_schema
 from calibrex.core.koide_runner import koide_runner_json_schema
+from calibrex.core.lidar_imu_bag_calibration import lidar_imu_bag_calibration_json_schema
 from calibrex.core.lifecycle_registry import (
     lifecycle_evaluation_json_schema,
     lifecycle_event_json_schema,
@@ -337,6 +338,7 @@ def test_static_schema_files_match_generated_schemas() -> None:
         "continuous_time_lidar_imu_joint.schema.json": (
             continuous_time_lidar_imu_joint_json_schema
         ),
+        "lidar_imu_bag_calibration.schema.json": lidar_imu_bag_calibration_json_schema,
         "continuous_time_sliding_window.schema.json": (
             continuous_time_sliding_window_json_schema
         ),

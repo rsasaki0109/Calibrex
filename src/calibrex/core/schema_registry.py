@@ -262,6 +262,10 @@ from calibrex.core.koide_real_pilot import (
 from calibrex.core.koide_runner import (
     koide_runner_json_schema,
 )
+from calibrex.core.lidar_imu_bag_calibration import (
+    LidarImuBagCalibrationArtifact,
+    lidar_imu_bag_calibration_json_schema,
+)
 from calibrex.core.lidar_lidar_extrinsic import (
     LidarLidarExtrinsicArtifact,
     lidar_lidar_extrinsic_json_schema,
@@ -624,6 +628,11 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         "continuous-time-lidar-imu-joint",
         ContinuousTimeLidarImuJointArtifact,
         continuous_time_lidar_imu_joint_json_schema,
+    ),
+    _entry(
+        "lidar-imu-bag-calibration",
+        LidarImuBagCalibrationArtifact,
+        lidar_imu_bag_calibration_json_schema,
     ),
     _entry(
         "calibration-lifecycle", CalibrationLifecycleArtifact, calibration_lifecycle_json_schema

@@ -366,6 +366,26 @@ real-data half: a rosbag front end (LiDAR returns against a local plane map
 instead of known planes, an initial spline from LiDAR odometry and the
 angular-rate rotation estimate) and the TIERS run.
 
+**Progress (2026-10-11, bag front end):** `calibrex imu-lidar joint <bag>
+--lidar-topic ... --imu-topic ...` (`slac.lidar_imu_bag_calibration/v0.1`;
+next to the other `imu-lidar` commands rather than a new `lidar-imu` group)
+runs the joint B-spline fit on a recorded bag. The angular-rate method gives
+the starting rotation, clock offset and gyro bias; gyro-deskewed odometry over
+the longest reliable segment seeds the spline; map rounds build a plane map
+from the placed scans, associate per-point-timed returns to it and refit, with
+the IMU noise re-estimated from the residuals; held-out IMU samples score
+signed controls. On a synthetic 12 s bag (16-beam spinning LiDAR in a room,
+200 Hz IMU, `calibrex.data.synthetic_lidar_imu_bag`) it passes with rotation
+error 0.025 deg, lever arm within about 3 mm and clock offset within 0.05 ms, and the
+estimated noise matches the injected noise; an 8 s bag stops after four rounds
+at 0.13 deg and reads WARN because the rounds have not converged. The formal
+std holds the plane map fixed and understates the error (about 3 sigma on the
+12 s bag), so the artifact also reports the last round's change and the
+difference from the angular-rate estimate. Open: the TIERS Indoor02 run
+(`calibrex imu-lidar joint <indoor02 rosbag2> --lidar-topic
+/os_cloud_nodee/points --imu-topic /os_cloud_nodee/imu ...`) needs the data,
+which is not in this environment.
+
 **Acceptance conditions:**
 
 - Synthetic joint recovery meets the budgets of the individual `recover-*`
