@@ -164,3 +164,66 @@ observations remains part of the evidence.
 retain individual timings, repeated summaries, and earlier full numerical traces. This is
 one development drive and perturbation, rather than a multi-dataset recovery
 evaluation or a portable speed guarantee.
+
+## Compare six initializations and parallelize CPU cases
+
+Use a prespecified signed-axis sweep to check that CPU/candidate parity extends
+beyond one initial pose:
+
+```bash
+calibrex demo kitti-six-dof-sweep \
+  /path/to/2011_09_30_drive_0018_sync /path/to/featdepth-provider.json \
+  --output-dir outputs/kitti-six-dof-sweep --json
+```
+
+The six cases are x-positive, x-negative, y-positive, y-negative, z-positive,
+and z-negative, in that order. Each adds rotation and translation on that axis
+to the dataset reference: local Euler rotation ±0.5 degrees and camera-frame
+translation ±0.5 m by default. `--rotation-deg` and `--translation-m` set positive
+magnitudes within the solver bounds. This is a controlled prior, not an
+independently measured initialization. Every case uses the same prespecified
+25 frames, 20/5 fit/holdout split, frozen provider, and solver settings.
+
+For CPU-only comparisons, independent cases can run in separate processes:
+
+```bash
+calibrex demo kitti-six-dof-sweep \
+  /path/to/2011_09_30_drive_0018_sync /path/to/featdepth-provider.json \
+  --candidate-backend numba_cpu --workers 2 \
+  --output-dir outputs/kitti-six-dof-sweep-cpu --json
+```
+
+`--workers` defaults to 1 and must be a positive integer; at most six workers
+are created. Each spawned process owns its input arrays, projector, and result
+directory. Memory use grows with the number of workers. Use `numpy` as the
+candidate for an explicit CPU replay if Numba is unavailable. CUDA comparisons
+require `--workers 1` and reject concurrent GPU contexts before loading inputs.
+This parallelizes independent cases, not the solver's ordered search decisions.
+Individual timing measurements under multiple workers include CPU/memory
+contention and are not isolated serial latencies.
+
+`--repetitions`, `--cuda-cache-mib`, and `--max-evaluations` work as in the
+single-case demo. Invocations inside each case are serial and alternate method
+order across repetitions. CPU/candidate parity is checked within each case and
+all its repetitions; different cases can legitimately have different traces
+and final poses. No cross-case speed ratio is inferred.
+
+Before optimization, `sweep.plan.definition.json` saves a schema-valid plan
+with entries explicitly marked `not executed; frozen plan entry`. It binds the
+verified `sweep.source.problem.json`, solver settings, worker count, and fixed
+initialization policy. The plan is never rewritten as completed evidence.
+`sweep.definition.json` and `sweep.benchmark.json` preserve every completed,
+partial, or failed attempt and bind the plan, child comparisons, and original
+standard results. Each case retains the usual demo artifacts and HTML overlays
+in its own subdirectory. The suite `report.html` links all six case reports.
+Successful-only medians do not hide failures: success/attempt counts and
+failure reasons remain visible. Input verification errors abort the suite and
+preserve already-written evidence.
+
+The JSON output includes elapsed time through all case reports: shared
+verification, worker startup, input loading, optimization, holdout, result
+serialization, and case HTML rendering. Final suite summary writing is
+excluded. These six fixed initializations describe one development drive,
+not independent metrology, a full recovery basin, or statistical confidence.
+Exit `0` requires all requested attempts to converge with evaluable holdout
+and exact parity; exit `2` retains incomplete comparisons.

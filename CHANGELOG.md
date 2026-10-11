@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add `calibrex demo kitti-six-dof-sweep` for six prespecified signed-axis
+  initializations on the same public KITTI fit/holdout frames. Save a plan before
+  optimization, retain all case evidence, and compare numerical traces within
+  each case. CPU-only sweeps support isolated worker processes via `--workers`;
+  CUDA comparisons stay serial. The overview links every case report.
+
 - Add `--repetitions` to the public KITTI six-DoF demo. Reuse one frozen
   problem and initial pose, alternate CPU/candidate order, retain every attempt,
   and report successful-run timing medians/ranges. Exact parity is checked across
