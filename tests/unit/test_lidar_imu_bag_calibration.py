@@ -92,3 +92,30 @@ def test_cli_joint_calibration_recovers_the_injected_calibration(tmp_path: Path)
     assert artifact["holdout_whitened_rms"]["gyro"] < 1.5
     assert artifact["provenance"]["point_time_field"] == "offset_time"
     assert artifact["provenance"]["command"][:3] == ["calibrex", "imu-lidar", "joint"]
+
+
+def test_band_limit_removes_vibration_without_delaying_the_motion() -> None:
+    from calibrex.data.livox_ros2 import ImuSamples
+    from calibrex.evaluation.lidar_imu_bag_calibration import _band_limit
+
+    times = np.arange(0.0, 20.0, 0.01)
+    times = np.delete(times, 777)  # one dropped sample
+    motion = np.sin(2.0 * np.pi * 0.5 * times)
+    vibration = 0.8 * np.sin(2.0 * np.pi * 18.0 * times)
+    values = np.stack([motion + vibration, motion, -motion], axis=1)
+    band = _band_limit(ImuSamples(times, values, 9.81 + values), cutoff_hz=10.0)
+
+    # Resampled at twice the cutoff on a uniform grid from the first sample.
+    assert np.allclose(np.diff(band.times_s), 0.05)
+    inside = (band.times_s > 1.0) & (band.times_s < 19.0)
+    expected = np.sin(2.0 * np.pi * 0.5 * band.times_s[inside])
+    # The 18 Hz vibration is gone and the 0.5 Hz motion keeps its phase; only
+    # the interpolated dropped sample leaves a short local error.
+    away = np.abs(band.times_s[inside] - times[776]) > 0.5
+    error = band.gyro_rps[inside, 0] - expected
+    assert np.max(np.abs(error[away])) < 0.01
+    assert np.max(np.abs(error)) < 0.1
+    assert np.max(np.abs(band.gyro_rps[inside, 1] - expected)) < 1.0e-3
+    assert np.max(np.abs(band.accel_mps2[inside, 2] - (9.81 - expected))) < 1.0e-3
+    with pytest.raises(ValueError, match="Nyquist"):
+        _band_limit(ImuSamples(times, values, values), cutoff_hz=60.0)
