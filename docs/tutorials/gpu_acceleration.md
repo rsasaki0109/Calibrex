@@ -589,6 +589,34 @@ command. It also retains ten intermediate and two pilot executions. These
 single-pair timings do not establish independent calibration accuracy, and
 must not be multiplied by earlier ICP-only ratios.
 
+## Sharing Livox geometry across the complete run
+
+Inspection, candidate/control evaluation and native registration now share one
+captured input context per calibration API invocation. Source voxel sums and
+read-only plane arrays are prepared once. Compact maps use direct position
+tables capped at 8 MiB each; larger maps retain sparse or scalar lookup.
+Empty neighbors avoid distance calculations while keeping the same 27-candidate
+order, ties, arithmetic, population and control settings. New runs read fresh
+inputs automatically.
+
+The direct cumulative comparison against the pre-Livox-acceleration version
+measures **40.685 → 10.690 s wall medians (3.81x)** over five fresh-process
+repetitions per method. A separate comparison against the preceding accelerated
+version measures **12.172 → 10.728 s (1.13x)**; its API subset measures
+**9.699 → 7.639 s (1.27x)**. The additional complete-process gain is modest.
+Both comparisons include the same inspection, full input points, 24 controls,
+native ICP diagnostics, Open3D GICP, NDT availability and output saves. CLI
+argument dispatch is excluded; worker measurement writes are included in wall.
+
+All twenty final formal saved results and API payloads are exactly equal after
+run-ID/timestamp/destination normalization. Quality remains `fail`, and the
+registration comparison remains `inconclusive`. These are single-pair execution
+and numerical-parity measurements. The [geometry reuse evidence](../assets/livox_geometry/README.md)
+retains all timings, source bytes, ranges, ten intermediate workers and two
+completed API workers from an interrupted attempt. The interrupted attempt's
+wall timing and final parent guards are unavailable; its API times remain in a
+separate protocol. Prior ratios are not multiplied.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2

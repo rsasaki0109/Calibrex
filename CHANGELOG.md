@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Share Livox captured inputs and statistics across inspection, candidate/control
+  evaluation and registration within one calibration run. Reuse source voxel sums
+  and immutable plane arrays, cap compact direct-index tables at 8 MiB each and
+  avoid distances for empty neighbors. Preserve all numerical outputs and fresh
+  inputs on the next run. Publish separate cumulative, incremental, intermediate
+  and interrupted-worker timing evidence without mixing their measurement scopes.
+
 - Accelerate Livox candidate and perturbation evaluation with invocation-scoped
   decoded records, invariant statistics and source planes. Batch exact 27-voxel
   associations using checked sparse integer keys, and preserve the scalar
