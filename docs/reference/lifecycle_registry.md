@@ -66,6 +66,41 @@ last event and the replayed state projection. Appends use an exclusive lock
 file plus a compare-and-swap head check, so concurrent operators cannot both
 claim the same sequence.
 
+## From Calibration CI
+
+`calibrex lifecycle record-ci` turns a `calibrex ci` decision into registry
+events for one edge:
+
+```text
+calibrex ci calibration/candidate.yaml --policy calibration/policy.json \
+  --output-dir calibrex-ci
+calibrex lifecycle record-ci calibrex-ci/calibration-ci.json \
+  --registry-root .calibrex/lifecycle --edge-id lidar-front-camera \
+  --capture-manifest capture.yaml --promotion promotion.yaml --smoke smoke.yaml \
+  --promote --output lifecycle-record.json --json
+```
+
+The decision, the candidate result, the CI assessment and the CI policy are
+copied into `ci/<sha256 of calibration-ci.json>/` inside the registry, once;
+a snapshot file with different bytes is refused, so later verification never
+depends on a CI workspace. The candidate is then evaluated with the decision
+as evidence and the CI assessment as assessment:
+
+| CI decision | Registry events | Incumbent |
+| --- | --- | --- |
+| PASS, promotion and smoke PASS, `--promote` | `evaluate`, `promote` | the candidate |
+| PASS without `--promote` | `evaluate` (ADOPT) | unchanged |
+| INCONCLUSIVE or WARN | `hold` | unchanged |
+| FAIL | `reject` | unchanged |
+| FAIL about the promoted incumbent, `--rollback-on-fail` | `rollback` (decision as evidence) | the incumbent before that promotion |
+
+A candidate whose bytes changed after the decision is refused, a decision
+cannot be recorded twice, and the command verifies the registry afterwards
+(exit 1 if verification fails). The record is a schema-valid
+`slac.calibration_ci_lifecycle/v0.1` artifact. A GitHub workflow that promotes
+on merge and re-checks the incumbent weekly is in
+[`examples/ci/calibration-ci-lifecycle.yml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/ci/calibration-ci-lifecycle.yml).
+
 ## Limitations
 
 The registry does not itself decode ROS bags, run a calibration solver, or

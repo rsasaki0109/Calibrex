@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Calibration CI decisions recorded in the lifecycle registry.** New `calibrex lifecycle
+  record-ci <calibration-ci.json>` (`calibrex.calibration_ci_lifecycle`, artifact
+  `slac.calibration_ci_lifecycle/v0.1`) copies the CI decision, candidate result, CI assessment
+  and CI policy into a content-addressed `ci/<sha256>/` snapshot in the registry (written once;
+  differing bytes are refused) and evaluates the candidate with the decision as evidence: PASS with
+  PASS promotion and smoke evidence is promoted with `--promote`, INCONCLUSIVE/WARN is held and
+  FAIL is rejected without touching the incumbent, and `--rollback-on-fail` rolls back a promoted
+  incumbent that a later decision fails, with the decision bound to the rollback event
+  (`rollback_lifecycle` gained an optional `evidence` reference). A candidate changed after the
+  decision is refused, a decision cannot be recorded twice, and the registry is verified after
+  every path. Integration test on real candidates (KITTI evidence demo PASS, precomputed example
+  INCONCLUSIVE, the KITTI candidate under a 90 % known-bad policy FAIL); example workflow
+  `examples/ci/calibration-ci-lifecycle.yml`.
 - **Declared LiDAR capture-time reference in online replay (ADR 0008 Pillar 3).** New
   `sensors.<lidar>.capture_time_reference` (`scan_start` | `scan_midpoint` | `scan_end`) with
   `scan_period_s` declares where a message stamp sits in its sweep. Motion-compensated

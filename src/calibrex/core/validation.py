@@ -47,6 +47,7 @@ ValidationKind = Literal[
     "doctor",
     "environment-readiness",
     "calibration-ci",
+    "calibration-ci-lifecycle",
     "calibration-lifecycle",
     "lifecycle-registry",
     "lifecycle-event",

@@ -2739,6 +2739,35 @@ def _build_parser() -> argparse.ArgumentParser:
     lifecycle_rollback.add_argument("--json", action="store_true")
     lifecycle_rollback.set_defaults(func=_cmd_lifecycle_rollback)
 
+    lifecycle_record_ci = lifecycle_subcommands.add_parser(
+        "record-ci",
+        help="record a calibrex ci decision for one edge: evaluate (and optionally promote) "
+        "the candidate, or roll back an incumbent the decision fails",
+    )
+    lifecycle_record_ci.add_argument(
+        "ci_decision", type=Path, help="calibration-ci.json written by calibrex ci"
+    )
+    lifecycle_record_ci.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_record_ci.add_argument("--edge-id", required=True)
+    lifecycle_record_ci.add_argument("--capture-manifest", type=Path, required=True)
+    lifecycle_record_ci.add_argument("--promotion", type=Path)
+    lifecycle_record_ci.add_argument("--smoke", type=Path)
+    lifecycle_record_ci.add_argument(
+        "--promote",
+        action="store_true",
+        help="promote the candidate when the evaluation admits it (ADOPT)",
+    )
+    lifecycle_record_ci.add_argument(
+        "--rollback-on-fail",
+        action="store_true",
+        help="roll the edge back when a failing decision is about its promoted incumbent",
+    )
+    lifecycle_record_ci.add_argument("--operator", default="unknown")
+    lifecycle_record_ci.add_argument("--timestamp")
+    lifecycle_record_ci.add_argument("--output", type=Path, help="write the decision record")
+    lifecycle_record_ci.add_argument("--json", action="store_true")
+    lifecycle_record_ci.set_defaults(func=_cmd_lifecycle_record_ci)
+
     lifecycle_verify = lifecycle_subcommands.add_parser(
         "verify",
         help="verify event hash chain, head, projection, and source digests",
@@ -8340,6 +8369,41 @@ def _cmd_lifecycle_rollback(args: argparse.Namespace) -> int:
         raise CalibrexError(str(exc)) from exc
     _emit(_lifecycle_event_summary(event), args.json)
     return 0
+
+
+def _cmd_lifecycle_record_ci(args: argparse.Namespace) -> int:
+    from calibrex.calibration_ci_lifecycle import record_calibration_ci
+
+    command = ["calibrex", "lifecycle", "record-ci", str(args.ci_decision)]
+    command += ["--registry-root", str(args.registry_root), "--edge-id", args.edge_id]
+    command += ["--capture-manifest", str(args.capture_manifest)]
+    for flag, value in (("--promotion", args.promotion), ("--smoke", args.smoke)):
+        if value is not None:
+            command += [flag, str(value)]
+    if args.promote:
+        command.append("--promote")
+    if args.rollback_on_fail:
+        command.append("--rollback-on-fail")
+    try:
+        record = record_calibration_ci(
+            args.ci_decision,
+            args.registry_root,
+            edge_id=args.edge_id,
+            capture_manifest=args.capture_manifest,
+            promotion=args.promotion,
+            smoke=args.smoke,
+            promote=args.promote,
+            rollback_on_fail=args.rollback_on_fail,
+            operator=args.operator,
+            timestamp=args.timestamp,
+            command=command,
+        )
+        if args.output is not None:
+            record.save(args.output)
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(record.model_dump(mode="json", exclude_none=True), args.json)
+    return 0 if record.registry_valid else 1
 
 
 def _cmd_lifecycle_verify(args: argparse.Namespace) -> int:
