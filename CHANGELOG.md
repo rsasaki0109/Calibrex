@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Declared LiDAR capture-time reference in online replay (ADR 0008 Pillar 3).** New
+  `sensors.<lidar>.capture_time_reference` (`scan_start` | `scan_midpoint` | `scan_end`) with
+  `scan_period_s` declares where a message stamp sits in its sweep. Motion-compensated
+  rosbag1/rosbag2 replay places a sensor that is not deskewed per point at its mid-sweep capture
+  time (stamp + period / 2 for `scan_start`, - period / 2 for `scan_end`); per-point offsets, when
+  used, already carry the convention and no shift applies. Provenance records each declared
+  reference with `applied_shift_s` and `basis`; other dataset types refuse the field. Synthetic
+  shared-clock acceptance: a rig whose source stamps at the sweep start and whose target stamps at
+  the sweep end (60 ms gap) reads an anchored offset of -59 ms undeclared and +0.1 ms declared, and
+  an injected +50 ms moves the declared estimate by -50.0 ms. TIERS Indoor02 re-report (new example
+  configs `online_selftest_motion_temporal_anchored_declared*` and
+  `online_kissicp_temporal_anchored_declared`): the anchored selftest baseline reads -19.2 ms
+  undeclared and +18.9 ms declared, injection differentials -46.4 / -35.6 ms, so the real-data
+  condition is not met. A self-pair cannot observe a stamp convention, so the earlier reading of
+  its -25 ms baseline as VLP-16 sweep-end semantics is withdrawn; the Velodyne-to-Ouster pair stays
+  degenerate. Additive config schema change (`schemas/config.schema.json`).
 - **`calibrex imu-lidar joint` on TIERS Indoor02: INCONCLUSIVE; gravity-magnitude prior and
   opt-in IMU low-pass.** The real-data run (Ouster OS1 points and its 100 Hz IMU, 30 s odometry
   segment) reads INCONCLUSIVE without retuned gates. An 18 Hz roll/pitch chassis vibration

@@ -581,6 +581,24 @@
           "default": null,
           "title": "Camera Info Topic"
         },
+        "capture_time_reference": {
+          "anyOf": [
+            {
+              "enum": [
+                "scan_start",
+                "scan_midpoint",
+                "scan_end"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "declared position of a LiDAR message stamp within its sweep; when the sensor is not deskewed per point, motion-compensated online replay maps each message to its mid-sweep capture time (stamp + scan_period_s / 2 for scan_start, stamp - scan_period_s / 2 for scan_end); with per-point time offsets the offsets already carry the convention. Unset keeps the stamp as the capture time",
+          "title": "Capture Time Reference"
+        },
         "fields": {
           "items": {
             "type": "string"
@@ -651,6 +669,20 @@
           "default": null,
           "description": "optional PointCloud2 field name for per-point capture-time offsets relative to the message stamp (seconds or integer nanoseconds); enables per-point deskew during rosbag2 online motion compensation",
           "title": "Point Time Field"
+        },
+        "scan_period_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "declared sweep period in seconds used by capture_time_reference scan_start or scan_end when per-point offsets are not applied",
+          "title": "Scan Period S"
         },
         "solid_state": {
           "anyOf": [

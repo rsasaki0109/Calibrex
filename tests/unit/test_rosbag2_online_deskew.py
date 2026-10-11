@@ -227,6 +227,7 @@ def _write_config(
     capture_window_end_ns: int | None = None,
     capture_window_prefilter_margin_s: float | None = None,
     capture_windows: list[tuple[int, int]] | None = None,
+    declare_capture_time_reference: bool = False,
 ) -> None:
     source_deskew_lines = ""
     target_deskew_lines = ""
@@ -236,6 +237,12 @@ def _write_config(
     point_time_field: {source_time_field}"""
         target_deskew_lines = """
     point_time_field: time"""
+    if declare_capture_time_reference:
+        declared = f"""
+    capture_time_reference: scan_start
+    scan_period_s: {_SWEEP_S}"""
+        source_deskew_lines += declared
+        target_deskew_lines += declared
     capture_window_lines = ""
     if capture_window_start_ns is not None:
         capture_window_lines += (
@@ -339,6 +346,7 @@ def _run_session(
     capture_window_end_ns: int | None = None,
     capture_window_prefilter_margin_s: float | None = None,
     capture_windows: list[tuple[int, int]] | None = None,
+    declare_capture_time_reference: bool = False,
 ) -> tuple[SE3, dict[str, object]]:
     bag = _build_deskew_sweep_bag(
         tmp_path / "deskew_sweep.db3",
@@ -356,6 +364,7 @@ def _run_session(
         capture_window_end_ns=capture_window_end_ns,
         capture_window_prefilter_margin_s=capture_window_prefilter_margin_s,
         capture_windows=capture_windows,
+        declare_capture_time_reference=declare_capture_time_reference,
     )
     result = run_online_calibration(
         config_path,
@@ -487,3 +496,22 @@ def test_capture_window_even_sampling_uses_capture_not_record_clock() -> None:
     )
 
     assert selected == {200, 300}
+
+
+def test_declared_capture_time_reference_defers_to_per_point_offsets(tmp_path: Path) -> None:
+    pytest.importorskip("numpy")
+    (tmp_path / "plain").mkdir()
+    (tmp_path / "declared").mkdir()
+    plain, _ = _run_session(tmp_path / "plain", deskew=True)
+    estimate, provenance = _run_session(
+        tmp_path / "declared", deskew=True, declare_capture_time_reference=True
+    )
+
+    references = provenance["capture_time_reference"]
+    assert isinstance(references, dict)
+    for sensor in ("lidar_map", "lidar_stream"):
+        assert references[sensor]["basis"] == "per_point_offsets"
+        assert references[sensor]["applied_shift_s"] == 0.0
+    # Per-point offsets already place every return; the declaration changes nothing.
+    assert _translation_error_m(estimate, plain) < 1.0e-9
+    assert _rotation_error_deg(estimate, plain) < 1.0e-9

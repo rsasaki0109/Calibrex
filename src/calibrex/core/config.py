@@ -138,6 +138,25 @@ class SensorConfig(StrictModel):
             "enables per-point deskew during rosbag2 online motion compensation"
         ),
     )
+    capture_time_reference: Literal["scan_start", "scan_midpoint", "scan_end"] | None = Field(
+        default=None,
+        description=(
+            "declared position of a LiDAR message stamp within its sweep; when the "
+            "sensor is not deskewed per point, motion-compensated online replay maps "
+            "each message to its mid-sweep capture time (stamp + scan_period_s / 2 "
+            "for scan_start, stamp - scan_period_s / 2 for scan_end); with per-point "
+            "time offsets the offsets already carry the convention. Unset keeps the "
+            "stamp as the capture time"
+        ),
+    )
+    scan_period_s: float | None = Field(
+        default=None,
+        gt=0.0,
+        description=(
+            "declared sweep period in seconds used by capture_time_reference "
+            "scan_start or scan_end when per-point offsets are not applied"
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_sensor_specifics(self) -> SensorConfig:
@@ -152,6 +171,14 @@ class SensorConfig(StrictModel):
             elif self.solid_state.point_time_field != self.point_time_field:
                 msg = "solid_state.point_time_field must match sensor point_time_field"
                 raise ValueError(msg)
+        if self.capture_time_reference is not None and self.type != "lidar":
+            msg = "capture_time_reference is only valid for lidar sensors"
+            raise ValueError(msg)
+        if self.capture_time_reference in {"scan_start", "scan_end"} and (
+            self.scan_period_s is None
+        ):
+            msg = f"capture_time_reference {self.capture_time_reference} requires scan_period_s"
+            raise ValueError(msg)
         if self.type == "camera" and self.intrinsics is None:
             self.intrinsics = CameraIntrinsicsConfig()
         if self.type == "lidar" and not self.fields:
