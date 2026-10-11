@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
 from calibrex.core.continuous_time_bspline import CubicBSplineTrajectory
 from calibrex.core.continuous_time_bspline_fit import (
     BSplineImuSamples,
+    BSplineLidarImuFitResult,
     BSplineLidarImuProblem,
     BSplinePlaneReturns,
     LidarImuCalibration,
@@ -148,8 +151,6 @@ def test_measurement_containers_validate_shapes() -> None:
 
 
 def test_linearized_jacobian_matches_finite_differences_of_every_parameter() -> None:
-    from dataclasses import replace
-
     from calibrex.core.continuous_time_bspline_fit import (
         CALIBRATION_BLOCKS,
         _families,
@@ -191,3 +192,68 @@ def test_linearized_jacobian_matches_finite_differences_of_every_parameter() -> 
             ) / (2.0 * epsilon)
             assert np.allclose(dense[:, column], numeric, atol=1.0e-4, rtol=1.0e-5), block
             column += 1
+
+
+def _level_spline() -> CubicBSplineTrajectory:
+    """A level platform that only turns about the vertical (gravity is not tilted)."""
+
+    rng = np.random.default_rng(12)
+    count = 23
+    yaw = np.cumsum(rng.normal(0.0, 0.15, count))
+    rotations = np.asarray(
+        [rotation_vector_to_matrix(np.array([0.0, 0.0, angle])) for angle in yaw]
+    )
+    positions = np.cumsum(rng.normal(0.0, 0.05, (count, 3)), axis=0)
+    positions[:, 2] = 0.0
+    return CubicBSplineTrajectory(0.0, 0.1, rotations, positions)
+
+
+def test_gravity_magnitude_prior_separates_gravity_from_accel_bias_on_a_level_platform() -> None:
+    spline = _level_spline()
+    planes, gyro, accel = _measurements(spline, np.random.default_rng(13))
+    noise = np.random.default_rng(14)
+    accel = BSplineImuSamples(
+        accel.times_sec, accel.values + noise.normal(0.0, accel.sigma, accel.values.shape), 0.03
+    )
+    start = replace(
+        TRUTH, accel_bias_m_s2=np.zeros(3), gravity_world_m_s2=np.array([0.0, 0.0, -9.7])
+    )
+
+    def fit(magnitude: float | None) -> BSplineLidarImuFitResult:
+        return fit_bspline_lidar_imu(
+            BSplineLidarImuProblem(
+                spline,
+                planes,
+                gyro,
+                accel,
+                start,
+                estimate=("accel_bias", "gravity"),
+                gravity_magnitude_m_s2=magnitude,
+                gravity_magnitude_sigma_m_s2=0.01,
+            )
+        )
+
+    free = fit(None)
+    constrained = fit(9.81)
+    # Without the prior only g_z + b_a,z is observed.
+    assert free.block_correlations()[("accel_bias", "gravity")] > 0.99
+    assert free.block_std("gravity")[2] > 1.0
+    assert constrained.block_correlations()[("accel_bias", "gravity")] < 0.99
+    assert constrained.block_std("gravity")[2] < 0.02
+    assert constrained.block_std("accel_bias")[2] < 0.02
+    magnitude = np.linalg.norm(constrained.calibration.gravity_world_m_s2)
+    assert magnitude == pytest.approx(9.81, abs=0.02)
+    # The prior fixes the vertical split; the horizontal one rests on the yaw.
+    assert constrained.calibration.accel_bias_m_s2[2] == pytest.approx(
+        TRUTH.accel_bias_m_s2[2], abs=0.02
+    )
+    assert constrained.calibration.gravity_world_m_s2[2] == pytest.approx(
+        TRUTH.gravity_world_m_s2[2], abs=0.02
+    )
+
+
+def test_gravity_magnitude_prior_rejects_non_positive_values() -> None:
+    spline = _level_spline()
+    planes, gyro, accel = _measurements(spline, np.random.default_rng(13))
+    with pytest.raises(ValueError, match="gravity magnitude"):
+        BSplineLidarImuProblem(spline, planes, gyro, accel, TRUTH, gravity_magnitude_m_s2=-1.0)

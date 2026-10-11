@@ -23,7 +23,11 @@ from typing import TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
-from calibrex.core.se3_manifold import rotation_vector_to_matrix, so3_left_jacobian
+from calibrex.core.se3_manifold import (
+    rotation_matrix_to_rotation_vector,
+    rotation_vector_to_matrix,
+    so3_left_jacobian,
+)
 from calibrex.data.ros_cdr_writer import POINT_FIELD_FLOAT32, encode_imu, encode_pointcloud2
 from calibrex.data.rosbag2 import IMU_TYPE, POINTCLOUD2_TYPE
 from calibrex.data.rosbag2_writer import Rosbag2Writer
@@ -65,6 +69,12 @@ class SyntheticLidarImuBagSpec:
     accel_noise_m_s2: float = 0.03
     room_half_extent_m: tuple[float, float, float] = (6.0, 5.0, 2.0)
     room_center_m: tuple[float, float, float] = (0.0, 0.0, 0.5)
+    # A roll/pitch vibration of the whole rig (frequency in Hz, angular-rate
+    # amplitude in rad/s), as on a wheeled platform: far above what the
+    # trajectory spline represents, so the gyro and the accelerometer see it as
+    # structured noise while the LiDAR barely does.
+    vibration_hz: float = 0.0
+    vibration_rate_rad_s: float = 0.0
     seed: int = 20261011
     truth: SyntheticLidarImuTruth = field(default_factory=SyntheticLidarImuTruth)
 
@@ -83,7 +93,7 @@ class SyntheticLidarImuBag:
 
 
 def smooth_rotation_vector(time_s: float) -> FloatArray:
-    """Return the rotation vector of ``R_world_lidar`` at a time after the start."""
+    """Return the rotation vector of ``R_world_lidar`` (without vibration)."""
 
     return np.array(
         [
@@ -134,6 +144,37 @@ def smooth_body_rate(time_s: float) -> FloatArray:
     return np.asarray(
         so3_left_jacobian(smooth_rotation_vector(time_s)) @ _rotation_vector_rate(time_s),
         dtype=float,
+    )
+
+
+def _vibration(time_s: float, spec: SyntheticLidarImuBagSpec) -> FloatArray:
+    """Return the body-frame vibration rotation vector (roll and pitch, out of phase)."""
+
+    if spec.vibration_hz <= 0.0 or spec.vibration_rate_rad_s == 0.0:
+        return np.zeros(3)
+    angular = 2.0 * math.pi * spec.vibration_hz
+    amplitude = spec.vibration_rate_rad_s / angular
+    return amplitude * np.array(
+        [math.sin(angular * time_s), math.sin(angular * time_s + 1.1), 0.0]
+    )
+
+
+def _rig_rotation(time_s: float, spec: SyntheticLidarImuBagSpec) -> FloatArray:
+    return np.asarray(
+        rotation_vector_to_matrix(smooth_rotation_vector(time_s))
+        @ rotation_vector_to_matrix(_vibration(time_s, spec)),
+        dtype=float,
+    )
+
+
+def _rig_body_rate(time_s: float, spec: SyntheticLidarImuBagSpec) -> FloatArray:
+    """Body angular velocity of the vibrating rig, by central differences of R."""
+
+    step = 1.0e-6
+    before = _rig_rotation(time_s - step, spec)
+    after = _rig_rotation(time_s + step, spec)
+    return np.asarray(
+        rotation_matrix_to_rotation_vector(before.T @ after) / (2.0 * step), dtype=float
     )
 
 
@@ -188,7 +229,7 @@ def _scan_payload(start: float, spec: SyntheticLidarImuBagSpec, rng: np.random.G
     times: list[FloatArray] = []
     for azimuth, offset in zip(azimuths, offsets, strict=True):
         time = start + float(offset)
-        rotation = rotation_vector_to_matrix(smooth_rotation_vector(time))
+        rotation = _rig_rotation(time, spec)
         origin = smooth_position(time)
         directions = np.stack(
             [
@@ -248,10 +289,18 @@ def _imu_payload(
     truth = spec.truth
     imu_rotation = rotation_vector_to_matrix(np.asarray(truth.imu_rotation_vector_rad))
     lever = np.asarray(truth.lever_arm_m, dtype=float)
-    omega = smooth_body_rate(time)
-    step = 1.0e-5
-    alpha = (smooth_body_rate(time + step) - smooth_body_rate(time - step)) / (2.0 * step)
-    rotation = rotation_vector_to_matrix(smooth_rotation_vector(time))
+    vibrating = spec.vibration_hz > 0.0 and spec.vibration_rate_rad_s != 0.0
+    if vibrating:
+        omega = _rig_body_rate(time, spec)
+        step = 1.0e-4
+        alpha = (_rig_body_rate(time + step, spec) - _rig_body_rate(time - step, spec)) / (
+            2.0 * step
+        )
+    else:
+        omega = smooth_body_rate(time)
+        step = 1.0e-5
+        alpha = (smooth_body_rate(time + step) - smooth_body_rate(time - step)) / (2.0 * step)
+    rotation = _rig_rotation(time, spec)
     kinematic = (
         rotation.T @ (_acceleration(time) - np.asarray(truth.gravity_world_m_s2))
         + np.cross(alpha, lever)

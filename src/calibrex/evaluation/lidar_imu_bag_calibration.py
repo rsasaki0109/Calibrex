@@ -28,13 +28,14 @@ from __future__ import annotations
 
 import hashlib
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.signal import butter, filtfilt
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation, Slerp
 
@@ -67,10 +68,10 @@ from calibrex.core.progress import emit_stage
 from calibrex.core.provenance import git_commit
 from calibrex.core.se3_manifold import rotation_matrix_to_rotation_vector, rotation_vector_to_matrix
 from calibrex.data.livox_ros2 import (
+    ImuSamples,
     LivoxStreamProfile,
+    ScanStore,
     bag_input_digest,
-    iter_livox_points,
-    load_livox_imu,
 )
 from calibrex.evaluation.imu_lidar_rotation import (
     ImuLidarRunOptions,
@@ -85,6 +86,10 @@ from calibrex.solvers.scan_to_scan_odometry import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+
+# With the IMU low-passed at f and resampled at 2 f, knots at least 3 / f apart
+# keep six IMU samples per knot interval.
+LOWPASS_KNOT_CYCLES = 3.0
 
 # Per-block bounds on the formal std for a block to count as estimated, and the
 # signed control magnitude per axis (rotation in rad).
@@ -118,8 +123,9 @@ LIMITATIONS = (
     "rotation_difference_from_initial_deg.",
     "One segment (the longest reliable odometry window) is calibrated; other parts of the "
     "bag are not used.",
-    "Accelerometer bias and gravity trade off unless the attitude varies widely; see the "
-    "separability records.",
+    "Gravity carries a prior on its magnitude (gravity_magnitude_m_s2 with "
+    "gravity_magnitude_sigma_m_s2): without tilt only g_z + b_a,z is observed, so the "
+    "vertical accelerometer bias rests on that prior; see the separability records.",
 )
 
 
@@ -144,12 +150,24 @@ class LidarImuBagOptions:
     association_gate_m: float = 0.3
     plane_gate_m: float = 0.1
     imu_margin_s: float = 0.05
+    # Zero-phase low-pass (Hz) applied to the IMU before the joint fit, which is
+    # then resampled at twice the cutoff so that the kept samples stay nearly
+    # independent. Vibration far above the spline bandwidth (a wheeled
+    # platform's chassis mode) is structured noise the spline cannot follow;
+    # removing it leaves the band the calibration lives in. None fits raw samples.
+    # The resampled IMU has few samples per knot, so the knot spacing is widened
+    # to at least ``LOWPASS_KNOT_CYCLES / imu_lowpass_hz`` (six samples per knot);
+    # closer knots let the spline follow the filtered noise between samples.
+    imu_lowpass_hz: float | None = None
     holdout_every: int = 3
     fit_iterations: int = 30
     control_delta_chi2: float = 9.0
     entangled_correlation: float = 0.9
     holdout_fail_whitened_rms: float = 2.0
     method_disagreement_deg: float = 1.0
+    # Prior on |g| (standard gravity; local gravity differs by up to about 0.03).
+    gravity_magnitude_m_s2: float | None = 9.80665
+    gravity_magnitude_sigma_m_s2: float = 0.03
     initial_sigmas: dict[str, float] = field(
         default_factory=lambda: {"plane": 0.02, "gyro": 0.01, "accel": 0.1}
     )
@@ -181,6 +199,9 @@ def calibrate_lidar_imu_bag(
         raise ValueError("max_rounds must exceed warmup_rounds so that every block is fitted")
     bag_path = Path(bag)
     rng = np.random.default_rng(opts.seed)
+    # Decode the bag once: the angular-rate passes, the odometry segment and
+    # the map rounds all replay the same scans.
+    store = ScanStore()
 
     emit_stage("angular-rate initial estimate")
     initial = run_livox_imu_lidar_rotation(
@@ -191,6 +212,7 @@ def calibrate_lidar_imu_bag(
         dataset_license=dataset_license,
         reference_rotation=None,
         max_seconds=max_seconds,
+        scan_store=store,
     )
     if initial.rotation_quat_xyzw is None:
         raise ValueError(
@@ -201,7 +223,7 @@ def calibrate_lidar_imu_bag(
     initial_bias = np.asarray(initial.gyro_bias_rps, dtype=float)
 
     emit_stage("gyro-deskewed odometry segment")
-    imu = load_livox_imu(bag_path, profile)
+    imu = store.imu(bag_path, profile)
     gyro_series = GyroSeries(imu.times_s, imu.gyro_rps)
     segment_options = replace(
         opts.rotation,
@@ -215,19 +237,24 @@ def calibrate_lidar_imu_bag(
             gyro_series, initial_rotation, initial_bias, initial.time_offset_s
         ),
         max_seconds=max_seconds,
+        scan_store=store,
     )
     if not windows:
         raise ValueError("no reliable LiDAR odometry segment in the bag")
     window = max(windows, key=lambda item: item.times_s[-1] - item.times_s[0])
     reference = float(window.times_s[0])
     window_times = np.asarray(window.times_s, dtype=float) - reference
-    trajectory = _initial_spline(window_times, np.asarray(window.poses), opts.knot_spacing_s)
+    knot_spacing = _knot_spacing(opts)
+    trajectory = _initial_spline(window_times, np.asarray(window.poses), knot_spacing)
     end = trajectory.end_time_sec
-    scans = _segment_scans(bag_path, profile, reference, end, opts, rng, max_seconds)
+    scans = _segment_scans(
+        store.scans(bag_path, profile, max_seconds=max_seconds), reference, end, opts, rng
+    )
     if len(scans) < 10:
         raise ValueError(f"only {len(scans)} scans fall inside the odometry segment")
 
-    imu_times = imu.times_s - reference
+    fit_imu = imu if opts.imu_lowpass_hz is None else _band_limit(imu, opts.imu_lowpass_hz)
+    imu_times = fit_imu.times_s - reference
     body = imu_times - initial.time_offset_s
     inside = (body > opts.imu_margin_s) & (body < end - opts.imu_margin_s)
     index = np.flatnonzero(inside)
@@ -247,14 +274,14 @@ def calibrate_lidar_imu_bag(
         accel_bias_m_s2=np.zeros(3),
         gravity_world_m_s2=_initial_gravity(
             trajectory, imu_times[train_index] - initial.time_offset_s,
-            imu.accel_mps2[train_index], initial_rotation,
+            fit_imu.accel_mps2[train_index], initial_rotation,
         ),
     )
 
     def imu_samples(rows: NDArray[np.intp]) -> tuple[BSplineImuSamples, BSplineImuSamples]:
         return (
-            BSplineImuSamples(imu_times[rows], imu.gyro_rps[rows], sigmas["gyro"]),
-            BSplineImuSamples(imu_times[rows], imu.accel_mps2[rows], sigmas["accel"]),
+            BSplineImuSamples(imu_times[rows], fit_imu.gyro_rps[rows], sigmas["gyro"]),
+            BSplineImuSamples(imu_times[rows], fit_imu.accel_mps2[rows], sigmas["accel"]),
         )
 
     rounds: list[LidarImuBagRound] = []
@@ -277,7 +304,16 @@ def calibrate_lidar_imu_bag(
             else CALIBRATION_BLOCKS
         )
         result = fit_bspline_lidar_imu(
-            BSplineLidarImuProblem(trajectory, planes, gyro, accel, calibration, estimate),
+            BSplineLidarImuProblem(
+                trajectory,
+                planes,
+                gyro,
+                accel,
+                calibration,
+                estimate,
+                gravity_magnitude_m_s2=opts.gravity_magnitude_m_s2,
+                gravity_magnitude_sigma_m_s2=opts.gravity_magnitude_sigma_m_s2,
+            ),
             BSplineLidarImuFitOptions(max_iterations=opts.fit_iterations),
         )
         trajectory, calibration = result.trajectory, result.calibration
@@ -360,7 +396,7 @@ def calibrate_lidar_imu_bag(
         rotation_difference_from_initial_deg=difference,
         segment_start_s=reference,
         segment_duration_s=float(end),
-        knot_spacing_s=opts.knot_spacing_s,
+        knot_spacing_s=knot_spacing,
         control_points=trajectory.control_point_count,
         scans=len(scans),
         train_imu_samples=int(train_index.size),
@@ -375,7 +411,7 @@ def calibrate_lidar_imu_bag(
         entangled_correlation_threshold=opts.entangled_correlation,
         separability=separability,
         options={
-            "knot_spacing_s": opts.knot_spacing_s,
+            "knot_spacing_s": knot_spacing,
             "max_segment_s": opts.max_segment_s,
             "max_rounds": opts.max_rounds,
             "warmup_rounds": opts.warmup_rounds,
@@ -386,9 +422,12 @@ def calibrate_lidar_imu_bag(
             "map_max_planarity": opts.map_max_planarity,
             "association_gate_m": opts.association_gate_m,
             "plane_gate_m": opts.plane_gate_m,
+            "imu_lowpass_hz": opts.imu_lowpass_hz,
             "holdout_every": opts.holdout_every,
             "holdout_fail_whitened_rms": opts.holdout_fail_whitened_rms,
             "method_disagreement_deg": opts.method_disagreement_deg,
+            "gravity_magnitude_m_s2": opts.gravity_magnitude_m_s2,
+            "gravity_magnitude_sigma_m_s2": opts.gravity_magnitude_sigma_m_s2,
             "seed": opts.seed,
             "max_seconds": max_seconds,
         },
@@ -425,17 +464,15 @@ def _initial_spline(
 
 
 def _segment_scans(
-    bag: Path,
-    profile: LivoxStreamProfile,
+    source: Iterator[tuple[float, FloatArray, FloatArray | None]],
     reference: float,
     end: float,
     opts: LidarImuBagOptions,
     rng: np.random.Generator,
-    max_seconds: float | None,
 ) -> list[_Scan]:
     keep = opts.map_points_per_scan + opts.returns_per_scan
     scans: list[_Scan] = []
-    for header, points, offsets in iter_livox_points(bag, profile, max_seconds=max_seconds):
+    for header, points, offsets in source:
         start = header - reference
         times = np.zeros(len(points)) if offsets is None else np.asarray(offsets, dtype=float)
         if start < 0.0 or start + float(np.max(times, initial=0.0)) > end:
@@ -508,6 +545,41 @@ def _associate(
         sigma,
     )
     return returns, len(anchors)
+
+
+def _knot_spacing(opts: LidarImuBagOptions) -> float:
+    if opts.imu_lowpass_hz is None:
+        return opts.knot_spacing_s
+    return max(opts.knot_spacing_s, LOWPASS_KNOT_CYCLES / opts.imu_lowpass_hz)
+
+
+def _band_limit(imu: ImuSamples, cutoff_hz: float) -> ImuSamples:
+    """Zero-phase low-pass the IMU on a uniform grid and resample at twice the cutoff."""
+
+    times = imu.times_s
+    period = float(np.median(np.diff(times)))
+    nyquist = 0.5 / period
+    if not 0.0 < cutoff_hz < nyquist:
+        raise ValueError(
+            f"imu_lowpass_hz must lie between 0 and the IMU Nyquist rate {nyquist:.1f} Hz"
+        )
+    # Resample onto a uniform grid first: a dropped sample would otherwise shift
+    # the filter's notion of time.
+    grid = times[0] + period * np.arange(math.floor((times[-1] - times[0]) / period) + 1)
+    numerator, denominator = butter(4, cutoff_hz / nyquist)
+
+    def smooth(values: FloatArray) -> FloatArray:
+        uniform = np.stack(
+            [np.interp(grid, times, values[:, axis]) for axis in range(3)], axis=1
+        )
+        return np.asarray(filtfilt(numerator, denominator, uniform, axis=0), dtype=float)
+
+    step = max(1, math.floor(1.0 / (2.0 * cutoff_hz * period)))
+    return ImuSamples(
+        times_s=grid[::step],
+        gyro_rps=smooth(imu.gyro_rps)[::step],
+        accel_mps2=smooth(imu.accel_mps2)[::step],
+    )
 
 
 def _initial_gravity(

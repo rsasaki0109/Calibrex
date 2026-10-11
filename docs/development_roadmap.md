@@ -110,6 +110,7 @@ accuracy.
 | Per-point Camera-LiDAR capture time | Native solver plus TIERS adapter | Disjoint capture holdout, six time controls, timing observability | Synthetic 17 ms recovery; TIERS real-data result INCONCLUSIVE | Experimental | Core Apache-2.0; TIERS dataset terms |
 | Anchored moving-platform time offset | Native online evidence | Injection controls, adapted/anchored comparison, separability row | TIERS shared-clock/injection evidence; absolute convention is not yet closed | Evidence only | Core Apache-2.0 |
 | LiDAR-IMU rotation consistency | Native evaluator | Angular-rate holdout, gravity support, per-axis excitation, bad-rotation probes | TIERS Indoor02 evidence; no translation/time native solve | Evidence only | Core Apache-2.0 |
+| Joint LiDAR-IMU B-spline calibration (`imu-lidar joint`) | Native CLI backend | Interleaved IMU holdout, 32 signed controls, block separability, gravity-magnitude prior | Synthetic bags PASS/WARN (also through injected vibration with `--imu-lowpass-hz`); TIERS Indoor02 INCONCLUSIVE (yaw-only motion) | Experimental | Core Apache-2.0; TIERS dataset terms |
 | Radar Doppler candidate consistency | Native evaluator | Frame holdout, yaw controls, static/excitation gates | nuScenes mini path; often INCONCLUSIVE | Evidence only | Core Apache-2.0; nuScenes non-commercial terms |
 | Robust Radar ego velocity | Native solver | Huber IRLS, LOS rank/condition, outlier tests | Used by Radar pipeline; automotive geometry may be planar-only | Experimental | Core Apache-2.0 |
 | Radar-to-trajectory yaw/rotation | Native solvers | Deterministic holdout, direction diversity, signed rotation controls | nuScenes adapter; limited excitation prevents a general PASS claim | Experimental | Core Apache-2.0; nuScenes terms |
@@ -136,8 +137,9 @@ accuracy.
 4. **LiDAR-IMU user path:** every continuous-time IMU factor exists. These are
    rotation with gyro bias, lever arm, clock offset, accelerometer
    bias/gravity, diagonal intrinsics, and sliding-window marginalization. Each
-   is only a separate synthetic `recover-*` command, though. No single user
-   command runs them jointly on a real capture.
+   was a separate synthetic `recover-*` command. `calibrex imu-lidar joint`
+   now runs them jointly on a recorded bag; the gap left is a public capture
+   that excites them: TIERS Indoor02 reads INCONCLUSIVE (Next issue 2).
 5. **Absolute capture time:** `capture_time_reference` exists, but ADR 0008
    Pillar 3 has no end-to-end acceptance run, and TIERS real-data evidence
    stays INCONCLUSIVE.
@@ -225,7 +227,7 @@ lever-arm factors, a shared IMU clock offset, accelerometer bias/gravity, and
 sliding-window Schur marginalization against the knot path are implemented and
 CLI-wired. Diagonal IMU intrinsics completed the factor set on 2026-08-20.
 
-### P2 — Native LiDAR-IMU and sliding-window evidence — factors implemented; joint user path open
+### P2 — Native LiDAR-IMU and sliding-window evidence — joint bag command implemented; conclusive real data open
 
 Build in stages: rotation plus gyro bias, lever arm, clock offset,
 accelerometer bias/gravity, then optional intrinsics. Every stage requires
@@ -234,7 +236,9 @@ injected signed controls. Add marginalization only with explicit gauge and
 consistency evidence.
 
 Every stage now exists as a synthetic recovery with holdout and a signed
-control. What remains is a single joint command on real data (Next issue 2).
+control, and `calibrex imu-lidar joint` fits them jointly on a bag. What
+remains is a public capture that excites them: TIERS Indoor02 reads
+INCONCLUSIVE (Next issue 2).
 
 ### P3 — Calibration lifecycle
 
@@ -381,10 +385,42 @@ estimated noise matches the injected noise; an 8 s bag stops after four rounds
 at 0.13 deg and reads WARN because the rounds have not converged. The formal
 std holds the plane map fixed and understates the error (about 3 sigma on the
 12 s bag), so the artifact also reports the last round's change and the
-difference from the angular-rate estimate. Open: the TIERS Indoor02 run
-(`calibrex imu-lidar joint <indoor02 rosbag2> --lidar-topic
-/os_cloud_nodee/points --imu-topic /os_cloud_nodee/imu ...`) needs the data,
-which is not in this environment.
+difference from the angular-rate estimate.
+
+**Progress (2026-10-11, TIERS Indoor02):** the real-data run is done and
+reads **INCONCLUSIVE** without retuned gates
+(`docs/assets/tiers_lidar_imu_joint/indoor02_joint.json`; Ouster OS1
+`/os_cloud_nodee/points` and its 100 Hz IMU over the 30 s odometry segment of
+the 42 s bag). Two properties of the capture limit it. First, an 18 Hz
+roll/pitch chassis vibration dominates the IMU (gyro 0.19 rad/s RMS on x/y,
+accelerometer 1.3-3.2 m/s^2 in the 10-20 Hz band) while the motion below 2 Hz
+is almost pure yaw (0.16 rad/s on z, 0.008 rad/s on x/y). The fit's
+re-estimated noise therefore reaches 0.15 rad/s and 2.6 m/s^2, and no
+rotation, gyro-bias or lever-arm control is detected. Second, with no tilt
+only `g_z + b_a,z` is observable: the first run collapsed gravity to
+-2.0 m/s^2 and the accelerometer bias to 7.8 m/s^2 (std 15.9). Two changes
+followed, both evaluated on synthetic data with a truth:
+
+- a prior on the gravity magnitude (9.80665 m/s^2, sigma 0.03) in the
+  B-spline fit; on Indoor02 gravity now reads -9.805 m/s^2 and the vertical
+  accelerometer bias 0.05 +- 0.07 m/s^2;
+- opt-in `--imu-lowpass-hz`: a zero-phase low-pass and resampling at twice
+  the cutoff before the fit, with knots widened to at least 3 / cutoff. A
+  12 s synthetic bag with an injected 18 Hz, 0.25 rad/s vibration reads
+  INCONCLUSIVE unfiltered (lever-arm error 15 cm) and, at 10 Hz, detects all
+  32 controls with rotation error 0.055 deg and held-out RMS near 1 (WARN:
+  the rounds still move about 0.01 deg). Without knot widening the filtered
+  noise is fitted (held-out RMS near 3, FAIL), which is why it stays opt-in.
+
+With `--imu-lowpass-hz 10`
+(`docs/assets/tiers_lidar_imu_joint/indoor02_joint_imu_lowpass_10hz.json`)
+the IMU noise drops to 0.038 rad/s and 0.81 m/s^2 and the held-out RMS stays
+near 1, but the run is still INCONCLUSIVE: the roll and pitch of the IMU
+mounting reach a formal std of 0.52 deg (gate 0.5 deg) with two of six
+rotation controls detected, the yaw is unobservable (std 5.5 deg) because the
+platform does not tilt, the lever arm detects no control, and the rotation
+still moves 0.6 deg per round. A conclusive real-data result needs a capture
+with roll and pitch excitation.
 
 **Acceptance conditions:**
 
@@ -394,7 +430,8 @@ which is not in this environment.
   (`calibrex trajectory recover-lidar-imu-joint`; seeds 20261010, 1 and 2).
 - An opt-in real-data run on the existing TIERS Indoor02 capture reports
   honestly (PASS, WARN, FAIL, or INCONCLUSIVE) without retuned gates. It needs
-  no new download.
+  no new download. **Done** on 2026-10-11: INCONCLUSIVE (yaw-only motion and
+  chassis vibration), artifacts under `docs/assets/tiers_lidar_imu_joint/`.
 
 ### 3. Camera-LiDAR check: wider start basin and solid-state LiDAR
 

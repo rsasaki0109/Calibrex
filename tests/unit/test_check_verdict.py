@@ -202,6 +202,12 @@ def test_classify_point_time() -> None:
     assert classify_point_time(np.array([123456.0, 234567.0]), header_ns) is None
     assert classify_point_time(np.array([np.nan]), header_ns) is None
     assert classify_point_time(None, header_ns) is None
+    # A since-boot header (Ouster OS1 ~753 s after boot, TIERS Indoor02): the
+    # 0-0.1 s offsets are offsets, not times 753 s before the header.
+    boot_ns = 753_000_000_000
+    assert classify_point_time(np.array([0.0, 0.05, 0.099]), boot_ns) == "offset_s"
+    assert classify_point_time(boot_ns * 1e-9 + np.array([0.0, 0.05]), boot_ns) == "absolute_s"
+    assert classify_point_time(boot_ns + np.array([0.0, 5e7]), boot_ns) == "absolute_ns"
 
 
 def test_coverage_and_control_not_detected() -> None:
