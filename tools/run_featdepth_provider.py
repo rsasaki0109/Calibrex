@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import json
 import platform
 import sys
 import time
@@ -432,7 +431,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.timing_output is not None:
         args.timing_output.parent.mkdir(parents=True, exist_ok=True)
         report = {
-            "format": "calibrex.featdepth_timing/v0.1",
             "generator": FEATDEPTH_ADAPTER_VERSION,
             "source_commit": git_commit(),
             "adapter_sha256": execution["adapter_sha256"],
@@ -446,7 +444,12 @@ def main(argv: list[str] | None = None) -> int:
                 "excludes interpreter/import startup and timing report write"
             ),
         }
-        args.timing_output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        timing_artifact = artifact.model_copy(deep=True)
+        timing_artifact.artifact_id += "-timing"
+        timing_artifact.preprocessing.append(
+            DepthPreprocessingStep(name="provider_execution_timing", parameters=report)
+        )
+        timing_artifact.save(args.timing_output)
     print(f"artifact={artifact_output}", flush=True)
     return 0
 

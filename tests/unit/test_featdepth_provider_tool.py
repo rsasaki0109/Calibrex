@@ -174,6 +174,13 @@ def test_batched_export_retains_variable_grids_order_and_short_batch(
         )
         artifact = load_depth_provider(provider)
         verify_depth_provider_files(artifact)
+        timing = load_depth_provider(provider.parent / "timing.json")
+        verify_depth_provider_files(timing)
+        assert timing.observations == artifact.observations
+        assert timing.preprocessing[-1].name == "provider_execution_timing"
+        assert timing.preprocessing[-1].parameters["provider_sha256"] == hashlib.sha256(
+            provider.read_bytes()
+        ).hexdigest()
         providers.append(artifact)
     serial, batch = providers
     assert [o.frame_id for o in batch.observations] == [f"{i:010d}" for i in range(3)]
