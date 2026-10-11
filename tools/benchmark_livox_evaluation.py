@@ -1,7 +1,7 @@
 """Measure fresh public Livox calibration subprocesses and full result parity.
 
-The pinned baseline replaces only the Livox reader/evaluator modules. All
-registration solvers and artifact writers use the same checkout in both methods.
+The pinned baseline replaces the five modules changed by Livox geometry reuse.
+Numerical ICP solvers and artifact writers use the same checkout in both methods.
 No input, output, report, control or external backend is skipped to save time.
 """
 
@@ -19,13 +19,17 @@ import time
 from pathlib import Path
 
 BASELINE = "c6fd98b7b5af73be41fa01b5e4938773f4696fb1"
-MODULES = ("calibrex.data.livox", "calibrex.evaluation.lidar")
+MODULES = (
+    "calibrex.data.livox", "calibrex.data.inspect", "calibrex.evaluation.lidar",
+    "calibrex.pipelines.calibrate", "calibrex.solvers.native_registration_comparison_solver",
+)
 INPUT_DIGESTS = {
     "base_horizon_100432.pcd": "19b3864cbee76b785d207fcb3fe48f6f506d142d8233f842d0a87fe4330fe407",
     "target_horizon_100538.pcd": "61a74eb8b8ff4eeba4ca0ff824a4046ae220e947e8156f27d93da452538f5b6f",
 }
 SOURCES = (
     "src/calibrex/data/livox.py",
+    "src/calibrex/data/inspect.py",
     "src/calibrex/evaluation/lidar.py",
     "src/calibrex/pipelines/calibrate.py",
     "src/calibrex/solvers/native_registration_comparison_solver.py",
@@ -260,7 +264,7 @@ def main(argv: list[str] | None = None) -> None:
         reference_method_id="baseline",
         bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id="livox-fresh-subprocess-v1",
+            protocol_id="livox-fresh-subprocess-v2",
             dataset_id="livox_horizon_horizon_pcd_sample",
             dataset_source_sha256=input_digest,
             data_license="Official public Livox sample terms",
@@ -289,7 +293,7 @@ def main(argv: list[str] | None = None) -> None:
                 implementation="subprocess",
                 tool_name="Calibrex",
                 tool_version="0.5.1",
-                adapter_version="livox-evaluation/v1",
+                adapter_version="livox-evaluation/v2",
                 source_commit=baseline if method == "baseline" else source_commit,
             )
             for method in ("baseline", "batched")
@@ -315,13 +319,14 @@ def main(argv: list[str] | None = None) -> None:
             "NDT availability check and result/report/artifact saves. Parent audits are excluded.",
             "Pipeline timer starts at run_calibration entry; it is a subset of subprocess wall.",
             "Full result parity normalizes only run ID/timestamps and destination paths.",
-            "Only two Livox modules are replaced for baseline; all other code is shared.",
+            "Five changed modules are replaced for baseline; numerical solvers and writers "
+            "are shared. Loaded module filenames and all source bytes are checked.",
             "The single pair is limited geometry evidence; quality failures remain failures.",
             "Timings are descriptive ranges, not confidence or portable speedup estimates.",
         ],
         provenance=BenchmarkProvenance(
             generator="tools.benchmark_livox_evaluation",
-            generator_version="v0.1",
+            generator_version="v0.2",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

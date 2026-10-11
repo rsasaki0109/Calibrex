@@ -5,11 +5,14 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import yaml
 
 from calibrex.core.config import load_config
 from calibrex.core.geometry import SE3
 from calibrex.data import livox
+from calibrex.data.downloads import LIVOX_BASE_PCD_NAME, LIVOX_TARGET_PCD_NAME
 from calibrex.evaluation.lidar import livox_pair_evidence_from_dataset
+from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
 
 def _map():
@@ -254,6 +257,64 @@ def test_dense_neighborhoods_keep_exact_residuals_and_prepared_arrays_are_readon
     actual, unmatched = livox._point_to_plane_residuals(points, index=index, **options)
     assert unmatched == excluded
     assert np.asarray(actual, dtype="<f8").tobytes() == np.asarray(expected, dtype="<f8").tobytes()
+
+
+def test_context_reuses_effective_samples_and_returns_independent_point_lists(
+    tmp_path, monkeypatch,
+):
+    _write_pcd(tmp_path / "a.pcd")
+    _write_pcd(tmp_path / "b.pcd", 0.1)
+    context = livox.LivoxPCDEvaluationContext(tmp_path)
+    original = livox._summarize_sample
+    samples = []
+
+    def summarize(path, points):
+        samples.append(path)
+        return original(path, points)
+
+    monkeypatch.setattr(livox, "_summarize_sample", summarize)
+    first = livox.summarize_livox_pcd(tmp_path, sample_limit=2, context=context)
+    assert livox.summarize_livox_pcd(tmp_path, sample_limit=4, context=context) is first
+    assert samples == [tmp_path / "a.pcd", tmp_path / "b.pcd"]
+    limited = livox.summarize_livox_pcd(tmp_path, sample_limit=1, context=context)
+    assert limited.sampled_file_count == 1
+    assert len(samples) == 3
+    returned = context.read_points(tmp_path / "a.pcd")
+    returned.clear()
+    assert len(context.read_points(tmp_path / "a.pcd")) == 100
+    with pytest.raises(ValueError, match="not part"):
+        context.read_points(tmp_path / "other.pcd")
+
+
+def test_pipeline_decodes_each_capture_once_and_next_run_sees_replaced_input(tmp_path, monkeypatch):
+    source = tmp_path / LIVOX_BASE_PCD_NAME
+    target = tmp_path / LIVOX_TARGET_PCD_NAME
+    _write_pcd(source)
+    _write_pcd(target, 0.1)
+    config = load_config(
+        "examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml"
+    )
+    config.dataset.path = str(tmp_path)
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config.model_dump(mode="json")), encoding="utf-8")
+    original = livox.read_livox_binary_pcd_records
+    reads = []
+
+    def read(path):
+        reads.append(Path(path))
+        return original(path)
+
+    monkeypatch.setattr(livox, "read_livox_binary_pcd_records", read)
+    first = run_calibration(config_path, CalibrationRunOptions(output_dir=tmp_path / "first"))
+    assert first is not None
+    assert reads == [source, target]
+    _write_pcd(target, 50.0)
+    second = run_calibration(config_path, CalibrationRunOptions(output_dir=tmp_path / "second"))
+    assert second is not None
+    assert reads == [source, target] * 2
+    first_evidence = first.run.provenance["livox_pair_evidence"]["holdout_geometry"]
+    second_evidence = second.run.provenance["livox_pair_evidence"]["holdout_geometry"]
+    assert first_evidence["matched_point_count"] > second_evidence["matched_point_count"]
 
 
 @pytest.mark.parametrize("count", [0, 17, 64, 5000])

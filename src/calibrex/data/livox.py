@@ -397,9 +397,9 @@ def find_livox_pcd_files(path: str | Path) -> list[Path]:
 
 
 class LivoxPCDEvaluationContext:
-    """Reuse one captured dataset's geometry within a candidate/probe evaluation.
+    """Reuse one captured dataset's geometry during a calibration run.
 
-    Create a new context for every evaluation invocation. File discovery, decoded
+    Create a new context for every calibration/evaluation invocation. File discovery, decoded
     records, invariant sample statistics, source voxels and prepared planes are
     scoped to this object; no process-wide or cross-invocation cache is used.
     """
@@ -410,7 +410,7 @@ class LivoxPCDEvaluationContext:
         self._records: dict[Path, list[LivoxPointRecord]] = {}
         self._errors: dict[Path, ValueError | struct.error] = {}
         self._points: dict[Path, list[LivoxPoint]] = {}
-        self._stats: dict[tuple[int, float], LivoxPCDDatasetStats] = {}
+        self._stats: dict[tuple[tuple[Path, ...], float], LivoxPCDDatasetStats] = {}
         self._planes: dict[tuple[Path, float], VoxelPlaneMap] = {}
         self._plane_indices: dict[tuple[Path, float], _PlaneIndex | None] = {}
         self._voxels: dict[tuple[Path, float], dict[tuple[int, int, int], _VoxelCentroid]] = {}
@@ -434,6 +434,15 @@ class LivoxPCDEvaluationContext:
         if path not in self._points:
             self._points[path] = [record.point for record in self._read_records(path)]
         return self._points[path]
+
+    def read_points(self, path: str | Path) -> list[LivoxPoint]:
+        """Return a copy of one captured PCD's finite points within this run."""
+
+        resolved = Path(path).resolve()
+        for captured in self._files:
+            if captured.resolve() == resolved:
+                return list(self._read_points(captured))
+        raise ValueError("PCD file is not part of this Livox evaluation context")
 
     def _plane_map(self, path: Path, voxel_size_m: float) -> VoxelPlaneMap:
         key = (path, voxel_size_m)
@@ -472,7 +481,7 @@ def summarize_livox_pcd(
             target_transform=target_transform,
         )
     context._validate_path(path)
-    key = (sample_limit, pair_voxel_size_m)
+    key = (tuple(context._files[:sample_limit]), pair_voxel_size_m)
     if key not in context._stats:
         context._stats[key] = _summarize_livox_pcd(
             path, sample_limit=sample_limit, pair_voxel_size_m=pair_voxel_size_m,
@@ -1068,7 +1077,11 @@ def _voxel_centroids(
 ) -> dict[tuple[int, int, int], _VoxelCentroid]:
     voxels: dict[tuple[int, int, int], _VoxelCentroid] = {}
     for point in points:
-        voxel = voxels.setdefault(_voxel_key(point, voxel_size_m), _VoxelCentroid())
+        key = _voxel_key(point, voxel_size_m)
+        voxel = voxels.get(key)
+        if voxel is None:
+            voxel = _VoxelCentroid()
+            voxels[key] = voxel
         voxel.add(point)
     return voxels
 

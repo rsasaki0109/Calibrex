@@ -422,10 +422,13 @@ def livox_pair_evidence_from_dataset(
     dataset_path: str,
     target_transform: SE3,
     config: CalibrationConfig,
+    *,
+    context: LivoxPCDEvaluationContext | None = None,
 ) -> LivoxPairEvidenceEvaluation:
     """Evaluate Livox pair evidence and retain per-probe details."""
 
-    context = LivoxPCDEvaluationContext(dataset_path)
+    if context is None:
+        context = LivoxPCDEvaluationContext(dataset_path)
     baseline = summarize_livox_pcd(
         dataset_path, target_transform=target_transform, context=context,
     )

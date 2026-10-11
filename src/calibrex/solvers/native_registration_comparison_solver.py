@@ -21,7 +21,7 @@ from calibrex.data.downloads import (
     LIVOX_TARGET_PCD_URL,
 )
 from calibrex.data.inspect import DatasetInspection
-from calibrex.data.livox import read_livox_binary_pcd
+from calibrex.data.livox import LivoxPCDEvaluationContext, read_livox_binary_pcd
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 from calibrex.solvers.chen_medioni_point_to_plane_icp_solver import (
     ChenMedioniPointToPlaneIcpSolver,
@@ -51,6 +51,9 @@ class NativeRegistrationComparisonSolver(SolverAdapter):
 
     backend = NATIVE_REGISTRATION_COMPARISON_BACKEND
 
+    def __init__(self, *, livox_context: LivoxPCDEvaluationContext | None = None) -> None:
+        self._livox_context = livox_context
+
     def solve(
         self,
         config: CalibrationConfig,
@@ -78,8 +81,14 @@ class NativeRegistrationComparisonSolver(SolverAdapter):
 
         voxel_size = float(factor_options.get("voxel_size_m", 0.5))
         max_points = int(factor_options.get("max_points_per_cloud", 500))
-        base_raw = read_livox_binary_pcd(base_path)
-        target_raw = read_livox_binary_pcd(target_path)
+        base_raw = (
+            self._livox_context.read_points(base_path) if self._livox_context is not None
+            else read_livox_binary_pcd(base_path)
+        )
+        target_raw = (
+            self._livox_context.read_points(target_path) if self._livox_context is not None
+            else read_livox_binary_pcd(target_path)
+        )
         # The result edge is T_base_horizon_target_horizon, hence the target
         # sensor cloud is the ICP source and the base sensor cloud is its target.
         source = voxel_downsample_icp_points(

@@ -18,7 +18,7 @@ from calibrex.data.kitti import (
     summarize_timestamp_alignment,
     summarize_velodyne_points,
 )
-from calibrex.data.livox import LivoxPCDDataset, summarize_livox_pcd
+from calibrex.data.livox import LivoxPCDDataset, LivoxPCDEvaluationContext, summarize_livox_pcd
 from calibrex.data.manifest import find_manifest
 from calibrex.data.mcap import inspect_mcap
 from calibrex.data.nuscenes import NuScenesDataset, summarize_nuscenes_metadata
@@ -59,7 +59,9 @@ class DatasetInspection:
         }
 
 
-def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
+def inspect_dataset(
+    dataset: DatasetConfig, *, livox_context: LivoxPCDEvaluationContext | None = None,
+) -> DatasetInspection:
     """Inspect a dataset path without binding core code to ROS message types."""
 
     path = Path(dataset.path)
@@ -73,7 +75,9 @@ def inspect_dataset(dataset: DatasetConfig) -> DatasetInspection:
         return _inspect_kitti_raw(path, dataset.type, sample_limit=sample_limit)
     if dataset.type == "livox_pcd":
         sample_limit = dataset.sample_limit or DEFAULT_LIVOX_SAMPLE_LIMIT
-        return _inspect_livox_pcd(path, dataset.type, sample_limit=sample_limit)
+        return _inspect_livox_pcd(
+            path, dataset.type, sample_limit=sample_limit, context=livox_context,
+        )
     if dataset.type == "tum_rgbd":
         return _inspect_tum_rgbd(path, dataset.type)
     if dataset.type == "mcap":
@@ -155,6 +159,7 @@ def _inspect_livox_pcd(
     dataset_type: str,
     *,
     sample_limit: int = DEFAULT_LIVOX_SAMPLE_LIMIT,
+    context: LivoxPCDEvaluationContext | None = None,
 ) -> DatasetInspection:
     if not path.exists():
         return DatasetInspection(
@@ -165,7 +170,7 @@ def _inspect_livox_pcd(
         )
     manifest = find_manifest(path)
     reader = LivoxPCDDataset(path)
-    stats = summarize_livox_pcd(path, sample_limit=sample_limit)
+    stats = summarize_livox_pcd(path, sample_limit=sample_limit, context=context)
     warnings: list[str] = []
     if stats.status != "scored":
         warnings.append(stats.reason or "Livox PCD files could not be parsed")

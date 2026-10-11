@@ -44,7 +44,7 @@ from calibrex.data.downloads import (
 )
 from calibrex.data.inspect import DatasetInspection, inspect_dataset
 from calibrex.data.kitti import read_kitti_initial_transforms
-from calibrex.data.livox import find_livox_pcd_files
+from calibrex.data.livox import LivoxPCDEvaluationContext, find_livox_pcd_files
 from calibrex.data.nuscenes import read_nuscenes_reference_extrinsics
 from calibrex.evaluation.degeneracy import degeneracy_from_inspection
 from calibrex.evaluation.imu import imu_metrics_from_result
@@ -136,7 +136,14 @@ def run_calibration(
     config_file = Path(config_path)
     config = load_config(config_file)
     frame_graph = FrameGraph.from_config(config)
-    inspection = inspect_dataset(config.dataset)
+    livox_context = (
+        LivoxPCDEvaluationContext(config.dataset.path)
+        if config.dataset.type == "livox_pcd" else None
+    )
+    inspection = (
+        inspect_dataset(config.dataset, livox_context=livox_context)
+        if livox_context is not None else inspect_dataset(config.dataset)
+    )
     problem = build_problem(config, frame_graph, inspection)
 
     if options.dry_run:
@@ -158,14 +165,16 @@ def run_calibration(
     result.run.provenance["dataset_inspection"] = inspection.as_dict()
     _apply_dataset_initialization(config, result)
     _apply_external_candidate_extrinsics(options.candidate_extrinsics, result)
-    _apply_livox_pair_candidate_evidence(config, result)
+    _apply_livox_pair_candidate_evidence(config, result, context=livox_context)
     result.metrics.update(solid_state_metrics_from_inspection(config, inspection, result))
     if result.solid_state is not None:
         result.run.provenance["solid_state_evaluation_config"] = (
             config.evaluation.solid_state.model_dump(mode="json")
         )
     _apply_extrinsic_reference_comparisons(result)
-    _apply_pipeline_adapter(config, frame_graph, inspection, result, output_dir)
+    _apply_pipeline_adapter(
+        config, frame_graph, inspection, result, output_dir, livox_context=livox_context,
+    )
     # Adapters may add holdout/known-bad provenance after the initial metadata
     # pass. Recompute the solid-state metrics so their grades reflect the final
     # result-level evidence rather than only the config declaration.
@@ -201,6 +210,8 @@ def _apply_pipeline_adapter(
     inspection: DatasetInspection,
     result: CalibrationResult,
     output_dir: Path,
+    *,
+    livox_context: LivoxPCDEvaluationContext | None = None,
 ) -> None:
     adapter_result: SolverAdapterResult | None = None
     if config.pipeline.type == "rgbd_open3d_slac" or config.solver.backend == "open3d_slac":
@@ -216,7 +227,7 @@ def _apply_pipeline_adapter(
             config, frame_graph, inspection
         )
     elif config.solver.backend == NATIVE_REGISTRATION_COMPARISON_BACKEND:
-        adapter_result = NativeRegistrationComparisonSolver().solve(
+        adapter_result = NativeRegistrationComparisonSolver(livox_context=livox_context).solve(
             config, frame_graph, inspection
         )
     elif config.solver.backend == NATIVE_TUM_JOINT_SLAC_BACKEND:
@@ -346,6 +357,8 @@ def _world_map_weak_directions(metrics: dict[str, MetricResult]) -> list[str]:
 def _apply_livox_pair_candidate_evidence(
     config: CalibrationConfig,
     result: CalibrationResult,
+    *,
+    context: LivoxPCDEvaluationContext | None = None,
 ) -> None:
     if config.dataset.type != "livox_pcd":
         return
@@ -356,6 +369,7 @@ def _apply_livox_pair_candidate_evidence(
         dataset_path=config.dataset.path,
         target_transform=candidate.as_se3(),
         config=config,
+        context=context,
     )
     raw_input_files = _livox_raw_input_file_manifest(Path(config.dataset.path))
     result.metrics.update(evidence.metrics)
