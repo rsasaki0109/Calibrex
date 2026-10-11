@@ -15,6 +15,7 @@ from tests.unit.camera_lidar_scene import (
     make_scene,
     perturbed,
     render_image,
+    solid_state_directions,
     true_transform,
 )
 
@@ -29,6 +30,7 @@ from calibrex.evaluation.camera_lidar_edge import (
     EdgeAlignmentOptions,
     EdgeCamera,
     EdgeObjective,
+    _profile_start,
     estimate_from_frames,
     image_edge_response,
     lidar_depth_edges,
@@ -242,3 +244,70 @@ def test_options_validate() -> None:
         EdgeAlignmentOptions(rotation_levels_deg=(1.0,), translation_levels_m=(0.1, 0.2))
     with pytest.raises(ValueError, match="three blocks"):
         EdgeAlignmentOptions(blocks=2)
+
+
+def test_solid_state_cloud_edges_are_found_among_angular_neighbours(truth: np.ndarray) -> None:
+    points = cast_points(make_scene(3), truth, solid_state_directions(7))
+    beams_only = lidar_depth_edges(
+        points, min_jump_m=0.3, exponent=0.5, max_points=4000, min_ring_fraction=0.5
+    )
+    assert beams_only[0].shape == (0, 3)
+    edge_points, weights, rings, _fraction = lidar_depth_edges(
+        points,
+        min_jump_m=0.3,
+        exponent=0.5,
+        max_points=4000,
+        min_ring_fraction=0.5,
+        unstructured=True,
+    )
+    assert rings == 0
+    assert 100 < len(edge_points) < len(points) // 10
+    assert weights.shape == (len(edge_points),)
+    # Near-side points of the rectangles (5-16 m), not the 30 m wall seen at a grazing angle.
+    assert float(np.linalg.norm(edge_points, axis=1).max()) < 17.0
+
+
+def test_solid_state_frames_recover_the_extrinsic(truth: np.ndarray) -> None:
+    frames = [
+        CameraLidarFrame(
+            time_s=float(index),
+            image_time_s=float(index),
+            image=render_image(make_scene(index)),
+            points=cast_points(make_scene(index), truth, solid_state_directions(100 + index)),
+            cloud_frame_id="lidar",
+            image_frame_id="camera",
+        )
+        for index in range(12)
+    ]
+    candidate = perturbed(truth, (0.8, -1.2, 0.0))
+    artifact = estimate_from_frames(
+        frames, CAMERA, candidate, options=FAST, provenance=_provenance()
+    )
+    assert artifact.policy_status == "pass"
+    assert artifact.samples.median_rings == 0
+    assert artifact.transform is not None
+    estimate = Rotation.from_quat(artifact.transform.rotation_quat_xyzw).as_matrix()
+    assert np.all(np.abs(_rotation_error_deg(estimate, truth)) < 0.3)
+
+
+class _TwoPeaks:
+    """A pitch profile with a local maximum at +1 deg and the global one at -5 deg."""
+
+    def score(self, theta: np.ndarray) -> float:
+        pitch = float(theta[1])
+        return float(
+            0.6 * np.exp(-((pitch - 1.0) ** 2))
+            + np.exp(-((pitch + 5.0) ** 2) / 2.0)
+            - 0.01 * (theta[0] ** 2 + theta[2] ** 2)
+        )
+
+
+def test_profile_start_takes_each_axis_maximum() -> None:
+    start = _profile_start(_TwoPeaks(), EdgeAlignmentOptions())  # type: ignore[arg-type]
+    assert start is not None
+    assert start[1] == pytest.approx(-5.0)
+    assert start[0] == 0.0 and start[2] == 0.0 and not np.any(start[3:])
+    off = EdgeAlignmentOptions(start_scan_deg=None)
+    assert _profile_start(_TwoPeaks(), off) is None  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="start scan"):
+        EdgeAlignmentOptions(start_scan_deg=20.0)
