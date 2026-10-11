@@ -160,3 +160,37 @@ def test_pruning_keeps_half_pixel_boundaries_and_large_finite_points():
     assert evaluate_depth_to_depth_mi_batch((frame,), (SE3.identity(),), projector=cuda) == (
         evaluate_depth_to_depth_mi((frame,), SE3.identity()),
     )
+
+
+def test_partial_iteration_restores_device_context_and_can_resume(monkeypatch):
+    frames = mixed_frames()
+    cuda = CudaDepthPairProjector(frames)
+    cuda.prepare_pose_search(frames, SE3.identity(), rotation_bound_deg=2., translation_bound_m=1.)
+    device = cuda._device
+
+    class RecordingDevice:
+        depth = 0
+
+        def __enter__(self):
+            self.depth += 1
+            return device.__enter__()
+
+        def __exit__(self, *args):
+            self.depth -= 1
+            return device.__exit__(*args)
+
+    recording = RecordingDevice()
+    monkeypatch.setattr(cuda, "_device", recording)
+    kwargs = {
+        "use_z_buffer": True, "bins": 8, "camera_range": (1., 12.), "lidar_range": (1., 24.),
+    }
+    iterator = cuda.histogram_depth_pairs_poses(frames, (SE3.identity(),)*9, **kwargs)
+    next(iterator)
+    assert recording.depth == 0
+    next(iterator)
+    assert recording.depth == 0
+    iterator.close()
+    assert recording.depth == 0
+    assert cuda._pose_batch is not None
+    assert len(tuple(cuda.histogram_depth_pairs_poses(frames, (SE3.identity(),), **kwargs))) == 1
+    assert recording.depth == 0

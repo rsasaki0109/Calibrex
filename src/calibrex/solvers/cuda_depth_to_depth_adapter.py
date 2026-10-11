@@ -423,14 +423,19 @@ class CudaDepthPairProjector:
                 ))
             return
         try:
-            with self._device:
-                for host in batch.histogram_chunks(
-                    transforms, use_z_buffer=use_z_buffer, bins=bins,
-                    camera_range=camera_range, lidar_range=lidar_range,
-                    download=self._download_histograms,
-                ):
-                    for pose_rows in host:
-                        yield tuple(self._host_histogram(row, bins) for row in pose_rows)
+            chunks = iter(batch.histogram_chunks(
+                transforms, use_z_buffer=use_z_buffer, bins=bins,
+                camera_range=camera_range, lidar_range=lidar_range,
+                download=self._download_histograms,
+            ))
+            while True:
+                with self._device:
+                    host = next(chunks, None)
+                if host is None:
+                    break
+                # Never suspend an iterator while the caller's device is changed.
+                for pose_rows in host:
+                    yield tuple(self._host_histogram(row, bins) for row in pose_rows)
         except Exception:
             # A failed launch/download cannot leave reusable, partially updated scratch.
             self._pose_batch = None
