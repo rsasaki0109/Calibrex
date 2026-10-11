@@ -437,7 +437,8 @@ def test_single_estimate_cuda_matches_cpu_result_trace_and_holdout(tmp_path: Pat
     gpu_trace.pop("projection_backend")
     assert cpu_trace == gpu_trace
     identity = gpu.run.provenance["projection_backend"]
-    assert "calibrex.cuda_depth_pair_projector/v0.2;cupy=" in identity
+    assert "calibrex.cuda_depth_pair_projector/v0.3;cupy=" in identity
+    assert ";histogram_batch_frames=32" in identity
     assert ";device=" in identity
 
 
@@ -695,7 +696,8 @@ def test_cuda_cli_benchmark_records_backend_and_rejects_mixed_resume(tmp_path: P
     assert main([*args, "--cuda-cache-mib", "256"]) == 0
     assert main([*args, "--cuda-cache-mib", "0"]) == 2
     trace = load_calibration_candidate_trace(next(trace_dir.glob("*.trace.yaml")))
-    assert ";projection_backend=calibrex.cuda_depth_pair_projector/v0.2;cupy=" in trace.solver
+    assert ";projection_backend=calibrex.cuda_depth_pair_projector/v0.3;cupy=" in trace.solver
+    assert ";histogram_batch_frames=32" in trace.solver
     assert ";device=" in trace.solver
     assert validate_file(tmp_path / "definition.yaml", kind="benchmark-definition").valid
     assert validate_file(tmp_path / "benchmark.yaml", kind="benchmark").valid

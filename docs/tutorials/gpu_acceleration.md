@@ -398,3 +398,15 @@ the evaluator rejects missing or extra results.
 [CuPy's host copy](https://docs.cupy.dev/en/stable/reference/generated/cupy.asnumpy.html)
 blocks until each group's result is ready. The existing FP64 kernels, disabled
 FMA policy, nearest-point ties, histogram edges, and search settings are retained.
+
+On public KITTI raw drive 0018, three invocations per method all retain the exact
+complete 229-evaluation payload. Solve medians were 3.158 s for single-frame
+CUDA and 1.404 s for batched CUDA (**2.25x**); pipeline phase medians were
+6.129 / 3.796 s (**1.61x**). The fused CPU reference with two frame threads
+measured 5.163 s solve / 8.273 s pipeline, with cold compilation included and
+substantial shared-host variation. Histogram downloads fall from 4,590 to 231
+per solve-plus-holdout invocation while byte counts remain identical. All six
+frozen signed-axis problems also retain full historical CPU numerical equality.
+[Published CUDA batch evidence](../assets/cuda_frame_batching/README.md) retains
+all timings, original hashes, representative full traces, six-axis validation,
+cold-cache conditions, and timing/accuracy limitations.

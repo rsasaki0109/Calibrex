@@ -1,0 +1,370 @@
+{
+  "benchmark_id": "public_kitti_cuda_frame_batch_signed_axis_validation",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Six fixed axis perturbations on one development drive; convergence and parity do not establish independent accuracy.",
+    "Historical CPU results are imported numerical oracles; timings are omitted."
+  ],
+  "methods": [
+    {
+      "implementation": "imported",
+      "label": "Historical CPU numerical oracle (no timing)",
+      "method_id": "historical_numpy",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "CUDA ordered frame batches",
+      "method_id": "cuda_batched_frames",
+      "source_commit": "0d5f753",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "1 means exact equality with the complete historical CPU payload; reference compared with itself.",
+      "label": "Complete numerical payload parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fixed-search evaluation count; equivalent workloads, not accuracy.",
+      "label": "Evaluations",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Retain every candidate, numerical mismatch, and nonconvergence.",
+    "initial_estimate_policy": "Dataset reference plus local Euler rotation +/-0.5 deg and camera-frame translation +/-0.5 m, on x, y, z in that order. Controlled prior; reference is never the optimization target.",
+    "protocol_id": "cuda_frame_batch_signed_axis_validation/v0.1",
+    "split_policy": "Six fixed signed-axis initializations on the same uniform 20-fit/5-holdout provider frames; repetitions are timing observations, not independent recovery trials.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative/repeat-01"
+      }
+    ],
+    "tuning_policy": "All cases/settings fixed before execution; no holdout tuning or filtering."
+  },
+  "provenance": {
+    "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+    "data_verified": true,
+    "generated_at": "2026-10-11T02:15:10.545967+00:00",
+    "generator": "manual.cuda_frame_batch_signed_axis_validation",
+    "generator_version": "v0.1",
+    "git_commit": "0d5f753",
+    "source_artifacts": {
+      "original_cpu_x-negative": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d",
+      "original_cpu_x-positive": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800",
+      "original_cpu_y-negative": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5",
+      "original_cpu_y-positive": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c",
+      "original_cpu_z-negative": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8",
+      "original_cpu_z-positive": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb",
+      "original_validation_benchmark": "aad1a10c5a04e44d93e9133644d99c41d20c4fa6a1fe20e154a2f19ed049386a",
+      "original_validation_definition": "6048c59c29d2c06efc408afe8e9541cdc9d0ab77e1e05fb84c70ac7d2d1ca025",
+      "problem_x-negative": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+      "problem_x-positive": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+      "problem_y-negative": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+      "problem_y-positive": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+      "problem_z-negative": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+      "problem_z-positive": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+      "validation_launcher": "d4f48c319952dc0ef8e5c9de40a2fbac386a943b6647b811ca82bc801f0b7c9f"
+    }
+  },
+  "reference_method_id": "historical_numpy",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "CUDA frame batching six-axis numerical validation",
+  "trials": [
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle",
+        "config_sha256": "f4010bd2cb6531dba7ee8ee7321628630800620430ca4a6718b3a71dcb32b465",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Full original CPU numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred."
+        ],
+        "output_sha256": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+        "config_sha256": "d01d8683cd70035fc360bfb6e3a84dadf7a4281c353a511f44630b6653936b48",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Full original CPU numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "67cd2429b09e06cee6db11865ecfdfc7ff426c2068a72fed97ceb1911a43b4d7"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle",
+        "config_sha256": "7b65f411260871a74d4bbdeab8a10c75d6107d704f2a64d08209f5da0ad259d2",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred."
+        ],
+        "output_sha256": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+        "config_sha256": "6635e87d564c494efb23e46d3c695a1588c565f6f326586414130af754ea47f9",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "242ecff19abf295b712e2265d10e18897ba513cdbff6998667115d6f9529dae8"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle",
+        "config_sha256": "27eac5d33fd02b511eadee82a620266b42d9d84368df4340b78a385dac8dade9",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Full original CPU numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred."
+        ],
+        "output_sha256": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+        "config_sha256": "24707a50f8a2e1d8000ba1bc88fdf1ae200534d335aa4b75d4820e8c3e09d41c",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Full original CPU numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "2c5999546ec69b2dbe22b805c7b31ccb50f781861fb56e3698ffc262b1beca5a"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle",
+        "config_sha256": "3a96217308608cb6b732da80c8df9efbe10af23f332a04189f1600a9d14a50d9",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Full original CPU numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred."
+        ],
+        "output_sha256": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+        "config_sha256": "5b7e8a4424c55ee32adb012323cb7a5df4d04181fb2fc556444359fa99f9d225",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Full original CPU numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "4bda22fababd0294d6f407a9f14a0dc745649e07272959fc7ecddfaeb84739cc"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle",
+        "config_sha256": "f8db1eee68cf4a42fd0e244783daabfc44c2a5763b636d37461a1d56d1c78844",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred."
+        ],
+        "output_sha256": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+        "config_sha256": "d17b7fc2acb36b902d5713f62686413b1b8cbe0f1735b4dffae8d197d5f2c444",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "081aee8d71e38551db0da8d85096e568dd694a4b6e524a79f9ddd2abcc8b19e5"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle",
+        "config_sha256": "cbbb4f5fe00d8053ac94e4f4ddd98cdef6f7f91c627dae504fa1a84bcb9fa024",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred."
+        ],
+        "output_sha256": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-cuda-batch-axes.py",
+        "config_sha256": "2af8452533775b69932621f05a9ed4b3c30c99679be9f9f3263983182dca3432",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Historical CPU numerical oracle only; timings omitted and no paired speed ratio inferred.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "289029afce6055277bf83b5e0ad4f220d5e188c3d96884789b0d6b3a5733fa40"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    }
+  ]
+}

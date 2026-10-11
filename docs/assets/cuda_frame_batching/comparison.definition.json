@@ -1,0 +1,410 @@
+{
+  "benchmark_id": "public_kitti_cuda_frame_batching",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One sequence, one perturbation, 3 invocation(s) per backend. Repetitions measure timing on the same frames, not independent recovery trials. Bootstrap intervals do not establish statistical confidence for this demo.",
+    "All invocations, including the first, contribute to timing. There is no separate warm-up or cold-process guarantee; lazy compilation and process-wide caches affect latency.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27",
+    "Three invocations per method on one workload with cyclic execution order. Shared host is not isolated; no speed guarantee or statistical confidence.",
+    "Pipeline phases include verification/loading, backend preparation, solve, and holdout/pool shutdown; exclude shared setup, serialization, and report rendering.",
+    "Both GPU modes use the same unchanged FP64 kernels; reference explicitly selects the single-frame API through a bound launcher wrapper.",
+    "First CPU includes compilation from an absent cache; first CUDA serial reference includes NVRTC preparation. Later invocations share compiled caches."
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "Fused Numba CPU, two frame threads",
+      "method_id": "numba_cpu",
+      "source_commit": "0d5f753",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "CUDA single-frame reference",
+      "method_id": "cuda_serial_frames",
+      "source_commit": "0d5f753",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "CUDA ordered frame batches",
+      "method_id": "cuda_batched_frames",
+      "source_commit": "0d5f753",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "One invocation; includes lazy JIT.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Load, prepare, solve, holdout.",
+      "label": "Pipeline time",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full trace, output poses, metrics, and holdout evaluations match exactly.",
+      "label": "Exact numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fixed-search evaluation count; equal counts support equivalent workloads, not accuracy.",
+      "label": "Evaluations",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Retain every invocation, numerical mismatch, and nonconvergence.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "public_kitti_cuda_frame_batching/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-03"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+    "data_verified": true,
+    "generated_at": "2026-10-11T02:13:59.916104+00:00",
+    "generator": "manual.public_kitti_cuda_frame_batching",
+    "generator_version": "v0.1",
+    "git_commit": "0d5f753",
+    "source_artifacts": {
+      "borer_depth_to_depth_solver.py": "d326fed2fe34901f335a943580f6542614e1088aed1e95733753e45a9539c358",
+      "committed_borer_depth_to_depth_solver.py": "89216c0b456783b6064ea990d1fc1950a4d57c06344785cc84ca96bd5c29b7ae",
+      "committed_cuda_depth_to_depth_adapter.py": "910c7d021e76c231dce8151b9ede0869047987d0466786cd758b3d339fe20c43",
+      "cuda_batched.result.json": "39fa0ea69ec3b1340ef6d9199fb8dce6bd467e63eee40573551241b889b5056a",
+      "cuda_depth_to_depth_adapter.py": "62b60cee9d6df108279ed263fc729158eb6ff60221aab28e4f384d383c08bd2a",
+      "cuda_serial.result.json": "17c79e99cf63c4f56eea4dac6ac9cace1619ff3a0ed0b743eb6565abab71d70e",
+      "evidence_publisher": "fae4921785b982c74ea726f3ced6b80725a7f076b6d16820fb13934bcd4d29f8",
+      "historical_numpy_numerical_oracle": "28e60a2110d078a846b6ed9b0970de8acd979d069dafbcbce6dec851afd99259",
+      "measurement_launcher": "7c0fc044d23809c4c70108a31a5506caee68592a9865177e73821908ebdb4722",
+      "numba_cpu.result.json": "6e1e5b0b6a21583a0e92158eec914585416ab01ac44f2407c5d42faa703de339",
+      "original_local_benchmark": "8924fde71e9b031340592739b298d746918cc04113ab1f06e1fb5ed46427783a",
+      "original_local_definition": "d8d3bde90749f9ec9f088f96e5ffa51d7c36f9fe399388e335f5388f1a8e802d",
+      "original_measurement_summary": "daaffae307df6772abc04dcf836529bdeae21f993f0eefe104ea8ad9a3d0dfea",
+      "problem": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18"
+    }
+  },
+  "reference_method_id": "cuda_serial_frames",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Public KITTI CPU and serial/batched CUDA comparison",
+  "trials": [
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 8.272800000035204,
+        "solve_seconds": 5.162836599978618
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "f7cfc71ea160648f0dab2ee009192dcc2d697c5de89e3cc5fb8c4d818ad16431",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: numba_cpu.repeat-01.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: numba_cpu.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "a61a28ca53cf4f258d000ba94e1fde589705e8dbf58db58f802c52a85cb26428"
+      },
+      "runtime_seconds": 8.272800000035204,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.129188599996269,
+        "solve_seconds": 2.70731369999703
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "0d31ae8a2b63932139c150c1ce80e9315e64fd7b7d1e35797e68c01a528ba91e",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_serial_frames.repeat-01.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: cuda_serial.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 190892928, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 37674720, \"histogram_download_calls\": 4590, \"preparation_input_upload_bytes\": 190892928, \"preparation_input_upload_calls\": 25, \"prepared_observation_count\": 25}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "fad3bfcafd23ae24b63e61d53d9883decf314e225a2a5c0bde95ed32ac819497"
+      },
+      "runtime_seconds": 6.129188599996269,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.7955741999903694,
+        "solve_seconds": 1.227272999996785
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "d01d8683cd70035fc360bfb6e3a84dadf7a4281c353a511f44630b6653936b48",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_batched_frames.repeat-01.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: cuda_batched.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 190892928, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 37674720, \"histogram_download_calls\": 231, \"preparation_input_upload_bytes\": 190892928, \"preparation_input_upload_calls\": 25, \"prepared_observation_count\": 25}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "c2c4948a68b5caf07cd8c954897c5c4fe5ae519aecdfde8610d34c98b0ca8ede"
+      },
+      "runtime_seconds": 3.7955741999903694,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.795514400000684,
+        "solve_seconds": 1.4037452000193298
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "d01d8683cd70035fc360bfb6e3a84dadf7a4281c353a511f44630b6653936b48",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_batched_frames.repeat-02.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: cuda_batched.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 190892928, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 37674720, \"histogram_download_calls\": 231, \"preparation_input_upload_bytes\": 190892928, \"preparation_input_upload_calls\": 25, \"prepared_observation_count\": 25}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "f4507f6d7c0b069bad14b8b16f8293f9603ad0360ba663d2ce0b9c9db846ee9b"
+      },
+      "runtime_seconds": 3.795514400000684,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.160327200021129,
+        "solve_seconds": 3.47623669996392
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "f7cfc71ea160648f0dab2ee009192dcc2d697c5de89e3cc5fb8c4d818ad16431",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: numba_cpu.repeat-02.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: numba_cpu.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "bd527385be3f1c57742a6ed2b2bd171c9a51a5b2ea0da775bbe9af37a2c1f9fb"
+      },
+      "runtime_seconds": 6.160327200021129,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 5.526306300016586,
+        "solve_seconds": 3.1584786000312306
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "0d31ae8a2b63932139c150c1ce80e9315e64fd7b7d1e35797e68c01a528ba91e",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_serial_frames.repeat-02.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: cuda_serial.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 190892928, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 37674720, \"histogram_download_calls\": 4590, \"preparation_input_upload_bytes\": 190892928, \"preparation_input_upload_calls\": 25, \"prepared_observation_count\": 25}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "5de5fe4f3122182e75fd5dd3947d8e2cfee02d94a3f5f325b7912135288670dc"
+      },
+      "runtime_seconds": 5.526306300016586,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.349387499969453,
+        "solve_seconds": 3.3036506999633275
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "0d31ae8a2b63932139c150c1ce80e9315e64fd7b7d1e35797e68c01a528ba91e",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_serial_frames.repeat-03.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: cuda_serial.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 190892928, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 37674720, \"histogram_download_calls\": 4590, \"preparation_input_upload_bytes\": 190892928, \"preparation_input_upload_calls\": 25, \"prepared_observation_count\": 25}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "8c9d2a3220ec632731a1ab2ebe929c144d6f68acd384f533ee2402c8564ef4b6"
+      },
+      "runtime_seconds": 6.349387499969453,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batched_frames",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 5.909505199990235,
+        "solve_seconds": 1.855467099987436
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "d01d8683cd70035fc360bfb6e3a84dadf7a4281c353a511f44630b6653936b48",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: cuda_batched_frames.repeat-03.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: cuda_batched.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 190892928, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 37674720, \"histogram_download_calls\": 231, \"preparation_input_upload_bytes\": 190892928, \"preparation_input_upload_calls\": 25, \"prepared_observation_count\": 25}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "a29e4a25fced91b6a64f81eb32b84d2b43a403c042cbfca8782f34d1f861abab"
+      },
+      "runtime_seconds": 5.909505199990235,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 11.919513399945572,
+        "solve_seconds": 6.000502700044308
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-measure-cuda-frame-batching.py",
+        "config_sha256": "f7cfc71ea160648f0dab2ee009192dcc2d697c5de89e3cc5fb8c4d818ad16431",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Result file: numba_cpu.repeat-03.result.json",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Each invocation verifies/loads inputs and prepares a fresh projector; no separate warm-up.",
+          "Absent Numba and CuPy disk cache directories selected before startup; process-wide caches persist.",
+          "CUDA serial reference wraps the same adapter single-frame API and omits the batch protocol; GPU kernel source unchanged.",
+          "Output SHA256 binds original external result bytes; published representative hashes are separate.",
+          "Representative full trace: numba_cpu.result.json; complete payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160.",
+          "Observed transfer statistics: {}",
+          "Measured source hashes bind Windows CRLF working-tree bytes; committed_* source hashes bind canonical LF Git blobs at measured commit 0d5f753."
+        ],
+        "output_sha256": "9eecd45ddfd6639ecac9fcccd12845654debaee8324cf1de683c1f7aef0798f6"
+      },
+      "runtime_seconds": 11.919513399945572,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    }
+  ]
+}

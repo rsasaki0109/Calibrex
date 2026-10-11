@@ -253,9 +253,10 @@ class CudaDepthPairProjector:
         return inputs
 
     def transfer_statistics(self) -> dict[str, int]:
-        """Snapshot successful uploads of coordinates, depth maps and LiDAR ranges.
+        """Snapshot successful input uploads and histogram downloads.
 
-        Counters exclude the small pose, histogram edges and returned histogram.
+        Input counters exclude the small pose and histogram edges. Histogram
+        counters cover count downloads; pair-array downloads are excluded.
         They add no device synchronizations to the normal evaluation path.
         """
 
