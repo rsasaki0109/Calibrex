@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -79,9 +80,9 @@ def test_cli_joint_calibration_recovers_the_injected_calibration(tmp_path: Path)
     # The angular-rate starting point and the fit both land near the truth.
     assert math.degrees(error.magnitude()) < 0.3
     assert artifact["rotation_difference_from_initial_deg"] < 0.5
-    assert np.linalg.norm(
-        np.asarray(artifact["t_lidar_imu_translation_m"]) - truth.lever_arm_m
-    ) < 0.04
+    assert (
+        np.linalg.norm(np.asarray(artifact["t_lidar_imu_translation_m"]) - truth.lever_arm_m) < 0.04
+    )
     assert artifact["imu_clock_offset_s"] == pytest.approx(truth.clock_offset_s, abs=1.5e-3)
     assert artifact["policy_status"] in {"pass", "warn"}
     rotation_block = next(block for block in artifact["blocks"] if block["name"] == "imu_rotation")
@@ -119,3 +120,24 @@ def test_band_limit_removes_vibration_without_delaying_the_motion() -> None:
     assert np.max(np.abs(band.accel_mps2[inside, 2] - (9.81 - expected))) < 1.0e-3
     with pytest.raises(ValueError, match="Nyquist"):
         _band_limit(ImuSamples(times, values, values), cutoff_hz=60.0)
+
+
+def test_synthetic_bag_vibration_reaches_the_gyro_at_its_frequency(tmp_path: Path) -> None:
+    calm = SyntheticLidarImuBagSpec(duration_s=2.0, azimuth_steps=36)
+    shaking = replace(calm, vibration_hz=18.0, vibration_rate_rad_s=0.25)
+    gyro = []
+    for name, spec in (("calm", calm), ("shaking", shaking)):
+        bag = write_synthetic_lidar_imu_bag(tmp_path / name, spec)
+        profile = LivoxStreamProfile(
+            "synthetic", bag.lidar_topic, bag.imu_topic, "offset_time", "offset_s", "mps2"
+        )
+        gyro.append(load_livox_imu(bag.path, profile).gyro_rps)
+    # Same seed, same noise: the difference is the vibration of roll and pitch.
+    vibration = gyro[1] - gyro[0]
+    assert np.allclose(
+        np.sqrt(np.mean(vibration[:, :2] ** 2, axis=0)), 0.25 / np.sqrt(2.0), rtol=0.1
+    )
+    assert np.sqrt(np.mean(vibration[:, 2] ** 2)) < 0.03
+    spectrum = np.abs(np.fft.rfft(vibration[:, 0]))
+    frequencies = np.fft.rfftfreq(vibration.shape[0], 1.0 / calm.imu_rate_hz)
+    assert frequencies[np.argmax(spectrum)] == pytest.approx(18.0, abs=0.5)
