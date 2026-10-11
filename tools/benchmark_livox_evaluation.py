@@ -1,7 +1,8 @@
 """Measure fresh public Livox calibration subprocesses and full result parity.
 
-The pinned baseline replaces the five modules changed by Livox geometry reuse.
-Numerical ICP solvers and artifact writers use the same checkout in both methods.
+The comparison workflow replaces five Livox geometry/evaluation modules; the
+fixed-rig workflow replaces only the point-to-plane factor. Other solvers,
+correspondence builders and artifact writers are shared between methods.
 No input, output, report, control or external backend is skipped to save time.
 """
 
@@ -36,6 +37,9 @@ SOURCES = (
     "src/calibrex/solvers/robust_point_to_point_icp_solver.py",
     "src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py",
     "src/calibrex/solvers/registration_adapters.py",
+    "src/calibrex/graph/lidar_point_to_plane.py",
+    "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+    "src/calibrex/solvers/native_lidar_point_to_plane_solver.py",
     "tools/benchmark_livox_evaluation.py",
 )
 
@@ -68,14 +72,19 @@ def _normalized_result(payload, output_dir: Path):
     return visit(payload)
 
 
+def _workflow_modules(workflow: str) -> tuple[str, ...]:
+    return ("calibrex.graph.lidar_point_to_plane",) if workflow == "fixed-rig" else MODULES
+
+
 def _worker(args) -> None:
+    modules = _workflow_modules(args.workflow)
     if args.worker == "baseline":
         from importlib.abc import MetaPathFinder
         from importlib.machinery import SourceFileLoader
 
         class ArchivedFinder(MetaPathFinder):
             def find_spec(self, fullname, path, target=None):
-                if fullname not in MODULES:
+                if fullname not in modules:
                     return None
                 source = args.output_dir.parent / (
                     f"baseline.{fullname.rsplit('.', 1)[1]}.py.txt"
@@ -102,6 +111,21 @@ def _worker(args) -> None:
             evidence_seconds += time.perf_counter() - started
 
     calibrate.livox_pair_evidence_from_dataset = measured_evidence
+    optimizer_seconds = 0.0
+    if args.workflow == "fixed-rig":
+        from calibrex.solvers.fixed_trajectory_se3_solver import FixedTrajectorySe3ExtrinsicSolver
+
+        solve = FixedTrajectorySe3ExtrinsicSolver.solve
+
+        def measured_solve(*arguments, **keywords):
+            nonlocal optimizer_seconds
+            started = time.perf_counter()
+            try:
+                return solve(*arguments, **keywords)
+            finally:
+                optimizer_seconds += time.perf_counter() - started
+
+        FixedTrajectorySe3ExtrinsicSolver.solve = measured_solve
     result_filename = load_config(args.config).outputs.result
     started = time.perf_counter()
     result = run_calibration(args.config, CalibrationRunOptions(output_dir=args.output_dir))
@@ -111,7 +135,7 @@ def _worker(args) -> None:
     summary = {
         "pipeline_seconds": pipeline_seconds,
         "livox_evidence_seconds": evidence_seconds,
-        "loaded_evaluation_modules": {name: sys.modules[name].__file__ for name in MODULES},
+        "loaded_evaluation_modules": {name: sys.modules[name].__file__ for name in modules},
         "result": _normalized_result(result.model_dump(mode="json"), args.output_dir),
         "result_sha256": _sha(args.output_dir / result_filename),
         "artifacts": {
@@ -120,6 +144,8 @@ def _worker(args) -> None:
             if path.is_file()
         },
     }
+    if args.workflow == "fixed-rig":
+        summary["optimizer_seconds"] = optimizer_seconds
     (args.output_dir / "measurement.json").write_text(
         json.dumps(summary, indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
@@ -132,10 +158,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path(
-            "examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml"
-        ),
+        help="Defaults to the existing public config for the selected workflow.",
     )
+    parser.add_argument("--workflow", choices=("comparison", "fixed-rig"), default="comparison")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--baseline-commit", default=BASELINE)
     parser.add_argument("--repetitions", type=int, default=5)
@@ -144,6 +169,11 @@ def main(argv: list[str] | None = None) -> None:
     arguments = sys.argv[1:] if argv is None else argv
     args = parser.parse_args(arguments)
     args.output_dir = args.output_dir.resolve()
+    modules = _workflow_modules(args.workflow)
+    if args.config is None:
+        filename = ("online_accumulation_config.yaml" if args.workflow == "fixed-rig"
+                    else "icp_comparison_config.yaml")
+        args.config = Path("examples/public_datasets/livox_horizon_horizon_pcd_sample") / filename
     if args.worker:
         _worker(args)
         return
@@ -165,6 +195,9 @@ def main(argv: list[str] | None = None) -> None:
     from calibrex.core.config import load_config
     from calibrex.core.provenance import git_commit
 
+    config = load_config(args.config)
+    if args.workflow == "fixed-rig" and config.solver.backend != "native_lidar_point_to_plane":
+        raise ValueError("fixed-rig benchmark requires native_lidar_point_to_plane")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     baseline = subprocess.check_output(
         ["git", "rev-parse", f"{args.baseline_commit}^{{commit}}"],
@@ -172,7 +205,7 @@ def main(argv: list[str] | None = None) -> None:
     ).strip()
     source_commit = git_commit()
     bindings = {path: _sha(Path(path)) for path in SOURCES}
-    for name in MODULES:
+    for name in modules:
         path = "src/" + name.replace(".", "/") + ".py"
         target = args.output_dir / f"baseline.{name.rsplit('.', 1)[1]}.py.txt"
         target.write_bytes(subprocess.check_output(["git", "show", f"{baseline}:{path}"]))
@@ -195,6 +228,7 @@ def main(argv: list[str] | None = None) -> None:
             command = [
                 sys.executable,
                 str(Path(__file__).resolve()),
+                "--workflow", args.workflow,
                 "--worker",
                 method,
                 "--config",
@@ -221,7 +255,7 @@ def main(argv: list[str] | None = None) -> None:
                     if method == "baseline"
                     else Path("src", *name.split(".")).with_suffix(".py").resolve()
                 )
-                for name in MODULES
+                for name in modules
             }
             if row["loaded_evaluation_modules"] != expected_modules:
                 raise ValueError("baseline/candidate module binding mismatch")
@@ -231,18 +265,21 @@ def main(argv: list[str] | None = None) -> None:
             if anchor is None:
                 anchor = canonical
             matches = anchor == canonical
+            metrics = {
+                "subprocess_wall_seconds": elapsed,
+                "pipeline_seconds": row["pipeline_seconds"],
+                "livox_evidence_seconds": row["livox_evidence_seconds"],
+                "complete_result_matches": float(matches),
+            }
+            if args.workflow == "fixed-rig":
+                metrics["optimizer_seconds"] = row["optimizer_seconds"]
             trials.append(
                 BenchmarkTrial(
                     method_id=method,
                     split_id=f"repeat-{repeat:02d}",
                     status="success" if matches else "failed",
                     runtime_seconds=elapsed,
-                    metrics={
-                        "subprocess_wall_seconds": elapsed,
-                        "pipeline_seconds": row["pipeline_seconds"],
-                        "livox_evidence_seconds": row["livox_evidence_seconds"],
-                        "complete_result_matches": float(matches),
-                    },
+                    metrics=metrics,
                     provenance=BenchmarkTrialProvenance(
                         command=subprocess.list2cmdline(command),
                         config_sha256=config_digest,
@@ -274,12 +311,12 @@ def main(argv: list[str] | None = None) -> None:
     ):
         raise ValueError("source, configuration or input bytes changed during benchmark")
     definition = BenchmarkDefinition(
-        benchmark_id="livox-complete-pipeline-evaluation",
-        title="Public Livox full calibration subprocess with scoped batched evaluation",
+        benchmark_id=f"livox-complete-pipeline-{args.workflow}",
+        title=f"Public Livox full {args.workflow} calibration subprocess",
         reference_method_id="baseline",
         bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id="livox-fresh-subprocess-v3",
+            protocol_id=f"livox-{args.workflow}-fresh-subprocess-v4",
             dataset_id="livox_horizon_horizon_pcd_sample",
             dataset_source_sha256=input_digest,
             data_license="Official public Livox sample terms",
@@ -295,7 +332,9 @@ def main(argv: list[str] | None = None) -> None:
                 )
                 for i in range(1, args.repetitions + 1)
             ],
-            initial_estimate_policy="Same official comparison config and all 24 probe controls",
+            initial_estimate_policy=(
+                "Same existing public workflow config and all 24 probe controls"
+            ),
             tuning_policy=(
                 f"Reverse order every other repeat; child OMP_NUM_THREADS={args.omp_threads}"
             ),
@@ -308,7 +347,7 @@ def main(argv: list[str] | None = None) -> None:
                 implementation="subprocess",
                 tool_name="Calibrex",
                 tool_version="0.5.1",
-                adapter_version="livox-evaluation/v3",
+                adapter_version="livox-evaluation/v4",
                 source_commit=baseline if method == "baseline" else source_commit,
             )
             for method in ("baseline", "batched")
@@ -325,7 +364,11 @@ def main(argv: list[str] | None = None) -> None:
                     if name.endswith("matches") else (
                         "Full candidate and 24-control evidence call within the same pipeline"
                         if name == "livox_evidence_seconds"
-                        else "Fresh process wall or its pipeline subset"
+                        else (
+                            "Fixed-trajectory optimizer, including initial/final diagnostics"
+                            if name == "optimizer_seconds"
+                            else "Fresh process wall or its pipeline subset"
+                        )
                     )
                 ),
             )
@@ -334,21 +377,25 @@ def main(argv: list[str] | None = None) -> None:
         trials=trials,
         limitations=[
             "Fresh interpreters, no warmup; OS caches persist and unrelated user work continues.",
-            "Wall includes startup, all reads, inspection, 24 controls, native ICP, Open3D GICP, "
-            "NDT availability check and result/report/artifact saves. Parent audits are excluded.",
+            "Wall includes startup, all reads, inspection, 24 controls, the complete selected "
+            "backend and result/report/artifact saves. Comparison includes native ICP, Open3D "
+            "GICP and NDT availability; fixed-rig includes its refinement and holdout evaluation. "
+            "Parent audits are excluded.",
             "Pipeline timer starts at run_calibration entry; it is a subset of subprocess wall.",
             "Evidence timer wraps the existing candidate plus 24-control call, including its "
             "reads, preparation and summaries; prior inspection is outside this subset. No "
             "additional evaluation or warmup is performed to obtain the phase timing.",
             "Full result parity normalizes only run ID/timestamps and destination paths.",
-            "Five changed modules are replaced for baseline; numerical solvers and writers "
-            "are shared. Loaded module filenames and all source bytes are checked.",
+            "Comparison replaces five evaluation modules; fixed-rig replaces only the factor. "
+            "Other solvers, correspondence builders and writers are shared. Loaded module "
+            "filenames and all source bytes are checked.",
+            "Optimizer time is a subset of the same complete run, without extra calls/warmup.",
             "The single pair is limited geometry evidence; quality failures remain failures.",
             "Timings are descriptive ranges, not confidence or portable speedup estimates.",
         ],
         provenance=BenchmarkProvenance(
             generator="tools.benchmark_livox_evaluation",
-            generator_version="v0.3",
+            generator_version="v0.4",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

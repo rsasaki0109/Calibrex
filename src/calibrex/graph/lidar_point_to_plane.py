@@ -6,6 +6,9 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from math import cos, isclose, sin, sqrt
 
+import numpy as np
+from numpy.typing import NDArray
+
 from calibrex.core.geometry import SE3, Vector3, rotate_vector_xyzw
 
 _DEFAULT_DOF_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
@@ -92,6 +95,9 @@ class LidarRigPointToPlaneFactor:
         self.variable = variable
         self.t_ego_lidar = t_ego_lidar
         self.observations = tuple(observations)
+        self._array_observations: tuple[
+            tuple[LidarPointToPlaneObservation, ...], _ObservationArrays | None
+        ] | None = None
         self.sensor = sensor
         self.dof_names: tuple[str, str, str, str, str, str] = (
             f"{_DEFAULT_DOF_NAMES[0]}_{sensor}",
@@ -106,6 +112,19 @@ class LidarRigPointToPlaneFactor:
         """Return weighted point-to-plane residuals in meters."""
 
         t_ego_lidar = self._corrected_transform(correction)
+        if len(self.observations) >= 64:
+            if (
+                self._array_observations is None
+                or self._array_observations[0] is not self.observations
+            ):
+                self._array_observations = (
+                    self.observations, _prepare_observation_arrays(self.observations)
+                )
+            arrays = self._array_observations[1]
+            if arrays is not None and all(
+                np.isfinite((*t_ego_lidar.translation_m, *t_ego_lidar.rotation_quat_xyzw))
+            ):
+                return _array_residuals(arrays, t_ego_lidar)
         residuals: list[float] = []
         for observation in self.observations:
             t_world_lidar = observation.t_world_ego.compose(t_ego_lidar)
@@ -251,6 +270,103 @@ class LidarRigPointToPlaneFactor:
         correction_vector = _correction_vector(correction)
         delta = _small_se3(correction_vector)
         return delta.compose(self.t_ego_lidar)
+
+
+@dataclass(frozen=True)
+class _ObservationArrays:
+    points: NDArray[np.float64]
+    plane_points: NDArray[np.float64]
+    normals: NDArray[np.float64]
+    poses: NDArray[np.float64]
+    sqrt_weights: NDArray[np.float64]
+
+
+def _prepare_observation_arrays(
+    observations: Sequence[LidarPointToPlaneObservation],
+) -> _ObservationArrays | None:
+    arrays = [
+        np.asarray([observation.point_lidar_m for observation in observations], dtype=np.float64),
+        np.asarray([
+            observation.plane_point_world_m for observation in observations
+        ], dtype=np.float64),
+        np.asarray([
+            observation.plane_normal_world for observation in observations
+        ], dtype=np.float64),
+        np.asarray([
+            (*observation.t_world_ego.translation_m, *observation.t_world_ego.rotation_quat_xyzw)
+            for observation in observations
+        ], dtype=np.float64),
+        np.asarray([observation.weight for observation in observations], dtype=np.float64),
+    ]
+    if not all(np.all(np.isfinite(array)) for array in arrays):
+        return None
+    arrays[-1] = np.sqrt(arrays[-1])
+    for array in arrays:
+        array.flags.writeable = False
+    return _ObservationArrays(*arrays)
+
+
+def _raw_array_product(
+    left: NDArray[np.float64], right: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    lx, ly, lz, lw = np.moveaxis(left, -1, 0)
+    rx, ry, rz, rw = np.moveaxis(right, -1, 0)
+    return np.stack((
+        lw * rx + lx * rw + ly * rz - lz * ry,
+        lw * ry - lx * rz + ly * rw + lz * rx,
+        lw * rz + lx * ry - ly * rx + lz * rw,
+        lw * rw - lx * rx - ly * ry - lz * rz,
+    ), axis=-1)
+
+
+def _normalize_array_quaternions(quaternions: NDArray[np.float64]) -> NDArray[np.float64]:
+    x, y, z, w = np.moveaxis(quaternions, -1, 0)
+    norm = np.sqrt(x * x + y * y + z * z + w * w)
+    return quaternions / norm[..., None]
+
+
+def _rotate_array_points(
+    quaternions: NDArray[np.float64], points: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    # Keep both normalizations and both Hamilton products from rotate_vector_xyzw.
+    # A rotation matrix changes rounding and hence numerical finite differences.
+    normalized = _normalize_array_quaternions(quaternions)
+    conjugate = _normalize_array_quaternions(normalized).copy()
+    conjugate[..., :3] *= -1.0
+    point_quaternions = np.concatenate((
+        points, np.zeros((*points.shape[:-1], 1), dtype=np.float64),
+    ), axis=-1)
+    return _raw_array_product(
+        _raw_array_product(normalized, point_quaternions), conjugate,
+    )[..., :3]
+
+
+def _array_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
+    translation = np.asarray(transform.translation_m, dtype=np.float64)
+    rotation = np.asarray(transform.rotation_quat_xyzw, dtype=np.float64)
+    residuals: list[float] = []
+    # Bound temporary arrays independently of the observation population.
+    with np.errstate(over="ignore", invalid="ignore"):
+        for start in range(0, len(arrays.points), 4096):
+            stop = start + 4096
+            poses = arrays.poses[start:stop]
+            world_translation = poses[:, :3] + _rotate_array_points(poses[:, 3:], translation)
+            # quaternion_multiply_xyzw and SE3.__post_init__ each normalize.
+            world_rotation = _normalize_array_quaternions(_normalize_array_quaternions(
+                _raw_array_product(poses[:, 3:], rotation)
+            ))
+            world_points = (
+                _rotate_array_points(world_rotation, arrays.points[start:stop])
+                + world_translation
+            )
+            delta = world_points - arrays.plane_points[start:stop]
+            normals = arrays.normals[start:stop]
+            values = (
+                normals[:, 0] * delta[:, 0] + normals[:, 1] * delta[:, 1]
+                + normals[:, 2] * delta[:, 2]
+            )
+            residuals.extend((arrays.sqrt_weights[start:stop] * values).tolist())
+    return residuals
 
 
 def _correction_vector(correction: Sequence[float] | None) -> tuple[float, ...]:
