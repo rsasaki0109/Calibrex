@@ -108,7 +108,7 @@ accuracy.
 | Koide-style direct visual-LiDAR | Executable/precomputed adapter | Generic external-run artifact, input readiness, tool identity, result digest, common Camera-LiDAR evidence | Boundary is implemented; no maintained full-scale comparison result | Adapter | Upstream toolbox MIT; ROS/PCL/GTSAM/Ceres remain external |
 | Kalibr Camera-IMU/camera chain | YAML importer plus native evaluator | Generic external-run artifact with transforms, intrinsics, time shifts, digests, conventions, and isolation declaration. Independent evidence (`external-run evaluate-camera-imu`) checks rotation and time shift with an angular-rate holdout, a train-only gyro bias, excitation gates, and eight signed controls, and blocks leakage | Synthetic Kalibr-producer proof only: truth PASS, 3°/20 ms errors FAIL, yaw-only INCONCLUSIVE. No public Kalibr run has been evaluated, and lever arm is not evaluated | Adapter | Top-level BSD-4-Clause; ROS/Kalibr runtime stays external |
 | Per-point Camera-LiDAR capture time | Native solver plus TIERS adapter | Disjoint capture holdout, six time controls, timing observability | Synthetic 17 ms recovery; TIERS real-data result INCONCLUSIVE | Experimental | Core Apache-2.0; TIERS dataset terms |
-| Anchored moving-platform time offset | Native online evidence | Injection controls, adapted/anchored comparison, separability row | TIERS shared-clock/injection evidence; absolute convention is not yet closed | Evidence only | Core Apache-2.0 |
+| Anchored moving-platform time offset | Native online evidence | Injection controls, adapted/anchored comparison, separability row, declared `capture_time_reference` | Synthetic shared-clock acceptance passes; TIERS selftest misses +-10 ms (+18.9 ms declared) and cannot observe a convention | Evidence only | Core Apache-2.0 |
 | LiDAR-IMU rotation consistency | Native evaluator | Angular-rate holdout, gravity support, per-axis excitation, bad-rotation probes | TIERS Indoor02 evidence; no translation/time native solve | Evidence only | Core Apache-2.0 |
 | Joint LiDAR-IMU B-spline calibration (`imu-lidar joint`) | Native CLI backend | Interleaved IMU holdout, 32 signed controls, block separability, gravity-magnitude prior | Synthetic bags PASS/WARN (also through injected vibration with `--imu-lowpass-hz`); TIERS Indoor02 INCONCLUSIVE (yaw-only motion) | Experimental | Core Apache-2.0; TIERS dataset terms |
 | Radar Doppler candidate consistency | Native evaluator | Frame holdout, yaw controls, static/excitation gates | nuScenes mini path; often INCONCLUSIVE | Evidence only | Core Apache-2.0; nuScenes non-commercial terms |
@@ -140,9 +140,10 @@ accuracy.
    was a separate synthetic `recover-*` command. `calibrex imu-lidar joint`
    now runs them jointly on a recorded bag; the gap left is a public capture
    that excites them: TIERS Indoor02 reads INCONCLUSIVE (Next issue 2).
-5. **Absolute capture time:** `capture_time_reference` exists, but ADR 0008
-   Pillar 3 has no end-to-end acceptance run, and TIERS real-data evidence
-   stays INCONCLUSIVE.
+5. **Absolute capture time:** online replay applies a declared per-sensor
+   `capture_time_reference`, and the synthetic shared-clock acceptance passes.
+   No public capture yet tests it: the TIERS selftest cannot see a stamp
+   convention and its anchored estimate resolves only about +-20 ms.
 6. **Lifecycle in CI:** the append-only lifecycle registry and the Calibration
    CI gate exist separately. Candidate/baseline comparisons from pull requests
    are not yet recorded as registry events with rollback records.
@@ -490,9 +491,34 @@ converge under the declared `capture_time_reference`.
 **Acceptance conditions:**
 
 - A synthetic shared-clock selftest puts the anchored baseline within ±10 ms,
-  and the injection differential stays exact.
+  and the injection differential stays exact. **Done** on 2026-10-11.
 - The TIERS real-data result is re-reported under the declared convention,
-  whatever its status.
+  whatever its status. **Done** on 2026-10-11: not within ±10 ms.
+
+**Progress (2026-10-11):** `sensors.<lidar>.capture_time_reference`
+(`scan_start` | `scan_midpoint` | `scan_end`) with `scan_period_s` declares
+where a message stamp sits in its sweep. Motion-compensated rosbag1/rosbag2
+replay places a sensor that is not deskewed per point at its mid-sweep
+capture time; per-point offsets, when used, already carry the convention.
+Provenance records each declared reference, its applied shift and its basis,
+and other dataset types refuse the field. On a synthetic shared-clock rig
+whose source stamps at the sweep start and whose target stamps at the sweep
+end (60 ms gap), the anchored estimate reads −59 ms undeclared and +0.1 ms
+declared, and an injected +50 ms moves it by −50.0 ms.
+
+The TIERS Indoor02 re-report does not meet the ±10 ms condition. The anchored
+selftest baseline reads −19.2 ms undeclared and +18.9 ms with both VLP-16
+streams declared `scan_end`; the +50 ms injection differentials are −46.4 ms
+and −35.6 ms, and the earlier exact −50 ms did not reproduce with regenerated
+KISS-ICP odometry. A self-pair shares one convention on both sides, so it
+cannot observe a stamp convention at all: the earlier reading of −25 ms as
+sweep-end stamp semantics is withdrawn, and the ±19 ms swing between
+equivalent declarations measures the estimator's resolution (holdout RMSE
+gain below 1 %). The Velodyne-to-Ouster pair stays degenerate (flatness
+0.04; −188 ms undeclared, −150 ms declared), and its Ouster restamp by bag
+receive time leaves an unmodeled latency. Closing Pillar 3 on real data needs
+two LiDARs on one clock whose stamps sit at different points of the sweep.
+Details: [public datasets tutorial](tutorials/public_datasets.md).
 
 ### 7. Kalibr lever-arm evidence and a public Kalibr run
 
