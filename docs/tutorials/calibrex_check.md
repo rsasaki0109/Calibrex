@@ -152,8 +152,9 @@ same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not
 * **What it cannot see.** Scans are rigid snapshots (no motion or rolling-sweep compensation);
   intrinsics are taken as correct (an intrinsics error reads as an extrinsic error); a scene
   without depth discontinuities and image edges (a plain corridor, a distant skyline) leaves every
-  axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams and is not
-  supported (its controls fail).
+  axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams: its depth
+  edges are taken among the angular neighbours of each return instead, which was evaluated only
+  on static Livox Avia recordings ([benchmark](../benchmarks/camera_lidar_check.md)).
 * **Evidence.** `slac.camera_lidar_edge/v0.1` (`edge_alignment` in the evidence directory): the
   start and estimated transform, per DoF the value, jackknife std, status and control, the
   objective at both, the frames and edge counts, the camera, the options and the provenance.

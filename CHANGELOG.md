@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Camera-LiDAR check: wider start and solid-state LiDAR.** The edge-alignment rotation search
+  also starts from the per-axis maxima of the objective profile (+-8 deg) and keeps that start only
+  when more rotation DoFs pass their held-out control and std bound there (on the Hilti exp07
+  corridor a plain "higher objective" rule picked a ridge and lost the judged roll). KITTI 0005
+  pitch +5 deg (was `pass`, pitch unchecked) and KITTI 0009 pitch +5 deg (was `inconclusive`) now
+  `fail` at 4.95 / 0.5 deg; the other KITTI perturbations and the unmodified references on KITTI
+  0005, 0009 and Hilti exp21, exp07 read as before, and KITTI 0005 yaw +5 deg stays unchecked
+  (jackknife std 0.52 deg over the 0.5 deg bound). Clouds without beam structure (Livox-style
+  non-repetitive scans) now get near-side depth edges among angular neighbours, with a jump that
+  must reach 10 % of the range. On the public AIST Livox Avia dataset (Zenodo 7779880, static) the
+  check judges all three rotation axes on two of five recordings where it previously dropped every
+  frame. New `tools/restamp_rosbag2_headers.py` writes the bag receive time into header stamps for
+  static recordings whose sensors stamp on separate clocks; `examples/public_datasets/
+  aist_lidar_camera_livox/` holds the reference candidate. The verdict rule (2 deg control,
+  0.5 deg std bound, t >= 2) is unchanged. No schema change.
 - **Calibration CI decisions recorded in the lifecycle registry.** New `calibrex lifecycle
   record-ci <calibration-ci.json>` (`calibrex.calibration_ci_lifecycle`, artifact
   `slac.calibration_ci_lifecycle/v0.1`) copies the CI decision, candidate result, CI assessment

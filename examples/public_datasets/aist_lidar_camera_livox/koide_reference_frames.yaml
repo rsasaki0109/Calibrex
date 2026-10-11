@@ -1,0 +1,8 @@
+schema_version: slac.check_frames/v0.1
+frames:
+  - name: camera
+    parent: livox_frame
+    # T_lidar_camera estimated by direct_visual_lidar_calibration on this dataset
+    # (koide3.github.io/direct_visual_lidar_calibration/example/, calib.json)
+    translation_m: [0.023215513184544914, -0.049304803782681345, -0.0010268378243773314]
+    rotation_quat_xyzw: [0.002756788930227678, 0.7121675520572427, 0.0038417302647440915, 0.7019936032615696]

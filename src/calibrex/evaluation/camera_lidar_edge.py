@@ -172,12 +172,27 @@ class EdgeAlignmentOptions:
     min_ring_fraction: float = 0.5
     min_gain: float = 2.0e-5
     estimate_translation: bool = False
+    # Wide-basin start: the objective is profiled along each rotation axis over
+    # +-``start_scan_deg`` (the other axes at the candidate) and the search also runs from
+    # the per-axis maxima; the better final objective wins, so a start the search already
+    # handled is kept.  A candidate a few degrees off often sits next to a local maximum
+    # the coordinate search cannot leave (KITTI 0005 pitch +5 deg stops at +2).  ``None``
+    # turns the scan off.
+    start_scan_deg: float | None = 8.0
+    start_scan_step_deg: float = 0.5
+    # Accept clouds without beam structure (solid-state, non-repetitive scanning): their
+    # depth discontinuities are found among angular neighbours instead of along beams.
+    unstructured_lidar: bool = True
 
     def __post_init__(self) -> None:
         if len(self.rotation_levels_deg) != len(self.translation_levels_m):
             raise ValueError("rotation and translation search levels must match")
         if self.blocks < 3 or self.min_frames < self.blocks:
             raise ValueError("need at least three blocks and as many frames as blocks")
+        if self.start_scan_deg is not None and not (
+            0.0 < self.start_scan_step_deg <= self.start_scan_deg <= self.rotation_bound_deg
+        ):
+            raise ValueError("the start scan needs 0 < step <= range <= the rotation bound")
 
     @property
     def effective_spacing_s(self) -> float:
@@ -267,12 +282,15 @@ def lidar_depth_edges(
     exponent: float,
     max_points: int,
     min_ring_fraction: float,
+    unstructured: bool = False,
 ) -> tuple[Float32Array, Float32Array, int, float]:
     """Near-side depth discontinuities along each beam (Levinson-Thrun Eq. 2).
 
     Beams are recovered from point elevation.  Returns ``(points, weights, ring count,
-    fraction of points within 0.08 deg of a beam)``; an unstructured cloud (a
-    solid-state LiDAR) gives no edge points.
+    fraction of points within 0.08 deg of a beam)``.  A cloud without beam structure (a
+    solid-state, non-repetitive LiDAR) gives no edge points, unless ``unstructured`` is
+    set: its discontinuities are then found among angular neighbours instead (ring count
+    0), see :func:`_unstructured_depth_edges`.
     """
 
     xyz = np.asarray(points, dtype=np.float64)
@@ -286,11 +304,21 @@ def lidar_depth_edges(
     elevation = np.degrees(np.arctan2(xyz[:, 2], horizontal))
     centers = _ring_centers(elevation)
     if centers.size < 8 or centers.size > 200:
-        return (*empty, int(centers.size), 0.0)
+        if not unstructured:
+            return (*empty, int(centers.size), 0.0)
+        edge_points, weights = _unstructured_depth_edges(
+            xyz, ranges, min_jump_m=min_jump_m, exponent=exponent, max_points=max_points
+        )
+        return edge_points, weights, 0, 0.0
     ring = np.abs(elevation[:, None] - centers[None, :]).argmin(axis=1)
     on_beam = float(np.mean(np.abs(elevation - centers[ring]) < 0.08))
     if on_beam < min_ring_fraction:
-        return (*empty, int(centers.size), on_beam)
+        if not unstructured:
+            return (*empty, int(centers.size), on_beam)
+        edge_points, weights = _unstructured_depth_edges(
+            xyz, ranges, min_jump_m=min_jump_m, exponent=exponent, max_points=max_points
+        )
+        return edge_points, weights, 0, on_beam
     azimuth = np.degrees(np.arctan2(xyz[:, 1], xyz[:, 0]))
     order = np.lexsort((azimuth, ring))
     ring_s, azimuth_s, range_s = ring[order], azimuth[order], ranges[order]
@@ -320,6 +348,45 @@ def lidar_depth_edges(
         top.sort()
         edge_points, weights = edge_points[top], weights[top]
     return edge_points, weights, int(centers.size), on_beam
+
+
+def _unstructured_depth_edges(
+    xyz: FloatArray,
+    ranges: FloatArray,
+    *,
+    min_jump_m: float,
+    exponent: float,
+    max_points: int,
+    neighbours: int = 8,
+    relative_jump: float = 0.1,
+) -> tuple[Float32Array, Float32Array]:
+    """Near-side depth discontinuities among the angular neighbours of each return.
+
+    For a cloud without beams the jump of a return is the largest amount by which one of
+    its ``neighbours`` nearest returns in direction (unit vectors, so no azimuth wrap) lies
+    further away; neighbours further than four times the median neighbour spacing are
+    ignored, so a sparse region does not pair returns across a gap.  Neighbours are
+    further apart than consecutive returns of a beam, so a surface seen at a grazing
+    angle changes range between them too: a jump must also reach ``relative_jump`` of
+    the range.
+    """
+
+    from scipy.spatial import cKDTree
+
+    directions = xyz / ranges[:, None]
+    distance, index = cKDTree(directions).query(directions, k=neighbours + 1)
+    distance, index = distance[:, 1:], index[:, 1:]
+    spacing = float(np.median(distance[:, 0]))
+    linked = distance <= 4.0 * spacing
+    jump = np.where(linked, ranges[index] - ranges[:, None], 0.0).max(axis=1)
+    selected = jump >= np.maximum(min_jump_m, relative_jump * ranges)
+    edge_points = xyz[selected].astype(np.float32)
+    weights = np.power(jump[selected], exponent).astype(np.float32)
+    if edge_points.shape[0] > max_points:
+        top = np.argsort(-weights, kind="stable")[:max_points]
+        top.sort()
+        edge_points, weights = edge_points[top], weights[top]
+    return edge_points, weights
 
 
 @dataclass(frozen=True)
@@ -366,6 +433,7 @@ def prepare_frames(
             exponent=options.jump_exponent,
             max_points=options.max_edge_points_per_frame,
             min_ring_fraction=options.min_ring_fraction,
+            unstructured=options.unstructured_lidar,
         )
         if points.shape[0] == 0:
             dropped.append(
@@ -649,34 +717,43 @@ def estimate_from_frames(
     start_score = objective.score(zero_theta)
     emit_stage("camera-lidar: maximising the edge-alignment objective")
     theta, score = fit_extrinsic(objective, zero_theta, opts)
-    estimate = _transform(candidate, theta)
-
     blocks = _block_slices(len(prepared), opts.blocks)
     block_objectives = [
         EdgeObjective([prepared[i] for i in block], camera, candidate) for block in blocks
     ]
-    fits: list[FloatArray] = []
-    for index, block in enumerate(blocks):
-        emit_stage(f"camera-lidar: jackknife fit {index + 1}/{len(blocks)}")
-        kept = [prepared[i] for i in range(len(prepared)) if i not in set(block)]
-        fold = EdgeObjective(kept, camera, candidate)
-        fold_theta, _ = fit_extrinsic(fold, theta, opts, first_level=opts.jackknife_first_level)
-        fits.append(fold_theta)
-    fit_array = np.asarray(fits)
-    # Jackknife of the estimate's own components: rotation about the camera axes (the
-    # left correction) and the translation of the composed transform.
-    components = np.empty_like(fit_array)
-    for row, fit in enumerate(fit_array):
-        components[row, :3] = fit[:3]
-        components[row, 3:] = _transform(candidate, fit)[:3, 3]
-    count = len(blocks)
-    jackknife = np.sqrt(
-        (count - 1) / count * np.sum((components - components.mean(axis=0)) ** 2, axis=0)
-    )
-    controls = _controls(block_objectives, fit_array, opts)
     std_floor = 0.5 * np.array(
         [opts.rotation_levels_deg[-1]] * 3 + [opts.translation_levels_m[-1]] * 3
     )
+    fit_array, jackknife, controls = _evidence(
+        prepared, camera, candidate, theta, blocks, block_objectives, opts
+    )
+    start_reason: str | None = None
+    scan_start = _profile_start(objective, opts)
+    if scan_start is not None and np.any(scan_start != 0.0):
+        emit_stage("camera-lidar: searching from the per-axis profile maxima")
+        widened, widened_score = fit_extrinsic(objective, scan_start, opts)
+        if np.any(np.abs(widened[:3] - theta[:3]) > opts.rotation_levels_deg[-1]):
+            widened_evidence = _evidence(
+                prepared, camera, candidate, widened, blocks, block_objectives, opts
+            )
+            # A far optimum can be a ridge of the scene rather than the calibration (a
+            # corridor): keep it only when more rotation DoFs pass their held-out controls
+            # and std bound there, or as many with a higher objective.
+            observed = _observed_rotations(theta, jackknife, controls, std_floor, opts)
+            widened_observed = _observed_rotations(
+                widened, widened_evidence[1], widened_evidence[2], std_floor, opts
+            )
+            if widened_observed > observed or (
+                widened_observed == observed and widened_score > score + opts.min_gain
+            ):
+                start_reason = (
+                    "the estimate comes from the search started at the per-axis profile maxima "
+                    f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg): it observes "
+                    f"{widened_observed} rotation DoF(s) against {observed} from the candidate"
+                )
+                theta, score = widened, widened_score
+                fit_array, jackknife, controls = widened_evidence
+    estimate = _transform(candidate, theta)
 
     reference_vector = Rotation.from_matrix(estimate[:3, :3]).as_rotvec()
     dofs: list[CameraLidarEdgeDofRecord] = []
@@ -765,6 +842,8 @@ def estimate_from_frames(
     else:
         policy = "inconclusive"
         reasons.insert(0, "no rotation DoF is observed with a detected held-out control")
+    if start_reason is not None:
+        reasons.append(start_reason)
     if dropped:
         reasons.append(f"{len(dropped)} frame(s) dropped: {dropped[0]}")
     return CameraLidarEdgeArtifact(
@@ -779,13 +858,89 @@ def estimate_from_frames(
             start=float(start_score), estimate=float(score), gain=float(score - start_score)
         ),
         samples=samples,
-        jackknife_fits=len(fits),
+        jackknife_fits=len(fit_array),
         camera=camera.as_dict(),
         options=opts.as_dict(),
         reference=reference_label,
         limitations=limitations,
         provenance=provenance,
     )
+
+
+def _evidence(
+    prepared: Sequence[PreparedFrame],
+    camera: EdgeCamera,
+    candidate: FloatArray,
+    theta: FloatArray,
+    blocks: Sequence[range],
+    block_objectives: Sequence[EdgeObjective],
+    options: EdgeAlignmentOptions,
+) -> tuple[FloatArray, FloatArray, list[CameraLidarEdgeControl]]:
+    """Leave-one-block-out fits around ``theta``, their jackknife std and the controls."""
+
+    fits: list[FloatArray] = []
+    for index, block in enumerate(blocks):
+        emit_stage(f"camera-lidar: jackknife fit {index + 1}/{len(blocks)}")
+        held = set(block)
+        kept = [prepared[i] for i in range(len(prepared)) if i not in held]
+        fold = EdgeObjective(kept, camera, candidate)
+        fold_theta, _ = fit_extrinsic(
+            fold, theta, options, first_level=options.jackknife_first_level
+        )
+        fits.append(fold_theta)
+    fit_array = np.asarray(fits)
+    # Jackknife of the estimate's own components: rotation about the camera axes (the
+    # left correction) and the translation of the composed transform.
+    components = np.empty_like(fit_array)
+    for row, fit in enumerate(fit_array):
+        components[row, :3] = fit[:3]
+        components[row, 3:] = _transform(candidate, fit)[:3, 3]
+    count = len(blocks)
+    jackknife = np.sqrt(
+        (count - 1) / count * np.sum((components - components.mean(axis=0)) ** 2, axis=0)
+    )
+    return fit_array, jackknife, _controls(block_objectives, fit_array, options)
+
+
+def _observed_rotations(
+    theta: FloatArray,
+    jackknife: FloatArray,
+    controls: Sequence[CameraLidarEdgeControl],
+    std_floor: FloatArray,
+    options: EdgeAlignmentOptions,
+) -> int:
+    """Rotation DoFs that would be reported as estimated (the rule of the DoF records)."""
+
+    return sum(
+        1
+        for axis in range(3)
+        if controls[axis].detected
+        and max(float(jackknife[axis]), float(std_floor[axis]))
+        <= options.observable_rotation_std_deg
+        and abs(float(theta[axis])) < options.rotation_bound_deg - 1e-9
+    )
+
+
+def _profile_start(objective: EdgeObjective, options: EdgeAlignmentOptions) -> FloatArray | None:
+    """Per rotation axis, the maximum of the objective profile through the candidate."""
+
+    if options.start_scan_deg is None:
+        return None
+    emit_stage("camera-lidar: profiling the objective along each rotation axis")
+    offsets = np.arange(
+        -options.start_scan_deg,
+        options.start_scan_deg + 0.5 * options.start_scan_step_deg,
+        options.start_scan_step_deg,
+    )
+    start = np.zeros(6)
+    for axis in range(3):
+        values = []
+        for offset in offsets:
+            theta = np.zeros(6)
+            theta[axis] = offset
+            values.append(objective.score(theta))
+        start[axis] = float(offsets[int(np.argmax(values))])
+    return start
 
 
 def _controls(
