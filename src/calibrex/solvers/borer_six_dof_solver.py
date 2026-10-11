@@ -12,11 +12,13 @@ from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3
 from calibrex.solvers.borer_depth_to_depth_solver import (
+    DepthPairPoseBatchHistogramProjector,
     DepthPairProjector,
     DepthToDepthEvaluation,
     DepthToDepthObservation,
     DepthToDepthOptions,
     evaluate_depth_to_depth_mi,
+    evaluate_depth_to_depth_mi_batch,
     project_depth_pairs,
     resolve_depth_to_depth_options,
 )
@@ -185,6 +187,14 @@ class BorerSixDofSolver:
             settings,
             d2d=resolve_depth_to_depth_options(observations, settings.d2d),
         )
+        if frame_executor is None and isinstance(
+            settings.projector, DepthPairPoseBatchHistogramProjector,
+        ):
+            settings.projector.prepare_pose_search(
+                observations, initial_transform_camera_lidar,
+                rotation_bound_deg=settings.rotation_bound_deg,
+                translation_bound_m=settings.translation_bound_m,
+            )
         best_delta: FloatArray = np.zeros(6, dtype=float)
         best_evaluation = initial_evaluation
         best_score = _score(best_evaluation, settings.objective)
@@ -207,7 +217,7 @@ class BorerSixDofSolver:
             )
             and evaluation_count < settings.max_evaluations
         ):
-            candidates = []
+            deltas = []
             for axis in range(6):
                 step = rotation_step if axis < 3 else translation_step
                 minimum = (
@@ -229,28 +239,22 @@ class BorerSixDofSolver:
                     )
                     if np.array_equal(delta, best_delta):
                         continue
-                    result = evaluate_depth_to_depth_mi(
-                        observations,
-                        apply_local_se3_delta(
-                            initial_transform_camera_lidar,
-                            delta[:3],
-                            delta[3:],
-                        ),
-                        settings.d2d,
-                        projector=settings.projector,
-                        frame_executor=frame_executor,
-                    )
-                    score = _score(result, settings.objective)
-                    evaluation_count += 1
-                    candidates.append(
-                        (score, tuple(delta.tolist()), delta, result)
-                    )
-                    if evaluation_count >= settings.max_evaluations:
+                    deltas.append(delta)
+                    if evaluation_count+len(deltas) >= settings.max_evaluations:
                         break
-                if evaluation_count >= settings.max_evaluations:
+                if evaluation_count+len(deltas) >= settings.max_evaluations:
                     break
-            if not candidates:
+            if not deltas:
                 break
+            results = evaluate_depth_to_depth_mi_batch(
+                observations,
+                tuple(apply_local_se3_delta(initial_transform_camera_lidar, delta[:3], delta[3:])
+                      for delta in deltas),
+                settings.d2d, projector=settings.projector, frame_executor=frame_executor,
+            )
+            evaluation_count += len(deltas)
+            candidates = [(_score(result, settings.objective), tuple(delta.tolist()), delta, result)
+                          for delta, result in zip(deltas, results, strict=True)]
             candidate_score, _tie_break, candidate_delta, candidate_result = max(
                 candidates,
                 key=lambda item: (item[0], tuple(-value for value in item[1])),

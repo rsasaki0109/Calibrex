@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import math
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from functools import partial
+from itertools import islice
 from typing import Literal, Protocol, TypeAlias, runtime_checkable
 
 import numpy as np
@@ -169,6 +170,26 @@ class DepthPairBatchHistogramProjector(DepthPairProjector, Protocol):
         lidar_range: tuple[float, float],
     ) -> Iterable[DepthPairHistogram]:
         """Yield exactly one histogram per input frame, including empty frames."""
+        ...
+
+
+@runtime_checkable
+class DepthPairPoseBatchHistogramProjector(DepthPairProjector, Protocol):
+    """Optional bounded-search preparation and ordered multi-pose histograms."""
+
+    def prepare_pose_search(
+        self, observations: Sequence[DepthToDepthObservation], initial: SE3, *,
+        rotation_bound_deg: float, translation_bound_m: float,
+    ) -> None:
+        """Prepare conservative acceleration for one immutable bounded search."""
+        ...
+
+    def histogram_depth_pairs_poses(
+        self, observations: Sequence[DepthToDepthObservation], transforms: Sequence[SE3], *,
+        use_z_buffer: bool, bins: int, camera_range: tuple[float, float],
+        lidar_range: tuple[float, float],
+    ) -> Iterable[tuple[DepthPairHistogram, ...]]:
+        """Yield one frame-ordered histogram tuple per input pose."""
         ...
 
 
@@ -458,6 +479,12 @@ def evaluate_depth_to_depth_mi(
             skipped.append(observation.frame_id)
         else:
             frames.append(frame)
+    return _aggregate_evaluated_frames(frames, skipped)
+
+
+def _aggregate_evaluated_frames(
+    frames: list[DepthToDepthFrameEvaluation], skipped: list[str],
+) -> DepthToDepthEvaluation:
     return DepthToDepthEvaluation(
         mutual_information=(
             float(np.mean([frame.mutual_information for frame in frames])) if frames else 0.0
@@ -472,6 +499,97 @@ def evaluate_depth_to_depth_mi(
         skipped_frame_ids=tuple(skipped),
         frames=tuple(frames),
     )
+
+
+def evaluate_depth_to_depth_mi_batch(
+    observations: tuple[DepthToDepthObservation, ...] | list[DepthToDepthObservation],
+    transforms: Sequence[SE3], options: DepthToDepthOptions | None = None, *,
+    projector: DepthPairProjector | None = None,
+    frame_executor: ThreadPoolExecutor | None = None,
+) -> tuple[DepthToDepthEvaluation, ...]:
+    """Evaluate independent poses in order with the native reduction arithmetic.
+
+    Host histogram arithmetic is bounded to four poses per chunk. Projectors
+    without the optional protocol retain ordinary sequential pose evaluation.
+    """
+
+    project = projector or project_depth_pairs
+    if not transforms:
+        return ()
+    if frame_executor is not None or not isinstance(project, DepthPairPoseBatchHistogramProjector):
+        return tuple(evaluate_depth_to_depth_mi(
+            observations, transform, options, projector=project, frame_executor=frame_executor,
+        ) for transform in transforms)
+    if not observations or not any(
+        np.any(np.isfinite(item.depth_map) & (item.depth_map > 0.0)) and item.lidar_points.size
+        for item in observations
+    ):
+        empty = DepthToDepthEvaluation(
+            0., 0., 0, 0, tuple(item.frame_id for item in observations), (),
+        )
+        return (empty,)*len(transforms)
+    settings = resolve_depth_to_depth_options(observations, options)
+    assert settings.camera_depth_range is not None and settings.lidar_range_m is not None
+    histograms = iter(project.histogram_depth_pairs_poses(
+        observations, transforms, use_z_buffer=settings.use_z_buffer, bins=settings.histogram_bins,
+        camera_range=settings.camera_depth_range, lidar_range=settings.lidar_range_m,
+    ))
+    evaluations = []
+    for start in range(0, len(transforms), 4):
+        chunk = tuple(islice(histograms, min(4, len(transforms)-start)))
+        if len(chunk) != min(4, len(transforms)-start):
+            raise ValueError("pose histogram count does not match input poses")
+        if any(len(rows) != len(observations) for rows in chunk):
+            raise ValueError("frame histogram count does not match input observations")
+        scores = _histogram_mutual_information_batch(np.asarray([
+            histogram.histogram for rows in chunk for histogram in rows
+        ], dtype=np.float64))
+        for pose_index, rows in enumerate(chunk):
+            frames, skipped = [], []
+            for frame_index, (observation, histogram) in enumerate(
+                zip(observations, rows, strict=True),
+            ):
+                if histogram.visible_point_count < settings.min_visible_points:
+                    skipped.append(observation.frame_id)
+                    continue
+                mi, normalized = scores[pose_index*len(observations)+frame_index]
+                frames.append(DepthToDepthFrameEvaluation(
+                    observation.frame_id, mi, normalized, histogram.visible_point_count,
+                    histogram.projected_count_before_visibility,
+                ))
+            evaluations.append(_aggregate_evaluated_frames(frames, skipped))
+    if next(histograms, None) is not None:
+        raise ValueError("pose histogram count does not match input poses")
+    return tuple(evaluations)
+
+
+def _histogram_mutual_information_batch(histograms: FloatArray) -> tuple[tuple[float, float], ...]:
+    totals = histograms.sum(axis=(1, 2))
+    joint = histograms/np.where(totals > 0., totals, 1.)[:, None, None]
+    camera = _entropy_rows(joint.sum(axis=2))
+    lidar = _entropy_rows(joint.sum(axis=1))
+    combined = _entropy_rows(joint.reshape(len(joint), -1))
+    scores = []
+    for camera_entropy, lidar_entropy, joint_entropy in zip(camera, lidar, combined, strict=True):
+        mi = max(0., float(camera_entropy+lidar_entropy-joint_entropy))
+        normalizer = math.sqrt(float(camera_entropy*lidar_entropy))
+        scores.append((mi, mi/normalizer if normalizer > 0. else 0.))
+    return tuple(scores)
+
+
+def _entropy_rows(rows: FloatArray) -> FloatArray:
+    # Group equal positive counts instead of padding zeros: contiguous reductions
+    # retain np.sum's scalar-path order, including non-power-of-two lengths.
+    counts = np.count_nonzero(rows > 0., axis=1)
+    result = np.zeros(len(rows))
+    for count in np.unique(counts):
+        if not count:
+            continue
+        indices = np.flatnonzero(counts == count)
+        grouped = rows[indices]
+        positive = grouped[grouped > 0.].reshape(len(indices), int(count))
+        result[indices] = -np.sum(positive*np.log(positive), axis=1)
+    return result
 
 
 def _evaluate_frame(
