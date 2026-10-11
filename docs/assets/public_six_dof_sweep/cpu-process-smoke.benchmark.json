@@ -1,0 +1,329 @@
+{
+  "benchmark_id": "kitti_raw_0018_cpu_process_sweep_budget13",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One serial/parallel throughput pair on one machine; descriptive timing, no statistical confidence or portable speed guarantee.",
+    "All calibration attempts reach the capped 13-evaluation budget and remain partial; success labels execution and exact trace parity only.",
+    "Parallel workers contend for CPU/memory and reuse process-wide caches within a worker; includes startup and case reports, with no separate warm-up.",
+    "Dataset reference is not independent metrology; provider training overlap remains possible."
+  ],
+  "method_summaries": {
+    "processes_2": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "processes_2",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "partial_calibration_trials": {
+          "distribution": {
+            "count": 1,
+            "maximum": 12.0,
+            "mean": 12.0,
+            "mean_ci95_high": 12.0,
+            "mean_ci95_low": 12.0,
+            "median": 12.0,
+            "minimum": 12.0,
+            "p90": 12.0,
+            "p95": 12.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "partial_calibration_trials",
+          "rank": 1
+        },
+        "sweep_elapsed_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 74.84354280005209,
+            "mean": 74.84354280005209,
+            "mean_ci95_high": 74.84354280005209,
+            "mean_ci95_low": 74.84354280005209,
+            "median": 74.84354280005209,
+            "minimum": 74.84354280005209,
+            "p90": 74.84354280005209,
+            "p95": 74.84354280005209,
+            "standard_deviation": 0.0
+          },
+          "metric": "sweep_elapsed_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 1,
+        "maximum": 74.84354280005209,
+        "mean": 74.84354280005209,
+        "mean_ci95_high": 74.84354280005209,
+        "mean_ci95_low": 74.84354280005209,
+        "median": 74.84354280005209,
+        "minimum": 74.84354280005209,
+        "p90": 74.84354280005209,
+        "p95": 74.84354280005209,
+        "standard_deviation": 0.0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "serial": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "serial",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "partial_calibration_trials": {
+          "distribution": {
+            "count": 1,
+            "maximum": 12.0,
+            "mean": 12.0,
+            "mean_ci95_high": 12.0,
+            "mean_ci95_low": 12.0,
+            "median": 12.0,
+            "minimum": 12.0,
+            "p90": 12.0,
+            "p95": 12.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "partial_calibration_trials",
+          "rank": 1
+        },
+        "sweep_elapsed_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 139.84297110000625,
+            "mean": 139.84297110000625,
+            "mean_ci95_high": 139.84297110000625,
+            "mean_ci95_low": 139.84297110000625,
+            "median": 139.84297110000625,
+            "minimum": 139.84297110000625,
+            "p90": 139.84297110000625,
+            "p95": 139.84297110000625,
+            "standard_deviation": 0.0
+          },
+          "metric": "sweep_elapsed_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 1,
+        "maximum": 139.84297110000625,
+        "mean": 139.84297110000625,
+        "mean_ci95_high": 139.84297110000625,
+        "mean_ci95_low": 139.84297110000625,
+        "median": 139.84297110000625,
+        "minimum": 139.84297110000625,
+        "p90": 139.84297110000625,
+        "p95": 139.84297110000625,
+        "standard_deviation": 0.0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "Serial sweep",
+      "method_id": "serial",
+      "source_commit": "84390d2",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Two CPU worker processes",
+      "method_id": "processes_2",
+      "source_commit": "84390d2",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Through all case reports, including startup/load/serialization; summary writing excluded.",
+      "label": "Whole sweep elapsed",
+      "name": "sweep_elapsed_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "All 12 capped-budget numerical result payloads match exactly.",
+      "label": "Complete serial/parallel result parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "All 12 attempts stop at 13 evaluations; this is execution evidence, not convergence.",
+      "label": "Partial calibration attempts",
+      "name": "partial_calibration_trials",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "processes_2",
+      "direction": "lower",
+      "improvement_ci95_high": 64.99942829995416,
+      "improvement_ci95_low": 64.99942829995416,
+      "improvement_mean": 64.99942829995416,
+      "metric": "sweep_elapsed_seconds",
+      "paired_count": 1,
+      "raw_delta_mean": -64.99942829995416,
+      "reference_method_id": "serial"
+    },
+    {
+      "candidate_method_id": "processes_2",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "serial"
+    },
+    {
+      "candidate_method_id": "processes_2",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0,
+      "improvement_ci95_low": -0.0,
+      "improvement_mean": 0.0,
+      "metric": "partial_calibration_trials",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "serial"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Keep failed/partial attempts; never substitute a backend or discard a case.",
+    "initial_estimate_policy": "Dataset reference plus local Euler rotation +/-0.5 deg and camera-frame translation +/-0.5 m, on x, y, z in that order. Controlled prior; reference is never the optimization target.",
+    "protocol_id": "public_six_dof_sweep_cpu_process_smoke/v0.1",
+    "split_policy": "One paired throughput observation covering the same six fixed cases and 20/5 frame split.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "six-signed-axis-cases-budget13"
+      }
+    ],
+    "tuning_policy": "All cases/settings fixed before execution; no holdout tuning or filtering."
+  },
+  "provenance": {
+    "command": "schema-valid aggregation of two local CLI summaries and verified results",
+    "data_verified": true,
+    "generated_at": "2026-10-11T00:23:29.258904+00:00",
+    "generator": "manual.public_six_dof_sweep_cpu_process_smoke",
+    "generator_version": "v0.1",
+    "git_commit": "84390d2",
+    "source_artifacts": {
+      "processes_2/cli_summary": "d7762f249180c2b3fb5a9068cb23851657089847f9cf9e8444416a398170bdf7",
+      "processes_2/sweep.benchmark.json": "051a154a567ebc9a79561406eaab675a0be2a3f8d188010282f6a5417574d1f3",
+      "processes_2/sweep.definition.json": "9a1bc1918ea3cf5e23771931d6aab98d03169b305aec7d1884c92f91475f1552",
+      "processes_2/sweep.plan.definition.json": "6bae0c09b27a559d6d8b14239165101b858d4a667dc9ec9a36590f5fbe367fbd",
+      "publisher": "e84a79d8dda250e1549731372306a62c72e4d36558aaf501c6dd591cc11f4036",
+      "serial/cli_summary": "e1127ad77bae2eb86ce87008fda47d1e034c457aab1faeed01cf449296c25b6c",
+      "serial/sweep.benchmark.json": "7bf662ad52df114b30c63b0aa4af69d990fa93f4a5ff2b4356b7be3de9ca03b2",
+      "serial/sweep.definition.json": "45f2af4e3a6ca36f8683239899643470c6c879685f6fa331b0ce8f455d5213f6",
+      "serial/sweep.plan.definition.json": "be2ee33aa8eae272e1a707049d03c51dc1610e25dd2adcd559cfeb0664972b8e"
+    }
+  },
+  "reference_method_id": "serial",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "CPU process execution smoke: six initializations, 13 evaluations each",
+  "trials": [
+    {
+      "method_id": "serial",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "partial_calibration_trials": 12.0,
+        "sweep_elapsed_seconds": 139.84297110000625
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numpy --workers 1 --max-evaluations 13 --output-dir outputs/public-kitti-six-dof-sweep-cpu-serial-v1 --json",
+        "config_sha256": "b1b70fc7e5acc110be44b614053760b981f0ae0147f2d3c535b6f1345697dbb2",
+        "input_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+        "notes": [
+          "Success means the whole execution completed and all serial/parallel numeric payloads agree.",
+          "All 12 calibration attempts are partial (max_evaluations=13), not converged.",
+          "Input hash binds shared dataset source; output hash binds original external suite benchmark.",
+          "Full per-case traces also match the first 13 evaluations of the longer CUDA comparison."
+        ],
+        "output_sha256": "7bf662ad52df114b30c63b0aa4af69d990fa93f4a5ff2b4356b7be3de9ca03b2"
+      },
+      "runtime_seconds": 139.84297110000625,
+      "split_id": "six-signed-axis-cases-budget13",
+      "status": "success"
+    },
+    {
+      "method_id": "processes_2",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "partial_calibration_trials": 12.0,
+        "sweep_elapsed_seconds": 74.84354280005209
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numpy --workers 2 --max-evaluations 13 --output-dir outputs/public-kitti-six-dof-sweep-cpu-parallel-v1 --json",
+        "config_sha256": "05f110700eb7fc2a0b2e9bfabe1bb7b15ecd467da7bd15e912ea1570796ad751",
+        "input_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+        "notes": [
+          "Success means the whole execution completed and all serial/parallel numeric payloads agree.",
+          "All 12 calibration attempts are partial (max_evaluations=13), not converged.",
+          "Input hash binds shared dataset source; output hash binds original external suite benchmark.",
+          "Full per-case traces also match the first 13 evaluations of the longer CUDA comparison."
+        ],
+        "output_sha256": "051a154a567ebc9a79561406eaab675a0be2a3f8d188010282f6a5417574d1f3"
+      },
+      "runtime_seconds": 74.84354280005209,
+      "split_id": "six-signed-axis-cases-budget13",
+      "status": "success"
+    }
+  ]
+}

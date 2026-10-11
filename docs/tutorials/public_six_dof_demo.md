@@ -227,3 +227,13 @@ excluded. These six fixed initializations describe one development drive,
 not independent metrology, a full recovery basin, or statistical confidence.
 Exit `0` requires all requested attempts to converge with evaluable holdout
 and exact parity; exit `2` retains incomplete comparisons.
+
+On public drive 0018, all six signed-axis CPU/CUDA pairs converged with exact
+full numerical parity (229–313 evaluations per backend). Y-positive rotation
+difference increased from 0.5 to 0.527379 degrees, illustrating why convergence
+and reference differences are reported separately. In a separate fixed
+13-evaluation NumPy/replay execution check, serial elapsed was 139.843 s versus
+74.844 s with two CPU worker processes (one observed 1.87x ratio). All twelve
+serial/parallel numerical payloads matched exactly; these capped calibration
+attempts remained partial. [Published sweep evidence](../assets/public_six_dof_sweep/README.md)
+retains every condition, timings, original hashes, and interpretation limits.

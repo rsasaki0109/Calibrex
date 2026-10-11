@@ -1,0 +1,309 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-signed-axis-sweep",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "This is a prespecified plan, not completed execution evidence."
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "NumPy CPU reference",
+      "method_id": "numpy",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda candidate",
+      "method_id": "cuda",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Checked only within each case, including its repetitions.",
+      "label": "Exact parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Keep failed/partial attempts; never substitute a backend or discard a case.",
+    "initial_estimate_policy": "Dataset reference plus local Euler rotation +/-0.5 deg and camera-frame translation +/-0.5 m, on x, y, z in that order. Controlled prior; reference is never the optimization target.",
+    "protocol_id": "calibrex.public_six_dof_sweep/v0.1",
+    "split_policy": "Six fixed signed-axis initializations on the same uniform 20-fit/5-holdout provider frames; repetitions are timing observations, not independent recovery trials.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative/repeat-01"
+      }
+    ],
+    "tuning_policy": "All cases/settings fixed before execution; no holdout tuning or filtering."
+  },
+  "provenance": {
+    "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+    "data_verified": true,
+    "generated_at": "2026-10-11T00:04:50.202267+00:00",
+    "generator": "calibrex.evaluation.public_six_dof_sweep",
+    "generator_version": "calibrex.public_six_dof_sweep/v0.1",
+    "git_commit": "46516ec",
+    "source_artifacts": {
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "local_plan_before_publication": "1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+      "public_six_dof_sweep.py": "c7ba7456d97cbcbdb9460ee42812d56941879ecc657d20326ab88fe9845e46c7",
+      "public_six_dof_sweep_report.py": "c56886e59e2bf50464db147bc4d722701330d0f61ca9d5cdea4c781a3e0b1305",
+      "sweep.source.problem.json": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Public six-DoF sweep plan",
+  "trials": [
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "numpy",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "cuda",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "numpy",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "cuda",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "numpy",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "cuda",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "numpy",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "cuda",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "numpy",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "cuda",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "numpy",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "failed"
+    },
+    {
+      "failure_reason": "not executed; frozen plan entry",
+      "method_id": "cuda",
+      "metrics": {},
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "config_sha256": "710ecad8bffaba23aeb6016d36a5bb8e1dc166a382e2da44121aae3b54389671",
+        "input_sha256": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+        "notes": [
+          "Planning record only; input hash binds the verified unperturbed source.",
+          "CPU worker processes: 1; CUDA requires one worker."
+        ]
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "failed"
+    }
+  ]
+}

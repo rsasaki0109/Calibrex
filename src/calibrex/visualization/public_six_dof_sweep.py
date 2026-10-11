@@ -52,7 +52,8 @@ body {{font:16px/1.5 system-ui,sans-serif;color:#203247;background:#f2f6fa;margi
 main {{max-width:1300px;margin:auto}} .table-wrap {{overflow-x:auto}}
 table {{border-collapse:collapse;width:100%;background:white}} th,td {{padding:12px;text-align:left;
 border-bottom:1px solid #dbe4ed}} small {{font-size:12px}} a {{color:#176787}}
-code {{overflow-wrap:anywhere}} .status {{font-weight:700}} li {{margin:8px 0}}
+code {{overflow-wrap:anywhere}} .status {{font-weight:700}}
+li {{margin:8px 0;overflow-wrap:anywhere}}
 </style></head><body><main><h1>KITTI raw: signed-axis CPU/candidate sweep</h1>
 <p class="status">{status}: {success_count} / {len(benchmark.trials)} successful attempts</p>
 <p>Six prespecified positive/negative x, y, z initializations. Each uses the same verified
