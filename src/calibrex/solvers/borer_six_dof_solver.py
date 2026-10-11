@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from typing import Literal, TypeAlias
 
@@ -161,6 +162,8 @@ class BorerSixDofSolver:
         | list[DepthToDepthObservation],
         initial_transform_camera_lidar: SE3,
         options: BorerSixDofOptions | None = None,
+        *,
+        frame_executor: ThreadPoolExecutor | None = None,
     ) -> BorerSixDofResult:
         """Run deterministic coordinate pattern search."""
 
@@ -170,6 +173,7 @@ class BorerSixDofSolver:
             initial_transform_camera_lidar,
             settings.d2d,
             projector=settings.projector,
+            frame_executor=frame_executor,
         )
         if initial_evaluation.evaluated_frame_count == 0:
             return _insufficient_result(
@@ -234,6 +238,7 @@ class BorerSixDofSolver:
                         ),
                         settings.d2d,
                         projector=settings.projector,
+                        frame_executor=frame_executor,
                     )
                     score = _score(result, settings.objective)
                     evaluation_count += 1

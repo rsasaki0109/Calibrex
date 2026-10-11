@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Parallelize independent D2D frame evaluations inside one six-DoF estimate
+  with persistent CPU threads. `estimate-six-dof --frame-workers` and public
+  demos' `--candidate-frame-workers` preserve frame reduction order, full search
+  traces, and holdout evaluation; results record requested/effective workers.
+  Defaults remain serial and CUDA requires one frame worker.
+
 - Add `calibrex demo kitti-six-dof-sweep` for six prespecified signed-axis
   initializations on the same public KITTI fit/holdout frames. Save a plan before
   optimization, retain all case evidence, and compare numerical traces within

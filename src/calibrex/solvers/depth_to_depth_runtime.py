@@ -16,6 +16,15 @@ ProjectionBackend = Literal["numpy", "numba_cpu", "cuda"]
 DEFAULT_CUDA_CACHE_BYTES: Final = 256 * 1024 * 1024
 
 
+def validate_frame_workers(backend: ProjectionBackend, workers: int) -> None:
+    """Validate explicit CPU frame concurrency before loading inputs."""
+
+    if isinstance(workers, bool) or not isinstance(workers, int) or workers < 1:
+        raise ValueError("frame_workers must be a positive integer")
+    if backend == "cuda" and workers != 1:
+        raise ValueError("CUDA projection requires frame_workers=1")
+
+
 def validate_cuda_cache_bytes(backend: ProjectionBackend, cache_bytes: int | None) -> None:
     """Reject invalid or inapplicable explicit CUDA cache settings."""
 

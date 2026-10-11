@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import math
 import random
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
+from functools import partial
 from typing import Literal, Protocol, TypeAlias, runtime_checkable
 
 import numpy as np
@@ -385,8 +387,13 @@ def evaluate_depth_to_depth_mi(
     options: DepthToDepthOptions | None = None,
     *,
     projector: DepthPairProjector | None = None,
+    frame_executor: ThreadPoolExecutor | None = None,
 ) -> DepthToDepthEvaluation:
-    """Average per-frame histogram MI exactly once for a fixed pose."""
+    """Average per-frame MI in input order, optionally using a caller-owned pool.
+
+    Concurrent evaluation requires a thread-safe CPU projector. The caller
+    owns the executor lifetime so repeated poses can reuse the same workers.
+    """
 
     settings = options or DepthToDepthOptions()
     project = projector or project_depth_pairs
@@ -406,50 +413,21 @@ def evaluate_depth_to_depth_mi(
     lidar_range = settings.lidar_range_m or _lidar_range(observations)
     frames = []
     skipped = []
-    histogram_projector = project if isinstance(project, DepthPairHistogramProjector) else None
-    for observation in observations:
-        if histogram_projector is not None:
-            histogram = histogram_projector.histogram_depth_pairs(
-                observation,
-                transform_camera_lidar,
-                use_z_buffer=settings.use_z_buffer,
-                bins=settings.histogram_bins,
-                camera_range=camera_range,
-                lidar_range=lidar_range,
-            )
-            visible_count = histogram.visible_point_count
-            projected_count = histogram.projected_count_before_visibility
-            if visible_count < settings.min_visible_points:
-                skipped.append(observation.frame_id)
-                continue
-            mi, normalized = _histogram_mutual_information(histogram.histogram)
+    evaluate_frame = partial(
+        _evaluate_frame, transform=transform_camera_lidar, settings=settings,
+        project=project, camera_range=camera_range, lidar_range=lidar_range,
+    )
+    evaluated = (
+        frame_executor.map(evaluate_frame, observations)
+        if frame_executor is not None else map(evaluate_frame, observations)
+    )
+    # Executor.map preserves input order, including skipped frames. The means
+    # below therefore retain the serial floating-point reduction order.
+    for observation, frame in zip(observations, evaluated, strict=True):
+        if frame is None:
+            skipped.append(observation.frame_id)
         else:
-            pairs = project(
-                observation,
-                transform_camera_lidar,
-                use_z_buffer=settings.use_z_buffer,
-            )
-            visible_count = int(pairs.camera_depth.size)
-            projected_count = pairs.projected_count_before_visibility
-            if visible_count < settings.min_visible_points:
-                skipped.append(observation.frame_id)
-                continue
-            mi, normalized = _mutual_information(
-                pairs.camera_depth,
-                pairs.lidar_range_m,
-                bins=settings.histogram_bins,
-                camera_range=camera_range,
-                lidar_range=lidar_range,
-            )
-        frames.append(
-            DepthToDepthFrameEvaluation(
-                frame_id=observation.frame_id,
-                mutual_information=mi,
-                normalized_mutual_information=normalized,
-                visible_point_count=visible_count,
-                projected_count_before_visibility=projected_count,
-            )
-        )
+            frames.append(frame)
     return DepthToDepthEvaluation(
         mutual_information=(
             float(np.mean([frame.mutual_information for frame in frames])) if frames else 0.0
@@ -463,6 +441,42 @@ def evaluate_depth_to_depth_mi(
         evaluated_frame_count=len(frames),
         skipped_frame_ids=tuple(skipped),
         frames=tuple(frames),
+    )
+
+
+def _evaluate_frame(
+    observation: DepthToDepthObservation,
+    *,
+    transform: SE3,
+    settings: DepthToDepthOptions,
+    project: DepthPairProjector,
+    camera_range: tuple[float, float],
+    lidar_range: tuple[float, float],
+) -> DepthToDepthFrameEvaluation | None:
+    if isinstance(project, DepthPairHistogramProjector):
+        histogram = project.histogram_depth_pairs(
+            observation, transform, use_z_buffer=settings.use_z_buffer,
+            bins=settings.histogram_bins, camera_range=camera_range, lidar_range=lidar_range,
+        )
+        visible_count = histogram.visible_point_count
+        projected_count = histogram.projected_count_before_visibility
+        if visible_count < settings.min_visible_points:
+            return None
+        mi, normalized = _histogram_mutual_information(histogram.histogram)
+    else:
+        pairs = project(observation, transform, use_z_buffer=settings.use_z_buffer)
+        visible_count = int(pairs.camera_depth.size)
+        projected_count = pairs.projected_count_before_visibility
+        if visible_count < settings.min_visible_points:
+            return None
+        mi, normalized = _mutual_information(
+            pairs.camera_depth, pairs.lidar_range_m, bins=settings.histogram_bins,
+            camera_range=camera_range, lidar_range=lidar_range,
+        )
+    return DepthToDepthFrameEvaluation(
+        frame_id=observation.frame_id, mutual_information=mi,
+        normalized_mutual_information=normalized, visible_point_count=visible_count,
+        projected_count_before_visibility=projected_count,
     )
 
 

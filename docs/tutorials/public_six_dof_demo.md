@@ -237,3 +237,38 @@ and reference differences are reported separately. In a separate fixed
 serial/parallel numerical payloads matched exactly; these capped calibration
 attempts remained partial. [Published sweep evidence](../assets/public_six_dof_sweep/README.md)
 retains every condition, timings, original hashes, and interpretation limits.
+
+## Parallelize frames inside one CPU estimate
+
+CPU case processes and frame threads handle different work. To compare one
+serial NumPy estimate with a NumPy candidate using two persistent frame threads:
+
+```bash
+calibrex demo kitti-six-dof \
+  /path/to/2011_09_30_drive_0018_sync /path/to/featdepth-provider.json \
+  --candidate-backend numpy --candidate-frame-workers 2 --repetitions 3 \
+  --output-dir outputs/kitti-six-dof-cpu-frames --json
+```
+
+The reference remains serial. The candidate reuses one thread pool for every
+search evaluation and both holdout evaluations. Each frame's projection and
+histogram run independently; results are consumed in input order, preserving
+the serial floating-point mean and search decisions. The comparison checks the
+entire numerical trace, final pose, train/holdout metrics, and skipped frames.
+Its report labels the candidate's requested thread count, while each standard
+result's `run.provenance.configuration` records `frame_workers` and
+`effective_frame_workers`. Pool capacity is capped at the larger fit/holdout
+frame count. Pools are joined on success and on errors.
+
+For an existing problem, use `calibrex camera-lidar estimate-six-dof
+problem.json --projection-backend numpy --frame-workers 2 --output result.json`.
+The default is one frame worker. CUDA rejects more than one before input loading.
+CPU backends accept frame threads; the public timing evidence measures NumPy.
+Numba's compiled work may not benefit from Python threads.
+
+The sweep also accepts `--candidate-frame-workers`. With `--workers 2
+--candidate-frame-workers 2`, at most two cases run in separate processes and
+each candidate uses up to two frame threads; each reference is serial within
+its process. Increase these settings deliberately: the active candidates can
+use up to process count times frame-thread count, in addition to numerical
+library threads. Timing depends on frame size, hardware, and other running work.

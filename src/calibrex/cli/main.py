@@ -1117,6 +1117,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="explicit backend; numpy runs a CPU replay for machines without a GPU",
     )
     six_dof_demo.add_argument("--cuda-cache-mib", type=int)
+    six_dof_demo.add_argument(
+        "--candidate-frame-workers", type=int, default=1,
+        help="CPU candidate frame threads; NumPy reference stays serial; CUDA requires 1",
+    )
     six_dof_demo.add_argument("--max-evaluations", type=int, default=800)
     six_dof_demo.add_argument(
         "--repetitions", type=int, default=1,
@@ -1142,6 +1146,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--candidate-backend", choices=("cuda", "numba_cpu", "numpy"), default="cuda"
     )
     six_dof_sweep.add_argument("--workers", type=int, default=1)
+    six_dof_sweep.add_argument("--candidate-frame-workers", type=int, default=1)
     six_dof_sweep.add_argument("--repetitions", type=int, default=1)
     six_dof_sweep.add_argument("--rotation-deg", type=float, default=0.5)
     six_dof_sweep.add_argument("--translation-m", type=float, default=0.5)
@@ -1863,6 +1868,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     estimate_six_dof.add_argument("problem", type=Path)
     estimate_six_dof.add_argument("--output", type=Path, required=True)
+    estimate_six_dof.add_argument(
+        "--frame-workers", type=int, default=1,
+        help="persistent CPU frame threads with ordered reduction; CUDA requires 1",
+    )
     estimate_six_dof.add_argument(
         "--projection-backend", choices=("numpy", "numba_cpu", "cuda"), default="numpy",
         help="D2D projection implementation (cuda requires calibrex[cuda])",
@@ -6049,6 +6058,7 @@ def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
         demo = run_public_camera_lidar_six_dof_demo(
             args.sequence, args.depth_provider, output_directory=args.output_dir,
             candidate_backend=cast(ProjectionBackend, args.candidate_backend),
+            candidate_frame_workers=args.candidate_frame_workers,
             repetitions=args.repetitions,
             cuda_cache_bytes=(
                 args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
@@ -6085,6 +6095,7 @@ def _cmd_demo_kitti_six_dof_sweep(args: argparse.Namespace) -> int:
         sweep = run_public_six_dof_sweep(
             args.sequence, args.depth_provider, output_directory=args.output_dir,
             candidate_backend=cast(ProjectionBackend, args.candidate_backend),
+            candidate_frame_workers=args.candidate_frame_workers,
             workers=args.workers, repetitions=args.repetitions,
             rotation_deg=args.rotation_deg, translation_m=args.translation_m,
             cuda_cache_bytes=(
@@ -6101,6 +6112,7 @@ def _cmd_demo_kitti_six_dof_sweep(args: argparse.Namespace) -> int:
         "benchmark": str(sweep.report_path.parent / "sweep.benchmark.json"),
         "elapsed_seconds": sweep.elapsed_seconds,
         "workers": args.workers,
+        "candidate_frame_workers": args.candidate_frame_workers,
         "cases": {
             case_id: {
                 "status": "success" if demo.successful else "incomplete",
@@ -6136,6 +6148,7 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
                 args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
             ),
             initial_result_path=args.initial_result,
+            frame_workers=args.frame_workers,
             holdout_frame_ids=args.holdout_frame_id,
             command=["calibrex", *args.invoked_argv],
         )
@@ -6150,6 +6163,10 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
             "quality_grade": result.quality.grade,
             "result": str(args.output),
             "projection_backend": result.run.provenance["projection_backend"],
+            "frame_workers": result.run.provenance["configuration"]["frame_workers"],
+            "effective_frame_workers": (
+                result.run.provenance["configuration"]["effective_frame_workers"]
+            ),
             "projection_transfer_statistics": (
                 result.run.provenance["projection_transfer_statistics"]
             ),

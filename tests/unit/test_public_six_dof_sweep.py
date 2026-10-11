@@ -32,7 +32,8 @@ def test_cpu_processes_preserve_serial_traces_plan_split_and_result_hashes(tmp_p
     )
     parallel = run_public_six_dof_sweep(
         sequence, provider, output_directory=tmp_path / "parallel",
-        candidate_backend="numpy", workers=2, options=settings, command=["fixture"],
+        candidate_backend="numpy", workers=2, candidate_frame_workers=2,
+        options=settings, command=["fixture"],
     )
     assert not serial.successful and not parallel.successful
     assert len(parallel.benchmark.trials) == 12

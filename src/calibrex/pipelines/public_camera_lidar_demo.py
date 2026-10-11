@@ -35,10 +35,14 @@ from calibrex.data.kitti_camera_lidar_problem import build_kitti_raw_camera_lida
 from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
 from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
 from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, apply_local_se3_delta
-from calibrex.solvers.depth_to_depth_runtime import ProjectionBackend, validate_cuda_cache_bytes
+from calibrex.solvers.depth_to_depth_runtime import (
+    ProjectionBackend,
+    validate_cuda_cache_bytes,
+    validate_frame_workers,
+)
 from calibrex.visualization.public_six_dof_demo import write_public_six_dof_report
 
-PUBLIC_SIX_DOF_DEMO_VERSION = "calibrex.public_six_dof_demo/v0.2"
+PUBLIC_SIX_DOF_DEMO_VERSION = "calibrex.public_six_dof_demo/v0.3"
 _SPLIT_ID = "uniform-25-fit20-holdout5"
 
 
@@ -67,6 +71,7 @@ def run_public_camera_lidar_six_dof_demo(
     *,
     output_directory: str | Path,
     candidate_backend: ProjectionBackend = "cuda",
+    candidate_frame_workers: int = 1,
     repetitions: int = 1,
     cuda_cache_bytes: int | None = None,
     options: BorerSixDofOptions | None = None,
@@ -84,6 +89,7 @@ def run_public_camera_lidar_six_dof_demo(
     """
 
     validate_cuda_cache_bytes(candidate_backend, cuda_cache_bytes)
+    validate_frame_workers(candidate_backend, candidate_frame_workers)
     if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
         raise ValueError("repetitions must be a positive integer")
     if not command or not all(item.strip() for item in command):
@@ -138,6 +144,7 @@ def run_public_camera_lidar_six_dof_demo(
         "train_frame_ids": fit_ids,
         "holdout_frame_ids": holdout_ids,
         "candidate_backend": candidate_backend,
+        "candidate_frame_workers": candidate_frame_workers,
         "cuda_cache_bytes": cuda_cache_bytes,
         "repetitions": repetitions,
         "execution_order": "CPU first on odd-numbered repetitions; candidate first on even ones",
@@ -223,6 +230,7 @@ def run_public_camera_lidar_six_dof_demo(
                     problem_path,
                     options=settings,
                     projection_backend=backend,
+                    frame_workers=candidate_frame_workers if method_id == candidate_id else 1,
                     cuda_cache_bytes=cuda_cache_bytes if backend == "cuda" else None,
                     holdout_frame_ids=holdout_ids,
                     command=command,
@@ -378,6 +386,9 @@ def run_public_camera_lidar_six_dof_demo(
                     input_sha256=loaded.problem_sha256,
                     output_sha256=sha256_path(output / result_files[key]),
                     notes=[
+                        f"CPU frame workers requested: "
+                        f"{candidate_frame_workers if method_id == candidate_id else 1}; "
+                        "ordered frame reduction; one pool per invocation.",
                         "Same controlled initial pose, problem bytes, and 20/5 split "
                         "for every run.",
                         f"Result file: {result_files[key]}",
@@ -451,7 +462,11 @@ def run_public_camera_lidar_six_dof_demo(
                 method_id=method_id,
                 label="NumPy CPU reference"
                 if method_id == "numpy"
-                else ("NumPy CPU replay" if backend == "numpy" else f"{backend} candidate"),
+                else (
+                    f"{backend} CPU candidate ({candidate_frame_workers} frame threads)"
+                    if candidate_frame_workers > 1
+                    else ("NumPy CPU replay" if backend == "numpy" else f"{backend} candidate")
+                ),
                 implementation="calibrex_native",
                 tool_name="Calibrex",
                 tool_version=__version__,

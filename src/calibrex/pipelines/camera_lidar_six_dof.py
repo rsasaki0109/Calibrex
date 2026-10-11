@@ -7,6 +7,8 @@ import json
 import math
 import time
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from dataclasses import fields, replace
 from pathlib import Path
 from typing import Any, Literal
@@ -38,9 +40,10 @@ from calibrex.solvers.depth_to_depth_runtime import (
     create_depth_pair_projector,
     depth_pair_transfer_statistics,
     validate_cuda_cache_bytes,
+    validate_frame_workers,
 )
 
-SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.1"
+SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.2"
 
 
 def run_camera_lidar_six_dof_estimate(
@@ -48,6 +51,7 @@ def run_camera_lidar_six_dof_estimate(
     *,
     options: BorerSixDofOptions | None = None,
     projection_backend: ProjectionBackend = "numpy",
+    frame_workers: int = 1,
     cuda_cache_bytes: int | None = None,
     initial_result_path: str | Path | None = None,
     holdout_frame_ids: Sequence[str] = (),
@@ -63,6 +67,7 @@ def run_camera_lidar_six_dof_estimate(
 
     started = time.perf_counter()
     validate_cuda_cache_bytes(projection_backend, cuda_cache_bytes)
+    validate_frame_workers(projection_backend, frame_workers)
     settings = options or BorerSixDofOptions()
     settings_payload = _settings_payload(settings)
     # Reject non-finite Python API inputs before loading data or starting CUDA.
@@ -126,28 +131,34 @@ def run_camera_lidar_six_dof_estimate(
         cuda_cache_bytes=cuda_cache_bytes,
     )
     settings = replace(settings, projector=projector, projection_backend=identity)
-    prepared_at = time.perf_counter()
-    solved = BorerSixDofSolver().solve(train, prior.as_se3(), settings)
-    solved_at = time.perf_counter()
-    initial_holdout = final_holdout = None
-    if holdout:
-        initial_holdout = evaluate_depth_to_depth_mi(
-            holdout,
-            prior.as_se3(),
-            settings.d2d,
-            projector=projector,
+    effective_workers = min(frame_workers, max(len(train), len(holdout)))
+    pool = (
+        ThreadPoolExecutor(max_workers=effective_workers, thread_name_prefix="calibrex-d2d")
+        if effective_workers > 1 else nullcontext(None)
+    )
+    with pool as executor:
+        prepared_at = time.perf_counter()
+        solved = BorerSixDofSolver().solve(
+            train, prior.as_se3(), settings, frame_executor=executor,
         )
-        final_holdout = evaluate_depth_to_depth_mi(
-            holdout,
-            solved.transform_camera_lidar,
-            settings.d2d,
-            projector=projector,
-        )
+        solved_at = time.perf_counter()
+        initial_holdout = final_holdout = None
+        if holdout:
+            initial_holdout = evaluate_depth_to_depth_mi(
+                holdout, prior.as_se3(), settings.d2d,
+                projector=projector, frame_executor=executor,
+            )
+            final_holdout = evaluate_depth_to_depth_mi(
+                holdout, solved.transform_camera_lidar, settings.d2d,
+                projector=projector, frame_executor=executor,
+            )
     evaluated_at = time.perf_counter()
     config_payload = {
         "pipeline_version": SIX_DOF_ESTIMATE_VERSION,
         "options": _settings_payload(settings),
         "projection_backend": identity,
+        "frame_workers": frame_workers,
+        "effective_frame_workers": effective_workers,
         "initial_transform": prior.as_se3().as_dict(),
         "train_frame_ids": [item.frame_id for item in train],
         "holdout_frame_ids": [item.frame_id for item in holdout],
