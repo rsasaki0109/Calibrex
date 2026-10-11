@@ -230,7 +230,7 @@ separate `--cuda-cache-mib` timing invocations if they do not fit together.
 
 ### Large integrated-cloud measurement
 
-On the same GTX 1660 Ti, the existing KITTI raw 0018 problem with scan-integration
+On the same NVIDIA CUDA GPU, the existing KITTI raw 0018 problem with scan-integration
 radius 5 contains 33,173,268 points across 25 frames, using frozen FeatDepth
 depth maps and 1226×370 pinhole grids. Its complete prepared inputs occupy
 1,152,268,576 bytes (1098.89 MiB). The paired command above measured three
@@ -260,7 +260,7 @@ excluded from these search timings; full CLI latency also includes those phases.
 
 ## Measured development workload
 
-Warm medians on a GeForce GTX 1660 Ti (6 GiB), Core i7-9750H and Windows,
+Warm medians on a GeForce NVIDIA CUDA GPU (6 GiB), Core i7-9750H and Windows,
 using Python 3.12.10, NumPy 2.3.4, Numba 0.65.1 and CuPy 14.2.0. Each workload
 has one 1280×720 depth map and 200,000 seeded synthetic points. Evaluation is
 projection, visibility, finite/positive gates, histogram counting and MI.
@@ -430,6 +430,67 @@ all raw timings and ranges are retained. All twenty complete timed payloads and
 twelve signed-axis snapshot payloads match their bound CPU oracles exactly.
 See the [snapshot evidence](../assets/verified_input_snapshot/README.md) and
 [usage/timing contract](public_six_dof_demo.md) before comparing repeated runs.
+
+## Bounded CUDA candidate batches
+
+CUDA v0.4 evaluates the independent pattern-search candidates together. A search
+step still uses the same six axes, direction order, bounds, evaluation budget,
+winner tie break, and trace numbering. Four candidates at a time share four
+kernel launches across up to 32 training frames, followed by one histogram
+download. Entropy uses native NumPy operations with the original reduction
+order; grouped positive values avoid changing reductions by padding zeros.
+
+For pinhole cameras, the adapter also computes a conservative frustum mask on
+the GPU once per search. A point is removed only when it cannot enter the image
+under any allowed rotation or translation. The bound uses the sum of the three
+Euler angle limits, the full translation limits, half-pixel image boundaries,
+and a floating-point guard. Retained points preserve input order and their
+original LiDAR ranges. Other camera models retain their full clouds. Poses
+outside the prepared bound and different frame selections use the full-input
+path.
+
+Each candidate slot keeps private visibility scratch across iterations. A
+separate reset kernel clears only pixels touched by that slot's previous pose;
+visibility and histogram kernels visit the retained points instead of scanning
+every image pixel. Integer histogram atomics combine equal warp bin indices.
+These changes remove repeated work without changing the objective or the sensor
+samples that can contribute to it.
+
+The original cache budget includes both ordinary cached inputs and additional
+compact input copies. Candidate scratch has a separate **1 GiB** default limit;
+the adapter reduces batch capacity to fit. Uncached inputs, more than 32 frames,
+insufficient scratch, or failed allocation use ordinary ordered frame batches.
+CuPy allocator reservations and result buffers are additional. Use one worker
+per GPU, keep observation arrays unchanged during a search, and release the
+projector when finished. `candidate_workspace_bytes=0` disables the prepared
+path through the Python adapter API. Standard result provenance records
+candidate input bytes, retained/original point counts, and peak scratch bytes.
+
+The normal `estimate-six-dof --projection-backend cuda` command selects this
+path automatically. The measurement tool compares against the pinned existing
+CUDA implementation and checks each complete result against its frozen NumPy
+oracle:
+
+```bash
+python tools/benchmark_d2d_cuda_candidates.py \
+  --sweep-root outputs/public-kitti-six-dof-sweep-cuda-v1 \
+  --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3
+```
+
+Use `--input-mode fresh_files` to include fresh verification in every invocation.
+The default verified snapshot records its one-time capture cost separately.
+Each method still constructs a fresh accelerator and solver. See the
+[candidate batch evidence](../assets/cuda_candidates/README.md) for matched
+GPU-to-GPU timings, complete signed-axis traces, and timing scope.
+
+On the six frozen public KITTI initializations, three-repeat solve medians
+improve **2.18–2.47x** against the existing CUDA implementation, with complete
+numerical equality in all 36 trials. The x-positive solve changes from
+1.226 s to 0.534 s. With fresh external-file verification on every invocation,
+a separate x-positive comparison improves solve time 1.94x and pipeline time
+**1.17x** (4.008 s to 3.421 s); input handling remains the main cost.
+Snapshot capture costs are charged separately, and these measurements do not
+include depth generation or establish independent calibration accuracy.
 
 ## Profiling the remaining CUDA work
 
