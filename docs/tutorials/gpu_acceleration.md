@@ -548,6 +548,25 @@ retains every timing, full payload and pilot, including unchanged iteration-limi
 statuses. These measurements describe one shared-host workload and preserve
 existing calibration behavior; they do not establish independent accuracy.
 
+Native registration also uses array voxel centroids, batched target-normal PCA,
+vectorized information matrices and reused training coordinates. Point ICP's
+six independent multi-start trials use up to four CPU threads automatically
+for source clouds with at least 1,500 points; smaller clouds stay sequential.
+Set `RobustPointToPointIcpOptions(multi_start_workers=1)` or the same
+`registration_backend_comparison` factor option to select sequential execution.
+All trial results retain their original direction order and diagnostic settings.
+
+Against the already indexed implementation, five-repeat medians on two public
+KITTI scan pairs improve **1.95–3.17x** for fresh input reads/verification,
+voxel preprocessing and both complete native ICP calls together. All 90 final
+payloads match exactly, with bitwise prepared-position digests. The 3,000-point
+cases change from 4.410 to 1.850 s and 2.369 to 1.046 s. Most of the gain comes
+from vectorization; sequential controls retain the smaller incremental threading
+gain. This scope excludes the full calibration CLI and external backends.
+The [registration preparation evidence](../assets/registration_preparation/README.md)
+retains every timing, range, full payload and exploratory attempt, including
+an early control-metadata mismatch and unchanged iteration-limit statuses.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2

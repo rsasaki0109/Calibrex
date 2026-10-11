@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Vectorize native registration voxel centroids, point ICP information matrices
+  and batched target-normal PCA, retaining input-order sums and existing numeric
+  behavior. Reuse training coordinates and run independent multi-start trials
+  with bounded CPU threads on larger clouds. `multi_start_workers=1` selects
+  sequential execution; the automatic default preserves ordered diagnostics.
+  Public raw-scan evidence includes fresh verification/preprocessing, both full
+  ICP calls, sequential controls and all repeated numerical payloads.
+
 - Add caller-owned immutable, verified Camera–LiDAR input snapshots for repeated
   six-DoF estimates. Public demos and sweeps opt in with
   `--reuse-verified-inputs`; pipeline summaries include initial capture once.

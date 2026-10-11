@@ -1,0 +1,60 @@
+import importlib.machinery
+import importlib.util
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+from calibrex.core.geometry import SE3
+from calibrex.solvers import robust_point_to_point_icp_solver as point
+from calibrex.solvers import chen_medioni_point_to_plane_icp_solver as plane
+from calibrex.solvers import native_registration_comparison_solver as native
+
+commit = '9fe0d4f6ff866bed771b62ccbe7b7e57924b12bb'
+output = Path('outputs/public-kitti-registration-preparation-pilot-v2')
+output.mkdir(exist_ok=False, parents=True)
+old = []
+for index, module in enumerate((point, plane, native)):
+    path = output / f'baseline.{Path(module.__file__).name}.txt'
+    data = subprocess.check_output(['git', 'show', f'{commit}:src/calibrex/solvers/{Path(module.__file__).name}'])
+    path.write_bytes(data)
+    loader = importlib.machinery.SourceFileLoader(f'_pilot_old_{index}', str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    loaded = importlib.util.module_from_spec(spec)
+    sys.modules[loader.name] = loaded
+    loader.exec_module(loaded)
+    old.append(loaded)
+old[1].evaluate_icp_candidate = old[0].evaluate_icp_candidate
+old[1].split_icp_source_points = old[0].split_icp_source_points
+root = Path('${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data')
+data = [(root / f'{frame}.bin').read_bytes() for frame in ('0000000000', '0000000115')]
+options = point.RobustPointToPointIcpOptions(max_iterations=20, correspondence_distance_m=1.5,
+                                           holdout_voxel_size_m=1.)
+records = []
+for cap in (500, 1500, 3000):
+    measured = []
+    for method, modules in (('baseline', old), ('vectorized', (point, plane, native))):
+        started = time.perf_counter()
+        clouds = [np.frombuffer(item, dtype='<f4').reshape(-1, 4)[:, :3] for item in data]
+        target, source = [modules[2].voxel_downsample_icp_points(c, role, .5, cap)
+                          for c, role in zip(clouds, ('target', 'source'))]
+        prepared = time.perf_counter()
+        point_payload = modules[0].RobustPointToPointIcpSolver().solve(source, target, SE3.identity(), options).as_dict()
+        point_done = time.perf_counter()
+        plane_payload = modules[1].ChenMedioniPointToPlaneIcpSolver().solve(source, target, SE3.identity(), options).as_dict()
+        elapsed = time.perf_counter() - started
+        payload = {'points': [[[p.point_id, p.position_m] for p in cloud] for cloud in (source,target)],
+                   'point': point_payload, 'plane': plane_payload}
+        row = {'method': method, 'cap': cap, 'wall_seconds': elapsed,
+               'preparation_seconds': prepared - started, 'point_seconds': point_done - prepared,
+               'plane_seconds': elapsed - (point_done - started), 'payload': payload}
+        measured.append(row)
+        print(json.dumps({k:v for k,v in row.items() if k != 'payload'}), flush=True)
+    parity = measured[0]['payload'] == measured[1]['payload']
+    print(json.dumps({'cap': cap, 'full_parity': parity}), flush=True)
+    records.extend(measured)
+    (output / 'records.json').write_text(json.dumps(records, sort_keys=True, indent=2))
+    if not parity:
+        raise SystemExit(2)
