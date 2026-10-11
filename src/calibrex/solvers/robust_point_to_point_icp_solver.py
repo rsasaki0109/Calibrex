@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3, quaternion_xyzw_from_rotation_matrix
 from calibrex.evaluation.holdout import split_indices
+from calibrex.solvers._exact_neighbors import _ExactNeighbors
 
 FloatArray: TypeAlias = NDArray[np.float64]
 IcpStatus = Literal[
@@ -211,6 +212,7 @@ class RobustPointToPointIcpSolver:
         seed_transform = initial_transform or SE3.identity()
         transform = seed_transform
         target_array = _positions(target)
+        target_search = _ExactNeighbors(target_array)
         history: list[IcpIteration] = []
         status: IcpStatus = "max_iterations"
         reason = "maximum ICP iterations reached"
@@ -219,7 +221,9 @@ class RobustPointToPointIcpSolver:
         ] | None = None
         for iteration in range(solver_options.max_iterations):
             transformed = _transform_points(_positions(train), transform)
-            correspondences = _correspondences(transformed, target_array, solver_options)
+            correspondences = _correspondences(
+                transformed, target_array, solver_options, target_search=target_search,
+            )
             moving, matched, distances, _source_indices, _target_indices = correspondences
             if len(moving) < solver_options.min_correspondences:
                 return _empty("insufficient_correspondences", train_ids, holdout_ids)
@@ -263,11 +267,14 @@ class RobustPointToPointIcpSolver:
                 break
 
         transformed = _transform_points(_positions(train), transform)
-        correspondences = _correspondences(transformed, target_array, solver_options)
+        correspondences = _correspondences(
+            transformed, target_array, solver_options, target_search=target_search,
+        )
         moving, _matched, distances, source_indices, target_indices = correspondences
         spectrum, rank, condition = _information_diagnostics(moving, solver_options)
         holdout_rmse = _nearest_rmse(
-            _transform_points(_positions(holdout), transform), target_array
+            _transform_points(_positions(holdout), transform), target_array,
+            target_search=target_search,
         )
         rematching = (
             _rematching_diagnostics(
@@ -277,6 +284,7 @@ class RobustPointToPointIcpSolver:
                 source_indices,
                 target_indices,
                 solver_options,
+                target_search=target_search,
             )
             if solver_options.effective_diagnostics
             else None
@@ -359,12 +367,14 @@ def evaluate_icp_candidate(
         return IcpCandidateEvaluation(train_ids, holdout_ids, None, None, 0, 0.0, None)
     train_array = _positions(train)
     target_array = _positions(target)
+    target_search = _ExactNeighbors(target_array)
     transformed = _transform_points(train_array, transform_target_source)
     moving, _matched, distances, source_indices, target_indices = _correspondences(
-        transformed, target_array, solver_options
+        transformed, target_array, solver_options, target_search=target_search,
     )
     holdout_rmse = _nearest_rmse(
-        _transform_points(_positions(holdout), transform_target_source), target_array
+        _transform_points(_positions(holdout), transform_target_source), target_array,
+        target_search=target_search,
     )
     rematching = (
         _rematching_diagnostics(
@@ -374,6 +384,7 @@ def evaluate_icp_candidate(
             source_indices,
             target_indices,
             solver_options,
+            target_search=target_search,
         )
         if solver_options.effective_diagnostics and len(moving)
         else None
@@ -415,16 +426,18 @@ def _correspondences(
     transformed_source: FloatArray,
     target: FloatArray,
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> tuple[
     FloatArray, FloatArray, FloatArray, NDArray[np.int64], NDArray[np.int64]
 ]:
-    squared = np.sum((transformed_source[:, None, :] - target[None, :, :]) ** 2, axis=2)
-    target_indices = np.argmin(squared, axis=1)
-    distances = np.sqrt(squared[np.arange(len(transformed_source)), target_indices])
+    search = target_search if target_search is not None else _ExactNeighbors(target)
+    target_indices, squared = search.nearest(transformed_source)
+    distances = np.sqrt(squared)
     mask = distances <= options.correspondence_distance_m
     if options.mutual_correspondences:
-        source_indices = np.argmin(squared, axis=0)
-        mask &= source_indices[target_indices] == np.arange(len(transformed_source))
+        unique_targets, inverse = np.unique(target_indices, return_inverse=True)
+        source_indices, _ = _ExactNeighbors(transformed_source).nearest(target[unique_targets])
+        mask &= source_indices[inverse] == np.arange(len(transformed_source))
     selected = np.flatnonzero(mask)
     if len(selected):
         keep = max(1, math.ceil(options.trim_fraction * len(selected)))
@@ -445,6 +458,7 @@ def _rematching_diagnostics(
     baseline_source_indices: NDArray[np.int64],
     baseline_target_indices: NDArray[np.int64],
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> IcpRematchingDiagnostics:
     directions: tuple[Literal["x", "y", "z", "roll", "pitch", "yaw"], ...] = (
         "x",
@@ -455,7 +469,7 @@ def _rematching_diagnostics(
         "yaw",
     )
     baseline_objective, baseline_pairs = _rematched_objective_and_pairs(
-        source, target, transform, options
+        source, target, transform, options, target_search=target_search,
     )
     if baseline_objective is None:
         baseline_pairs = set(
@@ -487,10 +501,10 @@ def _rematching_diagnostics(
             transform
         )
         minus_objective, minus_pairs = _rematched_objective_and_pairs(
-            source, target, minus, options
+            source, target, minus, options, target_search=target_search,
         )
         plus_objective, plus_pairs = _rematched_objective_and_pairs(
-            source, target, plus, options
+            source, target, plus, options, target_search=target_search,
         )
         if (
             baseline_objective is None
@@ -542,10 +556,11 @@ def _rematched_objective_and_pairs(
     target: FloatArray,
     transform: SE3,
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> tuple[float | None, set[tuple[int, int]]]:
     transformed = _transform_points(source, transform)
     _moving, _matched, distances, source_indices, target_indices = _correspondences(
-        transformed, target, options
+        transformed, target, options, target_search=target_search,
     )
     pairs = set(
         zip(source_indices.tolist(), target_indices.tolist(), strict=True)
@@ -741,11 +756,14 @@ def _transform_points(points: FloatArray, transform: SE3) -> FloatArray:
     return points @ rotation.T + np.asarray(transform.translation_m)
 
 
-def _nearest_rmse(points: FloatArray, target: FloatArray) -> float | None:
+def _nearest_rmse(
+    points: FloatArray, target: FloatArray, *, target_search: _ExactNeighbors | None = None,
+) -> float | None:
     if not len(points) or not len(target):
         return None
-    squared = np.sum((points[:, None, :] - target[None, :, :]) ** 2, axis=2)
-    return float(math.sqrt(np.mean(np.min(squared, axis=1))))
+    search = target_search if target_search is not None else _ExactNeighbors(target)
+    _, squared = search.nearest(points)
+    return float(math.sqrt(np.mean(squared)))
 
 
 def _rotation_angle(transform: SE3) -> float:

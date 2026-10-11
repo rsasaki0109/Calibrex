@@ -11,6 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3
+from calibrex.solvers._exact_neighbors import _ExactNeighbors
 from calibrex.solvers.robust_point_to_point_icp_solver import (
     IcpCandidateEvaluation,
     IcpPoint,
@@ -181,8 +182,9 @@ class ChenMedioniPointToPlaneIcpSolver:
             )
 
         target_array = _positions(target)
+        target_search = _ExactNeighbors(target_array)
         normals, valid_normals, eigengaps = _estimate_target_normals(
-            target_array, solver_options
+            target_array, solver_options, target_search=target_search,
         )
         normal_values = eigengaps[valid_normals]
         normal_count = int(np.count_nonzero(valid_normals))
@@ -211,7 +213,8 @@ class ChenMedioniPointToPlaneIcpSolver:
         for iteration in range(shared.max_iterations):
             transformed = _transform_points(train_array, transform)
             matched = _tangent_correspondences(
-                transformed, target_array, normals, valid_normals, shared
+                transformed, target_array, normals, valid_normals, shared,
+                target_search=target_search,
             )
             moving, _planes, plane_normals, residuals, _source_indices, _target_indices = matched
             if len(moving) < shared.min_correspondences:
@@ -277,7 +280,8 @@ class ChenMedioniPointToPlaneIcpSolver:
 
         final_transformed = _transform_points(train_array, transform)
         final = _tangent_correspondences(
-            final_transformed, target_array, normals, valid_normals, shared
+            final_transformed, target_array, normals, valid_normals, shared,
+            target_search=target_search,
         )
         moving, _planes, plane_normals, residuals, _source_indices, _target_indices = final
         if len(moving) < shared.min_correspondences:
@@ -315,7 +319,8 @@ class ChenMedioniPointToPlaneIcpSolver:
             )
         train_rmse = _rmse(residuals)
         holdout_rmse = _point_to_plane_rmse(
-            _positions(holdout), transform, target_array, normals, valid_normals, shared
+            _positions(holdout), transform, target_array, normals, valid_normals, shared,
+            target_search=target_search,
         )
         common_evaluation = evaluate_icp_candidate(source, target, transform, shared)
         probes = _known_bad_probes(
@@ -327,6 +332,7 @@ class ChenMedioniPointToPlaneIcpSolver:
             valid_normals,
             shared,
             solver_options,
+            target_search=target_search,
         )
         return ChenMedioniPointToPlaneResult(
             status=status,
@@ -353,11 +359,12 @@ class ChenMedioniPointToPlaneIcpSolver:
 
 
 def _estimate_target_normals(
-    target: FloatArray, options: ChenMedioniPointToPlaneOptions
+    target: FloatArray, options: ChenMedioniPointToPlaneOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> tuple[FloatArray, NDArray[np.bool_], FloatArray]:
-    squared = np.sum((target[:, None, :] - target[None, :, :]) ** 2, axis=2)
     neighbor_count = min(options.normal_neighbor_count, len(target))
-    neighborhoods = np.argsort(squared, axis=1, kind="stable")[:, :neighbor_count]
+    search = target_search if target_search is not None else _ExactNeighbors(target)
+    neighborhoods, _ = search.query(target, neighbor_count)
     normals = np.zeros_like(target)
     eigengaps: FloatArray = np.zeros(len(target), dtype=np.float64)
     valid: NDArray[np.bool_] = np.zeros(len(target), dtype=np.bool_)
@@ -381,14 +388,16 @@ def _tangent_correspondences(
     normals: FloatArray,
     valid_normals: NDArray[np.bool_],
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray, IntArray, IntArray]:
-    squared = np.sum((transformed_source[:, None, :] - target[None, :, :]) ** 2, axis=2)
-    target_indices = np.argmin(squared, axis=1)
-    distances = np.sqrt(squared[np.arange(len(transformed_source)), target_indices])
+    search = target_search if target_search is not None else _ExactNeighbors(target)
+    target_indices, squared = search.nearest(transformed_source)
+    distances = np.sqrt(squared)
     mask = (distances <= options.correspondence_distance_m) & valid_normals[target_indices]
     if options.mutual_correspondences:
-        source_indices = np.argmin(squared, axis=0)
-        mask &= source_indices[target_indices] == np.arange(len(transformed_source))
+        unique_targets, inverse = np.unique(target_indices, return_inverse=True)
+        source_indices, _ = _ExactNeighbors(transformed_source).nearest(target[unique_targets])
+        mask &= source_indices[inverse] == np.arange(len(transformed_source))
     selected = np.flatnonzero(mask)
     selected_targets = target_indices[selected]
     residuals = np.sum(
@@ -441,11 +450,13 @@ def _point_to_plane_rmse(
     normals: FloatArray,
     valid_normals: NDArray[np.bool_],
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> float | None:
     if not len(source):
         return None
     matched = _tangent_correspondences(
-        _transform_points(source, transform), target, normals, valid_normals, options
+        _transform_points(source, transform), target, normals, valid_normals, options,
+        target_search=target_search,
     )
     residuals = matched[3]
     return _rmse(residuals) if len(residuals) >= options.min_correspondences else None
@@ -460,6 +471,7 @@ def _known_bad_probes(
     valid_normals: NDArray[np.bool_],
     common_options: RobustPointToPointIcpOptions,
     options: ChenMedioniPointToPlaneOptions,
+    *, target_search: _ExactNeighbors | None = None,
 ) -> tuple[ChenMedioniProbe, ...]:
     source = _positions(holdout)
     directions: tuple[RegistrationDof, ...] = ("x", "y", "z", "roll", "pitch", "yaw")
@@ -488,7 +500,8 @@ def _known_bad_probes(
                 )
             ).compose(transform)
             rmse = _point_to_plane_rmse(
-                source, perturbed, target, normals, valid_normals, common_options
+                source, perturbed, target, normals, valid_normals, common_options,
+                target_search=target_search,
             )
             delta = (
                 rmse - baseline_rmse
