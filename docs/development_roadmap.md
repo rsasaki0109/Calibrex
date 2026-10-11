@@ -102,7 +102,7 @@ accuracy.
 | Planar-board Camera-LiDAR plane alignment | Native CLI backend | Capture holdout, normal/offset closure, normal-span rank, 12 probes | ACFR 40-pose real data: method gates PASS | Alpha | Core Apache-2.0; ACFR source Apache-2.0 |
 | Planar-board Camera-LiDAR point+plane | Native CLI backend | Shared capture split, joint spectrum, 12 probes | ACFR real data: method gates PASS | Alpha | Core Apache-2.0; external feature extraction |
 | Horn point-only Camera-LiDAR | Native CLI backend | Shared split, eigengap, 6D spectrum, 12 probes | ACFR real data: method gates PASS | Alpha | Core Apache-2.0; external feature extraction |
-| Planar-board line+plane | Native solver | Rotation/translation spectra and edge-angle gate | Synthetic/unit evidence; no CLI-wired public extractor | Research | Core Apache-2.0; extractor must remain an adapter |
+| Planar-board line+plane | Native CLI backend | Adapter-side board-edge extraction, shared capture split, rotation/translation spectra, edge-angle gate, 12 probes | ACFR real data: method gates PASS; unresolved board symmetry FAILs | Alpha | Core Apache-2.0; external corner extraction |
 | Pandey mutual-information Camera-LiDAR | Native CLI backend | Frame holdout, 12 probes, objective curvature | Real A2D2 image/reflectivity run FAILs; inputs are already camera-registered and are not independent accuracy evidence | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Levinson-Thrun online edge Camera-LiDAR | Native CLI backend | Temporal holdout, online window diagnostics, curvature | Two-pair A2D2 run is WARN/INCONCLUSIVE | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Koide-style direct visual-LiDAR | Executable/precomputed adapter | Generic external-run artifact, input readiness, tool identity, result digest, common Camera-LiDAR evidence | Boundary is implemented; no maintained full-scale comparison result | Adapter | Upstream toolbox MIT; ROS/PCL/GTSAM/Ceres remain external |
@@ -581,6 +581,21 @@ recording.
 **Outcome:** a CLI backend that uses an adapter-side edge extractor, with the
 shared capture split and 12 probes, evaluated on the ACFR planar-board data
 already used by the plane and point+plane rows.
+
+**Done** on 2026-10-11. The `native_planar_board` backend runs a fourth row,
+line+plane, next to the plane, point+plane and Horn rows. The adapter
+(`calibrex.solvers.acfr_board_edges`) turns ACFR's corner rows 2-5 and 8-11 into
+four boundary lines per capture. It orders each corner loop counter-clockwise
+about its oriented board normal, chooses the LiDAR labeling (the board is
+symmetric under a 180° turn) by edge-direction agreement under the train-split
+plane-only rotation, and rejects a pairing whose edge lengths differ by more
+than 15 %. On the 40 ACFR captures, all match and 6 take the symmetric
+labeling. With the shared seed-0 split the row passes its default gates
+(held-out boundary distance 1.39 cm against 3 cm, direction 1.51° against
+3°, 12/12 controls) and differs from the plane-only output by 2.07 cm and
+0.26°, an ungated WARN delta. Keeping the source row order instead raises the
+held-out boundary distance to 37 cm. Details:
+[research note](research/multi_plane_lidar_camera.md).
 
 ## Completed in the 2026-08-20 revision (2026-08-19 baseline)
 

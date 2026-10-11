@@ -15,6 +15,7 @@ from calibrex.core.geometry import SE3
 from calibrex.core.provenance import sha256_path
 from calibrex.core.result import MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
+from calibrex.solvers.acfr_board_edges import extract_acfr_vlp_board_edges
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 from calibrex.solvers.horn_point_lidar_camera_solver import (
     HornPointLidarCameraSolver,
@@ -23,9 +24,14 @@ from calibrex.solvers.horn_point_lidar_camera_solver import (
 )
 from calibrex.solvers.planar_board_lidar_camera_solver import (
     OrientedPlane,
+    PlanarBoardLidarCameraResult,
     PlanarBoardLidarCameraSolver,
     PlanarBoardObservation,
     PlanarBoardSolverOptions,
+)
+from calibrex.solvers.planar_board_line_plane_solver import (
+    LinePlaneSolverOptions,
+    PlanarBoardLinePlaneSolver,
 )
 from calibrex.solvers.point_plane_lidar_camera_solver import (
     PointPlaneLidarCameraSolver,
@@ -317,6 +323,10 @@ class NativePlanarBoardSolver(SolverAdapter):
             grade="warn",
             reason="normal-free versus centre+normal delta; no threshold is declared",
         )
+        line_metrics, line_provenance, line_plane_pass = _line_plane_baseline(
+            config, options, poses_path, solved
+        )
+        metrics.update(line_metrics)
         warnings = []
         if not evidence_pass:
             warnings.append("multi-plane evidence did not pass all default gates")
@@ -324,6 +334,8 @@ class NativePlanarBoardSolver(SolverAdapter):
             warnings.append("point+plane independent baseline did not pass all default gates")
         if not horn_pass:
             warnings.append("Horn point-only independent baseline did not pass all default gates")
+        if not line_plane_pass:
+            warnings.append("line+plane independent baseline did not pass all default gates")
         transforms = (
             {"T_camera0_lidar0": solved.transform_camera_lidar}
             if solved.transform_camera_lidar is not None
@@ -404,9 +416,160 @@ class NativePlanarBoardSolver(SolverAdapter):
                     "extractor_license_spdx": "Apache-2.0",
                     "external_code_executed": False,
                 },
+                "native_line_plane_baseline": line_provenance,
             },
             warnings=warnings,
         )
+
+
+def _line_plane_baseline(
+    config: CalibrationConfig,
+    options: dict[str, Any],
+    poses_path: Path,
+    plane: PlanarBoardLidarCameraResult,
+) -> tuple[dict[str, MetricResult], dict[str, Any], bool]:
+    """Run the line+plane row on adapter-extracted board edges and the shared split.
+
+    The board-symmetry labeling of the corners uses the train-split plane-only
+    rotation; without it the row is reported as unavailable.
+    """
+
+    if plane.transform_camera_lidar is None:
+        reason = "plane-only rotation is unavailable to resolve the board symmetry"
+        return (
+            {
+                "line_plane_boundary_distance_rmse_m": MetricResult(
+                    unit="m", grade="warn", reason=reason
+                )
+            },
+            {"evidence_pass": False, "reason": reason},
+            False,
+        )
+    extraction = extract_acfr_vlp_board_edges(
+        _read_acfr_vlp_rows(poses_path),
+        plane.transform_camera_lidar,
+        max_edge_length_mismatch_fraction=_float_option(
+            options, "line_plane_max_edge_length_mismatch_fraction", 0.15
+        ),
+    )
+    solved = PlanarBoardLinePlaneSolver().solve(
+        extraction.observations,
+        LinePlaneSolverOptions(
+            holdout_ratio=config.evaluation.holdout_ratio,
+            split_seed=config.solver.seed or 0,
+        ),
+    )
+    holdout = solved.holdout_evaluation
+    detectable = sum(probe.detectable is True for probe in solved.probes)
+    probe_count = len(solved.probes)
+    detectable_fraction = detectable / probe_count if probe_count else None
+    shared_split = (
+        solved.train_frame_ids == plane.train_frame_ids
+        and solved.holdout_frame_ids == plane.holdout_frame_ids
+    )
+    evidence_pass = (
+        solved.status == "converged"
+        and solved.rotation_rank == 3
+        and solved.translation_rank == 3
+        and shared_split
+        and holdout.boundary_distance_rmse_m is not None
+        and holdout.boundary_distance_rmse_m
+        <= _float_option(options, "max_line_plane_holdout_boundary_distance_rmse_m", 0.03)
+        and holdout.boundary_direction_rmse_deg is not None
+        and holdout.boundary_direction_rmse_deg
+        <= _float_option(options, "max_line_plane_holdout_boundary_direction_rmse_deg", 3.0)
+        and detectable_fraction is not None
+        and detectable_fraction
+        >= _float_option(options, "min_line_plane_known_bad_detectable_fraction", 0.8)
+    )
+    grade: Literal["pass", "warn"] = "pass" if evidence_pass else "warn"
+    comparison = _transform_comparison(plane.transform_camera_lidar, solved.transform_camera_lidar)
+    captures = len(extraction.captures)
+    metrics = {
+        "line_plane_matched_capture_fraction": MetricResult(
+            value=len(extraction.observations) / captures if captures else None,
+            unit="fraction",
+            grade="pass" if not extraction.rejected_frame_ids else "warn",
+            reason=(
+                f"{len(extraction.observations)}/{captures} captures matched; "
+                f"{len(extraction.symmetric_frame_ids)} took the 180° symmetric labeling"
+            ),
+        ),
+        "line_plane_boundary_distance_rmse_m": MetricResult(
+            train=solved.train_evaluation.boundary_distance_rmse_m,
+            holdout=holdout.boundary_distance_rmse_m,
+            unit="m",
+            grade=grade,
+        ),
+        "line_plane_boundary_direction_rmse_deg": MetricResult(
+            train=solved.train_evaluation.boundary_direction_rmse_deg,
+            holdout=holdout.boundary_direction_rmse_deg,
+            unit="deg",
+            grade=grade,
+        ),
+        "line_plane_normal_rmse_deg": MetricResult(
+            train=solved.train_evaluation.plane_normal_rmse_deg,
+            holdout=holdout.plane_normal_rmse_deg,
+            unit="deg",
+            grade="warn",
+            reason="plane closure of the line+plane estimate; diagnostic",
+        ),
+        "line_plane_offset_rmse_m": MetricResult(
+            train=solved.train_evaluation.plane_offset_rmse_m,
+            holdout=holdout.plane_offset_rmse_m,
+            unit="m",
+            grade="warn",
+            reason="plane closure of the line+plane estimate; diagnostic",
+        ),
+        "line_plane_known_bad_detectable_fraction": MetricResult(
+            value=detectable_fraction,
+            unit="fraction",
+            grade=grade,
+            reason=f"{detectable}/{probe_count} held-out boundary 6-DoF controls detected",
+        ),
+        "line_plane_condition_number": MetricResult(
+            value=solved.condition_number,
+            unit="ratio",
+            grade=grade,
+            reason=f"rotation rank {solved.rotation_rank}, translation rank "
+            f"{solved.translation_rank}",
+        ),
+        "line_plane_vs_plane_translation_delta_m": MetricResult(
+            value=comparison["translation_delta_m"],
+            unit="m",
+            grade="warn",
+            reason="independent baseline delta; no metrology threshold is declared",
+        ),
+        "line_plane_vs_plane_rotation_delta_deg": MetricResult(
+            value=comparison["rotation_delta_deg"],
+            unit="deg",
+            grade="warn",
+            reason="independent baseline delta; no metrology threshold is declared",
+        ),
+    }
+    provenance: dict[str, Any] = {
+        "result": solved.as_dict(),
+        "comparison_to_plane_only": comparison,
+        "evidence_pass": evidence_pass,
+        "common_capture_split": {"matches_plane_only": shared_split},
+        "edge_extraction": extraction.as_dict(),
+        "symmetry_prior": "train-split plane-only rotation (native_planar_board)",
+        "input_format": ACFR_VLP_FORMAT,
+        "source_rows": {
+            "camera_center": 0,
+            "camera_normal": 1,
+            "camera_corners": [2, 3, 4, 5],
+            "lidar_center": 6,
+            "lidar_normal": 7,
+            "lidar_corners": [8, 9, 10, 11],
+            "rows_per_capture": 19,
+        },
+        "extractor": "acfr/cam_lidar_calibration upstream feature extractor",
+        "extractor_commit": ACFR_VLP_SOURCE_COMMIT,
+        "extractor_license_spdx": "Apache-2.0",
+        "external_code_executed": False,
+    }
+    return metrics, provenance, evidence_pass
 
 
 def read_acfr_vlp_plane_observations(path: str | Path) -> list[PlanarBoardObservation]:

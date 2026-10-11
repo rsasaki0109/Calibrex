@@ -34,7 +34,11 @@ poses its gates PASS (1.17 cm centre RMSE, 1.68° normal RMSE, 12/12 controls),
 while the 1.76 cm / 0.219° inter-method transform delta remains an ungated WARN
 diagnostic. The upstream ROS/PCL feature extractor stays outside the core and
 its pinned commit, Apache-2.0 license, input digest, and source URL are recorded
-as provenance.
+as provenance. A fourth row, Zhou-style line+plane, takes the four board edges
+from the corner rows through an adapter that orders each corner loop about its
+board normal and resolves the board's 180° symmetry with the train-split
+plane-only rotation. On the same split it passes its gates (1.39 cm held-out
+boundary distance, 1.51° direction, 12/12 controls).
 
 Seven native hand-eye baselines plus Zhuang-Roth-Sudhakar, Shah, Li-Wang-Wu,
 and the closed-form and nonlinear Dornaika-Horaud robot-world/hand-eye

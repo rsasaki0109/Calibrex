@@ -1190,6 +1190,57 @@ def _register_builtin_metrics() -> None:
             "lidar_camera",
         ),
         MetricDefinition(
+            "line_plane_matched_capture_fraction",
+            "Fraction of captures whose board corners became line+plane correspondences",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_boundary_distance_rmse_m",
+            "Board-boundary line distance RMSE for the Camera-LiDAR line+plane baseline",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_boundary_direction_rmse_deg",
+            "Board-boundary direction RMSE for the Camera-LiDAR line+plane baseline",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_normal_rmse_deg",
+            "Board-normal closure RMSE of the Camera-LiDAR line+plane estimate",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_offset_rmse_m",
+            "Board-plane offset closure RMSE of the Camera-LiDAR line+plane estimate",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_known_bad_detectable_fraction",
+            "Fraction of held-out line+plane 6-DoF boundary controls detected",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_condition_number",
+            "Condition number across the line+plane rotation and translation spectra",
+            family="lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_vs_plane_translation_delta_m",
+            "Translation delta between line+plane and plane-only Camera-LiDAR baselines",
+            "m",
+            "lidar_camera",
+        ),
+        MetricDefinition(
+            "line_plane_vs_plane_rotation_delta_deg",
+            "Rotation delta between line+plane and plane-only Camera-LiDAR baselines",
+            "deg",
+            "lidar_camera",
+        ),
+        MetricDefinition(
             "koide_lidar_camera_adapter_available",
             "Koide-style targetless LiDAR-camera adapter availability",
             family="backend",

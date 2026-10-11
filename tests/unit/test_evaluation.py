@@ -678,6 +678,9 @@ def test_metric_registry_contains_autonomous_metrics() -> None:
     assert "horn_point_joint_rank" in names
     assert "horn_point_quaternion_normalized_eigengap" in names
     assert "horn_point_vs_point_plane_rotation_delta_deg" in names
+    assert "line_plane_boundary_distance_rmse_m" in names
+    assert "line_plane_known_bad_detectable_fraction" in names
+    assert "line_plane_vs_plane_rotation_delta_deg" in names
     definition = get_metric_definition("autonomous_driving_dynamic_holdout")
     assert definition is not None
     assert definition.family == "autonomous_driving"

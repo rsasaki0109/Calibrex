@@ -22,7 +22,7 @@ holdout evaluation, and known-bad controls.
 | Planar-board LiDAR-camera plane alignment | LiDAR-to-camera 6-DoF extrinsic | Native solver | capture holdout, normal/offset closure, normal-span diagnostics |
 | Planar-board LiDAR-camera point+plane | Independent centre/normal 6-DoF baseline | Native solver | shared capture holdout, 6D joint spectrum, 12 known-bad controls, ACFR real data |
 | Horn point-only Camera-LiDAR alignment | Normal-free centre-correspondence 6-DoF baseline | Native solver | shared capture holdout, quaternion eigengap, 6D spectrum, 12 controls, ACFR real data |
-| Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | plane/edge closure, separate rotation/translation spectra, edge-angle gate |
+| Planar-board LiDAR-camera line+plane | One-pose-capable LiDAR-to-camera 6-DoF extrinsic | Native solver | shared capture holdout, plane/edge closure, separate rotation/translation spectra, edge-angle gate, 12 known-bad controls, ACFR real data |
 | Robust point-to-point ICP | Generic local 3D registration | Native solver | spatial-block holdout, mutual/trimmed matches, 3D-spread and frozen-pair diagnostics |
 | Open3D Generalized ICP | Optional probabilistic registration baseline | MIT adapter | train-only source fit, common Calibrex spatial holdout/rematching metrics |
 | PCL/Autoware NDT | External registration baseline | Subprocess/precomputed adapter | declared train isolation, common Calibrex spatial holdout/rematching metrics |

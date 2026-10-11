@@ -1,5 +1,11 @@
 """Solver adapter interfaces."""
 
+from calibrex.solvers.acfr_board_edges import (
+    ACFR_BOARD_EDGE_EXTRACTOR,
+    AcfrBoardEdgeCapture,
+    AcfrBoardEdgeExtraction,
+    extract_acfr_vlp_board_edges,
+)
 from calibrex.solvers.andreff_hand_eye_solver import (
     AndreffHandEyeOptions,
     AndreffHandEyeResult,
@@ -182,6 +188,7 @@ from calibrex.solvers.planar_board_line_plane_solver import (
     BoardBoundaryCorrespondence,
     LinePlaneBoardObservation,
     LinePlaneEvaluation,
+    LinePlaneProbe,
     LinePlaneSolverOptions,
     OrientedLine3D,
     PlanarBoardLinePlaneResult,
@@ -291,6 +298,7 @@ from calibrex.solvers.tsai_lenz_hand_eye_solver import (
 from calibrex.solvers.unicalib_lidar_camera_solver import UniCalibLidarCameraSolver
 
 __all__ = [
+    "ACFR_BOARD_EDGE_EXTRACTOR",
     "ACFR_VLP_FORMAT",
     "ACFR_VLP_SOURCE_URL",
     "INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID",
@@ -303,6 +311,8 @@ __all__ = [
     "NATIVE_PLANAR_BOARD_BACKEND",
     "NATIVE_REGISTRATION_COMPARISON_BACKEND",
     "NATIVE_TUM_JOINT_SLAC_BACKEND",
+    "AcfrBoardEdgeCapture",
+    "AcfrBoardEdgeExtraction",
     "AndreffHandEyeOptions",
     "AndreffHandEyeResult",
     "AndreffHandEyeSolver",
@@ -379,6 +389,7 @@ __all__ = [
     "LidarPairSolveInputs",
     "LinePlaneBoardObservation",
     "LinePlaneEvaluation",
+    "LinePlaneProbe",
     "LinePlaneSolverOptions",
     "MutualInformationCameraModel",
     "MutualInformationEvaluation",
@@ -488,6 +499,7 @@ __all__ = [
     "evaluate_probabilistic_camera_lidar_pose",
     "evaluate_robot_world_hand_eye_known_bad_probes",
     "evaluate_robot_world_hand_eye_poses",
+    "extract_acfr_vlp_board_edges",
     "extract_near_depth_discontinuities",
     "levinson_edge_response",
     "lidar_pair_dataset_files",
