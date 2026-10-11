@@ -141,7 +141,7 @@ Hugging Face release of the 2022 challenge, reference composed from
 | KITTI 0009 pitch +5 deg | `inconclusive` | **`fail` (4.95 / 0.5)** |
 | KITTI 0005 yaw +5 deg | `pass`, yaw unchecked | `pass`, yaw unchecked: the estimate is right (-5.1 deg correction) but its jackknife std is 0.52 deg, over the 0.5 deg bound (the reference's yaw is unchecked for the same reason, std 0.51 deg on 16 frames) |
 | every other KITTI 0005 / 0009 case (+1, +3, +5 deg about each axis) | as in the table above | identical |
-| Hilti exp21, all ten cases | as in the table above | HILTI_EXP21_RESULT |
+| Hilti exp21, all ten cases | as in the table above | identical |
 | unmodified reference, KITTI 0005 / 0009 / Hilti exp21 / exp07 | `pass` | `pass`, the same judged axes |
 
 So two of the three +5 deg cases that were left unchecked are now judged and flagged; KITTI 0005
