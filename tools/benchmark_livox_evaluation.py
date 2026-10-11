@@ -207,12 +207,12 @@ def main(argv: list[str] | None = None) -> None:
             }
             if row["loaded_evaluation_modules"] != expected_modules:
                 raise ValueError("baseline/candidate module binding mismatch")
-            if anchor is None:
-                anchor = row["result"]
-            matches = anchor == row["result"]
             canonical = json.dumps(
                 row["result"], sort_keys=True, separators=(",", ":"), allow_nan=False
             )
+            if anchor is None:
+                anchor = canonical
+            matches = anchor == canonical
             trials.append(
                 BenchmarkTrial(
                     method_id=method,

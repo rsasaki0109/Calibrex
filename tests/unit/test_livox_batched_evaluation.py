@@ -59,6 +59,20 @@ def test_equal_distances_invalid_nearest_normal_and_voxel_neighborhood():
     ) == ([], 64)
 
 
+def test_sparse_large_extent_uses_exact_structured_fallback():
+    extent = 2**62
+    points = [(-float(extent), 0.0, 0.0), (float(extent), 0.0, 0.0)] * 32
+    records = [livox.LivoxPointRecord((*point, 0.0), (1.0, 0.0, 0.0)) for point in points]
+    options = {
+        "plane_map": livox.build_voxel_plane_map(records, 1.0),
+        "voxel_size_m": 1.0, "correspondence_gate_m": 1.5,
+    }
+    assert livox._point_to_plane_residuals(points, **options) == ([0.0] * 64, 0)
+    assert livox._point_to_plane_residuals(points, **options) == (
+        livox._scalar_plane_residuals(points, **options)
+    )
+
+
 @pytest.mark.parametrize("coordinate,voxel", [(1e20, 1.0), (-1e20, 1.0), (0.0, 1.0)])
 def test_large_voxel_keys_and_empty_maps_retain_scalar_behavior(coordinate, voxel):
     records = [livox.LivoxPointRecord((coordinate, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0))]

@@ -1088,6 +1088,17 @@ def _batched_plane_residuals(
         return None
     key_type = np.dtype([("x", "i8"), ("y", "i8"), ("z", "i8")])
     searchable = keys.view(key_type).reshape(-1)
+    lower = keys.min(axis=0)
+    upper = keys.max(axis=0)
+    widths = [int(upper[axis]) - int(lower[axis]) + 1 for axis in range(3)]
+    # A sparse integer encoding avoids structured-key comparisons. The extent
+    # product is checked with Python integers before any int64 arithmetic; huge
+    # extents retain structured lookup. No dense grid is allocated.
+    linear_keys = (
+        ((keys[:, 0] - lower[0]) * widths[1] + keys[:, 1] - lower[1]) * widths[2]
+        + keys[:, 2] - lower[2]
+        if math.prod(widths) <= 2**63 - 1 else None
+    )
     centroids = np.asarray([plane_map[key].centroid for key in ordered], dtype=np.float64)
     normal_list = [plane_map[key].normal for key in ordered]
     normals = np.asarray(
@@ -1103,7 +1114,15 @@ def _batched_plane_residuals(
     for start in range(0, len(coordinates), 4096):
         chunk = coordinates[start : start + 4096]
         neighboring = cells[start : start + 4096, None, :] + offsets
-        lookup = np.searchsorted(searchable, neighboring.view(key_type).reshape(-1))
+        if linear_keys is None:
+            lookup = np.searchsorted(searchable, neighboring.view(key_type).reshape(-1))
+        else:
+            clipped = np.clip(neighboring.reshape(-1, 3), lower, upper)
+            encoded = (
+                ((clipped[:, 0] - lower[0]) * widths[1] + clipped[:, 1] - lower[1])
+                * widths[2] + clipped[:, 2] - lower[2]
+            )
+            lookup = np.searchsorted(linear_keys, encoded)
         bounded = np.minimum(lookup, len(keys) - 1)
         present = (lookup < len(keys)) & np.all(
             keys[bounded] == neighboring.reshape(-1, 3), axis=1,
