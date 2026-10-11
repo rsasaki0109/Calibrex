@@ -368,17 +368,21 @@ def _estimate_target_normals(
     normals = np.zeros_like(target)
     eigengaps: FloatArray = np.zeros(len(target), dtype=np.float64)
     valid: NDArray[np.bool_] = np.zeros(len(target), dtype=np.bool_)
-    for index, neighbor_indices in enumerate(neighborhoods):
-        points = target[neighbor_indices]
-        centered = points - np.mean(points, axis=0)
-        covariance = centered.T @ centered / max(len(points), 1)
+    # Bound temporary neighborhood storage while using the same coordinate
+    # reductions and 3-by-3 LAPACK eigensolve for each target point.
+    batch_size = max(1, 65536 // neighbor_count)
+    for start in range(0, len(target), batch_size):
+        stop = min(start + batch_size, len(target))
+        points = target[neighborhoods[start:stop]]
+        centered = points - np.mean(points, axis=1, keepdims=True)
+        covariance = centered.swapaxes(1, 2) @ centered / neighbor_count
         eigenvalues, eigenvectors = np.linalg.eigh(covariance)
-        denominator = max(float(eigenvalues[2]), 1.0e-15)
-        gap = max(float(eigenvalues[1] - eigenvalues[0]), 0.0) / denominator
-        eigengaps[index] = gap
-        if gap >= options.minimum_normal_eigengap:
-            normals[index] = eigenvectors[:, 0]
-            valid[index] = True
+        denominator = np.maximum(eigenvalues[:, 2], 1.0e-15)
+        gaps = np.maximum(eigenvalues[:, 1] - eigenvalues[:, 0], 0.0) / denominator
+        accepted = gaps >= options.minimum_normal_eigengap
+        eigengaps[start:stop] = gaps
+        normals[start:stop][accepted] = eigenvectors[accepted, :, 0]
+        valid[start:stop] = accepted
     return normals, valid, eigengaps
 
 

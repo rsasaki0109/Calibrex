@@ -7,6 +7,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
 
+import numpy as np
+
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
 from calibrex.core.geometry import SE3
@@ -185,6 +187,56 @@ def voxel_downsample_icp_points(
 
     if voxel_size_m <= 0.0 or max_points < 1:
         raise ValueError("voxel_size_m and max_points must be positive")
+    # Array input avoids per-point Python conversion; other sequences may have
+    # extra fields, which the original implementation deliberately ignores.
+    if isinstance(points, np.ndarray) and (points.ndim != 2 or points.shape[1] < 3):
+        return _scalar_voxel_centroids(points, id_prefix, voxel_size_m, max_points)
+    coordinates = np.asarray(
+        points[:, :3] if isinstance(points, np.ndarray) else
+        [(values[0], values[1], values[2]) for values in points],
+        dtype=np.float64,
+    ).reshape((-1, 3))
+    coordinates = coordinates[np.isfinite(coordinates).all(axis=1)]
+    if not len(coordinates):
+        return []
+    with np.errstate(over="ignore", invalid="ignore"):
+        cells = np.floor(coordinates / voxel_size_m)
+    # Python voxel keys have arbitrary precision. Keep that behavior for keys
+    # outside int64, including the original exceptions on nonfinite quotients.
+    if not np.isfinite(cells).all() or np.any(cells < -(2.0**63)) or np.any(cells >= 2.0**63):
+        return _scalar_voxel_centroids(points, id_prefix, voxel_size_m, max_points)
+    keys = cells.astype(np.int64)
+    order = np.lexsort((keys[:, 2], keys[:, 1], keys[:, 0]))
+    sorted_keys = keys[order]
+    boundary = np.empty(len(keys), dtype=np.bool_)
+    boundary[0] = True
+    boundary[1:] = np.any(sorted_keys[1:] != sorted_keys[:-1], axis=1)
+    starts = np.flatnonzero(boundary)
+    groups = np.empty(len(keys), dtype=np.int64)
+    groups[order] = np.cumsum(boundary) - 1
+    sums = np.zeros((len(starts), 3), dtype=np.float64)
+    # Unbuffered updates follow input order, retaining each scalar sum's
+    # rounding. reduceat/bincount sums could change cancellation and centroids.
+    with np.errstate(over="ignore", invalid="ignore"):
+        np.add.at(sums, groups, coordinates)
+    counts = np.diff(np.concatenate((starts, np.asarray([len(keys)]))))
+    selected = (
+        np.arange(max_points, dtype=np.int64) * len(starts) // max_points
+        if len(starts) > max_points else np.arange(len(starts), dtype=np.int64)
+    )
+    centroids = sums[selected] / counts[selected, None]
+    return [
+        IcpPoint(
+            f"{id_prefix}:{key[0]}:{key[1]}:{key[2]}",
+            (float(position[0]), float(position[1]), float(position[2])),
+        )
+        for key, position in zip(sorted_keys[starts[selected]], centroids, strict=True)
+    ]
+
+
+def _scalar_voxel_centroids(
+    points: Sequence[Sequence[float]], id_prefix: str, voxel_size_m: float, max_points: int,
+) -> list[IcpPoint]:
     accumulators: dict[tuple[int, int, int], tuple[float, float, float, int]] = {}
     for values in points:
         x, y, z = (float(values[0]), float(values[1]), float(values[2]))
@@ -225,6 +277,7 @@ def _icp_options(
         multi_start_rotation_rad=math.radians(
             float(factor_options.get("multi_start_rotation_deg", 3.0))
         ),
+        multi_start_workers=int(factor_options.get("multi_start_workers", 0)),
     )
 
 

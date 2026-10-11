@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import math
+import os
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from typing import Literal, TypeAlias
 
@@ -55,6 +57,7 @@ class RobustPointToPointIcpOptions:
     symmetry_translation_separation_m: float = 0.02
     symmetry_rotation_separation_deg: float = 1.0
     symmetry_equivalent_holdout_margin_m: float = 0.005
+    multi_start_workers: int = 0  # 0: bounded automatic choice; 1: sequential
 
 
 @dataclass(frozen=True)
@@ -211,6 +214,7 @@ class RobustPointToPointIcpSolver:
 
         seed_transform = initial_transform or SE3.identity()
         transform = seed_transform
+        train_array = _positions(train)
         target_array = _positions(target)
         target_search = _ExactNeighbors(target_array)
         history: list[IcpIteration] = []
@@ -220,7 +224,7 @@ class RobustPointToPointIcpSolver:
             FloatArray, FloatArray, FloatArray, NDArray[np.int64], NDArray[np.int64]
         ] | None = None
         for iteration in range(solver_options.max_iterations):
-            transformed = _transform_points(_positions(train), transform)
+            transformed = _transform_points(train_array, transform)
             correspondences = _correspondences(
                 transformed, target_array, solver_options, target_search=target_search,
             )
@@ -266,7 +270,7 @@ class RobustPointToPointIcpSolver:
                 reason = "transform increment fell below tolerance"
                 break
 
-        transformed = _transform_points(_positions(train), transform)
+        transformed = _transform_points(train_array, transform)
         correspondences = _correspondences(
             transformed, target_array, solver_options, target_search=target_search,
         )
@@ -278,7 +282,7 @@ class RobustPointToPointIcpSolver:
         )
         rematching = (
             _rematching_diagnostics(
-                _positions(train),
+                train_array,
                 target_array,
                 transform,
                 source_indices,
@@ -626,8 +630,9 @@ def _multi_start_diagnostics(
         effective_diagnostics=False,
         multi_start_diagnostics=False,
     )
-    trials: list[IcpMultiStartTrial] = []
-    for index, direction in enumerate(directions):
+
+    def run_trial(index: int) -> IcpMultiStartTrial:
+        direction = directions[index]
         is_translation = index < 3
         amount = (
             options.multi_start_translation_m
@@ -665,21 +670,29 @@ def _multi_start_diagnostics(
             if equivalent is not None and distinct is not None
             else None
         )
-        trials.append(
-            IcpMultiStartTrial(
-                direction=direction,
-                amount=amount,
-                unit="m" if is_translation else "rad",
-                status=result.status,
-                holdout_rmse_m=result.holdout_rmse_m,
-                solution_translation_delta_m=translation_delta,
-                solution_rotation_delta_deg=rotation_delta,
-                equivalent_holdout=equivalent,
-                distinct_solution=distinct,
-                symmetry_ambiguous=ambiguous,
-            )
+        return IcpMultiStartTrial(
+            direction=direction,
+            amount=amount,
+            unit="m" if is_translation else "rad",
+            status=result.status,
+            holdout_rmse_m=result.holdout_rmse_m,
+            solution_translation_delta_m=translation_delta,
+            solution_rotation_delta_deg=rotation_delta,
+            equivalent_holdout=equivalent,
+            distinct_solution=distinct,
+            symmetry_ambiguous=ambiguous,
         )
-    return tuple(trials)
+
+    workers = options.multi_start_workers
+    if workers == 0:
+        workers = min(4, os.cpu_count() or 1) if len(source) >= 1500 else 1
+    workers = min(workers, len(directions))
+    if workers == 1:
+        return tuple(run_trial(index) for index in range(len(directions)))
+    # Each solve owns its arrays and spatial indexes. map retains the declared
+    # direction order; the context joins all work before returning or raising.
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="calibrex-icp") as executor:
+        return tuple(executor.map(run_trial, range(len(directions))))
 
 
 def _rigid_alignment(source: FloatArray, target: FloatArray) -> SE3:
@@ -700,16 +713,17 @@ def _rigid_alignment(source: FloatArray, target: FloatArray) -> SE3:
 def _information_diagnostics(
     points: FloatArray, options: RobustPointToPointIcpOptions
 ) -> tuple[tuple[float, float, float, float, float, float], int, float]:
-    rows: list[list[float]] = []
-    for x, y, z in points:
-        rows.extend(
-            [
-                [1.0, 0.0, 0.0, 0.0, z, -y],
-                [0.0, 1.0, 0.0, -z, 0.0, x],
-                [0.0, 0.0, 1.0, y, -x, 0.0],
-            ]
-        )
-    spectrum = np.linalg.svd(np.asarray(rows), compute_uv=False)
+    # Preserve the original 3N-by-6 matrix and SVD, including signed zeros and
+    # row order, while filling its columns without per-point Python lists.
+    rows = np.zeros((3 * len(points), 6), dtype=np.float64)
+    rows[0::3, 0] = rows[1::3, 1] = rows[2::3, 2] = 1.0
+    rows[0::3, 4] = points[:, 2]
+    rows[0::3, 5] = -points[:, 1]
+    rows[1::3, 3] = -points[:, 2]
+    rows[1::3, 5] = points[:, 0]
+    rows[2::3, 3] = points[:, 1]
+    rows[2::3, 4] = -points[:, 0]
+    spectrum = np.linalg.svd(rows, compute_uv=False)
     values = tuple(float(value) for value in spectrum[:6])
     rank = int(np.count_nonzero(spectrum > options.rank_tolerance * spectrum[0]))
     condition = values[0] / values[5] if values[5] > 0.0 else math.inf
@@ -795,6 +809,8 @@ def _validate_options(options: RobustPointToPointIcpOptions) -> None:
         raise ValueError("multi_start_translation_m must be positive")
     if options.multi_start_rotation_rad <= 0.0:
         raise ValueError("multi_start_rotation_rad must be positive")
+    if options.multi_start_workers < 0:
+        raise ValueError("multi_start_workers must be nonnegative (0 selects automatically)")
 
 
 def _empty(
