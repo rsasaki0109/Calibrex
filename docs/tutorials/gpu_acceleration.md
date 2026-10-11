@@ -671,6 +671,43 @@ python tools/benchmark_livox_evaluation.py --workflow fixed-rig \
   --repetitions 5 --omp-threads 1 --output-dir outputs/livox-fixed-rig-rerun
 ```
 
+## Removing repeated input work and batching native operations
+
+Captured Livox records now reach the native solver and distance-bin quality
+checks. The same two input files are decoded twice per complete run, replacing
+eight calls. Checked strided decoding and ordered statistics retain scalar bytes,
+extrema, sums and geometry. Independent controls use at most four CPU workers with
+isolated transform caches; case order is unchanged.
+
+Static uniform-plane associations reuse the exact occupied-neighbor lookup.
+Bit-identical per-point poses are composed once per residual call, and normal
+equations retain the original multiply/addition order in bounded row chunks.
+The spatial tree is imported when actually needed. No point, control, finite
+difference or output artifact is omitted.
+
+Five fresh-process pairs against the preceding accelerated version measure:
+
+| Offline public PCD config | Correspondences | Complete process medians | Ratio |
+|---|---:|---:|---:|
+| All finite target points | 16,884 | 11.249 -> 5.451 s | 2.06x |
+| Existing 4,000-point cap | 2,732 | 7.208 -> 3.970 s | 1.82x |
+
+The added `native_full_points_config.yaml` sets the existing
+`max_target_points: 0` option to remove the target reader cap. Both methods use
+the same config within each row. These rows and the previous measurement cohorts
+have distinct timing conditions; ratios are not multiplied. All twenty complete
+results match within their respective configurations, including nine-iteration
+histories, diagnostics, quality and all 24 controls. Quality remains `warn` and
+rank remains 3/6. The [full runtime evidence](../assets/livox_runtime/README.md)
+retains every sample, range, payload, artifact hash and exact source binding.
+
+```bash
+python tools/benchmark_livox_evaluation.py --workflow fixed-rig --baseline-scope runtime \
+  --baseline-commit 6b30cdf92ce710b0810396deeee45d651fd308d5 \
+  --config examples/public_datasets/livox_horizon_horizon_pcd_sample/native_full_points_config.yaml \
+  --repetitions 5 --omp-threads 1 --output-dir outputs/livox-runtime-full-rerun
+```
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2

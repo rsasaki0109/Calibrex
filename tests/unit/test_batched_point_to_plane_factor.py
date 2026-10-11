@@ -140,3 +140,15 @@ def test_large_finite_coordinates_keep_scalar_overflow_semantics():
     factor.observations = scalar.observations = observations
     for actual, expected in zip(factor.residuals(), scalar.residuals(), strict=True):
         assert actual == expected or (math.isnan(actual) and math.isnan(expected))
+
+
+def test_repeated_nonidentity_pose_keeps_all_scalar_normalizations():
+    factor, scalar = _factors(65)
+    pose = SE3((0.7, -0.4, 0.2), (0.13, -0.24, 0.19, 0.97))
+    factor.observations = scalar.observations = tuple(
+        dataclasses.replace(observation, t_world_ego=pose) for observation in factor.observations
+    )
+    assert _bits(factor.residuals([0.1, 0.2, -0.3, 0.04, -0.05, 0.06])) == _bits(
+        scalar.residuals([0.1, 0.2, -0.3, 0.04, -0.05, 0.06])
+    )
+    assert factor._array_observations[1].shared_pose is pose

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Reuse captured Livox records for solid-state quality bins and native input
+  loading; decode checked binary PCD views and preserve ordered statistics.
+  Evaluate independent controls with bounded CPU workers and isolated query caches,
+  defer unused spatial-tree imports, batch static plane association and accumulate
+  native normal equations in the original product/addition order. Preserve solver
+  history, diagnostics and quality; publish separate full-point and existing-budget
+  complete-process comparisons against the preceding accelerated version.
+
 - Batch native fixed-rig point-to-plane residuals in bounded observation chunks,
   preserving Hamilton products, normalization counts, finite differences and
   complete solver history. Retain scalar handling for small/nonfinite inputs and
