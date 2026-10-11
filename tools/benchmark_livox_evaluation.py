@@ -87,8 +87,21 @@ def _worker(args) -> None:
         # Use normal import order, including data/__init__.py's eager exports.
         sys.meta_path.insert(0, ArchivedFinder())
     from calibrex.core.config import load_config
+    from calibrex.pipelines import calibrate
     from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
+    evidence_seconds = 0.0
+    evaluate = calibrate.livox_pair_evidence_from_dataset
+
+    def measured_evidence(*arguments, **keywords):
+        nonlocal evidence_seconds
+        started = time.perf_counter()
+        try:
+            return evaluate(*arguments, **keywords)
+        finally:
+            evidence_seconds += time.perf_counter() - started
+
+    calibrate.livox_pair_evidence_from_dataset = measured_evidence
     result_filename = load_config(args.config).outputs.result
     started = time.perf_counter()
     result = run_calibration(args.config, CalibrationRunOptions(output_dir=args.output_dir))
@@ -97,6 +110,7 @@ def _worker(args) -> None:
         raise ValueError("calibration returned no result")
     summary = {
         "pipeline_seconds": pipeline_seconds,
+        "livox_evidence_seconds": evidence_seconds,
         "loaded_evaluation_modules": {name: sys.modules[name].__file__ for name in MODULES},
         "result": _normalized_result(result.model_dump(mode="json"), args.output_dir),
         "result_sha256": _sha(args.output_dir / result_filename),
@@ -226,6 +240,7 @@ def main(argv: list[str] | None = None) -> None:
                     metrics={
                         "subprocess_wall_seconds": elapsed,
                         "pipeline_seconds": row["pipeline_seconds"],
+                        "livox_evidence_seconds": row["livox_evidence_seconds"],
                         "complete_result_matches": float(matches),
                     },
                     provenance=BenchmarkTrialProvenance(
@@ -264,7 +279,7 @@ def main(argv: list[str] | None = None) -> None:
         reference_method_id="baseline",
         bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id="livox-fresh-subprocess-v2",
+            protocol_id="livox-fresh-subprocess-v3",
             dataset_id="livox_horizon_horizon_pcd_sample",
             dataset_source_sha256=input_digest,
             data_license="Official public Livox sample terms",
@@ -293,7 +308,7 @@ def main(argv: list[str] | None = None) -> None:
                 implementation="subprocess",
                 tool_name="Calibrex",
                 tool_version="0.5.1",
-                adapter_version="livox-evaluation/v2",
+                adapter_version="livox-evaluation/v3",
                 source_commit=baseline if method == "baseline" else source_commit,
             )
             for method in ("baseline", "batched")
@@ -307,7 +322,11 @@ def main(argv: list[str] | None = None) -> None:
                 primary=name == "subprocess_wall_seconds",
                 interpretation=(
                     "Full result equality after explicit volatile-field normalization"
-                    if name.endswith("matches") else "Fresh process wall or its pipeline subset"
+                    if name.endswith("matches") else (
+                        "Full candidate and 24-control evidence call within the same pipeline"
+                        if name == "livox_evidence_seconds"
+                        else "Fresh process wall or its pipeline subset"
+                    )
                 ),
             )
             for name in trials[0].metrics
@@ -318,6 +337,9 @@ def main(argv: list[str] | None = None) -> None:
             "Wall includes startup, all reads, inspection, 24 controls, native ICP, Open3D GICP, "
             "NDT availability check and result/report/artifact saves. Parent audits are excluded.",
             "Pipeline timer starts at run_calibration entry; it is a subset of subprocess wall.",
+            "Evidence timer wraps the existing candidate plus 24-control call, including its "
+            "reads, preparation and summaries; prior inspection is outside this subset. No "
+            "additional evaluation or warmup is performed to obtain the phase timing.",
             "Full result parity normalizes only run ID/timestamps and destination paths.",
             "Five changed modules are replaced for baseline; numerical solvers and writers "
             "are shared. Loaded module filenames and all source bytes are checked.",
@@ -326,7 +348,7 @@ def main(argv: list[str] | None = None) -> None:
         ],
         provenance=BenchmarkProvenance(
             generator="tools.benchmark_livox_evaluation",
-            generator_version="v0.2",
+            generator_version="v0.3",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,
