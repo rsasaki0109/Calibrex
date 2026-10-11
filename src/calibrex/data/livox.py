@@ -5,11 +5,18 @@ from __future__ import annotations
 import math
 import struct
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, replace
 from itertools import pairwise
 from pathlib import Path
 
-from calibrex.core.geometry import SE3, Vector3
+import numpy as np
+
+from calibrex.core.geometry import (
+    SE3,
+    Vector3,
+    normalize_quaternion_xyzw,
+    quaternion_conjugate_xyzw,
+)
 from calibrex.data.base import StreamSummary, TimestampedRecord
 
 LivoxPoint = tuple[float, float, float, float]
@@ -372,16 +379,106 @@ def find_livox_pcd_files(path: str | Path) -> list[Path]:
     return sorted(root.rglob("*.pcd"))
 
 
+class LivoxPCDEvaluationContext:
+    """Reuse one captured dataset's geometry within a candidate/probe evaluation.
+
+    Create a new context for every evaluation invocation. File discovery, decoded
+    records, invariant sample statistics and source planes are scoped to this
+    object; no process-wide or cross-invocation cache is used.
+    """
+
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path).resolve()
+        self._files = find_livox_pcd_files(path)
+        self._records: dict[Path, list[LivoxPointRecord]] = {}
+        self._errors: dict[Path, ValueError | struct.error] = {}
+        self._points: dict[Path, list[LivoxPoint]] = {}
+        self._stats: dict[tuple[int, float], LivoxPCDDatasetStats] = {}
+        self._planes: dict[tuple[Path, float], VoxelPlaneMap] = {}
+
+    def _validate_path(self, path: str | Path) -> None:
+        if Path(path).resolve() != self._path:
+            raise ValueError("Livox evaluation context belongs to a different dataset")
+
+    def _read_records(self, path: Path) -> list[LivoxPointRecord]:
+        if path in self._errors:
+            raise self._errors[path]
+        if path not in self._records:
+            try:
+                self._records[path] = read_livox_binary_pcd_records(path)
+            except (ValueError, struct.error) as exc:
+                self._errors[path] = exc
+                raise
+        return self._records[path]
+
+    def _read_points(self, path: Path) -> list[LivoxPoint]:
+        if path not in self._points:
+            self._points[path] = [record.point for record in self._read_records(path)]
+        return self._points[path]
+
+    def _plane_map(self, path: Path, voxel_size_m: float) -> VoxelPlaneMap:
+        key = (path, voxel_size_m)
+        if key not in self._planes:
+            self._planes[key] = _voxel_plane_map(self._read_records(path), voxel_size_m)
+        return self._planes[key]
+
+
 def summarize_livox_pcd(
     path: str | Path,
     *,
     sample_limit: int = 4,
     pair_voxel_size_m: float = 1.0,
     target_transform: SE3 | None = None,
+    context: LivoxPCDEvaluationContext | None = None,
+) -> LivoxPCDDatasetStats:
+    """Summarize PCD files, optionally reusing one evaluation's captured inputs."""
+
+    if context is None:
+        return _summarize_livox_pcd(
+            path, sample_limit=sample_limit, pair_voxel_size_m=pair_voxel_size_m,
+            target_transform=target_transform,
+        )
+    context._validate_path(path)
+    key = (sample_limit, pair_voxel_size_m)
+    if key not in context._stats:
+        context._stats[key] = _summarize_livox_pcd(
+            path, sample_limit=sample_limit, pair_voxel_size_m=pair_voxel_size_m,
+            target_transform=None, context=context,
+        )
+    baseline = context._stats[key]
+    if target_transform is None or not context._files:
+        return baseline
+    points = [context._read_points(Path(sample.path)) for sample in baseline.samples]
+    pair = (
+        _summarize_voxel_pair(
+            points[0], _transform_points(points[1], target_transform),
+            voxel_size_m=pair_voxel_size_m,
+        )
+        if len(points) >= 2 else None
+    )
+    pair_fields = (
+        {f"pair_{field.name}": getattr(pair, field.name) for field in fields(pair)}
+        if pair is not None else {}
+    )
+    return replace(
+        baseline, **pair_fields, pair_target_transform_applied=True,
+        pair_transform_convention=(
+            "T_source_target maps target PCD points into the source PCD frame"
+        ),
+    )
+
+
+def _summarize_livox_pcd(
+    path: str | Path,
+    *,
+    sample_limit: int = 4,
+    pair_voxel_size_m: float = 1.0,
+    target_transform: SE3 | None = None,
+    context: LivoxPCDEvaluationContext | None = None,
 ) -> LivoxPCDDatasetStats:
     """Summarize Livox public solid-state LiDAR PCD files."""
 
-    files = find_livox_pcd_files(path)
+    files = context._files if context is not None else find_livox_pcd_files(path)
     if not files:
         return LivoxPCDDatasetStats(
             status="missing",
@@ -397,7 +494,10 @@ def summarize_livox_pcd(
     total = _PointAccumulator()
     for sample_path in files[:sample_limit]:
         try:
-            points = read_livox_binary_pcd(sample_path)
+            points = (
+                context._read_points(sample_path) if context is not None
+                else read_livox_binary_pcd(sample_path)
+            )
         except (ValueError, struct.error) as exc:
             malformed_files.append(f"{sample_path}: {exc}")
             continue
@@ -475,6 +575,7 @@ def summarize_livox_pair_point_to_plane(
     voxel_size_m: float = 1.0,
     correspondence_gate_m: float = 1.5,
     inlier_threshold_m: float = 0.25,
+    context: LivoxPCDEvaluationContext | None = None,
 ) -> LivoxPairPointToPlaneStats:
     """Score transformed target PCD points against source-frame voxel planes.
 
@@ -483,7 +584,9 @@ def summarize_livox_pair_point_to_plane(
     than an independent multi-window temporal validation.
     """
 
-    files = find_livox_pcd_files(path)
+    if context is not None:
+        context._validate_path(path)
+    files = context._files if context is not None else find_livox_pcd_files(path)
     if len(files) < 2:
         train_frame_ids = tuple(_frame_id(file_path) for file_path in files[:1])
         holdout_frame_ids: tuple[str, ...] = ()
@@ -521,8 +624,14 @@ def summarize_livox_pair_point_to_plane(
         )
 
     try:
-        source_records = read_livox_binary_pcd_records(files[0])
-        target_records = read_livox_binary_pcd_records(files[1])
+        source_records = (
+            context._read_records(files[0]) if context is not None
+            else read_livox_binary_pcd_records(files[0])
+        )
+        target_records = (
+            context._read_records(files[1]) if context is not None
+            else read_livox_binary_pcd_records(files[1])
+        )
     except (ValueError, struct.error) as exc:
         train_frame_ids = (_frame_id(files[0]),)
         holdout_frame_ids = (_frame_id(files[1]),)
@@ -559,10 +668,15 @@ def summarize_livox_pair_point_to_plane(
             reason=str(exc),
         )
 
-    plane_map = _voxel_plane_map(source_records, voxel_size_m)
+    plane_map = (
+        context._plane_map(files[0], voxel_size_m) if context is not None
+        else _voxel_plane_map(source_records, voxel_size_m)
+    )
     train_frame_ids = (_frame_id(files[0]),)
     holdout_frame_ids = (_frame_id(files[1]),)
-    query_points = [_transformed_point(record.point, target_transform) for record in target_records]
+    query_points = _transform_query_points(
+        [record.point for record in target_records], target_transform,
+    )
     eligible_count = len(target_records)
     considered_count = len(query_points)
     residuals, unmatched_count = _point_to_plane_residuals(
@@ -933,6 +1047,103 @@ def _point_to_plane_residuals(
     voxel_size_m: float,
     correspondence_gate_m: float,
 ) -> tuple[list[float], int]:
+    batched = _batched_plane_residuals(
+        query_points, plane_map=plane_map, voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+    )
+    if batched is not None:
+        return batched
+    return _scalar_plane_residuals(
+        query_points, plane_map=plane_map, voxel_size_m=voxel_size_m,
+        correspondence_gate_m=correspondence_gate_m,
+    )
+
+
+def _batched_plane_residuals(
+    query_points: list[Vector3],
+    *,
+    plane_map: VoxelPlaneMap,
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> tuple[list[float], int] | None:
+    # Small inputs avoid array setup; unusual coordinates retain scalar floor,
+    # arbitrary-precision voxel keys and the original exception behavior.
+    if len(query_points) < 64:
+        return None
+    coordinates = np.asarray(query_points, dtype=np.float64)
+    with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+        cells = np.floor(coordinates / voxel_size_m)
+    if (
+        not np.isfinite(cells).all()
+        or np.any(cells < -(2.0**63) + 2048)
+        or np.any(cells >= 2.0**63 - 2048)
+    ):
+        return None
+    if not plane_map:
+        return [], len(query_points)
+    ordered = sorted(plane_map)
+    try:
+        keys = np.asarray(ordered, dtype=np.int64)
+    except OverflowError:
+        return None
+    key_type = np.dtype([("x", "i8"), ("y", "i8"), ("z", "i8")])
+    searchable = keys.view(key_type).reshape(-1)
+    centroids = np.asarray([plane_map[key].centroid for key in ordered], dtype=np.float64)
+    normal_list = [plane_map[key].normal for key in ordered]
+    normals = np.asarray(
+        [normal if normal is not None else (0.0, 0.0, 0.0) for normal in normal_list],
+        dtype=np.float64,
+    )
+    valid_normal = np.asarray([normal is not None for normal in normal_list])
+    cells = cells.astype(np.int64)
+    # Order matches _neighbor_keys: equal distances retain the first voxel.
+    offsets = np.asarray(list(_neighbor_keys((0, 0, 0))), dtype=np.int64)
+    residuals: list[float] = []
+    # At most 4096 * 27 candidate associations are materialized per chunk.
+    for start in range(0, len(coordinates), 4096):
+        chunk = coordinates[start : start + 4096]
+        neighboring = cells[start : start + 4096, None, :] + offsets
+        lookup = np.searchsorted(searchable, neighboring.view(key_type).reshape(-1))
+        bounded = np.minimum(lookup, len(keys) - 1)
+        present = (lookup < len(keys)) & np.all(
+            keys[bounded] == neighboring.reshape(-1, 3), axis=1,
+        )
+        positions = bounded.reshape((-1, 27))
+        with np.errstate(over="ignore", invalid="ignore"):
+            delta = chunk[:, None, :] - centroids[positions]
+            # Keep the scalar multiply/add/sqrt sequence, including tie rounding.
+            distance = np.sqrt(
+                delta[:, :, 0] * delta[:, :, 0] + delta[:, :, 1] * delta[:, :, 1]
+                + delta[:, :, 2] * delta[:, :, 2]
+            )
+        distance[~present.reshape((-1, 27)) | ~np.isfinite(distance)] = math.inf
+        selected = distance.argmin(axis=1)
+        row = np.arange(len(chunk))
+        index = positions[row, selected]
+        best = distance[row, selected]
+        # Scalar comparison permits a NaN gate, and rejects an infinite best
+        # distance even with an infinite gate. A nearest normal-less voxel is
+        # rejected rather than replaced by a farther voxel with a normal.
+        accepted = (best < math.inf) & ~(best > correspondence_gate_m) & valid_normal[index]
+        differences = chunk[accepted] - centroids[index[accepted]]
+        matched_normals = normals[index[accepted]]
+        with np.errstate(over="ignore", invalid="ignore"):
+            residual = np.abs(
+                matched_normals[:, 0] * differences[:, 0]
+                + matched_normals[:, 1] * differences[:, 1]
+                + matched_normals[:, 2] * differences[:, 2]
+            )
+        residuals.extend(residual.tolist())
+    return residuals, len(query_points) - len(residuals)
+
+
+def _scalar_plane_residuals(
+    query_points: list[Vector3],
+    *,
+    plane_map: VoxelPlaneMap,
+    voxel_size_m: float,
+    correspondence_gate_m: float,
+) -> tuple[list[float], int]:
     residuals: list[float] = []
     unmatched_count = 0
     for point in query_points:
@@ -1009,11 +1220,30 @@ def _neighbor_keys(key: tuple[int, int, int]) -> Iterable[tuple[int, int, int]]:
 
 
 def _transform_points(points: list[LivoxPoint], transform: SE3) -> list[LivoxPoint]:
-    transformed: list[LivoxPoint] = []
-    for x, y, z, intensity in points:
-        tx, ty, tz = transform.transform_point((x, y, z))
-        transformed.append((tx, ty, tz, intensity))
-    return transformed
+    return [
+        (xyz[0], xyz[1], xyz[2], point[3])
+        for xyz, point in zip(_transform_query_points(points, transform), points, strict=True)
+    ]
+
+
+def _transform_query_points(points: list[LivoxPoint], transform: SE3 | None) -> list[Vector3]:
+    if transform is None or len(points) < 64:
+        return [_transformed_point(point, transform) for point in points]
+    # Match rotate_vector_xyzw's two Hamilton products and normalizations.
+    # A rotation matrix or dot reduction could change floating-point rounding.
+    qx, qy, qz, qw = normalize_quaternion_xyzw(transform.rotation_quat_xyzw)
+    cx, cy, cz, cw = quaternion_conjugate_xyzw((qx, qy, qz, qw))
+    xyz = np.asarray(points, dtype=np.float64)[:, :3]
+    px, py, pz = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+    with np.errstate(over="ignore", invalid="ignore"):
+        ax = qw * px + qx * 0.0 + qy * pz - qz * py
+        ay = qw * py - qx * pz + qy * 0.0 + qz * px
+        az = qw * pz + qx * py - qy * px + qz * 0.0
+        aw = qw * 0.0 - qx * px - qy * py - qz * pz
+        tx = aw * cx + ax * cw + ay * cz - az * cy + transform.translation_m[0]
+        ty = aw * cy - ax * cz + ay * cw + az * cx + transform.translation_m[1]
+        tz = aw * cz + ax * cy - ay * cx + az * cw + transform.translation_m[2]
+    return list(zip(tx.tolist(), ty.tolist(), tz.tolist(), strict=True))
 
 
 def _transformed_point(point: LivoxPoint, transform: SE3 | None) -> Vector3:

@@ -19,6 +19,7 @@ from calibrex.data.kitti import (
 from calibrex.data.livox import (
     LivoxPairPointToPlaneStats,
     LivoxPCDDatasetStats,
+    LivoxPCDEvaluationContext,
     LivoxPointRecord,
     VoxelPlaneMap,
     build_voxel_plane_map,
@@ -424,10 +425,14 @@ def livox_pair_evidence_from_dataset(
 ) -> LivoxPairEvidenceEvaluation:
     """Evaluate Livox pair evidence and retain per-probe details."""
 
-    baseline = summarize_livox_pcd(dataset_path, target_transform=target_transform)
+    context = LivoxPCDEvaluationContext(dataset_path)
+    baseline = summarize_livox_pcd(
+        dataset_path, target_transform=target_transform, context=context,
+    )
     point_to_plane = summarize_livox_pair_point_to_plane(
         dataset_path,
         target_transform=target_transform,
+        context=context,
     )
     metrics = _livox_pcd_metrics(baseline.as_dict())
     metrics.update(_livox_pair_point_to_plane_metrics(point_to_plane))
@@ -437,6 +442,7 @@ def livox_pair_evidence_from_dataset(
         baseline=baseline,
         baseline_point_to_plane=point_to_plane,
         config=config,
+        context=context,
     )
     metrics.update(known_bad_metrics)
     return LivoxPairEvidenceEvaluation(
@@ -454,6 +460,7 @@ def _livox_pair_known_bad_evidence(
     baseline: LivoxPCDDatasetStats,
     baseline_point_to_plane: LivoxPairPointToPlaneStats,
     config: CalibrationConfig,
+    context: LivoxPCDEvaluationContext,
 ) -> tuple[dict[str, MetricResult], list[EvidenceCaseItem]]:
     baseline_recall = baseline.pair_source_voxel_recall_in_target
     baseline_rmse = baseline.pair_shared_voxel_centroid_rmse_m
@@ -481,10 +488,13 @@ def _livox_pair_known_bad_evidence(
     worsened_cases = 0
     for dof, amount, unit, perturbation in _perturbation_cases(config):
         perturbed_transform = perturbation.compose(target_transform)
-        perturbed = summarize_livox_pcd(dataset_path, target_transform=perturbed_transform)
+        perturbed = summarize_livox_pcd(
+            dataset_path, target_transform=perturbed_transform, context=context,
+        )
         perturbed_point_to_plane = summarize_livox_pair_point_to_plane(
             dataset_path,
             target_transform=perturbed_transform,
+            context=context,
         )
         recall_delta = _recall_delta(
             baseline_recall,
