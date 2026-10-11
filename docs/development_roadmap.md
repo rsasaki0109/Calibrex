@@ -154,10 +154,11 @@ accuracy.
    to CRLF, which broke their declared SHA-256. `.gitattributes` now pins
    `*.json` to `eol=lf`.
 8. **Camera-LiDAR check reach:** the bag-level check judges rotation only.
-   A start more than about 3 deg away can leave an axis in a spurious optimum
-   (then `pass (partial)` or `inconclusive`, never a confident `pass`), and
-   solid-state LiDAR, a non-optical camera frame and motion during a sweep are
-   not handled.
+   A per-axis profile start now judges +5 deg pitch on KITTI 0005 and 0009,
+   and a solid-state LiDAR is accepted (angular-neighbour depth edges,
+   evaluated on static Livox Avia recordings). KITTI 0005 yaw stays below the
+   0.5 deg resolution at any start, and a non-optical camera frame and motion
+   during a sweep are not handled.
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
    for VLP-16 and VLP-32C single return only. Dual return, HDL-32/64 and other
    vendors' packet formats are unverified or unsupported, so such bags need
@@ -451,7 +452,24 @@ LiDAR, without loosening the verdict rule.
   0005 pitch and yaw, KITTI 0009 pitch) are judged and flagged. The 2 deg
   control, 0.5 deg std bound and t >= 2 are not retuned.
 - A solid-state run reports per-axis coverage on one public Livox recording,
-  whatever its verdict. Translation stays `unchecked`.
+  whatever its verdict. Translation stays `unchecked`. **Done** on 2026-10-11.
+
+**Progress (2026-10-11):** the rotation search also starts from the per-axis
+maxima of the objective profile (+-8 deg), and that start is kept only when
+more rotation DoFs pass their held-out control and std bound there (a plain
+"higher objective" rule picked a ridge on the Hilti exp07 corridor and lost
+its judged roll). KITTI 0005 pitch +5 deg (was `pass`, pitch unchecked) and
+KITTI 0009 pitch +5 deg (was `inconclusive`) now `fail` at 4.95 / 0.5 deg;
+every other KITTI case and the unmodified references on KITTI 0005, 0009 and
+Hilti exp21, exp07 read as before. KITTI 0005 yaw +5 deg is **not** flagged:
+the estimate is right but its jackknife std is 0.52 deg, over the 0.5 deg
+bound, as is the reference's on that 15 s drive, so the first condition is met
+for two of its three cases. Clouds without beams get near-side depth edges
+among angular neighbours; on the public AIST Livox Avia dataset (static, five
+recordings, candidate from direct_visual_lidar_calibration) the check judges
+all three rotation axes on two recordings (`pass` on one, yaw 1.2 deg off the
+other tool's estimate on the other) where it previously dropped every frame.
+Details: [benchmark](benchmarks/camera_lidar_check.md).
 
 ### 4. LiDAR packet decoder coverage
 

@@ -114,6 +114,65 @@ with the perturbed axis listed as unchecked or too coarse to resolve (KITTI 0005
 is not judged. A `pass` here always says `partial` and names the unchecked axes; the command
 also prints "partial coverage: unchecked axes were not judged".
 
+## Wider start and a solid-state LiDAR (2026-10-11)
+
+Two changes to `calibrex.evaluation.camera_lidar_edge`, with the verdict rule unchanged (2 deg
+control, 0.5 deg std bound, t >= 2):
+
+* **Per-axis profile start.** The pooled objective is profiled along each rotation axis over
+  +-8 deg (0.5 deg steps, the other axes at the candidate) and the rotation search also runs from
+  the per-axis maxima. Both optima get their jackknife and held-out controls, and the profile start
+  is kept only when more rotation DoFs pass the record rule there (or as many with a higher
+  objective); the pair's reasons then name it. A plain "higher objective wins" rule failed on Hilti
+  exp07: the corridor has a ridge (pitch +4.0, yaw +3.55 deg) with a higher pooled objective and no
+  detected control, which turned the reference's judged roll into `inconclusive`.
+* **Clouds without beams.** When no beam structure is found (a Livox-style non-repetitive scan),
+  near-side depth edges are taken among the angular neighbours of each return (8 nearest unit
+  directions, within four times the median spacing) instead of along beams, and a jump must also
+  reach 10 % of the range so that a surface seen at a grazing angle does not read as an edge.
+
+**Development recordings, re-run** (`--tf` candidates as above; Hilti exp21 and exp07 from the
+Hugging Face release of the 2022 challenge, reference composed from
+`calib_3_cam0-1-camchain-imucam.yaml` and `lidar_calibration.yaml`):
+
+| Perturbation | before | after |
+| --- | --- | --- |
+| KITTI 0005 pitch +5 deg | `pass`, pitch unchecked (search stopped 2 deg short at a local maximum) | **`fail` (4.95 / 0.5)** |
+| KITTI 0009 pitch +5 deg | `inconclusive` | **`fail` (4.95 / 0.5)** |
+| KITTI 0005 yaw +5 deg | `pass`, yaw unchecked | `pass`, yaw unchecked: the estimate is right (-5.1 deg correction) but its jackknife std is 0.52 deg, over the 0.5 deg bound (the reference's yaw is unchecked for the same reason, std 0.51 deg on 16 frames) |
+| every other KITTI 0005 / 0009 case (+1, +3, +5 deg about each axis) | as in the table above | identical |
+| Hilti exp21, all ten cases | as in the table above | HILTI_EXP21_RESULT |
+| unmodified reference, KITTI 0005 / 0009 / Hilti exp21 / exp07 | `pass` | `pass`, the same judged axes |
+
+So two of the three +5 deg cases that were left unchecked are now judged and flagged; KITTI 0005
+yaw +5 deg is not, because 15 s of that drive does not resolve yaw to 0.5 deg at any start.
+
+**Solid-state (Livox Avia).** The public AIST LiDAR-camera calibration dataset
+([Zenodo 7779880](https://zenodo.org/records/7779880), CC BY 4.0, `livox.tar.gz`: five static
+rosbag2 recordings of a Livox Avia and an STC-MCS500POE camera) has the camera and the LiDAR
+stamped on separate clocks, so the bags were rewritten with the bag receive time as header stamp
+(`tools/restamp_rosbag2_headers.py`; valid only because the rig is static). The candidate is the
+`T_lidar_camera` that direct_visual_lidar_calibration estimated on this dataset (its example
+`calib.json`, a reference from another tool, not ground truth). Before this change every Livox
+frame was dropped ("no beam structure", `inconclusive`).
+
+| Recording | Frames / edge points | Verdict | roll | pitch | yaw |
+| --- | --- | --- | --- | --- | --- |
+| 13_46_54 | 8 / 19 355 | `pass` | -0.2 / 0.5 | -0.0 / 0.5 | -0.1 / 0.5 |
+| 13_42_46 | 10 / 27 296 | `fail` | -0.1 / 0.5 | +0.35 / 0.5 | **+1.2 / 0.5** |
+| 13_44_10, 13_44_54, 13_46_10 | 5-6 | `inconclusive` (fewer than 8 frames pair within 0.06 s) | - | - | - |
+
+Translation is unchecked on every run. The rig is static, so the frames of one recording see the
+same view: the jackknife std then measures image noise, not the scene, and a disagreement such as
+yaw on 13_42_46 is a disagreement with the other tool's estimate that this data cannot settle.
+
+```bash
+python tools/restamp_rosbag2_headers.py livox/rosbag2_2023_03_09-13_46_54 restamped_13_46_54 \
+  --topic /image --topic /camera_info --topic /livox/points
+calibrex check restamped_13_46_54 --pairs camera-lidar \
+  --tf examples/public_datasets/aist_lidar_camera_livox/koide_reference_frames.yaml
+```
+
 ## Round trip and drift (Hilti)
 
 * `calibrex estimate exp21 --pairs camera-lidar --tf camchain --tf prior.yaml`, with the prior
@@ -143,11 +202,13 @@ recomputes (about 20-40 s of compute after the bag read).
 * Rotation only; translation is reported unchecked on every run.
 * On a recording with little structure an axis is not judged: exp07 (a corridor) and exp02-exp04
   judge a single axis. The verdict says which.
-* A start more than about 3 deg away can leave the search in a spurious optimum and the axis
-  unchecked (KITTI 0005 pitch +5, yaw +5; KITTI 0009 pitch +5 left nothing judged): the pair then
-  reads `pass (partial)` or `inconclusive`, never a confident `pass`.
+* A start more than about 3 deg away could leave the search in a spurious optimum; the per-axis
+  profile start (above) now judges KITTI 0005 and 0009 pitch +5 deg. An axis the recording does
+  not resolve stays unchecked whatever the start (KITTI 0005 yaw), and a start beyond the +-8 deg
+  scan is not covered.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
-* Intrinsics, a non-optical camera frame, motion during a sweep and a solid-state LiDAR are not
-  handled; the thresholds (2 deg control, 0.5 deg std bound, t >= 2) come from these dev
+* Intrinsics, a non-optical camera frame and motion during a sweep are not handled; a
+  solid-state LiDAR is handled through angular-neighbour depth edges, evaluated only on the static
+  AIST Livox recordings above; the thresholds (2 deg control, 0.5 deg std bound, t >= 2) come from these dev
   recordings only.
