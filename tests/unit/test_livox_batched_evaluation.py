@@ -25,7 +25,11 @@ def _map():
 
 @pytest.mark.parametrize("count", [0, 17, 64, 4096, 4200])
 @pytest.mark.parametrize("gate", [0.0, 0.75, 1.5, float("inf"), float("nan")])
-def test_batched_residuals_keep_scalar_order_bits_and_support(count, gate):
+@pytest.mark.parametrize("index_budget", [0, 8 * 1024 * 1024])
+def test_batched_residuals_keep_scalar_order_bits_and_support(
+    count, gate, index_budget, monkeypatch,
+):
+    monkeypatch.setattr(livox, "_DENSE_PLANE_INDEX_MAX_BYTES", index_budget)
     rng = np.random.default_rng(32)
     points = [tuple(row) for row in rng.uniform(-4, 4, (count, 3)).tolist()]
     options = {"plane_map": _map(), "voxel_size_m": 1.0, "correspondence_gate_m": gate}
@@ -141,22 +145,42 @@ def test_probe_context_reads_each_file_once_and_next_invocation_observes_replace
     _write_pcd(tmp_path / "a.pcd")
     _write_pcd(tmp_path / "b.pcd", 0.1)
     original_read = livox.read_livox_binary_pcd_records
+    original_index = livox._prepare_plane_index
+    original_voxels = livox._voxel_centroids
     reads = []
+    prepared = []
+    voxel_inputs = []
 
     def read(path):
         reads.append(Path(path))
         return original_read(path)
 
     monkeypatch.setattr(livox, "read_livox_binary_pcd_records", read)
+
+    def prepare(plane_map):
+        prepared.append(plane_map)
+        return original_index(plane_map)
+
+    def voxelize(points, voxel_size_m):
+        voxel_inputs.append(points)
+        return original_voxels(points, voxel_size_m)
+
+    monkeypatch.setattr(livox, "_prepare_plane_index", prepare)
+    monkeypatch.setattr(livox, "_voxel_centroids", voxelize)
     config = load_config(
         "examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml"
     )
     first = livox_pair_evidence_from_dataset(str(tmp_path), SE3.identity(), config)
     assert len(first.cases) == 24
     assert reads == [tmp_path / "a.pcd", tmp_path / "b.pcd"]
+    assert len(prepared) == 1
+    # The source list keeps its identity across probes; it is accumulated once.
+    assert sum(points is voxel_inputs[0] for points in voxel_inputs) == 1
     _write_pcd(tmp_path / "b.pcd", 50.0)
     second = livox_pair_evidence_from_dataset(str(tmp_path), SE3.identity(), config)
     assert reads == [tmp_path / "a.pcd", tmp_path / "b.pcd"] * 2
+    assert len(prepared) == 2
+    assert prepared[0] is not prepared[1]
     assert first.point_to_plane.matched_point_count > second.point_to_plane.matched_point_count
 
 
@@ -172,6 +196,7 @@ def test_context_rejects_different_dataset_and_queries_are_bounded(tmp_path, mon
         return searchsorted(keys, queries)
 
     monkeypatch.setattr(np, "searchsorted", search)
+    monkeypatch.setattr(livox, "_DENSE_PLANE_INDEX_MAX_BYTES", 0)
     livox._point_to_plane_residuals(
         [(0.1, -0.1, 0.0)] * 5000,
         plane_map=_map(),
@@ -179,6 +204,56 @@ def test_context_rejects_different_dataset_and_queries_are_bounded(tmp_path, mon
         correspondence_gate_m=1.5,
     )
     assert counts == [4096 * 27, (5000 - 4096) * 27]
+
+
+@pytest.mark.parametrize("budget", [0, 8, 64, 8 * 1024 * 1024])
+def test_dense_index_stays_bounded_and_rejects_holes_and_clipped_voxels(budget, monkeypatch):
+    monkeypatch.setattr(livox, "_DENSE_PLANE_INDEX_MAX_BYTES", budget)
+    plane_map = {
+        (-2, 0, 0): livox._VoxelPlane(count=1, x_sum=-1.5, normal_x_sum=1, normal_count=1),
+        (2, 0, 0): livox._VoxelPlane(count=1, x_sum=2.5, normal_x_sum=1, normal_count=1),
+    }
+    index = livox._prepare_plane_index(plane_map)
+    assert index is not None
+    if index.dense_positions is not None:
+        assert index.dense_positions.nbytes <= budget
+    points = [(x, 0.0, 0.0) for x in (-10.0, -3.2, -1.1, 0.1, 1.1, 3.2, 10.0)] * 10
+    options = {"plane_map": plane_map, "voxel_size_m": 1.0, "correspondence_gate_m": 20.0}
+    expected, excluded = livox._scalar_plane_residuals(points, **options)
+    actual, unmatched = livox._point_to_plane_residuals(points, index=index, **options)
+    assert unmatched == excluded
+    assert np.asarray(actual, dtype="<f8").tobytes() == np.asarray(expected, dtype="<f8").tobytes()
+
+
+def test_standalone_residual_evaluation_observes_mutated_plane_map():
+    plane = livox._VoxelPlane(count=1, normal_x_sum=1.0, normal_count=1)
+    plane_map = {(0, 0, 0): plane}
+    points = [(0.1, 0.0, 0.0)] * 64
+    options = {"plane_map": plane_map, "voxel_size_m": 1.0, "correspondence_gate_m": 2.0}
+    assert livox._point_to_plane_residuals(points, **options) == ([0.1] * 64, 0)
+    plane.x_sum = 1.0
+    assert livox._point_to_plane_residuals(points, **options) == ([0.9] * 64, 0)
+
+
+def test_dense_neighborhoods_keep_exact_residuals_and_prepared_arrays_are_readonly():
+    plane_map = {
+        (x, y, z): livox._VoxelPlane(
+            count=1, x_sum=x + 0.5, y_sum=y + 0.5, z_sum=z + 0.5,
+            normal_x_sum=1.0, normal_count=1,
+        )
+        for x in range(-3, 4) for y in range(-3, 4) for z in range(-3, 4)
+    }
+    index = livox._prepare_plane_index(plane_map)
+    assert index is not None
+    with pytest.raises(ValueError, match="read-only"):
+        index.centroids[0, 0] = 100.0
+    rng = np.random.default_rng(72)
+    points = [tuple(row) for row in rng.uniform(-1, 1, (4200, 3)).tolist()]
+    options = {"plane_map": plane_map, "voxel_size_m": 1.0, "correspondence_gate_m": 1.5}
+    expected, excluded = livox._scalar_plane_residuals(points, **options)
+    actual, unmatched = livox._point_to_plane_residuals(points, index=index, **options)
+    assert unmatched == excluded
+    assert np.asarray(actual, dtype="<f8").tobytes() == np.asarray(expected, dtype="<f8").tobytes()
 
 
 @pytest.mark.parametrize("count", [0, 17, 64, 5000])

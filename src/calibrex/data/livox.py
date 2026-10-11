@@ -10,6 +10,7 @@ from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.geometry import (
     SE3,
@@ -254,6 +255,22 @@ class _VoxelPlane:
 VoxelPlaneMap = dict[tuple[int, int, int], _VoxelPlane]
 
 
+_DENSE_PLANE_INDEX_MAX_BYTES = 8 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class _PlaneIndex:
+    keys: NDArray[np.int64]
+    lower: NDArray[np.int64]
+    upper: NDArray[np.int64]
+    widths: tuple[int, int, int]
+    linear_keys: NDArray[np.int64] | None
+    dense_positions: NDArray[np.int64] | None
+    centroids: NDArray[np.float64]
+    normals: NDArray[np.float64]
+    valid_normal: NDArray[np.bool_]
+
+
 @dataclass(frozen=True)
 class _VoxelPairSummary:
     voxel_size_m: float
@@ -383,8 +400,8 @@ class LivoxPCDEvaluationContext:
     """Reuse one captured dataset's geometry within a candidate/probe evaluation.
 
     Create a new context for every evaluation invocation. File discovery, decoded
-    records, invariant sample statistics and source planes are scoped to this
-    object; no process-wide or cross-invocation cache is used.
+    records, invariant sample statistics, source voxels and prepared planes are
+    scoped to this object; no process-wide or cross-invocation cache is used.
     """
 
     def __init__(self, path: str | Path) -> None:
@@ -395,6 +412,8 @@ class LivoxPCDEvaluationContext:
         self._points: dict[Path, list[LivoxPoint]] = {}
         self._stats: dict[tuple[int, float], LivoxPCDDatasetStats] = {}
         self._planes: dict[tuple[Path, float], VoxelPlaneMap] = {}
+        self._plane_indices: dict[tuple[Path, float], _PlaneIndex | None] = {}
+        self._voxels: dict[tuple[Path, float], dict[tuple[int, int, int], _VoxelCentroid]] = {}
 
     def _validate_path(self, path: str | Path) -> None:
         if Path(path).resolve() != self._path:
@@ -421,6 +440,20 @@ class LivoxPCDEvaluationContext:
         if key not in self._planes:
             self._planes[key] = _voxel_plane_map(self._read_records(path), voxel_size_m)
         return self._planes[key]
+
+    def _plane_index(self, path: Path, voxel_size_m: float) -> _PlaneIndex | None:
+        key = (path, voxel_size_m)
+        if key not in self._plane_indices:
+            self._plane_indices[key] = _prepare_plane_index(self._plane_map(path, voxel_size_m))
+        return self._plane_indices[key]
+
+    def _voxel_map(
+        self, path: Path, voxel_size_m: float,
+    ) -> dict[tuple[int, int, int], _VoxelCentroid]:
+        key = (path, voxel_size_m)
+        if key not in self._voxels:
+            self._voxels[key] = _voxel_centroids(self._read_points(path), voxel_size_m)
+        return self._voxels[key]
 
 
 def summarize_livox_pcd(
@@ -453,6 +486,7 @@ def summarize_livox_pcd(
         _summarize_voxel_pair(
             points[0], _transform_points(points[1], target_transform),
             voxel_size_m=pair_voxel_size_m,
+            source_voxels=context._voxel_map(Path(baseline.samples[0].path), pair_voxel_size_m),
         )
         if len(points) >= 2 else None
     )
@@ -515,6 +549,10 @@ def _summarize_livox_pcd(
             sampled_points_by_file[0],
             target_points,
             voxel_size_m=pair_voxel_size_m,
+            source_voxels=(
+                context._voxel_map(Path(samples[0].path), pair_voxel_size_m)
+                if context is not None else None
+            ),
         )
     else:
         pair = None
@@ -684,6 +722,10 @@ def summarize_livox_pair_point_to_plane(
         plane_map=plane_map,
         voxel_size_m=voxel_size_m,
         correspondence_gate_m=correspondence_gate_m,
+        index=(
+            context._plane_index(files[0], voxel_size_m)
+            if context is not None and len(query_points) >= 64 else None
+        ),
     )
     query_count = len(query_points)
     matched_count = len(residuals)
@@ -990,8 +1032,10 @@ def _summarize_voxel_pair(
     target_points: list[LivoxPoint],
     *,
     voxel_size_m: float,
+    source_voxels: dict[tuple[int, int, int], _VoxelCentroid] | None = None,
 ) -> _VoxelPairSummary:
-    source_voxels = _voxel_centroids(source_points, voxel_size_m)
+    if source_voxels is None:
+        source_voxels = _voxel_centroids(source_points, voxel_size_m)
     target_voxels = _voxel_centroids(target_points, voxel_size_m)
     shared_keys = set(source_voxels) & set(target_voxels)
     squared_distances: list[float] = []
@@ -1046,10 +1090,12 @@ def _point_to_plane_residuals(
     plane_map: dict[tuple[int, int, int], _VoxelPlane],
     voxel_size_m: float,
     correspondence_gate_m: float,
+    index: _PlaneIndex | None = None,
 ) -> tuple[list[float], int]:
     batched = _batched_plane_residuals(
         query_points, plane_map=plane_map, voxel_size_m=voxel_size_m,
         correspondence_gate_m=correspondence_gate_m,
+        index=index,
     )
     if batched is not None:
         return batched
@@ -1059,12 +1105,59 @@ def _point_to_plane_residuals(
     )
 
 
+def _prepare_plane_index(plane_map: VoxelPlaneMap) -> _PlaneIndex | None:
+    if not plane_map:
+        return None
+    ordered = sorted(plane_map)
+    try:
+        keys = np.asarray(ordered, dtype=np.int64)
+    except OverflowError:
+        return None
+    lower = keys.min(axis=0)
+    upper = keys.max(axis=0)
+    widths = tuple(int(upper[axis]) - int(lower[axis]) + 1 for axis in range(3))
+    # A sparse integer encoding avoids structured-key comparisons. The extent
+    # product is checked with Python integers before any int64 arithmetic; huge
+    # extents retain structured lookup.
+    linear_keys = (
+        ((keys[:, 0] - lower[0]) * widths[1] + keys[:, 1] - lower[1]) * widths[2]
+        + keys[:, 2] - lower[2]
+        if math.prod(widths) <= 2**63 - 1 else None
+    )
+    dense_positions: NDArray[np.int64] | None = None
+    if (
+        linear_keys is not None
+        and math.prod(widths) <= _DENSE_PLANE_INDEX_MAX_BYTES // keys.dtype.itemsize
+    ):
+        # The bounded direct index is only used for compact extents. Large and
+        # sparse clouds keep the checked integer or structured search instead.
+        dense_positions = np.full(math.prod(widths), -1, dtype=np.int64)
+        dense_positions[linear_keys] = np.arange(len(keys), dtype=np.int64)
+    centroids = np.asarray([plane_map[key].centroid for key in ordered], dtype=np.float64)
+    normal_list = [plane_map[key].normal for key in ordered]
+    normals = np.asarray(
+        [normal if normal is not None else (0.0, 0.0, 0.0) for normal in normal_list],
+        dtype=np.float64,
+    )
+    valid_normal = np.asarray([normal is not None for normal in normal_list])
+    for array in (
+        keys, lower, upper, linear_keys, dense_positions, centroids, normals, valid_normal,
+    ):
+        if array is not None:
+            array.setflags(write=False)
+    return _PlaneIndex(
+        keys, lower, upper, (widths[0], widths[1], widths[2]), linear_keys,
+        dense_positions, centroids, normals, valid_normal,
+    )
+
+
 def _batched_plane_residuals(
     query_points: list[Vector3],
     *,
     plane_map: VoxelPlaneMap,
     voxel_size_m: float,
     correspondence_gate_m: float,
+    index: _PlaneIndex | None = None,
 ) -> tuple[list[float], int] | None:
     # Small inputs avoid array setup; unusual coordinates retain scalar floor,
     # arbitrary-precision voxel keys and the original exception behavior.
@@ -1081,31 +1174,15 @@ def _batched_plane_residuals(
         return None
     if not plane_map:
         return [], len(query_points)
-    ordered = sorted(plane_map)
-    try:
-        keys = np.asarray(ordered, dtype=np.int64)
-    except OverflowError:
+    if index is None:
+        index = _prepare_plane_index(plane_map)
+    if index is None:
         return None
+    keys, lower, upper, widths = index.keys, index.lower, index.upper, index.widths
+    linear_keys = index.linear_keys
     key_type = np.dtype([("x", "i8"), ("y", "i8"), ("z", "i8")])
     searchable = keys.view(key_type).reshape(-1)
-    lower = keys.min(axis=0)
-    upper = keys.max(axis=0)
-    widths = [int(upper[axis]) - int(lower[axis]) + 1 for axis in range(3)]
-    # A sparse integer encoding avoids structured-key comparisons. The extent
-    # product is checked with Python integers before any int64 arithmetic; huge
-    # extents retain structured lookup. No dense grid is allocated.
-    linear_keys = (
-        ((keys[:, 0] - lower[0]) * widths[1] + keys[:, 1] - lower[1]) * widths[2]
-        + keys[:, 2] - lower[2]
-        if math.prod(widths) <= 2**63 - 1 else None
-    )
-    centroids = np.asarray([plane_map[key].centroid for key in ordered], dtype=np.float64)
-    normal_list = [plane_map[key].normal for key in ordered]
-    normals = np.asarray(
-        [normal if normal is not None else (0.0, 0.0, 0.0) for normal in normal_list],
-        dtype=np.float64,
-    )
-    valid_normal = np.asarray([normal is not None for normal in normal_list])
+    centroids, normals, valid_normal = index.centroids, index.normals, index.valid_normal
     cells = cells.astype(np.int64)
     # Order matches _neighbor_keys: equal distances retain the first voxel.
     offsets = np.asarray(list(_neighbor_keys((0, 0, 0))), dtype=np.int64)
@@ -1122,30 +1199,46 @@ def _batched_plane_residuals(
                 ((clipped[:, 0] - lower[0]) * widths[1] + clipped[:, 1] - lower[1])
                 * widths[2] + clipped[:, 2] - lower[2]
             )
-            lookup = np.searchsorted(linear_keys, encoded)
-        bounded = np.minimum(lookup, len(keys) - 1)
-        present = (lookup < len(keys)) & np.all(
+            lookup = (
+                np.searchsorted(linear_keys, encoded) if index.dense_positions is None
+                else index.dense_positions[encoded]
+            )
+        bounded = np.clip(lookup, 0, len(keys) - 1)
+        present = (lookup >= 0) & (lookup < len(keys)) & np.all(
             keys[bounded] == neighboring.reshape(-1, 3), axis=1,
         )
         positions = bounded.reshape((-1, 27))
         with np.errstate(over="ignore", invalid="ignore"):
-            delta = chunk[:, None, :] - centroids[positions]
+            compact = np.count_nonzero(present) * 2 < present.size
+            if compact:
+                associations = np.flatnonzero(present)
+                delta = chunk[associations // 27] - centroids[bounded[present]]
+            else:
+                delta = chunk[:, None, :] - centroids[positions]
             # Keep the scalar multiply/add/sqrt sequence, including tie rounding.
-            distance = np.sqrt(
-                delta[:, :, 0] * delta[:, :, 0] + delta[:, :, 1] * delta[:, :, 1]
-                + delta[:, :, 2] * delta[:, :, 2]
+            measured = np.sqrt(
+                delta[..., 0] * delta[..., 0] + delta[..., 1] * delta[..., 1]
+                + delta[..., 2] * delta[..., 2]
             )
+        if compact:
+            distance = np.full(present.size, math.inf, dtype=np.float64)
+            distance[associations] = measured
+            distance = distance.reshape((-1, 27))
+        else:
+            distance = measured
         distance[~present.reshape((-1, 27)) | ~np.isfinite(distance)] = math.inf
         selected = distance.argmin(axis=1)
         row = np.arange(len(chunk))
-        index = positions[row, selected]
+        selected_index = positions[row, selected]
         best = distance[row, selected]
         # Scalar comparison permits a NaN gate, and rejects an infinite best
         # distance even with an infinite gate. A nearest normal-less voxel is
         # rejected rather than replaced by a farther voxel with a normal.
-        accepted = (best < math.inf) & ~(best > correspondence_gate_m) & valid_normal[index]
-        differences = chunk[accepted] - centroids[index[accepted]]
-        matched_normals = normals[index[accepted]]
+        accepted = (
+            (best < math.inf) & ~(best > correspondence_gate_m) & valid_normal[selected_index]
+        )
+        differences = chunk[accepted] - centroids[selected_index[accepted]]
+        matched_normals = normals[selected_index[accepted]]
         with np.errstate(over="ignore", invalid="ignore"):
             residual = np.abs(
                 matched_normals[:, 0] * differences[:, 0]
