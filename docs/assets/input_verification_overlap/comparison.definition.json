@@ -1,0 +1,1730 @@
+{
+  "benchmark_id": "public_kitti_input_overlap",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One public sequence, 6 frozen case(s), 3 repetitions per method.",
+    "Same CUDA v0.4 solver/backend; no input snapshot or persistent verification cache.",
+    "No separate warmup; existing disk/process/OS caches persist; host is shared.",
+    "All attempts are retained. Repeated timings are not independent accuracy trials or statistical confidence. No portable speed guarantee.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27",
+    "Paths and GPU model labels are anonymized. Original input/result/config/source digests remain intact. Repetition 1 represents each final method/case; this rule was fixed before the final run. All 54 complete raw numerical payloads were checked."
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "sequential",
+      "method_id": "sequential",
+      "source_commit": "9180b4c610f8a32e2b3ba328458cf530594e136f",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "buffered_sequential",
+      "method_id": "buffered_sequential",
+      "source_commit": "fa4e144",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "checkpoint_overlap",
+      "method_id": "checkpoint_overlap",
+      "source_commit": "fa4e144",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Full function call including all verification and output construction",
+      "label": "wall_seconds",
+      "name": "wall_seconds",
+      "primary": true,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Nonoverlapping phases; final checkpoint wait charged once",
+      "label": "pipeline_seconds",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Unchanged CUDA v0.4 solver in both methods",
+      "label": "solve_seconds",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Exact full historical NumPy payload equality",
+      "label": "numerical_parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "public_kitti_input_overlap/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative-repeat-03"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+    "data_verified": true,
+    "generated_at": "2026-10-11T06:21:45.748753+00:00",
+    "generator": "tools.benchmark_camera_lidar_input_overlap",
+    "generator_version": "v0.1",
+    "git_commit": "fa4e144",
+    "source_artifacts": {
+      "${WORKSPACE_ROOT}/tools/benchmark_camera_lidar_input_overlap.py": "315d1e0ca738aaade215713a4f1d02e913ca38c3dc51900db36ad81b1b047424",
+      "baseline.borer_rotation_benchmark.py.txt": "891a04bbe88ad4a3a1d8fceacbda6b87362ac46cb7f7d3c6f3abf471f4df63a6",
+      "baseline.camera_lidar_six_dof.py.txt": "493cebb67b842999262d989301e02c0e5a2efc7a00efe25cdd62fd3a5963cd0b",
+      "baseline.depth.py.txt": "f6606d9a4ed7ab5a63266231d6149da3934845f55bcc04ab9f06f9eb88a6eb0e",
+      "baseline.provenance.py.txt": "f1bc73e6b5616b2e1a17027b7f2867effcab9a3c3cee1af0c9bd88d85e08b536",
+      "committed:src/calibrex/core/provenance.py": "800e4d247092db4dfff74e60ee9485c5d56d22598cc951cec781cd3eb8eeb6ca",
+      "committed:src/calibrex/data/depth.py": "1dfdb09bfbfdf0c92dec0811c6bd90af446a59c88d5e175d38012f3f5eb25b6a",
+      "committed:src/calibrex/evaluation/borer_rotation_benchmark.py": "b1c1919656c7f800cdafffd9347721e78fbf31bdc9e931edbe354fc38e4095f7",
+      "committed:src/calibrex/pipelines/camera_lidar_six_dof.py": "aa1f166ae3a368a43c789354a42292d0410dcff048abdaf10ef0c68a4150b67e",
+      "committed:src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68",
+      "committed:src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+      "committed:src/calibrex/solvers/cuda_depth_to_depth_adapter.py": "5155ebd9d7313cbd84e6c80be81f7cc9dcb6051fbed653bfb057a87db1d70116",
+      "committed:src/calibrex/solvers/cuda_depth_to_depth_batch.py": "c759b125c590af31b2990bfe72539c8c7e08c268ebd634cb7dfa36544889e2b1",
+      "committed:tools/benchmark_camera_lidar_input_overlap.py": "315d1e0ca738aaade215713a4f1d02e913ca38c3dc51900db36ad81b1b047424",
+      "oracle:x-negative": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d",
+      "oracle:x-positive": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800",
+      "oracle:y-negative": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5",
+      "oracle:y-positive": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c",
+      "oracle:z-negative": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8",
+      "oracle:z-positive": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb",
+      "original_aggregate": "c31e37765ac0036758fca7a5f4f863ceed6e1b666dc3900edea3729138f784da",
+      "original_definition": "4866bcfd8acf7b17f757e53faea99581035f5628896dfed5f38774532b920c4e",
+      "original_timing_summary": "07f9abba9f6c9f3a0dd666d32df86e3f5c213d513ba74b283ad724c81c2663ad",
+      "problem:x-negative": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+      "problem:x-positive": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+      "problem:y-negative": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+      "problem:y-positive": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+      "problem:z-negative": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+      "problem:z-positive": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+      "published:../cuda_candidates/x-negative.numpy-oracle.result.json": "0b354ddd28933f925adf3bd0e6cb0b9d62b9163c95ee33baf7c692155a29fde4",
+      "published:../cuda_candidates/x-negative.problem.json": "9becd15d1c094f0f924003f9711ea193e948608e70fbe3deb244f9feba2cb18d",
+      "published:../cuda_candidates/x-positive.numpy-oracle.result.json": "bb70571da90af59ab12ff0e2a44d7c6ab195f88700b73b4296ee2e99afc323dc",
+      "published:../cuda_candidates/x-positive.problem.json": "f4b5e11499c17afc6597f8926b09221f2f72a63aa4bf885bd5f285492387f430",
+      "published:../cuda_candidates/y-negative.numpy-oracle.result.json": "5806613d8013eb1fb1fbb253da080eff943da8fea566e22e235a0ee8d6fe3d47",
+      "published:../cuda_candidates/y-negative.problem.json": "38e758073fb0aeec8a6880b94f513c90d9a897de376d63d0d188c536e8ef7ac7",
+      "published:../cuda_candidates/y-positive.numpy-oracle.result.json": "fc6ed142e8536256615ad8798ceb89543be721f03ed3c01ca098313d894280e6",
+      "published:../cuda_candidates/y-positive.problem.json": "70e7559db323dc7521d08e174e8e52b5d3196a691949c85c3ca3175470e5cf3d",
+      "published:../cuda_candidates/z-negative.numpy-oracle.result.json": "82857d5145da0baa00236d001b1c96d3e22dc2887422a3003de101cc17f8ea70",
+      "published:../cuda_candidates/z-negative.problem.json": "a4db304daf18db951e9b34b1f7e53c11673135d5d03b1716bcb751ec9a802817",
+      "published:../cuda_candidates/z-positive.numpy-oracle.result.json": "cc408a951ce166860715ab8756bcb56348fb4b2477381a25e8dd439775feabb9",
+      "published:../cuda_candidates/z-positive.problem.json": "904c9809839a972f80b9845aba335ea9b23c829d1ffb4554545ccff70fefe67c",
+      "published:baseline.borer_rotation_benchmark.py.txt": "891a04bbe88ad4a3a1d8fceacbda6b87362ac46cb7f7d3c6f3abf471f4df63a6",
+      "published:baseline.camera_lidar_six_dof.py.txt": "493cebb67b842999262d989301e02c0e5a2efc7a00efe25cdd62fd3a5963cd0b",
+      "published:baseline.depth.py.txt": "f6606d9a4ed7ab5a63266231d6149da3934845f55bcc04ab9f06f9eb88a6eb0e",
+      "published:baseline.provenance.py.txt": "f1bc73e6b5616b2e1a17027b7f2867effcab9a3c3cee1af0c9bd88d85e08b536",
+      "published:publication-launcher.py.txt": "3ae0f45bf7ca00668698aa20a1fce7962a61f74652475b3189d32aae983e455d",
+      "published:x-negative.buffered_sequential.result.json": "a20ae2907a075d6321d669b23e862def5cb2348cea0a9e0570017a52cd26919e",
+      "published:x-negative.checkpoint_overlap.result.json": "c04cd3c73426cc5cde9caba69f1927e3527747b6741b0386021e5401fe237fca",
+      "published:x-negative.sequential.result.json": "9d8a33c2e42fc177863241e1e12135423e8860b98b3288a3e1cb662639d764e6",
+      "published:x-positive.buffered_sequential.result.json": "f3e5205fecd96bb1c21088ec3c8137e97a2abfd55b19690cea36f00129b48fbe",
+      "published:x-positive.checkpoint_overlap.result.json": "c5a32317eab3adbef5a5d2655799f90f91f4b2c5f04fa2326c47df78f0596994",
+      "published:x-positive.sequential.result.json": "58fd106344418ae49ef2ab7b789b5bf8ed9c6db7d1e32a30cae13b03a729fb7e",
+      "published:y-negative.buffered_sequential.result.json": "3fe9fb98a2bd2b9c100f7b9efd8d41fb113f58782b65160ca3ece537536e09aa",
+      "published:y-negative.checkpoint_overlap.result.json": "bd7190f13b46bec3834c351b283c0f87f6bffc901674afb3fd9280c9c75263a8",
+      "published:y-negative.sequential.result.json": "6c2a179ef9606ab9fb34420d66a0fc65dc917824b65403e9b91c1efac0802095",
+      "published:y-positive.buffered_sequential.result.json": "71661955dcbd3967a7c83dce7f20ae6a3ee52886c40d662b1e348bf53b42db00",
+      "published:y-positive.checkpoint_overlap.result.json": "a4964436a7759ef4521dcb2eb56942983cb469cda4c6ed30f6b6f5d879d4427f",
+      "published:y-positive.sequential.result.json": "1a556f9f4f81ddd8249f70e1f7ab6a8b3424ebfc0d1a8c0d9890253eebea15f2",
+      "published:z-negative.buffered_sequential.result.json": "c3baf1ddafbf7bb7946e4e592eac237a83aeffbf778c40aa14b9b2336f11a5da",
+      "published:z-negative.checkpoint_overlap.result.json": "cef8f09eff33e9cfa149a3e3619d7ac3ccc305e28133ca83cfae23ff524f662e",
+      "published:z-negative.sequential.result.json": "c8b7d6cc5fb54719073709a0ff100e6562c8c2db06ebdc82eb9e4a0a79d029eb",
+      "published:z-positive.buffered_sequential.result.json": "544a58049f79d6ad7ba7897405bb288b16d449e2d527c154e6b005bf510453d7",
+      "published:z-positive.checkpoint_overlap.result.json": "f4ab78c6c273fcbaf9616b42f6b5b46488e85c61db79ed40c7f50d65301f23f3",
+      "published:z-positive.sequential.result.json": "41f6e5adfa58ac417da0d09f57a63339030fbba25d9681c1b5ea0b1f7e9f0395",
+      "src/calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "src/calibrex/data/depth.py": "77fc02063c27f888202247d3d2923248e5585da06ed7bc45210bfaba1f756012",
+      "src/calibrex/evaluation/borer_rotation_benchmark.py": "72af70b8ded4c152d84c47da522f9e54fae57d5c9e9fd0bd517893915010c57d",
+      "src/calibrex/pipelines/camera_lidar_six_dof.py": "968d727dc00f8dfe3c8723f89b1112b695d10b86d34c0d67c0981e513a4184ce",
+      "src/calibrex/solvers/borer_depth_to_depth_solver.py": "844beeddd998a1e023998564384fe2d54602007eb5c7cef1564698c4d0db214a",
+      "src/calibrex/solvers/borer_six_dof_solver.py": "e3eb509385d7f865a08630d88ef8694d26bae3206919aa9e20fb86029b6f0d48",
+      "src/calibrex/solvers/cuda_depth_to_depth_adapter.py": "9fcad788c5166c13ef1c24c48afe4d7091fd6d904dcdd5f54d451b1ef4d9af11",
+      "src/calibrex/solvers/cuda_depth_to_depth_batch.py": "c759b125c590af31b2990bfe72539c8c7e08c268ebd634cb7dfa36544889e2b1"
+    }
+  },
+  "reference_method_id": "sequential",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Fresh verification overlap",
+  "trials": [
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 5.252312699973118,
+        "solve_seconds": 0.6935587999760173,
+        "wall_seconds": 5.3218797000008635
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "a7d1431e0b888a31743b2f4198f9fbd6b69030bdc901f92a1b023a55fd123d42",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.sequential.repeat-01.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 1.1485254000290297, \"holdout_evaluation\": 0.006305299990344793, \"input_verification_and_loading\": 3.4039231999777257, \"solve\": 0.6935587999760173}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "dbf876d9e8b368a846e617bbd898ac39eb6f4b2c11ea4a9fd5e81cddcaa13108"
+      },
+      "runtime_seconds": 5.3218797000008635,
+      "split_id": "x-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.59409600001527,
+        "solve_seconds": 0.5716051000053994,
+        "wall_seconds": 3.648725699982606
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "75b3d60a66172b34445f839dae9e103ff89243354034e83b6de001c5c241b355",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.buffered_sequential.repeat-01.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02376339997863397, \"holdout_evaluation\": 0.004931200004648417, \"input_verification_and_loading\": 2.993796300026588, \"solve\": 0.5716051000053994}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.700012944638729e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "7353cc67d569c06edcfcd7afd590fe739acc223f6fa89c415c484bd7f424f732"
+      },
+      "runtime_seconds": 3.648725699982606,
+      "split_id": "x-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.8297811999800615,
+        "solve_seconds": 0.56617909995839,
+        "wall_seconds": 1.8823893000371754
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "e17e47e15518fdb28f47ba133a416e779bc24e5357eac7c0b01d6c65bfcc37e0",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.checkpoint_overlap.repeat-01.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026847500004805624, \"holdout_evaluation\": 0.004528100020252168, \"input_verification_and_loading\": 1.2322264999966137, \"solve\": 0.56617909995839}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.827488299983088, \"completion_wait_seconds\": 0.4018531999900006, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "44dcd23952c2dfb2e12428430369ae5f5ee876aa6f5c71036813efc5d891495d"
+      },
+      "runtime_seconds": 1.8823893000371754,
+      "split_id": "x-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.0871046999818645,
+        "solve_seconds": 0.6710498000029474,
+        "wall_seconds": 3.1417365000233985
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "75b3d60a66172b34445f839dae9e103ff89243354034e83b6de001c5c241b355",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.buffered_sequential.repeat-02.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.029429499991238117, \"holdout_evaluation\": 0.0040206999983638525, \"input_verification_and_loading\": 2.382604699989315, \"solve\": 0.6710498000029474}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.00000761449337e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "f4cfb9371cc2e9c9013201930b2dcdf9dc3b5963c29171868d90e7c467f8b110"
+      },
+      "runtime_seconds": 3.1417365000233985,
+      "split_id": "x-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.9746778000262566,
+        "solve_seconds": 0.5752572999917902,
+        "wall_seconds": 2.023574099992402
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "e17e47e15518fdb28f47ba133a416e779bc24e5357eac7c0b01d6c65bfcc37e0",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.checkpoint_overlap.repeat-02.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.029172500013373792, \"holdout_evaluation\": 0.004267900018021464, \"input_verification_and_loading\": 1.3659801000030711, \"solve\": 0.5752572999917902}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.9691605999832973, \"completion_wait_seconds\": 0.4712737000081688, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "e45bafa8ba201dfa8287d533bc9b7d7058045fb74ae32be7e6264652ad43d1ba"
+      },
+      "runtime_seconds": 2.023574099992402,
+      "split_id": "x-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.160114400030579,
+        "solve_seconds": 1.0321506000473164,
+        "wall_seconds": 4.341735000023618
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "a7d1431e0b888a31743b2f4198f9fbd6b69030bdc901f92a1b023a55fd123d42",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.sequential.repeat-02.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.0413457999820821, \"holdout_evaluation\": 0.005654899985529482, \"input_verification_and_loading\": 3.0809631000156514, \"solve\": 1.0321506000473164}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "0f96681d4cd27c336665e204ec992bc293394782384dbaa2a4cf83409fb78aaf"
+      },
+      "runtime_seconds": 4.341735000023618,
+      "split_id": "x-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 5.149159799970221,
+        "solve_seconds": 1.533215100003872,
+        "wall_seconds": 5.363936299982015
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "e17e47e15518fdb28f47ba133a416e779bc24e5357eac7c0b01d6c65bfcc37e0",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.checkpoint_overlap.repeat-03.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.036673399969004095, \"holdout_evaluation\": 0.007099300040863454, \"input_verification_and_loading\": 3.572171999956481, \"solve\": 1.533215100003872}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 5.142980000004172, \"completion_wait_seconds\": 1.742776499944739, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "f6f3ff88813f85e73d0f5de6d1bcfdfabf67acafe6d08b2dc8fc22498252abb3"
+      },
+      "runtime_seconds": 5.363936299982015,
+      "split_id": "x-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 7.521690499968827,
+        "solve_seconds": 1.115008199994918,
+        "wall_seconds": 7.639872799976729
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "a7d1431e0b888a31743b2f4198f9fbd6b69030bdc901f92a1b023a55fd123d42",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.sequential.repeat-03.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.04966299998341128, \"holdout_evaluation\": 0.0068239999818615615, \"input_verification_and_loading\": 6.350195300008636, \"solve\": 1.115008199994918}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "60bc5e38bd7e2b3b80923fade47c7c43d188fde0479f5c0d9b2a6917f5ed428b"
+      },
+      "runtime_seconds": 7.639872799976729,
+      "split_id": "x-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.316489599994384,
+        "solve_seconds": 1.0514338000211865,
+        "wall_seconds": 4.530815300007816
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "75b3d60a66172b34445f839dae9e103ff89243354034e83b6de001c5c241b355",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Output: x-positive.buffered_sequential.repeat-03.result.json; numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.03351959999417886, \"holdout_evaluation\": 0.006698999961372465, \"input_verification_and_loading\": 3.224837200017646, \"solve\": 1.0514338000211865}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.600012183189392e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "ad9c9745c50b621982b617dada534d3455172e492c620221972bb8f22519e999"
+      },
+      "runtime_seconds": 4.530815300007816,
+      "split_id": "x-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 7.207524100027513,
+        "solve_seconds": 1.2426886999746785,
+        "wall_seconds": 7.364034499973059
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "4832ac971f9571c2fc9d823c432e9e9a0d5f56600f134280da6c4b6879571e31",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.buffered_sequential.repeat-01.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.04075560002820566, \"holdout_evaluation\": 0.005483100016135722, \"input_verification_and_loading\": 5.918596700008493, \"solve\": 1.2426886999746785}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.400010660290718e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "1200d08235108674b91e1407b7bac6f666d356f2353f11b104f71d3a0f5104b1"
+      },
+      "runtime_seconds": 7.364034499973059,
+      "split_id": "x-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 5.35978180001257,
+        "solve_seconds": 1.8902749000117183,
+        "wall_seconds": 5.493819299968891
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "6b6639236abc88d6bd39f5f3c5a58190173e9919c6154b976e48213039c30dc1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.checkpoint_overlap.repeat-01.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.03171780001139268, \"holdout_evaluation\": 0.010308799974154681, \"input_verification_and_loading\": 3.4274803000153042, \"solve\": 1.8902749000117183}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 5.3512383999768645, \"completion_wait_seconds\": 1.6764560000156052, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "d23e7b347bbec6747d4aa56e92542124685f2e7333ed678f43b3718e8dc25505"
+      },
+      "runtime_seconds": 5.493819299968891,
+      "split_id": "x-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.484168499999214,
+        "solve_seconds": 0.940904299961403,
+        "wall_seconds": 4.534890900016762
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "9ac26283444c6776e787d2f5a647649ae28baaae8a47e52ab78b1be58a3a27b9",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.sequential.repeat-01.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.03586400003405288, \"holdout_evaluation\": 0.0038021000218577683, \"input_verification_and_loading\": 3.5035980999819003, \"solve\": 0.940904299961403}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "66b344ec15a5b2be7a735e5fb2add9d838a4cc6a228403ebf10c6dd721f72199"
+      },
+      "runtime_seconds": 4.534890900016762,
+      "split_id": "x-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.9229439999908209,
+        "solve_seconds": 0.7887537999777123,
+        "wall_seconds": 1.9810812000068836
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "6b6639236abc88d6bd39f5f3c5a58190173e9919c6154b976e48213039c30dc1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.checkpoint_overlap.repeat-02.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02807070000562817, \"holdout_evaluation\": 0.00409659999422729, \"input_verification_and_loading\": 1.102022900013253, \"solve\": 0.7887537999777123}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.92075200000545, \"completion_wait_seconds\": 0.29526650003390387, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "a3896b477b364af2d11d5c280c8d7a614ef1c486ca0082f68794a5c50fc77990"
+      },
+      "runtime_seconds": 1.9810812000068836,
+      "split_id": "x-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.4150297000305727,
+        "solve_seconds": 0.915357000019867,
+        "wall_seconds": 3.4708075000089593
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "9ac26283444c6776e787d2f5a647649ae28baaae8a47e52ab78b1be58a3a27b9",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.sequential.repeat-02.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.025745499995537102, \"holdout_evaluation\": 0.004426200001034886, \"input_verification_and_loading\": 2.4695010000141338, \"solve\": 0.915357000019867}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "954b9dd4e3d7ac2ef0e689b97f5f7bba1fd182d2337044b106fae8c85da2235f"
+      },
+      "runtime_seconds": 3.4708075000089593,
+      "split_id": "x-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.2701382000232115,
+        "solve_seconds": 0.89572179998504,
+        "wall_seconds": 3.3209915999905206
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "4832ac971f9571c2fc9d823c432e9e9a0d5f56600f134280da6c4b6879571e31",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.buffered_sequential.repeat-02.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02349210000829771, \"holdout_evaluation\": 0.003913699998520315, \"input_verification_and_loading\": 2.3470106000313535, \"solve\": 0.89572179998504}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.500011421740055e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "e6476a07be3e5b1046d29706a38f0e565b96bba9eb975cfa07fb4818960a1b6b"
+      },
+      "runtime_seconds": 3.3209915999905206,
+      "split_id": "x-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.4201410000096075,
+        "solve_seconds": 0.897391400008928,
+        "wall_seconds": 3.4760439000092447
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "9ac26283444c6776e787d2f5a647649ae28baaae8a47e52ab78b1be58a3a27b9",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.sequential.repeat-03.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026121900009457022, \"holdout_evaluation\": 0.00394399999640882, \"input_verification_and_loading\": 2.4926836999948137, \"solve\": 0.897391400008928}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "3b8169d3cc0d65cb7a7a425ac087fc020c3556df534286e6087f7601d39d48c8"
+      },
+      "runtime_seconds": 3.4760439000092447,
+      "split_id": "x-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.301113399968017,
+        "solve_seconds": 0.8846739999717101,
+        "wall_seconds": 3.3645238999743015
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "4832ac971f9571c2fc9d823c432e9e9a0d5f56600f134280da6c4b6879571e31",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.buffered_sequential.repeat-03.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.025964700034819543, \"holdout_evaluation\": 0.0060826000408269465, \"input_verification_and_loading\": 2.3843920999206603, \"solve\": 0.8846739999717101}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.2999516911804676e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "55fb223eab3f20bbf9e68615d8d29eee24eeb0050453d14d01bde27878ab1094"
+      },
+      "runtime_seconds": 3.3645238999743015,
+      "split_id": "x-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.9027065999689512,
+        "solve_seconds": 0.8001367999822833,
+        "wall_seconds": 1.9532752999803051
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "6b6639236abc88d6bd39f5f3c5a58190173e9919c6154b976e48213039c30dc1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Output: x-negative.checkpoint_overlap.repeat-03.result.json; numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026407200028188527, \"holdout_evaluation\": 0.004276700026821345, \"input_verification_and_loading\": 1.071885899931658, \"solve\": 0.8001367999822833}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.9004072000388987, \"completion_wait_seconds\": 0.280594099953305, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "99c6529df226c436669b9e2ad0bfac3f5e266c607d4abe924e589e59b9d9dbc0"
+      },
+      "runtime_seconds": 1.9532752999803051,
+      "split_id": "x-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.8820259000058286,
+        "solve_seconds": 0.6733564999885857,
+        "wall_seconds": 1.9344127000076696
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "2c7fba9994d81fa48c1e2f3ad542eb5167ade0280766849703e497414df11419",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.checkpoint_overlap.repeat-01.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.0383614000165835, \"holdout_evaluation\": 0.004611400014255196, \"input_verification_and_loading\": 1.1656965999864042, \"solve\": 0.6733564999885857}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.8800660999841057, \"completion_wait_seconds\": 0.3714834999991581, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "e215fa47e4478020b5a6f884ab3394eeb81465cec1685df8991747a2d92e061e"
+      },
+      "runtime_seconds": 1.9344127000076696,
+      "split_id": "y-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.4466226000222377,
+        "solve_seconds": 0.8173217999865301,
+        "wall_seconds": 3.5018140000174753
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "6037a7f7a41e5a37e2bf22716cf4b6da778b1ffd8f56a77d637c0416c260ce2a",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.sequential.repeat-01.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.029222399985883385, \"holdout_evaluation\": 0.00391150003997609, \"input_verification_and_loading\": 2.596166900009848, \"solve\": 0.8173217999865301}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "79b3ee2ed6a8077a3071bd2cfd554497a3e4df7c82538004e740ecddf9f7117e"
+      },
+      "runtime_seconds": 3.5018140000174753,
+      "split_id": "y-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.3558082000236027,
+        "solve_seconds": 0.8148137999814935,
+        "wall_seconds": 3.4071579999872483
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "7431c1c1e5614c75442bc0139b5ecc7bc108feb9f6df8485fb1eb14d4223639e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.buffered_sequential.repeat-01.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.0244925000006333, \"holdout_evaluation\": 0.005641099996864796, \"input_verification_and_loading\": 2.510860800044611, \"solve\": 0.8148137999814935}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.300009898841381e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "7e0f5e2aa92ba37a4f89393688abccd21e4ee2d50a65f1dc46b17f7b65d364d3"
+      },
+      "runtime_seconds": 3.4071579999872483,
+      "split_id": "y-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.418823699990753,
+        "solve_seconds": 0.7803200000198558,
+        "wall_seconds": 3.4707935999613255
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "6037a7f7a41e5a37e2bf22716cf4b6da778b1ffd8f56a77d637c0416c260ce2a",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.sequential.repeat-02.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.024564099963754416, \"holdout_evaluation\": 0.0061227999976836145, \"input_verification_and_loading\": 2.6078168000094593, \"solve\": 0.7803200000198558}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "1dfdb3ea4465c1aa54e35b854adae328b43aa3efa61a3455d68bfc96d5e409a8"
+      },
+      "runtime_seconds": 3.4707935999613255,
+      "split_id": "y-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.3269798000110313,
+        "solve_seconds": 0.7971251999842934,
+        "wall_seconds": 3.386998499976471
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "7431c1c1e5614c75442bc0139b5ecc7bc108feb9f6df8485fb1eb14d4223639e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.buffered_sequential.repeat-02.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.029196900024544448, \"holdout_evaluation\": 0.0048263000207953155, \"input_verification_and_loading\": 2.495831399981398, \"solve\": 0.7971251999842934}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.400010660290718e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "71c628135a0db2005ab3bd1d12ab3d78c28c1640ca9f2d5acf7cc67561ad03b0"
+      },
+      "runtime_seconds": 3.386998499976471,
+      "split_id": "y-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.9623271000455134,
+        "solve_seconds": 0.7007613999885507,
+        "wall_seconds": 2.012585400021635
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "2c7fba9994d81fa48c1e2f3ad542eb5167ade0280766849703e497414df11419",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.checkpoint_overlap.repeat-02.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02890030003618449, \"holdout_evaluation\": 0.004424499988090247, \"input_verification_and_loading\": 1.228240900032688, \"solve\": 0.7007613999885507}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.9376525999978185, \"completion_wait_seconds\": 0.3888464000192471, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "ad288191d7bae49d4c4d7ff86f2e71c22840743c7d07caaba23e3a7f50aa3d7d"
+      },
+      "runtime_seconds": 2.012585400021635,
+      "split_id": "y-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.2371353000053205,
+        "solve_seconds": 0.7892793999635614,
+        "wall_seconds": 3.286309999995865
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "7431c1c1e5614c75442bc0139b5ecc7bc108feb9f6df8485fb1eb14d4223639e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.buffered_sequential.repeat-03.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.025951400049962103, \"holdout_evaluation\": 0.004729800042696297, \"input_verification_and_loading\": 2.4171746999491006, \"solve\": 0.7892793999635614}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 9.999494068324566e-07, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "13cd74e47512f969b36d376c6f60d35d35bc76b6d0fd4d388b8fd1b6c226ce48"
+      },
+      "runtime_seconds": 3.286309999995865,
+      "split_id": "y-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.770291000022553,
+        "solve_seconds": 0.657196499989368,
+        "wall_seconds": 1.8234077999950387
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "2c7fba9994d81fa48c1e2f3ad542eb5167ade0280766849703e497414df11419",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.checkpoint_overlap.repeat-03.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.027566300006583333, \"holdout_evaluation\": 0.004848900018259883, \"input_verification_and_loading\": 1.0806793000083417, \"solve\": 0.657196499989368}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.7681610999861732, \"completion_wait_seconds\": 0.23789360001683235, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "7a3ca623b09b0026f84f511a320ee127fa46b3a83d9f5091af8c770492aa55fa"
+      },
+      "runtime_seconds": 1.8234077999950387,
+      "split_id": "y-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.3372491000336595,
+        "solve_seconds": 0.7531334000523202,
+        "wall_seconds": 3.389573999971617
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "6037a7f7a41e5a37e2bf22716cf4b6da778b1ffd8f56a77d637c0416c260ce2a",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Output: y-positive.sequential.repeat-03.result.json; numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026877399999648333, \"holdout_evaluation\": 0.004004599992185831, \"input_verification_and_loading\": 2.553233699989505, \"solve\": 0.7531334000523202}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "b8cc256bad81e28381e4413a389b208e6b2623307412946cc883f88ff9abe102"
+      },
+      "runtime_seconds": 3.389573999971617,
+      "split_id": "y-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.4090465999906883,
+        "solve_seconds": 0.7674035000381991,
+        "wall_seconds": 3.4603096999926493
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "d18ac122188b929dc50f48c5e8d6c97aeb8fcff46869bed4ad1931861362b69d",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.sequential.repeat-01.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.029241399955935776, \"holdout_evaluation\": 0.004050299990922213, \"input_verification_and_loading\": 2.608351400005631, \"solve\": 0.7674035000381991}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "a52ad4601e8023af668b107026f5b52a6716989e38931579a19951f7740eba93"
+      },
+      "runtime_seconds": 3.4603096999926493,
+      "split_id": "y-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.198977100022603,
+        "solve_seconds": 0.7541333999834023,
+        "wall_seconds": 3.2623059999896213
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "5819c52970731e2333a46bee2215747b5b22369c765ccfac9302c5b40d1f470f",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.buffered_sequential.repeat-01.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.030598900048062205, \"holdout_evaluation\": 0.004960699996445328, \"input_verification_and_loading\": 2.409284099994693, \"solve\": 0.7541333999834023}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.300009898841381e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "9ad9bee3f3a08688ef15fa46c92b1736adeeeff2385e264739907109d7f50b67"
+      },
+      "runtime_seconds": 3.2623059999896213,
+      "split_id": "y-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 2.08317050000187,
+        "solve_seconds": 0.6485383000108413,
+        "wall_seconds": 2.136425699980464
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "e77752d627ceffd5a708e3bb7af3e0ef2cc8b52937dd2dbdda5f386fcb12c401",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.checkpoint_overlap.repeat-01.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.030922100006137043, \"holdout_evaluation\": 0.005296399991493672, \"input_verification_and_loading\": 1.398413699993398, \"solve\": 0.6485383000108413}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 2.0807307999930345, \"completion_wait_seconds\": 0.4165699000004679, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "b193a9ceb3c557a008c75adfbb904a414bc9e12fc170c791dd7a07978398a129"
+      },
+      "runtime_seconds": 2.136425699980464,
+      "split_id": "y-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.2484096999978647,
+        "solve_seconds": 0.7617200000095181,
+        "wall_seconds": 3.297081299999263
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "5819c52970731e2333a46bee2215747b5b22369c765ccfac9302c5b40d1f470f",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.buffered_sequential.repeat-02.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02687330002663657, \"holdout_evaluation\": 0.004197699949145317, \"input_verification_and_loading\": 2.4556187000125647, \"solve\": 0.7617200000095181}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 9.00006853044033e-07, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "35b87f11d34432cc7c2094e7b79d8921f9090bf607ad081b9917da7895ccf550"
+      },
+      "runtime_seconds": 3.297081299999263,
+      "split_id": "y-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.8087189000216313,
+        "solve_seconds": 0.6129981999984011,
+        "wall_seconds": 1.8669513000058942
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "e77752d627ceffd5a708e3bb7af3e0ef2cc8b52937dd2dbdda5f386fcb12c401",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.checkpoint_overlap.repeat-02.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026515500037930906, \"holdout_evaluation\": 0.003971499972976744, \"input_verification_and_loading\": 1.1652337000123225, \"solve\": 0.6129981999984011}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.806455800018739, \"completion_wait_seconds\": 0.35490800003753975, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "30c4377cffa7e964d31c909f9cb2a0eb73a2d4bea8571c5d6c990c0668c6a868"
+      },
+      "runtime_seconds": 1.8669513000058942,
+      "split_id": "y-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.272564799990505,
+        "solve_seconds": 0.7593441000208259,
+        "wall_seconds": 3.326000200002454
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "d18ac122188b929dc50f48c5e8d6c97aeb8fcff46869bed4ad1931861362b69d",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.sequential.repeat-02.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.029580999980680645, \"holdout_evaluation\": 0.0038705000188201666, \"input_verification_and_loading\": 2.4797691999701783, \"solve\": 0.7593441000208259}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "07e7e51bc389f16f9f6bde06dd223371a4d677e465226c3004758aa156c85e96"
+      },
+      "runtime_seconds": 3.326000200002454,
+      "split_id": "y-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.9545146999880672,
+        "solve_seconds": 0.6680731999804266,
+        "wall_seconds": 2.0110575999715365
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "e77752d627ceffd5a708e3bb7af3e0ef2cc8b52937dd2dbdda5f386fcb12c401",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.checkpoint_overlap.repeat-03.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.03607219998957589, \"holdout_evaluation\": 0.005310499982442707, \"input_verification_and_loading\": 1.245058800035622, \"solve\": 0.6680731999804266}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.9524710000259802, \"completion_wait_seconds\": 0.3948001000098884, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "17b58efe9ccc6d823a7f36bbebba446a16aa22eb11a786226c8c390fff2f1886"
+      },
+      "runtime_seconds": 2.0110575999715365,
+      "split_id": "y-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.3902268999954686,
+        "solve_seconds": 0.8184281000285409,
+        "wall_seconds": 3.4434844000497833
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "d18ac122188b929dc50f48c5e8d6c97aeb8fcff46869bed4ad1931861362b69d",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.sequential.repeat-03.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.028218899969942868, \"holdout_evaluation\": 0.0044569000019691885, \"input_verification_and_loading\": 2.5391229999950156, \"solve\": 0.8184281000285409}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "a314da830c00380e17aaa627f400783a1fe29807b7531411fe01b109d5d630a8"
+      },
+      "runtime_seconds": 3.4434844000497833,
+      "split_id": "y-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.2540090000256896,
+        "solve_seconds": 0.7934008000302128,
+        "wall_seconds": 3.3124921999988146
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "5819c52970731e2333a46bee2215747b5b22369c765ccfac9302c5b40d1f470f",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Output: y-negative.buffered_sequential.repeat-03.result.json; numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02999189996626228, \"holdout_evaluation\": 0.005806499975733459, \"input_verification_and_loading\": 2.424809800053481, \"solve\": 0.7934008000302128}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.200009137392044e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "a4c9289ef9421c1badd5d9f556f606854d77e4f239603ad5e7610a40464465db"
+      },
+      "runtime_seconds": 3.3124921999988146,
+      "split_id": "y-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.080170800036285,
+        "solve_seconds": 0.7589681000099517,
+        "wall_seconds": 3.1330849999794737
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "db20caa6713b709dcf3ab871cbc69669702b4a50a4cb4be53cc9abc7b5b849bb",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.buffered_sequential.repeat-01.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026344000012613833, \"holdout_evaluation\": 0.0038607000024057925, \"input_verification_and_loading\": 2.2909980000113137, \"solve\": 0.7589681000099517}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.00000761449337e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "c89d5b897bc17c95fca109633cea6d0a6d7146c42c8013cea00c9c543b663e0c"
+      },
+      "runtime_seconds": 3.1330849999794737,
+      "split_id": "z-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.8313443000079133,
+        "solve_seconds": 0.6708657999988645,
+        "wall_seconds": 1.8876652999897487
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "2016ad6a63e46f881b4a4785972086db0a0fe52d055aa0f3ffc97677c20e6769",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.checkpoint_overlap.repeat-01.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.0297355999937281, \"holdout_evaluation\": 0.004288399999495596, \"input_verification_and_loading\": 1.126454500015825, \"solve\": 0.6708657999988645}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.8289710999815725, \"completion_wait_seconds\": 0.3690675999969244, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "5b8d05a7503586ef3f778f87ebda3de636e79860ebc261199f66be0d994a41df"
+      },
+      "runtime_seconds": 1.8876652999897487,
+      "split_id": "z-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.328507099999115,
+        "solve_seconds": 0.8429664000286721,
+        "wall_seconds": 3.3780025000451133
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "f3f49d254936da306dba92275f18681bab233dc137f20b806f479933a1980859",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.sequential.repeat-01.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02505539997946471, \"holdout_evaluation\": 0.004379299993161112, \"input_verification_and_loading\": 2.456105999997817, \"solve\": 0.8429664000286721}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "48448e7813833828a8c3ffc239c39739d501dccf9265cf61d6d32dcec6a46f92"
+      },
+      "runtime_seconds": 3.3780025000451133,
+      "split_id": "z-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.8977273000054993,
+        "solve_seconds": 0.7012563000316732,
+        "wall_seconds": 1.949096800002735
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "2016ad6a63e46f881b4a4785972086db0a0fe52d055aa0f3ffc97677c20e6769",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.checkpoint_overlap.repeat-02.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.028671699983533472, \"holdout_evaluation\": 0.0049573999713175, \"input_verification_and_loading\": 1.1628419000189751, \"solve\": 0.7012563000316732}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.8956168000004254, \"completion_wait_seconds\": 0.3054854000220075, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "d7a5079292d20ada7028b83a3d4cb95fb800b6da7416b3f4ee19ffb38c37945f"
+      },
+      "runtime_seconds": 1.949096800002735,
+      "split_id": "z-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.4132330999709666,
+        "solve_seconds": 0.8338367000105791,
+        "wall_seconds": 3.475432999955956
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "f3f49d254936da306dba92275f18681bab233dc137f20b806f479933a1980859",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.sequential.repeat-02.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.023281399975530803, \"holdout_evaluation\": 0.004940599959809333, \"input_verification_and_loading\": 2.5511744000250474, \"solve\": 0.8338367000105791}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "a1d02e4083293ec24e710a17f7e33d10951cea4e1fede939cd232a98456c1927"
+      },
+      "runtime_seconds": 3.475432999955956,
+      "split_id": "z-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.5354228999931365,
+        "solve_seconds": 0.7614855999709107,
+        "wall_seconds": 3.5892691999906674
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "db20caa6713b709dcf3ab871cbc69669702b4a50a4cb4be53cc9abc7b5b849bb",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.buffered_sequential.repeat-02.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.025063899985980242, \"holdout_evaluation\": 0.004476800037082285, \"input_verification_and_loading\": 2.7443965999991633, \"solve\": 0.7614855999709107}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.400010660290718e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "ba7370b5da2ca187ad153ea45d78fa8374b289c34380d402fcddc94ef3c34722"
+      },
+      "runtime_seconds": 3.5892691999906674,
+      "split_id": "z-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.501839699980337,
+        "solve_seconds": 0.8243951000040397,
+        "wall_seconds": 3.579886000021361
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "f3f49d254936da306dba92275f18681bab233dc137f20b806f479933a1980859",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.sequential.repeat-03.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.028649499989114702, \"holdout_evaluation\": 0.005653899977914989, \"input_verification_and_loading\": 2.6431412000092678, \"solve\": 0.8243951000040397}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "bbf9be715133204041196c3284c13dc74eb77ec10e03009d7d0ffe3d8256d132"
+      },
+      "runtime_seconds": 3.579886000021361,
+      "split_id": "z-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.452090299979318,
+        "solve_seconds": 0.8082917000283487,
+        "wall_seconds": 3.5052480999729596
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "db20caa6713b709dcf3ab871cbc69669702b4a50a4cb4be53cc9abc7b5b849bb",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.buffered_sequential.repeat-03.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.025109899987000972, \"holdout_evaluation\": 0.0038377000018954277, \"input_verification_and_loading\": 2.614850999962073, \"solve\": 0.8082917000283487}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 9.999494068324566e-07, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "2cd26c92c5fe522daa4e2197a0ded4f39fba45abf1c3691133a27bb9facbf40d"
+      },
+      "runtime_seconds": 3.5052480999729596,
+      "split_id": "z-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.835501800000202,
+        "solve_seconds": 0.6752901000436395,
+        "wall_seconds": 1.890130500018131
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "2016ad6a63e46f881b4a4785972086db0a0fe52d055aa0f3ffc97677c20e6769",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Output: z-positive.checkpoint_overlap.repeat-03.result.json; numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02861290000146255, \"holdout_evaluation\": 0.003935899992939085, \"input_verification_and_loading\": 1.1276628999621607, \"solve\": 0.6752901000436395}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.833287199959159, \"completion_wait_seconds\": 0.28724559996044263, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "eb77a762f61ab50e57642468733e2277283bb4d20852f9b712286b2b643695e9"
+      },
+      "runtime_seconds": 1.890130500018131,
+      "split_id": "z-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 2.194437099969946,
+        "solve_seconds": 0.7155627000029199,
+        "wall_seconds": 2.246339800010901
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "b8acb08758be5e926175fe23712f9dfc7e6c5adcf3aab00007b8dd6f38081b2a",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.checkpoint_overlap.repeat-01.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.03502939996542409, \"holdout_evaluation\": 0.006437800009734929, \"input_verification_and_loading\": 1.437407199991867, \"solve\": 0.7155627000029199}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 2.192233400011901, \"completion_wait_seconds\": 0.5684932000003755, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "b81b165d46497ff64f21b8f8d22ee3d31b58d1a02f7a6d155abc88071c044939"
+      },
+      "runtime_seconds": 2.246339800010901,
+      "split_id": "z-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.3701768000028096,
+        "solve_seconds": 0.7221353999921121,
+        "wall_seconds": 3.422643300029449
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "535f73b273ad3e95dd0cb3954486e6f2f8af6351e9f4a8afb9191549e952f206",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.sequential.repeat-01.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.022669200028758496, \"holdout_evaluation\": 0.004227299999911338, \"input_verification_and_loading\": 2.6211448999820277, \"solve\": 0.7221353999921121}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "ec637891054a70e02054d8c763dde09a59aeca68f46c01c07c40f57398272d97"
+      },
+      "runtime_seconds": 3.422643300029449,
+      "split_id": "z-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.240021900041029,
+        "solve_seconds": 0.7457066000206396,
+        "wall_seconds": 3.289801399980206
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "ad4bc8ad1962c87a0ee06757e5d35af5dfeab84a56f0ddf80ff814a02f0902ac",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.buffered_sequential.repeat-01.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['checkpoint_overlap', 'sequential', 'buffered_sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.025323999987449497, \"holdout_evaluation\": 0.004905399982817471, \"input_verification_and_loading\": 2.4640859000501223, \"solve\": 0.7457066000206396}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.400010660290718e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "1ed4522edc46b605e37a7ff6deb3d64fc38a9f59ccf4095da44336e06d6470f0"
+      },
+      "runtime_seconds": 3.289801399980206,
+      "split_id": "z-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.3300591000006534,
+        "solve_seconds": 0.7485724000143819,
+        "wall_seconds": 3.3884474000078626
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "535f73b273ad3e95dd0cb3954486e6f2f8af6351e9f4a8afb9191549e952f206",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.sequential.repeat-02.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.026030499953776598, \"holdout_evaluation\": 0.004322100023273379, \"input_verification_and_loading\": 2.5511341000092216, \"solve\": 0.7485724000143819}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "a77e03995c8ec276a899413200cc71072d7b15d902ce1945af1ae5afd07e3d5c"
+      },
+      "runtime_seconds": 3.3884474000078626,
+      "split_id": "z-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.1684614999685436,
+        "solve_seconds": 0.6974469000124373,
+        "wall_seconds": 3.2236233000294305
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "ad4bc8ad1962c87a0ee06757e5d35af5dfeab84a56f0ddf80ff814a02f0902ac",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.buffered_sequential.repeat-02.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.02596350002568215, \"holdout_evaluation\": 0.004205599951092154, \"input_verification_and_loading\": 2.440845499979332, \"solve\": 0.6974469000124373}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.500011421740055e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "db9086f7e5ea88f5d132bfb71f6da761140fed0dd9435eee50d2903833a8dfd7"
+      },
+      "runtime_seconds": 3.2236233000294305,
+      "split_id": "z-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.8541074999957345,
+        "solve_seconds": 0.5921707000234164,
+        "wall_seconds": 1.909918999997899
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "b8acb08758be5e926175fe23712f9dfc7e6c5adcf3aab00007b8dd6f38081b2a",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.checkpoint_overlap.repeat-02.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['sequential', 'buffered_sequential', 'checkpoint_overlap']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.028874600015114993, \"holdout_evaluation\": 0.004559099965263158, \"input_verification_and_loading\": 1.22850309999194, \"solve\": 0.5921707000234164}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 1.8519853999605402, \"completion_wait_seconds\": 0.3916800000006333, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "04a89f8bbbba5ef757cf360a5baaf2adc2f02b053a81b84d640abe6969d443c3"
+      },
+      "runtime_seconds": 1.909918999997899,
+      "split_id": "z-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "buffered_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.859766600013245,
+        "solve_seconds": 0.8593732999870554,
+        "wall_seconds": 3.9248326000524685
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "ad4bc8ad1962c87a0ee06757e5d35af5dfeab84a56f0ddf80ff814a02f0902ac",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.buffered_sequential.repeat-03.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.050317500019446015, \"holdout_evaluation\": 0.00532350002322346, \"input_verification_and_loading\": 2.94475229998352, \"solve\": 0.8593732999870554}, \"verification\": {\"checkpoint_time_overlaps_phases\": false, \"checkpoint_verification_seconds\": 0.0, \"completion_wait_seconds\": 1.300009898841381e-06, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"sequential\"}}"
+        ],
+        "output_sha256": "b324165f6b4931cdce249da453148a45ec718a961e97ed19595f6043c9ce8dd0"
+      },
+      "runtime_seconds": 3.9248326000524685,
+      "split_id": "z-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "checkpoint_overlap",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 3.351499899988994,
+        "solve_seconds": 1.2151518000173382,
+        "wall_seconds": 3.4230376000050455
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "b8acb08758be5e926175fe23712f9dfc7e6c5adcf3aab00007b8dd6f38081b2a",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.checkpoint_overlap.repeat-03.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.06760409998241812, \"holdout_evaluation\": 0.008936800004448742, \"input_verification_and_loading\": 2.059807199984789, \"solve\": 1.2151518000173382}, \"verification\": {\"checkpoint_time_overlaps_phases\": true, \"checkpoint_verification_seconds\": 3.348526599991601, \"completion_wait_seconds\": 1.0162007000180893, \"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true, \"strategy\": \"checkpoint_overlap\"}}"
+        ],
+        "output_sha256": "635e4eee2481b63051591c53aad490aebc8490f5478542b3a2f2bd0003173715"
+      },
+      "runtime_seconds": 3.4230376000050455,
+      "split_id": "z-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 4.481574599980377,
+        "solve_seconds": 0.8870948000112548,
+        "wall_seconds": 4.549134999979287
+      },
+      "provenance": {
+        "command": "tools/benchmark_camera_lidar_input_overlap.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-input-overlap-v2 --repeats 3",
+        "config_sha256": "535f73b273ad3e95dd0cb3954486e6f2f8af6351e9f4a8afb9191549e952f206",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Output: z-negative.sequential.repeat-03.result.json; numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Order: ['buffered_sequential', 'checkpoint_overlap', 'sequential']; no separate warmup; caches persist; shared host.",
+          "Every invocation re-verifies all external files, including checkpoint.",
+          "Wall includes verification completion and result construction; serialization and aggregation are excluded.",
+          "Measured phases and verification: {\"phases\": {\"backend_preparation\": 0.03956629999447614, \"holdout_evaluation\": 0.0049646999686956406, \"input_verification_and_loading\": 3.54994880000595, \"solve\": 0.8870948000112548}, \"verification\": {\"external_files_reverified\": true, \"mode\": \"fresh_files\", \"preparation_in_run_timing\": true, \"problem_artifact_reverified\": true}}"
+        ],
+        "output_sha256": "1c79f1982942d5b8bd54b74f358a534e2357fe4db6e6f5ede2c7b4985fb50f2d"
+      },
+      "runtime_seconds": 4.549134999979287,
+      "split_id": "z-negative-repeat-03",
+      "status": "success"
+    }
+  ]
+}

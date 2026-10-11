@@ -1,0 +1,135 @@
+"""Publish all trial timings and normalized representative numerical evidence."""
+import hashlib
+import json
+import os
+import subprocess
+from pathlib import Path
+
+import cupy
+
+from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.provenance import sha256_path
+from calibrex.core.result import CalibrationResult, load_result
+from calibrex.core.validation import validate_file
+from calibrex.pipelines.public_camera_lidar_demo import _numerical_payload
+
+ROOT = Path('outputs/public-kitti-input-overlap-v2')
+SUPERSEDED = Path('outputs/public-kitti-input-overlap-v1')
+ORACLES = Path(os.environ['CALIBREX_PUBLIC_SWEEP_ROOT'])
+DESTINATION = Path('docs/assets/input_verification_overlap')
+MEASURED_COMMIT = 'fa4e1447ae4a85a5980e62876de692a7197bece4'
+SUPERSEDED_COMMIT = '284cad9776f5b96144a9a7a43d298cd2893ab2a4'
+CASES = ('x-positive', 'x-negative', 'y-positive', 'y-negative', 'z-positive', 'z-negative')
+PREFIXES = [(str(ORACLES.resolve()), '${PUBLIC_SWEEP_ROOT}'),
+            (str(ORACLES), '${PUBLIC_SWEEP_ROOT}'),
+            (str(Path.cwd()), '${WORKSPACE_ROOT}'),
+            ('E:\\datasets\\calibrex_camera_lidar_v06', '${DATASET_ROOT}')]
+GPU_NAME = cupy.cuda.runtime.getDeviceProperties(0)['name']
+if isinstance(GPU_NAME, bytes):
+    GPU_NAME = GPU_NAME.decode('utf-8')
+
+
+def normalize(value):
+    if isinstance(value, dict):
+        return {normalize(key): normalize(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalize(item) for item in value]
+    if not isinstance(value, str):
+        return value
+    if value.startswith(('{', '[')):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, (dict, list)):
+                return json.dumps(normalize(parsed), sort_keys=True)
+        except ValueError:
+            pass
+    for prefix, replacement in PREFIXES:
+        value = value.replace(prefix, replacement).replace(prefix.replace('\\', '/'), replacement)
+    if any(token in value for token in ('${WORKSPACE_ROOT}', '${DATASET_ROOT}', '${PUBLIC_SWEEP_ROOT}')):
+        value = value.replace('\\', '/')
+    return value.replace(GPU_NAME, 'NVIDIA CUDA GPU')
+
+
+DESTINATION.mkdir(parents=True, exist_ok=True)
+bindings = {}
+for source in sorted(ROOT.glob('baseline.*.txt')):
+    target = DESTINATION / source.name
+    target.write_bytes(source.read_bytes())
+    bindings[target.name] = sha256_path(target)
+target = DESTINATION / 'publication-launcher.py.txt'
+target.write_bytes(Path(__file__).read_bytes())
+bindings[target.name] = sha256_path(target)
+for case in CASES:
+    expected = _numerical_payload(load_result(ORACLES / case / 'numpy.result.json'))
+    for method in ('sequential', 'buffered_sequential', 'checkpoint_overlap'):
+        for repetition in range(1, 4):
+            source = ROOT / f'{case}.{method}.repeat-{repetition:02d}.result.json'
+            assert _numerical_payload(load_result(source)) == expected
+        source = ROOT / f'{case}.{method}.repeat-01.result.json'
+        result = CalibrationResult.model_validate(normalize(load_result(source).model_dump(mode='json')))
+        assert _numerical_payload(result) == expected
+        result.run.provenance['publication'] = {
+            'original_sha256': sha256_path(source),
+            'normalization': 'Paths and GPU model anonymized; complete numerical payload unchanged.',
+            'publication_launcher_sha256': sha256_path(Path(__file__)),
+        }
+        target = DESTINATION / f'{case}.{method}.result.json'
+        result.save(target)
+        bindings[target.name] = sha256_path(target)
+    for method in ('sequential', 'checkpoint_overlap'):
+        for repetition in range(1, 4):
+            source = SUPERSEDED / f'{case}.{method}.repeat-{repetition:02d}.result.json'
+            assert _numerical_payload(load_result(source)) == expected
+    for suffix in ('numpy-oracle.result.json', 'problem.json'):
+        source = Path('docs/assets/cuda_candidates') / f'{case}.{suffix}'
+        bindings['../cuda_candidates/' + source.name] = sha256_path(source)
+
+for root, measured_commit, count, prefix in (
+    (ROOT, MEASURED_COMMIT, 54, 'comparison'),
+    (SUPERSEDED, SUPERSEDED_COMMIT, 36, 'superseded'),
+):
+    original = BenchmarkDefinition.model_validate_json((root / 'comparison.definition.json').read_bytes())
+    definition = BenchmarkDefinition.model_validate(normalize(original.model_dump(mode='json')))
+    assert len(definition.trials) == count and all(trial.status == 'success' for trial in definition.trials)
+    rows = json.loads((root / 'summary.json').read_text())['rows']
+    for trial in definition.trials:
+        row = next(row for row in rows
+                   if row['method'] == trial.method_id
+                   and f"{row['case']}-repeat-{row['repetition']:02d}" == trial.split_id)
+        trial.provenance.notes.append('Measured phases and verification: ' + json.dumps(
+            normalize({'phases': row['phases'], 'verification': row['verification']}), sort_keys=True))
+    definition.provenance.source_artifacts.update({
+        'original_definition': sha256_path(root / 'comparison.definition.json'),
+        'original_aggregate': sha256_path(root / 'comparison.benchmark.json'),
+        'original_timing_summary': sha256_path(root / 'summary.json'),
+        **{'published:' + name: digest for name, digest in bindings.items()},
+        **{'committed:' + name: hashlib.sha256(subprocess.check_output(['git', 'show', measured_commit + ':' + name])).hexdigest()
+           for name in (
+               'src/calibrex/core/provenance.py',
+               'src/calibrex/data/depth.py',
+               'src/calibrex/evaluation/borer_rotation_benchmark.py',
+               'src/calibrex/pipelines/camera_lidar_six_dof.py',
+               'src/calibrex/solvers/borer_depth_to_depth_solver.py',
+               'src/calibrex/solvers/borer_six_dof_solver.py',
+               'src/calibrex/solvers/cuda_depth_to_depth_adapter.py',
+               'src/calibrex/solvers/cuda_depth_to_depth_batch.py',
+               'tools/benchmark_camera_lidar_input_overlap.py',
+           )},
+    })
+    definition.limitations.append(
+        'Paths and GPU model labels are anonymized. Original input/result/config/source '
+        'digests remain intact. Repetition 1 represents each final method/case; this rule '
+        'was fixed before the final run. All ' + str(count) + ' complete raw numerical payloads were checked.'
+    )
+    if prefix == 'superseded':
+        definition.limitations.append(
+            'Pre-buffer-change experiment retained in full, including regressions. '
+            'Superseded implementation is commit ' + SUPERSEDED_COMMIT + '. '
+            'Final representative files are bound for comparison, not this earlier implementation.'
+        )
+    definition.save(DESTINATION / f'{prefix}.definition.json')
+    aggregate_benchmark_definition(definition).save(DESTINATION / f'{prefix}.benchmark.json')
+for path in DESTINATION.glob('*.json'):
+    assert validate_file(path).valid, path
+    assert GPU_NAME not in path.read_text(encoding='utf-8')
+print('Published', len(list(DESTINATION.glob('*.json'))), 'schema-valid JSONs and', len(bindings), 'public byte bindings.')

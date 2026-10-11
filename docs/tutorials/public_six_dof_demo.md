@@ -183,6 +183,23 @@ for _ in range(10):
 # Include snapshot.preparation_seconds once when measuring the complete session.
 ```
 
+Ordinary estimates without a snapshot still verify every external file on each
+call. When the provider references a checkpoint, its SHA256 check now overlaps
+verified observation loading and calculation in one invocation-owned worker.
+The estimate waits for successful verification before constructing or returning
+a result; any checkpoint verification failure rejects the invocation.
+`overlap_input_verification=False` selects sequential checking through the Python
+API. Large files use a bounded 16 MiB reusable hash buffer.
+
+Fresh-file verification and calculation use the same CUDA v0.4 solver as before.
+On six frozen public KITTI cases, three-repeat complete API-call medians improve
+**1.52–2.63x**, with exact full numerical parity in all 54 trials. Shared-host
+variation and an earlier experiment's regression remain visible in the
+[input verification evidence](../assets/input_verification_overlap/README.md).
+The input-handling phase includes the final checkpoint wait once; the background
+checkpoint duration in provenance overlaps other phases and must not be added
+again. These timings exclude depth generation and JSON serialization.
+
 ## Read the evidence
 
 - Exactly 25 endpoint-inclusive uniform positions are selected from numeric-

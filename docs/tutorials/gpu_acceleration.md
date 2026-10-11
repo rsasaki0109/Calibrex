@@ -494,6 +494,18 @@ include depth generation or establish independent calibration accuracy.
 
 ## Profiling the remaining CUDA work
 
+The subsequent fresh-input optimization overlaps checkpoint verification with
+verified observation loading and estimation, and reuses a bounded buffer for
+large SHA256 reads. Every ordinary invocation still verifies every external
+file, and no result is returned before verification succeeds. The same CUDA
+v0.4 solver is used in all methods. Six public KITTI cases show three-repeat
+complete API-call medians improving **1.52–2.63x**, with full numerical parity
+in all 54 final trials. This includes verification and result construction,
+and excludes JSON serialization and depth generation. The
+[input verification evidence](../assets/input_verification_overlap/README.md)
+retains all timings, the serial buffered control and the earlier experiment's
+regression; these shared-host observations are not a portable speed guarantee.
+
 `python tools/profile_d2d_cuda.py --problem problem.json --output-dir profile`
 measures ordinary evaluation latency alongside an instrumented run. Use
 `--exclude-frame-id ID` repeatedly to retain the same training frame selection,
