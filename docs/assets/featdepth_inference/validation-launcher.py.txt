@@ -24,7 +24,7 @@ sources={'validation_launcher':sha256_path(Path(__file__))}
 command=[sys.executable,str(Path(__file__).resolve())]
 rows=[]
 for case in cases:
-    old=Path('outputs/public-kitti-six-dof-sweep-gtx1660ti-v1')/case
+    old=Path('outputs/public-kitti-six-dof-sweep-cuda-v1')/case
     base=CameraLidarCalibrationProblem.model_validate_json((old/'demo.problem.json').read_bytes())
     sources[f'original_problem:{case}']=sha256_path(old/'demo.problem.json')
     historical=load_result(old/'numpy.result.json')
@@ -78,7 +78,7 @@ for case in cases:
                     f'Historical reference errors {previous}; current Torch CPU anchor used for parity.'])))
         rows.append({'case':case,'method':method,'solver_status':status,**metrics,'historical_rotation_deg':previous[0],'historical_translation_m':previous[1]})
         print(case,method,status,metrics,flush=True)
-original=BenchmarkDefinition.model_validate_json((Path('outputs/public-kitti-six-dof-sweep-gtx1660ti-v1/x-positive')/'comparison.definition.json').read_bytes())
+original=BenchmarkDefinition.model_validate_json((Path('outputs/public-kitti-six-dof-sweep-cuda-v1/x-positive')/'comparison.definition.json').read_bytes())
 protocol=original.protocol.model_copy(deep=True)
 protocol.protocol_id='public_featdepth_execution_six_dof_validation/v0.1'
 protocol.splits=[protocol.splits[0].model_copy(update={'split_id':case,'seed':i},deep=True) for i,case in enumerate(cases)]

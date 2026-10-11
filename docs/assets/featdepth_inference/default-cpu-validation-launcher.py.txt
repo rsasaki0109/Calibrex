@@ -24,7 +24,7 @@ provider=Path('outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/provi
 command=[sys.executable,str(Path(__file__).resolve())]
 holdout=['0000000460','0000001035','0000001611','0000002186','0000002761']
 for case in ['x-positive','x-negative','y-positive','y-negative','z-positive','z-negative']:
-    old=Path('outputs/public-kitti-six-dof-sweep-gtx1660ti-v1')/case
+    old=Path('outputs/public-kitti-six-dof-sweep-cuda-v1')/case
     problem=CameraLidarCalibrationProblem.model_validate_json((old/'demo.problem.json').read_bytes())
     directory=root/case/'cpu_default6'
     directory.mkdir()

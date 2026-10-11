@@ -47,7 +47,7 @@ is released by its caller when the session ends.
 An absent CuPy disk-cache directory was selected before process startup. The
 first fresh-file call includes CUDA/NVRTC initialization. No invocation is
 discarded and no separate warmup is used; subsequent compiled caches persist
-inside the process. The i7-9750H / GTX 1660 Ti 6 GiB / 32 GiB Windows host was
+inside the process. The i7-9750H / NVIDIA CUDA GPU 6 GiB / 32 GiB Windows host was
 shared with unrelated user work. Fresh-file calls 3-5 show substantial input
 and solve variation. These observations do not establish statistical confidence
 or a portable latency guarantee. The solver implementation is unchanged, so

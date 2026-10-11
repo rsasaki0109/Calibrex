@@ -28,7 +28,7 @@ and projected counts, skip records, MI and NMI. Every instrumented repetition
 records 400 calls per kernel stage; stage means are retained in trial provenance.
 This is one repeatedly evaluated pose, not 403 independent calibration trials.
 
-On this shared i7-9750H / GTX 1660 Ti 6 GiB Windows host, the median per-pose
+On this shared i7-9750H / NVIDIA CUDA GPU 6 GiB Windows host, the median per-pose
 ordinary wall time is **5.558 ms**, versus **6.527 ms** with event instrumentation.
 The median stage spans are:
 

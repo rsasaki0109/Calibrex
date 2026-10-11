@@ -573,7 +573,7 @@
     "tuning_policy": "Same solver settings for both backends; no holdout tuning."
   },
   "provenance": {
-    "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+    "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
     "data_verified": true,
     "generated_at": "2026-10-10T22:41:55.228338+00:00",
     "generator": "calibrex.pipelines.public_camera_lidar_demo",
@@ -609,14 +609,14 @@
         "translation_difference_m": 0.16007810593582122
       },
       "provenance": {
-        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
         "config_sha256": "3b4b768d9308acaced10a70de2f8a3cb0f79e03e47267cda18f6c7cc83ef6592",
         "input_sha256": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
         "notes": [
           "Same controlled initial pose and 20/5 split for both executions.",
           "Original local result SHA256: 4b65d618dc02d2d48b641802a47f7f56bb936269e2dc56b9feb49eced7e0a7f5"
         ],
-        "output_sha256": "26151145757aa2f443a26106169e3dad284e63e448b6de1ae6ee1469d9a70f14"
+        "output_sha256": "78a3a7c86f61109bffe1f758f457d2504e78fc06ce4330069e731c5faf0c7380"
       },
       "runtime_seconds": 60.75143270002445,
       "split_id": "uniform-25-fit20-holdout5",
@@ -636,14 +636,14 @@
         "translation_difference_m": 0.16007810593582122
       },
       "provenance": {
-        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
         "config_sha256": "3b4b768d9308acaced10a70de2f8a3cb0f79e03e47267cda18f6c7cc83ef6592",
         "input_sha256": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
         "notes": [
           "Same controlled initial pose and 20/5 split for both executions.",
           "Original local result SHA256: 7cf20add603c2ff76d0954a3c4ad3ac004b343de144816ab089a62746ea831f5"
         ],
-        "output_sha256": "05137658958173eff47555ed0fd79f4dbe2aa14ba67fe367fe26a2476ce052e3"
+        "output_sha256": "e3706a810b9f765f0f2b1dcf627e2695ac8a17d013db9ce2732adb9fa06f110b"
       },
       "runtime_seconds": 15.398265499970876,
       "split_id": "uniform-25-fit20-holdout5",

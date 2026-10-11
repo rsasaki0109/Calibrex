@@ -204,7 +204,7 @@
       "license_spdx": "Apache-2.0 (Calibrex); MIT (CuPy); BSD-2-Clause (Numba)",
       "method_id": "cuda",
       "tool_name": "cuda",
-      "tool_version": "calibrex.cuda_depth_pair_projector/v0.2;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false"
+      "tool_version": "calibrex.cuda_depth_pair_projector/v0.2;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false"
     }
   ],
   "metrics": [
@@ -488,7 +488,7 @@
     "tuning_policy": "FP64 and original histogram settings; no solver or metric retuning"
   },
   "provenance": {
-    "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+    "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
     "data_verified": true,
     "generated_at": "2026-10-10T14:54:20.513529+00:00",
     "generator": "tools.benchmark_d2d_projection",
@@ -515,7 +515,7 @@
         "projection_seconds": 0.04692419996717945
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -534,7 +534,7 @@
         "projection_seconds": 0.048770599998533726
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -553,7 +553,7 @@
         "projection_seconds": 0.04954219999490306
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -572,7 +572,7 @@
         "projection_seconds": 0.04803679999895394
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -591,7 +591,7 @@
         "projection_seconds": 0.05351610004436225
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -610,7 +610,7 @@
         "projection_seconds": 0.04947619995800778
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -629,7 +629,7 @@
         "projection_seconds": 0.04954959999304265
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -648,7 +648,7 @@
         "projection_seconds": 0.04884119995404035
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -667,7 +667,7 @@
         "projection_seconds": 0.05442850000690669
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -686,7 +686,7 @@
         "projection_seconds": 0.05509639997035265
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -705,7 +705,7 @@
         "projection_seconds": 0.09349380002822727
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -724,7 +724,7 @@
         "projection_seconds": 0.08599019999383017
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -743,7 +743,7 @@
         "projection_seconds": 0.08515659999102354
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -762,7 +762,7 @@
         "projection_seconds": 0.08043470000848174
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -781,7 +781,7 @@
         "projection_seconds": 0.08250880002742633
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -800,7 +800,7 @@
         "projection_seconds": 0.08708349999506027
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -819,7 +819,7 @@
         "projection_seconds": 0.08367550000548363
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -838,7 +838,7 @@
         "projection_seconds": 0.05261770001379773
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -857,7 +857,7 @@
         "projection_seconds": 0.08116589998826385
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -876,7 +876,7 @@
         "projection_seconds": 0.05481469997903332
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -895,7 +895,7 @@
         "projection_seconds": 0.049170599959325045
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -914,7 +914,7 @@
         "projection_seconds": 0.049247900024056435
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -933,7 +933,7 @@
         "projection_seconds": 0.0513803000212647
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -952,7 +952,7 @@
         "projection_seconds": 0.04986929998267442
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -971,7 +971,7 @@
         "projection_seconds": 0.049093699955847114
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -990,7 +990,7 @@
         "projection_seconds": 0.020445600035600364
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1009,7 +1009,7 @@
         "projection_seconds": 0.021077900019008666
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1028,7 +1028,7 @@
         "projection_seconds": 0.021718299947679043
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1047,7 +1047,7 @@
         "projection_seconds": 0.02169950003735721
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1066,7 +1066,7 @@
         "projection_seconds": 0.02222580002853647
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1085,7 +1085,7 @@
         "projection_seconds": 0.021520000009331852
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1104,7 +1104,7 @@
         "projection_seconds": 0.020092599967028946
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1123,7 +1123,7 @@
         "projection_seconds": 0.019374000024981797
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1142,7 +1142,7 @@
         "projection_seconds": 0.02543919999152422
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1161,7 +1161,7 @@
         "projection_seconds": 0.025754000002052635
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1180,7 +1180,7 @@
         "projection_seconds": 0.03463800001190975
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1199,7 +1199,7 @@
         "projection_seconds": 0.03198319999501109
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1218,7 +1218,7 @@
         "projection_seconds": 0.03290310001466423
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1237,7 +1237,7 @@
         "projection_seconds": 0.03340899996692315
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1256,7 +1256,7 @@
         "projection_seconds": 0.03359240002464503
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1275,7 +1275,7 @@
         "projection_seconds": 0.03300869994563982
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1294,7 +1294,7 @@
         "projection_seconds": 0.035516400006599724
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1313,7 +1313,7 @@
         "projection_seconds": 0.03485779999755323
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1332,7 +1332,7 @@
         "projection_seconds": 0.025451500026974827
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1351,7 +1351,7 @@
         "projection_seconds": 0.022618899994995445
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1370,7 +1370,7 @@
         "projection_seconds": 0.02030259999446571
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1389,7 +1389,7 @@
         "projection_seconds": 0.01990380004281178
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1408,7 +1408,7 @@
         "projection_seconds": 0.0199070000089705
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1427,7 +1427,7 @@
         "projection_seconds": 0.02071310003520921
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1446,7 +1446,7 @@
         "projection_seconds": 0.02005180000560358
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1465,7 +1465,7 @@
         "projection_seconds": 0.011626899999100715
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1484,7 +1484,7 @@
         "projection_seconds": 0.011349899985361844
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1503,7 +1503,7 @@
         "projection_seconds": 0.010567999968770891
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1522,7 +1522,7 @@
         "projection_seconds": 0.011898100026883185
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1541,7 +1541,7 @@
         "projection_seconds": 0.012191799993161112
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1560,7 +1560,7 @@
         "projection_seconds": 0.011440400034189224
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1579,7 +1579,7 @@
         "projection_seconds": 0.011224000016227365
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1598,7 +1598,7 @@
         "projection_seconds": 0.011490000004414469
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1617,7 +1617,7 @@
         "projection_seconds": 0.011838199978228658
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1636,7 +1636,7 @@
         "projection_seconds": 0.010846099990885705
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1655,7 +1655,7 @@
         "projection_seconds": 0.016446800029370934
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1674,7 +1674,7 @@
         "projection_seconds": 0.017458199989050627
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1693,7 +1693,7 @@
         "projection_seconds": 0.020553799986373633
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1712,7 +1712,7 @@
         "projection_seconds": 0.016070299956481904
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1731,7 +1731,7 @@
         "projection_seconds": 0.016206500004045665
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1750,7 +1750,7 @@
         "projection_seconds": 0.020033699984196573
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1769,7 +1769,7 @@
         "projection_seconds": 0.017528199998196214
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1788,7 +1788,7 @@
         "projection_seconds": 0.021934500022325665
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1807,7 +1807,7 @@
         "projection_seconds": 0.02248619997408241
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1826,7 +1826,7 @@
         "projection_seconds": 0.020771400013472885
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1845,7 +1845,7 @@
         "projection_seconds": 0.021439700038172305
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1864,7 +1864,7 @@
         "projection_seconds": 0.020626600016839802
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1883,7 +1883,7 @@
         "projection_seconds": 0.02065680001396686
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1902,7 +1902,7 @@
         "projection_seconds": 0.02154689998133108
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",
@@ -1921,7 +1921,7 @@
         "projection_seconds": 0.02149970002938062
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-gtx1660ti-v2/double-sphere",
+        "command": "python tools/benchmark_d2d_projection.py --projection double_sphere --points 200000 --width 1280 --height 720 --repeats 25 --output-dir outputs/d2d-cuda-cuda-v2/double-sphere",
         "config_sha256": "e46adb6e9068bf694b0069c7960da89638cb1c9b582173a22e2b6fadefe9e121",
         "execution_host": "${HOST}",
         "input_sha256": "4cacb6218568dba71b9b2dbb4f329e7a272f57408f4bb45388ff8bf72b33613d",

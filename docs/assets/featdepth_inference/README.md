@@ -16,12 +16,18 @@ FeatDepth commit is `550420b3fb51a027549716b74c6fbce41651d3a5`; checkpoint SHA25
 is `559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27`.
 Images, weights, LiDAR scans and generated NumPy arrays remain external.
 
+Public GPU model labels and hardware-specific output-directory names are
+anonymized. Published file bindings in the evidence manifest were updated;
+original input, result and measurement-launcher digests still identify the
+original run bytes. Numerical values and timings are unchanged. Archived
+validation launchers therefore have separate original and published digests.
+
 ## Workload and execution
 
 KITTI raw `2011_09_30_drive_0018_sync/image_02`, the same 25 uniformly selected
 frames as the public six-DoF demo, 1226 x 370 source images, 1024 x 320 network
 inputs. Raw inverse-depth/disparity is returned to each original image grid.
-The i7-9750H / GTX 1660 Ti 6 GiB / 32 GiB Windows host was shared with unrelated
+The i7-9750H / NVIDIA CUDA GPU 6 GiB / 32 GiB Windows host was shared with unrelated
 user work. Environment: Python 3.12.10, NumPy 2.3.4, Pillow 12.3.0,
 PyTorch 2.11.0+cu128, CUDA runtime 12.8. GPU FP32 settings retain the existing
 cuDNN defaults, including `benchmark=false`. Training overlap with KITTI raw

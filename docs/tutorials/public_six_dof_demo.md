@@ -227,12 +227,12 @@ inputs are rejected before the comparison starts.
 On the original public drive 0018 frames, both backends converged in 229
 evaluations with exact numerical parity. Reference rotation difference changed
 from 0.5000° to 0.3909°, translation from 0.5000 m to 0.1601 m, and holdout MI
-from 1.0857 to 1.2935 nat. The final GTX 1660 Ti invocation took 54.824 s CPU /
+from 1.0857 to 1.2935 nat. The final NVIDIA CUDA GPU invocation took 54.824 s CPU /
 6.734 s CUDA for solving, and 60.751 / 15.398 s for the measured pipeline phases.
 The earlier invocation's solve-time ratio was 4.58x versus 8.14x for the final
 invocation, illustrating timing variation.
 
-With `--repetitions 3` on the same GTX 1660 Ti, all six runs converged with the
+With `--repetitions 3` on the same NVIDIA CUDA GPU, all six runs converged with the
 same 229-evaluation numerical trace. CPU solve median was 74.306 s (range
 51.270–75.150 s); CUDA median was 3.611 s (3.302–8.685 s), a ratio of medians of
 20.58x. Measured pipeline medians were 76.865 / 7.652 s (10.04x), excluding shared

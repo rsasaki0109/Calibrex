@@ -15,7 +15,7 @@
       "parent": "camera_2",
       "provenance": {
         "adapter_version": "calibrex.public_six_dof_demo/v0.1",
-        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-gtx1660ti-v2 --json",
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
         "evidence_level": "unknown",
         "execution_mode": "offline_batch",
         "license_spdx": null,
@@ -189,7 +189,7 @@
         "${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync",
         "${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json",
         "--output-dir",
-        "outputs/public-kitti-six-dof-gtx1660ti-v2",
+        "outputs/public-kitti-six-dof-cuda-v2",
         "--json"
       ],
       "config_digest_unavailable_reason": null,
@@ -372,7 +372,7 @@
       "input_sha256": "4d5394638ce16138fbfefd444c6d5a6a0dac7af7ef9afe77fd60e0acac5590ff",
       "pipeline": "calibrex.camera_lidar_six_dof_estimate/v0.1",
       "pipeline_source_sha256": "31517b01825676ccb67bff002e86f490f9284fc9bb7ec191d24cc52d1bb60d38",
-      "problem_path": "${WORKSPACE_ROOT}/outputs/public-kitti-six-dof-gtx1660ti-v2/demo.problem.json",
+      "problem_path": "${WORKSPACE_ROOT}/outputs/public-kitti-six-dof-cuda-v2/demo.problem.json",
       "producer": "calibrex",
       "projection_backend": "calibrex.numpy_depth_pair_projector/v0.2;numpy=2.3.4",
       "projection_transfer_statistics": {},

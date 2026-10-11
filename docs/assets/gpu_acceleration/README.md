@@ -56,7 +56,7 @@ records, output transforms and initial/final holdout evaluations.
 | NumPy | 2.352 s | <0.001 s | 29.591 s | 0.105 s |
 | CUDA | 2.350 s | 0.618 s | 1.847 s | 0.006 s |
 
-This is an end-to-end smoke check on the same GTX 1660 Ti, not a repeated timing
+This is an end-to-end smoke check on the same NVIDIA CUDA GPU, not a repeated timing
 benchmark. The declared problem prior is the dataset reference; this run does
 not demonstrate recovery from an independently measured prior or establish
 calibration accuracy. Quality remains `warn`, with no estimated covariance or

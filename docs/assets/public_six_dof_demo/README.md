@@ -25,7 +25,7 @@ initial/final holdout evaluations match exactly.
 | Fit MI | 1.064769 nat | 1.234290 nat |
 | Holdout MI | 1.085693 nat | 1.293495 nat |
 
-The final invocation ran on an i7-9750H / GTX 1660 Ti 6 GiB, Windows, Python
+The final invocation ran on an i7-9750H / NVIDIA CUDA GPU 6 GiB, Windows, Python
 3.12.10, NumPy 2.3.4, CuPy 14.2.0, driver 596.36, with the local CUDA 12.8
 toolkit. The default 256 MiB cache retained all 25 frames (190,892,928 bytes),
 with zero large input uploads during evaluation.

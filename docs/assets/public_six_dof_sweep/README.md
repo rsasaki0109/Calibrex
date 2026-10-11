@@ -5,7 +5,7 @@ and a separate CPU process execution check on public KITTI raw drive
 `2011_09_30_drive_0018_sync/image_02`. All runs use the same 25 original frames,
 3,130,279 Velodyne points, 20-fit/5-holdout split, and frozen FeatDepth provider:
 `7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360`.
-Hardware is the i7-9750H / GTX 1660 Ti 6 GiB Windows environment used in the
+Hardware is the i7-9750H / NVIDIA CUDA GPU 6 GiB Windows environment used in the
 [earlier demonstration](../public_six_dof_demo/README.md): Python 3.12.10,
 NumPy 2.3.4, CuPy 14.2.0, driver 596.36, local CUDA 12.8 toolkit.
 

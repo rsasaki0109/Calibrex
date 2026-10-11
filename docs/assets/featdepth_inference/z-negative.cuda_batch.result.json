@@ -8,7 +8,7 @@
       "parent": "camera_2",
       "provenance": {
         "adapter_version": "calibrex.public_six_dof_demo/v0.2",
-        "command": "calibrex demo kitti-six-dof-sweep /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync /external/calibrex-public-inputs/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-gtx1660ti-v1 --json",
+        "command": "calibrex demo kitti-six-dof-sweep /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync /external/calibrex-public-inputs/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
         "evidence_level": "unknown",
         "execution_mode": "offline_batch",
         "notes": [
@@ -210,7 +210,7 @@
           "translation_bound_m": 1.0
         },
         "pipeline_version": "calibrex.camera_lidar_six_dof_estimate/v0.3",
-        "projection_backend": "calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
+        "projection_backend": "calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
         "train_frame_ids": [
           "0000000000",
           "0000000115",
@@ -361,7 +361,7 @@
       "pipeline_source_sha256": "eb6db5f0769bc6415149df8888bf9f3ca4325c53a289afa8a7d84df0d3e402d5",
       "problem_path": "outputs\\public-kitti-featdepth-six-dof-v1\\z-negative\\cuda_batch\\problem.json",
       "producer": "calibrex",
-      "projection_backend": "calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
+      "projection_backend": "calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
       "projection_transfer_statistics": {
         "cache_budget_bytes": 268435456,
         "cached_input_bytes": 190892928,
@@ -712,7 +712,7 @@
         },
         "method": "bounded_se3_pattern_search/v0.1",
         "primary_source": "https://arxiv.org/abs/2311.01905",
-        "projection_backend": "calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
+        "projection_backend": "calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
         "status": "converged",
         "stopping_reason": "minimum SE(3) steps reached",
         "trace": [

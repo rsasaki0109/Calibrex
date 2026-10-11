@@ -46,7 +46,7 @@ fused CPU. Ratios of pipeline phase medians are **1.6148x** and **2.1796x**,
 respectively. Pipeline phases include input verification/loading, backend
 preparation, solve, and holdout/pool shutdown; shared setup, serialization, and
 report rendering are excluded. Verification remains enabled, including the
-provider checkpoint hash. Measurements ran on i7-9750H / GTX 1660 Ti 6 GiB,
+provider checkpoint hash. Measurements ran on i7-9750H / NVIDIA CUDA GPU 6 GiB,
 Windows, Python 3.12.10, NumPy 2.3.4, Numba 0.65.1, and CuPy 14.2.0. The host
 was not isolated from other running work, and substantial variation is visible,
 especially the last CPU invocation. Cold compilation contributes to the CPU
