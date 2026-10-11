@@ -617,6 +617,30 @@ completed API workers from an interrupted attempt. The interrupted attempt's
 wall timing and final parent guards are unavailable; its API times remain in a
 separate protocol. Prior ratios are not multiplied.
 
+## Packing Livox neighborhoods and shared coordinates
+
+Livox evaluation now prepares occupied voxel neighbors in the original 27-offset
+order and shares one read-only transformed array between voxel and plane checks.
+Checked integer encoding and unbuffered voxel additions preserve scalar sums and
+first-seen key order. Large extents and unusual inputs retain the scalar or sparse
+paths. The original direct table and packed neighborhood lookup share an 8 MiB
+budget per index; only the latest transformed array per file is retained.
+
+Against the preceding accelerated version, five fresh-process repetitions per
+method measure **3.238 -> 0.954 s (3.40x)** for the candidate plus all 24 controls,
+timed inside the same complete run. Prior inspection is outside that phase.
+Complete-process medians are **8.593 -> 6.201 s (1.39x)**, and the calibration API
+subset is **6.169 -> 3.912 s (1.58x)**. The phase ratio is not the whole-process ratio.
+A separate direct cumulative comparison to the version before Livox acceleration
+measures **54.026 -> 9.270 s (5.83x)**. Earlier ratios are not multiplied.
+
+All twenty final saved results and API payloads match after volatile-field
+normalization. Quality remains `fail`, and registration remains `inconclusive`.
+The [packed evaluation evidence](../assets/livox_packed/README.md) retains every
+timing, source binding, artifact hash and an earlier ten-worker comparison.
+This CPU change adds no dependency or GPU backend. The single-pair measurements
+do not establish calibration accuracy or portable speed guarantees.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2

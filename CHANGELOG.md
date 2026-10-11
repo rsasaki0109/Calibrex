@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Pack exact Livox voxel neighborhoods within the existing 8 MiB lookup budget
+  and share read-only transformed coordinates between voxel and plane evidence.
+  Preserve ordered voxel sums, first-seen keys, nearest ties and all control cases.
+  Measure candidate/control evaluation within the same complete calibration run
+  and publish phase and whole-process gains separately, with exact result parity.
+
 - Share Livox captured inputs and statistics across inspection, candidate/control
   evaluation and registration within one calibration run. Reuse source voxel sums
   and immutable plane arrays, cap compact direct-index tables at 8 MiB each and
