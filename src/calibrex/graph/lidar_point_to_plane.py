@@ -168,8 +168,15 @@ class LidarRigPointToPlaneFactor:
                 ]
             )
         jacobian_rows = _transpose(jacobian)
-        hessian = _jtj(jacobian_rows)
-        gradient = _jtr(jacobian_rows, residuals)
+        if len(jacobian_rows) >= 64:
+            rows = np.asarray(jacobian_rows, dtype=np.float64)
+            values = np.asarray(residuals, dtype=np.float64)
+            if np.all(np.isfinite(rows)) and np.all(np.isfinite(values)):
+                hessian, gradient = _ordered_normal_equations(rows, values)
+            else:
+                hessian, gradient = _jtj(jacobian_rows), _jtr(jacobian_rows, residuals)
+        else:
+            hessian, gradient = _jtj(jacobian_rows), _jtr(jacobian_rows, residuals)
         return LidarRigPointToPlaneLinearization(
             variable=self.variable,
             dof_names=self.dof_names,
@@ -279,6 +286,7 @@ class _ObservationArrays:
     normals: NDArray[np.float64]
     poses: NDArray[np.float64]
     sqrt_weights: NDArray[np.float64]
+    shared_pose: SE3 | None
 
 
 def _prepare_observation_arrays(
@@ -303,7 +311,9 @@ def _prepare_observation_arrays(
     arrays[-1] = np.sqrt(arrays[-1])
     for array in arrays:
         array.flags.writeable = False
-    return _ObservationArrays(*arrays)
+    poses = arrays[3].view(np.uint64)
+    shared_pose = observations[0].t_world_ego if np.all(poses == poses[0]) else None
+    return _ObservationArrays(arrays[0], arrays[1], arrays[2], arrays[3], arrays[4], shared_pose)
 
 
 def _raw_array_product(
@@ -345,16 +355,21 @@ def _array_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
     translation = np.asarray(transform.translation_m, dtype=np.float64)
     rotation = np.asarray(transform.rotation_quat_xyzw, dtype=np.float64)
     residuals: list[float] = []
+    shared = arrays.shared_pose.compose(transform) if arrays.shared_pose is not None else None
     # Bound temporary arrays independently of the observation population.
     with np.errstate(over="ignore", invalid="ignore"):
         for start in range(0, len(arrays.points), 4096):
             stop = start + 4096
-            poses = arrays.poses[start:stop]
-            world_translation = poses[:, :3] + _rotate_array_points(poses[:, 3:], translation)
-            # quaternion_multiply_xyzw and SE3.__post_init__ each normalize.
-            world_rotation = _normalize_array_quaternions(_normalize_array_quaternions(
-                _raw_array_product(poses[:, 3:], rotation)
-            ))
+            if shared is not None:
+                world_translation = np.asarray(shared.translation_m, dtype=np.float64)
+                world_rotation = np.asarray(shared.rotation_quat_xyzw, dtype=np.float64)
+            else:
+                poses = arrays.poses[start:stop]
+                world_translation = poses[:, :3] + _rotate_array_points(poses[:, 3:], translation)
+                # quaternion_multiply_xyzw and SE3.__post_init__ each normalize.
+                world_rotation = _normalize_array_quaternions(_normalize_array_quaternions(
+                    _raw_array_product(poses[:, 3:], rotation)
+                ))
             world_points = (
                 _rotate_array_points(world_rotation, arrays.points[start:stop])
                 + world_translation
@@ -367,6 +382,30 @@ def _array_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
             )
             residuals.extend((arrays.sqrt_weights[start:stop] * values).tolist())
     return residuals
+
+
+def _ordered_normal_equations(
+    rows: NDArray[np.float64], residuals: NDArray[np.float64],
+    weights: NDArray[np.float64] | None = None,
+) -> tuple[list[list[float]], list[float]]:
+    """Accumulate six-column products in the original row and multiply order."""
+
+    hessian = np.zeros((6, 6), dtype=np.float64)
+    gradient = np.zeros(6, dtype=np.float64)
+    with np.errstate(over="ignore", invalid="ignore"):
+        for start in range(0, len(rows), 4096):
+            stop = start + 4096
+            chunk = rows[start:stop]
+            weighted = chunk if weights is None else weights[start:stop, None] * chunk
+            products = weighted[:, :, None] * chunk[:, None, :]
+            hessian = np.add.accumulate(np.concatenate((
+                hessian[None, :, :], products,
+            )), axis=0)[-1]
+            products_gradient = weighted * residuals[start:stop, None]
+            gradient = np.add.accumulate(np.concatenate((
+                gradient[None, :], products_gradient,
+            )), axis=0)[-1]
+    return hessian.tolist(), gradient.tolist()
 
 
 def _correction_vector(correction: Sequence[float] | None) -> tuple[float, ...]:

@@ -1,8 +1,8 @@
 """Measure fresh public Livox calibration subprocesses and full result parity.
 
-The comparison workflow replaces five Livox geometry/evaluation modules; the
-fixed-rig workflow replaces only the point-to-plane factor. Other solvers,
-correspondence builders and artifact writers are shared between methods.
+The workflow scope replaces five comparison modules or the fixed-rig factor.
+The runtime scope replaces decoding, quality evaluation, native input loading,
+pipeline wiring, tree startup and ordered optimizer operations. Other code and writers are shared.
 No input, output, report, control or external backend is skipped to save time.
 """
 
@@ -40,6 +40,8 @@ SOURCES = (
     "src/calibrex/graph/lidar_point_to_plane.py",
     "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
     "src/calibrex/solvers/native_lidar_point_to_plane_solver.py",
+    "src/calibrex/evaluation/solid_state.py",
+    "src/calibrex/solvers/_exact_neighbors.py",
     "tools/benchmark_livox_evaluation.py",
 )
 
@@ -72,12 +74,22 @@ def _normalized_result(payload, output_dir: Path):
     return visit(payload)
 
 
-def _workflow_modules(workflow: str) -> tuple[str, ...]:
+def _workflow_modules(workflow: str, scope: str = "workflow") -> tuple[str, ...]:
+    if scope == "runtime":
+        return (
+            "calibrex.data.livox", "calibrex.evaluation.solid_state",
+            "calibrex.evaluation.lidar",
+            "calibrex.solvers.native_lidar_point_to_plane_solver",
+            "calibrex.pipelines.calibrate", "calibrex.solvers._exact_neighbors",
+            "calibrex.graph.lidar_point_to_plane",
+            "calibrex.solvers.fixed_trajectory_se3_solver",
+        )
     return ("calibrex.graph.lidar_point_to_plane",) if workflow == "fixed-rig" else MODULES
 
 
 def _worker(args) -> None:
-    modules = _workflow_modules(args.workflow)
+    import_started = time.perf_counter()
+    modules = _workflow_modules(args.workflow, args.baseline_scope)
     if args.worker == "baseline":
         from importlib.abc import MetaPathFinder
         from importlib.machinery import SourceFileLoader
@@ -98,6 +110,37 @@ def _worker(args) -> None:
     from calibrex.core.config import load_config
     from calibrex.pipelines import calibrate
     from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+    imports_seconds = time.perf_counter() - import_started
+
+    from calibrex.data import livox
+    from calibrex.solvers import native_lidar_point_to_plane_solver as native_pair
+
+    decode_seconds = 0.0
+    decode_calls = 0
+    read_records = livox.read_livox_binary_pcd_records
+
+    def measured_decode(*arguments, **keywords):
+        nonlocal decode_seconds, decode_calls
+        decode_calls += 1
+        started = time.perf_counter()
+        try:
+            return read_records(*arguments, **keywords)
+        finally:
+            decode_seconds += time.perf_counter() - started
+
+    livox.read_livox_binary_pcd_records = measured_decode
+    native_pair.read_livox_binary_pcd_records = measured_decode
+
+    from calibrex.evaluation import lidar
+
+    probe_pool_workers = []
+    executor = getattr(lidar, "ThreadPoolExecutor", None)
+    if executor is not None:
+        def measured_pool(*arguments, **keywords):
+            probe_pool_workers.append(keywords.get("max_workers"))
+            return executor(*arguments, **keywords)
+
+        lidar.ThreadPoolExecutor = measured_pool
 
     evidence_seconds = 0.0
     evaluate = calibrate.livox_pair_evidence_from_dataset
@@ -135,6 +178,11 @@ def _worker(args) -> None:
     summary = {
         "pipeline_seconds": pipeline_seconds,
         "livox_evidence_seconds": evidence_seconds,
+        "worker_import_seconds": imports_seconds,
+        "capture_decode_seconds": decode_seconds,
+        "capture_decode_calls": decode_calls,
+        "spatial_loaded": "scipy.spatial" in sys.modules,
+        "probe_pool_workers": probe_pool_workers,
         "loaded_evaluation_modules": {name: sys.modules[name].__file__ for name in modules},
         "result": _normalized_result(result.model_dump(mode="json"), args.output_dir),
         "result_sha256": _sha(args.output_dir / result_filename),
@@ -161,6 +209,7 @@ def main(argv: list[str] | None = None) -> None:
         help="Defaults to the existing public config for the selected workflow.",
     )
     parser.add_argument("--workflow", choices=("comparison", "fixed-rig"), default="comparison")
+    parser.add_argument("--baseline-scope", choices=("workflow", "runtime"), default="workflow")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--baseline-commit", default=BASELINE)
     parser.add_argument("--repetitions", type=int, default=5)
@@ -169,7 +218,7 @@ def main(argv: list[str] | None = None) -> None:
     arguments = sys.argv[1:] if argv is None else argv
     args = parser.parse_args(arguments)
     args.output_dir = args.output_dir.resolve()
-    modules = _workflow_modules(args.workflow)
+    modules = _workflow_modules(args.workflow, args.baseline_scope)
     if args.config is None:
         filename = ("online_accumulation_config.yaml" if args.workflow == "fixed-rig"
                     else "icp_comparison_config.yaml")
@@ -229,6 +278,7 @@ def main(argv: list[str] | None = None) -> None:
                 sys.executable,
                 str(Path(__file__).resolve()),
                 "--workflow", args.workflow,
+                "--baseline-scope", args.baseline_scope,
                 "--worker",
                 method,
                 "--config",
@@ -270,6 +320,9 @@ def main(argv: list[str] | None = None) -> None:
                 "pipeline_seconds": row["pipeline_seconds"],
                 "livox_evidence_seconds": row["livox_evidence_seconds"],
                 "complete_result_matches": float(matches),
+                "worker_import_seconds": row["worker_import_seconds"],
+                "capture_decode_seconds": row["capture_decode_seconds"],
+                "capture_decode_calls": float(row["capture_decode_calls"]),
             }
             if args.workflow == "fixed-rig":
                 metrics["optimizer_seconds"] = row["optimizer_seconds"]
@@ -294,6 +347,8 @@ def main(argv: list[str] | None = None) -> None:
                                     "result_sha256": row["result_sha256"],
                                     "artifacts": row["artifacts"],
                                     "loaded_evaluation_modules": row["loaded_evaluation_modules"],
+                                    "spatial_loaded": row["spatial_loaded"],
+                                    "probe_pool_workers": row["probe_pool_workers"],
                                 },
                                 sort_keys=True,
                             ),
@@ -311,12 +366,12 @@ def main(argv: list[str] | None = None) -> None:
     ):
         raise ValueError("source, configuration or input bytes changed during benchmark")
     definition = BenchmarkDefinition(
-        benchmark_id=f"livox-complete-pipeline-{args.workflow}",
+        benchmark_id=f"livox-complete-pipeline-{args.workflow}-{args.baseline_scope}",
         title=f"Public Livox full {args.workflow} calibration subprocess",
         reference_method_id="baseline",
         bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id=f"livox-{args.workflow}-fresh-subprocess-v4",
+            protocol_id=f"livox-{args.workflow}-{args.baseline_scope}-fresh-subprocess-v6",
             dataset_id="livox_horizon_horizon_pcd_sample",
             dataset_source_sha256=input_digest,
             data_license="Official public Livox sample terms",
@@ -347,7 +402,7 @@ def main(argv: list[str] | None = None) -> None:
                 implementation="subprocess",
                 tool_name="Calibrex",
                 tool_version="0.5.1",
-                adapter_version="livox-evaluation/v4",
+                adapter_version="livox-evaluation/v6",
                 source_commit=baseline if method == "baseline" else source_commit,
             )
             for method in ("baseline", "batched")
@@ -356,21 +411,18 @@ def main(argv: list[str] | None = None) -> None:
             BenchmarkMetricDefinition(
                 name=name,
                 label=name,
-                unit="bool" if name.endswith("matches") else "s",
+                unit=("bool" if name.endswith("matches") else
+                      "calls" if name.endswith("calls") else "s"),
                 direction="higher" if name.endswith("matches") else "lower",
                 primary=name == "subprocess_wall_seconds",
-                interpretation=(
-                    "Full result equality after explicit volatile-field normalization"
-                    if name.endswith("matches") else (
-                        "Full candidate and 24-control evidence call within the same pipeline"
-                        if name == "livox_evidence_seconds"
-                        else (
-                            "Fixed-trajectory optimizer, including initial/final diagnostics"
-                            if name == "optimizer_seconds"
-                            else "Fresh process wall or its pipeline subset"
-                        )
-                    )
-                ),
+                interpretation={
+                    "complete_result_matches": "Full result equality after volatile normalization",
+                    "capture_decode_calls": "Existing point-reader calls, including failures",
+                    "capture_decode_seconds": "Point reads/decoding within the complete run",
+                    "worker_import_seconds": "Worker entry through imports, excluding startup",
+                    "livox_evidence_seconds": "Full candidate and 24-control evidence call",
+                    "optimizer_seconds": "Optimizer including initial/final diagnostics",
+                }.get(name, "Fresh process wall or its pipeline subset"),
             )
             for name in trials[0].metrics
         ],
@@ -386,16 +438,16 @@ def main(argv: list[str] | None = None) -> None:
             "reads, preparation and summaries; prior inspection is outside this subset. No "
             "additional evaluation or warmup is performed to obtain the phase timing.",
             "Full result parity normalizes only run ID/timestamps and destination paths.",
-            "Comparison replaces five evaluation modules; fixed-rig replaces only the factor. "
-            "Other solvers, correspondence builders and writers are shared. Loaded module "
-            "filenames and all source bytes are checked.",
+            f"Scope {args.baseline_scope} replaces {len(modules)} named modules; other code "
+            "and writers are shared. Loaded module filenames and all source bytes are checked.",
             "Optimizer time is a subset of the same complete run, without extra calls/warmup.",
+            "Decode/import timers are subsets of the same run, without extra reads or imports.",
             "The single pair is limited geometry evidence; quality failures remain failures.",
             "Timings are descriptive ranges, not confidence or portable speedup estimates.",
         ],
         provenance=BenchmarkProvenance(
             generator="tools.benchmark_livox_evaluation",
-            generator_version="v0.4",
+            generator_version="v0.6",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

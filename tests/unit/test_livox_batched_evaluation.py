@@ -366,9 +366,9 @@ def test_context_reuses_effective_samples_and_returns_independent_point_lists(
     original = livox._summarize_sample
     samples = []
 
-    def summarize(path, points):
+    def summarize(path, points, **kwargs):
         samples.append(path)
-        return original(path, points)
+        return original(path, points, **kwargs)
 
     monkeypatch.setattr(livox, "_summarize_sample", summarize)
     first = livox.summarize_livox_pcd(tmp_path, sample_limit=2, context=context)

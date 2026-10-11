@@ -36,6 +36,10 @@ def test_invalid_workload_is_rejected_before_execution(tmp_path, option):
 def test_fixed_rig_replaces_factor_and_comparison_keeps_existing_module_set():
     assert benchmark._workflow_modules("fixed-rig") == ("calibrex.graph.lidar_point_to_plane",)
     assert benchmark._workflow_modules("comparison") == benchmark.MODULES
+    runtime = benchmark._workflow_modules("fixed-rig", "runtime")
+    assert len(runtime) == 8
+    assert "calibrex.graph.lidar_point_to_plane" in runtime
+    assert "calibrex.solvers.fixed_trajectory_se3_solver" in runtime
 
 
 def test_fixed_rig_rejects_a_different_backend_before_creating_outputs(tmp_path):

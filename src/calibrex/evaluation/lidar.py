@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import math
+import os
 from collections.abc import Iterable, Mapping
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+
+import numpy as np
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3, QuaternionXYZW, Vector3
@@ -22,8 +26,10 @@ from calibrex.data.livox import (
     LivoxPCDEvaluationContext,
     LivoxPointRecord,
     VoxelPlaneMap,
+    _transform_coordinates,
     build_voxel_plane_map,
     nearest_voxel_plane,
+    nearest_voxel_planes,
     summarize_livox_pair_point_to_plane,
     summarize_livox_pcd,
 )
@@ -424,9 +430,16 @@ def livox_pair_evidence_from_dataset(
     config: CalibrationConfig,
     *,
     context: LivoxPCDEvaluationContext | None = None,
+    probe_workers: int | None = None,
 ) -> LivoxPairEvidenceEvaluation:
-    """Evaluate Livox pair evidence and retain per-probe details."""
+    """Evaluate ordered Livox probes with up to four workers on larger clouds.
 
+    ``probe_workers=1`` retains serial execution. Each worker owns its transform
+    cache; captured inputs and candidate-prepared geometry are shared read-only.
+    """
+
+    if probe_workers is not None and not 1 <= probe_workers <= 4:
+        raise ValueError("Livox probe_workers must be between 1 and 4")
     if context is None:
         context = LivoxPCDEvaluationContext(dataset_path)
     baseline = summarize_livox_pcd(
@@ -446,6 +459,7 @@ def livox_pair_evidence_from_dataset(
         baseline_point_to_plane=point_to_plane,
         config=config,
         context=context,
+        probe_workers=probe_workers,
     )
     metrics.update(known_bad_metrics)
     return LivoxPairEvidenceEvaluation(
@@ -464,6 +478,7 @@ def _livox_pair_known_bad_evidence(
     baseline_point_to_plane: LivoxPairPointToPlaneStats,
     config: CalibrationConfig,
     context: LivoxPCDEvaluationContext,
+    probe_workers: int | None = None,
 ) -> tuple[dict[str, MetricResult], list[EvidenceCaseItem]]:
     baseline_recall = baseline.pair_source_voxel_recall_in_target
     baseline_rmse = baseline.pair_shared_voxel_centroid_rmse_m
@@ -489,16 +504,34 @@ def _livox_pair_known_bad_evidence(
     cases: list[EvidenceCaseItem] = []
     measurable_cases = 0
     worsened_cases = 0
-    for dof, amount, unit, perturbation in _perturbation_cases(config):
+    probes = _perturbation_cases(config)
+    workers = (
+        probe_workers if probe_workers is not None else
+        min(4, os.cpu_count() or 1) if baseline.sampled_point_count >= 20000 else 1
+    )
+
+    def evaluate_probe(
+        probe: tuple[str, float, str, SE3],
+    ) -> tuple[str, float, str, LivoxPCDDatasetStats, LivoxPairPointToPlaneStats]:
+        dof, amount, unit, perturbation = probe
+        scoped = context._fork_queries() if workers > 1 else context
         perturbed_transform = perturbation.compose(target_transform)
         perturbed = summarize_livox_pcd(
-            dataset_path, target_transform=perturbed_transform, context=context,
+            dataset_path, target_transform=perturbed_transform, context=scoped,
         )
         perturbed_point_to_plane = summarize_livox_pair_point_to_plane(
             dataset_path,
             target_transform=perturbed_transform,
-            context=context,
+            context=scoped,
         )
+        return dof, amount, unit, perturbed, perturbed_point_to_plane
+
+    if workers > 1:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="livox-probe") as pool:
+            evaluations = list(pool.map(evaluate_probe, probes))
+    else:
+        evaluations = [evaluate_probe(probe) for probe in probes]
+    for dof, amount, unit, perturbed, perturbed_point_to_plane in evaluations:
         recall_delta = _recall_delta(
             baseline_recall,
             perturbed.pair_source_voxel_recall_in_target,
@@ -964,6 +997,20 @@ def build_rig_point_to_plane_observations(
     if target_t_world_source is not None and len(target_t_world_source) != len(target_points):
         msg = "target_t_world_source length must match target_points"
         raise ValueError(msg)
+    if target_t_world_source is None and adaptive_plane_map is None and len(target_points) >= 64:
+        identity = SE3.identity()
+        world_transform = identity.compose(initial_t_source_target)
+        coordinates = _transform_coordinates(np.asarray(target_points, dtype=np.float64),
+                                             world_transform)
+        planes = nearest_voxel_planes(
+            coordinates, plane_map, voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        )
+        return [LidarPointToPlaneObservation(
+            point_lidar_m=point, plane_point_world_m=plane.centroid,
+            plane_normal_world=plane.normal, t_world_ego=identity,
+        ) for point, plane in zip(target_points, planes, strict=True)
+            if plane is not None and plane.normal is not None]
     observations: list[LidarPointToPlaneObservation] = []
     for index, point in enumerate(target_points):
         t_world_source = (

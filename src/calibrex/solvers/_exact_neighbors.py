@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
-from scipy.spatial import cKDTree
+
+if TYPE_CHECKING:
+    from scipy.spatial import cKDTree
 
 FloatArray: TypeAlias = NDArray[np.float64]
 IntArray: TypeAlias = NDArray[np.int64]
@@ -24,10 +26,11 @@ class _ExactNeighbors:
     def __init__(self, reference: FloatArray) -> None:
         self._reference = np.array(reference, dtype=np.float64, order="C", copy=True)
         self._reference.flags.writeable = False
-        self._tree = (
-            cKDTree(self._reference)
-            if len(self._reference) and _tree_safe(self._reference) else None
-        )
+        self._tree: cKDTree | None = None
+        if len(self._reference) and _tree_safe(self._reference):
+            from scipy.spatial import cKDTree
+
+            self._tree = cKDTree(self._reference)
 
     def nearest(self, points: FloatArray) -> tuple[IntArray, FloatArray]:
         indices, squared = self.query(points, 1)

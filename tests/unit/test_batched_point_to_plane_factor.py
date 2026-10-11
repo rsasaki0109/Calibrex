@@ -88,7 +88,8 @@ def test_cached_observation_arrays_follow_replacement_and_transform_changes():
     cached = factor._array_observations
     assert cached is not None and cached[1] is not None
     for field in dataclasses.fields(cached[1]):
-        assert not getattr(cached[1], field.name).flags.writeable
+        if field.name != "shared_pose":
+            assert not getattr(cached[1], field.name).flags.writeable
     factor.observations = scalar.observations = tuple(reversed(factor.observations))
     factor.t_ego_lidar = scalar.t_ego_lidar = SE3((1.0, 2.0, 3.0), (0.2, 0.3, 0.4, 0.5))
     assert _bits(factor.residuals()) == _bits(scalar.residuals())

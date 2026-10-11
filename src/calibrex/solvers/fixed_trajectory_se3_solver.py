@@ -4,11 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from math import isclose, radians, sqrt
+from math import isclose, isfinite, radians, sqrt
 from typing import Literal
 
+import numpy as np
+
 from calibrex.core.geometry import SE3
-from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneFactor
+from calibrex.graph.lidar_point_to_plane import (
+    LidarRigPointToPlaneFactor,
+    _ordered_normal_equations,
+)
 
 SolverStatus = Literal["converged", "max_iterations", "rejected", "insufficient_constraints"]
 RobustLoss = Literal["none", "huber"]
@@ -228,6 +233,20 @@ def _weighted_normal_equations(
     jacobian: Sequence[Sequence[float]],
     options: FixedTrajectorySe3SolverOptions,
 ) -> tuple[list[list[float]], list[float]]:
+    if (
+        len(residuals) >= 64 and len(residuals) == len(jacobian)
+        and all(len(row) == 6 for row in jacobian)
+        and isfinite(options.huber_delta_m)
+    ):
+        rows = np.asarray(jacobian, dtype=np.float64)
+        values = np.asarray(residuals, dtype=np.float64)
+        if np.all(np.isfinite(rows)) and np.all(np.isfinite(values)):
+            weights = np.ones(len(values), dtype=np.float64)
+            if options.robust_loss != "none":
+                absolute = np.abs(values)
+                outside = (absolute > options.huber_delta_m) & (absolute != 0.0)
+                np.divide(options.huber_delta_m, absolute, out=weights, where=outside)
+            return _ordered_normal_equations(rows, values, weights)
     hessian = [[0.0 for _ in range(6)] for _ in range(6)]
     gradient = [0.0 for _ in range(6)]
     for residual, row in zip(residuals, jacobian, strict=True):

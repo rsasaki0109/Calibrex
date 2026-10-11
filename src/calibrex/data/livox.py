@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import struct
 from collections.abc import Iterable
+from copy import copy
 from dataclasses import dataclass, fields, replace
 from itertools import pairwise
 from pathlib import Path
@@ -21,6 +22,7 @@ from calibrex.core.geometry import (
 from calibrex.data.base import StreamSummary, TimestampedRecord
 
 LivoxPoint = tuple[float, float, float, float]
+_PCD_ARRAY_MIN_POINTS = 256
 
 
 @dataclass(frozen=True)
@@ -174,6 +176,37 @@ class _PointAccumulator:
         self.intensity_min = min(self.intensity_min, intensity)
         self.intensity_max = max(self.intensity_max, intensity)
         self.intensity_sum += intensity
+
+    def add_many(self, points: list[LivoxPoint]) -> None:
+        """Accumulate finite arrays with first extrema and input-order additions."""
+
+        if len(points) < 256:
+            for point in points:
+                self.add(point)
+            return
+        values = np.asarray(points, dtype=np.float64)
+        if not np.all(np.isfinite(values)):
+            for point in points:
+                self.add(point)
+            return
+        columns = np.arange(4)
+        lower = values[np.argmin(values, axis=0), columns].tolist()
+        upper = values[np.argmax(values, axis=0), columns].tolist()
+        self.min_x, self.min_y, self.min_z, self.intensity_min = (
+            min(previous, value) for previous, value in zip(
+                (self.min_x, self.min_y, self.min_z, self.intensity_min), lower, strict=True,
+            )
+        )
+        self.max_x, self.max_y, self.max_z, self.intensity_max = (
+            max(previous, value) for previous, value in zip(
+                (self.max_x, self.max_y, self.max_z, self.intensity_max), upper, strict=True,
+            )
+        )
+        with np.errstate(over="ignore", invalid="ignore"):
+            self.intensity_sum = float(np.add.accumulate(np.concatenate((
+                [self.intensity_sum], values[:, 3],
+            )))[-1])
+        self.count += len(points)
 
     @property
     def bounds_min_m(self) -> tuple[float, float, float] | None:
@@ -428,10 +461,18 @@ class LivoxPCDEvaluationContext:
         self._planes: dict[tuple[Path, float], VoxelPlaneMap] = {}
         self._plane_indices: dict[tuple[Path, float], _PlaneIndex | None] = {}
         self._voxels: dict[tuple[Path, float], dict[tuple[int, int, int], _VoxelCentroid]] = {}
+        self._distance_bins: dict[tuple[tuple[float, ...], int], tuple[int, ...]] = {}
 
     def _validate_path(self, path: str | Path) -> None:
         if Path(path).resolve() != self._path:
             raise ValueError("Livox evaluation context belongs to a different dataset")
+
+    def _fork_queries(self) -> LivoxPCDEvaluationContext:
+        # Candidate evaluation has prepared the invariant records, statistics,
+        # source maps and coordinate arrays. A probe owns its transform cache.
+        fork = copy(self)
+        fork._queries = {}
+        return fork
 
     def _read_records(self, path: Path) -> list[LivoxPointRecord]:
         if path in self._errors:
@@ -457,6 +498,43 @@ class LivoxPCDEvaluationContext:
             if captured.resolve() == resolved:
                 return list(self._read_points(captured))
         raise ValueError("PCD file is not part of this Livox evaluation context")
+
+    def read_records(self, path: str | Path) -> list[LivoxPointRecord]:
+        """Return a copy of captured finite points and normals within this run."""
+
+        resolved = Path(path).resolve()
+        for captured in self._files:
+            if captured.resolve() == resolved:
+                return list(self._read_records(captured))
+        raise ValueError("PCD file is not part of this Livox evaluation context")
+
+    def distance_bin_counts(
+        self, path: str | Path, edges_m: Iterable[float], *, sample_limit: int = 4,
+    ) -> list[int] | None:
+        """Count sampled captured points with the scalar closed-last-bin policy."""
+
+        self._validate_path(path)
+        if not self._files:
+            return None
+        edges = tuple(edges_m)
+        key = (edges, sample_limit)
+        if key not in self._distance_bins:
+            counts = [0] * (len(edges) - 1)
+            for captured in self._files[:sample_limit]:
+                try:
+                    points = self._read_points(captured)
+                except (OSError, ValueError, struct.error):
+                    continue
+                for x, y, z, _intensity in points:
+                    distance = math.sqrt(x * x + y * y + z * z)
+                    for index, (lower, upper) in enumerate(pairwise(edges)):
+                        if lower <= distance < upper or (
+                            index == len(counts) - 1 and distance == upper
+                        ):
+                            counts[index] += 1
+                            break
+            self._distance_bins[key] = tuple(counts)
+        return list(self._distance_bins[key])
 
     def _query_coordinates(self, path: Path, transform: SE3 | None) -> NDArray[np.float64]:
         cached = self._queries.get(path)
@@ -565,6 +643,7 @@ def _summarize_livox_pcd(
     sampled_points_by_file: list[list[LivoxPoint]] = []
     malformed_files: list[str] = []
     total = _PointAccumulator()
+    geometry_values: tuple[list[float], list[float], list[float]] = ([], [], [])
     for sample_path in files[:sample_limit]:
         try:
             points = (
@@ -574,11 +653,13 @@ def _summarize_livox_pcd(
         except (ValueError, struct.error) as exc:
             malformed_files.append(f"{sample_path}: {exc}")
             continue
-        sample = _summarize_sample(sample_path, points)
+        sample_geometry = _geometry_values(points)
+        sample = _summarize_sample(sample_path, points, geometry_values=sample_geometry)
         samples.append(sample)
         sampled_points_by_file.append(points)
-        for point in points:
-            total.add(point)
+        total.add_many(points)
+        for combined, sampled in zip(geometry_values, sample_geometry, strict=True):
+            combined.extend(sampled)
 
     if len(sampled_points_by_file) >= 2:
         target_points = sampled_points_by_file[1]
@@ -596,9 +677,8 @@ def _summarize_livox_pcd(
     else:
         pair = None
     status = "scored" if samples else "malformed"
-    sampled_points = [point for points in sampled_points_by_file for point in points]
-    range_min_m, range_max_m, fov_azimuth_deg, fov_elevation_deg = _geometry_coverage(
-        sampled_points
+    range_min_m, range_max_m, fov_azimuth_deg, fov_elevation_deg = _coverage_from_values(
+        geometry_values
     )
     return LivoxPCDDatasetStats(
         status=status,
@@ -885,6 +965,30 @@ def nearest_voxel_plane_match(
     )
 
 
+def nearest_voxel_planes(
+    points: NDArray[np.float64], plane_map: VoxelPlaneMap, *,
+    voxel_size_m: float, correspondence_gate_m: float,
+) -> list[_VoxelPlane | None]:
+    """Return ordered exact matches, using packed occupied neighbors when possible."""
+
+    with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+        cells = np.floor(points / voxel_size_m)
+    index = _prepare_plane_index(plane_map)
+    if (
+        len(points) < 64 or index is None or index.neighborhoods is None
+        or not np.isfinite(cells).all() or np.any(cells < -(2.0**63))
+        or np.any(cells >= 2.0**63)
+    ):
+        return [nearest_voxel_plane(
+            (float(p[0]), float(p[1]), float(p[2])), plane_map,
+            voxel_size_m=voxel_size_m, correspondence_gate_m=correspondence_gate_m,
+        ) for p in points]
+    positions = _packed_plane_positions(points, cells.astype(np.int64), index,
+                                        correspondence_gate_m)
+    ordered = [plane_map[key] for key in sorted(plane_map)]
+    return [ordered[position] if position >= 0 else None for position in positions]
+
+
 def read_livox_binary_pcd(path: str | Path) -> list[LivoxPoint]:
     """Read x/y/z/intensity from a binary float32 PCD file."""
 
@@ -911,6 +1015,14 @@ def read_livox_binary_pcd_records(path: str | Path) -> list[LivoxPointRecord]:
     available = (len(data) - header_end) // point_step
     point_count = min(point_count or available, available)
     normal_indexes = _normal_field_indexes(fields, sizes, types, counts)
+    if (
+        point_count >= _PCD_ARRAY_MIN_POINTS and point_step >= 16
+        and (normal_indexes is None or all(
+            0 <= point_offsets[index] <= point_step - 4 for index in normal_indexes
+        ))
+    ):
+        return _array_pcd_records(data, header_end, point_step, point_count,
+                                  point_offsets, normal_indexes)
     records: list[LivoxPointRecord] = []
     for index in range(point_count):
         base_offset = header_end + index * point_step
@@ -929,6 +1041,42 @@ def read_livox_binary_pcd_records(path: str | Path) -> list[LivoxPointRecord]:
             )
         )
     return records
+
+
+def _array_pcd_records(
+    data: bytes, header_end: int, point_step: int, point_count: int,
+    point_offsets: list[int], normal_indexes: tuple[int, int, int] | None,
+) -> list[LivoxPointRecord]:
+    # The legacy reader takes the first contiguous 16 bytes even if COUNT
+    # describes an unusual first-field layout. Keep that byte interpretation.
+    with np.errstate(invalid="ignore"):
+        coordinates = np.ndarray(
+            (point_count, 4), dtype="<f4", buffer=data, offset=header_end,
+            strides=(point_step, 4),
+        ).astype(np.float64)
+    selected = np.flatnonzero(np.all(np.isfinite(coordinates[:, :3]), axis=1))
+    points = coordinates[selected].tolist()
+    if normal_indexes is None:
+        return [LivoxPointRecord(point=(p[0], p[1], p[2], p[3])) for p in points]
+    with np.errstate(invalid="ignore"):
+        normals = np.column_stack([
+            np.ndarray(
+                (point_count,), dtype="<f4", buffer=data,
+                offset=header_end + point_offsets[index], strides=(point_step,),
+            ) for index in normal_indexes
+        ]).astype(np.float64)[selected]
+    valid = np.all(np.isfinite(normals), axis=1)
+    x, y, z = normals.T
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        lengths = np.sqrt(x * x + y * y + z * z)
+        valid &= lengths != 0.0
+        normalized = (normals / lengths[:, None]).tolist()
+    return [
+        LivoxPointRecord(
+            point=(p[0], p[1], p[2], p[3]),
+            normal_xyz=(n[0], n[1], n[2]) if accepted else None,
+        ) for p, n, accepted in zip(points, normalized, valid, strict=True)
+    ]
 
 
 def _parse_pcd_header(
@@ -1008,11 +1156,15 @@ def _read_point_normal(
     return _normalized3((float(nx), float(ny), float(nz)))
 
 
-def _summarize_sample(path: Path, points: list[LivoxPoint]) -> LivoxPCDSampleStats:
+def _summarize_sample(
+    path: Path, points: list[LivoxPoint], *,
+    geometry_values: tuple[list[float], list[float], list[float]] | None = None,
+) -> LivoxPCDSampleStats:
     accumulator = _PointAccumulator()
-    for point in points:
-        accumulator.add(point)
-    range_min_m, range_max_m, fov_azimuth_deg, fov_elevation_deg = _geometry_coverage(points)
+    accumulator.add_many(points)
+    range_min_m, range_max_m, fov_azimuth_deg, fov_elevation_deg = _coverage_from_values(
+        _geometry_values(points) if geometry_values is None else geometry_values,
+    )
     return LivoxPCDSampleStats(
         path=str(path),
         point_count=accumulator.count,
@@ -1033,6 +1185,12 @@ def _geometry_coverage(
 ) -> tuple[float | None, float | None, float | None, float | None]:
     """Return range and angular coverage for a sampled solid-state cloud."""
 
+    return _coverage_from_values(_geometry_values(points))
+
+
+def _geometry_values(
+    points: list[LivoxPoint],
+) -> tuple[list[float], list[float], list[float]]:
     ranges: list[float] = []
     azimuths_deg: list[float] = []
     elevations_deg: list[float] = []
@@ -1043,6 +1201,13 @@ def _geometry_coverage(
         ranges.append(math.sqrt(horizontal_range * horizontal_range + z * z))
         azimuths_deg.append(math.degrees(math.atan2(y, x)))
         elevations_deg.append(math.degrees(math.atan2(z, horizontal_range)))
+    return ranges, azimuths_deg, elevations_deg
+
+
+def _coverage_from_values(
+    values: tuple[list[float], list[float], list[float]],
+) -> tuple[float | None, float | None, float | None, float | None]:
+    ranges, azimuths_deg, elevations_deg = values
     if not ranges:
         return None, None, None, None
     return (
@@ -1385,15 +1550,15 @@ def _batched_plane_residuals(
     return residuals, len(query_points) - len(residuals)
 
 
-def _packed_plane_residuals(
+def _packed_plane_positions(
     coordinates: NDArray[np.float64], cells: NDArray[np.int64],
     index: _PlaneIndex, gate: float,
-) -> tuple[list[float], int]:
+) -> NDArray[np.int64]:
     neighborhoods = index.neighborhoods
     assert neighborhoods is not None
     inside = np.all((cells >= neighborhoods.lower) & (cells <= neighborhoods.upper), axis=1)
     rows = np.flatnonzero(inside)
-    residuals: list[float] = []
+    matches = np.full(len(coordinates), -1, dtype=np.int64)
     widths, lower = neighborhoods.widths, neighborhoods.lower
     for start in range(0, len(rows), 4096):
         row = rows[start : start + 4096]
@@ -1424,8 +1589,22 @@ def _packed_plane_residuals(
         position = positions[local_rows, selected]
         best = distances[local_rows, selected]
         accepted = (best < math.inf) & ~(best > gate) & index.valid_normal[position]
-        difference = coordinates[row[accepted]] - index.centroids[position[accepted]]
-        normal = index.normals[position[accepted]]
+        matches[row[accepted]] = position[accepted]
+    return matches
+
+
+def _packed_plane_residuals(
+    coordinates: NDArray[np.float64], cells: NDArray[np.int64],
+    index: _PlaneIndex, gate: float,
+) -> tuple[list[float], int]:
+    matches = _packed_plane_positions(coordinates, cells, index, gate)
+    rows = np.flatnonzero(matches >= 0)
+    residuals: list[float] = []
+    for start in range(0, len(rows), 4096):
+        row = rows[start:start + 4096]
+        position = matches[row]
+        difference = coordinates[row] - index.centroids[position]
+        normal = index.normals[position]
         with np.errstate(over="ignore", invalid="ignore"):
             values = np.abs(
                 normal[:, 0] * difference[:, 0] + normal[:, 1] * difference[:, 1]

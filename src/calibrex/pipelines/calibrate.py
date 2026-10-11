@@ -166,7 +166,9 @@ def run_calibration(
     _apply_dataset_initialization(config, result)
     _apply_external_candidate_extrinsics(options.candidate_extrinsics, result)
     _apply_livox_pair_candidate_evidence(config, result, context=livox_context)
-    result.metrics.update(solid_state_metrics_from_inspection(config, inspection, result))
+    result.metrics.update(solid_state_metrics_from_inspection(
+        config, inspection, result, livox_context=livox_context,
+    ))
     if result.solid_state is not None:
         result.run.provenance["solid_state_evaluation_config"] = (
             config.evaluation.solid_state.model_dump(mode="json")
@@ -178,7 +180,9 @@ def run_calibration(
     # Adapters may add holdout/known-bad provenance after the initial metadata
     # pass. Recompute the solid-state metrics so their grades reflect the final
     # result-level evidence rather than only the config declaration.
-    result.metrics.update(solid_state_metrics_from_inspection(config, inspection, result))
+    result.metrics.update(solid_state_metrics_from_inspection(
+        config, inspection, result, livox_context=livox_context,
+    ))
     result.metrics.update(lidar_camera_metrics_from_result(config, result, inspection))
     result.metrics.update(
         lidar_camera_comparison_metrics_from_result(config, result, inspection)
@@ -217,7 +221,9 @@ def _apply_pipeline_adapter(
     if config.pipeline.type == "rgbd_open3d_slac" or config.solver.backend == "open3d_slac":
         adapter_result = Open3DSLACSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_LIDAR_POINT_TO_PLANE_BACKEND:
-        adapter_result = NativeLidarPointToPlaneSolver().solve(config, frame_graph, inspection)
+        adapter_result = NativeLidarPointToPlaneSolver(livox_context=livox_context).solve(
+            config, frame_graph, inspection,
+        )
     elif config.solver.backend == NATIVE_JOINT_SLAC_BACKEND:
         adapter_result = NativeJointSlacSolver().solve(config, frame_graph, inspection)
     elif config.solver.backend == NATIVE_PLANAR_BOARD_BACKEND:
