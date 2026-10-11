@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Planar-board line+plane in the CLI.** The `native_planar_board` backend runs a line+plane row
+  (Zhou et al.) next to the plane, point+plane and Horn rows, on the same seeded capture split. A
+  new adapter, `calibrex.solvers.acfr_board_edges`, turns ACFR's camera and LiDAR board corners
+  (rows 2-5, 8-11) into four boundary lines per capture. It orders each corner loop about its
+  oriented board normal, picks the LiDAR labeling (the board is symmetric under a 180° turn) by
+  edge-direction agreement under the train-split plane-only rotation, and rejects pairings whose
+  edge lengths differ by over 15 %. Every step is recorded per capture. The line+plane solver
+  gained twelve held-out ±5 cm / ±5° controls (`LinePlaneProbe`). On ACFR's 40 VLP-16 captures, all
+  match (6 symmetric) and the row passes its default gates: held-out boundary distance 1.39 cm,
+  direction 1.51°, 12/12 controls. Keeping the source row order instead gives 37 cm. There are
+  nine new `line_plane_*` metrics and the opt-in test `tests/integration/test_acfr_line_plane.py`.
+  No schema change.
 - **Camera-LiDAR check: wider start and solid-state LiDAR.** The edge-alignment rotation search
   also starts from the per-axis maxima of the objective profile (+-8 deg) and keeps that start only
   when more rotation DoFs pass their held-out control and std bound there (on the Hilti exp07

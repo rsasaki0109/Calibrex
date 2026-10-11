@@ -73,11 +73,10 @@ roll/pitch/yaw in the camera frame.
 
 ACFR's 19-row capture contract supplies camera centre/normal at rows 0/1 and
 LiDAR centre/normal at rows 6/7. These are oriented correspondences; their sign
-is preserved and recorded rather than inferred from an estimate. The remaining
-corner rows are not treated as line correspondences: their discrete ordering is
-not declared by the adapter, and a naive ordering produced a clear real-data
-failure. Calibrex records the rows it consumes and does not invent corner
-identities.
+is preserved and recorded rather than inferred from an estimate. The corner
+rows feed only the line+plane row below, through an adapter that declares and
+records how their identities are derived; the source row order is never
+trusted as a correspondence.
 
 ## Independent Horn point-only baseline
 
@@ -112,6 +111,57 @@ apply both signs of ±5 cm x/y/z and ±5° roll/pitch/yaw in the camera frame; a
 control is detected only when held-out RMSE rises by more than 5 mm. The solver
 also has an explicit forward/reverse correspondence symmetry test, as required
 by Horn's coordinate-frame symmetry argument.
+
+## Line+plane row and its adapter-side edge extractor
+
+Zhou, Li and Kaess's line+plane method needs corresponding board boundary
+lines. ACFR's rows 2-5 (camera) and 8-11 (LiDAR) hold the four board corners in
+millimetres; rows 12-18 are not consumed (they appear to hold corner angles,
+LiDAR edge lengths, the range and the capture index). The corners carry no identity, so
+`calibrex.solvers.acfr_board_edges` derives one in three recorded steps:
+
+1. Each corner loop is ordered counter-clockwise about its own oriented board
+   normal. In ACFR's file the camera loop is clockwise and the LiDAR loop
+   counter-clockwise, so their row orders run in opposite directions.
+2. A rectangular board is symmetric under a 180° turn about its normal, and no
+   row says which way round the LiDAR saw it. Among the cyclic shifts of the
+   LiDAR loop, the adapter picks the one whose oriented edge directions agree
+   best with the camera's under a prior rotation. The backend passes the
+   plane-only rotation fitted on the train captures, so no line information
+   enters the prior. The alternatives are 90° or 180° away.
+3. A paired edge whose camera and LiDAR lengths differ by more than 15 % rejects
+   the capture. That is half the 28 % short/long difference of the 610 x 850 mm
+   board, so a 90° mislabeling cannot pass. Rejected captures are listed.
+
+Each boundary line runs through the midpoint of its two corners along the loop
+direction. The native solver fits on the train captures of the same seeded
+split as the other rows (the backend checks that the frame IDs match). It
+reports held-out boundary-distance and boundary-direction RMSE, plane closure
+as a diagnostic, and the rotation and translation spectra. Twelve controls
+apply ±5 cm x/y/z and ±5° roll/pitch/yaw in the camera frame. A control counts
+as detected when held-out boundary distance rises by more than 5 mm or
+direction by more than 0.1°.
+
+On the 40 ACFR captures every corner pair matches; 6 captures take the
+symmetric LiDAR labeling (largest paired edge-length mismatch 5.4 %, smallest
+direction-agreement margin 3.9 of a possible 8). With the default seed-0 split:
+
+| Evidence | Train | Holdout | Gate | Verdict |
+| --- | ---: | ---: | ---: | --- |
+| Boundary-distance RMSE | 0.0126 m | 0.0139 m | ≤ 0.03 m | PASS |
+| Boundary-direction RMSE | 1.413° | 1.509° | ≤ 3.0° | PASS |
+| Plane-normal RMSE | 1.272° | 1.712° | diagnostic | recorded |
+| Plane-offset RMSE | 0.0150 m | 0.0288 m | diagnostic | recorded |
+| Known-bad detectable fraction | — | 12/12 (1.0) | ≥ 0.8 | PASS |
+| Rotation / translation rank, condition | — | 3 / 3, 7.448 | rank 3 | PASS |
+
+Its translation is approximately `[0.0234, -0.1860, -0.0898] m`, 2.07 cm and
+0.26° from the plane-only output; like the other inter-method deltas, this
+stays an ungated WARN diagnostic. The symmetry step is load-bearing: keeping
+the source row order for the 6 symmetric captures raises the held-out
+boundary distance to 0.37 m, far over the gate. The opt-in test
+`tests/integration/test_acfr_line_plane.py` runs both cases on the downloaded
+file.
 
 ## Mathematical contract
 
