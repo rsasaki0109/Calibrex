@@ -157,25 +157,33 @@ def main() -> None:
                 metrics.update(
                     {name: value / args.poses_per_repeat for name, value in spans.items()}
                 )
-        metrics["numerical_parity"] = 1.0
-        trials.append(
-            BenchmarkTrial(
-                method_id="cuda_profile",
-                split_id=str(repeat),
-                status="success",
-                metrics=metrics,
-                runtime_seconds=metrics["instrumented_wall_seconds"],
-                provenance=BenchmarkTrialProvenance(
-                    command=command,
-                    config_sha256=config_digest,
-                    input_sha256=loaded.problem_sha256,
-                    notes=[
-                        f"Execution order: {order}",
+            notes = [f"Execution order: {order}"]
+            if mode == "instrumented":
+                notes.extend(
+                    [
                         f"Kernel calls: {json.dumps(calls, sort_keys=True)}",
-                    ],
+                        "Kernel stream seconds per pose: "
+                        + json.dumps(
+                            {name: value / args.poses_per_repeat for name, value in spans.items()},
+                            sort_keys=True,
+                        ),
+                    ]
+                )
+            trials.append(
+                BenchmarkTrial(
+                    method_id=mode,
+                    split_id=str(repeat),
+                    status="success",
+                    metrics={"wall_seconds": wall / args.poses_per_repeat, "numerical_parity": 1.0},
+                    runtime_seconds=wall / args.poses_per_repeat,
+                    provenance=BenchmarkTrialProvenance(
+                        command=command,
+                        config_sha256=config_digest,
+                        input_sha256=loaded.problem_sha256,
+                        notes=notes,
+                    ),
                 ),
             )
-        )
         print(json.dumps({"repeat": repeat, "mean_seconds_per_pose": metrics}), flush=True)
     root = Path(__file__).resolve().parents[1]
     sources = {
@@ -192,6 +200,7 @@ def main() -> None:
     definition = BenchmarkDefinition(
         benchmark_id="d2d-cuda-stage-profile",
         title="CUDA D2D stream spans and observer overhead",
+        reference_method_id="ordinary",
         protocol=BenchmarkProtocol(
             protocol_id="d2d-cuda-stage-profile/v0.1",
             dataset_id=loaded.problem.dataset_id,
@@ -218,13 +227,14 @@ def main() -> None:
         ),
         methods=[
             BenchmarkMethodDefinition(
-                method_id="cuda_profile",
-                label=projector.identity(),
+                method_id=mode,
+                label=f"{mode}: {projector.identity()}",
                 implementation="calibrex_native",
                 tool_name="Calibrex",
                 tool_version=__version__,
                 source_commit=git_commit(),
             )
+            for mode in ("ordinary", "instrumented")
         ],
         metrics=[
             BenchmarkMetricDefinition(
