@@ -8,7 +8,8 @@ import json
 import math
 import time
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -54,6 +55,7 @@ from calibrex.core.result import (
 )
 from calibrex.data.depth import (
     DepthProviderArtifact,
+    _verify_depth_file_reference,
     verify_depth_provider_files,
 )
 from calibrex.solvers.borer_depth_to_depth_solver import (
@@ -325,14 +327,37 @@ def _fibonacci_sphere_vectors(
     return tuple(unit_scaled)
 
 
-def load_borer_problem(
-    problem_path: str | Path,
-) -> LoadedCameraLidarProblem:
-    """Verify all digests and load depth/LiDAR arrays for native D2D."""
+@dataclass(frozen=True)
+class _BorerProblemArtifacts:
+    path: Path
+    problem: CameraLidarCalibrationProblem
+    problem_digest: str
+    provider: DepthProviderArtifact
+    provider_path: Path
+    provider_digest: str
+
+
+@dataclass
+class _PreparedBorerInputs:
+    loaded: LoadedCameraLidarProblem
+    checkpoint_verification: Future[tuple[str | None, float]] | None = None
+    checkpoint_verification_seconds: float = 0.0
+
+    def complete_verification(self) -> None:
+        """Wait for every deferred input check before constructing an output."""
+
+        if self.checkpoint_verification is not None:
+            issue, seconds = self.checkpoint_verification.result()
+            self.checkpoint_verification_seconds = seconds
+            if issue is not None:
+                raise ValueError("depth provider verification failed: " + issue)
+
+
+def _read_borer_artifacts(problem_path: str | Path) -> _BorerProblemArtifacts:
 
     path = Path(problem_path)
-    problem = load_camera_lidar_problem(path)
-    problem_digest = _required_digest(path)
+    problem_mapping, problem_digest = _read_bound_mapping(path)
+    problem = CameraLidarCalibrationProblem.model_validate(problem_mapping)
     depth_provider_path = _resolve(path.parent, problem.depth_provider_path)
     provider_mapping, depth_digest = _read_bound_mapping(depth_provider_path)
     if depth_digest != problem.depth_provider_sha256:
@@ -341,8 +366,25 @@ def load_borer_problem(
             f"expected {problem.depth_provider_sha256}, observed {depth_digest}"
         )
     provider = DepthProviderArtifact.model_validate(provider_mapping)
+    return _BorerProblemArtifacts(
+        path, problem, problem_digest, provider, depth_provider_path, depth_digest,
+    )
+
+
+def _load_borer_observations(
+    artifacts: _BorerProblemArtifacts, *, defer_checkpoint: bool = False,
+) -> LoadedCameraLidarProblem:
+    path, problem, provider = artifacts.path, artifacts.problem, artifacts.provider
+    depth_provider_path = artifacts.provider_path
+    verification_provider = provider
+    if defer_checkpoint:
+        # Only the independently checked checkpoint is deferred. All provider
+        # images/depth/uncertainty files are still verified before array loading.
+        verification_provider = provider.model_copy(update={
+            "provider": provider.provider.model_copy(update={"checkpoint": None}),
+        })
     provider_issues = verify_depth_provider_files(
-        provider,
+        verification_provider,
         base_path=depth_provider_path.parent,
     )
     if provider_issues:
@@ -399,9 +441,48 @@ def load_borer_problem(
         reference_transform_camera_lidar=(
             problem.reference_transform_camera_lidar.as_se3()
         ),
-        problem_sha256=problem_digest,
-        depth_provider_sha256=depth_digest,
+        problem_sha256=artifacts.problem_digest,
+        depth_provider_sha256=artifacts.provider_digest,
     )
+
+
+def load_borer_problem(problem_path: str | Path) -> LoadedCameraLidarProblem:
+    """Verify all digests and load depth/LiDAR arrays for native D2D."""
+
+    return _load_borer_observations(_read_borer_artifacts(problem_path))
+
+
+@contextmanager
+def _prepare_borer_problem(
+    problem_path: str | Path, *, overlap_checkpoint: bool,
+) -> Iterator[_PreparedBorerInputs]:
+    """Overlap one checkpoint check; successful exit requires its completion.
+
+    Arrays are always decoded from their own digest-verified bytes. Callers
+    must complete verification before constructing a result. No file, digest,
+    loaded array or executor is cached between invocations.
+    """
+
+    artifacts = _read_borer_artifacts(problem_path)
+    checkpoint = artifacts.provider.provider.checkpoint
+    if not overlap_checkpoint or checkpoint is None:
+        yield _PreparedBorerInputs(_load_borer_observations(artifacts))
+        return
+
+    def verify_checkpoint() -> tuple[str | None, float]:
+        started = time.perf_counter()
+        issue = _verify_depth_file_reference(checkpoint, artifacts.provider_path.parent)
+        return issue, time.perf_counter() - started
+
+    with ThreadPoolExecutor(
+        max_workers=1, thread_name_prefix="calibrex-input-verification",
+    ) as pool:
+        future = pool.submit(verify_checkpoint)
+        prepared = _PreparedBorerInputs(
+            _load_borer_observations(artifacts, defer_checkpoint=True), future,
+        )
+        yield prepared
+        prepared.complete_verification()
 
 
 def run_borer_rotation_benchmark(

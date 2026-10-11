@@ -28,7 +28,10 @@ from calibrex.core.result import (
     build_result_provenance,
     load_result,
 )
-from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
+from calibrex.evaluation.borer_rotation_benchmark import (
+    _prepare_borer_problem,
+    _PreparedBorerInputs,
+)
 from calibrex.pipelines.camera_lidar_input_snapshot import CameraLidarSixDofInputSnapshot
 from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthToDepthEvaluation,
@@ -44,7 +47,7 @@ from calibrex.solvers.depth_to_depth_runtime import (
     validate_frame_workers,
 )
 
-SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.3"
+SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.4"
 
 
 def run_camera_lidar_six_dof_estimate(
@@ -57,11 +60,15 @@ def run_camera_lidar_six_dof_estimate(
     initial_result_path: str | Path | None = None,
     holdout_frame_ids: Sequence[str] = (),
     input_snapshot: CameraLidarSixDofInputSnapshot | None = None,
+    overlap_input_verification: bool = True,
     command: Sequence[str],
 ) -> CalibrationResult:
     """Refine the declared prior once; reference values never enter optimization.
 
-    By default all problem/provider file digests are verified before solving.
+    All problem/provider file digests are verified on every ordinary call.
+    The optional checkpoint check overlaps array loading and calculation;
+    completion is required before an output result is constructed or returned.
+    Set overlap_input_verification=False for sequential input verification.
     An explicit input_snapshot reuses its verified immutable arrays; its
     preparation cost is recorded separately from this invocation's timing.
     The problem artifact is still checked on every call. Histogram
@@ -80,10 +87,29 @@ def run_camera_lidar_six_dof_estimate(
     if settings.objective not in ("mutual_information", "normalized_mutual_information"):
         raise ValueError("unsupported six-DoF objective")
     path = Path(problem_path)
-    loaded = (
-        load_borer_problem(path)
-        if input_snapshot is None else input_snapshot._loaded_for_estimate(path)
+    scope = (
+        _prepare_borer_problem(path, overlap_checkpoint=overlap_input_verification)
+        if input_snapshot is None
+        else nullcontext(_PreparedBorerInputs(input_snapshot._loaded_for_estimate(path)))
     )
+    with scope as prepared_inputs:
+        return _run_loaded_six_dof_estimate(
+            path, prepared_inputs=prepared_inputs, started=started,
+            settings=settings, projection_backend=projection_backend,
+            frame_workers=frame_workers, cuda_cache_bytes=cuda_cache_bytes,
+            initial_result_path=initial_result_path, holdout_frame_ids=holdout_frame_ids,
+            input_snapshot=input_snapshot, command=command,
+        )
+
+
+def _run_loaded_six_dof_estimate(
+    path: Path, *, prepared_inputs: _PreparedBorerInputs, started: float,
+    settings: BorerSixDofOptions, projection_backend: ProjectionBackend,
+    frame_workers: int, cuda_cache_bytes: int | None,
+    initial_result_path: str | Path | None, holdout_frame_ids: Sequence[str],
+    input_snapshot: CameraLidarSixDofInputSnapshot | None, command: Sequence[str],
+) -> CalibrationResult:
+    loaded = prepared_inputs.loaded
     problem = loaded.problem
     if settings.rotation_bound_deg > problem.rotation_bound_deg:
         raise ValueError("six-DoF rotation bound exceeds the problem rotation bound")
@@ -132,7 +158,7 @@ def run_camera_lidar_six_dof_estimate(
     if not train:
         raise ValueError("at least one training frame is required")
     settings = replace(settings, d2d=resolve_depth_to_depth_options(train, settings.d2d))
-    inputs_verified_at = time.perf_counter()
+    inputs_ready_at = time.perf_counter()
     projector, identity = create_depth_pair_projector(
         projection_backend,
         loaded.observations,
@@ -162,6 +188,13 @@ def run_camera_lidar_six_dof_estimate(
                 projector=projector, frame_executor=executor,
             )
     evaluated_at = time.perf_counter()
+    prepared_inputs.complete_verification()
+    verification_wait = time.perf_counter() - evaluated_at
+    verification_strategy = (
+        "verified_snapshot" if input_snapshot is not None else
+        "checkpoint_overlap" if prepared_inputs.checkpoint_verification is not None else
+        "sequential"
+    )
     config_payload = {
         "pipeline_version": SIX_DOF_ESTIMATE_VERSION,
         "options": _settings_payload(settings),
@@ -169,6 +202,7 @@ def run_camera_lidar_six_dof_estimate(
         "frame_workers": frame_workers,
         "effective_frame_workers": effective_workers,
         "input_mode": "fresh_files" if input_snapshot is None else "verified_snapshot",
+        "input_verification_strategy": verification_strategy,
         "initial_transform": prior.as_se3().as_dict(),
         "train_frame_ids": [item.frame_id for item in train],
         "holdout_frame_ids": [item.frame_id for item in holdout],
@@ -231,7 +265,13 @@ def run_camera_lidar_six_dof_estimate(
             "input_digests": input_digests,
             "input_verification": (
                 {"mode": "fresh_files", "external_files_reverified": True,
-                 "problem_artifact_reverified": True, "preparation_in_run_timing": True}
+                 "problem_artifact_reverified": True, "preparation_in_run_timing": True,
+                 "strategy": verification_strategy,
+                 "checkpoint_verification_seconds": prepared_inputs.checkpoint_verification_seconds,
+                 "completion_wait_seconds": verification_wait,
+                 "checkpoint_time_overlaps_phases": (
+                     prepared_inputs.checkpoint_verification is not None
+                 )}
                 if input_snapshot is None else input_snapshot.provenance()
             ),
             "dataset_id": problem.dataset_id,
@@ -253,8 +293,10 @@ def run_camera_lidar_six_dof_estimate(
                 final_holdout.as_dict() if final_holdout is not None else None
             ),
             "timing_seconds": {
-                "input_verification_and_loading": inputs_verified_at - started,
-                "backend_preparation": prepared_at - inputs_verified_at,
+                # Input waiting can occur both before and after computation.
+                # Count the final wait once; background wall is diagnostic only.
+                "input_verification_and_loading": inputs_ready_at - started + verification_wait,
+                "backend_preparation": prepared_at - inputs_ready_at,
                 "solve": solved_at - prepared_at,
                 "holdout_evaluation": evaluated_at - solved_at,
             },
