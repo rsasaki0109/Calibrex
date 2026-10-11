@@ -1,0 +1,19 @@
+import cProfile
+import pstats
+import time
+from pathlib import Path
+
+from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+
+started = time.perf_counter()
+profile = cProfile.Profile()
+profile.enable()
+result = run_calibration(
+    'examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml',
+    CalibrationRunOptions(output_dir=Path('outputs/livox-pipeline-profile')),
+)
+profile.disable()
+print('pipeline seconds', time.perf_counter() - started, flush=True)
+profile.dump_stats('outputs/livox-pipeline-profile.prof')
+pstats.Stats(profile).sort_stats('cumtime').print_stats(22)
+print('quality', result.quality.grade, flush=True)

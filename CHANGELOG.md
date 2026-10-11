@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Accelerate Livox candidate and perturbation evaluation with invocation-scoped
+  decoded records, invariant statistics and source planes. Batch exact 27-voxel
+  associations using checked sparse integer keys, and preserve the scalar
+  Hamilton-product ordering in batched coordinate transforms. Keep all input
+  points, controls, support denominators and quality decisions; retain complete
+  public calibration subprocess timings and numerical parity evidence.
+
 - Vectorize native registration voxel centroids, point ICP information matrices
   and batched target-normal PCA, retaining input-order sums and existing numeric
   behavior. Reuse training coordinates and run independent multi-start trials

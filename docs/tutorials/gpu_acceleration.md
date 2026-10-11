@@ -567,6 +567,28 @@ The [registration preparation evidence](../assets/registration_preparation/READM
 retains every timing, range, full payload and exploratory attempt, including
 an early control-metadata mismatch and unchanged iteration-limit statuses.
 
+## Complete public Livox calibration workload
+
+Livox candidate and perturbation evaluation now reuses decoded records,
+invariant statistics and source planes within one invocation. Exact 27-voxel
+associations use bounded batches and checked sparse integer keys; coordinate
+transforms preserve the original Hamilton-product arithmetic. New invocations
+read fresh inputs. No GPU or manual tuning is required.
+
+Five fresh-process comparisons on the official public Horizon pair measure
+**53.535 → 14.245 s wall medians (3.76x)**, including startup, dataset inspection,
+all 24 controls, native point/plane ICP, Open3D GICP and report/artifact saves.
+The public calibration API itself measures **50.854 → 11.611 s (4.38x)**;
+its timing is a subset of wall. Workers call that API, so Calibrex CLI argument
+dispatch is excluded. All ten complete normalized result payloads match exactly,
+including unchanged failed quality and inconclusive comparison decisions.
+
+See the [complete Livox evidence](../assets/livox_evaluation/README.md) for every
+timing, shared-host range, source binding, numerical payload and reproduction
+command. It also retains ten intermediate and two pilot executions. These
+single-pair timings do not establish independent calibration accuracy, and
+must not be multiplied by earlier ICP-only ratios.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
